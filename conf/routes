@@ -130,6 +130,7 @@ GET     /gtresolution/labelData/:labelId                     @controllers.Ground
 POST    /gtresolution/results/:clustSessionId                @controllers.GroundTruthResolutionController.postGroundTruthResults(clustSessionId: Int)
 GET     /gtlabels                                            @controllers.GTLabelController.getAllGTLabels
 GET     /labelsForGtResolution/:sessionId                    @controllers.ClusteringSessionController.getLabelsForGtResolution(sessionId)
+GET     /labelsForGTFixSeverity/:conditionId                 @controllers.GroundTruthResolutionController.getLabelsForGTSeverityFix(conditionId)
 
 # Clustering session end points
 GET     /clusteringsessions                                  @controllers.ClusteringSessionController.getClusteringSessionsWithoutDeleted

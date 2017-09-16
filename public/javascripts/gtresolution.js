@@ -64,6 +64,7 @@ $(document).ready(function () {
 
     //stores information for each of the status
     var statusInfo = {
+        // Not yet dealt with, no status
         null: {
             size: new google.maps.Size(18, 18),
             path: "/ground_truth/gt_",
@@ -74,7 +75,8 @@ $(document).ready(function () {
                 strokeWeight: 0.5,
                 status: null,
                 zIndex: 100}
-        }, //not yet dealt with, no status
+        },
+        // Filter labels are dealt with in low disagreement round
         "Filter": {
             size: new google.maps.Size(21, 21),
             path: "/ground_truth/gt_commit_",
@@ -86,7 +88,21 @@ $(document).ready(function () {
                 status: "Ground_Truth",
                 zIndex: 200
             }
-        }, //filter labels are dealth with in low disgareement round
+        },
+        // When only one person placed GT labels (dealt with in modified low disagreement round)
+        "One Turker": {
+            size: new google.maps.Size(21, 21),
+            path: "/ground_truth/gt_commit_",
+            markerOptions: {
+                strokeColor: "#ffe500",
+                strokeOpacity: 1,
+                fillOpacity: 0.8,
+                strokeWeight: 4,
+                status: "Ground_Truth",
+                zIndex: 200
+            }
+        },
+        // Labels in ground truth
         "Ground_Truth": {
             size: new google.maps.Size(21, 21),
             path: "/ground_truth/gt_commit_",
@@ -98,7 +114,8 @@ $(document).ready(function () {
                 status: "Ground_Truth",
                 zIndex: 200
             }
-        }, //labels in ground truth
+        },
+        // Labels designated not in ground truth
         "No_Ground_Truth": {
             size: new google.maps.Size(18, 18),
             path: "/ground_truth/gt_exclude_",
@@ -110,14 +127,14 @@ $(document).ready(function () {
                 zIndex: 50,
                 fillOpacity: 0.2
             }
-        } //labels designated not in ground truth
+        }
     };
 
 
     //initialize all markers on the side map
     function initializeAllMapMarkers() {
         //array to store all markers to be shown
-        var features = []
+        var features = [];
         //iterate through and add remaining labels
         for (var clusterId in all_labels) {
             for (j = 0; j < all_labels[clusterId].length; j++) {
@@ -195,7 +212,7 @@ $(document).ready(function () {
                 //test whether label is present within a view
                 var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.cluster_id === marker.meta.cluster_id && panoramaContainer.pano_id === marker.meta.pano_id);
                 //if so, highlight that view with a border
-                if (pano != null) {
+                if (pano !== null) {
                     pano.view.style.borderStyle = "solid";
                 }
                 //emphasize label on map by highlighting pink
@@ -206,7 +223,7 @@ $(document).ready(function () {
                 //test whether label is present within a view
                 var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.cluster_id === marker.meta.cluster_id && panoramaContainer.pano_id === marker.meta.pano_id);
                 //if so, highlight that view with a border
-                if (pano != null) {
+                if (pano !== null) {
                     pano.view.style.borderStyle = "hidden";
                 }
                 //deemphasize label by removing the pink highlight
@@ -251,33 +268,49 @@ $(document).ready(function () {
             }
         }
         return 0;
-    }//end of calculateNextOpenPanorama
+    }// End of calculateNextOpenPanorama
 
-    //show a label in the panorama
+    // Show a label in the panorama
     function showLabel(label, pano, status) {
-        //set pano variables to match added label
+        // Set pano variables to match added label
         pano.cluster_id = label.cluster_id;
         pano.pano_id = label.pano_id;
-        //update info bar bove panorama
+        // Update info bar above panorama
         if (pano.info.innerHTML === "Empty") {
             if (status === "Filter") {
-                pano.info.innerHTML = "<b>Cluster ID: </b>" + label.cluster_id + ' | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';
+                pano.info.innerHTML =
+                    "<b>Cluster ID: </b>" + label.cluster_id + ' | ' +
+                    '<b>Toggle Visible: </b>' +
+                    '<a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '">' +
+                        '<span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span>' +
+                    '</a>';
+            } else if (status === "One Turker") {
+                pano.info.innerHTML =
+                    '<b>Toggle Visible: </b>' +
+                    '<a href=\"javascript:;\" id=\"toggle-visible-' + label.pano_id + label.cluster_id + '\">' +
+                        '<span class=\"glyphicon glyphicon-eye-open\" style=\"color:#000000; font-size:14px\"></span>' +
+                    '</a>';
             } else {
-                pano.info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + ' | <b>Labels Shown: </b> <span class="labelCount">' + pano.labels.length + '</span> | <b>Toggle Visible: </b><a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '"><span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span></a>';
+                pano.info.innerHTML = "<b>Cluster ID: </b> " + label.cluster_id + ' | ' +
+                    '<b>Labels Shown: </b> <span class="labelCount">' + pano.labels.length + '</span> | ' +
+                    '<b>Toggle Visible: </b>' +
+                    '<a href="javascript:;" id="toggle-visible-' + label.pano_id + label.cluster_id + '">' +
+                        '<span class="glyphicon glyphicon-eye-open" style="color:#000000; font-size:14px"></span>' +
+                    '</a>';
             }
         }
-        //if this toggle button has already been initialized, do not re-initialize
+        // If this toggle button has already been initialized, do not re-initialize
         if (initializedToggleButtons.indexOf(label.pano_id + label.cluster_id) < 0) {
             initializedToggleButtons.push(label.pano_id + label.cluster_id);
             //Toggle visibility of label markers (hide and show)
             $(document).on("click", '#toggle-visible-' + label.pano_id + label.cluster_id, function () {
                 if (pano.labelMarkers[0].getIcon() === null) {
-                    //if hidden, show all labels in the GSV
+                    // If hidden, show all labels in the GSV
                     for (var i = 0; i < pano.labelMarkers.length; i++) {
                         var marker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
                         var type = pano.labels[i].label_type;
                         if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
-                        if (marker != null) {
+                        if (marker !== null) {
                             pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + type + ".png?size=200");
                         }
                         else {
@@ -285,27 +318,29 @@ $(document).ready(function () {
                         }
                     }
                 } else {
-                    //if showing, hide all labels in the GSV
+                    // If showing, hide all labels in the GSV
                     for (var i = 0; i < pano.labelMarkers.length; i++) {
                         pano.labelMarkers[i].setIcon(null);
                     }
                 }
             });
         }
-        //draw label, return POV focused on that issue
+        // Draw label, return POV focused on that issue
         var pov = renderLabel(label, pano, status);
-        //display the GSV number on the map label
-        var markerLabel = mapLabels.find(mkr => mkr.id === label.label_id);
-        markerLabel.setOptions({
-            visible: true,
-            label: {text: (pano.number).toString(), fontWeight: 'bold', fontSize: '12px'}
-        });
-        //update selected panorama with pano, pov, and zoom
+        // Display the GSV number on the map label, unless we are just fixing severity
+        if (status !== "One Turker") {
+            var markerLabel = mapLabels.find(mkr => mkr.id === label.label_id);
+            markerLabel.setOptions({
+                visible: true,
+                label: {text: (pano.number).toString(), fontWeight: 'bold', fontSize: '12px'}
+            });
+        }
+        // Update selected panorama with pano, pov, and zoom
         var toChange = pano.gsv_panorama;
         toChange.setPano(label.pano_id);
         toChange.setPov(pov);
         toChange.setZoom(3);
-        //flash on top of GSV, prevent user from clicking during rendering
+        // Flash on top of GSV, prevent user from clicking during rendering
         $('#pano' + (pano.number) + '-holder').prepend(
             '<div class="loading" style="width:100%; height: 115%; z-index:5;position:absolute;background-color:rgba(255, 255, 255, 0.67)">' +
             '<p style="text-align:center;vertical-align:center;position:relative;top:50%;height:90%"></p>' +
@@ -313,13 +348,13 @@ $(document).ready(function () {
             $(this).remove();
         });
         nextOpenView = calculateNextOpenPanorama();
-    }//end of showLabel
+    }// End of showLabel
 
-    //draw a label in the GSV
+    // Draw a label in the GSV
     function renderLabel(label, pano, status) {
-        // get label placement based on x/y
+        // Get label placement based on x/y
         var labelPosition = mapXYtoPov(label.sv_canvas_x, label.sv_canvas_y, label.canvas_width, label.canvas_height, label.zoom, label.heading, label.pitch);
-        //create a marker for the label in the panorama
+        // Create a marker for the label in the panorama
         var id = "label-id-" + label.label_id;
         var size = statusInfo[status].size;
         var type = label.label_type;
@@ -339,67 +374,67 @@ $(document).ready(function () {
         var markerIndex = pano.labelMarkers.length - 1;
         //CLICK
         google.maps.event.addListener(pano.labelMarkers[markerIndex], 'click', function () {
-            //bring label to the front
+            // Bring label to the front
             maxZIndex++;
             pano.labelMarkers[markerIndex].setOptions({zIndex: maxZIndex});
-            //hide all other popovers
+            // Hide all other popovers
             for (var i = 0; i < pano.labelMarkers.length; i++) {
-                if (i != markerIndex) {
+                if (i !== markerIndex) {
                     $('#' + pano.labelMarkers[i].getId()).popover('hide');
                     var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
                     closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
                     closeMarker.clicked= false;
                 }
             }
-            //empasize/deemphasize corresponding label on map
+            // Empasize/deemphasize corresponding label on map
             var marker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
             if (marker.clicked) {
                 marker.setOptions({fillColor: colorMapping[marker.meta.label_type].fillStyle}); marker.clicked = false
             } else {marker.setOptions({fillColor: '#ff38fb'}); marker.clicked = true;}
-            //create and open popover for label
+            // Create and open popover for label
             createPopover(pano, label, status);
         });
 
-        //CHANGE IN POV
+        // CHANGE IN POV
         google.maps.event.addListener(pano.gsv_panorama, 'pov_changed', function () {
-            // Popover follows marker when POV is changed
+            // Popover follows marker when POV is changed (no need to update if we are just doing severity update)
             createPopover(pano, label, status);
             $("#" + id).popover('hide');
-            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
-            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
-            closeMarker.clicked= false;
+            if (status !== "One Turker") {
+                var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === label.label_id);
+                closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+                closeMarker.clicked = false;
+            }
         });
-        //return POV focused on the placed marker
+        // Return POV focused on the placed marker
         return {heading: labelPosition.heading, pitch: labelPosition.pitch};
-    }//end of renderLabel
+    }// End of renderLabel
 
     // Create popover for marker
     function createPopover(pano, data, status) {
         if (status === "Filter") {
             return;
-        } //do not give second round labels popovers
+        } // Do not give second round labels popovers
         var labelIndex = pano.labels.findIndex(lbl => lbl.label_id === data.label_id);
         var markerElement = $("#label-id-" + data.label_id);
 
-        //create popup
-        //ground truth yes/no buttons and send to back button are common to all label types
+        // Create popup
+        // Ground truth yes/no buttons and send to back button are common to all label types
         var popupButtonHtml = 'Ground Truth: ' +
             '<input type="button" id="commit' + data.label_id + '" style="margin-top:1px" value="Yes"/>' +
             '<input type="button" id="noCommit' + data.label_id + '" style="margin-top:4px" value="No"/>' +
             '<input type="button" id="sendToBack' + data.label_id + '" style="margin-top:4px; margin-left:8px" value="Send to Back"/>';
 
-        // labeler name is common to all label types as well
+        // Labeler name is common to all label types as well
         var labelDescriptors = '<p style="text-align:center; margin-bottom:2px">' +
                                '<b>Labeler:</b>&nbsp;' + data.turker_id;
 
-        // TODO add comments for this section
-        // TODO look up a better way to do this than .indexOf
-        // for the label types with gray icons, include name of label type to distinguish between them
+        // For the label types with gray icons, include name of label type to distinguish between them
         if (['Other', 'Occlusion', 'NoSidewalk'].indexOf(data.label_type) >= 0) {
             labelDescriptors += ', <b>Label Type:</b>&nbsp;' + data.label_type;
         }
 
-        // for occlusion and no sidewalk label types, there is no severity/temp popup, so don't try to display it
+        // For occlusion and no sidewalk label types, there is no severity/temp popup, so don't try to display it
         if (['Occlusion', 'NoSidewalk'].indexOf(data.label_type) < 0) {
             labelDescriptors += ', <b>Severity:</b>&nbsp;' + data.severity +
                                 ', <b>Temporary:</b>&nbsp;' + data.temporary;
@@ -415,7 +450,7 @@ $(document).ready(function () {
             id: "#popover-" + data.label_id
         });
 
-        //clicking Yes for GT calls yesGroundTruth and opens severity rating popup (if that label type uses severity)
+        // Clicking Yes for GT calls yesGroundTruth and opens severity rating popup (if that label type uses severity)
         $(document).on("click", '.popover #commit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
             yesGroundTruth(data);
@@ -423,7 +458,7 @@ $(document).ready(function () {
                 changeSeverityPopover(pano, data, status);
             }
         });
-        //clicking no for ground truth hides popover and calls noGroundTruth
+        // Clicking no for ground truth hides popover and calls noGroundTruth
         $(document).on("click", '.popover #noCommit' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
             var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
@@ -431,7 +466,7 @@ $(document).ready(function () {
             closeMarker.clicked= false;
             noGroundTruth(data);
         });
-        //clicking send to back calculates the minimum zIndex of the labels within the panorama, and sends the current label behind that
+        // Clicking send to back calculates the minimum zIndex of the labels within the panorama, and sends the current label behind that
         $(document).on("click", '.popover #sendToBack' + data.label_id, function () {
             $("#label-id-" + data.label_id).popover('hide');
             var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
@@ -444,13 +479,13 @@ $(document).ready(function () {
             minZ--;
             pano.labelMarkers[labelIndex].setOptions({zIndex: minZ});
         });
-    }//end of createPopover
+    }// End of createPopover
 
     // TODO make severity selection mandatory
     function changeSeverityPopover(pano, data, status) {
       var labelIndex = pano.labels.findIndex(lbl => lbl.label_id === data.label_id);
       var markerElement = $("#label-id-" + data.label_id);
-      //create popup
+      // Create popup
       markerElement.popover('destroy');
       markerElement.popover({
           placement: 'top',
@@ -472,7 +507,7 @@ $(document).ready(function () {
       var marker = mapMarkers.find(mkr => mkr.meta.label_id === data.label_id);
       var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === data.label_id);
       $(document).on("click", '.popover #updateCommit' + data.label_id, function () {
-        //update severity and temporary
+        // Update severity and temporary
         var newSeverity = parseInt($(".popover #changeSeverity" + data.label_id).val());
         if(newSeverity = "none") {
             newSeverity = data.severity;
@@ -492,7 +527,7 @@ $(document).ready(function () {
 
     }
 
-    //update counters at bottom of page
+    // Updates counters at bottom of page
     function updateCounters() {
         document.getElementById("gtCounter").innerHTML = "DESIGNATED GROUND TRUTH: " + ground_truth_labels.length;
         document.getElementById("notGtCounter").innerHTML = "DESIGNATED NOT GROUND TRUTH: " + eliminated_labels.length;
@@ -501,11 +536,22 @@ $(document).ready(function () {
             remaining += all_labels[clusterId].length;
         }
         document.getElementById("remainingCounter").innerHTML = "REMAINING LABELS: " + remaining;
-    }//end of updateCounters
+    }// End of updateCounters
 
-    //place this commit in ground truth
+    // Updates counters at bottom of page (when fixing severity)
+    function updateCountersForOneLabeler(numInvestigated) {
+        document.getElementById("gtCounter").innerHTML =
+            "DESIGNATED GROUND TRUTH: " + (ground_truth_labels.length - toInvestigate.length + numInvestigated);
+        document.getElementById("notGtCounter").innerHTML =
+            "DESIGNATED NOT GROUND TRUTH: " + 0;
+        document.getElementById("remainingCounter").innerHTML =
+            "REMAINING LABELS: " + (toInvestigate.length - numInvestigated);
+
+    }
+
+    // Places this commit in ground truth
     function yesGroundTruth(commit) {
-        //locate panorama and label
+        // Locate panorama and label
         var labelIndex = -1, pano = -1;
         for (i = 0; i < panoramaContainers.length; i++) {
             if (panoramaContainers[i].cluster_id === commit.cluster_id && panoramaContainers[i].pano_id === commit.pano_id) {
@@ -514,7 +560,7 @@ $(document).ready(function () {
                 break;
             }
         }
-        //update visuals
+        // Update visuals
         var type = commit.label_type;
         if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
         panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_commit_" + type + ".png?size=200");
@@ -523,30 +569,30 @@ $(document).ready(function () {
             className: "Ground_Truth"
         });
         var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id);
-        //locate label within structure of storage arrays
+        // Locate label within structure of storage arrays
         var index;
-        //if label was in not ground truth
+        // If label was in not ground truth
         if (marker.status === "No_Ground_Truth") {
             index = eliminated_labels.findIndex(i => i.label_id === commit.label_id);
             eliminated_labels.splice(index, 1);
             ground_truth_labels.push(commit);
         }
-        //if label was not yet dealt with
+        // If label was not yet dealt with
         else if (marker.status === null) {
             index = all_labels[commit.cluster_id].findIndex(i => i.label_id === commit.label_id);
             all_labels[commit.cluster_id].splice(index, 1);
             ground_truth_labels.push(commit);
         }
-        //transfer label
-        //update the label counts
+        // Transfer label
+        // Update the label counts
         updateCounters();
-        //style marker
+        // Style marker
         marker.setOptions(statusInfo["Ground_Truth"].markerOptions);
-    }//end of yesGroundTruth
+    }// End of yesGroundTruth
 
-    //this commit will not go in ground truth
+    // This commit will not go in ground truth
     function noGroundTruth(commit) {
-        //locate panorama and label
+        // Locate panorama and label
         var labelIndex = -1, pano = -1;
         for (i = 0; i < panoramaContainers.length; i++) {
             if (panoramaContainers[i].cluster_id === commit.cluster_id && panoramaContainers[i].pano_id === commit.pano_id) {
@@ -555,7 +601,7 @@ $(document).ready(function () {
                 break;
             }
         }
-        //update visuals
+        // Update visuals
         var type = commit.label_type;
         if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
         panoramaContainers[pano].labelMarkers[labelIndex].setIcon("assets/javascripts/SVLabel/img/ground_truth/gt_exclude_" + type + ".png?size=200");
@@ -564,67 +610,70 @@ $(document).ready(function () {
             className: "No_Ground_Truth"
         });
         var marker = mapMarkers.find(mkr => mkr.meta.label_id === commit.label_id);
-        //locate label within structure of storage arrays
+        // Locate label within structure of storage arrays
         var index;
-        //if label was in ground truth
+        // If label was in ground truth
         if (marker.status === "Ground_Truth") {
             index = ground_truth_labels.findIndex(i => i.label_id === commit.label_id);
             ground_truth_labels.splice(index, 1);
             eliminated_labels.push(commit);
         }
-        //if label was not yet dealt with
+        // If label was not yet dealt with
         else if (marker.status === null) {
             index = all_labels[commit.cluster_id].findIndex(i => i.label_id === commit.label_id);
             all_labels[commit.cluster_id].splice(index, 1);
             eliminated_labels.push(commit);
         }
-        //transfer label
-        //update the label counts
+        // Transfer label
+        // Update the label counts
         updateCounters();
-        //style marker
+        // Style marker
         marker.setOptions(statusInfo["No_Ground_Truth"].markerOptions);
-    }//end of noGroundTruth
+    }// End of noGroundTruth
 
-    //clear a specific GSV
-    function clearCanvas(index) {
+    // Clear a specific GSV, optionally clearing labels from map as well.
+    function clearCanvas(index, clearMap) {
         var panoramaContainer = panoramaContainers[index];
-        //iterate through labels in the panorama
+        // Iterate through labels in the panorama
         for (i = 0; i < panoramaContainer.labelMarkers.length; i++) {
             var markerLabel = panoramaContainer.labelMarkers[i];
             var labelId = panoramaContainer.labels[i].label_id;
-            //hide popover
+            // Hide popover
             $('#' + markerLabel.getId()).popover('hide');
-            var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === labelId);
-            closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
-            closeMarker.clicked= false;
-            //remove view number label from map marker
-            var mLabel = mapLabels.find(mkr => mkr.id === labelId);
-            if (mLabel != null) {
-                mLabel.setOptions({visible: false});
+
+            if (clearMap) {
+                var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === labelId);
+                closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
+                closeMarker.clicked = false;
+                //remove view number label from map marker
+                var mLabel = mapLabels.find(mkr => mkr.id === labelId);
+                if (mLabel !== null) {
+                    mLabel.setOptions({visible: false});
+                }
+                // Remove marker from GSV
+                markerLabel.setMap(null);
             }
-            //remove marker from GSV
-            markerLabel.setMap(null);
         }
-        //reset all varaibles associated with the GSV
+        // Reset all varaibles associated with the GSV
         panoramaContainer.info.innerHTML = "Empty";
         panoramaContainer.view.style.borderStyle = "hidden";
         panoramaContainer.labels = [];
         panoramaContainer.labelMarkers = [];
-        //recalculate next open view
+        // Recalculate next open view
         nextOpenView = calculateNextOpenPanorama();
-        //clear all listeners
+        // Clear all listeners
         google.maps.event.clearListeners(panoramaContainers[index].gsv_panorama, 'pov_changed');
-    }//end of clearCanvas
+    }// End of clearCanvas
 
-    //add all labels in a cluster to the panoramas
+    // Add all labels in a cluster to the panoramas
     function addClusterToPanos(cluster) {
-        //clear all Canvases
+        // Clear all canvases
         for (var p = 0; p < 4; p++) {
-            clearCanvas(p);
+            clearCanvas(p, true);
         }
-        //for every label in the cluster
+        // For every label in the cluster
         for (var i = 0; i < cluster.length; i++) {
-            //testWhether the cluster/pano combination is already up
+            // TestWhether the cluster/pano combination is already up
             var toShow = cluster[i];
             var marker = mapMarkers.find(mkr => mkr.meta.label_id === toShow.label_id);
             var panoIndex = -1;
@@ -633,31 +682,37 @@ $(document).ready(function () {
                     panoIndex = j;
                 }
             }
-            // if the cluster/pano is already up
+            // If the cluster/pano is already up
             if (panoIndex >= 0) {
-                //add label and show label in that view
+                // Add label and show label in that view
                 panoramaContainers[panoIndex].labels.push(marker.meta);
                 showLabel(marker.meta, panoramaContainers[panoIndex], marker.status);
             } else {
-                //clear, add and show label in next view
+                // Clear, add and show label in next view
                 $('#clear' + (nextOpenView + 1)).trigger('click');
                 panoramaContainers[nextOpenView].labels.push(marker.meta);
                 showLabel(marker.meta, panoramaContainers[nextOpenView], marker.status);
             }
         }
         var counts = document.getElementsByClassName("labelCount");
-        //focus views in between headings of labels
+        // Focus views in between headings of labels
         for (var p = 0; p < 4; p++) {
             var pano = panoramaContainers[p];
             var count = pano.labels.length;
             var headingSum = 0.0;
             var pitchSum = 0.0;
             for (var l = 0; l < count; l++) {
-                var hdng = mapXYtoPov(pano.labels[l].sv_canvas_x, pano.labels[l].sv_canvas_y, pano.labels[l].canvas_width, pano.labels[l].canvas_height, pano.labels[l].zoom, pano.labels[l].heading, pano.labels[l].pitch).heading;
+                var hdng = mapXYtoPov(
+                    pano.labels[l].sv_canvas_x, pano.labels[l].sv_canvas_y,
+                    pano.labels[l].canvas_width, pano.labels[l].canvas_height,
+                    pano.labels[l].zoom, pano.labels[l].heading, pano.labels[l].pitch).heading;
                 if (hdng < 0) {
                     hdng = 360.0 + hdng;
                 }
-                var ptch = mapXYtoPov(pano.labels[l].sv_canvas_x, pano.labels[l].sv_canvas_y, pano.labels[l].canvas_width, pano.labels[l].canvas_height, pano.labels[l].zoom, pano.labels[l].heading, pano.labels[l].pitch).pitch;
+                var ptch = mapXYtoPov(
+                    pano.labels[l].sv_canvas_x, pano.labels[l].sv_canvas_y,
+                    pano.labels[l].canvas_width, pano.labels[l].canvas_height,
+                    pano.labels[l].zoom, pano.labels[l].heading, pano.labels[l].pitch).pitch;
                 headingSum += hdng;
                 pitchSum += ptch;
             }
@@ -670,11 +725,11 @@ $(document).ready(function () {
             }
         }
         nextOpenView = calculateNextOpenPanorama();
-    }//end of addClusterToPanos
+    }// End of addClusterToPanos
 
-    //next and previous button functionality, direction -1 indicates previous, direction 1 indicates next
+    // Mext and previous button functionality, direction -1 indicates previous, direction 1 indicates next
     function transitionDisagreement(direction) {
-        //update currentClusterIndex
+        // Update currentClusterIndex
         if (direction > 0) {
             currentClusterIndex = (currentClusterIndex + direction) % cluster_id_list.length;
         } else {
@@ -682,13 +737,13 @@ $(document).ready(function () {
             if (currentClusterIndex < 0) { currentClusterIndex = cluster_id_list.length - 1; }
         }
         var clusterId = cluster_id_list[currentClusterIndex];
-        //if there are still unresolved labels in that cluster, display the cluster
+        // If there are still unresolved labels in that cluster, display the cluster
         if (all_labels[clusterId].length > 0) {
             currentLabel = all_labels[clusterId][0];
             currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
             refocusView(map);
             var toDisplay = all_labels[clusterId].slice();
-            //include labels in the cluster that have already been dealt with
+            // Include labels in the cluster that have already been dealt with
             for (j = 0; j < ground_truth_labels.length; j++) {
                 if (ground_truth_labels[j].cluster_id === parseInt(clusterId)) {
                     toDisplay.unshift(ground_truth_labels[j]);
@@ -702,25 +757,25 @@ $(document).ready(function () {
             addClusterToPanos(toDisplay);
             map.setZoom(21);
         }
-        //if there are no unresolved labels yet, alert user
+        // If there are no unresolved labels yet, alert user
         else if (document.getElementById("remainingCounter").innerHTML === "REMAINING LABELS: " + 0) {
             alert("All Labels Complete: Submission Allowed");
             document.getElementById("hiddenColumn").style.display = "inline-block";
         }
-        //otherwise, go to next cluster
+        // Otherwise, go to next cluster
         else {
             transitionDisagreement(direction);
         }
-    }//end of transitionDisagreement
+    }// End of transitionDisagreement
 
     //focus view on current label
     function refocusView(map) {
         map.setZoom(21);
         map.setCenter(currentCoordinates);
-    }//end refocusView
+    }// End refocusView
 
 
-    //convert x and y coordinates to place panomarker in GSV
+    // Converts x and y coordinates to place panomarker in GSV
     function mapXYtoPov(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch) {
         function sgn(x) {
             return x >= 0 ? 1 : -1;
@@ -760,45 +815,58 @@ $(document).ready(function () {
             heading: h * 180.0 / PI,
             pitch: p * 180.0 / PI
         };
-    }//end mapXYtoPov
+    }// End mapXYtoPov
 
-    //automatic cluster filtering
+    // Adds any labels that have severity directly to ground truth, and marks any that have null severity to be updated.
+    function filterSingleLabelsHavingSeverity(labels) {
+        for (var i = 0; i < labels.length; i++) {
+            var label = labels[i];
+            ground_truth_labels.push(label);
+            // If label has a null severity, mark it so that severity can be added.
+            if (!label.severity && ['Occlusion', 'NoSidewalk'].indexOf(label.label_type) < 0) {
+                toInvestigate.push(label);
+            }
+        }
+        return labels;
+    }
+
+    // Adds any labels where all GT labelers agree on severity and temporariness directly to ground truth.
     function filterClusters(data) {
         data = _.groupBy(data, "cluster_id");
          cluster_id_list = Object.keys(data);
-        //iterate through and filter out clusters that are agreed upon
+        // Iterate through and filter out clusters that are agreed upon
         for (var clusterId in data) {
             var cluster_data = data[clusterId];
-            //if there are 3 labels in the cluster, keep looking
+            // If there are 3 labels in the cluster, keep looking
             if (cluster_data.length === 3) {
-                //check if all labelers are different
+                // Check if all labelers are different
                 if (!(cluster_data[0].turker_id === cluster_data[1].turker_id ||
                       cluster_data[0].turker_id === cluster_data[2].turker_id ||
                       cluster_data[1].turker_id === cluster_data[2].turker_id)) {
-                    //check if label type even has severity/temporariness attributes
+                    // Check if label type even has severity/temporariness attributes
                     var noInfoLabel = (cluster_data[0].label_type === cluster_data[1].label_type &&
                                        cluster_data[0].label_type === cluster_data[2].label_type) &&
                                       ['Occlusion','NoSidewalk'].indexOf(cluster_data[0].label_type) >= 0;
-                    //check if severities are all the same
+                    // Check if severities are all the same
                     var sameSeverity = noInfoLabel ||
                                        (!(cluster_data[0].severity === null &&
                                           cluster_data[1].severity === null &&
                                           cluster_data[2].severity === null) &&
                                          (cluster_data[0].severity === cluster_data[1].severity &&
                                           cluster_data[0].severity === cluster_data[2].severity));
-                    //check if temporariness are all the same
+                    // Check if temporariness are all the same
                     var sameTemp = noInfoLabel ||
                                    (cluster_data[0].temporary === cluster_data[1].temporary &&
                                     cluster_data[0].temporary === cluster_data[2].temporary);
-                    //calculate middle label
+                    // Calculate middle label
                     middle = chooseMiddle(cluster_data);
                     if (!(sameSeverity && sameTemp)) {
                         var label = cluster_data[middle];
                         var cluster = cluster_data.slice();
                         toInvestigate.push({data: cluster, label: label, sev: sameSeverity, temp: sameTemp, chosen: middle});
                     }
-                    //add middle label to ground_truth labels, other two to eliminated_labels
-                    //map markers' style and status will update accordingly
+                    // Add middle label to ground_truth labels, other two to eliminated_labels
+                    // Map markers' style and status will update accordingly
                     ground_truth_labels.push(cluster_data[middle]);
                     cluster_data.splice(middle, 1);
                     for (var i = 0; i < cluster_data.length; i) {
@@ -809,16 +877,15 @@ $(document).ready(function () {
             }
         }
         return data;
-    }//end of filterClusters
+    }// End of filterClusters
 
-    //investigate a low disagreement conflict, submit severity and temporary
-    function resolveLowDisagreementConflict(data, index) {
-        var label_data = data[index].label;
-        var cluster_data = data[index].data;
-        //set coordinates
+    //
+    function fixSeverities(data, index) {
+        var label_data = data[index];
+        // Set coordinates
         currentCoordinates = new google.maps.LatLng(label_data.lat, label_data.lng);
-        map.setCenter(currentCoordinates);
-        //show on panorama
+
+        // Show on panorama
         panoramaContainers[0].gsv_panorama = new google.maps.StreetViewPanorama(document.getElementById("panorama-1"), {
             pano: label_data.pano_id,
             pov: {
@@ -829,52 +896,164 @@ $(document).ready(function () {
             clickToGo: false,
             zoomControl: true
         });
-        //display decided upon label
-        clearCanvas(0);
+
+        // Display decided upon label
+        clearCanvas(0, false);
+        showLabel(label_data, panoramaContainers[0], "One Turker");
+        panoramaContainers[0].labels.push(label_data);
+
+        // Display information regarding the disagreement and provide option to change severity and temporary
+        document.getElementById("panorama-3").innerHTML =
+            '<br>' +
+            '<table style="width:100%">' +
+                '<tr>' +
+                    '<th>Labeler</th>' +
+                    '<th id="sev_heading" style="text-align:center">Severity</th>' +
+                    '<th id="temp_heading" style="text-align:center">Temp</th>' +
+                    '<th style="text-align:center">Description</th>' +
+                '</tr>' +
+                '<tr>' +
+                    '<td id="user0">' + label_data.turker_id + '</td>' +
+                    '<td style="text-align:center">' + label_data.severity + '</td>' +
+                    '<td style="text-align:center">' + label_data.temporary + '</td>' +
+                    '<td style="text-align:center">' + label_data.description + '</td>' +
+                '</tr>' +
+            '</table><br>' +
+            'Severity: <select name="severity" id="severity">' +
+                '<option value="1">1</option>' +
+                '<option value="2">2</option>' +
+                '<option value="3">3</option>' +
+                '<option value="4">4</option>' +
+                '<option value="5">5</option>' +
+            '</select><br>' +
+            'Temporary: <input type="checkbox" id ="temp"><br>' +
+            '<button style="margin-top:4px" id="prelimCommit' + label_data.cluster_id + '">' +
+                'Submit Updates to Ground Truth' +
+            '</button>';
+
+        // Highlight the disagreement in the table
+        document.getElementById("sev_heading").style.backgroundColor = "#ff6d77";
+
+        // Update label found in ground truth
+        var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === label_data.label_id);
+        var next = index + 1;
+
+        // Button functionality
+        $(document).on("click", '#prelimCommit' + toUpdate.cluster_id, function () {
+
+            // Update severity and temporaryness
+            toUpdate.severity = parseInt(document.getElementById("severity").value);
+            toUpdate.temporary = document.getElementById("temp").checked;
+            updateCountersForOneLabeler(next);
+
+            // Move to next missing severity, otherwise we are done!
+            if (next < data.length) {
+                fixSeverities(data, next);
+            } else {
+                // We are done! Pop up the alert and show the submit to ground truth button.
+                alert("All Labels Complete: Submission Allowed");
+                document.getElementById("hiddenColumn").style.display = "inline-block";
+            }
+        });
+    }
+
+    // Investigates a low disagreement conflict, submit severity and temporary
+    function resolveLowDisagreementConflict(data, index) {
+        var label_data = data[index].label;
+        var cluster_data = data[index].data;
+        // Set coordinates
+        currentCoordinates = new google.maps.LatLng(label_data.lat, label_data.lng);
+        map.setCenter(currentCoordinates);
+        // Show on panorama
+        panoramaContainers[0].gsv_panorama = new google.maps.StreetViewPanorama(document.getElementById("panorama-1"), {
+            pano: label_data.pano_id,
+            pov: {
+                heading: label_data.heading,
+                pitch: label_data.pitch
+            },
+            disableDefaultUI: true,
+            clickToGo: false,
+            zoomControl: true
+        });
+        // Display decided upon label
+        clearCanvas(0, true);
         showLabel(label_data, panoramaContainers[0], "Filter");
         panoramaContainers[0].labels.push(label_data);
-        //display information regarding the disagreement and provide option to change severity and temporary
-        document.getElementById("panorama-3").innerHTML = '<br><table style="width:100%"><tr><th>Labeler</th><th id="sev_heading" style="text-align:center">Severity</th><th id="temp_heading" style="text-align:center">Temp</th><th style="text-align:center">Description</th></tr>' +
-            '<tr><td id="user0">' + cluster_data[0].turker_id + '</td><td style="text-align:center">' + cluster_data[0].severity + '</td><td style="text-align:center">' + cluster_data[0].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[0].description +
-            '<tr><td id="user1">' + cluster_data[1].turker_id + '</td><td style="text-align:center">' + cluster_data[1].severity + '</td><td style="text-align:center">' + cluster_data[1].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[1].description +
-            '<tr><td id="user2">' + cluster_data[2].turker_id + '</td><td style="text-align:center">' + cluster_data[2].severity + '</td><td style="text-align:center">' + cluster_data[2].temporary + '</td>' + '</td><td style="text-align:center">' + cluster_data[2].description + '</table><br>' +
-            'Severity: <select name="severity" id="severity"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><br>' +
+        // Display information regarding the disagreement and provide option to change severity and temporary
+        document.getElementById("panorama-3").innerHTML =
+            '<br><table style="width:100%">' +
+                '<tr>' +
+                    '<th>Labeler</th>' +
+                    '<th id="sev_heading" style="text-align:center">Severity</th>' +
+                    '<th id="temp_heading" style="text-align:center">Temp</th>' +
+                    '<th style="text-align:center">Description</th>' +
+                '</tr>' +
+                '<tr>' +
+                    '<td id="user0">' + cluster_data[0].turker_id + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[0].severity + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[0].temporary + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[0].description + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<td id="user1">' + cluster_data[1].turker_id + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[1].severity + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[1].temporary + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[1].description + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<td id="user2">' + cluster_data[2].turker_id + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[2].severity + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[2].temporary + '</td>' +
+                    '<td style="text-align:center">' + cluster_data[2].description + '</td>' +
+                '</tr>' +
+            '</table><br>' +
+            'Severity: <select name="severity" id="severity">' +
+                '<option value="1">1</option>' +
+                '<option value="2">2</option>' +
+                '<option value="3">3</option>' +
+                '<option value="4">4</option>' +
+                '<option value="5">5</option>' +
+            '</select><br>' +
             'Temporary: <input type="checkbox" id ="temp"><br>' +
-            '<button style="margin-top:4px" id="prelimCommit' + label_data.cluster_id + '">Submit Updates to Ground Truth</button>';
+            '<button style="margin-top:4px" id="prelimCommit' + label_data.cluster_id + '">' +
+                'Submit Updates to Ground Truth' +
+            '</button>';
 
-        //highlight the disagreement in the table
+        // Highlight the disagreement in the table
         if (!data[index].sev) {
             document.getElementById("sev_heading").style.backgroundColor = "#ff6d77";
         }
         if (!data[index].temp) {
             document.getElementById("temp_heading").style.backgroundColor = "#ff6d77";
         }
-        //highlight the middle label being shown
+        // Highlight the middle label being shown
         document.getElementById("user" + data[index].chosen).style.backgroundColor = "#ffe500";
 
-        //update label found in ground truth
+        // Update label found in ground truth
         var toUpdate = ground_truth_labels.find(lbl => lbl.label_id === label_data.label_id);
         var next = index + 1;
-        //button functionality
+
+        // Button functionality
         $(document).on("click", '#prelimCommit' + toUpdate.cluster_id, function () {
-            //update severity and temporary
+            // Update severity and temporary
             toUpdate.severity = parseInt(document.getElementById("severity").value);
             toUpdate.temporary = document.getElementById("temp").checked;
             updateCounters();
-            //move to next low disagreement conflict
+
+            // Move to next low disagreement conflict
             if (next < data.length) {
                 resolveLowDisagreementConflict(data, next);
             } else {
                 startThirdRound();
             }
         });
-    }//end of resolveLowDisagreementConflict
+    }// End of resolveLowDisagreementConflict
 
-    //begin high disagreemnt round
+    // Begin high disagreement round
     function startThirdRound() {
-      //finished with low level conflicts
+      // Finished with low level conflicts
       cluster_id_list.length = Object.keys(all_labels).length;
-      //intiailize mapbox layers and GSV panoramas
+      // Intiailize mapbox layers and GSV panoramas
       currentClusterIndex = 0;
       var clusterId = cluster_id_list[currentClusterIndex];
       while (all_labels[clusterId].length <= 0) {
@@ -885,21 +1064,21 @@ $(document).ready(function () {
       currentCoordinates = new google.maps.LatLng(currentLabel.lat, currentLabel.lng);
       map.setCenter(currentCoordinates);
         if (panoramaContainers[0].gsv_panorama !== null) {
-            clearCanvas(0);
+            clearCanvas(0, true);
         }
       document.getElementById("panorama-3").innerHTML = null;
-      //initialize panoramas and show the first high disagreement cluster
+      // Initialize panoramas and show the first high disagreement cluster
       initializePanoramas(currentLabel);
       addClusterToPanos(all_labels[clusterId]);
       document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - High Disagreement Round";
-    }//end of startThirdRound
+    }// End of startThirdRound
 
-    //choose the middle of three points
+    // Choose the middle of three points
     function chooseMiddle(points) {
-        //calculate midpoint
+        // Calculate midpoint
         var avg_lat = (points[0].lat + points[1].lat + points[2].lat) / 3;
         var avg_lng = (points[0].lng + points[1].lng + points[2].lng) / 3;
-        //choose the label closest to the midpoint
+        // Choose the label closest to the midpoint
         var min = 1000000000000;
         var mid_label;
         for (i = 0; i < points.length; i++) {
@@ -910,15 +1089,15 @@ $(document).ready(function () {
             }
         }
         return mid_label;
-    }//end of chooseMiddle
+    }// End of chooseMiddle
 
-    //initial onload
+    // Initial onload
     function initialize() {
-        //create map
+        // Create map
         mapOptions = {
             center: new google.maps.LatLng(38.95965576171875, -77.07019805908203),
             mapTypeControl: false,
-            mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
+            mapTypeId: typeof google !== "undefined" ? google.maps.MapTypeId.ROADMAP : null,
             maxZoom: 22,
             minZoom: 19,
             overviewMapControl: false,
@@ -930,7 +1109,7 @@ $(document).ready(function () {
             zoom: 21
         };
         var mapCanvas = document.getElementById("groundtruth-map");
-        map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
+        map = typeof google !== "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
         // Styling google map.
         mapStyleOptions = [
             {
@@ -957,18 +1136,18 @@ $(document).ready(function () {
         // Initialize panorama data
         for (var i = 0; i < 4; i++) {
             panoramaContainers.push({
-                number: i + 1,  //number indicative of panorama
-                gsv_panorama: null, // the StreetViewPanorama object for each view
-                view: document.getElementsByClassName("gtpano")[i], // holder for the GSV panorama
-                info: document.getElementsByClassName("labelstats")[i], // div above panorama holding label information
-                labels: [], // metadata of label displayed in each panorama ({} if no label is displayed)
-                labelMarkers: [], // the marker for the label in the panorama
+                number: i + 1,  // Number indicative of panorama
+                gsv_panorama: null, // The StreetViewPanorama object for each view
+                view: document.getElementsByClassName("gtpano")[i], // Holder for the GSV panorama
+                info: document.getElementsByClassName("labelstats")[i], // Div above panorama holding label information
+                labels: [], // Metadata of label displayed in each panorama ({} if no label is displayed)
+                labelMarkers: [], // The marker for the label in the panorama
                 cluster_id: null,
                 pano_id: null
             });
         }
 
-        //map all button functionalities
+        // Map all button functionalities
         document.getElementById("gtnext").onclick = function () {
             transitionDisagreement(1);
         };
@@ -979,16 +1158,16 @@ $(document).ready(function () {
             transitionDisagreement(-1);
         };
         document.getElementById("clear1").onclick = function () {
-            clearCanvas(0);
+            clearCanvas(0, true);
         };
         document.getElementById("clear2").onclick = function () {
-            clearCanvas(1);
+            clearCanvas(1, true);
         };
         document.getElementById("clear3").onclick = function () {
-            clearCanvas(2);
+            clearCanvas(2, true);
         };
         document.getElementById("clear4").onclick = function () {
-            clearCanvas(3);
+            clearCanvas(3, true);
         };
         document.getElementById("gtSubmit").onclick = function () {
             async = true;
@@ -1018,32 +1197,51 @@ $(document).ready(function () {
                 }
             });
         };
-        //when cluster is submitted
+
+        // When three GT labelers were clustered, and we are resolving disagreements, this button is pressed.
         document.getElementById("submitClusterSessionId").onclick = function () {
-            //execute query
+            // Query database for the label data
             cluster_session_id = document.getElementById("clusterSessionId").value;
-            console.log(cluster_session_id);
             // var test_labels = gtTestData;
             $.getJSON("/labelsForGtResolution/" + cluster_session_id, function (data) {
                 all_labels = filterClusters(data[0]);
                 console.log(all_labels);
                 // all_labels = filterClusters(test_labels);
-                //update counters
                 updateCounters();
                 document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - Low Disagreement Round";
-                //display all labels on map
+                // Display all labels on map
                 initializeAllMapMarkers();
-                //deal with the first low disagreement conflict
-                if(toInvestigate.length > 0) {
-                  resolveLowDisagreementConflict(toInvestigate, 0);
+                // Deal with the first low disagreement conflict
+                if (toInvestigate.length > 0) {
+                    resolveLowDisagreementConflict(toInvestigate, 0);
                 } else {
-                  startThirdRound();
+                    startThirdRound();
                 }
-                //});
             });
-            //reduce filler at bottom of page (styling purposes)
+
+            // Reduce filler at bottom of page (styling purposes)
             document.getElementById("filler").style.minHeight = "5px";
-        };//end of initialize
-    }
+        };
+
+        // When only one GT labeler was used and we are filling in their missing severity, this button is pressed.
+        document.getElementById("submitConditionId").onclick = function () {
+            // Query database for the label data
+            cluster_session_id = document.getElementById("clusterSessionId").value;
+            $.getJSON("/labelsForGTFixSeverity/" + cluster_session_id, function (data) {
+                all_labels = filterSingleLabelsHavingSeverity(data[0]);
+                updateCountersForOneLabeler(0);
+                document.getElementById("round").innerHTML = "Ground Truth Resolution Tool - Low Disagreement Round";
+
+                // Deal with missing severities
+                if (toInvestigate.length > 0) {
+                    fixSeverities(toInvestigate, 0);
+                }
+            });
+
+            // Reduce filler at bottom of page (styling purposes)
+            document.getElementById("filler").style.minHeight = "5px";
+        };
+    }// End of initialize
+
     initialize();
 });

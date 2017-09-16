@@ -31,6 +31,10 @@ object TurkerTable{
   val db = play.api.db.slick.DB
   val turkers = TableQuery[TurkerTable]
 
+  val gtTurkerIds: List[String] = List("APQS1PRMDXAFH","A1SZNIADA6B4OF","A2G18P2LDT3ZUE")
+  val researcherTurkerIds: List[String] =
+    List("APQS1PRMDXAFH","A1SZNIADA6B4OF","A2G18P2LDT3ZUE","AKRNZU81S71QI","A1Y6PQWK6BYEDD","TESTWORKERID")
+
   def getAllTurkers : List[Turker] = db.withTransaction{ implicit session =>
     turkers.list
   }

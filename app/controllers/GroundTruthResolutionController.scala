@@ -6,24 +6,14 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.TaskFormats._
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable}
-import models.user.{User, WebpageActivityTable}
-import models.daos.UserDAOImpl
-import models.user.UserRoleTable
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+import models.user.User
 import forms.SignInForm
-
 import formats.json.ClusteringFormats
+import models.amt.AMTAssignmentTable
 import models.clustering_session.ClusteringSessionTable
 import play.api.libs.json.{JsError, JsObject, Json}
 import play.api.mvc.BodyParsers
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import models.gt.GTExistingLabelTable
 import models.gt.GTLabelTable
 import models.gt._
@@ -66,6 +56,25 @@ class GroundTruthResolutionController @Inject() (implicit val env: Environment[U
     	  Future.successful(Ok(labelMetadataJson))
     	case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
   	}
+  }
+
+  /**
+    * Gets the set of labels placed by a single GT labeler for the specified condition, so null severities can be fixed.
+    *
+    * @param conditionId
+    * @return
+    */
+  def getLabelsForGTSeverityFix(conditionId: String) = UserAwareAction.async { implicit request =>
+    val labels = AMTAssignmentTable.getLabelsFromGTLabelers(conditionId.toInt)
+    val json = Json.arr(labels.map(x => Json.obj(
+      "label_id" -> x.labelId, "cluster_id" -> x.clusterId, "turker_id" -> x.turkerId, "pano_id" -> x.gsvPanoramaId,
+      "label_type" -> x.labelType, "sv_image_x" -> x.svImageX, "sv_image_y" -> x.svImageY, "sv_canvas_x" -> x.canvasX,
+      "sv_canvas_y" -> x.canvasY, "heading" -> x.heading, "pitch" -> x.pitch, "zoom" -> x.zoom,
+      "canvas_height" -> x.canvasHeight, "canvas_width" -> x.canvasWidth, "alpha_x" -> x.alphaX, "alpha_y" -> x.alphaY,
+      "lat" -> x.lat, "lng" -> x.lng, "description" -> x.description, "severity" -> x.severity,
+      "temporary" -> x.temporaryProblem
+    )))
+    Future.successful(Ok(json))
   }
 
   /**
