@@ -377,7 +377,7 @@ $(document).ready(function () {
             pano.labelMarkers[markerIndex].setOptions({zIndex: maxZIndex});
             // Hide all other popovers
             for (var i = 0; i < pano.labelMarkers.length; i++) {
-                if (i !== markerIndex) {
+                if (i != markerIndex) {
                     $('#' + pano.labelMarkers[i].getId()).popover('hide');
                     var closeMarker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
                     closeMarker.setOptions({fillColor: colorMapping[closeMarker.meta.label_type].fillStyle});
@@ -725,6 +725,7 @@ $(document).ready(function () {
         nextOpenView = calculateNextOpenPanorama();
     }// End of addClusterToPanos
 
+    // Next and previous button functionality, direction -1 indicates previous, direction 1 indicates next
     // Next and previous button functionality, direction -1 indicates previous, direction 1 indicates next
     function transitionDisagreement(direction) {
         // Update currentClusterIndex
@@ -1095,7 +1096,7 @@ $(document).ready(function () {
         mapOptions = {
             center: new google.maps.LatLng(38.95965576171875, -77.07019805908203),
             mapTypeControl: false,
-            mapTypeId: typeof google !== "undefined" ? google.maps.MapTypeId.ROADMAP : null,
+            mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
             maxZoom: 22,
             minZoom: 19,
             overviewMapControl: false,
@@ -1107,7 +1108,7 @@ $(document).ready(function () {
             zoom: 21
         };
         var mapCanvas = document.getElementById("groundtruth-map");
-        map = typeof google !== "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
+        map = typeof google != "undefined" ? new google.maps.Map(mapCanvas, mapOptions) : null;
         // Styling google map.
         mapStyleOptions = [
             {
