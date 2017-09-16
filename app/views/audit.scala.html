@@ -510,18 +510,18 @@
                             <h3>Neighborhood Progress</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
-                                <tr>
-                                    <th>Audited in this mission</th>
-                                    <td id="modal-mission-complete-mission-distance" class="col-right"></td>
-                                </tr>
                                 @if(user){
                                     @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
                                         <tr>
                                             <th>Earned in this mission</th>
-                                            <td id="modal-mission-complete-mission-reward" class="col-right" style="color = forestgreen;"></td>
+                                            <td id="modal-mission-complete-mission-reward" class="col-right" style="color: forestgreen;"></td>
                                         </tr>
                                     }
                                 }
+                                <tr>
+                                    <th>Audited in this mission</th>
+                                    <td id="modal-mission-complete-mission-distance" class="col-right"></td>
+                                </tr>
                                 <tr>
                                     <th>Audited in this neighborhood</th>
                                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
