@@ -877,9 +877,9 @@ $(document).ready(function () {
         return data;
     }// End of filterClusters
 
-    //
-    function fixSeverities(data, index) {
-        var label_data = data[index];
+    // Prompts the user to update the severity of the label at the specified index.
+    function fixSeverities(labels, index) {
+        var label_data = labels[index];
         // Set coordinates
         currentCoordinates = new google.maps.LatLng(label_data.lat, label_data.lng);
 
@@ -945,8 +945,8 @@ $(document).ready(function () {
             updateCountersForOneLabeler(next);
 
             // Move to next missing severity, otherwise we are done!
-            if (next < data.length) {
-                fixSeverities(data, next);
+            if (next < labels.length) {
+                fixSeverities(labels, next);
             } else {
                 // We are done! Pop up the alert and show the submit to ground truth button.
                 alert("All Labels Complete: Submission Allowed");
@@ -1233,6 +1233,10 @@ $(document).ready(function () {
                 // Deal with missing severities
                 if (toInvestigate.length > 0) {
                     fixSeverities(toInvestigate, 0);
+                } else {
+                    // We are done! Pop up the alert and show the submit to ground truth button.
+                    alert("All Labels Complete: Submission Allowed");
+                    document.getElementById("hiddenColumn").style.display = "inline-block";
                 }
             });
 
