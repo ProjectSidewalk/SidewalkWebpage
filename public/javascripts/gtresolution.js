@@ -212,7 +212,7 @@ $(document).ready(function () {
                 //test whether label is present within a view
                 var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.cluster_id === marker.meta.cluster_id && panoramaContainer.pano_id === marker.meta.pano_id);
                 //if so, highlight that view with a border
-                if (pano !== null) {
+                if (pano != null) {
                     pano.view.style.borderStyle = "solid";
                 }
                 //emphasize label on map by highlighting pink
@@ -223,7 +223,7 @@ $(document).ready(function () {
                 //test whether label is present within a view
                 var pano = panoramaContainers.find(panoramaContainer => panoramaContainer.cluster_id === marker.meta.cluster_id && panoramaContainer.pano_id === marker.meta.pano_id);
                 //if so, highlight that view with a border
-                if (pano !== null) {
+                if (pano != null) {
                     pano.view.style.borderStyle = "hidden";
                 }
                 //deemphasize label by removing the pink highlight
@@ -310,7 +310,7 @@ $(document).ready(function () {
                         var marker = mapMarkers.find(mkr => mkr.meta.label_id === pano.labels[i].label_id);
                         var type = pano.labels[i].label_type;
                         if(type === 'Occlusion' || type === 'NoSidewalk'){type = 'Other';}
-                        if (marker !== null) {
+                        if (marker != null) {
                             pano.labelMarkers[i].setIcon("assets/javascripts/SVLabel/img" + statusInfo[marker.status].path + type + ".png?size=200");
                         }
                         else {
@@ -647,7 +647,7 @@ $(document).ready(function () {
                 closeMarker.clicked = false;
                 //remove view number label from map marker
                 var mLabel = mapLabels.find(mkr => mkr.id === labelId);
-                if (mLabel !== null) {
+                if (mLabel != null) {
                     mLabel.setOptions({visible: false});
                 }
                 // Remove marker from GSV
