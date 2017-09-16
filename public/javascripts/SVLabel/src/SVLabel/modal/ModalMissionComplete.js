@@ -206,6 +206,34 @@ ModalMissionComplete.prototype._updateMissionProgressStatistics = function (miss
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
+    //Check if the user is associated with the "Turker" role and update the reward HTML
+    var url = '/isTurker';
+    $.ajax({
+        async: true,
+        url: url,//endpoint that checks above conditions
+        type: 'get',
+        success: function(data){
+            if(data.isTurker){
+                var url = '/rewardPerMile';
+                $.ajax({
+                    async: true,
+                    url: url,//endpoint that checks above conditions
+                    type: 'get',
+                    success: function(data){
+                        var missionReward = missionDistance*data.rewardPerMile;
+                        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
+                });
+                //console.log('Survey displayed');
+            }
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            console.log(thrownError);
+        }
+    });
 };
 
 ModalMissionComplete.prototype._updateTheMissionCompleteMessage = function () {

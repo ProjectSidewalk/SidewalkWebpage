@@ -458,6 +458,11 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
+                    @if(user){
+                        @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
+                        }
+                    }
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -508,6 +513,14 @@
                                     <th>Audited in this mission</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
                                 </tr>
+                                @if(user){
+                                    @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                                        <tr>
+                                            <th>Earned in this mission</th>
+                                            <td id="modal-mission-complete-mission-reward" class="col-right" style="color = forestgreen;"></td>
+                                        </tr>
+                                    }
+                                }
                                 <tr>
                                     <th>Audited in this neighborhood</th>
                                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
@@ -874,6 +887,7 @@
                         $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
                         $("#left-column-confirmation-code-button").popover();
                     }
+                    $("#modal-mission-reward-text").show();
                 } else{
                     $("#left-column-confirmation-code-button").css('visibility', "hidden");
                 }

@@ -318,6 +318,37 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
+            //Calculate accumulated reward if the user is a turker
+            var url = '/isTurker';
+            $.ajax({
+                async: true,
+                url: url,//endpoint that checks above conditions
+                type: 'get',
+                success: function(data){
+                    if(data.isTurker){
+                        var url = '/rewardPerMile';
+                        $.ajax({
+                            async: true,
+                            url: url,//endpoint that checks above conditions
+                            type: 'get',
+                            success: function(data){
+                                var missionReward = distanceAudited*data.rewardPerMile;
+                                // Mission Rewards.
+                                document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toPrecision(2);
+                            },
+                            error: function (xhr, ajaxOptions, thrownError) {
+                                console.log(thrownError);
+                            }
+                        });
+                        //console.log('Survey displayed');
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError);
+                }
+            });
+
+
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);

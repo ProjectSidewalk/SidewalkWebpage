@@ -267,10 +267,10 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def isTurker = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val isTurker = user.get.roles.getOrElse(Seq("")).contains("Turker")
-        Future.successful(Ok(Json.obj("is_turker" -> isTurker) ))
+        val isTurker = user.roles.getOrElse(Seq("")).contains("Turker")
+        Future.successful(Ok(Json.obj("isTurker" -> isTurker) ))
       case _ =>
-        Future.successful(Ok(Json.obj("is_turker" -> false)))
+        Future.successful(Ok(Json.obj("isTurker" -> false)))
     }
   }
 

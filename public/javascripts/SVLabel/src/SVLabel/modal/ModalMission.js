@@ -144,6 +144,39 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             uiModalMission.missionTitle.html(missionTitle);
         }
 
+        //Check if the user is associated with the "Turker" role and update the reward HTML
+        var url = '/isTurker';
+        $.ajax({
+            async: true,
+            url: url,//endpoint that checks above conditions
+            type: 'get',
+            success: function(data){
+                if(data.isTurker){
+                    var url = '/rewardPerMile';
+                    $.ajax({
+                        async: true,
+                        url: url,//endpoint that checks above conditions
+                        type: 'get',
+                        success: function(data){
+                            var auditDistanceMi = mission.getProperty("auditDistanceMi");
+                            var missionReward = auditDistanceMi*data.rewardPerMile;
+                            // Mission Rewards.
+                            var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+                            missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__",missionReward.toFixed(2));
+                            uiModalMission.rewardText.html(missionRewardText);
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            console.log(thrownError);
+                        }
+                    });
+                    //console.log('Survey displayed');
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(thrownError);
+            }
+        });
+
         var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
         $("#mission-badge-holder").html(badge);
 
