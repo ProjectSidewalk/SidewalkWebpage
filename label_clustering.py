@@ -2,7 +2,7 @@ import requests
 import numpy as np
 from haversine import haversine # pip install haversine
 import sys
-from scipy.cluster.hierarchy import linkage, fcluster, cut_tree, dendrogram
+from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
 from scipy.spatial.distance import pdist
 from collections import Counter
 # from requests.auth import HTTPDigestAuth
