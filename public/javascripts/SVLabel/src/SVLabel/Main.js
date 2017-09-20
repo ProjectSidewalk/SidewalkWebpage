@@ -185,6 +185,9 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
+        // Survey for select users
+        svl.surveyModalContainer = $("#survey-modal-container").get(0);
+
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
         loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
@@ -212,6 +215,18 @@ function Main (params) {
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+
+        $('#survey-modal-container').on('show.bs.modal', function () {
+            svl.popUpMessage.disableInteractions();
+        });
+        $('#survey-modal-container').on('hide.bs.modal', function () {
+            svl.popUpMessage.enableInteractions();
+        });
+
+        $('#survey-modal-container').keydown(function(e) {
+            e.stopPropagation();
+        });
+
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
             $(".toolUI").css('opacity', 1);
@@ -686,6 +701,7 @@ function Main (params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 
         // Navigation compass
         svl.ui.compass = {};

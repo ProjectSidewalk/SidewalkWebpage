@@ -16,6 +16,7 @@ GET     /results                                             @controllers.Applic
 GET     /faq                                                 @controllers.ApplicationController.faq
 GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
+GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
@@ -115,3 +116,10 @@ GET     /v1/access/score/streets                             @controllers.Projec
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
 GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
+
+# Survey
+GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey
+POST    /survey                                              @controllers.SurveyController.postSurvey
+
+# Update AMTAssignment Table
+POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment

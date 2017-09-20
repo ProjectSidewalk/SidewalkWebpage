@@ -85,6 +85,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
             delete svl.confirmationCode;
+            svl.ui.leftColumn.confirmationCode.show();
+            svl.ui.leftColumn.confirmationCode.popover();
         }
     };
 
@@ -103,7 +105,27 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
          */
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
-            console.log("Reached modal mission complete");
+            // Assignment Completion Data
+            var data = {
+                amt_assignment_id: svl.amtAssignmentId,
+                completed: true
+            };
+
+            $.ajax({
+                async: true,
+                contentType: 'application/json; charset=utf-8',
+                url: "/amtAssignment",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
+            //console.log("Reached modal mission complete");
             uiModalMissionComplete.generateConfirmationButton.onclick = function () {
                 var para = document.createElement("p");
                 var node = document.createTextNode("Confirmation Code: " + svl.confirmationCode);
@@ -115,7 +137,9 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                 this.remove();
                 delete uiModalMissionComplete.generateConfirmationButton;
             };
-
+            svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
+            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+            svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
         }
     };
 
