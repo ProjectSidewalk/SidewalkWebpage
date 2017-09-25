@@ -129,7 +129,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
-  def mobile = UserAwareAction.async { implicit request =>
+  /*def mobile = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
@@ -142,7 +142,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
         Future.successful(Ok(views.html.mobile("Project Sidewalk")))
     }
-  }
+  }*/
 
   def student = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)

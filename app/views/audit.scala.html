@@ -11,16 +11,33 @@
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
-    <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
+
+    <!--<script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>-->
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
+    <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
 
+    <meta name="viewport" content="width=device-width, target-densitydpi=device-dpi, initial-scale=0.5, user-scalable=yes" />
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+
+    <style type="text/css">
+        #warning-message { display: none; }
+        @@media only screen and (orientation:portrait){
+            #onboarding-holder { display:none; }
+            #svl-application-holder { display:none; }
+            #warning-message { display:block; }
+        }
+        @@media only screen and (orientation:landscape){
+            #warning-message { display:none; }
+        }
+    </style>
+
     @if(user){
         @if(user.get.roles.getOrElse(Seq("")).contains("Turker")){
             <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -669,7 +686,21 @@
         </div>
     </div>
 
-    <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
+    <div id="warning-message">
+        <br />
+        <div>
+            <p id="mobile-thanks" style="text-align:center">
+                Thanks for visiting!
+            </p>
+            <br /><br />
+            <p id="mobile-message" style="text-align:center">
+                Unfortunately, we do not currently support portrait mode with mobile devices. Please orient your screen to landscape mode to use this tool. </p>
+        </div>
+        <br />
+    </div>
+
+
+<template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
                 <p>
@@ -710,7 +741,7 @@
                         significantly affect how wheelchair users move about the city:
                 </p>
                 <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
+                   <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
                 <p>

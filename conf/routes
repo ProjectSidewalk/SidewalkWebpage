@@ -15,7 +15,6 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /faq                                                 @controllers.ApplicationController.faq
 GET     /student                                             @controllers.ApplicationController.student
-GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 
 # User authentication
