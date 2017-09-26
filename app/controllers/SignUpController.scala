@@ -24,6 +24,7 @@ import play.api.mvc.Action
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 
 import scala.concurrent.Future
+import scala.util.Random
 
 /**
  * The sign up controller.
@@ -92,7 +93,7 @@ class SignUpController @Inject() (
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
                   UserRoleTable.addUserRole(user.userId)
-                  UserCurrentRegionTable.assignRandomly(user.userId)
+                  UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
                   val now = new DateTime(DateTimeZone.UTC)
@@ -119,7 +120,7 @@ class SignUpController @Inject() (
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
-        // Check presenc of user by username
+        // Check presence of user by username
         UserTable.find(data.username) match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
@@ -153,7 +154,7 @@ class SignUpController @Inject() (
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
                   UserRoleTable.addUserRole(user.userId)
-                  UserCurrentRegionTable.assignRandomly(user.userId)
+                  UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
                   val now = new DateTime(DateTimeZone.UTC)
@@ -170,5 +171,62 @@ class SignUpController @Inject() (
         }
       }
     )
+  }
+  def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+    val anonymousUser: DBUser = UserTable.find("anonymous").get
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
+
+    UserTable.find(workerId) match {
+      case Some(user) =>
+        // This case should never be reached since the Turkers are automatically assigned a user_id
+        // And since worker id s are unique to each turker there shouldnt be two turkers assigned the same user_id
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "No_More_Missions", timestamp))
+        Future.successful(Redirect("/noAvailableMissionIndex"))
+
+      case None =>
+        // Create a temporary email and password. Keep the username as the workerId.
+        val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
+        val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
+
+        val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
+        val authInfo = passwordHasher.hash(turker_password)
+        val user = User(
+          userId = UUID.randomUUID(),
+          loginInfo = loginInfo,
+          username = workerId,
+          email = turker_email,
+          roles = None
+        )
+
+        for {
+          user <- userService.save(user)
+          authInfo <- authInfoService.save(loginInfo, authInfo)
+          authenticator <- env.authenticatorService.create(user.loginInfo)
+          value <- env.authenticatorService.init(authenticator)
+          result <- env.authenticatorService.embed(value, Future.successful(
+            Redirect("/")
+          ))
+        } yield {
+          // Set the user role and assign the neighborhood to audit.
+          UserRoleTable.addTurkerRole(user.userId)
+          UserCurrentRegionTable.assignEasyRegion(user.userId)
+
+          // Add Timestamp
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+
+          env.eventBus.publish(SignUpEvent(user, request, request2lang))
+          env.eventBus.publish(LoginEvent(user, request, request2lang))
+
+          result
+        }
+    }
   }
 }

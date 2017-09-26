@@ -18,6 +18,8 @@ function Main (params) {
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
+    var loadDifficultNeighborhoodsCompleted = false;
+
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
@@ -107,6 +109,7 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
+        svl.advancedOverlay = params.advancedOverlay;
 
 
 
@@ -182,6 +185,8 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
+        // Survey for select users
+        svl.surveyModalContainer = $("#survey-modal-container").get(0);
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
@@ -189,6 +194,12 @@ function Main (params) {
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
+        }
+
+        // Mark neighborhood as complete if the initial task's completion count > 0
+        // Proxy for knowing if the neighborhood is complete across all users
+        if(task.getStreetCompletionCount() > 0) {
+            svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
         if (getStatus("isFirstTask")) {
@@ -204,6 +215,18 @@ function Main (params) {
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+
+        $('#survey-modal-container').on('show.bs.modal', function () {
+            svl.popUpMessage.disableInteractions();
+        });
+        $('#survey-modal-container').on('hide.bs.modal', function () {
+            svl.popUpMessage.enableInteractions();
+        });
+
+        $('#survey-modal-container').keydown(function(e) {
+            e.stopPropagation();
+        });
+
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
             $(".toolUI").css('opacity', 1);
@@ -271,6 +294,11 @@ function Main (params) {
             loadNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
+
+        neighborhoodModel.fetchDifficultNeighborhoods(function () {
+            loadDifficultNeighborhoodsCompleted = true;
+            handleDataLoadComplete();
+        });
     }
 
     function hasCompletedOnboarding(completedMissions) {
@@ -313,26 +341,24 @@ function Main (params) {
         svl.missionContainer.setCurrentMission(onboardingMission);
     }
 
-    function findTheNextRegionWithMissionsNew () {
-
-        // Query the server for the next least unaudited region (across users)
-        // and that hasn't been done by the user
-        var username = svl.user.getProperty("username");
-        return neighborhoodModel.fetchNextLeastAuditedRegion(username);
+    // Query the server for the next least unaudited region (across users)
+    // and that hasn't been done by the user
+    function findTheNextRegionWithMissions () {
+        svl.neighborhoodModel.fetchNextLeastAuditedRegion(false);
     }
 
-    function findTheNextRegionWithMissions (currentNeighborhood) {
+    function findTheNextRegionWithMissionsOld (currentNeighborhood) {
         var currentRegionId = currentNeighborhood.getProperty("regionId");
         var allRegionIds = svl.neighborhoodContainer.getRegionIds();
         var nextRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, allRegionIds);
         var availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
         availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
 
-        while(availableMissions.length == 0) {
+        while(availableMissions.length === 0) {
             nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, allRegionIds);
             availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            if (nextRegionId == currentRegionId) {
+            if (nextRegionId === currentRegionId) {
                 console.error("No more available regions to audit");
                 return null;
             }
@@ -341,7 +367,7 @@ function Main (params) {
     }
 
     function isAnAnonymousUser() {
-        return 'user' in svl && svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
+        return 'user' in svl && svl.user.getProperty('username') === "anonymous"; // Todo. it should access the user through UserModel
     }
 
     function startTheMission(mission, neighborhood) {
@@ -415,7 +441,8 @@ function Main (params) {
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
         if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
-            loadingMissionsCompleted && loadNeighborhoodsCompleted) {
+            loadingMissionsCompleted && loadNeighborhoodsCompleted &&
+            loadDifficultNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
@@ -441,6 +468,12 @@ function Main (params) {
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 $("#mini-footer-audit").css("visibility", "visible");
+
+                var regionId = currentNeighborhood.getProperty("regionId");
+                var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
+                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay){
+                    $('#advanced-overlay').show();
+                }
                 startTheMission(mission, currentNeighborhood);
             }
         }
@@ -479,14 +512,16 @@ function Main (params) {
         var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
 
         if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
-            regionId = findTheNextRegionWithMissions(currentNeighborhood);
+            findTheNextRegionWithMissions();
+            currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+            if (currentNeighborhood)
+                regionId = currentNeighborhood.getProperty("regionId");
+            else
+                regionId = null;
 
             // TODO: This case will execute when the entire city is audited by the user. Should handle properly!
-            if (regionId == null) return;  // No missions available.
+            if (regionId === null) return;  // No missions available.
 
-            currentNeighborhood = svl.neighborhoodContainer.get(regionId);
-            svl.neighborhoodModel.moveToANewRegion(regionId);
-            svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
             availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
             svl.taskContainer.getFinishedAndInitNextTask();
@@ -640,6 +675,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
         svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
+        svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
 
         // Zoom control
         svl.ui.zoomControl = {};
@@ -665,6 +701,7 @@ function Main (params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 
         // Navigation compass
         svl.ui.compass = {};

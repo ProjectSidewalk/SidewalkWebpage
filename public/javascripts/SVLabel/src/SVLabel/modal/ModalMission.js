@@ -182,8 +182,10 @@ ModalMission.prototype._auditDistanceToString = function  (distance, unit) {
             return "1000ft";
         } else if (distance <= 0.25) {
             return "&frac14;mi";
+        } else if (distance <= 0.39) {
+            return "2000ft";
         } else if (distance <= 0.5) {
-            return "&frac12;mi"
+            return "&frac12;mi";
         } else if (distance <= 0.75) {
             return "&frac34;mi";
         } else {

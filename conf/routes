@@ -3,10 +3,10 @@
 # ~~~~
 
 # Home page
-GET     /                                                    @controllers.ApplicationController.index(referrer: Option[String] ?= None, to: String ?= "/")
+GET     /                                                    @controllers.ApplicationController.index
 POST    /                                                    controllers.TeaserController.teaserPost
 
-GET     /home                                                @controllers.ApplicationController.index(referrer: Option[String] ?= None, to: String ?= "/")
+GET     /home                                                @controllers.ApplicationController.index
 GET     /about                                               @controllers.ApplicationController.about
 GET     /api                                                 @controllers.ApplicationController.developer
 GET     /developer                                           @controllers.ApplicationController.developer
@@ -16,11 +16,13 @@ GET     /results                                             @controllers.Applic
 GET     /faq                                                 @controllers.ApplicationController.faq
 GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
+GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
 GET     /signOut                                             @controllers.UserController.signOut(url: String ?="/")
+GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
 POST    /signUp                                              @controllers.SignUpController.signUp(url: String ?= "/")
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
@@ -47,6 +49,8 @@ GET     /adminapi/labels/panoid                              @controllers.AdminC
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered                     @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
+GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
+GET     /adminiapi/audittimesAnon                            @controllers.AdminController.getAnonAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -57,8 +61,8 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 
 # Auditing tasks
-GET     /audit                                               @controllers.AuditController.audit
-GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
+GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
+#GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
 POST    /audit/comment                                       @controllers.AuditController.postComment
@@ -79,7 +83,8 @@ GET     /label/currentMission                                @controllers.LabelC
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
-POST    /neighborhood/assignment                             @controllers.RegionController.setANewRegion
+GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
+POST    /neighborhood/assignment                             @controllers.RegionController.assignANewRegion
 
 # Map Edit
 GET     /map/edit                                            @controllers.MapController.edit
@@ -111,3 +116,10 @@ GET     /v1/access/score/streets                             @controllers.Projec
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
 GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
+
+# Survey
+GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey
+POST    /survey                                              @controllers.SurveyController.postSurvey
+
+# Update AMTAssignment Table
+POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
