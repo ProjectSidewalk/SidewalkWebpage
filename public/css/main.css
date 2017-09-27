@@ -1181,17 +1181,17 @@ kbd {
 #advanced-neighborhood-text, #neighborhood-completion-text{
     color: white;
     text-align: center;
-    width: 90%;
+    width: 70%;
     position: relative;
     margin: auto;
     border-radius: 5px;
     font-size: 21px;
 }
 #advanced-neighborhood-text {
-    top: 30%;
+    top: 28%;
 }
 #neighborhood-completion-text {
-    top: 30%;
+    top: 28%;
 }
 #advanced-neighborhood-text p, #neighborhood-completion-text p{
     border-radius: 5px;
