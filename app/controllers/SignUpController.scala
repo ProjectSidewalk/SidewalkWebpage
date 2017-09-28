@@ -180,7 +180,7 @@ class SignUpController @Inject() (
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
-    var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
+    var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
 
     UserTable.find(workerId) match {
       case Some(user) =>
