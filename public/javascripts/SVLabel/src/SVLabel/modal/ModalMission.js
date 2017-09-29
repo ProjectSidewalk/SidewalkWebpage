@@ -150,38 +150,41 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             async: true,
             url: url,//endpoint that checks above conditions
             type: 'get',
-            success: function(data){
-                if(data.isTurker){
+            success: function (data) {
+                if (data.isTurker) {
                     var url = '/rewardPerMile';
                     $.ajax({
                         async: true,
                         url: url,//endpoint that checks above conditions
                         type: 'get',
-                        success: function(data){
+                        success: function (data) {
                             var auditDistanceMi = mission.getProperty("auditDistanceMi");
-                            var missionReward = auditDistanceMi*data.rewardPerMile;
+                            var missionReward = auditDistanceMi * data.rewardPerMile;
                             // Mission Rewards.
                             var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
-                            missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__",missionReward.toFixed(2));
-                            svl.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$"+missionReward.toFixed(2))+"</span>";
+                            missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
+                            svl.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
                             uiModalMission.rewardText.html(missionRewardText);
 
                             //Calculate the total earned reward
                             var completedMissionJson = svl.missionContainer.getCompletedMissions()
-                                .filter(function(el){return el.isCompleted() && el.getProperty("regionId")!=null})
-                                .reduce(function(region_groups,el){
+                                .filter(function (el) {
+                                    return el.isCompleted() && el.getProperty("regionId") != null
+                                })
+                                .reduce(function (region_groups, el) {
                                         region_groups[el.getProperty("regionId")] = region_groups[el.getProperty("regionId")] || 0.0;
                                         region_groups[el.getProperty("regionId")] += el.getProperty("auditDistanceMi");
-                                        return region_groups;}
-                                    ,{});
-                            var totalMissionCompleteDistance = Object.values(completedMissionJson).reduce(function(sum, el) {
+                                        return region_groups;
+                                    }
+                                    , {});
+                            var totalMissionCompleteDistance = Object.values(completedMissionJson).reduce(function (sum, el) {
                                 return sum + el;
                             }, 0.0);
 
-                            var missionReward = totalMissionCompleteDistance*data.rewardPerMile;
+                            var missionReward = totalMissionCompleteDistance * data.rewardPerMile;
                             // Mission Rewards.
                             //document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toPrecision(2);
-                            svl.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$"+missionReward.toFixed(2))+"</span>";
+                            svl.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
                         },
                         error: function (xhr, ajaxOptions, thrownError) {
                             console.log(thrownError);
