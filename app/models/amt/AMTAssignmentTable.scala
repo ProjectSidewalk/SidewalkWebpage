@@ -26,7 +26,7 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
 }
 
 /**
- * Data access object for the label table
+ * Data access object for the amt_assignment table
  */
 object AMTAssignmentTable {
   val db = play.api.db.slick.DB

@@ -49,6 +49,41 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         );
         mission.complete();
 
+        // Survey prompt. Modal should display survey if
+        // 1. User is a Turker (/survey/display endpoint returns true if this is the case).
+        // 2. User has just completed numMissionsBeforeSurvey number of missions.
+
+            var url = '/survey/display';
+            var numMissionsBeforeSurvey = 2;
+            var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
+            $.ajax({
+                async: true,
+                url: url,//endpoint that checks above conditions
+                type: 'get',
+                success: function(data){
+                    if(data.displayModal && numMissionsCompleted == numMissionsBeforeSurvey){
+                        $('#survey-modal-container').modal({
+                            backdrop: 'static',
+                            keyboard: false
+                        });
+                        //console.log('Survey displayed');
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError);
+                }
+            });
+
+
+        //this is placeholder; replace with above commented code once endpoint is implemented
+        /*var mTurk = true;
+        if(mTurk) {
+            $('#survey-modal-container').modal({
+                backdrop: 'static',
+                keyboard: false
+            });
+        }*/
+
         // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
         _gameEffectModel.playAudio({audioType: "applause"});

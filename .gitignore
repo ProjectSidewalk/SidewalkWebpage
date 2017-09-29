@@ -2,7 +2,7 @@ node_modules
 .DS_Store
 tmp/**/*
 .idea
-.idea/**/*
+#.idea/**/*
 *.iml
 *.sublime-*
 _site
@@ -17,10 +17,7 @@ package-lock.json
 ### IntelliJ (https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore)
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
 
-*.iml
-
 ## Directory-based project format:
-.idea/
 # if you remove the above rule, at least ignore the following:
 
 # User-specific stuff:
@@ -86,18 +83,16 @@ project/.sbtserver.lock
 .scala_dependencies
 .worksheet
 
-.DS_Store
 *.mp4
 
 # JavaScript and Node
-node_modules
 public/javascripts/SVLabel/build/*
 public/javascripts/Admin/build/*
 public/javascripts/FAQ/build/*
 public/javascripts/Progress/build/*
 download
 
-public/javascripts/SVLabel/build/SVLabel.js
+#public/javascripts/SVLabel/build/SVLabel.js
 
 # sidewalk-webpage-binary directory
 sidewalk-webpage/

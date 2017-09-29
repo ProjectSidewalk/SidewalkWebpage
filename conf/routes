@@ -117,5 +117,9 @@ GET     /v1/access/score/streets                             @controllers.Projec
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
 GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
 
+# Survey
+GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey
+POST    /survey                                              @controllers.SurveyController.postSurvey
+
 # Update AMTAssignment Table
 POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
