@@ -560,6 +560,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 success: function(data){
                     if(data.isTurker){
                         svl.ui.status.currentMissionReward.show();
+                        svl.ui.status.totalMissionReward.show();
                     }
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
