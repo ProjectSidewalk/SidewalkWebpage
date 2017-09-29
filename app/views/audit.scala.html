@@ -692,13 +692,27 @@
                     <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">Let's get started!</button>
                 </p>
             </div>
-            <div class="col-md-12">
-                <p class="text-right"><span style='font-size: 65%;'>
-                    Already taken the tutorial? Have an account?
-                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a> now
-                    or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
-                </span></p>
-            </div>
+            @if(user){
+                @if(!(user.get.roles.getOrElse(Seq("")).contains("Turker"))) {
+                    <div class="col-md-12">
+                        <p class="text-right"><span style='font-size: 65%;'>
+                            Already taken the tutorial? Have an account?
+                            <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a>
+                            now
+                            or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                        </span></p>
+                    </div>
+                }
+            } else{
+                <div class="col-md-12">
+                    <p class="text-right"><span style='font-size: 65%;'>
+                        Already taken the tutorial? Have an account?
+                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a>
+                        now
+                        or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                    </span></p>
+                </div>
+            }
         </div>
     </template>
     <template class="onboarding" val="outro" id="onboarding-outro">
