@@ -218,9 +218,11 @@ function Main (params) {
 
         $('#survey-modal-container').on('show.bs.modal', function () {
             svl.popUpMessage.disableInteractions();
+            svl.ribbon.disableModeSwitch();
         });
         $('#survey-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
+            svl.ribbon.enableModeSwitch();
         });
 
         $('#survey-modal-container').keydown(function(e) {
