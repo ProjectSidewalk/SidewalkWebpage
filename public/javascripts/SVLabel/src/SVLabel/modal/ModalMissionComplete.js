@@ -140,6 +140,20 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
             svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
             svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
+
+            //Hide the confirmation popover on clicking the background
+            //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+
+            $(document).on('click', function (e) {
+                svl.ui.leftColumn.confirmationCode.each(function () {
+                    //the 'is' for buttons that trigger popups
+                    //the 'has' for icons within a button that triggers a popup
+                    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                        (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                    }
+
+                });
+            });
         }
     };
 
