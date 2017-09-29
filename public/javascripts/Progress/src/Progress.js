@@ -308,7 +308,7 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                         success: function(data){
                             var missionReward = totalMissionCompleteDistance*data.rewardPerMile;
                             // Mission Rewards.
-                            document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toPrecision(2);
+                            document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toFixed(2);
                             //console.log("Expected output: "+missionReward);
                         },
                         error: function (xhr, ajaxOptions, thrownError) {
