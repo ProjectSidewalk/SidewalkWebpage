@@ -219,10 +219,14 @@ function Main (params) {
         $('#survey-modal-container').on('show.bs.modal', function () {
             svl.popUpMessage.disableInteractions();
             svl.ribbon.disableModeSwitch();
+            svl.zoomControl.disableZoomIn();
+            svl.zoomControl.disableZoomOut();
         });
         $('#survey-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
             svl.ribbon.enableModeSwitch();
+            svl.zoomControl.enableZoomIn();
+            svl.zoomControl.enableZoomOut();
         });
 
         $('#survey-modal-container').keydown(function(e) {
