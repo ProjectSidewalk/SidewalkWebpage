@@ -126,17 +126,18 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             });
 
             //console.log("Reached modal mission complete");
-            uiModalMissionComplete.generateConfirmationButton.onclick = function () {
-                var para = document.createElement("p");
-                var node = document.createTextNode("Confirmation Code: " + svl.confirmationCode);
-                para.appendChild(node);
-                para.setAttribute("id", "modal-mission-complete-confirmation-text");
-                this.after(para);
-                uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
-                uiModalMissionComplete.closeButton.css('visibility', "visible");
-                this.remove();
-                delete uiModalMissionComplete.generateConfirmationButton;
-            };
+            var confirmationCodeElement = document.createElement("h3");
+            confirmationCodeElement.innerHTML = "Confirmation Code <img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  " +
+                "alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> : " +
+                svl.confirmationCode +
+                "<p></p>";
+            confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
+            uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.closeButton.css('visibility', "visible");
+            uiModalMissionComplete.generateConfirmationButton.remove();
+            delete uiModalMissionComplete.generateConfirmationButton;
+
             svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
             svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
             svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
