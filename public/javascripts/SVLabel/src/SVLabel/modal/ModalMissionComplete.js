@@ -141,7 +141,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
             svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
 
-            //Hide the confirmation popover on clicking the background
+            //Hide the mTurk confirmation code popover on clicking the background (i.e. outside the popover)
             //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
 
             $(document).on('click', function (e) {
