@@ -202,7 +202,7 @@ class SignUpController @Inject() (
             val result = Future.successful(Redirect("/audit"))
             session.flatMap(s => env.authenticatorService.embed(s, result))
           }
-          case None => Future.failed(new IdentityNotFoundException("Couldn't find the user"))
+          case None => Future.successful(Redirect("/turkerIdExists"))
         }
 
       case None =>

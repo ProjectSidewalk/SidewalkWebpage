@@ -1,0 +1,19 @@
+@import models.daos.slick.DBTableDefinitions.UserTable
+@import models.user.User
+@import models.daos._
+@import models.label._
+@import models.street.StreetEdgeTable
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
+
+@main(title) {
+    @navbar(user)
+    <div id="content">
+        <div class="container">
+            <h2>This HIT cannot be started</h2>
+            <p>
+                A potential reason for this is that you already have an existing account on our website.
+                If not please contact us at ...
+            </p>
+        </div>
+    </div>
+}

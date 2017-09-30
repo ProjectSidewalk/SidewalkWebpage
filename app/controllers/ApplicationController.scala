@@ -263,4 +263,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
   }
 
+  def turkerIdExists = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.turkerIdExists("Project Sidewalk")))
+  }
+
 }
