@@ -273,5 +273,4 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(Json.obj("isTurker" -> false)))
     }
   }
-
 }
