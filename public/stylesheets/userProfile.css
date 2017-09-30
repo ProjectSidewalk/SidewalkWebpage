@@ -15,19 +15,23 @@ svg {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
     left: 15px;
-    width: 220px;
+    width: 300px;
     bottom: 30px;
     border: solid 1px #ccc;
 }
 
 #map-label-legend .table {
     margin-bottom: 0;
+    margin-left: 2;
 }
 
 #map-label-legend table td {
     border-top: 0;
 }
 
+.table-hover tbody tr:hover td, th {
+  background-color: rgba(200, 200, 200, 0.55);
+}
 
 .leaflet-overlay-pane svg g:first-child path {
     fill: #fff !important;

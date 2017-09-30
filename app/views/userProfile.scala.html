@@ -6,22 +6,135 @@
 
 @main(title) {
     @navbar(user)
+    <script>$(document).ready(function(){
+      $("#curb-ramp-row").mouseenter(function(){
+        $("path[fill = 'rgba(241, 141, 5, 1)']").hide(); //Surface Problems
+        $("path[fill = 'rgba(233, 39, 113, 1)']").hide(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").hide(); //Obstacles
+        $("path[fill = 'rgba(179, 179, 179, 1)']").hide();
+      });
+      $("#curb-ramp-row").mouseleave(function(){
+        $("path[fill = 'rgba(241, 141, 5, 1)']").show();  //Surface Problems
+        $("path[fill = 'rgba(233, 39, 113, 1)']").show(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").show(); //Obstacles
+        $("path[fill = 'rgba(179, 179, 179, 1)']").show();
+      });
+
+      $("#no-curb-ramp-row").mouseenter(function(){
+        $("path[fill = 'rgba(241, 141, 5, 1)']").hide(); //Surface Problems
+        $("path[fill = 'rgba(0, 222, 38, 1)']").hide(); //Curb Ramps
+        $("path[fill = 'rgba(0, 161, 203, 1)']").hide(); //Obstacles
+        $("path[fill = 'rgba(179, 179, 179, 1)']").hide();
+
+      });
+      $("#no-curb-ramp-row").mouseleave(function(){
+        $("path[fill = 'rgba(241, 141, 5, 1)']").show(); //Surface Problems
+        $("path[fill = 'rgba(0, 222, 38, 1)']").show(); //CurbRamp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").show(); //Obstacles
+        $("path[fill = 'rgba(179, 179, 179, 1)']").show();
+
+      });
+
+      $("#map-legend-obstacle-row").mouseenter(function(){
+        $("path[fill = 'rgba(241, 141, 5, 1)']").hide(); //Surface Problems
+        $("path[fill = 'rgba(233, 39, 113, 1)']").hide(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 222, 38, 1)']").hide(); //CurbRamp
+        $("path[fill = 'rgba(179, 179, 179, 1)']").hide();
+
+      });
+
+      $("#map-legend-obstacle-row").mouseleave(function(){
+        $("path[fill = 'rgba(241, 141, 5, 1)']").show(); //Surface Problems
+        $("path[fill = 'rgba(233, 39, 113, 1)']").show(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 222, 38, 1)']").show(); //CurbRamp
+        $("path[fill = 'rgba(179, 179, 179, 1)']").show();
+
+      });
+
+      $("#map-legend-surface-problem-row").mouseenter(function(){
+        $("path[fill = 'rgba(0, 222, 38, 1)']").hide(); //CurbRamp
+        $("path[fill = 'rgba(233, 39, 113, 1)']").hide(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").hide(); //Obstacles
+        $("path[fill = 'rgba(179, 179, 179, 1)']").hide();
+
+      });
+
+      $("#map-legend-surface-problem-row").mouseleave(function(){
+        $("path[fill = 'rgba(0, 222, 38, 1)']").show(); //CurbRamp
+        $("path[fill = 'rgba(233, 39, 113, 1)']").show(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").show(); //Obstacles
+        $("path[fill = 'rgba(179, 179, 179, 1)']").show();
+
+      });
+
+      $("#map-legend-audited-street-row").mouseenter(function(){
+        $("path[fill = 'rgba(0, 222, 38, 1)']").hide(); //CurbRamp
+        $("path[fill = 'rgba(233, 39, 113, 1)']").hide(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").hide(); //Obstacles
+        $("path[fill = 'rgba(241, 141, 5, 1)']").hide(); //Surface Problems
+        $("path[fill = 'rgba(179, 179, 179, 1)']").hide();
+
+      });
+
+      $("#map-legend-audited-street-row").mouseleave(function(){
+        $("path[fill = 'rgba(0, 222, 38, 1)']").show(); //CurbRamp
+        $("path[fill = 'rgba(233, 39, 113, 1)']").show(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").show(); //Obstacles
+        $("path[fill = 'rgba(241, 141, 5, 1)']").show(); //Surface Problems
+        $("path[fill = 'rgba(179, 179, 179, 1)']").show();
+      });
+
+      $("#map-legend-other-row").mouseenter(function(){
+        $("path[fill = 'rgba(0, 222, 38, 1)']").hide(); //CurbRamp
+        $("path[fill = 'rgba(233, 39, 113, 1)']").hide(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").hide(); //Obstacles
+        $("path[fill = 'rgba(241, 141, 5, 1)']").hide(); //Surface Problems
+      });
+
+      $("#map-legend-other-row").mouseleave(function(){
+        $("path[fill = 'rgba(0, 222, 38, 1)']").show(); //CurbRamp
+        $("path[fill = 'rgba(233, 39, 113, 1)']").show(); //Missing Curb Ramp
+        $("path[fill = 'rgba(0, 161, 203, 1)']").show(); //Obstacles
+        $("path[fill = 'rgba(241, 141, 5, 1)']").show(); //Surface Problems
+      });
+
+    });</script>
     <div class="container">
-        <div class="row" id="maprow">
-            <div class="col-lg-12" id="mapcolumn">
-                <div id="map-holder">
-                    <div id="map"></div>
-                    <div id="map-label-legend">
-                        <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td></tr>
-                        </table>
-                    </div>
-                </div>
+      <div class="row" id="maprow">
+        <div class="col-lg-12" id="mapcolumn">
+          <div id="map-holder">
+            <div id="map"></div>
+            <div id="map-label-legend">
+              <table class="table table-hover", width = "100%", cellspacing = "100">
+                  <tr><td rowspan = "2"></td><td><strong>Attribute Type</strong></td><td><strong>Total</strong></td><tr>
+                  <tr id = "curb-ramp-row">
+                      <td style ="padding-left: 20px" id="map-legend-curb-ramp"></td><td>Curb Ramps</td>
+                      <td style = "padding-right: 20px padding-left: 20px" id="curb-ramps"></td>
+                  </tr>
+                  <tr id = "no-curb-ramp-row">
+                    <td style ="padding-left: 20px" id="map-legend-no-curb-ramp"></td>
+                    <td>Missing Curb Ramps</td><td style = "padding-right: 20px padding-left: 20px" id="missing-curb-ramps"></td>
+                  </tr>
+                  <tr id = "map-legend-obstacle-row">
+                    <td style ="padding-left: 20px" id="map-legend-obstacle"></td>
+                    <td>Obstacles in Path</td><td style = "padding-right: 20px padding-left: 20px" id="obstacles"></td>
+                  </tr>
+                  <tr id = "map-legend-surface-problem-row">
+                    <td style ="padding-left: 20px" id="map-legend-surface-problem"></td>
+                    <td>Surface Problems</td><td style = "padding-right: 20px padding-left: 20px" id="surface-problems"></td>
+                  </tr>
+                  <tr id = "map-legend-other-row">
+                    <td style ="padding-left: 20px" id="map-legend-other"></td>
+                    <td>Others</td><td style = "padding-right: 20px padding-left: 20px" id="other-problems"></td>
+                  </tr>
+                  <tr id = "map-legend-audited-street-row">
+                    <td style ="padding-left: 20px" id="map-legend-audited-street"></td>
+                    <td>Audited Street</td><td style = "padding-right: 20px padding-left: 20px" id="total-distance-audited"></td>
+                  </tr>
+                </table>
+              </div>
             </div>
+          </div>
         </div>
         <div class="row"><div class="spacer10"></div></div>
         <div class="row">
@@ -35,7 +148,7 @@
                     <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId)</td>
                 </tr>
             </table>
-            <table class="table table-striped table-condensed">
+            <table class="table table-striped table-condesed">
                 <tr>
                     <th>Attribute Type</th>
                     <th>Curb Ramps</th>
@@ -44,7 +157,7 @@
                     <th>Surface Problems</th>
                 </tr>
                 <tr>
-                    <th>Number of Labels</th>
+                    <td>Number of Labels</td>
                     <td id="td-number-of-curb-ramps"></td>
                     <td id="td-number-of-missing-curb-ramps"></td>
                     <td id="td-number-of-obstacles"></td>
@@ -62,15 +175,15 @@
             <table class="table table-striped table-fixed">
                 <thead>
                     <tr>
-                        <th class="col-xs-12">Labels per Street</th>
+                      <td class="col-xs-6"><strong>Labels per Street</strong></td>
                     </tr>
                     <tr>
-                    <th class="col-xs-2">Date</th>
-                    <th class="col-xs-2">Curb Ramp</th>
-                    <th class="col-xs-2">Missing Curb Ramp</th>
-                    <th class="col-xs-2">Obstacle</th>
-                    <th class="col-xs-2">Surface Problem</th>
-                    <th class="col-xs-2">Other</th>
+                    <td class="col-xs-1"><strong>Date</strong></td>
+                    <td class="col-xs-1"><strong>Curb Ramp</strong></td>
+                    <td class="col-xs-1"><strong>Missing Curb Ramp</strong></td>
+                    <td class="col-xs-1"><strong>Obstacle</strong></td>
+                    <td class="col-xs-1"><strong>Surface Problem</strong></td>
+                    <td class="col-xs-1"><strong>Other</strong></td>
                 </tr></thead>
                 <tbody id="task-contribution-table" ></tbody>
             </table>
