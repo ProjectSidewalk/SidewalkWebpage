@@ -17,6 +17,7 @@ GET     /faq                                                 @controllers.Applic
 GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
+GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
