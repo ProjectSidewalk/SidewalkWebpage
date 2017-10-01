@@ -188,7 +188,6 @@ class SignUpController @Inject() (
         activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
 
-        // Need to be able to sign in again as the user but the following commented code seems to be incomplete
         val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
         val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
         userService.retrieve(loginInfo).flatMap {
@@ -204,7 +203,7 @@ class SignUpController @Inject() (
         }
 
       case None =>
-        // Create a temporary email and password. Keep the username as the workerId.
+        // Create a dummy email and password. Keep the username as the workerId.
         val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
         val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
 
