@@ -184,11 +184,9 @@ class SignUpController @Inject() (
 
     UserTable.find(workerId) match {
       case Some(user) =>
-        // If the turker id already exists in the database then log the user in and
+        // If the turker id already exists in the database then log the user in.
         activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-        //WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "No_More_Missions", timestamp))
-        //Future.successful(Redirect("/noAvailableMissionIndex"))
 
         // Need to be able to sign in again as the user but the following commented code seems to be incomplete
         val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
@@ -251,7 +249,7 @@ class SignUpController @Inject() (
   def turkerSignIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
     val ipAddress: String = request.remoteAddress
 
-    // If you want to extend the expiration time, follow this instruction.
+    // If you want to extend the expiration time for the authenticated session, follow this instruction.
     // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
     val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
     val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
