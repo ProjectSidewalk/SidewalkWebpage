@@ -256,6 +256,8 @@
                         </div>
                     </div>
                     <br class="clear">
+                    <h2 id="current-mission-reward" style="display:none"></h2>
+                    <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
                 <div class="status-box">
                     <div id="label-counter"></div>
@@ -458,6 +460,11 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
+                    @if(user){
+                        @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
+                        }
+                    }
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -504,6 +511,14 @@
                             <h3>Neighborhood Progress</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
+                                @if(user){
+                                    @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                                        <tr>
+                                            <th>Earned in this mission</th>
+                                            <td id="modal-mission-complete-mission-reward" class="col-right" style="color: forestgreen;"></td>
+                                        </tr>
+                                    }
+                                }
                                 <tr>
                                     <th>Audited in this mission</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
@@ -897,7 +912,25 @@
                         $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
                         $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
                         $("#left-column-confirmation-code-button").popover();
+
+                        //Hide the confirmation popover on clicking the background
+                        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+
+                        $(document).on('click', function (e) {
+                            $("#left-column-confirmation-code-button").each(function () {
+                                //the 'is' for buttons that trigger popups
+                                //the 'has' for icons within a button that triggers a popup
+                                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                                }
+
+                            });
+                        });
+
+                        $("#current-mission-reward").show();
+                        $("#total-mission-reward").show();
                     }
+                    $("#modal-mission-reward-text").show();
                 } else{
                     $("#left-column-confirmation-code-button").css('visibility', "hidden");
                 }

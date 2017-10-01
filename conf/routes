@@ -76,6 +76,7 @@ POST    /task                                                @controllers.TaskCo
 
 # Missions
 GET     /mission                                             @controllers.MissionController.getMissions
+GET     /rewardPerMile                                       @controllers.MissionController.getRewardPerMile
 POST    /mission                                             @controllers.MissionController.post
 
 # Labels

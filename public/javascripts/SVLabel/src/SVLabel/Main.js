@@ -590,6 +590,8 @@ function Main (params) {
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
+        svl.ui.status.currentMissionReward = $("#current-mission-reward");
+        svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
 
         // MissionDescription DOMs
@@ -659,6 +661,7 @@ function Main (params) {
         svl.ui.modalMission.foreground = $("#modal-mission-foreground");
         svl.ui.modalMission.background = $("#modal-mission-background");
         svl.ui.modalMission.missionTitle = $("#modal-mission-header");
+        svl.ui.modalMission.rewardText = $("#modal-mission-reward-text");
         svl.ui.modalMission.instruction = $("#modal-mission-instruction");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
@@ -675,6 +678,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
+        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
         svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
         svl.ui.modalMissionComplete.curbRampCount = $("#modal-mission-complete-curb-ramp-count");
         svl.ui.modalMissionComplete.noCurbRampCount = $("#modal-mission-complete-no-curb-ramp-count");

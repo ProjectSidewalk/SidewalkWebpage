@@ -250,5 +250,11 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
       MissionUserTable.save(m.missionId, userId.toString, false)
     }
   }
+
+  def getRewardPerMile = UserAwareAction.async { implicit request =>
+    val rewardPerMile = 4.17
+    Future.successful(Ok(Json.obj("rewardPerMile" -> rewardPerMile)))
+  }
+
 }
 
