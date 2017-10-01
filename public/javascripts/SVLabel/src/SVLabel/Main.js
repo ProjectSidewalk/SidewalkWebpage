@@ -109,6 +109,7 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
+        svl.advancedOverlay = params.advancedOverlay;
 
 
 
@@ -184,6 +185,8 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
+        // Survey for select users
+        svl.surveyModalContainer = $("#survey-modal-container").get(0);
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
@@ -191,6 +194,12 @@ function Main (params) {
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
+        }
+
+        // Mark neighborhood as complete if the initial task's completion count > 0
+        // Proxy for knowing if the neighborhood is complete across all users
+        if(task.getStreetCompletionCount() > 0) {
+            svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
         if (getStatus("isFirstTask")) {
@@ -206,6 +215,24 @@ function Main (params) {
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+
+        $('#survey-modal-container').on('show.bs.modal', function () {
+            svl.popUpMessage.disableInteractions();
+            svl.ribbon.disableModeSwitch();
+            svl.zoomControl.disableZoomIn();
+            svl.zoomControl.disableZoomOut();
+        });
+        $('#survey-modal-container').on('hide.bs.modal', function () {
+            svl.popUpMessage.enableInteractions();
+            svl.ribbon.enableModeSwitch();
+            svl.zoomControl.enableZoomIn();
+            svl.zoomControl.enableZoomOut();
+        });
+
+        $('#survey-modal-container').keydown(function(e) {
+            e.stopPropagation();
+        });
+
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
             $(".toolUI").css('opacity', 1);
@@ -450,7 +477,7 @@ function Main (params) {
 
                 var regionId = currentNeighborhood.getProperty("regionId");
                 var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
-                if(difficultRegionIds.includes(regionId)){
+                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay){
                     $('#advanced-overlay').show();
                 }
                 startTheMission(mission, currentNeighborhood);
@@ -654,6 +681,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
         svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
+        svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
 
         // Zoom control
         svl.ui.zoomControl = {};
@@ -679,6 +707,7 @@ function Main (params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 
         // Navigation compass
         svl.ui.compass = {};

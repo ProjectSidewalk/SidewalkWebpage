@@ -806,6 +806,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
         svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+        svl.tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
     }
 
     function finishCurrentTaskBeforeJumping(mission){

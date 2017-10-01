@@ -75,11 +75,19 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         this._uiModalMissionComplete.holder.css('visibility', 'hidden');
         this._uiModalMissionComplete.foreground.css('visibility', "hidden");
         this._uiModalMissionComplete.background.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButton.css('visibility', "hidden");
         // this._horizontalBarMissionLabel.style("visibility", "hidden");
         this._modalMissionCompleteMap.hide();
-
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
+        if(this._uiModalMissionComplete.confirmationText!=null && this._uiModalMissionComplete.confirmationText!=undefined){
+            this._uiModalMissionComplete.confirmationText.empty();
+            this._uiModalMissionComplete.confirmationText.remove();
+            delete this._uiModalMissionComplete.confirmationText;
+            delete svl.confirmationCode;
+            svl.ui.leftColumn.confirmationCode.show();
+            svl.ui.leftColumn.confirmationCode.popover();
+        }
     };
 
     this.show = function () {
@@ -87,8 +95,54 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
+        uiModalMissionComplete.closeButton.css('visibility', "visible");
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
+
+        /*If the user has completed his first mission then hide the continue button.
+         Display the generate confirmation button. When clicked, remove this button completely
+         and make the Continue button visible again.
+         */
+        if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
+            uiModalMissionComplete.closeButton.css('visibility', "hidden");
+            // Assignment Completion Data
+            var data = {
+                amt_assignment_id: svl.amtAssignmentId,
+                completed: true
+            };
+
+            $.ajax({
+                async: true,
+                contentType: 'application/json; charset=utf-8',
+                url: "/amtAssignment",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
+            //console.log("Reached modal mission complete");
+            var confirmationCodeElement = document.createElement("h3");
+            confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
+                "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
+                "Confirmation Code: " +
+                svl.confirmationCode +
+                "<p></p>";
+            confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
+            uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.closeButton.css('visibility', "visible");
+            uiModalMissionComplete.generateConfirmationButton.remove();
+            delete uiModalMissionComplete.generateConfirmationButton;
+
+            svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
+            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+            svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
+        }
     };
 
     this.update = function (mission, neighborhood) {
