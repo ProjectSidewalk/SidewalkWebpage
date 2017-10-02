@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService}
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
@@ -20,7 +21,9 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.mvc.{Action, RequestHeader}
+import play.api.Play
+import play.api.Play.current
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 
 import scala.concurrent.Future
@@ -177,18 +180,30 @@ class SignUpController @Inject() (
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId" + hitId
+    var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
 
     UserTable.find(workerId) match {
       case Some(user) =>
-        // This case should never be reached since the Turkers are automatically assigned a user_id
-        // And since worker id s are unique to each turker there shouldnt be two turkers assigned the same user_id
+        // If the turker id already exists in the database then log the user in.
+        activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "No_More_Missions", timestamp))
-        Future.successful(Redirect("/noAvailableMissionIndex"))
+
+        val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
+        val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
+        userService.retrieve(loginInfo).flatMap {
+          case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
+            val session: Future[SessionAuthenticator#Value] = turkerSignIn(user, authenticator)
+
+            // Get the Future[Result] (i.e., the page to redirect), then embed the encoded session authenticator
+            // into HTTP header as a cookie.
+            val result = Future.successful(Redirect("/audit"))
+            session.flatMap(s => env.authenticatorService.embed(s, result))
+          }
+          case None => Future.successful(Redirect("/turkerIdExists"))
+        }
 
       case None =>
-        // Create a temporary email and password. Keep the username as the workerId.
+        // Create a dummy email and password. Keep the username as the workerId.
         val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
         val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
 
@@ -208,7 +223,7 @@ class SignUpController @Inject() (
           authenticator <- env.authenticatorService.create(user.loginInfo)
           value <- env.authenticatorService.init(authenticator)
           result <- env.authenticatorService.embed(value, Future.successful(
-            Redirect("/")
+            Redirect("/audit")
           ))
         } yield {
           // Set the user role and assign the neighborhood to audit.
@@ -228,5 +243,31 @@ class SignUpController @Inject() (
           result
         }
     }
+  }
+
+  def turkerSignIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
+    val ipAddress: String = request.remoteAddress
+
+    // If you want to extend the expiration time for the authenticated session, follow this instruction.
+    // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
+    val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
+    val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
+    val expirationDate = authenticator.expirationDate.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
+    val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
+
+    if (!UserCurrentRegionTable.isAssigned(user.userId)) {
+      UserCurrentRegionTable.assignEasyRegion(user.userId)
+    }
+
+    // Add Timestamp
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+
+    // Logger.info(updatedAuthenticator.toString)
+    // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
+    // There is currently nothing subscribed to the event bus (at least in the application level)
+    env.eventBus.publish(LoginEvent(user, request, request2lang))
+    env.authenticatorService.init(updatedAuthenticator)
   }
 }
