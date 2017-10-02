@@ -85,7 +85,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
             delete svl.confirmationCode;
-            svl.ui.leftColumn.confirmationCode.show();
+            svl.ui.leftColumn.confirmationCode.css('visibility', '');
             svl.ui.leftColumn.confirmationCode.popover();
         }
     };
