@@ -147,14 +147,9 @@ footer {
     padding:5px 25px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+    outline: none;
 }
-.navbarResultsBtn:hover {
-    background-color:#FCECBE;
-    border:1px solid #FCECBE;
-    color: #2D2A3F;
-    text-shadow: none;
-}
-.navbarStartBtn:hover {
+.navbar-nav > li > a.navbarBtn:hover {
     background-color:#FCECBE;
     border:1px solid #FCECBE;
     color: #2D2A3F;
