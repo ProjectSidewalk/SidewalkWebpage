@@ -26,7 +26,7 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
 
-    <style type="text/css">
+    <style>
         #warning-message { display: none; }
         @@media only screen and (orientation:portrait){
             #onboarding-holder { display:none; }
@@ -38,7 +38,9 @@
         }
     </style>
 
-    @if(user){
+
+
+@if(user){
         @if(user.get.roles.getOrElse(Seq("")).contains("Turker")){
             <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -686,17 +688,11 @@
         </div>
     </div>
 
-    <div id="warning-message">
-        <br />
-        <div>
-            <p id="mobile-thanks" style="text-align:center">
-                Thanks for visiting!
-            </p>
-            <br /><br />
-            <p id="mobile-message" style="text-align:center">
-                Unfortunately, we do not currently support portrait mode with mobile devices. Please orient your screen to landscape mode to use this tool. </p>
-        </div>
-        <br />
+   <div id="warning-message" style="text-align:center">
+       <img src='@routes.Assets.at("assets/ScreenRotation.png")' id="screen-rotate"
+            alt="Please change the orientation of your screen.">
+       <p id="mobile-message" > Please orient your screen to landscape mode to use this tool. </p>
+       <br/>
     </div>
 
 

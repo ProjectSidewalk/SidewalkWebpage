@@ -1305,3 +1305,9 @@ kbd {
     width:100%;
     font-weight:normal;
 }
+
+#screen-rotate{
+    height: 50%;
+    width: 50%;
+    padding-top: 5%;
+}
