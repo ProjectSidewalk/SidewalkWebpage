@@ -110,7 +110,7 @@ function UtilitiesMisc (JSON) {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoSidewalk.png',
                 googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
             },
             Void: {
@@ -327,6 +327,10 @@ var ColorScheme = (function () {
                 id: 'Obstacle',
                 fillStyle: 'rgba(0, 161, 203, 0.9)'
             },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                fillStyle: 'rgba(153, 131, 239, 0.9)'
+            },
             Other: {
                 id: 'Other',
                 fillStyle: 'rgba(204, 204, 204, 0.9)',
@@ -381,7 +385,7 @@ var ColorScheme = (function () {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                fillStyle: 'rgba(179, 179, 179, 1)',
+                fillStyle: 'rgba(153, 131, 239, 1)',
                 strokeStyle: '#ff0000'
             },
             SurfaceProblem: {
@@ -431,7 +435,7 @@ var ColorScheme = (function () {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                fillStyle: 'rgba(179, 179, 179, 1)'
+                fillStyle: 'rgba(153, 131, 239, 1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',

@@ -62,6 +62,16 @@ function LabelCounter (d3) {
         count: 0,
         data: []
       },
+      "NoSidewalk": {
+        id: "NoSidewalk",
+        description: "no sidewalk",
+        left: margin.left,
+          top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
+        fillColor: colorScheme["NoSidewalk"].fillStyle,
+          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoSidewalk.png",
+        count: 0,
+        data: []
+      },
         "Other": {
             id: "Other",
             description: "other",
