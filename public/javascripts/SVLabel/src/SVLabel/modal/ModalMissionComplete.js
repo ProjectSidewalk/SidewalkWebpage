@@ -75,11 +75,19 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         this._uiModalMissionComplete.holder.css('visibility', 'hidden');
         this._uiModalMissionComplete.foreground.css('visibility', "hidden");
         this._uiModalMissionComplete.background.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButton.css('visibility', "hidden");
         // this._horizontalBarMissionLabel.style("visibility", "hidden");
         this._modalMissionCompleteMap.hide();
-
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
+        if(this._uiModalMissionComplete.confirmationText!=null && this._uiModalMissionComplete.confirmationText!=undefined){
+            this._uiModalMissionComplete.confirmationText.empty();
+            this._uiModalMissionComplete.confirmationText.remove();
+            delete this._uiModalMissionComplete.confirmationText;
+            delete svl.confirmationCode;
+            svl.ui.leftColumn.confirmationCode.css('visibility', '');
+            svl.ui.leftColumn.confirmationCode.popover();
+        }
     };
 
     this.show = function () {
@@ -87,8 +95,68 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
+        uiModalMissionComplete.closeButton.css('visibility', "visible");
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
+
+        /*If the user has completed his first mission then hide the continue button.
+         Display the generate confirmation button. When clicked, remove this button completely
+         and make the Continue button visible again.
+         */
+        if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
+            uiModalMissionComplete.closeButton.css('visibility', "hidden");
+            // Assignment Completion Data
+            var data = {
+                amt_assignment_id: svl.amtAssignmentId,
+                completed: true
+            };
+
+            $.ajax({
+                async: true,
+                contentType: 'application/json; charset=utf-8',
+                url: "/amtAssignment",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
+            //console.log("Reached modal mission complete");
+            var confirmationCodeElement = document.createElement("h3");
+            confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
+                "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
+                "Confirmation Code: " +
+                svl.confirmationCode +
+                "<p></p>";
+            confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
+            uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.closeButton.css('visibility', "visible");
+            uiModalMissionComplete.generateConfirmationButton.remove();
+            delete uiModalMissionComplete.generateConfirmationButton;
+
+            svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
+            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+            svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
+
+            //Hide the mTurk confirmation code popover on clicking the background (i.e. outside the popover)
+            //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+
+            $(document).on('click', function (e) {
+                svl.ui.leftColumn.confirmationCode.each(function () {
+                    //the 'is' for buttons that trigger popups
+                    //the 'has' for icons within a button that triggers a popup
+                    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                        (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                    }
+
+                });
+            });
+        }
     };
 
     this.update = function (mission, neighborhood) {
@@ -154,6 +222,34 @@ ModalMissionComplete.prototype._updateMissionProgressStatistics = function (miss
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
+    //Check if the user is associated with the "Turker" role and update the reward HTML
+    var url = '/isTurker';
+    $.ajax({
+        async: true,
+        url: url,//endpoint that checks above conditions
+        type: 'get',
+        success: function(data){
+            if(data.isTurker){
+                var url = '/rewardPerMile';
+                $.ajax({
+                    async: true,
+                    url: url,//endpoint that checks above conditions
+                    type: 'get',
+                    success: function(data){
+                        var missionReward = missionDistance*data.rewardPerMile;
+                        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
+                });
+                //console.log('Survey displayed');
+            }
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            console.log(thrownError);
+        }
+    });
 };
 
 ModalMissionComplete.prototype._updateTheMissionCompleteMessage = function () {

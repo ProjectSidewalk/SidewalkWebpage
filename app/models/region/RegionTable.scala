@@ -3,6 +3,8 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
+import models.mission.MissionTable
+
 import math._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeTable}
 import models.user.UserCurrentRegionTable
@@ -58,6 +60,10 @@ object RegionTable {
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
+  val namedRegions = for {
+    (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
+    if _regionProperties.key === "Neighborhood Name"
+  } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
 
   // Create a round robin neighborhood supplier to be used in getRegion.
   // http://stackoverflow.com/questions/19771992/is-there-a-round-robin-circular-queue-avaliable-in-scala-collections
@@ -99,11 +105,6 @@ object RegionTable {
     * @return
     */
   def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
-    val namedRegions = for {
-      (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
-
     namedRegions.list.map(x => NamedRegion.tupled(x))
   }
 
@@ -132,6 +133,7 @@ object RegionTable {
 
   /**
     * Get a Named Region that has not been flagged as difficult (if any are left) in a round-robin fashion.
+    * Used for anonymous users
     *
     * @return
     */
@@ -149,6 +151,36 @@ object RegionTable {
       }
       Some(currentRegion)
     }
+  }
+
+  /**
+    * Get a named easy region that is amongst the least audited regions
+    * Used for anonymous users
+    *
+    * @return
+    */
+  def selectALeastAuditedEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
+
+    // Assign one of the unaudited regions.
+    // TODO: Assign one of the least-audited regions that are easy.
+    val completions: List[RegionCompletion] =
+      RegionCompletionTable.regionCompletions
+        .filterNot(_.regionId inSet UserCurrentRegionTable.difficultRegionIds)
+        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
+
+    val regionId: Int = completions match {
+      case Nil =>
+        // Indicates that there are no unaudited regions across all users. In this case, pick any easy region.
+        val regionIds: List[Int] = namedRegions.list.map(_._1)
+        scala.util.Random.shuffle(regionIds).filterNot(UserCurrentRegionTable.difficultRegionIds.contains(_)).head
+      case _ =>
+        // Pick an easy region that is least audited
+        scala.util.Random.shuffle(completions).head.regionId
+    }
+    val selectedNamedRegion = namedRegions.filter(_._1 === regionId).list.map(x => NamedRegion.tupled(x))
+    selectedNamedRegion.headOption
+
   }
 
   /**

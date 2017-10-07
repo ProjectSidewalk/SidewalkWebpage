@@ -31,7 +31,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         minZoom: 9,
         zoomControl: false,
         legendControl: {
-            position: 'bottomleft'
+            position: 'topright'
         }
     })
         .fitBounds(bounds)

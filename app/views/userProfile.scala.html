@@ -29,10 +29,16 @@
                 <tr>
                     <th>Total Distance Audited</th>
                     <th>Number of Missions Completed</th>
+                    @if(user){
+                        @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                            <th>Total Reward Earned</th>
+                        }
+                    }
                 </tr>
                 <tr>
                     <td id="td-total-distance-audited"></td>
                     <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId)</td>
+                    <td id="td-total-reward-earned"></td>
                 </tr>
             </table>
             <table class="table table-striped table-condensed">
