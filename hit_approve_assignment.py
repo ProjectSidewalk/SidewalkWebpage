@@ -20,7 +20,7 @@ try:
     amt_assignment_rows = cur.fetchall()
     existing_hits = map(lambda x: x["hit_id"], amt_assignment_rows)
 
-    existing_assignments_dict = { x["assignment_id"]:x for x in amt_assignment_rows}
+    existing_assignments_df = pd.DataFrame(amt_assignment_rows)
 
     mturk = connect_to_mturk()
 
@@ -51,21 +51,26 @@ try:
     else:
         print "HITs to review: "
         print relevant_hits_to_review
+
+    approve_hits = False
     
     for hit in relevant_hits_to_review:
         asmts_to_review = mturk.list_assignments_for_hit(
             HITId=hit['HITId'], AssignmentStatuses=['Submitted'])
 
-        for asmt in asmts_to_review['Assignments']:
-            generated_confirmation_code = existing_assignments_dict[asmt['AssignmentId']]['confirmation_code']
-            code_submitted_matches = "<FreeText>"+generated_confirmation_code+"</FreeText>" in asmt['Answer']
-            worker_id_matches = existing_assignments_dict[asmt['AssignmentId']]['turker_id'] == asmt['WorkerId'] # This isnt actually required
+        related_assignments_df = existing_assignments_df[existing_assignments_df["hit_id"] == hit['HITId']]
 
-            if(code_submitted_matches and worker_id_matches):
+        for asmt in asmts_to_review['Assignments']:
+            worker_assignments_df = related_assignments_df[(related_assignments_df['assignment_id']==asmt['AssignmentId'])&(related_assignments_df['turker_id']==asmt['WorkerId'])]
+            # Find a record in the assignment table with the same WorkerId, HITId, AssignmentId, and confirmation code
+            # If it exists then approve the HIT.
+            # Else reject the HIT
+            if(worker_assignments_df['confirmation_code'].map(lambda x: "<FreeText>"+x+"</FreeText>" in asmt['Answer']).any()):
                 print 'Approving the following assignment:'
                 pprint(asmt)
                 print
-                mturk.approve_assignment(AssignmentId=asmt['AssignmentId'])
+                if approve_hits:
+                    mturk.approve_assignment(AssignmentId=asmt['AssignmentId'])
 
                 # add approved assignment info to a CSV
                 new_row = [asmt['HITId'], asmt['AssignmentId'], asmt['WorkerId'],
