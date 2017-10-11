@@ -7,7 +7,7 @@ import play.api.Play.current
 case class GSVOnboardingPano(gsvPanoramaId: String, hasLabels: Boolean)
 
 // NOTE: We chose to add this as a separate table solely because of the ease of implementation. Perhaps it would be best
-//       to just inclue a boolean `tutorial` column in the label table instead. This could still be done in the future.
+//       to just include a boolean `tutorial` column in the label table instead. This could still be done in the future.
 class GSVOnboardingPanoTable(tag: Tag) extends Table[GSVOnboardingPano](tag, Some("sidewalk"), "gsv_onboarding_pano") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
   def hasLabels = column[Boolean]("has_labels", O.NotNull)
