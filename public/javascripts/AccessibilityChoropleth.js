@@ -268,7 +268,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
                 region.labels = regionLabel ? regionLabel.labels : {};
                 return region;
-            })
+            });
 
             // make a choropleth of neighborhood completion percentages
             initializeChoroplethNeighborhoodPolygons(choropleth, regionData);
