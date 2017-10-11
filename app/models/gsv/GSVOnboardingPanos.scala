@@ -17,6 +17,14 @@ object GSVOnboardingPanoTable {
   val db = play.api.db.slick.DB
   val onboardingPanos = TableQuery[GSVOnboardingPanoTable]
 
+  def selectGSVOnboardingPanos(): List[GSVOnboardingPano] = db.withTransaction { implicit session =>
+    onboardingPanos.list
+  }
+
+  def getOnboardingPanoIds(): List[String] = db.withTransaction { implicit session =>
+    onboardingPanos.map(_.gsvPanoramaId).list
+  }
+
   def save(newOnboardingPano: GSVOnboardingPano): String = db.withTransaction { implicit session =>
     onboardingPanos += newOnboardingPano
     newOnboardingPano.gsvPanoramaId
