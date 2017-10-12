@@ -539,7 +539,6 @@ object LabelTable {
         |            FROM gsv_onboarding_pano
         |            WHERE has_labels = TRUE
         |          )
-        |          AND label.gsv_panorama_id NOT IN (SELECT gsv_panorama_id FROM gsv_onboarding_pano WHERE has_labels = TRUE)
         |          AND region_id = ?) AS labels
         |GROUP BY (labels.label_type)""".stripMargin
     )
