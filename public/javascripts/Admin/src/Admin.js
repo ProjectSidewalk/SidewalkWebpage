@@ -132,13 +132,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 //this.setStyle(neighborhoodPolygonStyle);
             });
             layer.on('click', function (e) {
-                var center = turf.center(this.feature),
-                    coordinates = center.geometry.coordinates,
-                    latlng = L.latLng(coordinates[1], coordinates[0]),
-                    zoom = map.getZoom();
-                zoom = zoom > 14 ? zoom : 14;
-
-                map.setView(latlng, zoom, {animate: true});
                 currentLayer = this;
             });
         }
@@ -300,13 +293,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 //this.setStyle(neighborhoodPolygonStyle);
             });
             layer.on('click', function (e) {
-                var center = turf.center(this.feature),
-                    coordinates = center.geometry.coordinates,
-                    latlng = L.latLng(coordinates[1], coordinates[0]),
-                    zoom = map.getZoom();
-                zoom = zoom > 14 ? zoom : 14;
-
-                map.setView(latlng, zoom, {animate: true});
                 currentLayer = this;
             });
         }
