@@ -1,6 +1,7 @@
 package models.daos.slick
 
 import models.utils.MyPostgresDriver.simple._
+import java.util.UUID
 
 object DBTableDefinitions {
 
@@ -58,6 +59,12 @@ object DBTableDefinitions {
     }
     def findEmail(email: String): Option[DBUser] = db.withTransaction { implicit session =>
       slickUsers.filter(_.email === email).firstOption match {
+        case Some(user) => Some(user)
+        case None => None
+      }
+    }
+    def findById(userId: UUID): Option[DBUser] = db.withTransaction { implicit session =>
+      slickUsers.filter(_.userId === userId.toString).firstOption match {
         case Some(user) => Some(user)
         case None => None
       }

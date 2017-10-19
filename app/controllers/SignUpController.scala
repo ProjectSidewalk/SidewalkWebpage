@@ -82,7 +82,7 @@ class SignUpController @Inject() (
                   loginInfo = loginInfo,
                   username = data.username,
                   email = data.email,
-                  roles = None
+                  role = None
                 )
 
                 for {
@@ -95,7 +95,7 @@ class SignUpController @Inject() (
                   ))
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
-                  UserRoleTable.addUserRole(user.userId)
+                  UserRoleTable.setRole(user.userId, "User")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
@@ -143,7 +143,7 @@ class SignUpController @Inject() (
                   loginInfo = loginInfo,
                   username = data.username,
                   email = data.email,
-                  roles = None
+                  role = None
                 )
 
                 for {
@@ -156,7 +156,7 @@ class SignUpController @Inject() (
                   ))
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
-                  UserRoleTable.addUserRole(user.userId)
+                  UserRoleTable.setRole(user.userId, "User")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
@@ -175,6 +175,7 @@ class SignUpController @Inject() (
       }
     )
   }
+
   def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
@@ -214,7 +215,7 @@ class SignUpController @Inject() (
           loginInfo = loginInfo,
           username = workerId,
           email = turker_email,
-          roles = None
+          role = None
         )
 
         for {
@@ -227,7 +228,7 @@ class SignUpController @Inject() (
           ))
         } yield {
           // Set the user role and assign the neighborhood to audit.
-          UserRoleTable.addTurkerRole(user.userId)
+          UserRoleTable.setRole(user.userId, "Turker")
           UserCurrentRegionTable.assignEasyRegion(user.userId)
 
           // Add Timestamp
