@@ -30,7 +30,7 @@
                     <th>Total Distance Audited</th>
                     <th>Number of Missions Completed</th>
                     @if(user){
-                        @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                        @if(user.get.role.getOrElse("") == "Turker") {
                             <th>Total Reward Earned</th>
                         }
                     }

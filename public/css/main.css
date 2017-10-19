@@ -86,7 +86,9 @@ footer {
 }
 
 .navbarLink{
-  display: inline;
+    display: inline;
+    margin-top: 4px;
+    margin-left: 10px;
 }
 
 .navbar-brand.fixed-theme {
@@ -122,14 +124,13 @@ footer {
     /* the rest of your styling */
 }
 #navbar {
-    margin-top: 30px;
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
     max-height: 30px;
 }
 
-.navbarStartBtn, .navbarResultsBtn {
+.navbar-nav > li > a.navbarBtn {
     background-color:#ffffff;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -146,11 +147,9 @@ footer {
     padding:5px 25px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+    outline: none;
 }
-.navbarResultsBtn{
-    margin-left: 8px;
-}
-.navbarStartBtn:hover {
+.navbar-nav > li > a.navbarBtn:hover {
     background-color:#FCECBE;
     border:1px solid #FCECBE;
     color: #2D2A3F;
@@ -161,10 +160,8 @@ footer {
     top:8px;
 }
 
-
 .grayButton {
     position: relative;
-    left: 20px;
     background-color: #eee;
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -998,14 +995,6 @@ video#bgvid {
     -webkit-box-shadow: 0 8px 6px -6px #999;
     -moz-box-shadow: 0 8px 6px -6px #999;
     box-shadow: 0 8px 6px -6px #999;
-    max-height: 70px;
-
-
-}
-
-#topbuttons {
-    position: relative;
-    top: -25px;
 }
 
 .verticalbar {
@@ -1160,9 +1149,48 @@ kbd {
 .navbar-xs .navbar-nav > li > a {
     position: relative;
     display: block;
-    padding-top: 15px;
-    /*padding-bottom: 9px;*/
+    padding-top: 10px;
+    margin-top: 5px;
     line-height: 20px;
+}
+.navbar-collapse.collapse {
+    display: block;
+}
+
+.navbar-nav>li, .navbar-nav {
+    float: left;
+}
+
+.navbar-nav.navbar-right:last-child {
+    margin-right: -15px;
+}
+
+.navbar-right {
+    float: right;
+}
+
+.navbar-nav .open .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: auto;
+    z-index: 1000;
+    display: block;
+    float: left;
+    min-width: 160px;
+    padding: 5px 0;
+    margin: 2px 0 0;
+    margin-top: 0;
+    font-size: 14px;
+    list-style: none;
+    background-color: #fff;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+    border: 1px solid #ccc;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 4px;
+    -webkit-box-shadow: 0 6px 12px rgba(0,0,0,.175);
+    box-shadow: 0 6px 12px rgba(0,0,0,.175);
 }
 .toolUI{
     position: relative;
