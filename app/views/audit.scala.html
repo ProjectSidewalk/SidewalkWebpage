@@ -959,7 +959,7 @@
 
         }
 
-        @if(user.isDefined){
+        @if(user){
         //Survey Submission
         $("#surveyForm").submit(function submitSurvey(e) {
             var formData = $('#surveyForm').serializeArray();
