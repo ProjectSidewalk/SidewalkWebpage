@@ -10,6 +10,6 @@ object UserRoleSubmissionFormats {
 
   implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
-	  (JsPath \ "role_id").read[String]
-	)(UserRoleSubmission.apply _)
+      (JsPath \ "role_id").read[String]
+    )(UserRoleSubmission.apply _)
 }

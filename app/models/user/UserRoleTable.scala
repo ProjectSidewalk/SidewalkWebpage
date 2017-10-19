@@ -27,7 +27,7 @@ object UserRoleTable {
 
   /**
     * Gets the users role. If no role is found, the role of "User" is assigned and returned.
-    * 
+    *
     * @param userId
     * @return
     */
