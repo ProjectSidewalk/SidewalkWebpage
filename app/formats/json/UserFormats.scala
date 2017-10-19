@@ -14,7 +14,7 @@ object UserFormats {
       (JsPath \ "loginInfo").read[LoginInfo] and
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
-      (JsPath \ "roles").readNullable[Seq[String]]
+      (JsPath \ "role").readNullable[String]
     )(User.apply _)
 
   implicit val userWrites: Writes[User] = (
@@ -22,7 +22,7 @@ object UserFormats {
       (__ \ "loginInfo").write[LoginInfo] and
       (__ \ "username").write[String] and
       (__ \ "email").write[String] and
-      (__ \ "roles").writeNullable[Seq[String]]
+      (__ \ "role").writeNullable[String]
     )(unlift(User.unapply _))
 
 //  val restFormat = {
