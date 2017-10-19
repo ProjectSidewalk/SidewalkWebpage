@@ -1285,6 +1285,38 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         }
     });
 
+    function changeRole(e){
+        var userId = $(this).parent() // <li>
+            .parent() // <ul>
+            .siblings('button')
+            .attr('id')
+            .substring("userRoleDropdown".length); // userId is stored in id of dropdown
+        var newRole = this.innerText;
+        
+        data = {
+            'user_id': userId,
+            'role_id': newRole
+        };
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: '/adminapi/setRole',
+            type: 'put',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                // Change dropdown button to reflect new role
+                var button = $('#userRoleDropdown' + result.user_id);
+                var buttonContents = button.html();
+                var newRole = result.role;
+                button.html(buttonContents.replace(/User|Turker|Researcher|Administrator/g, newRole));
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
     initializeLabelTable();
     initializeAdminGSVLabelView();
 
@@ -1294,6 +1326,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
+
+    $('.change-role').on('click', changeRole)
 
     return self;
 }
