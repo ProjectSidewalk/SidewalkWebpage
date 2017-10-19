@@ -468,7 +468,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Hmm, this is a slightly severe problem since the ramp does not exist on this side, but does exist on the other. ' +
+                "message": 'Hmm, this is a slightly severe problem since it is next to an existing curb ramp. ' +
                 '<span class="bold">Let\s click "3" to change the severity of the missing curb ramp.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
