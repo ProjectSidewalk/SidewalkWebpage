@@ -22,7 +22,7 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
     @if(user){
-        @if(user.get.roles.getOrElse(Seq("")).contains("Turker")){
+        @if(user.get.role.getOrElse("") == "Turker"){
             <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content" id="survey-modal">
@@ -236,7 +236,7 @@
                         <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
                     </a>-->
 
-                    <div class="status-row">
+                    <div class="status-row" id="neighborhood-status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
                             <span><span class="bold" id="status-audited-distance">0.00</span> <small>miles</small></span>
@@ -461,7 +461,7 @@
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
                     @if(user){
-                        @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                        @if(user.get.role.getOrElse("") == "Turker") {
                             <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
                         }
                     }
@@ -512,7 +512,7 @@
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
                                 @if(user){
-                                    @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                                    @if(user.get.role.getOrElse("") == "Turker") {
                                         <tr>
                                             <th>Earned in this mission</th>
                                             <td id="modal-mission-complete-mission-reward" class="col-right" style="color: forestgreen;"></td>
@@ -533,7 +533,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -916,7 +916,7 @@
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
             @if(user){
-                @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
@@ -991,7 +991,7 @@
                 dataType: 'json',
                 data: JSON.stringify({
                     "answered_questions": formData,
-                    "is_admin":@user.get.roles.getOrElse(Seq("")).contains("Admin")
+                    "is_admin": equals(@user.get.role.getOrElse(""), "Administrator")
                 }),
                 success: function (data) {
                     //close survey modal here
