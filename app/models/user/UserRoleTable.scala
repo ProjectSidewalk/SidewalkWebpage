@@ -25,6 +25,12 @@ object UserRoleTable {
   val roleMapping = Map("User" -> 1, "Turker" -> 2, "Researcher" -> 3, "Administrator" -> 4, "Owner" -> 5)
 
 
+  /**
+    * Gets the users role. If no role is found, the role of "User" is assigned and returned.
+    * 
+    * @param userId
+    * @return
+    */
   def getRole(userId: UUID): String = db.withSession { implicit session =>
     val _roles = for {
       (_userRoles, _roles) <- userRoles.innerJoin(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
