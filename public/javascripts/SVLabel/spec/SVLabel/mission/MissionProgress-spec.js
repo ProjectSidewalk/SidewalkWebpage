@@ -25,7 +25,7 @@ describe("MissionProgress module", function () {
         neighborhoodModel = _.clone(Backbone.Events);
 
         neighborhoodModel.getNeighborhood = function (regionId) { return new NeighborhoodMock(regionId); };
-        neighborhoodModel.moveToANewRegion = function (regionId) { };
+        neighborhoodModel.updateUserRegionInDatabase = function (regionId) { };
 
         statusModel = _.clone(Backbone.Events);
         missionContainer = new MissionContainerMock();
@@ -155,7 +155,7 @@ describe("MissionProgress module", function () {
 
     describe("`_updateTheCurrentNeighborhood` method", function () {
         beforeEach(function () {
-            neighborhoodModel.moveToANewRegion = function (neighborhood) { };
+            neighborhoodModel.updateUserRegionInDatabase = function (neighborhood) { };
             spyOn(neighborhoodContainer, 'setCurrentNeighborhood');
             spyOn(neighborhoodModel, 'moveToANewRegion');
             spyOn(taskContainer, 'fetchTasksInARegion');
@@ -168,7 +168,7 @@ describe("MissionProgress module", function () {
 
         it("should call `NeighborhoodModel.moveToANewRegion`", function () {
             missionProgress._updateTheCurrentNeighborhood(mission, neighborhood);
-            expect(neighborhoodModel.moveToANewRegion).toHaveBeenCalled();
+            expect(neighborhoodModel.updateUserRegionInDatabase).toHaveBeenCalled();
         });
 
         it("should call `TaskContainer.fetchTasksInARegion`", function () {
@@ -218,7 +218,7 @@ describe("MissionProgress module", function () {
         it("should should call `NeighborhoodModel.moveToANewRegion`", function () {
             var neighborhood = new NeighborhoodMock(100);
             missionProgress._updateTheCurrentNeighborhood(neighborhood);
-            expect(neighborhoodModel.moveToANewRegion).toHaveBeenCalledWith(100);
+            expect(neighborhoodModel.updateUserRegionInDatabase).toHaveBeenCalledWith(100);
         });
 
         it("should call `TaskContainer.endTask`", function () {

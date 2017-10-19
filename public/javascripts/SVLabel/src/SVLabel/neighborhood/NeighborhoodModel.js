@@ -2,6 +2,8 @@ function NeighborhoodModel () {
     var self = this;
     this._neighborhoodContainer = null;
     this.isNeighborhoodCompleted = false;
+    this.isNeighborhoodCompletedAcrossAllUsers = null;
+    this.difficultRegionIds = [];
 
     this._handleFetchComplete = function (geojson) {
         var geojsonLayer = L.geoJson(geojson);
@@ -11,6 +13,7 @@ function NeighborhoodModel () {
             layer =leafletLayers[i];
             regionId = layer.feature.properties.region_id;
             regionName = layer.feature.properties.region_name;
+            // TODO: Add a isCompleted property
             self.create(regionId, layer, regionName);
         }
     };
@@ -22,6 +25,46 @@ function NeighborhoodModel () {
             $.when($.ajax("/neighborhoods")).done(self._handleFetchComplete)
         }
     };
+
+    this.fetchDifficultNeighborhoods = function (callback) {
+        $.when($.ajax({
+            contentType: 'application/json; charset=utf-8',
+            url: "/neighborhoods/difficult",
+            type: 'get',
+            success: function (json) {
+                self.difficultRegionIds = json.regionIds;
+            },
+            error: function (result) {
+                throw result;
+            }
+        })).done(callback);
+    };
+    
+    this.fetchNextLeastAuditedRegion = function (async) {
+        if (typeof async === "undefined") async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: "/neighborhood/assignment",
+            type: 'post',
+            data: JSON.stringify({"region_id": null}),
+            dataType: 'json',
+            success: function (json) {
+                var regionId = json.region_id;
+                if (regionId) {
+                    var neighborhood = svl.neighborhoodContainer.get(json.region_id);
+                    self.setCurrentNeighborhood(neighborhood);
+                } else {
+                    // When no region is left to assign to the user
+                    self.setCurrentNeighborhood(null);
+                    console.error("No regions to assign to the user!");
+                }
+            },
+            error: function (result) {
+                throw result;
+            }
+        });
+    }
 }
 _.extend(NeighborhoodModel.prototype, Backbone.Events);
 
@@ -40,10 +83,10 @@ NeighborhoodModel.prototype.currentNeighborhood = function () {
 };
 
 /**
- * Todo. The method name is confusing. Make it clear that this method just updates the remote database.
+ *
  * @param regionId
  */
-NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
+NeighborhoodModel.prototype.updateUserRegionInDatabase = function (regionId) {
     regionId = parseInt(regionId, 10);
     var url = "/neighborhood/assignment";
     $.ajax({
@@ -60,6 +103,15 @@ NeighborhoodModel.prototype.moveToANewRegion = function (regionId) {
             console.error(result);
         }
     });
+};
+
+NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+    return this.isNeighborhoodCompletedAcrossAllUsers;
+};
+
+
+NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+    this.isNeighborhoodCompletedAcrossAllUsers = true;
 };
 
 NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {

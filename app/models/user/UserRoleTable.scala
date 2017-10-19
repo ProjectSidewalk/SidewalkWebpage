@@ -4,6 +4,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
 
+import scala.util.control.NonFatal
+
 case class UserRole(userRoleId: Int, userId: String, roleId: Int)
 
 class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk"), "user_role") {
@@ -20,14 +22,8 @@ object UserRoleTable {
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
 
-  val roleMapping = Map("User" -> 1, "Researcher" -> 2, "Administrator" -> 3, "Owner" -> 4)
+  val roleMapping = Map("User" -> 1, "Turker" -> 2, "Researcher" -> 3, "Administrator" -> 4, "Owner" -> 5)
 
-  def addUserRole(userId: UUID): Int = db.withTransaction { implicit session =>
-    val userRole = UserRole(0, userId.toString, roleMapping("User"))
-    val userRoleId: Int =
-      (userRoles returning userRoles.map(_.userRoleId)) += userRole
-    userRoleId
-  }
 
   def getRole(userId: UUID): String = db.withSession { implicit session =>
     val _roles = for {
@@ -36,17 +32,25 @@ object UserRoleTable {
     try {
       _roles.list.map(_.role).head
     } catch {
-      case e: NoSuchElementException => "User"
-      case _: Throwable => "User"
+      // no role found, give them User role
+      case NonFatal(t) =>
+        setRole(userId, "User")
+        "User"
     }
   }
 
-  def setRole(userId: UUID, newRole: Int) = db.withTransaction { implicit session =>
-    val q = for{ l <- userRoles if l.userId === userId.toString } yield l.roleId
-    q.update(newRole)
+  def setRole(userId: UUID, newRole: String): Int = db.withTransaction { implicit session =>
+    setRole(userId, roleMapping(newRole))
+  }
+
+  def setRole(userId: UUID, newRole: Int): Int = db.withTransaction { implicit session =>
+    val userRoleId: Option[Int] = userRoles.filter(_.userId === userId.toString).map(_.userRoleId).list.headOption
+    userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole))
+//    val q = for{ l <- userRoles if l.userId === userId.toString } yield l.roleId
+//    q.update(newRole)
   }
 
   def isResearcher(userId: UUID): Boolean = db.withSession { implicit session =>
-    userRoles.filter(_.userId === userId.toString).list.head.roleId > 1
+    getRole(userId) == "Researcher"
   }
 }

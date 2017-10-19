@@ -778,6 +778,50 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
                 vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
             });
+
+            //Draw a chart of total time spent auditing
+            $.getJSON("/adminapi/audittimes", function (regData) {
+                  $.getJSON("/adminiapi/audittimesAnon", function (anonData) {
+                      var allTimes = [];
+                      var regTimes = [];
+                      var anonTimes = [];
+                      for (var i = 0; i < regData.length; i++) {
+                          regTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
+                          allTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
+                      }
+                      for (var i = 0; i < anonData.length; i++) {
+                          allTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
+                          anonTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
+                      }
+
+                      var allStats = getSummaryStats(allTimes, "time");
+                      var regStats = getSummaryStats(regTimes, "time");
+                      var anonStats = getSummaryStats(anonTimes, "time");
+
+                      var allHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - All Users",
+                                         yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
+                                         binStep:10, legendOffset:-80};
+                      var regHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Registered Users",
+                                         yAxisTitle:"Counts (users)", xDomain:[0, 200], width:250, height:250,
+                                         binStep:10, legendOffset:-80};
+                      var anonHistOpts = {col:"binned", xAxisTitle:"Total Auditing Time (minutes) - Anon Users",
+                                          yAxisTitle:"Counts (users)", xDomain:[0, 200],  width:250, height:250,
+                                          binStep:10, legendOffset:-80};
+
+                      var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
+                      var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
+                      var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
+
+                      $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
+                      $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
+                      $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
+
+                      var combinedChart = {"hconcat": [allChart, regChart, anonChart]};
+
+                      vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function(error, results) {});
+                    });
+            });
+
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {
                     data.features[i].label_type = data.features[i].properties.label_type;
@@ -1197,7 +1241,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 // TODO switch this to make use of versioning on the backend once it is implemented...
                 // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
@@ -1212,7 +1256,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 }).length;
                 var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;
-                }).length;                                
+                }).length;
 
                 // Fill in values in "How users access Audit Page from Landing Page:" table
                 $("#audit-access-table-start-main").append(
