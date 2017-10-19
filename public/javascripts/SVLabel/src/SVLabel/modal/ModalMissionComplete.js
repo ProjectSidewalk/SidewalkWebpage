@@ -85,7 +85,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
             delete svl.confirmationCode;
-            svl.ui.leftColumn.confirmationCode.show();
+            svl.ui.leftColumn.confirmationCode.css('visibility', '');
             svl.ui.leftColumn.confirmationCode.popover();
         }
     };
@@ -105,21 +105,57 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
          */
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
-            console.log("Reached modal mission complete");
-            uiModalMissionComplete.generateConfirmationButton.onclick = function () {
-                var para = document.createElement("p");
-                var node = document.createTextNode("Confirmation Code: " + svl.confirmationCode);
-                para.appendChild(node);
-                para.setAttribute("id", "modal-mission-complete-confirmation-text");
-                this.after(para);
-                uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
-                uiModalMissionComplete.closeButton.css('visibility', "visible");
-                this.remove();
-                delete uiModalMissionComplete.generateConfirmationButton;
+            // Assignment Completion Data
+            var data = {
+                amt_assignment_id: svl.amtAssignmentId,
+                completed: true
             };
+
+            $.ajax({
+                async: true,
+                contentType: 'application/json; charset=utf-8',
+                url: "/amtAssignment",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
+            //console.log("Reached modal mission complete");
+            var confirmationCodeElement = document.createElement("h3");
+            confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
+                "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
+                "Confirmation Code: " +
+                svl.confirmationCode +
+                "<p></p>";
+            confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
+            uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.closeButton.css('visibility', "visible");
+            uiModalMissionComplete.generateConfirmationButton.remove();
+            delete uiModalMissionComplete.generateConfirmationButton;
+
             svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
             svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
             svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
+
+            //Hide the mTurk confirmation code popover on clicking the background (i.e. outside the popover)
+            //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+
+            $(document).on('click', function (e) {
+                svl.ui.leftColumn.confirmationCode.each(function () {
+                    //the 'is' for buttons that trigger popups
+                    //the 'has' for icons within a button that triggers a popup
+                    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                        (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                    }
+
+                });
+            });
         }
     };
 
@@ -186,6 +222,34 @@ ModalMissionComplete.prototype._updateMissionProgressStatistics = function (miss
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
+    //Check if the user is associated with the "Turker" role and update the reward HTML
+    var url = '/isTurker';
+    $.ajax({
+        async: true,
+        url: url,//endpoint that checks above conditions
+        type: 'get',
+        success: function(data){
+            if(data.isTurker){
+                var url = '/rewardPerMile';
+                $.ajax({
+                    async: true,
+                    url: url,//endpoint that checks above conditions
+                    type: 'get',
+                    success: function(data){
+                        var missionReward = missionDistance*data.rewardPerMile;
+                        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
+                });
+                //console.log('Survey displayed');
+            }
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            console.log(thrownError);
+        }
+    });
 };
 
 ModalMissionComplete.prototype._updateTheMissionCompleteMessage = function () {

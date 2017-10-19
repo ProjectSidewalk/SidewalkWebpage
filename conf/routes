@@ -17,6 +17,7 @@ GET     /faq                                                 @controllers.Applic
 GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
+GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
@@ -57,8 +58,8 @@ GET     /adminapi/webpageActivity/:activity                  @controllers.AdminC
 GET     /adminapi/webpageActivity/:activity/*keyValPairs     @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminController.getNumWebpageActivities(activity: String)
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
-
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
+PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
@@ -76,6 +77,7 @@ POST    /task                                                @controllers.TaskCo
 
 # Missions
 GET     /mission                                             @controllers.MissionController.getMissions
+GET     /rewardPerMile                                       @controllers.MissionController.getRewardPerMile
 POST    /mission                                             @controllers.MissionController.post
 
 # Labels
@@ -99,6 +101,7 @@ GET     /contribution/auditCounts/all                        @controllers.UserPr
 GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                              @controllers.UserProfileController.userProfile(username: String)
+GET     /isTurker                                            @controllers.UserProfileController.isTurker
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
@@ -116,3 +119,10 @@ GET     /v1/access/score/streets                             @controllers.Projec
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
 GET     /webjars/*file                                       controllers.WebJarAssets.at(file)
+
+# Survey
+GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey
+POST    /survey                                              @controllers.SurveyController.postSurvey
+
+# Update AMTAssignment Table
+POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment

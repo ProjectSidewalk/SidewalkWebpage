@@ -2,14 +2,18 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
+import java.sql.Timestamp
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import org.joda.time.{DateTime, DateTimeZone}
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
+import formats.json.TaskSubmissionFormats.{AMTAssignmentCompletionSubmission}
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
 import models.user.{User, UserCurrentRegionTable}
+import models.amt.{AMTAssignment, AMTAssignmentTable}
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json._
@@ -156,6 +160,33 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     )
   }
 
+  def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+
+    val submission = request.body.validate[AMTAssignmentCompletionSubmission]
+
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val amtAssignmentId: Option[Int] = Option(submission.assignmentId)
+        amtAssignmentId match {
+          case Some(asgId) =>
+            // Update the AMTAssignmentTable
+            AMTAssignmentTable.updateAssignmentEnd(asgId, timestamp)
+            AMTAssignmentTable.updateCompleted(asgId, completed=true)
+            Future.successful(Ok(Json.obj("success" -> true)))
+          case None =>
+            Future.successful(Ok(Json.obj("success" -> false)))
+        }
+      }
+    )
+  }
+
 
   // Approximate equality check for Doubles
   // https://alvinalexander.com/scala/how-to-compare-floating-point-numbers-in-scala-float-double
@@ -219,5 +250,11 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
       MissionUserTable.save(m.missionId, userId.toString, false)
     }
   }
+
+  def getRewardPerMile = UserAwareAction.async { implicit request =>
+    val rewardPerMile = 4.17
+    Future.successful(Ok(Json.obj("rewardPerMile" -> rewardPerMile)))
+  }
+
 }
 
