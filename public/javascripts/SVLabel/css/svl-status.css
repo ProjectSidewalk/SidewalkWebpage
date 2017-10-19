@@ -4,7 +4,7 @@
     padding: 0;
     position: absolute;
     left: 735px;
-    top: 53px;
+    top: 31px;
     width: 200px;
     color: rgb(127, 127, 127);
 
@@ -34,6 +34,7 @@
 }
 
 .status-column-half {
+    white-space: nowrap;    
     padding: 5px 5px 5px 5px;
     margin: 5px 0 5px 0;
     width: 50%;

@@ -206,7 +206,7 @@
             <div class="row" style="margin: 0 auto; width: 450px;">Your work is making a difference</div>
             <div class="row" id="content-text-2">
                 <p>Users like you have already mapped the accessibility of nearly half of Washington DC.
-                    That's 450miles—more than the distance from DC to Boston.</p>
+                    That's @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles—more than the distance from DC to Boston.</p>
             </div>
             <a id="exploreButton" href="@routes.ApplicationController.results">
                 See results</a>
