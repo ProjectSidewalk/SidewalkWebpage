@@ -23,17 +23,7 @@ try:
     # Use the boto function award a bonus to that user. 
     #(Find the same user in the amt_assignment table and get the hit id and assignment id for this)
 
-    cur.execute("""SELECT username,mission.mission_id,mission_user.mission_user_id,mission.label,
-        region_id,distance,distance_ft,distance_mi, hit_id, assignment_id, paid 
-        from mission_user 
-        join mission on(mission.mission_id = mission_user.mission_id) 
-        join user_role on(user_role.user_id=mission_user.user_id and user_role.role_id=4)
-        join sidewalk.user on(sidewalk.user.user_id = mission_user.user_id) 
-        join amt_assignment on(username = amt_assignment.turker_id)
-        where mission.deleted = false and completed = true and mission.label !='onboarding' and sidewalk.user.user_id NOT IN ('AUYWAH6XWRVV4','APQS1PRMDXAFH','A1SZNIADA6B4OF','A2G18P2LDT3ZUE','AKRNZU81S71QI','A1Y6PQWK6BYEDD','TESTWORKERID');""")
-
-    mission_rows = cur.fetchall()
-    mission_df = pd.DataFrame(mission_rows)
+    mission_df = pd.DataFrame.from_csv('../test_bonus_payment.csv')
 
     user_grouped = mission_df.sort_values('mission_user_id').groupby('username')
 
@@ -71,7 +61,7 @@ try:
                         UniqueRequestToken=row['username']+row['assignment_id']+row['mission_user_id'])
                 
                 print reason
-                print response
+                # print response
                 # Update the paid column for the mission_user_id row on the mission_user table to True
                 if(send_bonuses):
                     cur.execute("UPDATE sidewalk.mission_user SET paid=true WHERE sidewalk.mission_user.mission_user_id="+str(row['mission_user_id'])+";")
