@@ -113,6 +113,11 @@
     width: 25px;
 }
 
+.tooltip.in {
+    opacity: 1;
+    filter:alpha(opacity=100);
+}
+
 #context-menu-close-button-holder {
     position: absolute;
     top: 0;
