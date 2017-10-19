@@ -976,7 +976,7 @@
                 dataType: 'json',
                 data: JSON.stringify({
                     "answered_questions": formData,
-                    "is_admin": equals(@user.get.role.getOrElse(""), "Admin")
+                    "is_admin": equals(@user.get.role.getOrElse(""), "Administrator")
                 }),
                 success: function (data) {
                     //close survey modal here

@@ -8,7 +8,6 @@ import java.net.URLDecoder
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
-
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
@@ -19,17 +18,13 @@ import models.label.{LabelPointTable, LabelTable}
 import models.mission.MissionTable
 import models.region.{RegionCompletionTable, RegionTable}
 import models.street.{StreetEdge, StreetEdgeTable}
-import models.user.{User, WebpageActivityTable}
+import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.daos.UserDAOImpl
-import models.user.UserRoleTable
-
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
-
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json, JsError}
+import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
-
 
 import scala.concurrent.Future
 
@@ -504,9 +499,7 @@ def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
   }
 
   def setUserRole = UserAwareAction.async(BodyParsers.parse.json){ implicit request =>
-    println(request.body)
     val submission = request.body.validate[UserRoleSubmission]
-    println(submission)
 
     submission.fold(
       errors => {
@@ -514,20 +507,23 @@ def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
       },
       submission => {
         val userId = UUID.fromString(submission.userId)
-        val newRoleId = submission.roleId
+        val newRole = submission.roleId
 
         if(isAdmin(request.identity)){
           UserTable.findById(userId) match {
-            case Some(user) => 
-              if(UserRoleTable.getRole(userId) == "Owner"){
+            case Some(user) =>
+              if(UserRoleTable.getRole(userId) == "Owner") {
                 Future.successful(BadRequest("Owner's role cannot be changed"))
-              } else if (newRoleId < 1 || newRoleId > 3) {
-                Future.successful(BadRequest("Invalid role ID"))
+              } else if (newRole == "Owner") {
+                Future.successful(BadRequest("Cannot set a new owner"))
+              } else if (!RoleTable.getRoleNames.contains(newRole)) {
+                Future.successful(BadRequest("Invalid role"))
               } else {
-                UserRoleTable.setRole(userId, newRoleId)
-                Future.successful(Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRoleId)))
+                UserRoleTable.setRole(userId, newRole)
+                Future.successful(Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole)))
               }
-            case None => Future.successful(BadRequest("No user has this user ID"))
+            case None =>
+              Future.successful(BadRequest("No user has this user ID"))
           }
         } else {
           Future.successful(Redirect("/"))   
