@@ -1,6 +1,7 @@
 @import models.user.User
 @import models.user.WebpageActivityTable
 @import models.user.UserCurrentRegionTable
+@import models.user.UserRoleTable
 @import models.daos._
 @import models.audit._
 @import models.label._
@@ -47,27 +48,39 @@
                         <table class="table table-striped table-condensed">
                             <tr>
                                 <th></th>
-                                <th>Overall</th>
+                                <th>Overall<sup>*</sup></th>
                                 <th>Today</th>
                                 <th>Yesterday</th>
                             </tr>
                             <tr>
                                 <th>Total Users</th>
-                                <th>@UserDAOImpl.countContributingUsers</th>
+                                <th>@UserDAOImpl.countContributingUsers(false) (@UserDAOImpl.countContributingUsers(true))</th>
                                 <th>@UserDAOImpl.countTodayUsers</th>
                                 <th>@UserDAOImpl.countYesterdayUsers</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countRegisteredUsers</td>
-                                <td>@UserDAOImpl.countRegisteredUsersVisitedToday</td>
-                                <td>@UserDAOImpl.countRegisteredUsersVisitedYesterday</td>
+                                <td>@UserDAOImpl.countRegisteredVolunteers(false) (@UserDAOImpl.countRegisteredVolunteers(true))</td>
+                                <td>@UserDAOImpl.countRegisteredVolunteersVisitedToday</td>
+                                <td>@UserDAOImpl.countRegisteredVolunteersVisitedYesterday</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countAnonymousUsers</td>
+                                <td>@UserDAOImpl.countAnonymousUsers(false) (@UserDAOImpl.countAnonymousUsers(true))</td>
                                 <td>@UserDAOImpl.countAnonymousUsersVisitedToday</td>
                                 <td>@UserDAOImpl.countAnonymousUsersVisitedYesterday</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Turkers</td>
+                                <td>@UserDAOImpl.countTurkers(false) (@UserDAOImpl.countTurkers(true))</td>
+                                <td>@UserDAOImpl.countTurkersVisitedToday</td>
+                                <td>@UserDAOImpl.countTurkersVisitedYesterday</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Researchers</td>
+                                <td>@UserDAOImpl.countResearchers(false) (@UserDAOImpl.countResearchers(true))</td>
+                                <td>@UserDAOImpl.countResearchersVisitedToday</td>
+                                <td>@UserDAOImpl.countResearchersVisitedYesterday</td>
                             </tr>
                             <tr>
                                 <th>Total Labels</th>
@@ -125,6 +138,9 @@
                                 <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
                             </tr>
                         </table>
+                        <sup>*</sup>Numbers in the parenthesis represent #users who have completed at least 1 task <br/>
+                        Numbers outside the parenthesis represent total #users who opened the audit tool
+                        regardless of finishing a task
                     </div>
                     <div class="col-lg-5">
                         <h1>Coverage</h1>
@@ -481,7 +497,8 @@
                             <tr>
                                 <th class="col-md-1">Username</th>
                                 <th class="col-md-2">User Id</th>
-                                <th class="col-md-2">Email</th>
+                                <th class="col-md-1">Email</th>
+                                <th class="col-md-1">Role</th>
                                 <th class="col-md-2">Date Registered</th>
                                 <th class="col-md-2" data-class-name="priority">Last Login</th>
                                 <th class="col-md-1">Login Count</th>
@@ -496,6 +513,23 @@
                                 <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
                                 <td>@u.userId</td>
                                 <td>@u.email</td>
+                                <td>
+                                    @if(UserRoleTable.getRole(UUID.fromString(u.userId)) != "Owner"){
+                                        <div class="dropdown">
+                                            <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown" style="cursor: default">
+                                                @UserRoleTable.getRole(UUID.fromString(u.userId))
+                                                <span class="caret"></span>
+                                            </button>
+                                            <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown@u.userId">
+                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">User</a></li>
+                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Turker</a></li>
+                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Researcher</a></li>
+                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Administrator</a></li>
+                                            </ul>
+                                        </div>
+                                    } else {
+                                        @UserRoleTable.getRole(UUID.fromString(u.userId))
+                                    }</td>
                                 <td>@WebpageActivityTable.selectSignUpTimestamp(UUID.fromString(u.userId))</td>
                                 <td>@WebpageActivityTable.selectLastSignInTimestamp(UUID.fromString(u.userId))</td>
                                 <td>@WebpageActivityTable.selectSignInCount(UUID.fromString(u.userId))</td>
@@ -542,12 +576,12 @@
 
 </div>
 <link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
-<link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/bootstrap.min.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/ekko-lightbox.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/ekko-lightbox.min.css")' rel="stylesheet"/>
 <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+<link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>

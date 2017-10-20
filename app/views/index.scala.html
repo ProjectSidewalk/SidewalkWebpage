@@ -33,7 +33,7 @@
                         <span class="tagline">Let's create a path for everyone</span>
                     </p>
                     <br>
-                    <button class="bodyStartBtn" onclick="location.href = '@routes.AuditController.audit()';">Start Mapping</button>
+                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Mapping</a>
                     <br><br>
 
                 </div>
@@ -208,8 +208,8 @@
                 <p>Users like you have already mapped the accessibility of nearly half of Washington DC.
                     That's @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles—more than the distance from DC to Boston.</p>
             </div>
-            <button id="exploreButton" onclick="location.href = '@routes.ApplicationController.results';">
-                See results</button>
+            <a id="exploreButton" href="@routes.ApplicationController.results">
+                See results</a>
             <br><br><br><br><br><br><br><br>
             <div id="numberholder">
                 <div class="row" id="anim-numbers">

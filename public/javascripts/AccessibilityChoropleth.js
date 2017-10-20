@@ -181,15 +181,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 }
             });
             layer.on('click', function (e) {
-                var center = turf.center(this.feature),
-                    coordinates = center.geometry.coordinates,
-                    latlng = L.latLng(coordinates[1], coordinates[0]),
-                    zoom = map.getZoom();
-                zoom = zoom > 14 ? zoom : 14;
-
-                map.setView(latlng, zoom, {animate: true});
                 currentLayer = this;
-
 
                 // Log when a user clicks on a region on the choropleth
                 // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
