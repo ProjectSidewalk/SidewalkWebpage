@@ -253,7 +253,6 @@ object UserDAOImpl {
   * Updated: Oct 19, 2017
   */
   def countRegisteredVolunteersVisitedToday: Int = db.withSession { implicit session =>
-    // TODO: Condense both calculations into one query and then use filters
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |  FROM sidewalk.audit_task
@@ -276,11 +275,9 @@ object UserDAOImpl {
 
   /*
   * Counts the number of researchers who contributed today.
-  * Author: Manaswi Saha
   * Date: Oct 19, 2017
   */
   def countResearchersVisitedToday: Int = db.withSession { implicit session =>
-    // TODO: Condense both calculations into one query and then use filters
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |  FROM sidewalk.audit_task
