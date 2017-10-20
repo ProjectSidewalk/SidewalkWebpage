@@ -99,7 +99,7 @@ object UserDAOImpl {
    * Total number of contributing registered users
    */
   def countRegisteredUsers: Int = db.withTransaction { implicit session =>
-    val count = size - 1
+    val count = size - 1 - countTurkerUsers
     count
   }
 
