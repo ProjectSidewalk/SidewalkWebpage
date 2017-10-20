@@ -91,15 +91,15 @@ object UserDAOImpl {
    * Total number of contributing users
    */
   def countContributingUsers: Int = db.withTransaction { implicit session =>
-    val count = countRegisteredUsers + countAnonymousUsers + countTurkerUsers
+    val count = countRegisteredVolunteers + countAnonymousUsers + countTurkers + countResearchers
     count
   }
 
   /*
    * Total number of contributing registered users
    */
-  def countRegisteredUsers: Int = db.withTransaction { implicit session =>
-    val count = size - 1 - countTurkerUsers
+  def countRegisteredVolunteers: Int = db.withTransaction { implicit session =>
+    val count = size - 1 - countTurkers - countResearchers
     count
   }
 
@@ -136,7 +136,7 @@ object UserDAOImpl {
    * Counts total numbers of turk users who contributed
    * Date: Oct 14, 2017
    */
-  def countTurkerUsers: Int = db.withSession { implicit session =>
+  def countTurkers: Int = db.withSession { implicit session =>
 
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -151,8 +151,36 @@ object UserDAOImpl {
         |  AND audit_task.completed = true
       """.stripMargin
     )
+//    select count(*) from sidewalk.user where email like '%mturker.umd.edu';
     val count = countQuery.list.head
     count
+
+  }
+
+  /*
+   * Counts total numbers of researchers who contributed
+   * includes the roles "Owner", "Researcher", "Administrator"
+   * Date: Oct 19, 2017
+   */
+  def countResearchers: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
+        |WHERE role.role in ('Owner', 'Administrator', 'Researcher')
+        |  AND audit_task.completed = true
+      """.stripMargin
+    )
+    //    select count(*) from sidewalk.user where email like '%mturker.umd.edu';
+    val count = countQuery.list.head
+    count
+
   }
 
   /**
@@ -219,11 +247,12 @@ object UserDAOImpl {
   }
 
  /*
-  * Counts the number of registered users who contributed today.
+  * Counts the number of registered volunteers who contributed today.
   * Author: Manaswi Saha
   * Date: Nov 11, 2016
+  * Updated: Oct 19, 2017
   */
-  def countRegisteredUsersVisitedToday: Int = db.withSession { implicit session =>
+  def countRegisteredVolunteersVisitedToday: Int = db.withSession { implicit session =>
     // TODO: Condense both calculations into one query and then use filters
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -246,10 +275,37 @@ object UserDAOImpl {
   }
 
   /*
+  * Counts the number of researchers who contributed today.
+  * Author: Manaswi Saha
+  * Date: Oct 19, 2017
+  */
+  def countResearchersVisitedToday: Int = db.withSession { implicit session =>
+    // TODO: Condense both calculations into one query and then use filters
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |WHERE audit_task.task_end::date = now()::date
+        |      AND audit_task.user_id != (SELECT user_id
+        |                                 FROM sidewalk.user
+        |                                 WHERE username = 'anonymous')
+        |      AND role.role in ('Owner', 'Administrator', 'Researcher')
+        |      AND audit_task.completed = true""".stripMargin
+    )
+    val count = countQuery.list.head
+    count
+  }
+
+  /*
    * Counts total numbers of turk users who contributed today
    * Date: Oct 14, 2017
    */
-  def countTurkerUsersVisitedToday: Int = db.withSession { implicit session =>
+  def countTurkersVisitedToday: Int = db.withSession { implicit session =>
 
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -277,7 +333,7 @@ object UserDAOImpl {
   */
   def countTodayUsers: Int = db.withSession { implicit session =>
 
-    val count = countRegisteredUsersVisitedToday + countAnonymousUsersVisitedToday + countTurkerUsersVisitedToday
+    val count = countRegisteredVolunteersVisitedToday + countAnonymousUsersVisitedToday + countTurkersVisitedToday
     count
   }
 
@@ -304,11 +360,12 @@ object UserDAOImpl {
   }
 
   /*
-  * Counts the number of registered users who contributed yesterday.
+  * Counts the number of registered volunteers who contributed yesterday.
   * Author: Manaswi Saha
   * Date: Nov 11, 2016
+  * Updated: Oct 19, 2017
   */
-  def countRegisteredUsersVisitedYesterday: Int = db.withSession { implicit session =>
+  def countRegisteredVolunteersVisitedYesterday: Int = db.withSession { implicit session =>
 
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -331,10 +388,37 @@ object UserDAOImpl {
   }
 
   /*
+  * Counts the number of researchers who contributed yesterday.
+  * Author: Manaswi Saha
+  * Date: Oct 19, 2017
+  */
+  def countResearchersVisitedYesterday: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |WHERE audit_task.completed = true
+        |      AND role.role in ('Owner', 'Administrator', 'Researcher')
+        |      AND audit_task.task_end::date = now()::date - interval '1' day
+        |      AND audit_task.user_id != (SELECT user_id
+        |                                 FROM sidewalk.user
+        |                                 WHERE username = 'anonymous')""".stripMargin
+    )
+    val count = countQuery.list.head
+    count
+  }
+
+  /*
    * Counts total numbers of turk users who contributed yesterday
    * Date: Oct 14, 2017
    */
-  def countTurkerUsersVisitedYesterday: Int = db.withSession { implicit session =>
+  def countTurkersVisitedYesterday: Int = db.withSession { implicit session =>
 
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -362,7 +446,7 @@ object UserDAOImpl {
   */
   def countYesterdayUsers: Int = db.withSession { implicit session =>
 
-    val count = countRegisteredUsersVisitedYesterday + countAnonymousUsersVisitedYesterday + countTurkerUsersVisitedYesterday
+    val count = countRegisteredVolunteersVisitedYesterday + countAnonymousUsersVisitedYesterday + countTurkersVisitedYesterday
     count
   }
 
