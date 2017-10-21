@@ -55,6 +55,6 @@ object UserRoleTable {
   }
 
   def isResearcher(userId: UUID): Boolean = db.withSession { implicit session =>
-    getRole(userId) == "Researcher"
+    List("Researcher", "Administrator", "Owner").contains(getRole(userId))
   }
 }
