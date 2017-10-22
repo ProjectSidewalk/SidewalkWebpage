@@ -183,19 +183,19 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
-      val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
+    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
 
-      val features: List[JsObject] = neighborhoods.map {neighborhood =>
-       val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
-       Json.obj(
-            "region_id" -> neighborhood.regionId,
-            "labels" -> Json.toJson(labelResults.toMap)
-       )
-      }
+    val features: List[JsObject] = neighborhoods.map {neighborhood =>
+      val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
+      Json.obj(
+        "region_id" -> neighborhood.regionId,
+        "labels" -> Json.toJson(labelResults.toMap)
+      )
+    }
 
-      val jsonObjectList = features.map(x => Json.toJson(x))
+    val jsonObjectList = features.map(x => Json.toJson(x))
 
-      Future.successful(Ok(JsArray(jsonObjectList)))
+    Future.successful(Ok(JsArray(jsonObjectList)))
 
   }
 
@@ -266,34 +266,49 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-  * Get all auditing times
-  *
-  * @return
-  */
-def getAuditTimes() = UserAwareAction.async { implicit request =>
-  if (isAdmin(request.identity)) {
-        val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
-          Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
+    * Get all auditing times
+    *
+    * @return
+    */
+  def getAuditTimes() = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
+        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
       Future.successful(Ok(JsArray(auditTimes)))
-  } else {
-    Future.successful(Redirect("/"))
+    } else {
+      Future.successful(Redirect("/"))
+    }
   }
-}
 
-/**
-  * Get all anonymous auditing times
-  *
-  * @return
-  */
-def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
-  if (isAdmin(request.identity)) {
+  /**
+    * Get all auditing times for Turkers
+    *
+    * @return
+    */
+  def getTurkerAuditTimes() = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val auditTimes = AuditTaskInteractionTable.selectAllTurkerAuditTimes().map(auditTime =>
+        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
+      Future.successful(Ok(JsArray(auditTimes)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+    * Get all anonymous auditing times
+    *
+    * @return
+    */
+  def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
       val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonAuditTimes().map(auditTime =>
         Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
       Future.successful(Ok(JsArray(anonAuditTimes)))
-  } else {
-    Future.successful(Redirect("/"))
+    } else {
+      Future.successful(Redirect("/"))
+    }
   }
-}
 
 
   /**
@@ -424,6 +439,14 @@ def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
     Future.successful(Ok(json))
   }
 
+  def getAllTurkerUserLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.getLabelCountsPerTurkerUser
+    val json = Json.arr(labelCounts.map(x => Json.obj(
+      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1))
+    )))
+    Future.successful(Ok(json))
+  }
+
   def getAllAnonUserLabelCounts = UserAwareAction.async { implicit request =>
     val labelCounts = LabelTable.getLabelCountsPerAnonUser
     val json = Json.arr(labelCounts.map(x => Json.obj(
@@ -526,7 +549,7 @@ def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
               Future.successful(BadRequest("No user has this user ID"))
           }
         } else {
-          Future.successful(Redirect("/"))   
+          Future.successful(Redirect("/"))
         }
       }
     )
