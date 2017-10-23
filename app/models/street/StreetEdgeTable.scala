@@ -9,8 +9,10 @@ import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 
 import com.vividsolutions.jts.geom.LineString
-import models.audit.AuditTaskTable
+import models.audit.{AuditTask, AuditTaskTable}
 import models.region.RegionTable
+import models.user.UserRoleTable
+import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.postgresql.util.PSQLException
@@ -69,10 +71,31 @@ object StreetEdgeTable {
   val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
+  val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
 
+  val userRoles = TableQuery[UserRoleTable]
+  val roleTable = TableQuery[RoleTable]
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
   val completedAuditTasks = auditTasks.filter(_.completed === true)
+
+  val turkerCompletedAuditTasks = for {
+    ((_audittasks, _roles), _roletype) <- completedAuditTasks.innerJoin(userRoles).on(_.userId === _.userId).innerJoin(roleTable).on(_._2.roleId === _.roleId)
+    if _roletype.role === "Turker"
+  } yield _audittasks
+
+  val regUserCompletedAuditTasks = for {
+    ((_audittasks, _roles), _roletype) <- completedAuditTasks.innerJoin(userRoles).on(_.userId === _.userId).innerJoin(roleTable).on(_._2.roleId === _.roleId)
+    if _roletype.role === "User" && _audittasks.userId =!= anonId
+  } yield _audittasks
+
+  val researcherCompletedAuditTasks = for {
+    ((_audittasks, _roles), _roletype) <- completedAuditTasks.innerJoin(userRoles).on(_.userId === _.userId).innerJoin(roleTable).on(_._2.roleId === _.roleId)
+    if _roletype.role === "Researcher" || _roletype.role === "Administrator" || _roletype.role === "Owner"
+  } yield _audittasks
+
+  val anonCompletedAuditTasks = completedAuditTasks.filter(_.userId === anonId)
+
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
   val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.innerJoin(neighborhoods).on(_.regionId === _.regionId) } yield se
 
@@ -107,6 +130,50 @@ object StreetEdgeTable {
   }
 
   /**
+    * This method returns the turker audit completion rate
+    *
+    * @param auditCount
+    * @return
+    */
+  def auditCompletionRateTurker(auditCount: Int): Float = db.withSession { implicit session =>
+    val allEdges = streetEdgesWithoutDeleted.list
+    countTurkerAuditedStreets(auditCount).toFloat / allEdges.length
+  }
+
+  /**
+    * This method returns the registered user audit completion rate
+    *
+    * @param auditCount
+    * @return
+    */
+  def auditCompletionRateRegUser(auditCount: Int): Float = db.withSession { implicit session =>
+    val allEdges = streetEdgesWithoutDeleted.list
+    countRegisteredUserAuditedStreets(auditCount).toFloat / allEdges.length
+  }
+
+  /**
+    * This method returns the researcher total audit completion rate
+    *
+    * @param auditCount
+    * @return
+    */
+  def auditCompletionRateResearcher(auditCount: Int): Float = db.withSession { implicit session =>
+    val allEdges = streetEdgesWithoutDeleted.list
+    countResearcherAuditedStreets(auditCount).toFloat / allEdges.length
+  }
+
+  /**
+    * This method returns the anonymous user total audit completion rate
+    *
+    * @param auditCount
+    * @return
+    */
+  def auditCompletionRateAnonUser(auditCount: Int): Float = db.withSession { implicit session =>
+    val allEdges = streetEdgesWithoutDeleted.list
+    countAnonAuditedStreets(auditCount).toFloat / allEdges.length
+  }
+
+  /**
     * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
     *
     * @param auditCount
@@ -114,6 +181,54 @@ object StreetEdgeTable {
     */
   def streetDistanceCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
     val auditedDistance = auditedStreetDistance(auditCount)
+    val totalDistance = totalStreetDistance()
+    auditedDistance / totalDistance
+  }
+
+  /**
+    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times by turkers
+    *
+    * @param auditCount
+    * @return Float between 0 and 1
+    */
+  def streetDistanceCompletionRateTurker(auditCount: Int): Float = db.withSession { implicit session =>
+    val auditedDistance = auditedStreetDistanceTurker(auditCount)
+    val totalDistance = totalStreetDistance()
+    auditedDistance / totalDistance
+  }
+
+  /**
+    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times by registered users
+    *
+    * @param auditCount
+    * @return Float between 0 and 1
+    */
+  def streetDistanceCompletionRateRegUser(auditCount: Int): Float = db.withSession { implicit session =>
+    val auditedDistance = auditedStreetDistanceRegUser(auditCount)
+    val totalDistance = totalStreetDistance()
+    auditedDistance / totalDistance
+  }
+
+  /**
+    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times by researchers
+    *
+    * @param auditCount
+    * @return Float between 0 and 1
+    */
+  def streetDistanceCompletionRateResearcher(auditCount: Int): Float = db.withSession { implicit session =>
+    val auditedDistance = auditedStreetDistanceResearcher(auditCount)
+    val totalDistance = totalStreetDistance()
+    auditedDistance / totalDistance
+  }
+
+  /**
+    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times by anonymous users
+    *
+    * @param auditCount
+    * @return Float between 0 and 1
+    */
+  def streetDistanceCompletionRateAnon(auditCount: Int): Float = db.withSession { implicit session =>
+    val auditedDistance = auditedStreetDistanceAnon(auditCount)
     val totalDistance = totalStreetDistance()
     auditedDistance / totalDistance
   }
@@ -139,10 +254,10 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
+  def auditedStreetDistance(auditCount: Int, auditTaskQuery: Query[AuditTaskTable, AuditTask, Seq] = completedAuditTasks): Float = db.withSession { implicit session =>
     // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
     val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTaskQuery).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
     // get length of each street segment, sum the lengths, and convert from meters to miles
@@ -150,6 +265,37 @@ object StreetEdgeTable {
     (distances.sum * 0.000621371).toFloat
   }
 
+  /**
+    * Get the audited distance in miles for turkers
+    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    */
+  def auditedStreetDistanceTurker(auditCount: Int): Float = db.withSession { implicit session =>
+    auditedStreetDistance(auditCount, turkerCompletedAuditTasks)
+  }
+
+  /**
+    * Get the audited distance in miles for registered users
+    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    */
+  def auditedStreetDistanceRegUser(auditCount: Int): Float = db.withSession { implicit session =>
+    auditedStreetDistance(auditCount, regUserCompletedAuditTasks)
+  }
+
+  /**
+    * Get the audited distance in miles for researchers
+    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    */
+  def auditedStreetDistanceResearcher(auditCount: Int): Float = db.withSession { implicit session =>
+    auditedStreetDistance(auditCount, researcherCompletedAuditTasks)
+  }
+
+  /**
+    * Get the audited distance in miles for anonymous users
+    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+    */
+  def auditedStreetDistanceAnon(auditCount: Int): Float = db.withSession { implicit session =>
+    auditedStreetDistance(auditCount, anonCompletedAuditTasks)
+  }
 
   /**
     * Computes percentage of DC audited over time.
@@ -221,7 +367,23 @@ object StreetEdgeTable {
     * @return
     */
   def countAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
-    selectAuditedStreets(auditCount).size
+    selectAuditedStreets(auditCount, completedAuditTasks).size
+  }
+
+  def countTurkerAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount, turkerCompletedAuditTasks).size
+  }
+
+  def countRegisteredUserAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount, regUserCompletedAuditTasks).size
+  }
+
+  def countResearcherAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount, researcherCompletedAuditTasks).size
+  }
+
+  def countAnonAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount, anonCompletedAuditTasks).size
   }
 
   /**
@@ -229,9 +391,9 @@ object StreetEdgeTable {
     *
     * @return
     */
-  def selectAuditedStreets(auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
+  def selectAuditedStreets(auditCount: Int = 1, auditTasksQuery: Query[AuditTaskTable, AuditTask, Seq] = completedAuditTasks): List[StreetEdge] = db.withSession { implicit session =>
     val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
     val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {

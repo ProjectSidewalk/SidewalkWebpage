@@ -158,10 +158,58 @@
                                 <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%</td>
                             </tr>
                             <tr>
+                                <td style="padding-left: 30px">Registered</td>
+                                <td>@StreetEdgeTable.countRegisteredUserAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countTotalStreets()</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateRegUser(1) * 100))%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 30px">Anonymous</td>
+                                <td>@StreetEdgeTable.countAnonAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countTotalStreets()</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateAnonUser(1) * 100))%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 30px">Turker</td>
+                                <td>@StreetEdgeTable.countTurkerAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countTotalStreets()</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateTurker(1) * 100))%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 30px">Researcher</td>
+                                <td>@StreetEdgeTable.countResearcherAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countTotalStreets()</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateResearcher(1) * 100))%</td>
+                            </tr>
+                            <tr>
                                 <th>Distance</th>
                                 <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
                                 <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 30px">Registered</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceRegUser(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateRegUser(1) * 100))%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 30px">Anonymous</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceAnon(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateAnon(1) * 100))%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 30px">Turker</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceTurker(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateTurker(1) * 100))%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 30px">Researcher</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceResearcher(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateResearcher(1) * 100))%</td>
                             </tr>
                         </table>
                     </div>
