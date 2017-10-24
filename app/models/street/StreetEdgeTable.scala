@@ -403,7 +403,7 @@ object StreetEdgeTable {
 
     val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
       // Filter out group of edges with the size not equal to the passed `auditCount`
-      if (auditCount > 0 && groupedEdges.size == auditCount) {
+      if (auditCount > 0 && groupedEdges.size >= auditCount) {
         Some(groupedEdges.head)
       } else {
         None
