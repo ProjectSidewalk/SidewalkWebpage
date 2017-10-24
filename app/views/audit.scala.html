@@ -2,7 +2,11 @@
 @import models.user.UserCurrentRegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
+@import models.survey._
+@import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
+@import views.html.bootstrap._
+
 @(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
 
 @main(title, Some("/audit")) {
@@ -17,19 +21,101 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+    @if(user){
+        @if(user.get.role.getOrElse("") == "Turker"){
+            <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content" id="survey-modal">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="sign-in-label">Feedback Survey</h4>
+                        </div>
+                        <div class="modal-body">
+
+                            <form id="surveyForm" method="post">
+                                <ol>
+                                @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                                    <li>
+                                    @if(surveyQuestion.required == true) {
+                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
+                                    } else {
+                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                    }
+                                    @if(surveyQuestion.surveyInputType == "radio"){
+                                        <ul class="survey-option-holder">
+                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                            <li class="survey-option">
+                                                @if(surveyQuestion.required == true){
+                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
+                                                } else{
+                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                                }
+                                                <label>@surveyOption.surveyOptionText</label>
+                                            </li>
+                                        }
+                                        </ul>
+                                    }else{
+                                        @if(surveyQuestion.surveyInputType == "checkbox"){
+                                            <ul class="survey-option-holder">
+                                            @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                                <li class="survey-option">
+                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                                    <label>@surveyOption.surveyOptionText</label>
+                                                </li>
+                                            }
+                                            </ul>
+                                        } else{
+                                            @if(surveyQuestion.surveyInputType == "free-text-feedback"){
+                                                @if(surveyQuestion.required == true){
+                                                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
+                                                } else{
+                                                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
+                                                }
+                                            }
+                                        }
+                                    }
+                                    </li>
+                                }
+                            </ol>
+                                <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
+        }
+    }
 
     <div class="container toolUI" style = "visibility: hidden;">
         <div id="advanced-overlay">
-            <div id="overlay-text">
+            <div class="overlay-text">
                 <div id="advanced-neighborhood-text">
                     <p>
-                        <b>Notice:</b> This neighborhood is difficult to travel, and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
+                        <span class="overlay-header">Advanced Neighborhood</span>
+                    </p>
+                    <p>
+                        <b>Warning:</b> This neighborhood is difficult to travel and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
                     </p>
                     <p>
                         If you get stuck, click the Jump button to navigate to a different area.
                     </p>
-                    <span class="advanced-neighborhood-option" id="continue-advanced">Yes, continue</span>
-                    <span class="advanced-neighborhood-option" id="redirect-advanced">No, take me somewhere else</span>
+                    <span class="overlay-option" id="continue-advanced">Yes, continue in this neighborhood</span>
+                    <span class="overlay-option" id="redirect-advanced">No, go to another neighborhood</span>
+                </div>
+            </div>
+        </div>
+        <div id="neighborhood-completion-overlay">
+            <div class="overlay-text">
+                <div id="neighborhood-completion-text">
+                    <p>
+                        <span class="overlay-header">Neighborhood Completed!</span>
+                    </p>
+                    <p>
+                        <b>Hurray!</b> You just helped complete this neighborhood! You can:
+                    </p>
+                    <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
+                    <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
                 </div>
             </div>
         </div>
@@ -43,6 +129,10 @@
         <div id="svl-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
+                    <div id="left-column-confirmation-code-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon" align="">
+                        Mturk Code
+                    </div>
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon" align="">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon" align="">
@@ -146,7 +236,7 @@
                         <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
                     </a>-->
 
-                    <div class="status-row">
+                    <div class="status-row" id="neighborhood-status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
                             <span><span class="bold" id="status-audited-distance">0.00</span> <small>miles</small></span>
@@ -166,6 +256,8 @@
                         </div>
                     </div>
                     <br class="clear">
+                    <h2 id="current-mission-reward" style="display:none"></h2>
+                    <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
                 <div class="status-box">
                     <div id="label-counter"></div>
@@ -368,6 +460,11 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
+                    @if(user){
+                        @if(user.get.role.getOrElse("") == "Turker") {
+                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
+                        }
+                    }
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -414,6 +511,14 @@
                             <h3>Neighborhood Progress</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
+                                @if(user){
+                                    @if(user.get.role.getOrElse("") == "Turker") {
+                                        <tr>
+                                            <th>Earned in this mission</th>
+                                            <td id="modal-mission-complete-mission-reward" class="col-right" style="color: forestgreen;"></td>
+                                        </tr>
+                                    }
+                                }
                                 <tr>
                                     <th>Audited in this mission</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
@@ -427,6 +532,11 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
+                            @if(user){
+                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                                    <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
+                                }
+                            }
                             <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button>
                         </div>
                     </div>
@@ -597,13 +707,37 @@
                     <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">Let's get started!</button>
                 </p>
             </div>
-            <div class="col-md-12">
-                <p class="text-right"><span style='font-size: 65%;'>
-                    Already taken the tutorial? Have an account?
-                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a> now
-                    or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
-                </span></p>
-            </div>
+
+                <div class="col-md-12" id="onboarding-skip-option">
+                    <p class="text-right"><span style='font-size: 65%;'>
+                        Already taken the tutorial? Have an account?
+                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a>
+                        now
+                        or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                    </span></p>
+                </div>
+
+            <script>
+                    var url = '/isTurker';
+                    var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
+                    $.ajax({
+                        async: true,
+                        url: url,//endpoint that checks above conditions
+                        type: 'get',
+                        success: function(data){
+                            if(data.isTurker && numMissionsCompleted == 0){
+                                $("#onboarding-skip-option").hide();
+                            }
+                            else{
+                                $("#onboarding-skip-option").show();
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            console.log(thrownError);
+                        }
+                    });
+            </script>
+
         </div>
     </template>
     <template class="onboarding" val="outro" id="onboarding-outro">
@@ -634,6 +768,7 @@
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
         var svl = svl || {};
+        var mainParam = {};
         svl.storage = new TemporaryStorage(JSON);
         if (!("tracker" in svl)) {
             svl.tracker = new Tracker();
@@ -697,12 +832,24 @@
             document.onselectstart = function () { return false; };
             enableTouchSupport();
 
+            // Advanced Neighborhood Overlay
             $('#continue-advanced').on('click', function(){
+                mainParam.advancedOverlay = false;
                 $('#advanced-overlay').hide();
             });
 
             $('#redirect-advanced').on('click', function(){
-                $(location).attr('href', '/audit/easyRegion');
+                mainParam.advancedOverlay = false;
+                $(location).attr('href', '/audit?nextRegion=easy');
+            });
+
+            // Neighborhood Completion Overlay
+            $('#continue-current').on('click', function(){
+                $('#neighborhood-completion-overlay').hide();
+            });
+
+            $('#redirect-new').on('click', function(){
+                $(location).attr('href', '/audit?nextRegion=regular');
             });
         });
 
@@ -736,7 +883,7 @@
         }
 
         function init() {
-            var mainParam = {},
+            var mainParam = mainParam || {},
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
             formParam.dataStoreUrl = '@routes.TaskController.post';
@@ -752,7 +899,44 @@
             mainParam.initLat = initialLocation.lat;
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
+            @if(user){
+                @if(user.get.role.getOrElse("") == "Turker") {
+                    svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
+                    svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
+                        $("#left-column-confirmation-code-button").css('visibility', "hidden");
+                    } else{
+                        $("#left-column-confirmation-code-button").css('visibility', "");
+                        $("#left-column-confirmation-code-button").attr('data-toggle','popover');
+                        $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+                        $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
+                        $("#left-column-confirmation-code-button").popover();
 
+                        //Hide the confirmation popover on clicking the background
+                        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+
+                        $(document).on('click', function (e) {
+                            $("#left-column-confirmation-code-button").each(function () {
+                                //the 'is' for buttons that trigger popups
+                                //the 'has' for icons within a button that triggers a popup
+                                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                                }
+
+                            });
+                        });
+
+                        $("#current-mission-reward").show();
+                        $("#total-mission-reward").show();
+                    }
+                    $("#modal-mission-reward-text").show();
+                } else{
+                    $("#left-column-confirmation-code-button").css('visibility', "hidden");
+                }
+            } else{
+                $("#left-column-confirmation-code-button").css('visibility', "hidden");
+            }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
@@ -763,15 +947,48 @@
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
                 if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
                        $('#advanced-overlay').show();
+                       mainParam.advancedOverlay = true
                 }
             } else {
                 mainParam.regionId = 1;
                 mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
+
             svl.main = new Main(mainParam);
 
         }
+
+        @if(user){
+        //Survey Submission
+        $("#surveyForm").submit(function submitSurvey(e) {
+            var formData = $('#surveyForm').serializeArray();
+            //alert(formData);
+
+            var surveyUrl = '/survey';
+            var async = true;
+            //submit data from survey
+            $.ajax({
+                async: async,
+                contentType: 'application/json; charset=utf-8',
+                url: surveyUrl,
+                type: 'post',
+                dataType: 'json',
+                data: JSON.stringify({
+                    "answered_questions": formData,
+                    "is_admin": equals(@user.get.role.getOrElse(""), "Administrator")
+                }),
+                success: function (data) {
+                    //close survey modal here
+                    $('#survey-modal-container').modal('hide');
+                }
+            });
+            // Prevents reloading the audit page with the posted data in the url
+            // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
+            e.preventDefault();
+        });
+        }
+
     </script>
 
 }

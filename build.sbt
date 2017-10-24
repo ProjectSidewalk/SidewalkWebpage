@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "4.2.0"
+version := "4.3.5"
 
 scalaVersion := "2.10.4"
 

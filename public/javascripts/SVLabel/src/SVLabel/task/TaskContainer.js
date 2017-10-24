@@ -30,6 +30,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
             var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
             svl.neighborhoodModel.neighborhoodCompleted(currentNeighborhoodId);
+            tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
         } else {
             svl.taskContainer.initNextTask(newTask);
         }
@@ -401,7 +402,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return previousTasks.length;
     }
 
-    function isNeighborhoodCompleteAcrossAllUsers(neighborhoodId, finishedTask) {
+    function findNeighborhoodCompleteAcrossAllUsers(neighborhoodId, finishedTask) {
         var isNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
 
         // Only run this code if the neighborhood is set as incomplete
@@ -414,6 +415,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
                 //console.log("Neighborhood complete");
                 isNeighborhoodCompleteAcrossAllUsers = true;
+                $('#neighborhood-completion-overlay').show();
+                tracker.push("NeighborhoodComplete_AcrossAllUsers", {'RegionId': neighborhoodId})
             } else {
                 //console.log("Neighborhood not complete");
                 isNeighborhoodCompleteAcrossAllUsers = false;
@@ -444,7 +447,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
         // If the neighborhood is 100% complete (across all users)
-        if (isNeighborhoodCompleteAcrossAllUsers(currentNeighborhoodId, finishedTask)) {
+        if (findNeighborhoodCompleteAcrossAllUsers(currentNeighborhoodId, finishedTask)) {
             // If the street you just audited connects to any streets that you have not personally audited,
             // pick any one of those at random. Otherwise, jump.
 
