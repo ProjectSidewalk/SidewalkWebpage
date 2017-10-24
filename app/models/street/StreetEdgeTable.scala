@@ -398,11 +398,8 @@ object StreetEdgeTable {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
-    //print(edges.groupBy(x => x).map(_._1).list.size)
-    //print(" ")
-
     val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
-      // Filter out group of edges with the size not equal to the passed `auditCount`
+      // Filter out group of edges with the size less than the passed `auditCount`
       if (auditCount > 0 && groupedEdges.size >= auditCount) {
         Some(groupedEdges.head)
       } else {
