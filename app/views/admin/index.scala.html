@@ -161,25 +161,25 @@
                                 <td style="padding-left: 30px">Registered</td>
                                 <td>@StreetEdgeTable.countRegisteredUserAuditedStreets()</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateRegUser(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
                                 <td>@StreetEdgeTable.countAnonAuditedStreets()</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateAnonUser(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turker</td>
                                 <td>@StreetEdgeTable.countTurkerAuditedStreets()</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateTurker(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researcher</td>
                                 <td>@StreetEdgeTable.countResearcherAuditedStreets()</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRateResearcher(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%</td>
                             </tr>
                             <tr>
                                 <th>Distance</th>

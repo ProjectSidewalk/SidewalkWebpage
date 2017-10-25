@@ -119,58 +119,23 @@ object StreetEdgeTable {
   }
   
   /**
-    * This method returns the audit completion rate
+    * This method returns the audit completion rate for the specified group of users.
     *
     * @param auditCount
+    * @param userType
     * @return
     */
-  def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
-    val allEdges = streetEdgesWithoutDeleted.list
-    countAuditedStreets(auditCount).toFloat / allEdges.length
-  }
-
-  /**
-    * This method returns the turker audit completion rate
-    *
-    * @param auditCount
-    * @return
-    */
-  def auditCompletionRateTurker(auditCount: Int): Float = db.withSession { implicit session =>
-    val allEdges = streetEdgesWithoutDeleted.list
-    countTurkerAuditedStreets(auditCount).toFloat / allEdges.length
-  }
-
-  /**
-    * This method returns the registered user audit completion rate
-    *
-    * @param auditCount
-    * @return
-    */
-  def auditCompletionRateRegUser(auditCount: Int): Float = db.withSession { implicit session =>
-    val allEdges = streetEdgesWithoutDeleted.list
-    countRegisteredUserAuditedStreets(auditCount).toFloat / allEdges.length
-  }
-
-  /**
-    * This method returns the researcher total audit completion rate
-    *
-    * @param auditCount
-    * @return
-    */
-  def auditCompletionRateResearcher(auditCount: Int): Float = db.withSession { implicit session =>
-    val allEdges = streetEdgesWithoutDeleted.list
-    countResearcherAuditedStreets(auditCount).toFloat / allEdges.length
-  }
-
-  /**
-    * This method returns the anonymous user total audit completion rate
-    *
-    * @param auditCount
-    * @return
-    */
-  def auditCompletionRateAnonUser(auditCount: Int): Float = db.withSession { implicit session =>
-    val allEdges = streetEdgesWithoutDeleted.list
-    countAnonAuditedStreets(auditCount).toFloat / allEdges.length
+  def auditCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
+    val auditedStreetCount: Float = userType match {
+      case "All" => countAuditedStreets(auditCount).toFloat
+      case "Turker" => countTurkerAuditedStreets(auditCount).toFloat
+      case "Registered" => countRegisteredUserAuditedStreets(auditCount).toFloat
+      case "Anonymous" => countAnonAuditedStreets(auditCount).toFloat
+      case "Researcher" => countResearcherAuditedStreets(auditCount).toFloat
+      case _ => 0.0.toFloat
+    }
+    val allEdgesCount: Int = streetEdgesWithoutDeleted.list.length
+    auditedStreetCount / allEdgesCount
   }
 
   /**
