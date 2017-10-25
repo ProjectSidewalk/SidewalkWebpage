@@ -85,14 +85,17 @@ object StreetEdgeTable {
   } yield _audittasks
 
   val regUserCompletedAuditTasks = for {
-    ((_audittasks, _roles), _roletype) <- completedAuditTasks.innerJoin(userRoles).on(_.userId === _.userId).innerJoin(roleTable).on(_._2.roleId === _.roleId)
-    if _roletype.role === "User" && _audittasks.userId =!= anonId
-  } yield _audittasks
+    _tasks <- completedAuditTasks if _tasks.userId =!= anonId
+    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "User"
+  } yield _tasks
 
   val researcherCompletedAuditTasks = for {
-    ((_audittasks, _roles), _roletype) <- completedAuditTasks.innerJoin(userRoles).on(_.userId === _.userId).innerJoin(roleTable).on(_._2.roleId === _.roleId)
-    if _roletype.role === "Researcher" || _roletype.role === "Administrator" || _roletype.role === "Owner"
-  } yield _audittasks
+    _tasks <- completedAuditTasks
+    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId
+    if _roles.role inSet List("Researcher", "Administrator", "Owner")
+  } yield _tasks
 
   val anonCompletedAuditTasks = completedAuditTasks.filter(_.userId === anonId)
 
