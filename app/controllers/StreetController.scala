@@ -24,7 +24,6 @@ import play.api.libs.json.Json._
 object StreetController extends Controller {
 
   val streetEdges = TableQuery[StreetEdgeTable]
-  val assignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
 
   /**
    * This returns a list of all the streets stored in the database
