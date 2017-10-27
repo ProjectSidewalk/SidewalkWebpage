@@ -94,12 +94,14 @@ object AuditTaskTable {
   })
 
   val db = play.api.db.slick.DB
-  val assignmentCount = TableQuery[StreetEdgeAssignmentCountTable]
   val auditTasks = TableQuery[AuditTaskTable]
   val labels = TableQuery[LabelTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val users = TableQuery[UserTable]
+
+  val completedTasks = auditTasks.filter(_.completed)
+  val streetCompletionCounts = StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts
 
   case class AuditCountPerDay(date: String, count: Int)
   case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
@@ -345,8 +347,8 @@ object AuditTaskTable {
     } yield e
 
     val edgesWithCompCount = (for {
-      (se, ac) <- edges.innerJoin(assignmentCount).on(_.streetEdgeId === _.streetEdgeId)
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac.completionCount)).take(100).list
+      (se, ac) <- edges.innerJoin(streetCompletionCounts).on(_.streetEdgeId === _._1)
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac._2)).take(100).list
 
     val edge = Random.shuffle(edgesWithCompCount).head
 
@@ -368,10 +370,10 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val edges = (for {
-      (se, ac) <- streetEdges.innerJoin(assignmentCount)
-        .on(_.streetEdgeId === _.streetEdgeId).sortBy(_._2.completionCount)
+      (se, ac) <- streetEdges.innerJoin(StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts)
+        .on(_.streetEdgeId === _._1).sortBy(_._2._2)
       if !se.deleted
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac.completionCount)).take(100).list
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac._2)).take(100).list
     assert(edges.nonEmpty)
 
     val edge = Random.shuffle(edges).head
@@ -391,8 +393,8 @@ object AuditTaskTable {
 
     val edges = (for {
       se <- streetEdges if se.streetEdgeId === streetEdgeId && !se.deleted
-      ac <- assignmentCount if se.streetEdgeId === ac.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac.completionCount)).list
+      ac <- streetCompletionCounts if se.streetEdgeId === ac._1
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac._2)).list
     assert(edges.nonEmpty)
 
     val edge = edges.head
