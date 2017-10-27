@@ -517,14 +517,19 @@ object AuditTaskTable {
         |       street.x2,
         |       street.y2,
         |       street.timestamp,
-        |       street_count.completion_count,
+        |       COALESCE(task.completion_count, 0),
         |       audit_task.completed
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
-        |INNER JOIN sidewalk.street_edge_assignment_count AS street_count
-        |  ON street.street_edge_id = street_count.street_edge_id
-        |LEFT JOIN sidewalk.audit_task
+        |LEFT JOIN (
+        |  SELECT street_edge_id, COUNT(audit_task_id) AS completion_count
+        |  FROM sidewalk.audit_task
+        |  WHERE audit_task.completed IS TRUE
+        |  GROUP BY street_edge_id
+        |) AS task
+        |  ON street.street_edge_id = task.street_edge_id
+        |INNER JOIN sidewalk.audit_task
         |  ON street.street_edge_id = audit_task.street_edge_id
         |  AND audit_task.user_id = ?
         |WHERE region.region_id = ?
@@ -558,19 +563,23 @@ object AuditTaskTable {
         |       street.x2,
         |       street.y2,
         |       street.timestamp,
-        |       street_count.completion_count,
+        |       COALESCE(task.completion_count, 0),
         |       NULL as audit_task_id
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
-        |INNER JOIN sidewalk.street_edge_assignment_count AS street_count
-        |  ON street.street_edge_id = street_count.street_edge_id
+        |LEFT JOIN (
+        |  SELECT street_edge_id, COUNT(audit_task_id) AS completion_count
+        |  FROM sidewalk.audit_task
+        |  WHERE audit_task.completed IS TRUE
+        |  GROUP BY street_edge_id
+        |) AS task
+        |  ON street.street_edge_id = task.street_edge_id
         |WHERE region.region_id = ?
         |  AND street.deleted IS FALSE""".stripMargin
     )
 
     val newTasks = selectTaskQuery(regionId).list
-
     newTasks.map(task =>
       NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completionCount, task.completed)
     )
@@ -594,13 +603,18 @@ object AuditTaskTable {
         |       street.x2,
         |       street.y2,
         |       street.timestamp,
-        |       street_count.completion_count,
+        |       COALESCE(task.completion_count, 0),
         |       audit_task.completed
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
-        |INNER JOIN sidewalk.street_edge_assignment_count AS street_count
-        |  ON street.street_edge_id = street_count.street_edge_id
+        |LEFT JOIN (
+        |  SELECT street_edge_id, COUNT(audit_task_id) AS completion_count
+        |  FROM sidewalk.audit_task
+        |  WHERE audit_task.completed IS TRUE
+        |  GROUP BY street_edge_id
+        |) AS task
+        |  ON street.street_edge_id = task.street_edge_id
         |LEFT JOIN sidewalk.audit_task
         |  ON street.street_edge_id = audit_task.street_edge_id
         |  AND audit_task.user_id = ?
