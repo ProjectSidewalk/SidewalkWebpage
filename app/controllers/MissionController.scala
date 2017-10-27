@@ -28,6 +28,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   val precision = 0.10
   val missionLength1000 = 1000.0
   val missionLength500 = 500.0
+  val turkerRewardPerMile = 4.17
 
   /**
     * Return the completed missions in a JSON array
@@ -149,7 +150,11 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             for (mission <- submission) yield {
               // Check if duplicate user-mission exists. If not, save it.
               if (!MissionUserTable.exists(mission.missionId, user.userId.toString)) {
-                MissionUserTable.save(mission.missionId, user.userId.toString, false)
+                if(UserRoleTable.getRole(userId) == "Turker") {
+                  MissionUserTable.save(mission.missionId, user.userId.toString, false, turkerRewardPerMile)
+                } else {
+                  MissionUserTable.save(mission.missionId, user.userId.toString, false, 0.0)
+                }
               }
             }
           case _ =>
@@ -247,13 +252,17 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
       })
     })
     missionsToComplete.foreach { m =>
-      MissionUserTable.save(m.missionId, userId.toString, false)
+      if(UserRoleTable.getRole(userId) == "Turker") {
+        MissionUserTable.save(m.missionId, userId.toString, false, turkerRewardPerMile)
+      } else {
+        MissionUserTable.save(m.missionId, userId.toString, false, 0.0)
+      }
+
     }
   }
 
   def getRewardPerMile = UserAwareAction.async { implicit request =>
-    val rewardPerMile = 4.17
-    Future.successful(Ok(Json.obj("rewardPerMile" -> rewardPerMile)))
+    Future.successful(Ok(Json.obj("rewardPerMile" -> turkerRewardPerMile)))
   }
 
 }
