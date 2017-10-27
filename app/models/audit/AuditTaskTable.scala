@@ -283,8 +283,9 @@ object AuditTaskTable {
    */
   def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
     val _streetEdges = (for {
-      (_auditTasks, _streetEdges) <- completedAuditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
-    } yield _streetEdges).filter(edge => edge.deleted === false)
+      (_tasks, _edges) <- completedAuditTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
+      if _tasks.userId === userId.toString
+    } yield _edges).filter(edge => edge.deleted === false)
 
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }

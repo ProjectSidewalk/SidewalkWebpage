@@ -295,9 +295,9 @@ object StreetEdgeTable {
   def selectAllStreetsAuditedByAUserQuery(userId: UUID) = db.withSession { implicit session =>
 
     val auditedStreets = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
-      if _auditTasks.userId === userId.toString
-    } yield _streetEdges
+      (_edges, _tasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      if _tasks.userId === userId.toString
+    } yield _edges
     auditedStreets.groupBy(x => x).map(_._1) // does a select distinct
   }
 
@@ -312,9 +312,9 @@ object StreetEdgeTable {
   def getDistanceAudited(userId: UUID, region: Int): Float = db.withSession { implicit session =>
     // get the street edges from only this region
     val auditedStreetsInRegion = for {
-      (_streetEdges, _streetEdgeRegions) <- selectAllStreetsAuditedByAUserQuery(userId).innerJoin(streetEdgeRegion).on(_.streetEdgeId === _.streetEdgeId)
-      if _streetEdgeRegions.regionId === region
-    } yield _streetEdges
+      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === region
+      _edges <- selectAllStreetsAuditedByAUserQuery(userId) if _edges.streetEdgeId === _edgeRegions.streetEdgeId
+    } yield _edges
 
     // compute sum of lengths of the streets audited by the user in the region
     val dist = auditedStreetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
@@ -324,13 +324,13 @@ object StreetEdgeTable {
   /** Returns the sum of the lengths of all streets in the region that have been audited */
   def getDistanceAuditedInARegion(regionId: Int): Float = db.withSession { implicit session =>
     val streetsInRegion = for {
-      (_streetEdges, _streetEdgeRegions) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeRegion).on(_.streetEdgeId === _.streetEdgeId)
-      if _streetEdgeRegions.regionId === regionId
-    } yield _streetEdges
+      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === regionId
+      _edges <- streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegions.streetEdgeId
+    } yield _edges
 
     val auditedStreetsInARegion = for {
-      (_streetEdges, _auditTasks) <- streetsInRegion.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _streetEdges
+      (_edges, _tasks) <- streetsInRegion.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _edges
 
     // select distinct and sum the lengths of the streets
     auditedStreetsInARegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
@@ -339,9 +339,9 @@ object StreetEdgeTable {
   /** Returns the sum of the lengths of all streets in the region */
   def getTotalDistanceOfARegion(regionId: Int): Float = db.withSession { implicit session =>
     val streetsInRegion = for {
-      (_streetEdges, _streetEdgeRegions) <- streetEdgesWithoutDeleted.innerJoin(streetEdgeRegion).on(_.streetEdgeId === _.streetEdgeId)
-      if _streetEdgeRegions.regionId === regionId
-    } yield _streetEdges
+      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === regionId
+      _edges <- streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegions.streetEdgeId
+    } yield _edges
 
     // select distinct and sum the lengths of the streets
     streetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
