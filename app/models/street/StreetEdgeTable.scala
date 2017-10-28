@@ -67,7 +67,6 @@ object StreetEdgeTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val regions = TableQuery[RegionTable]
   val streetEdges = TableQuery[StreetEdgeTable]
-  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
 
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)

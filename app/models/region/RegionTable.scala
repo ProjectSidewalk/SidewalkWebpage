@@ -55,7 +55,6 @@ object RegionTable {
   val regions = TableQuery[RegionTable]
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
-  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
