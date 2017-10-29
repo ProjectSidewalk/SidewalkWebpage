@@ -335,14 +335,14 @@ object AuditTaskTable {
   def selectANewTask(user: UUID): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val completedTasks = for {
+    val tasksCompletedByUser = for {
       u <- users.filter(_.userId === user.toString)
       at <- completedTasks if at.userId === u.userId
     } yield (u.username.?, at.streetEdgeId.?)
 
     // gets list of streets that user has not audited, takes 100, then picks one of those at random to assign
     val edges = for {
-      (e, c) <- streetEdges.leftJoin(completedTasks).on(_.streetEdgeId === _._2)
+      (e, c) <- streetEdges.leftJoin(tasksCompletedByUser).on(_.streetEdgeId === _._2)
       if c._1.isEmpty && !e.deleted
     } yield e
 
@@ -416,7 +416,6 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
-    val completedTasks = auditTasks.filter(_.completed)
 
     val edgesInRegion = for {
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
@@ -458,7 +457,6 @@ object AuditTaskTable {
     val userId: String = user.toString
 
     val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
-    val completedTasks = auditTasks.filter(x => x.userId === userId && x.completed)
 
     val edgesInRegion = for {
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
@@ -625,11 +623,11 @@ object AuditTaskTable {
 
     val result: List[NewTask] = selectIncompleteTaskQuery((userId.toString, regionId)).list
     (for ((edgeId, tasks) <- result.groupBy(_.edgeId)) yield {
-      val completedTasks = tasks.filter(_.completed)
-      if (completedTasks.isEmpty) {
+      val tasksCompletedByUser = tasks.filter(_.completed)
+      if (tasksCompletedByUser.isEmpty) {
         tasks.head
       } else {
-        completedTasks.head
+        tasksCompletedByUser.head
       }
     }).toList
   }
