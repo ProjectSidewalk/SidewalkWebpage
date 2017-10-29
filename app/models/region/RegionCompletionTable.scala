@@ -48,7 +48,6 @@ object RegionCompletionTable {
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
   val streetEdges = TableQuery[StreetEdgeTable]
-  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
