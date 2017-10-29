@@ -159,25 +159,25 @@
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@StreetEdgeTable.countRegisteredUserAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countAuditedStreets(1, "Registered")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@StreetEdgeTable.countAnonAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turker</td>
-                                <td>@StreetEdgeTable.countTurkerAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countAuditedStreets(1, "Turker")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researcher</td>
-                                <td>@StreetEdgeTable.countResearcherAuditedStreets()</td>
+                                <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%</td>
                             </tr>
@@ -189,27 +189,27 @@
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceRegUser(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Registered"))) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateRegUser(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceAnon(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Anonymous"))) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateAnon(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turker</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceTurker(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Turker"))) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateTurker(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researcher</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceResearcher(1))) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Researcher"))) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRateResearcher(1) * 100))%</td>
+                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%</td>
                             </tr>
                         </table>
                     </div>
