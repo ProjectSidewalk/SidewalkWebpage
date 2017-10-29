@@ -81,9 +81,10 @@ object StreetEdgeTable {
   val completedAuditTasks = auditTasks.filter(_.completed === true)
 
   val turkerCompletedAuditTasks = for {
-    ((_audittasks, _roles), _roletype) <- completedAuditTasks.innerJoin(userRoles).on(_.userId === _.userId).innerJoin(roleTable).on(_._2.roleId === _.roleId)
-    if _roletype.role === "Turker"
-  } yield _audittasks
+    _tasks <- completedAuditTasks
+    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Turker"
+  } yield _tasks
 
   val regUserCompletedAuditTasks = for {
     _users <- userTable
