@@ -667,12 +667,14 @@ object LabelTable {
   def getLabelCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
 
     val turkerAudits = for {
-      (_audits, _users) <- completedAudits.innerJoin(turkerUsers).on(_.userId === _.userId)
+      _audits <- completedAudits
+      _users <- turkerUsers if _audits.userId === _users.userId
     } yield (_audits.auditTaskId, _users.userId)
 
 
     val _labels = for {
-      (_tasks, _labels) <- turkerAudits.innerJoin(labelsWithoutDeleted).on(_._1 === _.auditTaskId)
+      _tasks <- turkerAudits
+      _labels <- labelsWithoutDeleted if _tasks._1 === _labels.auditTaskId
     } yield _tasks._2
 
     // counts the number of tasks for each user

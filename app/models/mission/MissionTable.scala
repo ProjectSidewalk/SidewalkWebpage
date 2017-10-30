@@ -3,6 +3,7 @@ package models.mission
 import java.util.UUID
 
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.label.LabelTable.{roleTable, userRoles}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.UserRoleTable
@@ -53,7 +54,10 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 object MissionTable {
   val db = play.api.db.slick.DB
   val missions = TableQuery[MissionTable]
-  val turkerUsers = TableQuery[UserRoleTable].filter(_.roleId === 2)
+  val turkerUsers = for {
+    _roleIds <- userRoles
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Turker"
+  } yield _roleIds
   val missionUsers = TableQuery[MissionUserTable]
   val missionTurkers = for {
     (_missionusers, _turkerusers) <- missionUsers.innerJoin(turkerUsers).on(_.userId === _.userId)
