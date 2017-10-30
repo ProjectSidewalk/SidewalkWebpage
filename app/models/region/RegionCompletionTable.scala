@@ -93,9 +93,16 @@ object RegionCompletionTable {
         case Some(rC) =>
           // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
           // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
-          StreetEdgeRegionTable.allStreetsInARegionAudited(regionId) match {
-            case true => q.map(_.auditedDistance).update(rC.totalDistance)
-            case false => q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
+          // Also doing a check to see if the completion is erroneously over 100%, when the streets have not all been
+          // audited in that neighborhood; this has never been observed, but it could theoretically be an issue if there
+          // is a sizable error, while there is a single (very very short) street segment left to be audited. That case
+          // shouldn't happen, but we are just being safe, and setting audited_distance to be less than total_distance.
+          if (StreetEdgeRegionTable.allStreetsInARegionAudited(regionId)) {
+            q.map(_.auditedDistance).update(rC.totalDistance)
+          } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
+            q.map(_.auditedDistance).update(rC.totalDistance * 0.995)
+          } else {
+            q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
           }
         case None => -1
       }
