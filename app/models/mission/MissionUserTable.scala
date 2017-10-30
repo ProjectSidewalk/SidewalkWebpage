@@ -14,7 +14,7 @@ class MissionUserTable(tag: Tag) extends Table[MissionUser](tag, Some("sidewalk"
   def missionId = column[Int]("mission_id", O.NotNull)
   def userId = column[String]("user_id", O.NotNull)
   def paid = column[Boolean]("paid",O.Default(false))
-  def payPerMile = column[Option[Double]]("pay_per_mile", O.NotNull);
+  def payPerMile = column[Double]("pay_per_mile", O.NotNull);
 
   def * = (missionUserId, missionId, userId, paid, payPerMile) <> ((MissionUser.apply _).tupled, MissionUser.unapply)
 

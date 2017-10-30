@@ -12,7 +12,7 @@ import formats.json.MissionFormats._
 import formats.json.TaskSubmissionFormats.{AMTAssignmentCompletionSubmission}
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
-import models.user.{User, UserCurrentRegionTable}
+import models.user.{User, UserRoleTable, UserCurrentRegionTable}
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
@@ -150,7 +150,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             for (mission <- submission) yield {
               // Check if duplicate user-mission exists. If not, save it.
               if (!MissionUserTable.exists(mission.missionId, user.userId.toString)) {
-                if(UserRoleTable.getRole(userId) == "Turker") {
+                if(UserRoleTable.getRole(user.userId) == "Turker") {
                   MissionUserTable.save(mission.missionId, user.userId.toString, false, turkerRewardPerMile)
                 } else {
                   MissionUserTable.save(mission.missionId, user.userId.toString, false, 0.0)
