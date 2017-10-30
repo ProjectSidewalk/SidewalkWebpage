@@ -5,8 +5,9 @@ import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.region.RegionTable
-import models.user.UserRoleTable
+import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -82,6 +83,8 @@ object LabelTable {
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
   val severities = TableQuery[ProblemSeverityTable]
+  val userRoles = TableQuery[UserRoleTable]
+  val roleTable = TableQuery[RoleTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
@@ -94,7 +97,11 @@ object LabelTable {
   } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
 
   val anonIps = anonUsersAudits.groupBy(_._1).map{case(ip,group)=>ip}
-  val turkerUsers = TableQuery[UserRoleTable].filter(_.roleId === 2)
+
+  val turkerUsers = for {
+        _roleIds <- userRoles
+        _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Turker"
+  } yield _roleIds
 
   case class LabelCountPerDay(date: String, count: Int)
 
