@@ -109,7 +109,7 @@ object UserCurrentRegionTable {
     }
     else {
       // Take the least-audited difficult region
-      val regionId = scala.util.Random.shuffle(regionIds.intersect(difficultRegionIds.toSet)).head
+      val regionId: Int = difficultRegionCompletions.head.regionId
       update(userId, regionId)
     }
   }
