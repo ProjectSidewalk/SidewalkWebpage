@@ -63,7 +63,7 @@ object UserCurrentRegionTable {
       RegionCompletionTable.regionCompletions
         .filter(_.regionId inSet regionIds)
         .filterNot(_.regionId inSet difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .filter(region => region.auditedDistance / region.totalDistance < 0.9999)
         .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
 
     val regionId: Int = completions match {
@@ -98,7 +98,7 @@ object UserCurrentRegionTable {
       RegionCompletionTable.regionCompletions
         .filter(_.regionId inSet regionIds)
         .filter(_.regionId inSet difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .filter(region => region.auditedDistance / region.totalDistance < 0.9999)
         .sortBy(region => region.auditedDistance / region.totalDistance).list
 
     // If they have audited less than 2 miles and there is an easy region left (or if there are no difficult regions

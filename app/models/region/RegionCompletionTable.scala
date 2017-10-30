@@ -90,7 +90,13 @@ object RegionCompletionTable {
       val q = for {regionCompletion <- regionCompletions if regionCompletion.regionId === regionId} yield regionCompletion
 
       val updatedDist = q.firstOption match {
-        case Some(rC) => q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
+        case Some(rC) =>
+          // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+          // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
+          StreetEdgeRegionTable.allStreetsInARegionAudited(regionId) match {
+            case true => q.map(_.auditedDistance).update(rC.totalDistance)
+            case false => q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
+          }
         case None => -1
       }
     }
@@ -103,10 +109,18 @@ object RegionCompletionTable {
       val neighborhoods = RegionTable.selectAllNamedNeighborhoods
       for (neighborhood <- neighborhoods) yield {
 
-        val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
-        val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
+        // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+        // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
+        if (StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId)) {
+          val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
-        regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
+          regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
+        } else {
+          val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
+          val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
+
+          regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
+        }
       }
     }
   }
