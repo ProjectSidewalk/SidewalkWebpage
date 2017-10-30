@@ -7,7 +7,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
 
-import models.street.StreetEdgeTable
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -98,13 +98,13 @@ object UserCurrentRegionTable {
       RegionCompletionTable.regionCompletions
         .filter(_.regionId inSet regionIds)
         .filter(_.regionId inSet difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 0.9999)
         .sortBy(region => region.auditedDistance / region.totalDistance).list
+        .filterNot(region => StreetEdgeRegionTable.allStreetsInARegionAudited(region.regionId))
 
-    // If they have audited less than 2 miles and there is an easy region left (or if there are no difficult regions
-    // left to finish), give them an easy one
-    if ((regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId)) ||
-        difficultRegionCompletions.isEmpty) {
+    // If there are no difficult regions left, or if they are inexperienced and there is an easy region left, give them
+    // an easy region.
+    if (difficultRegionCompletions.isEmpty ||
+        (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId))) {
       assignEasyRegion(userId)
     }
     else {
