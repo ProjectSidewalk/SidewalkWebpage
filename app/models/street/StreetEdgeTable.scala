@@ -184,12 +184,16 @@ object StreetEdgeTable {
     }
 
     val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTaskQuery).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _streetEdges
+      _edges <- streetEdgesWithoutDeleted
+      _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
+    } yield _edges
 
-    val edgesWithAuditCounts = edges.groupBy(x => x).map{ case (edge, group) => (edge.geom.transform(26918).length, group.length)}
+    // Gets tuple of (street_edge_id, num_completed_audits)
+    val edgesWithAuditCounts = edges.groupBy(x => x).map{
+      case (edge, group) => (edge.geom.transform(26918).length, group.length)
+    }
 
-    // get length of each street segment, sum the lengths, and convert from meters to miles
+    // Get length of each street segment, sum the lengths, and convert from meters to miles
     val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
     (distances.sum * 0.000621371).toFloat
   }
