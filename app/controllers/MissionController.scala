@@ -28,7 +28,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   val precision = 0.10
   val missionLength1000 = 1000.0
   val missionLength500 = 500.0
-  val turkerRewardPerMile = 4.17
+  val payPerMile = 4.17
 
   /**
     * Return the completed missions in a JSON array
@@ -50,7 +50,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         // Finds the regions where the user has completed the original 1000-ft mission
         // Filters original 1000-ft mission out from incomplete missions for each region since it has been replaced by
         // new 500-ft and 1000-ft mission (https://github.com/ProjectSidewalk/SidewalkWebpage/issues/841)
-        // If user has already completed the original 1000-ft mission in a region, filters out the new 500-ft and 
+        // If user has already completed the original 1000-ft mission in a region, filters out the new 500-ft and
         // 1000-ft missions in that region
         val regionsWhereOriginal1000FtMissionCompleted = completedMissions.filter(m => {
           val coverage = m.coverage
@@ -66,7 +66,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
           val missionRegionId = m.regionId.getOrElse(-1)
 
           !(coverage match {
-            case None => 
+            case None =>
               // Filter out original 1000-ft missions
               ~=(distanceFt, missionLength1000, precision) ||
               // Filter out new 500-ft mission if user has already completed original 1000-ft mission in that region
@@ -151,7 +151,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
               // Check if duplicate user-mission exists. If not, save it.
               if (!MissionUserTable.exists(mission.missionId, user.userId.toString)) {
                 if(UserRoleTable.getRole(user.userId) == "Turker") {
-                  MissionUserTable.save(mission.missionId, user.userId.toString, false, turkerRewardPerMile)
+                  MissionUserTable.save(mission.missionId, user.userId.toString, false, payPerMile)
                 } else {
                   MissionUserTable.save(mission.missionId, user.userId.toString, false, 0.0)
                 }
@@ -230,7 +230,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     val completedDistance_m = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
 
     // If User has audited more distance than a particular mission's distance in this region, marks the mission as
-    // completed, unless user has completed original 1000-ft mission (in which case the new 500-ft and 1000-ft 
+    // completed, unless user has completed original 1000-ft mission (in which case the new 500-ft and 1000-ft
     // missions are not marked as completed). Also does not mark original 1000-ft mission as completed, ever
     val missionsToComplete = incompleteMissions.filter(m => {
       val distance = m.distance.getOrElse(Double.PositiveInfinity)
@@ -253,7 +253,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     })
     missionsToComplete.foreach { m =>
       if(UserRoleTable.getRole(userId) == "Turker") {
-        MissionUserTable.save(m.missionId, userId.toString, false, turkerRewardPerMile)
+        MissionUserTable.save(m.missionId, userId.toString, false, payPerMile)
       } else {
         MissionUserTable.save(m.missionId, userId.toString, false, 0.0)
       }
@@ -262,7 +262,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   }
 
   def getRewardPerMile = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(Json.obj("rewardPerMile" -> turkerRewardPerMile)))
+    Future.successful(Ok(Json.obj("rewardPerMile" -> payPerMile)))
   }
 
 }
