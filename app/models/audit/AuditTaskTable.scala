@@ -144,7 +144,7 @@ object AuditTaskTable {
     * @return
     */
   def countCompletedAudits: Int = db.withSession { implicit session =>
-    auditTasks.filter(_.completed).list.size
+    completedTasks.list.size
   }
 
   /**
@@ -190,7 +190,7 @@ object AuditTaskTable {
     * @return
     */
   def countCompletedAuditsByUserId(userId: UUID): Int = db.withSession { implicit session =>
-    auditTasks.filter(_.userId === userId.toString).filter(_.completed).list.size
+    completedTasks.filter(_.userId === userId.toString).list.size
   }
 
 
@@ -269,7 +269,6 @@ object AuditTaskTable {
     * @return
     */
   def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
-    val completedTasks = auditTasks.filter(_.completed === true)
     val _streetEdges = (for {
       (_auditTasks, _streetEdges) <- completedTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges).filter(edge => edge.deleted === false)
@@ -283,10 +282,10 @@ object AuditTaskTable {
    * @return
    */
   def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
-    val completedTasks = auditTasks.filter(_.completed === true)
     val _streetEdges = (for {
-      (_auditTasks, _streetEdges) <- completedTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId) if _auditTasks.userId === userId.toString
-    } yield _streetEdges).filter(edge => edge.deleted === false)
+      (_tasks, _edges) <- completedTasks.innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
+      if _tasks.userId === userId.toString
+    } yield _edges).filter(edge => edge.deleted === false)
 
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
@@ -316,7 +315,7 @@ object AuditTaskTable {
     * @return
     */
   def selectCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
-    auditTasks.filter(_.userId === userId.toString).list
+    completedTasks.filter(_.userId === userId.toString).list
   }
 
   /**
@@ -336,13 +335,14 @@ object AuditTaskTable {
   def selectANewTask(user: UUID): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val completedTasks = for {
-      u <- users.filter(_.username === user.toString)
-      at <- auditTasks if at.userId === u.userId
+    val tasksCompletedByUser = for {
+      u <- users.filter(_.userId === user.toString)
+      at <- completedTasks if at.userId === u.userId
     } yield (u.username.?, at.streetEdgeId.?)
 
+    // gets list of streets that user has not audited, takes 100, then picks one of those at random to assign
     val edges = for {
-      (e, c) <- streetEdges.leftJoin(completedTasks).on(_.streetEdgeId === _._2)
+      (e, c) <- streetEdges.leftJoin(tasksCompletedByUser).on(_.streetEdgeId === _._2)
       if c._1.isEmpty && !e.deleted
     } yield e
 
@@ -369,6 +369,7 @@ object AuditTaskTable {
   def selectANewTask: NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
+    // gets edges that have been assigned the least number of times, takes 100 of them, and assigns one at random
     val edges = (for {
       (se, ac) <- streetEdges.innerJoin(StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts)
         .on(_.streetEdgeId === _._1).sortBy(_._2._2)
@@ -415,7 +416,6 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
-    val completedTasks = auditTasks.filter(_.completed)
 
     val edgesInRegion = for {
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
@@ -457,7 +457,6 @@ object AuditTaskTable {
     val userId: String = user.toString
 
     val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
-    val completedTasks = auditTasks.filter(x => x.userId === userId && x.completed)
 
     val edgesInRegion = for {
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
@@ -624,11 +623,11 @@ object AuditTaskTable {
 
     val result: List[NewTask] = selectIncompleteTaskQuery((userId.toString, regionId)).list
     (for ((edgeId, tasks) <- result.groupBy(_.edgeId)) yield {
-      val completedTasks = tasks.filter(_.completed)
-      if (completedTasks.isEmpty) {
+      val tasksCompletedByUser = tasks.filter(_.completed)
+      if (tasksCompletedByUser.isEmpty) {
         tasks.head
       } else {
-        completedTasks.head
+        tasksCompletedByUser.head
       }
     }).toList
   }

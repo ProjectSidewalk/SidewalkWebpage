@@ -165,7 +165,7 @@ object RegionTable {
     val completions: List[RegionCompletion] =
       RegionCompletionTable.regionCompletions
         .filterNot(_.regionId inSet UserCurrentRegionTable.difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
+        .filter(region => region.auditedDistance / region.totalDistance < 0.9999)
         .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
 
     val regionId: Int = completions match {

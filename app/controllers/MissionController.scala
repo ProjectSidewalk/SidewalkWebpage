@@ -42,7 +42,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         // Mark the missions that should be completed.
         val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
         if (regionId.isDefined) {
-          updatedUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
+          updateUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
         }
 
         val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId)
@@ -200,15 +200,12 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   }
 
 
-  /**
+  /** If the dist a user has audited in a region implies that they should have completed more missions, add them.
     *
     * @param userId
     * @param regionId
     */
-  // Checks total audit distance for a user in a particular region
-  // Creates MissionUser entries for missions in that region whose distance is less than user's total audited distance
-  // in the region
-  def updatedUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
+  def updateUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
     // Checks if user has completed original 1000-ft mission
     val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId)
     val hasCompletedOriginal1000FtMission = completedMissions.exists(m => {
@@ -221,13 +218,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     })
 
     val incompleteMissions = MissionTable.selectIncompleteMissionsByAUser(userId, regionId)
-
-    // Calculates total distance audited in the region by this user
-    val streets = StreetEdgeTable.selectStreetsAuditedByAUser(userId, regionId)
-    val CRSEpsg4326 = CRS.decode("epsg:4326")
-    val CRSEpsg26918 = CRS.decode("epsg:26918")
-    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
-    val completedDistance_m = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
+    val completedDistance_m = StreetEdgeTable.getDistanceAudited(userId, regionId)
 
     // If User has audited more distance than a particular mission's distance in this region, marks the mission as
     // completed, unless user has completed original 1000-ft mission (in which case the new 500-ft and 1000-ft
