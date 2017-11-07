@@ -1,5 +1,6 @@
 package models.street
 
+import models.audit.AuditTaskTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
@@ -37,6 +38,17 @@ object StreetEdgeAssignmentCountTable {
   implicit val completionCountConverter = GetResult(r => {
     CompletionCount(r.nextInt, r.nextInt, r.nextInt)
   })
+
+  def computeEdgeCompletionCounts: Query[(Column[Int], Column[Int]), (Int, Int), Seq] = db.withTransaction { implicit session =>
+    val nonZeroCompletionCounts = (for {
+      _tasks <- AuditTaskTable.completedTasks
+      _edges <- StreetEdgeTable.streetEdgesWithoutDeleted if _edges.streetEdgeId === _tasks.streetEdgeId
+    } yield _edges).groupBy(x => x).map{ case (edge, group) => (edge.streetEdgeId, group.length)}
+
+    for {
+      (_edges, _counts) <- StreetEdgeTable.streetEdgesWithoutDeleted.leftJoin(nonZeroCompletionCounts).on(_.streetEdgeId === _._1)
+    } yield (_edges.streetEdgeId, _counts._2.?.getOrElse(0))
+  }
 
   /**
    * Increment the assignmentCount field
