@@ -50,7 +50,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         mission.complete();
 
         // Survey prompt. Modal should display survey if
-        // 1. User is a Turker (/survey/display endpoint returns true if this is the case).
+        // 1. User has a role that is allowed to submit surveys (/survey/display endpoint returns true if this is the case).
         // 2. User has just completed numMissionsBeforeSurvey number of missions.
 
             var url = '/survey/display';
