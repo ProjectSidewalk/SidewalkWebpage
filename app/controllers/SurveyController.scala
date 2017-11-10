@@ -107,16 +107,20 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
       case None =>
         val user: Option[DBUser] = UserTable.find("anonymous")
         UUID.fromString(user.get.userId)
+    }
+
+    request.identity match {
+      case Some(user) =>
+        val userRole: String = UserRoleTable.getRole(userId)
+
+        val numMissionsBeforeSurvey = 2
+        val userRoleForSurvey: List[String] = List("Turker","User","Researcher","Administrator","Owner")
+
+        val displaySurvey = userRoleForSurvey.contains(userRole) //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
+        Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
+      case None =>
         Future.successful(Ok(Json.obj("displayModal" -> false)))
     }
-    val userRole: String = UserRoleTable.getRole(userId)
-
-    val numMissionsBeforeSurvey = 2
-    val userRoleForSurvey: List[String] = List("Turker","User","Researcher","Administrator","Owner")
-
-    val displaySurvey = userRoleForSurvey.contains(userRole) //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
-    Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
-
   }
 
 }
