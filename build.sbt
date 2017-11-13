@@ -83,3 +83,14 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(PreserveDanglingCloseParenthesis, true)
 
 fork in run := true
+
+//********************************************************
+// Install python libraries
+//********************************************************
+lazy val installPythonRequirements = TaskKey[Unit]("installPythonRequirements", "Installs python requirements")
+
+installPythonRequirements := {
+  "pip install -r requirements.txt" !
+}
+
+compile in Compile <<= (compile in Compile).dependsOn(installPythonRequirements)
