@@ -5,6 +5,8 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
+import scala.math.exp
+
 case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double)
 
 class StreetEdgePriorityTable(tag: Tag) extends Table[StreetEdgePriority](tag, Some("sidewalk"),  "street_edge_priority") {
@@ -35,7 +37,7 @@ object StreetEdgePriorityTable {
   }
 
   /**
-    * Update the priority attribute of a record.
+    * Update the priority attribute of a single streetEdge.
     * @param streetEdgeId
     * @param priority
     * @return
@@ -44,5 +46,25 @@ object StreetEdgePriorityTable {
   def updateCompleted(streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
     val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId } yield edg.priority
     q.update(priority)
+  }
+
+  def logisticFunction(w: Array[Double], x: Array[Double]): Double = db.withTransaction { implicit session =>
+    val z: Double = w.zip(x).map { case (w_i, x_i) => w_i * x_i }.sum
+    return exp(-z)/(1+exp(-z))
+  }
+
+  /**
+    * Recalculate the priority attribute for all streetEdges.
+    * @param rankParameterGeneratorList list of functions that will generate a number for each streetEdge
+    * @param weightVector that will be used to weight the generated parameters
+    * @param paramAggregationFunction that will be used to convert the weighted sum of numbers for each street into a number between 0 and 1
+    * @return
+    */
+  def recalculateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>Array[Double]], weightVector: Array[Double], paramAggregationFunction: (Array[Double],Array[Double])=>Double) = db.withTransaction { implicit session =>
+
+  }
+
+  def listAll: List[StreetEdgePriority] = db.withTransaction { implicit session =>
+    streetEdgePriorities.list
   }
 }
