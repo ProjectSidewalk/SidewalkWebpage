@@ -23,6 +23,13 @@ import collection.immutable.Seq
 class AuditPriorityController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  // Helper methods
+  def isAdmin(user: Option[User]): Boolean = user match {
+    case Some(user) =>
+      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
+    case _ => false
+  }
+
   /**
     *
     * @return
@@ -36,10 +43,9 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
   }
 
   /**
-    * This returns the list of difficult neighborhood ids
+    * This returns the list of all streets with their priority
     * @return
-    */
   def getStreetPriorityList = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(Json.obj("streetPriorities" -> StreetEdgePriorityTable.listAll)))
-  }
+    Future.successful(Ok(StreetEdgePriorityTable.listAll))
+  }*/
 }
