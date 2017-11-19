@@ -9,8 +9,11 @@ import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 
 import com.vividsolutions.jts.geom.LineString
-import models.audit.AuditTaskTable
+import models.audit.{AuditTask, AuditTaskTable}
 import models.region.RegionTable
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.user.UserRoleTable
+import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.postgresql.util.PSQLException
@@ -67,12 +70,40 @@ object StreetEdgeTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val regions = TableQuery[RegionTable]
   val streetEdges = TableQuery[StreetEdgeTable]
-  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
 
+  val userRoles = TableQuery[UserRoleTable]
+  val userTable = TableQuery[UserTable]
+  val roleTable = TableQuery[RoleTable]
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
   val completedAuditTasks = auditTasks.filter(_.completed === true)
+
+  val turkerCompletedAuditTasks = for {
+    _tasks <- completedAuditTasks
+    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Turker"
+  } yield _tasks
+
+  val regUserCompletedAuditTasks = for {
+    _users <- userTable
+    _tasks <- completedAuditTasks if _users.userId === _tasks.userId && _users.username =!= "anonymous"
+    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "User"
+  } yield _tasks
+
+  val researcherCompletedAuditTasks = for {
+    _tasks <- completedAuditTasks
+    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId
+    if _roles.role inSet List("Researcher", "Administrator", "Owner")
+  } yield _tasks
+
+  val anonCompletedAuditTasks = for {
+    _users <- userTable
+    _tasks <- completedAuditTasks if _users.userId === _tasks.userId && _users.username === "anonymous"
+  } yield _tasks
+
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
   val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.innerJoin(neighborhoods).on(_.regionId === _.regionId) } yield se
 
@@ -96,14 +127,16 @@ object StreetEdgeTable {
   }
   
   /**
-    * This method returns the audit completion rate
+    * This method returns the audit completion rate for the specified group of users.
     *
     * @param auditCount
+    * @param userType
     * @return
     */
-  def auditCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
-    val allEdges = streetEdgesWithoutDeleted.list
-    countAuditedStreets(auditCount).toFloat / allEdges.length
+  def auditCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
+    val auditedStreetCount = countAuditedStreets(1, userType).toFloat
+    val allEdgesCount: Int = streetEdgesWithoutDeleted.list.length
+    auditedStreetCount / allEdgesCount
   }
 
   /**
@@ -112,8 +145,8 @@ object StreetEdgeTable {
     * @param auditCount
     * @return Float between 0 and 1
     */
-  def streetDistanceCompletionRate(auditCount: Int): Float = db.withSession { implicit session =>
-    val auditedDistance = auditedStreetDistance(auditCount)
+  def streetDistanceCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
+    val auditedDistance = auditedStreetDistance(auditCount, userType)
     val totalDistance = totalStreetDistance()
     auditedDistance / totalDistance
   }
@@ -139,17 +172,31 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def auditedStreetDistance(auditCount: Int): Float = db.withSession { implicit session =>
-    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
-    val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
-    } yield _streetEdges
+  def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
 
-    // get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = edges.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+    val auditTaskQuery = userType match {
+      case "All" => completedAuditTasks
+      case "Researcher" => researcherCompletedAuditTasks
+      case "Turker" => turkerCompletedAuditTasks
+      case "Registered" => regUserCompletedAuditTasks
+      case "Anonymous" => anonCompletedAuditTasks
+      case _ => completedAuditTasks
+    }
+
+    val edges = for {
+      _edges <- streetEdgesWithoutDeleted
+      _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
+    } yield _edges
+
+    // Gets tuple of (street_edge_id, num_completed_audits)
+    val edgesWithAuditCounts = edges.groupBy(x => x).map{
+      case (edge, group) => (edge.geom.transform(26918).length, group.length)
+    }
+
+    // Get length of each street segment, sum the lengths, and convert from meters to miles
+    val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
     (distances.sum * 0.000621371).toFloat
   }
-
 
   /**
     * Computes percentage of DC audited over time.
@@ -215,23 +262,22 @@ object StreetEdgeTable {
   }
 
   /**
-    * Count the number of streets that have been audited at least a given number of times
-    *
-    * @param auditCount
-    * @return
-    */
-  def countAuditedStreets(auditCount: Int = 1): Int = db.withSession { implicit session =>
-    selectAuditedStreets(auditCount).size
-  }
-
-  /**
     * Returns a list of street edges that are audited at least auditCount times
     *
     * @return
     */
-  def selectAuditedStreets(auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
+  def selectAuditedStreets(auditCount: Int = 1, userType: String = "All"): List[StreetEdge] = db.withSession { implicit session =>
+    val auditTasksQuery = userType match {
+      case "All" => completedAuditTasks
+      case "Researcher" => researcherCompletedAuditTasks
+      case "Turker" => turkerCompletedAuditTasks
+      case "Registered" => regUserCompletedAuditTasks
+      case "Anonymous" => anonCompletedAuditTasks
+      case _ => completedAuditTasks
+    }
+
     val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
     val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
@@ -244,6 +290,16 @@ object StreetEdgeTable {
     }).toList.flatten
 
     uniqueStreetEdges
+  }
+
+  /**
+    * Count the number of streets that have been audited at least a given number of times
+    *
+    * @param auditCount
+    * @return
+    */
+  def countAuditedStreets(auditCount: Int = 1, userType: String = "All"): Int = db.withSession { implicit session =>
+    selectAuditedStreets(auditCount, userType).size
   }
 
   /**
@@ -288,31 +344,68 @@ object StreetEdgeTable {
 
   /** Gets a list of all street edges that the user has audited */
   def selectAllStreetsAuditedByAUser(userId: UUID): List[StreetEdge] = db.withSession { implicit session =>
-    val selectAuditedStreetsQuery = Q.query[String, StreetEdge](
-      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
-        |  FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.street_edge_region
-        |  ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        |INNER JOIN sidewalk.audit_task
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
-        |  AND audit_task.completed = TRUE
-        |  AND audit_task.user_id = ?
-        |WHERE street_edge.deleted=FALSE
-      """.stripMargin
-    )
-    selectAuditedStreetsQuery(userId.toString).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+    selectAllStreetsAuditedByAUserQuery(userId).list
+  }
+
+  /** Gets the query for a list of all street edges that the user has audited */
+  def selectAllStreetsAuditedByAUserQuery(userId: UUID) = db.withSession { implicit session =>
+
+    val auditedStreets = for {
+      (_edges, _tasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      if _tasks.userId === userId.toString
+    } yield _edges
+    auditedStreets.groupBy(x => x).map(_._1) // does a select distinct
   }
 
   /** Returns the total distance that the specified user has audited in miles */
-  def getDistanceAudited(userId: UUID): Float = db.withSession {implicit session =>
-    // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
-    val CRSEpsg4326 = CRS.decode("epsg:4326")
-    val CRSEpsg26918 = CRS.decode("epsg:26918")
-    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
+  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
 
-    val userStreets = selectAllStreetsAuditedByAUser(userId)
-    // get length of each street segment, sum the lengths, and convert from meters to miles
-    (userStreets.map(s => JTS.transform(s.geom, transform).getLength).sum * 0.000621371).toFloat
+    val dist = selectAllStreetsAuditedByAUserQuery(userId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+    (dist * 0.000621371).toFloat // converts to miles
+  }
+
+  /** Returns the total distance audited by the specified user within the specified region, in miles */
+  def getDistanceAudited(userId: UUID, region: Int): Float = db.withSession { implicit session =>
+    // get the street edges from only this region
+    val auditedStreetsInRegion = for {
+      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === region
+      _edges <- selectAllStreetsAuditedByAUserQuery(userId) if _edges.streetEdgeId === _edgeRegions.streetEdgeId
+    } yield _edges
+
+    // compute sum of lengths of the streets audited by the user in the region
+    val dist = auditedStreetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+    (dist * 0.000621371).toFloat // converts to miles
+  }
+
+  /** Returns the sum of the lengths of all streets in the region that have been audited */
+  def getDistanceAuditedInARegion(regionId: Int): Float = db.withSession { implicit session =>
+    val streetsInRegion = for {
+      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === regionId
+      _edges <- streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegions.streetEdgeId
+    } yield _edges
+
+    val auditedStreetsInARegion = for {
+      (_edges, _tasks) <- streetsInRegion.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+    } yield _edges
+
+    // select distinct and sum the lengths of the streets
+    auditedStreetsInARegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+  }
+
+  /** Returns the sum of the lengths of all streets in the region */
+  def getTotalDistanceOfARegion(regionId: Int): Float = db.withSession { implicit session =>
+    val streetsInRegion = for {
+      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === regionId
+      _edges <- streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegions.streetEdgeId
+    } yield _edges
+
+    // select distinct and sum the lengths of the streets
+    streetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+  }
+
+  /** Returns the distance of the given street edge */
+  def getStreetEdgeDistance(streetEdgeId: Int): Float = db.withSession { implicit session =>
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
   }
 
   /**
@@ -322,7 +415,7 @@ object StreetEdgeTable {
     * @return
     */
   def selectStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
-    val selectAuditedStreetsQuery = Q.query[Int, StreetEdge](
+    val selectStreetsInARegionQuery = Q.query[Int, StreetEdge](
       """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
         |  FROM sidewalk.street_edge
         |INNER JOIN sidewalk.region
@@ -333,7 +426,7 @@ object StreetEdgeTable {
     )
 
     try {
-      selectAuditedStreetsQuery(regionId).list
+      selectStreetsInARegionQuery(regionId).list
     } catch {
       case e: PSQLException => List()
     }
