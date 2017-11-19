@@ -98,11 +98,6 @@ object LabelTable {
 
   val anonIps = anonUsersAudits.groupBy(_._1).map{case(ip,group)=>ip}
 
-  val turkerUsers = for {
-        _roleIds <- userRoles
-        _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Turker"
-  } yield _roleIds
-
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
@@ -665,19 +660,16 @@ object LabelTable {
     * Select label counts per turker user
     */
   def getLabelCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
+    val turkerUsers = UserRoleTable.getUsersByType("Turker")
 
     val turkerAudits = for {
       _audits <- completedAudits
-      _users <- turkerUsers if _audits.userId === _users.userId
-    } yield (_audits.auditTaskId, _users.userId)
+      _turkerAudits <- turkerUsers if _audits.userId === _turkerAudits.userId
+      _labels <- labelsWithoutDeleted if _audits.auditTaskId === _labels.auditTaskId
+    } yield _turkerAudits.userId
 
-
-    val _labels = for {
-      _tasks <- turkerAudits
-      _labels <- labelsWithoutDeleted if _tasks._1 === _labels.auditTaskId
-    } yield _tasks._2
 
     // counts the number of tasks for each user
-    _labels.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.list
+    turkerAudits.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.list
   }
 }

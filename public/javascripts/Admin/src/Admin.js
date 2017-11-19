@@ -822,7 +822,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                           $("#turker-audittimes-std").html((turkerStats.std).toFixed(2) + " Minutes");
                           $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
 
-                          var combinedChart = {"hconcat": [allChart, regChart, turkerChart, anonChart]};
+                          var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
 
                           vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function (error, results) {
                           });
@@ -1182,8 +1182,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
                         $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
 
-                        var combinedChart = {"hconcat": [allChart, regChart, turkerChart, anonChart]};
-                        var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, turkerFilteredChart, anonChart]};
+                        var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                        var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerFilteredChart, regFilteredChart, anonChart]};
 
                         vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
                         });
@@ -1282,8 +1282,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
                         $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
 
-                        var combinedChart = {"hconcat": [allChart, regChart, turkerChart, anonChart]};
-                        var combinedChartFiltered = {"hconcat": [allFilteredChart, regFilteredChart, turkerFilteredChart, anonChart]};
+                        var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                        var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerFilteredChart, regFilteredChart, anonChart]};
 
                         vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
                         });

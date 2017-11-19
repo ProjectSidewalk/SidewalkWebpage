@@ -54,14 +54,8 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 object MissionTable {
   val db = play.api.db.slick.DB
   val missions = TableQuery[MissionTable]
-  val turkerUsers = for {
-    _roleIds <- userRoles
-    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Turker"
-  } yield _roleIds
   val missionUsers = TableQuery[MissionUserTable]
-  val missionTurkers = for {
-    (_missionusers, _turkerusers) <- missionUsers.innerJoin(turkerUsers).on(_.userId === _.userId)
-  } yield _missionusers
+  val turkerUsers = UserRoleTable.getUsersByType("Turker")
 
   val users = TableQuery[UserTable]
   val regionProperties = TableQuery[RegionPropertyTable]
@@ -252,6 +246,10 @@ object MissionTable {
     * @ List[(user_id,count)]
     */
   def selectMissionCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
+    val missionTurkers = for {
+      (_missionusers, _turkerusers) <- missionUsers.innerJoin(turkerUsers).on(_.userId === _.userId)
+    } yield _missionusers
+
     val _missions = for {
       (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionTurkers).on(_.missionId === _.missionId)
     } yield _missionUsers.userId
