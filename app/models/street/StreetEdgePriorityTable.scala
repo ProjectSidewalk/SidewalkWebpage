@@ -7,14 +7,15 @@ import scala.slick.lifted.ForeignKeyQuery
 
 import scala.math.exp
 
-case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double)
+case class StreetEdgePriority(streetEdgePriorityId: Int, regionId: Int, streetEdgeId: Int, priority: Double)
 
 class StreetEdgePriorityTable(tag: Tag) extends Table[StreetEdgePriority](tag, Some("sidewalk"),  "street_edge_priority") {
   def streetEdgePriorityId = column[Int]("street_edge_priority_id", O.NotNull, O.PrimaryKey, O.AutoInc)
+  def regionId = column[Int]("region_id",O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def priority = column[Double]("priority", O.NotNull)
 
-  def * = (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
+  def * = (streetEdgePriorityId, regionId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -43,10 +44,17 @@ object StreetEdgePriorityTable {
     * @return
     */
 
-  def updateCompleted(streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
-    val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId } yield edg.priority
+  def updateCompleted(regionId: Int, streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
+    val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId && edg.regionId === regionId} yield edg.priority
     q.update(priority)
   }
+
+  /**
+    * Helper logistic function to convert an array of doubles to a single number between 0 and 1.
+    * @param w weights
+    * @param x routing parameters
+    * @return
+    */
 
   def logisticFunction(w: Array[Double], x: Array[Double]): Double = db.withTransaction { implicit session =>
     val z: Double = w.zip(x).map { case (w_i, x_i) => w_i * x_i }.sum
