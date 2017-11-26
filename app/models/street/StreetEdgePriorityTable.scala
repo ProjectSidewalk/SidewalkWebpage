@@ -58,9 +58,8 @@ object StreetEdgePriorityTable {
     * @return
     */
 
-  def logisticFunction(x: Double): Double = db.withTransaction { implicit session =>
-    //val z: Double = w.zip(x).map { case (w_i, x_i) => w_i * x_i }.sum
-    return x.map{ z => exp(-z)/(1+exp(-z))}
+  def logisticFunction(z: Double): Double = db.withTransaction { implicit session =>
+    return exp(-z)/(1+exp(-z))
   }
 
   /**
@@ -74,7 +73,7 @@ object StreetEdgePriorityTable {
 
     //Reset street edge priority to zero
     var tempStreetEdgePriorities = streetEdgePriorities.map{ streetEdge =>
-      streetEdge.priority = 0.0)
+      streetEdge.priority = 0.0
     }
 
     rankParameterGeneratorList.zip(weightVector).foreach{ (f_i,w_i) =>
@@ -115,6 +114,6 @@ object StreetEdgePriorityTable {
         |  AND street_edge.deleted = FALSE
         |  ORDER BY street_edge.street_edge_id,region.region_id,region.region_id""".stripMargin
     )
-    selectCompletionCountQuery
+    selectCompletionCountQuery.list
   }
 }
