@@ -6,6 +6,7 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{StaticQuery => Q}
+import scala.slick.jdbc.GetResult
 
 import scala.math.exp
 
@@ -27,6 +28,10 @@ class StreetEdgePriorityTable(tag: Tag) extends Table[StreetEdgePriority](tag, S
 object StreetEdgePriorityTable {
   val db = play.api.db.slick.DB
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
+
+  implicit val streetEdgePriorityParameterConverter = GetResult(r => {
+    StreetEdgePriorityParameter(r.nextInt, r.nextInt, r.nextDouble)
+  })
 
   /**
     * Save a record.
@@ -52,6 +57,11 @@ object StreetEdgePriorityTable {
     q.update(priority)
   }
 
+  def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>
+    val tempStreetEdgePriorities = streetEdgePriorities.map(s => (s.priority)).update((priority))
+    tempStreetEdgePriorities
+  }
+
   /**
     * Helper logistic function to convert a double float to a number between 0 and 1.
     * @param z
@@ -69,22 +79,25 @@ object StreetEdgePriorityTable {
     * @param paramScalingFunction that will be used to convert the weighted sum of numbers for each street into a number between 0 and 1
     * @return
     */
-  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double], paramScalingFunction: (Double)=>Double): List[Double] = db.withTransaction { implicit session =>
+  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double], paramScalingFunction: (Double)=>Double) = db.withTransaction { implicit session =>
 
     //Reset street edge priority to zero
-    var tempStreetEdgePriorities = streetEdgePriorities.map{ streetEdge =>
-      streetEdge.priority = 0.0
-    }
+    var tempStreetEdgePriorities = streetEdgePriorities
+    val q = for { c <- tempStreetEdgePriorities} yield c.priority
+    val updateAction = q.update(0.0)
 
-    rankParameterGeneratorList.zip(weightVector).foreach{ (f_i,w_i) =>
+    /*rankParameterGeneratorList.zip(weightVector).foreach{ (f_i,w_i) =>
       var priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
       var innerJoin = for {
         (t, p) <- tempStreetEdgePriorities join priorityParamTable on (_.regionId === _.regionId && _.streetEdgeId === _.streetEdgeId)
-      } yield (t.regionId, t.streetEdgeId, paramScalingFunction(t.priority + p.priorityParam*w_i))
+      } yield (t.regionId, t.streetEdgeId, t.priority + p.priorityParam*w_i)
 
       tempStreetEdgePriorities = innerJoin
+    }*/
+
+    tempStreetEdgePriorities.foreach{ street_edge =>
+      StreetEdgePriorityTable.updateSingleStreetEdge(street_edge.regionId,street_edge.streetEdgeId,street_edge.priority)
     }
-    return tempStreetEdgePriorities
   }
 
   def listAll: List[StreetEdgePriority] = db.withTransaction { implicit session =>
