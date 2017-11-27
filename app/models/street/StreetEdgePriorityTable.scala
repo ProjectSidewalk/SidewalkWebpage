@@ -57,8 +57,8 @@ object StreetEdgePriorityTable {
     q.update(priority)
   }
 
-  def getSingleStreetEdgePriority(regionId: Int, streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
-    streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId && edg.regionId === regionId}.map(_.priority).head
+  def getSingleStreetEdgePriority(regionId: Int, streetEdgeId: Int) = db.withTransaction { implicit session =>
+    streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId && edg.regionId === regionId}.map(_.priority).list.head
   }
 
   def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>
@@ -87,25 +87,18 @@ object StreetEdgePriorityTable {
 
     //Reset street edge priority to zero
     var tempStreetEdgePriorities = streetEdgePriorities
-    val q = for { c <- tempStreetEdgePriorities} yield c.priority
-    val updateAction = q.update(0.0)
+    val q1 = for { edg <- tempStreetEdgePriorities} yield edg.priority
+    val updateAction = q1.update(0.0)
 
-    /*rankParameterGeneratorList.zip(weightVector).foreach{ (f_i,w_i) =>
+    for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)){
       var priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
-      var innerJoin = for {
-        (t, p) <- tempStreetEdgePriorities join priorityParamTable on (_.regionId === _.regionId && _.streetEdgeId === _.streetEdgeId)
-      } yield (t.regionId, t.streetEdgeId, t.priority + p.priorityParam*w_i)
 
-      tempStreetEdgePriorities = innerJoin
-    }*/
-    /*for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)){
-      var priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
-      var innerJoin = for {
-        (t, p) <- tempStreetEdgePriorities join priorityParamTable on (_.regionId === _.regionId && _.streetEdgeId === _.streetEdgeId)
-      } yield (t.regionId, t.streetEdgeId, t.priority + p.priorityParam*w_i)
-
-      //tempStreetEdgePriorities = innerJoin
-    }*/
+      priorityParamTable.foreach{ street_edge =>
+        val tempPriority = tempStreetEdgePriorities.filter{ edg => edg.streetEdgeId === street_edge.streetEdgeId && edg.regionId === street_edge.regionId}.map(_.priority).list.head
+        val q2 = for { edg <- tempStreetEdgePriorities if edg.regionId === street_edge.regionId &&  edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
+        val updatePriority = q2.update(tempPriority + street_edge.priorityParameter*w_i)
+      }
+    }
 
     tempStreetEdgePriorities.foreach{ street_edge =>
       StreetEdgePriorityTable.updateSingleStreetEdgePriority(street_edge.regionId,street_edge.streetEdgeId,street_edge.priority)
