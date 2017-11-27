@@ -16,6 +16,7 @@ GET     /results                                             @controllers.Applic
 GET     /faq                                                 @controllers.ApplicationController.faq
 GET     /student                                             @controllers.ApplicationController.student
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
+GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
@@ -56,8 +57,8 @@ GET     /adminapi/webpageActivity/:activity                  @controllers.AdminC
 GET     /adminapi/webpageActivity/:activity/*keyValPairs     @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminController.getNumWebpageActivities(activity: String)
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
-
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
+PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
@@ -75,6 +76,7 @@ POST    /task                                                @controllers.TaskCo
 
 # Missions
 GET     /mission                                             @controllers.MissionController.getMissions
+GET     /rewardPerMile                                       @controllers.MissionController.getRewardPerMile
 POST    /mission                                             @controllers.MissionController.post
 
 # Labels
@@ -98,6 +100,7 @@ GET     /contribution/auditCounts/all                        @controllers.UserPr
 GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                              @controllers.UserProfileController.userProfile(username: String)
+GET     /isTurker                                            @controllers.UserProfileController.isTurker
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts

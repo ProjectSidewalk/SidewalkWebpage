@@ -10,6 +10,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
+import formats.json.UserRoleSubmissionFormats._
 import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
@@ -17,14 +18,13 @@ import models.label.{LabelPointTable, LabelTable}
 import models.mission.MissionTable
 import models.region.{RegionCompletionTable, RegionTable}
 import models.street.{StreetEdge, StreetEdgeTable}
-import models.user.{User, WebpageActivityTable}
+import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.daos.UserDAOImpl
-import models.user.UserRoleTable
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
-import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
+import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
-
+import play.api.mvc.BodyParsers
 
 import scala.concurrent.Future
 
@@ -38,7 +38,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
-      if (user.roles.getOrElse(Seq()).contains("Administrator")) true else false
+      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
     case _ => false
   }
 
@@ -148,7 +148,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val counts: List[(String, Int)] = WebpageActivityTable.selectAllSignInCounts
       val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.researcherIds.contains(x._1))
+        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
       }))
       Future.successful(Ok(jsonArray))
     } else {
@@ -419,7 +419,7 @@ def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
   def getAllRegisteredUserLabelCounts = UserAwareAction.async { implicit request =>
     val labelCounts = LabelTable.getLabelCountsPerRegisteredUser
     val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.researcherIds.contains(x._1)
+      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1))
     )))
     Future.successful(Ok(json))
   }
@@ -496,5 +496,39 @@ def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
     }else{
       Future.successful(Redirect("/"))
     }
+  }
+
+  def setUserRole = UserAwareAction.async(BodyParsers.parse.json){ implicit request =>
+    val submission = request.body.validate[UserRoleSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val userId = UUID.fromString(submission.userId)
+        val newRole = submission.roleId
+
+        if(isAdmin(request.identity)){
+          UserTable.findById(userId) match {
+            case Some(user) =>
+              if(UserRoleTable.getRole(userId) == "Owner") {
+                Future.successful(BadRequest("Owner's role cannot be changed"))
+              } else if (newRole == "Owner") {
+                Future.successful(BadRequest("Cannot set a new owner"))
+              } else if (!RoleTable.getRoleNames.contains(newRole)) {
+                Future.successful(BadRequest("Invalid role"))
+              } else {
+                UserRoleTable.setRole(userId, newRole)
+                Future.successful(Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole)))
+              }
+            case None =>
+              Future.successful(BadRequest("No user has this user ID"))
+          }
+        } else {
+          Future.successful(Redirect("/"))   
+        }
+      }
+    )
   }
 }

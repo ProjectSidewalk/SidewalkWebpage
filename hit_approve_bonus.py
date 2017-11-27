@@ -27,7 +27,7 @@ try:
         region_id,distance,distance_ft,distance_mi, hit_id, assignment_id, paid 
         from mission_user 
         join mission on(mission.mission_id = mission_user.mission_id) 
-        join user_role on(user_role.user_id=mission_user.user_id and user_role.role_id=4) 
+        join user_role on(user_role.user_id=mission_user.user_id and user_role.role_id=2) 
         join sidewalk.user on(sidewalk.user.user_id = mission_user.user_id) 
         join amt_assignment on(username = amt_assignment.turker_id) 
         where mission.deleted = false and mission.label !='onboarding';""")
