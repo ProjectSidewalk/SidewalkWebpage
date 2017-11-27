@@ -101,7 +101,7 @@ object StreetEdgePriorityTable {
     }
 
     tempStreetEdgePriorities.foreach{ street_edge =>
-      StreetEdgePriorityTable.updateSingleStreetEdgePriority(street_edge.regionId,street_edge.streetEdgeId,street_edge.priority)
+      StreetEdgePriorityTable.updateSingleStreetEdgePriority(street_edge.regionId,street_edge.streetEdgeId,paramScalingFunction(street_edge.priority))
     }
   }
 
