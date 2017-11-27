@@ -36,6 +36,10 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
     */
   def recalculateStreetPriority = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)){
+      val rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]] = List(StreetEdgePriorityTable.selectCompletionCount)
+      val paramScalingFunction: (Double)=>Double = StreetEdgePriorityTable.logisticFunction
+      val weightVector: List[Double] = List(1)
+      StreetEdgePriorityTable.updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector, paramScalingFunction)
       Future.successful(Redirect("/"))
     }else{
       Future.successful(Redirect("/"))
