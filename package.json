@@ -1,10 +1,10 @@
 {
-  "name": "SidewalkWebpage",
+  "name": "sidewalkwebpage",
   "version": "0.1.0",
   "devDependencies": {
-    "grunt": "*",
+    "grunt": "^1.0.1",
     "grunt-concat-css": "*",
-    "grunt-contrib-concat": "*",
+    "grunt-contrib-concat": "^1.0.1",
     "grunt-contrib-jasmine": "*",
     "grunt-contrib-jshint": "*",
     "grunt-contrib-nodeunit": "*",
@@ -17,5 +17,20 @@
     "debug": "grunt watch & activator -jvm-debug 9998 run",
     "start": "grunt watch & activator run",
     "test": "grunt && grunt test"
-  }
+  },
+  "description": "The Project Sidewalk webpage.",
+  "main": "Gruntfile.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ProjectSidewalk/SidewalkWebpage.git"
+  },
+  "author": "Sarah",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ProjectSidewalk/SidewalkWebpage/issues"
+  },
+  "homepage": "https://github.com/ProjectSidewalk/SidewalkWebpage#readme"
 }
