@@ -8,5 +8,10 @@ CREATE TABLE street_edge_priority
  PRIMARY KEY (street_edge_priority_id),
  FOREIGN KEY (street_edge_id) REFERENCES street_edge(street_edge_id)
 );
+
+INSERT INTO street_edge_priority (street_edge_id, region_id)
+SELECT street_edge_id, region_id
+  FROM street_edge_region;
+
 # --- !Downs
 DROP TABLE street_edge_priority;
