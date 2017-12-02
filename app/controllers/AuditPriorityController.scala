@@ -8,7 +8,7 @@ import com.vividsolutions.jts.geom.Coordinate
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.{User, UserCurrentRegionTable}
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriorityTable}
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriorityTable, StreetEdgePriorityParameter}
 
 import scala.concurrent.Future
 import play.api.mvc._
@@ -36,7 +36,8 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
     */
   def recalculateStreetPriority = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)){
-      val rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]] = List(StreetEdgePriorityTable.selectCompletionCount)
+      val selectCompletionCount = ()=> {StreetEdgePriorityTable.selectCompletionCount}
+      val rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]] = List(selectCompletionCount)
       val paramScalingFunction: (Double)=>Double = StreetEdgePriorityTable.logisticFunction
       val weightVector: List[Double] = List(1)
       StreetEdgePriorityTable.updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector, paramScalingFunction)

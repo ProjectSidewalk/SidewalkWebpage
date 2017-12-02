@@ -38,6 +38,7 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
       "x2" -> x2,
       "y2" -> y2,
       "task_start" -> taskStart.toString,
+      "priority" -> priority,
       "completion_count" -> completionCount,
       "completed" -> completed
     )
@@ -99,6 +100,7 @@ object AuditTaskTable {
   val labels = TableQuery[LabelTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val streetEdges = TableQuery[StreetEdgeTable]
+  val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val users = TableQuery[UserTable]
 
   val completedTasks = auditTasks.filter(_.completed)
@@ -353,6 +355,7 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac._2)).take(100).list
 
     val edge = Random.shuffle(edgesWithCompCount).head
+    val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === edge._1).map(_.priority).list.head
 
     // find a region that this street belongs to, and assign user to that region
     val regionId: Int = StreetEdgeRegionTable.selectNonDeletedByStreetEdgeId(edge._1).head.regionId
@@ -360,7 +363,7 @@ object AuditTaskTable {
 
     // Increment the assignment count and return the task
     StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
-    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, edge._9, completed=false)
+    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, priority, edge._8, completed=false)
   }
 
   /**
@@ -380,9 +383,10 @@ object AuditTaskTable {
     assert(edges.nonEmpty)
 
     val edge = Random.shuffle(edges).head
+    val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === edge._1).map(_.priority).list.head
 
     StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
-    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, edge._9, completed=false)
+    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, priority, edge._8, completed=false)
   }
 
   /**
@@ -401,9 +405,9 @@ object AuditTaskTable {
     assert(edges.nonEmpty)
 
     val edge = edges.head
-
+    val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === edge._1).map(_.priority).list.head
     StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
-    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, edge._9, completed=false)
+    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, priority, edge._8, completed=false)
   }
 
 
@@ -439,6 +443,7 @@ object AuditTaskTable {
       case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
+        val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === e.streetEdgeId).map(_.priority).list.head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, priority, lowestCompletionCount, completed=false)
       case _ =>
@@ -486,6 +491,7 @@ object AuditTaskTable {
           case edges if edges.nonEmpty =>
             // Increment the assignment count and return the task
             val e: StreetEdge = Random.shuffle(edges).head
+            val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === e.streetEdgeId).map(_.priority).list.head
             StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
             NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, priority, completionCount, completed=false)
 
