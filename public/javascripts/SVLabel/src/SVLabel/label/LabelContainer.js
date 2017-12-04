@@ -180,6 +180,9 @@ function LabelContainer($) {
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
 
+        var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+        neighborhoodLabels[regionId].pop(label);
+
         // Review label correctness if this is a ground truth insertion task.
         if (("goldenInsertion" in svl) &&
             svl.goldenInsertion &&
