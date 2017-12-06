@@ -154,6 +154,36 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
     auditTimes
 }
 
+  /**
+    * Select all audit task interaction times for Turker users
+    * @return
+    */
+  def selectAllTurkerAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
+    val selectAuditTimesQuery = Q.query[String, UserAuditTime](
+      """SELECT user_audit_times.user_id,
+        |  CAST(extract( second from SUM(diff) ) /60 +
+        |       extract( minute from SUM(diff) ) +
+        |       extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing,
+        |  NULL
+        |FROM (
+        |       SELECT audit_task.user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY audit_task.user_id ORDER BY timestamp)) AS diff
+        |       FROM audit_task_interaction
+        |         LEFT JOIN audit_task
+        |           ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
+        |         INNER JOIN user_role
+        |           ON audit_task.user_id = user_role.user_id
+        |         INNER JOIN sidewalk.role
+        |           ON user_role.role_id = sidewalk.role.role_id
+        |       WHERE action = 'ViewControl_MouseDown'
+        |             AND sidewalk.role.role = ?
+        |     ) user_audit_times
+        |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
+        |GROUP BY user_id;""".stripMargin
+    )
+    val auditTimes: List[UserAuditTime] = selectAuditTimesQuery("Turker").list
+    auditTimes
+  }
+
 /**
   * Select all audit task interaction times for anonymous users
   *

@@ -3,8 +3,10 @@ package models.mission
 import java.util.UUID
 
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.label.LabelTable.{roleTable, userRoles}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
+import models.user.UserRoleTable
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -53,6 +55,8 @@ object MissionTable {
   val db = play.api.db.slick.DB
   val missions = TableQuery[MissionTable]
   val missionUsers = TableQuery[MissionUserTable]
+  val turkerUsers = UserRoleTable.getUsersByType("Turker")
+
   val users = TableQuery[UserTable]
   val regionProperties = TableQuery[RegionPropertyTable]
   val regions = TableQuery[RegionTable]
@@ -231,6 +235,23 @@ object MissionTable {
   def selectMissionCountsPerUser: List[(String, Int)] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
+    } yield _missionUsers.userId
+
+    _missions.groupBy(m => m).map{ case(id, group) => (id, group.length)}.list
+  }
+
+  /**
+    * Select mission counts for turkers
+    *
+    * @ List[(user_id,count)]
+    */
+  def selectMissionCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
+    val missionTurkers = for {
+      (_missionusers, _turkerusers) <- missionUsers.innerJoin(turkerUsers).on(_.userId === _.userId)
+    } yield _missionusers
+
+    val _missions = for {
+      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionTurkers).on(_.missionId === _.missionId)
     } yield _missionUsers.userId
 
     _missions.groupBy(m => m).map{ case(id, group) => (id, group.length)}.list
