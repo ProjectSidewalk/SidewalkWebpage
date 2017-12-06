@@ -783,6 +783,9 @@
 
         var isMobile = false;
 
+        var screenWidth = screen.width;
+        console.log(screenWidth);
+
         document.getElementById("warning-message").style.display = "none";
 
         if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent)
@@ -795,40 +798,88 @@
 
             // If there are matches, we're in portrait
             if(mql.matches) {
-	            // Portrait orientation
-	            document.getElementById("warning-message").style.display = "block";
-                document.getElementById("svl-application-holder").style.display = "none";
-                document.getElementById("onboarding-holder").style.display = "none";
-            } else {
-	            // Landscape orientation
-	            document.getElementById("warning-message").style.display = "none";
-                document.getElementById("svl-application-holder").style.display = "block";
-                document.getElementById("svl-application-holder").style.width = "700px";
-                document.getElementById("modal-mission-holder").style.width = "740px";
-                document.getElementById("onboarding-holder").style.display = "block";
-
-                document.getElementById("status-holder").style.display = "none";
-                document.getElementById("google-maps-holder").style.display = "none";
-            }
-
-            // Add a media query change listener
-            mql.addListener(function(m) {
-                if(m.matches) {
-                    // Changed to portrait
+                if(screenWidth < 450){
+                    // Portrait orientation
                     document.getElementById("warning-message").style.display = "block";
                     document.getElementById("svl-application-holder").style.display = "none";
                     document.getElementById("onboarding-holder").style.display = "none";
                 }
-                else {
-                    // Changed to landscape
+            } else {
+                if(screenWidth < 750){
+                    // Landscape orientation
                     document.getElementById("warning-message").style.display = "none";
                     document.getElementById("svl-application-holder").style.display = "block";
                     document.getElementById("svl-application-holder").style.width = "700px";
                     document.getElementById("modal-mission-holder").style.width = "740px";
                     document.getElementById("onboarding-holder").style.display = "block";
 
+                    document.getElementById("zoom-control-holder").style.display = "none";
+                    document.getElementById("action-stack-control-holder").style.display = "none";
+                    document.getElementById("landmark-holder").style.display = "none";
+                    document.getElementById("ribbon-menu-left-column-holder").style.display = "none";
+                    document.getElementById("ribbon-street-view-connector").style.display = "none";
+
+                    document.getElementById("left-column-control-pane").style.left = "-240px";
+                    document.getElementById("interaction-area-holder").style.top = "20px";
+                    document.getElementById("interaction-area-holder").style.height = "150%";
+                    document.getElementById("interaction-area-holder").style.width = "150%";
+                    document.getElementById("street-view-holder").style.left = "-185px";
+                    document.getElementById("street-view-holder").style.height = "60%";
+                    document.getElementById("street-view-holder").style.width = "93%";
+                    document.getElementById("compass-message-holder").style.right = "-120px";
+                    document.getElementById("compass-holder").style.top = "520px";
+                    document.getElementById("pano").style.width = "100%";
+                    document.getElementById("pano").style.height = "100%";
+                    document.getElementById("overlay-message-holder").style.width = "100%";
+                    document.getElementById("overlay-message-holder").style.height = "100%";
+
                     document.getElementById("status-holder").style.display = "none";
                     document.getElementById("google-maps-holder").style.display = "none";
+                }
+
+            }
+
+            // Add a media query change listener
+            mql.addListener(function(m) {
+                if(m.matches) {
+                    if(screenWidth < 450){
+                        // Portrait orientation
+                        document.getElementById("warning-message").style.display = "block";
+                        document.getElementById("svl-application-holder").style.display = "none";
+                        document.getElementById("onboarding-holder").style.display = "none";
+                    }
+                }else {
+                    if(screenWidth < 750){
+                        // Landscape orientation
+                        document.getElementById("warning-message").style.display = "none";
+                        document.getElementById("svl-application-holder").style.display = "block";
+                        document.getElementById("svl-application-holder").style.width = "700px";
+                        document.getElementById("modal-mission-holder").style.width = "740px";
+                        document.getElementById("onboarding-holder").style.display = "block";
+
+                        document.getElementById("zoom-control-holder").style.display = "none";
+                        document.getElementById("action-stack-control-holder").style.display = "none";
+                        document.getElementById("landmark-holder").style.display = "none";
+                        document.getElementById("ribbon-menu-left-column-holder").style.display = "none";
+                        document.getElementById("ribbon-street-view-connector").style.display = "none";
+
+                        document.getElementById("left-column-control-pane").style.left = "-240px";
+                        document.getElementById("interaction-area-holder").style.top = "20px";
+                        document.getElementById("interaction-area-holder").style.height = "150%";
+                        document.getElementById("interaction-area-holder").style.width = "150%";
+                        document.getElementById("street-view-holder").style.left = "-185px";
+                        document.getElementById("street-view-holder").style.height = "60%";
+                        document.getElementById("street-view-holder").style.width = "93%";
+                        document.getElementById("compass-message-holder").style.right = "-120px";
+                        document.getElementById("compass-holder").style.top = "520px";
+                        document.getElementById("pano").style.width = "100%";
+                        document.getElementById("pano").style.height = "100%";
+                        document.getElementById("overlay-message-holder").style.width = "100%";
+                        document.getElementById("overlay-message-holder").style.height = "100%";
+
+                        document.getElementById("status-holder").style.display = "none";
+                        document.getElementById("google-maps-holder").style.display = "none";
+                    }
                 }
             });
         }
