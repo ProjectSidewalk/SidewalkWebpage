@@ -7,7 +7,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
 
-import models.street.StreetEdgeTable
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -40,32 +40,48 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Assign a region to the given user. This is used for the initial assignment.
+    * Checks if the given user is "experienced" (have audited at least 2 miles).
     *
-    * @param userId user id
-    * @return region id
+    * @param userId
+    * @return
     */
-  def assignRandomly(userId: UUID): Int = db.withSession { implicit session =>
-    // Check if there are any records
-    val _currentRegions = for {
-      (_regions, _currentRegions) <- neighborhoods.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
-      if _currentRegions.userId === userId.toString
-    } yield _currentRegions
-    val currentRegionList = _currentRegions.list
+  def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
+    StreetEdgeTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
+  }
 
-    if (currentRegionList.isEmpty) {
+  /**
+    * Select an easy region (if any left) where the user hasn't completed all missions and assign that region to them.
+    * @param userId
+    * @return
+    */
+  def assignEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
+    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
 
-      val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin(userId)
+    // Assign one of the unaudited regions that are easy.
+    // TODO: Assign one of the least-audited regions that are easy.
+    val completions: List[RegionCompletion] =
+      RegionCompletionTable.regionCompletions
+        .filter(_.regionId inSet regionIds)
+        .filterNot(_.regionId inSet difficultRegionIds)
+        .filter(region => region.auditedDistance / region.totalDistance < 0.9999)
+        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
 
-      val regionId: Int = if (region.isDefined) {
-        region.get.regionId
-      } else {
-        scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).filterNot(difficultRegionIds.contains(_)).head
-      }
+    val regionId: Int = completions match {
+      case Nil =>
+        // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
+        // In this case, pick any easy region amongst regions that are not audited by the user
+        scala.util.Random.shuffle(regionIds).filterNot(difficultRegionIds.contains(_)).head
+      case _ =>
+        // Pick an easy region that is unaudited.
+        // TODO: Pick an easy region that is least audited.
+        scala.util.Random.shuffle(completions).head.regionId
+
+    }
+    if (!isAssigned(userId)) {
       save(userId, regionId)
       regionId
     } else {
-      assignNextRegion(userId)
+      update(userId, regionId)
     }
   }
 
@@ -77,45 +93,25 @@ object UserCurrentRegionTable {
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
 
+    // TODO: Add a detailed comment
     val difficultRegionCompletions: List[RegionCompletion] =
       RegionCompletionTable.regionCompletions
         .filter(_.regionId inSet regionIds)
         .filter(_.regionId inSet difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
         .sortBy(region => region.auditedDistance / region.totalDistance).list
+        .filterNot(region => StreetEdgeRegionTable.allStreetsInARegionAudited(region.regionId))
 
-    // if they have audited less than 2 miles and there is an easy region left (or if there are no difficult regions
-    // left to finish), give them an easy one
-    if ((regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty &&
-        StreetEdgeTable.getDistanceAudited(userId) < experiencedUserMileageThreshold) ||
-        difficultRegionCompletions.isEmpty) {
-      assignNextEasyRegion(userId)
+    // If there are no difficult regions left, or if they are inexperienced and there is an easy region left, give them
+    // an easy region.
+    if (difficultRegionCompletions.isEmpty ||
+        (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId))) {
+      assignEasyRegion(userId)
     }
     else {
-      // take the least-audited difficult region
-      val regionId = scala.util.Random.shuffle(regionIds.intersect(difficultRegionIds.toSet)).head
+      // Take the least-audited difficult region
+      val regionId: Int = difficultRegionCompletions.head.regionId
       update(userId, regionId)
     }
-  }
-
-  /**
-    * Select an easy region (if any left) where the user hasn't completed all missions and assign that region to them.
-    * @param userId
-    * @return
-    */
-  def assignNextEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
-    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
-
-    // Assign one of the least-audited regions that are easy.
-    val completions: List[RegionCompletion] =
-      RegionCompletionTable.regionCompletions
-        .filter(_.regionId inSet regionIds)
-        .filterNot(_.regionId inSet difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 1.0)
-        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
-
-    val regionId = scala.util.Random.shuffle(completions).head.regionId
-    update(userId, regionId)
   }
 
   /**

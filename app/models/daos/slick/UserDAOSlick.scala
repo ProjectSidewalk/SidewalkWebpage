@@ -32,8 +32,8 @@ class UserDAOSlick extends UserDAO {
               case Some(userLoginInfo) =>
                 slickUsers.filter(_.userId === userLoginInfo.userID).firstOption match {
                   case Some(user) =>
-                    val roles = UserRoleTable.getRoles(UUID.fromString(user.userId))
-                    Some(User(UUID.fromString(user.userId), loginInfo, user.username, user.email, Some(roles)))
+                    val role = UserRoleTable.getRole(UUID.fromString(user.userId))
+                    Some(User(UUID.fromString(user.userId), loginInfo, user.username, user.email, Some(role)))
                   case None => None
                 }
               case None => None
@@ -61,8 +61,8 @@ class UserDAOSlick extends UserDAO {
               case Some(info) =>
                 slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
                   case Some(loginInfo) =>
-                    val roles = UserRoleTable.getRoles(UUID.fromString(user.userId))
-                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(roles)))
+                    val role = UserRoleTable.getRole(UUID.fromString(user.userId))
+                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
                   case None => None
                 }
               case None => None
@@ -82,8 +82,8 @@ class UserDAOSlick extends UserDAO {
               case Some(info) =>
                 slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
                   case Some(loginInfo) =>
-                    val roles = UserRoleTable.getRoles(UUID.fromString(user.userId))
-                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(roles)))
+                    val role = UserRoleTable.getRole(UUID.fromString(user.userId))
+                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
                   case None => None
                 }
               case None => None

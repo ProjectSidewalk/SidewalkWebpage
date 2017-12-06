@@ -8,7 +8,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.User
 import models.label.Label
 import models.audit._
-
 import play.api.Play.current
 
 import scala.collection.mutable
@@ -88,18 +87,52 @@ object UserDAOImpl {
   }
 
   /*
-   * Total number of contributing users
+   * Total number of contributing users -
+   * Boolean value indicates whether to retrieve only users who have completed at least one audit task
    */
-  def countContributingUsers: Int = db.withTransaction { implicit session =>
-    val count = size - 1 + countAnonymousUsers
+  def countContributingUsers(taskCompleted: Boolean): Int = db.withTransaction { implicit session =>
+    val count = countRegisteredVolunteers(taskCompleted) + countAnonymousUsers(taskCompleted) +
+      countTurkers(taskCompleted) + countResearchers(taskCompleted)
     count
   }
 
   /*
-   * Total number of contributing registered users
+   * Total number of contributing registered volunteers
    */
-  def countRegisteredUsers: Int = db.withTransaction { implicit session =>
-    val count = size - 1
+  def countRegisteredVolunteers(taskCompleted: Boolean): Int = db.withTransaction { implicit session =>
+
+    // TODO: Not able to find a better way of coding this right now. Need to clean up later.
+    val countQuery = taskCompleted match {
+      case true =>
+        Q.queryNA[(Int)](
+          """SELECT COUNT(DISTINCT(audit_task.user_id))
+            |  FROM sidewalk.audit_task
+            |INNER JOIN sidewalk.user
+            |  ON sidewalk.user.user_id = audit_task.user_id
+            |INNER JOIN sidewalk.user_role
+            |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+            |INNER JOIN sidewalk.role
+            |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
+            |WHERE role.role = 'User'
+            |  AND audit_task.completed = true
+          """.stripMargin
+        )
+      case _ =>
+        Q.queryNA[(Int)](
+          """SELECT COUNT(DISTINCT(audit_task.user_id))
+            |  FROM sidewalk.audit_task
+            |INNER JOIN sidewalk.user
+            |  ON sidewalk.user.user_id = audit_task.user_id
+            |INNER JOIN sidewalk.user_role
+            |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+            |INNER JOIN sidewalk.role
+            |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
+            |WHERE role.role = 'User'
+          """.stripMargin
+        )
+    }
+
+    val count = countQuery.list.head
     count
   }
 
@@ -107,18 +140,35 @@ object UserDAOImpl {
    * Gets anonymous user records
    * Date: Oct 11, 2016
    */
-  def getAnonymousUsers: List[AnonymousUserRecords] = db.withSession { implicit session =>
+  def getAnonymousUsers(taskCompleted: Boolean): List[AnonymousUserRecords] = db.withSession { implicit session =>
 
-    val anonUsers = Q.queryNA[(String, Int)](
-      """select distinct ip_address, audit_task_id
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where user_id = (select user_id
-        |						                 from sidewalk.user
-        |						                 where username = 'anonymous')
-        |						      and completed = true);""".stripMargin
-    )
+    // TODO: Not able to find a better way of coding this right now. Need to clean up later.
+    val anonUsers = taskCompleted match {
+      case true =>
+        Q.queryNA[(String, Int)](
+          """SELECT DISTINCT ip_address, audit_task_id
+             FROM sidewalk.audit_task_environment
+             WHERE audit_task_id IN (SELECT audit_task_id
+                                      FROM sidewalk.audit_task
+                                      WHERE user_id = (SELECT user_id
+                                                        FROM sidewalk.user
+                                                        WHERE username = 'anonymous')
+                                      AND completed = true);
+          """.stripMargin
+        )
+      case _ =>
+        Q.queryNA[(String, Int)](
+          """SELECT DISTINCT ip_address, audit_task_id
+             FROM sidewalk.audit_task_environment
+             WHERE audit_task_id IN (SELECT audit_task_id
+                                      FROM sidewalk.audit_task
+                                      WHERE user_id = (SELECT user_id
+                                                        FROM sidewalk.user
+                                                        WHERE username = 'anonymous')
+                                      );
+          """.stripMargin
+        )
+    }
     anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
   }
 
@@ -126,10 +176,95 @@ object UserDAOImpl {
    * Counts anonymous user records
    * Date: Oct 10, 2016
    */
-  def countAnonymousUsers: Int = db.withSession { implicit session =>
+  def countAnonymousUsers(taskCompleted: Boolean): Int = db.withSession { implicit session =>
 
-    val anonUsers = getAnonymousUsers
+    val anonUsers = getAnonymousUsers(taskCompleted)
     anonUsers.groupBy(_.ipAddress).keySet.size
+  }
+
+  /*
+   * Counts total numbers of turk users who contributed
+   * Date: Oct 14, 2017
+   */
+  def countTurkers(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+
+    // TODO: Not able to find a better way of coding this right now. Need to clean up later.
+    val countQuery = taskCompleted match {
+      case true =>
+        Q.queryNA[(Int)](
+          """SELECT COUNT(DISTINCT(audit_task.user_id))
+            |  FROM sidewalk.audit_task
+            |INNER JOIN sidewalk.user
+            |  ON sidewalk.user.user_id = audit_task.user_id
+            |INNER JOIN sidewalk.user_role
+            |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+            |INNER JOIN sidewalk.role
+            |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
+            |WHERE role.role = 'Turker'
+            |  AND audit_task.completed = true
+          """.stripMargin
+        )
+      case _ =>
+        Q.queryNA[(Int)](
+          """SELECT COUNT(DISTINCT(audit_task.user_id))
+            |  FROM sidewalk.audit_task
+            |INNER JOIN sidewalk.user
+            |  ON sidewalk.user.user_id = audit_task.user_id
+            |INNER JOIN sidewalk.user_role
+            |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+            |INNER JOIN sidewalk.role
+            |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
+            |WHERE role.role = 'Turker'
+          """.stripMargin
+        )
+    }
+
+    val count = countQuery.list.head
+    count
+
+  }
+
+  /*
+   * Counts total numbers of researchers who contributed
+   * includes the roles "Owner", "Researcher", "Administrator"
+   * Date: Oct 19, 2017
+   */
+  def countResearchers(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+
+    // TODO: Not able to find a better way of coding this right now. Need to clean up later.
+    val countQuery = taskCompleted match {
+      case true =>
+        Q.queryNA[(Int)](
+          """SELECT COUNT(DISTINCT(audit_task.user_id))
+            |  FROM sidewalk.audit_task
+            |INNER JOIN sidewalk.user
+            |  ON sidewalk.user.user_id = audit_task.user_id
+            |INNER JOIN sidewalk.user_role
+            |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+            |INNER JOIN sidewalk.role
+            |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
+            |WHERE role.role in ('Owner', 'Administrator', 'Researcher')
+            |  AND audit_task.completed = true
+          """.stripMargin
+        )
+      case _ =>
+        Q.queryNA[(Int)](
+          """SELECT COUNT(DISTINCT(audit_task.user_id))
+            |  FROM sidewalk.audit_task
+            |INNER JOIN sidewalk.user
+            |  ON sidewalk.user.user_id = audit_task.user_id
+            |INNER JOIN sidewalk.user_role
+            |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+            |INNER JOIN sidewalk.role
+            |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
+            |WHERE role.role in ('Owner', 'Administrator', 'Researcher')
+          """.stripMargin
+        )
+    }
+
+    val count = countQuery.list.head
+    count
+
   }
 
   /**
@@ -180,15 +315,15 @@ object UserDAOImpl {
   def countAnonymousUsersVisitedToday: Int = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
-      """select distinct ip_address, audit_task_id
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where completed = true
-        |						      and task_end::date = now()::date
-        |							  and user_id = (select user_id
-        |						                 from sidewalk.user
-        |						                 where username = 'anonymous'));""".stripMargin
+      """SELECT DISTINCT ip_address, audit_task_id
+        |FROM sidewalk.audit_task_environment
+        |WHERE audit_task_id IN (SELECT audit_task_id
+        |           FROM sidewalk.audit_task
+        |           WHERE completed = true
+        |               AND task_end::date = now()::date
+        |               AND user_id = (SELECT user_id
+        |                            FROM sidewalk.user
+        |                            WHERE username = 'anonymous'));""".stripMargin
     )
     val records = anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
     val count = records.groupBy(_.ipAddress).keySet.size
@@ -196,22 +331,76 @@ object UserDAOImpl {
   }
 
  /*
-  * Counts the number of registered users who contributed today.
+  * Counts the number of registered volunteers who contributed today.
   * Author: Manaswi Saha
   * Date: Nov 11, 2016
+  * Updated: Oct 19, 2017
   */
-  def countRegisteredUsersVisitedToday: Int = db.withSession { implicit session =>
-    // TODO: Condense both calculations into one query and then use filters
+  def countRegisteredVolunteersVisitedToday: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |  FROM sidewalk.audit_task
         |INNER JOIN sidewalk.user
         |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
         |WHERE audit_task.task_end::date = now()::date
-        |      and audit_task.user_id != (select user_id
-        |												          from sidewalk.user
-        |												          where username = 'anonymous')
-        |      and audit_task.completed = true""".stripMargin
+        |      AND audit_task.user_id != (SELECT user_id
+        |                                 FROM sidewalk.user
+        |                                 WHERE username = 'anonymous')
+        |      AND role.role = 'User'
+        |      AND audit_task.completed = true""".stripMargin
+    )
+    val count = countQuery.list.head
+    count
+  }
+
+  /*
+  * Counts the number of researchers who contributed today.
+  * Date: Oct 19, 2017
+  */
+  def countResearchersVisitedToday: Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |WHERE audit_task.task_end::date = now()::date
+        |      AND audit_task.user_id != (SELECT user_id
+        |                                 FROM sidewalk.user
+        |                                 WHERE username = 'anonymous')
+        |      AND role.role in ('Owner', 'Administrator', 'Researcher')
+        |      AND audit_task.completed = true""".stripMargin
+    )
+    val count = countQuery.list.head
+    count
+  }
+
+  /*
+   * Counts total numbers of turk users who contributed today
+   * Date: Oct 14, 2017
+   */
+  def countTurkersVisitedToday: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |WHERE role.role = 'Turker'
+        |  AND audit_task.task_end::date = now()::date
+        |  AND audit_task.completed = true
+      """.stripMargin
     )
     val count = countQuery.list.head
     count
@@ -225,7 +414,8 @@ object UserDAOImpl {
   */
   def countTodayUsers: Int = db.withSession { implicit session =>
 
-    val count = countRegisteredUsersVisitedToday + countAnonymousUsersVisitedToday
+    val count = countRegisteredVolunteersVisitedToday + countAnonymousUsersVisitedToday + countTurkersVisitedToday +
+      countResearchersVisitedToday
     count
   }
 
@@ -237,37 +427,94 @@ object UserDAOImpl {
   def countAnonymousUsersVisitedYesterday: Int = db.withSession { implicit session =>
 
     val anonUsers = Q.queryNA[(String, Int)](
-      """select distinct ip_address, audit_task_id
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where audit_task.completed = true
-        |						      and audit_task.task_end::date = now()::date - interval '1' day
-        |							    and audit_task.user_id = (select user_id
-        |						                                 from sidewalk.user
-        |						                                 where username = 'anonymous'));""".stripMargin
+      """SELECT DISTINCT ip_address, audit_task_id
+        |FROM sidewalk.audit_task_environment
+        |WHERE audit_task_id IN (SELECT audit_task_id
+        |           FROM sidewalk.audit_task
+        |           WHERE audit_task.completed = true
+        |                 AND audit_task.task_end::date = now()::date - interval '1' day
+        |                 AND audit_task.user_id = (SELECT user_id
+        |                                           FROM sidewalk.user
+        |                                           WHERE username = 'anonymous'));""".stripMargin
     )
     val records = anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
     records.groupBy(_.ipAddress).keySet.size
   }
 
   /*
-  * Counts the number of registered users who contributed yesterday.
+  * Counts the number of registered volunteers who contributed yesterday.
   * Author: Manaswi Saha
   * Date: Nov 11, 2016
+  * Updated: Oct 19, 2017
   */
-  def countRegisteredUsersVisitedYesterday: Int = db.withSession { implicit session =>
+  def countRegisteredVolunteersVisitedYesterday: Int = db.withSession { implicit session =>
 
     val countQuery = Q.queryNA[(Int)](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |  FROM sidewalk.audit_task
         |INNER JOIN sidewalk.user
         |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
         |WHERE audit_task.completed = true
-        |      and audit_task.task_end::date = now()::date - interval '1' day
-        |      and audit_task.user_id != (select user_id
-        |												          from sidewalk.user
-        |												          where username = 'anonymous')""".stripMargin
+        |      AND role.role = 'User'
+        |      AND audit_task.task_end::date = now()::date - interval '1' day
+        |      AND audit_task.user_id != (SELECT user_id
+        |                                 FROM sidewalk.user
+        |                                 WHERE username = 'anonymous')""".stripMargin
+    )
+    val count = countQuery.list.head
+    count
+  }
+
+  /*
+  * Counts the number of researchers who contributed yesterday.
+  * Author: Manaswi Saha
+  * Date: Oct 19, 2017
+  */
+  def countResearchersVisitedYesterday: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |WHERE audit_task.completed = true
+        |      AND role.role in ('Owner', 'Administrator', 'Researcher')
+        |      AND audit_task.task_end::date = now()::date - interval '1' day
+        |      AND audit_task.user_id != (SELECT user_id
+        |                                 FROM sidewalk.user
+        |                                 WHERE username = 'anonymous')""".stripMargin
+    )
+    val count = countQuery.list.head
+    count
+  }
+
+  /*
+   * Counts total numbers of turk users who contributed yesterday
+   * Date: Oct 14, 2017
+   */
+  def countTurkersVisitedYesterday: Int = db.withSession { implicit session =>
+
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT COUNT(DISTINCT(audit_task.user_id))
+        |  FROM sidewalk.audit_task
+        |INNER JOIN sidewalk.user
+        |  ON sidewalk.user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk.user_role
+        |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
+        |INNER JOIN sidewalk.role
+        |  ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |WHERE role.role = 'Turker'
+        |  AND audit_task.task_end::date = now()::date - interval '1' day
+        |  AND audit_task.completed = true
+      """.stripMargin
     )
     val count = countQuery.list.head
     count
@@ -281,7 +528,8 @@ object UserDAOImpl {
   */
   def countYesterdayUsers: Int = db.withSession { implicit session =>
 
-    val count = countRegisteredUsersVisitedYesterday + countAnonymousUsersVisitedYesterday
+    val count = countRegisteredVolunteersVisitedYesterday + countAnonymousUsersVisitedYesterday +
+      countTurkersVisitedYesterday + countResearchersVisitedYesterday
     count
   }
 
@@ -303,41 +551,41 @@ object UserDAOImpl {
       - Does a join on the result of the two queries.
     */
     val anonProfileQuery = Q.queryNA[(String, java.sql.Timestamp, Int, Int)](
-      """select AnonProfile.ip_address, LastAuditTimestamp.new_timestamp, AnonProfile.audit_count, AnonProfile.label_count
-        |from (select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count,
-        |      sum (anonProfile.n_labels) as label_count
-        |		from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
-        |				   from (select distinct ip_address, audit_task_id
-        |						     from sidewalk.audit_task_environment
-        |						     where audit_task_id in (select audit_task_id
-        |													                from sidewalk.audit_task
-        |													                where user_id = (select user_id
-        |														                              from sidewalk.user
-        |														                              where username = 'anonymous')
-        |													         and completed = true)
-        |						) as anonUsersTable
-        |				  left join sidewalk.label as l
-        |				  	on anonUsersTable.audit_task_id = l.audit_task_id
-        |				  group by anonUsersTable.ip_address, anonUsersTable.audit_task_id
-        |			  ) as anonProfile
-        |		group by anonProfile.ip_address) as AnonProfile,
+      """SELECT AnonProfile.ip_address, LastAuditTimestamp.new_timestamp, AnonProfile.audit_count, AnonProfile.label_count
+        |FROM (SELECT anonProfile.ip_address, count(anonProfile.audit_task_id) AS audit_count,
+        |      sum (anonProfile.n_labels) AS label_count
+        |		FROM (SELECT anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) AS n_labels
+        |				   FROM (SELECT DISTINCT ip_address, audit_task_id
+        |						     FROM sidewalk.audit_task_environment
+        |						     WHERE audit_task_id IN (SELECT audit_task_id
+        |                                        FROM sidewalk.audit_task
+        |                                        WHERE user_id = (SELECT user_id
+        |                                                         FROM sidewalk.user
+        |                                                         WHERE username = 'anonymous')
+        |                                  AND completed = true)
+        |           ) AS anonUsersTable
+        |         LEFT JOIN sidewalk.label AS l
+        |           ON anonUsersTable.audit_task_id = l.audit_task_id
+        |         GROUP BY anonUsersTable.ip_address, anonUsersTable.audit_task_id
+        |       ) AS anonProfile
+        |   GROUP BY anonProfile.ip_address) AS AnonProfile,
         |
-        |	(select ip_address, max(timestamp) as new_timestamp
-        |		from (select ip_address, anonUsersTable.audit_task_id as task_id, task_end as timestamp
-        |			 from (select distinct ip_address, audit_task_id
-        |						     from sidewalk.audit_task_environment
-        |						     where audit_task_id in (select audit_task_id
-        |									                 from sidewalk.audit_task
-        |									                 where user_id = (select user_id
-        |										                              from sidewalk.user
-        |										                              where username = 'anonymous')
-        |													 and completed = true)
-        |						) as anonUsersTable
+        |	(SELECT ip_address, max(timestamp) AS new_timestamp
+        |  FROM (SELECT ip_address, anonUsersTable.audit_task_id AS task_id, task_end AS timestamp
+        |        FROM (SELECT DISTINCT ip_address, audit_task_id
+        |              FROM sidewalk.audit_task_environment
+        |              WHERE audit_task_id IN (SELECT audit_task_id
+        |                                      FROM sidewalk.audit_task
+        |                                      WHERE user_id = (SELECT user_id
+        |			      							                              FROM sidewalk.user
+        |                                                       WHERE username = 'anonymous')
+        |                                      AND completed = true)
+        |             ) AS anonUsersTable
         |
-        |			 left join sidewalk.audit_task as at
-        |				on anonUsersTable.audit_task_id = at.audit_task_id) as t
-        |		group by ip_address) as LastAuditTimestamp
-        |where AnonProfile.ip_address = LastAuditTimestamp.ip_address;""".stripMargin
+        |      LEFT JOIN sidewalk.audit_task AS at
+        |      ON anonUsersTable.audit_task_id = at.audit_task_id) AS t
+        |   GROUP BY ip_address) AS LastAuditTimestamp
+        |WHERE AnonProfile.ip_address = LastAuditTimestamp.ip_address;""".stripMargin
     )
 
     anonProfileQuery.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
@@ -345,42 +593,42 @@ object UserDAOImpl {
     An attempt:
 
     val anonProfileQuery = Q.queryNA[(String, Int, Int)](
-      """select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count, sum (anonProfile.n_labels) as label_count
-        |from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
-        |		   from (select distinct ip_address, audit_task_id
-        |				     from sidewalk.audit_task_environment
-        |				     where audit_task_id in (select audit_task_id
-        |											                from sidewalk.audit_task
-        |											                where user_id = (select user_id
-        |												                              from sidewalk.user
-        |												                              where username = 'anonymous')
-        |											         and completed = true)
-        |				) as anonUsersTable
-        |		  left join sidewalk.label as l
+      """SELECT anonProfile.ip_address, count(anonProfile.audit_task_id) AS audit_count, sum (anonProfile.n_labels) AS label_count
+        |FROM (SELECT anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) AS n_labels
+        |		   FROM (SELECT DISTINCT ip_address, audit_task_id
+        |				     FROM sidewalk.audit_task_environment
+        |				     WHERE audit_task_id IN (SELECT audit_task_id
+        |											                FROM sidewalk.audit_task
+        |											                WHERE user_id = (SELECT user_id
+        |												                              FROM sidewalk.user
+        |												                              WHERE username = 'anonymous')
+        |											         AND completed = true)
+        |				) AS anonUsersTable
+        |		  LEFT JOIN sidewalk.label AS l
         |		  	on anonUsersTable.audit_task_id = l.audit_task_id
-        |		  group by anonUsersTable.ip_address, anonUsersTable.audit_task_id
-        |	  ) as anonProfile
-        |group by anonProfile.ip_address;""".stripMargin
+        |		  GROUP BY anonUsersTable.ip_address, anonUsersTable.audit_task_id
+        |	  ) AS anonProfile
+        |GROUP BY anonProfile.ip_address;""".stripMargin
     )
 
 
     val anonProfiles = anonProfileQuery.list
 
     val lastAuditedTimestampQuery = Q.queryNA[(String, Int)](
-      """select ip_address, max(timestamp) as new_timestamp
-        |from (select ip_address, anonUsersTable.audit_task_id as task_id, task_end as timestamp
-        |	 from (select distinct ip_address, audit_task_id
-        |				     from sidewalk.audit_task_environment
-        |				     where audit_task_id in (select audit_task_id
-        |							                 from sidewalk.audit_task
-        |							                 where user_id = (select user_id
-        |								                              from sidewalk.user
-        |								                              where username = 'anonymous')
-        |											 and completed = true)
-        |				) as anonUsersTable
-        |	 left join sidewalk.audit_task as at
-        |		on anonUsersTable.audit_task_id = at.audit_task_id) as t
-        |group by ip_address;""".stripMargin
+      """SELECT ip_address, max(timestamp) AS new_timestamp
+        |FROM (SELECT ip_address, anonUsersTable.audit_task_id AS task_id, task_end AS timestamp
+        |	 FROM (SELECT DISTINCT ip_address, audit_task_id
+        |				     FROM sidewalk.audit_task_environment
+        |				     WHERE audit_task_id IN (SELECT audit_task_id
+        |							                 FROM sidewalk.audit_task
+        |							                 WHERE user_id = (SELECT user_id
+        |								                              FROM sidewalk.user
+        |								                              WHERE username = 'anonymous')
+        |											 AND completed = true)
+        |				) AS anonUsersTable
+        |	 LEFT JOIN sidewalk.audit_task AS at
+        |		on anonUsersTable.audit_task_id = at.audit_task_id) AS t
+        |GROUP BY ip_address;""".stripMargin
     )
 
     val recordsWithLastAudit = lastAuditedTimestampQuery.list
