@@ -225,6 +225,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 tasks.sort(function(t1,t2){
                     return t2.priority-t1.priority;
                 });
+                console.log(tasks);
 
                 for (var i = 0, len = tasks.length; i < len; i++) {
                     if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
@@ -233,7 +234,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 }
                 return connectedTasks;
             } else {
-                return util.shuffle(tasks);
+                // If there is no connected tasks assign the one with the  highest priority
+                tasks.sort(function(t1,t2){
+                    return t2.priority-t1.priority;
+                });
+                return tasks[0];
+                // Old method; assign a random task
+                // return util.shuffle(tasks);
             }
         } else {
             return [];
