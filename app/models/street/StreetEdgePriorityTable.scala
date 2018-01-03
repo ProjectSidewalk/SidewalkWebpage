@@ -3,6 +3,7 @@ package models.street
 import models.utils.MyPostgresDriver.simple._
 
 import play.api.Play.current
+import play.api.libs.json._
 
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{StaticQuery => Q}
@@ -11,7 +12,15 @@ import scala.slick.jdbc.GetResult
 import scala.math.exp
 
 case class StreetEdgePriorityParameter(regionId: Int, streetEdgeId: Int, priorityParameter: Double)
-case class StreetEdgePriority(streetEdgePriorityId: Int, regionId: Int, streetEdgeId: Int, priority: Double)
+case class StreetEdgePriority(streetEdgePriorityId: Int, regionId: Int, streetEdgeId: Int, priority: Double){
+  /**
+    * This method converts the data into the JSON format
+    * @return
+    */
+  def toJSON: JsObject = {
+    Json.obj("regionId" -> regionId, "streetEdgeId" -> streetEdgeId, "priority" -> priority)
+  }
+}
 
 class StreetEdgePriorityTable(tag: Tag) extends Table[StreetEdgePriority](tag, Some("sidewalk"),  "street_edge_priority") {
   def streetEdgePriorityId = column[Int]("street_edge_priority_id", O.NotNull, O.PrimaryKey, O.AutoInc)
@@ -57,13 +66,16 @@ object StreetEdgePriorityTable {
     q.update(priority)
   }
 
-  def getSingleStreetEdgePriority(regionId: Int, streetEdgeId: Int) = db.withTransaction { implicit session =>
+  def getSingleStreetEdgePriority(regionId: Int, streetEdgeId: Int): Double = db.withTransaction { implicit session =>
     streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId && edg.regionId === regionId}.map(_.priority).list.head
   }
 
+  def getAllStreetEdgeInRegionPriority(regionId: Int): List[StreetEdgePriority] = db.withTransaction { implicit session =>
+    streetEdgePriorities.filter{ edg => edg.regionId === regionId}.map(_.priority).list
+  }
+
   def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>
-    val tempStreetEdgePriorities = streetEdgePriorities.map(s => (s.priority)).update((priority))
-    tempStreetEdgePriorities
+    streetEdgePriorities.map(s => (s.priority)).update((priority))
   }
 
   /**

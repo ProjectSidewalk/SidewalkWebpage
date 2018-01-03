@@ -8,7 +8,7 @@ import com.vividsolutions.jts.geom.Coordinate
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.{User, UserCurrentRegionTable}
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriorityTable, StreetEdgePriorityParameter}
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriorityTable, StreetEdgePriority, StreetEdgePriorityParameter}
 
 import scala.concurrent.Future
 import play.api.mvc._
@@ -45,6 +45,12 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
     }else{
       Future.successful(Redirect("/"))
     }
+  }
+
+  def getRegionStreetPriority(regionId: Int) = UserAwareAction.async { implicit request =>
+    val regionStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.getAllStreetEdgeInRegionPriority(regionId)
+    val regionStreetPrioritiesMap = regionStreetPriorities.map(streetEdge => (streetEdge.streetEdgeId -> streetEdge.priority)).toMap
+    Future.successful(Json.obj(regionId -> Json.toJson(regionStreetPrioritiesMap)))
   }
 
   /**
