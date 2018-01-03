@@ -71,7 +71,7 @@ object StreetEdgePriorityTable {
   }
 
   def getAllStreetEdgeInRegionPriority(regionId: Int): List[StreetEdgePriority] = db.withTransaction { implicit session =>
-    streetEdgePriorities.filter{ edg => edg.regionId === regionId}.map(_.priority).list
+    streetEdgePriorities.filter{ edg => edg.regionId === regionId}.list
   }
 
   def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>

@@ -48,9 +48,8 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
   }
 
   def getRegionStreetPriority(regionId: Int) = UserAwareAction.async { implicit request =>
-    val regionStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.getAllStreetEdgeInRegionPriority(regionId)
-    val regionStreetPrioritiesMap = regionStreetPriorities.map(streetEdge => (streetEdge.streetEdgeId -> streetEdge.priority)).toMap
-    Future.successful(Json.obj(regionId -> Json.toJson(regionStreetPrioritiesMap)))
+    val regionStreetPriorities: List[JsObject] = StreetEdgePriorityTable.getAllStreetEdgeInRegionPriority(regionId).map(_.toJSON)
+    Future.successful(Ok(JsArray(regionStreetPriorities)))
   }
 
   /**
