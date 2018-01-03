@@ -507,7 +507,21 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (userCandidateTasks.length === 0) return null;
 
         // Return the new task. Change the starting point of the new task accordingly.
-        newTask = _.shuffle(userCandidateTasks)[0];
+
+        /*Old code: Select randomly from the candidate edges
+        newTask = _.shuffle(userCandidateTasks)[0];*/
+
+        /*New code: Select the edge with the highest priority value*/
+        console.log("Candidate tasks:");
+        userCandidateTasks.forEach(function (el) {
+            console.log("streetEdgeId=",el.getProperty('streetEdgeId')," priority= ",el.getProperty('priority'));
+        });
+        userCandidateTasks.sort(function(t1,t2){
+            return t2.getProperty('priority')-t1.getProperty('priority');
+        });
+        newTask = userCandidateTasks[0];
+        console.log("Selected task: streetEdgeId=",newTask.getProperty('streetEdgeId')," priority= ",newTask.getProperty('priority'));
+
         if (finishedTask) {
             var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
