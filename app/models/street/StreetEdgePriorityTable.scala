@@ -97,7 +97,8 @@ object StreetEdgePriorityTable {
       priorityParamTable.foreach{ street_edge =>
         //val tempPriority = streetEdgePriorities.filter{ edg => edg.streetEdgeId === street_edge.streetEdgeId && edg.regionId === street_edge.regionId}.map(_.priority).list.head
         val q2 = for { edg <- streetEdgePriorities if edg.regionId === street_edge.regionId &&  edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
-        val updatePriority = q2.update(street_edge.priorityParameter*w_i)
+        val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
+        val updatePriority = q2.update(tempPriority)
       }
     }
 
