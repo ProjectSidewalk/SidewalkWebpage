@@ -36,8 +36,15 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
     */
   def recalculateStreetPriority = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)){
+      //Example function pointer to the function that returns the completion count for each edge
+      //The functions being pointed to should always have the signature ()=>List[StreetEdgePriorityParameter]
+      // (Takes no input arguments and returns a List[StreetEdgePriorityParameter])
       val selectCompletionCount = ()=> {StreetEdgePriorityTable.selectCompletionCount}
+      //Example list of function pointers that will generate priority parameters.
+      //In this case I'm assuming I have 2 functions (but both are the same completion count functions)
       val rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]] = List(selectCompletionCount,selectCompletionCount)
+      //Final Priority for each street edge is calculated by some transformation (paramScalingFunction)
+      //of the weighted sum (weights are given by the weightVector) of the priority parameters.
       val paramScalingFunction: (Double)=>Double = StreetEdgePriorityTable.logisticFunction
       val weightVector: List[Double] = List(-0.1,-0.01)
       StreetEdgePriorityTable.updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector, paramScalingFunction)
