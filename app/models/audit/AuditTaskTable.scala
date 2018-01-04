@@ -22,7 +22,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
-case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completionCount: Int, completed: Boolean)  {
+case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, priority: Double, completionCount: Int, completed: Boolean)  {
   /**
     * This method converts the data into the GeoJSON format
     * @return
@@ -38,6 +38,7 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
       "x2" -> x2,
       "y2" -> y2,
       "task_start" -> taskStart.toString,
+      "priority" -> priority,
       "completion_count" -> completionCount,
       "completed" -> completed
     )
@@ -88,9 +89,10 @@ object AuditTaskTable {
     val x2 = r.nextFloat
     val y2 = r.nextFloat
     val taskStart = r.nextTimestamp
+    val priority = r.nextDouble
     val completionCount = r.nextInt
     val completed = r.nextBooleanOption.getOrElse(false)
-    NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completionCount, completed)
+    NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, priority, completionCount, completed)
   })
 
   val db = play.api.db.slick.DB
@@ -98,6 +100,7 @@ object AuditTaskTable {
   val labels = TableQuery[LabelTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val streetEdges = TableQuery[StreetEdgeTable]
+  val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val users = TableQuery[UserTable]
 
   val completedTasks = auditTasks.filter(_.completed)
@@ -341,6 +344,7 @@ object AuditTaskTable {
     } yield (u.username.?, at.streetEdgeId.?)
 
     // gets list of streets that user has not audited, takes 100, then picks one of those at random to assign
+    // Need to include the priority paramter here
     val edges = for {
       (e, c) <- streetEdges.leftJoin(tasksCompletedByUser).on(_.streetEdgeId === _._2)
       if c._1.isEmpty && !e.deleted
@@ -351,6 +355,7 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, ac._2)).take(100).list
 
     val edge = Random.shuffle(edgesWithCompCount).head
+    val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === edge._1).map(_.priority).list.head
 
     // find a region that this street belongs to, and assign user to that region
     val regionId: Int = StreetEdgeRegionTable.selectNonDeletedByStreetEdgeId(edge._1).head.regionId
@@ -358,7 +363,7 @@ object AuditTaskTable {
 
     // Increment the assignment count and return the task
     StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
-    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, completed=false)
+    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, priority, edge._8, completed=false)
   }
 
   /**
@@ -378,9 +383,10 @@ object AuditTaskTable {
     assert(edges.nonEmpty)
 
     val edge = Random.shuffle(edges).head
+    val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === edge._1).map(_.priority).list.head
 
     StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
-    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, completed=false)
+    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, priority, edge._8, completed=false)
   }
 
   /**
@@ -399,9 +405,9 @@ object AuditTaskTable {
     assert(edges.nonEmpty)
 
     val edge = edges.head
-
+    val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === edge._1).map(_.priority).list.head
     StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
-    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, completed=false)
+    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, priority, edge._8, completed=false)
   }
 
 
@@ -437,8 +443,9 @@ object AuditTaskTable {
       case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
         val e: StreetEdge = Random.shuffle(edges).head
+        val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === e.streetEdgeId).map(_.priority).list.head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, lowestCompletionCount, completed=false)
+        NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, priority, lowestCompletionCount, completed=false)
       case _ =>
         Logger.warn("Unable to assign a task in region " + regionId + " to an anonymous user.")
         selectANewTask // The list is empty for whatever the reason
@@ -484,8 +491,9 @@ object AuditTaskTable {
           case edges if edges.nonEmpty =>
             // Increment the assignment count and return the task
             val e: StreetEdge = Random.shuffle(edges).head
+            val priority: Double = streetEdgePriorities.filter(_.streetEdgeId === e.streetEdgeId).map(_.priority).list.head
             StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
-            NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completionCount, completed=false)
+            NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, priority, completionCount, completed=false)
 
           // If the user has already audited all streets in the region, then the count would be null, so give them a
           // new task in a new region.
@@ -516,11 +524,15 @@ object AuditTaskTable {
         |       street.x2,
         |       street.y2,
         |       street.timestamp,
+        |       street_priority.priority,
         |       COALESCE(task.completion_count, 0),
         |       audit_task.completed
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
+        |LEFT JOIN sidewalk.street_edge_priority AS street_priority
+        |  ON ( street_priority.region_id = region.region_id
+        |  AND street_priority.street_edge_id = street.street_edge_id)
         |LEFT JOIN (
         |  SELECT street_edge_id, COUNT(audit_task_id) AS completion_count
         |  FROM sidewalk.audit_task
@@ -541,7 +553,7 @@ object AuditTaskTable {
     val uniqueTasks = for ((edgeId, tasks) <- result.groupBy(_.edgeId)) yield tasks.head
 
     uniqueTasks.toList.map(task =>
-      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completionCount, task.completed)
+      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.priority, task.completionCount, task.completed)
     )
   }
 
@@ -562,11 +574,15 @@ object AuditTaskTable {
         |       street.x2,
         |       street.y2,
         |       street.timestamp,
+        |       street_priority.priority,
         |       COALESCE(task.completion_count, 0),
         |       NULL as audit_task_id
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
+        |LEFT JOIN sidewalk.street_edge_priority AS street_priority
+        |  ON ( street_priority.region_id = region.region_id
+        |  AND street_priority.street_edge_id = street.street_edge_id)
         |LEFT JOIN (
         |  SELECT street_edge_id, COUNT(audit_task_id) AS completion_count
         |  FROM sidewalk.audit_task
@@ -580,7 +596,7 @@ object AuditTaskTable {
 
     val newTasks = selectTaskQuery(regionId).list
     newTasks.map(task =>
-      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.completionCount, task.completed)
+      NewTask(task.edgeId, task.geom, task.x1, task.y1, task.x2, task.y2, timestamp, task.priority, task.completionCount, task.completed)
     )
   }
 
@@ -602,11 +618,15 @@ object AuditTaskTable {
         |       street.x2,
         |       street.y2,
         |       street.timestamp,
+        |       street_priority.priority,
         |       COALESCE(task.completion_count, 0),
         |       audit_task.completed
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge AS street
         |  ON ST_Intersects(street.geom, region.geom)
+        |LEFT JOIN sidewalk.street_edge_priority AS street_priority
+        |  ON ( street_priority.region_id = region.region_id
+        |  AND street_priority.street_edge_id = street.street_edge_id)
         |LEFT JOIN (
         |  SELECT street_edge_id, COUNT(audit_task_id) AS completion_count
         |  FROM sidewalk.audit_task
