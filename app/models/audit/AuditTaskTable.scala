@@ -11,6 +11,7 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
+import models.street.{StreetEdgePriorityTable, StreetEdgePriority}
 import models.region.RegionTable
 import play.api.Logger
 import play.api.libs.json._
@@ -98,6 +99,7 @@ object AuditTaskTable {
   val labels = TableQuery[LabelTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val streetEdges = TableQuery[StreetEdgeTable]
+  val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val users = TableQuery[UserTable]
 
   val completedTasks = auditTasks.filter(_.completed)
@@ -432,11 +434,23 @@ object AuditTaskTable {
       if !_counts._1.?.isEmpty && _counts._2 === lowestCompletionCount
     } yield _edges
 
-    val edges: List[StreetEdge] = leastAuditedEdges.list
+    val edgePriorityInRegion = streetEdgePriorities.filter(edg => edg.regionId === regionId)
+    val edgesSortedByPriority = for{
+      (_priorities, _edges) <- edgePriorityInRegion.sortBy(_.priority.desc).innerJoin(edgesInRegion)
+    } yield _edges
+
+    //val edges: List[StreetEdge] = leastAuditedEdges.list
+    val edges: List[StreetEdge] = edgesSortedByPriority.list
+    //edges.foreach{edg => println(edg.streetEdgeId)}
+
     edges match {
       case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
-        val e: StreetEdge = Random.shuffle(edges).head
+        //val e: StreetEdge = Random.shuffle(edges).head
+        //Since the list of streetedges is sorted by priority we only need to get the first task
+        val e: StreetEdge = edges.head
+        //println("Selected: ")
+        //println(e.streetEdgeId)
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, lowestCompletionCount, completed=false)
       case _ =>
