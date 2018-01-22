@@ -89,13 +89,12 @@ object StreetEdgePriorityTable {
   }
 
   /**
-    * Recalculate the priority attribute for all streetEdges.
+    * Recalculate the priority attribute for all streetEdges. (This uses hardcoded min-max normalization)
     * @param rankParameterGeneratorList list of functions that will generate a number for each streetEdge
-    * @param weightVector that will be used to weight the generated parameters
-    * @param paramScalingFunction that will be used to convert the weighted sum of numbers for each street into a number between 0 and 1
+    * @param weightVector that will be used to weight the generated parameters. This should be a list of positive real numbers between 0 and 1 that sum to 1.
     * @return
     */
-  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double], paramScalingFunction: (Double)=>Double) = db.withTransaction { implicit session =>
+  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double]) = db.withTransaction { implicit session =>
 
     //Reset street edge priority to zero
     println("Starting streetedge priority recalculation")
@@ -104,13 +103,31 @@ object StreetEdgePriorityTable {
     val updateAction = q1.update(0.0)
 
     for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)){
+      // Run the i'th rankParameter generator.
+      // Store this in the priorityParamTable variable
       var priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
+      val maxPriorityParam: Double = priorityParamTable.map(_.priorityParameter).max
+      val minPriorityParam: Double = priorityParamTable.map(_.priorityParameter).min
+      val numPriorityParam: Double = priorityParamTable.length.toDouble
 
-      priorityParamTable.foreach{ street_edge =>
-        //val tempPriority = streetEdgePriorities.filter{ edg => edg.streetEdgeId === street_edge.streetEdgeId && edg.regionId === street_edge.regionId}.map(_.priority).list.head
-        val q2 = for { edg <- streetEdgePriorities if edg.regionId === street_edge.regionId &&  edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
-        val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
-        val updatePriority = q2.update(tempPriority)
+      maxPriorityParam match{
+        case minPriorityParam =>
+          // When the max priority parameter value is the same as the min priority parmeter value then normalization will encounter a divide by zero error
+          // In this case we just assign a normalized priority value of 1/(length of array) for each street edge
+          priorityParamTable.foreach{ street_edge =>
+            val normalizedPriorityParam = 1/numPriorityParam
+            val tempPriority = q2.list.head + normalizedPriorityParam*w_i
+            val updatePriority = q2.update(tempPriority)
+          }
+        case _ =>
+          priorityParamTable.foreach{ street_edge =>
+            val q2 = for { edg <- streetEdgePriorities if edg.regionId === street_edge.regionId &&  edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
+            // The result of f_i() should be normalized to between 0 and 1 for each edge before applying  the weighting function.
+            val normalizedPriorityParam = (street_edge.priorityParameter - minPriorityParam)/(maxPriorityParam - minPriorityParam)
+            val tempPriority = q2.list.head + normalizedPriorityParam*w_i
+            val updatePriority = q2.update(tempPriority)
+          }
+
       }
     }
 
@@ -131,7 +148,7 @@ object StreetEdgePriorityTable {
     */
   def selectCompletionCount: List[StreetEdgePriorityParameter] = db.withSession { implicit session =>
     val selectCompletionCountQuery =  Q.queryNA[StreetEdgePriorityParameter](
-      """SELECT region.region_id, street_edge.street_edge_id, CAST(street_edge_assignment_count.completion_count as float)
+      """SELECT region.region_id, street_edge.street_edge_id, CAST(-street_edge_assignment_count.completion_count as float) AS completion_count
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge_region
         |  ON street_edge_region.region_id = region.region_id
