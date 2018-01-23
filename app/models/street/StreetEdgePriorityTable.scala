@@ -99,12 +99,12 @@ object StreetEdgePriorityTable {
     val maxPriorityParam: Double = priorityParamTable.map(_.priorityParameter).max
     val minPriorityParam: Double = priorityParamTable.map(_.priorityParameter).min
     val numPriorityParam: Double = priorityParamTable.length.toDouble
-    maxPriorityParam match {
-      case minPriorityParam =>
+    maxPriorityParam.equals(minPriorityParam) match {
+      case false =>
+        priorityParamTable.map{x => x.copy(priorityParameter = (x.priorityParameter - minPriorityParam)/(maxPriorityParam - minPriorityParam))}
+      case true =>
         // When the max priority parameter value is the same as the min priority parmeter value then normalization will encounter a divide by zero error
         // In this case we just assign a normalized priority value of 1/(length of array) for each street edge
-        priorityParamTable.map{x => x.copy(priorityParameter = (x.priorityParameter - minPriorityParam)/(maxPriorityParam - minPriorityParam))}
-      case _ =>
         priorityParamTable.map{x => x.copy(priorityParameter = 1/numPriorityParam)}
     }
   }
@@ -127,7 +127,7 @@ object StreetEdgePriorityTable {
       // Run the i'th rankParameter generator.
       // Store this in the priorityParamTable variable
       val priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
-      var normalizedPriorityParamTable: : List[StreetEdgePriorityParameter] = normalizePriorityParamMinMax(priorityParamTable)
+      var normalizedPriorityParamTable : List[StreetEdgePriorityParameter] = normalizePriorityParamMinMax(priorityParamTable)
       normalizedPriorityParamTable.foreach{ street_edge =>
         val q2 = for { edg <- streetEdgePriorities if edg.regionId === street_edge.regionId &&  edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
         val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
