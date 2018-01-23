@@ -1,0 +1,137 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/FAQ/build/FAQ.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+
+    <div class="spacer20"></div>
+
+    <div class="container faq">
+        <div class="row">
+            <div class="col-md-3">
+                <div id="faq-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Labeling Guide
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                            <!--This list will be automatically filled-->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="faq-item">
+                    <h2 class="question" id="introduction">Introduction</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                This codebook is meant to be used as a guide for how to use Project Sidewalk to label accessibility
+                                problems in a standardized way, that is grounded in a close reading of the specifications of the
+                                Americans with Disabilities Act (ADA) and related documents. The codebook contains instructions
+                                for where to place labels, how to rate severity of the labels, along with rationale for those
+                                decisions (including ADA citations where appropriate).
+                            </p>
+                            <p>
+                                <strong>Important note on which pano to label from: </strong>Always label an issue/feature from the
+                                place where it is most visible or closest (being closer to the thing you label makes the lat-lng
+                                of the label more accurate).
+                            </p>
+                            <p>
+                                <strong>Important note on label placement: </strong>Place labels at the center of curb ramp or surface
+                                problem, and at the base of an obstacle. This is both to standardize the placement and, in the case
+                                of obstacles, making sure that the location is accurate. Placing a label higher than the base of an
+                                obstacle could give a very inaccurate lat-lng. The left and center images show correct placement, and
+                                the right image shows incorrect placement.
+                            </p>
+                            <!-- insert links to images(3) here in a div-->
+                            <p>
+                                <strong>Important note on temporal change between adjacent panos: </strong>If you take a step and things
+                                change (temporary obstacles like construction are removed, a curb ramp has been added or improved, etc),
+                                then label each panorama appropriately. When doing this, also click the feedback button and write a
+                                message saying what changed between the 2 panos. You do not need to label the same problem from multiple
+                                panoramas if nothing changes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="curb-ramps-and-missing-curb-ramps"><a href="curbRamps.scala.html">Curb ramps and missing curb ramps</a></h2>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="surface-problems"><a href="surfaceProblems.scala.html">Surface Problems</a></h2>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="obstacles"><a href="obstacles.scala.html">Obstacles</a></h2>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="no-sidewalk">No Sidewalk</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                The protocol for labeling no sidewalk for ground truth collection is as follows: place
+                                one label where the sidewalk ends, and one label where the sidewalk begins again. If
+                                an entire block or more has no sidewalk, then place a label at the beginning and end
+                                of each street. (and if two intersecting streets both have no sidewalk, then a single
+                                label can be placed on the corner)
+                            </p>
+                            <p>
+                                Do not place No Sidewalk labels in narrow side streets or alleys.
+                            </p>
+                            <p>
+                                If you reach a 3-way intersection that has no sidewalk DO place a no sidewalk label
+                                in the center of the opposite street where a sidewalk would be.
+                            </p>
+                            <p>
+                                DO NOT place no sidewalk labels on a median that separates the two directions of traffic
+                                (unless the median has a sidewalk that abruptly ends).
+                            </p>
+                            <!-- insert image here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="occlusion">Occlusion</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If you actually can’t see something at all, then you can place the occlusion label.
+                                This should rarely be used; only apply this label when a sidewalk/ramp/etc cannot be
+                                viewed from any angle due to obstructions, such as cars.
+                            </p>
+                            <p>
+                                Another rare case of occlusion (though not that uncommon in Monumental Core) is when a
+                                long stretch of sidewalk is totally blocked from view by a short wall between the road
+                                and sidewalk. Label this using the same technique as for extended no sidewalk.
+                            </p>
+                            <!-- insert image here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="graveyard">Graveyard</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                < still need to do >
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
