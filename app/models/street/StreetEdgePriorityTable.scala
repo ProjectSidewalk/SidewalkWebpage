@@ -111,7 +111,7 @@ object StreetEdgePriorityTable {
 
   /**
     * Recalculate the priority attribute for all streetEdges. (This uses hardcoded min-max normalization)
-    * @param rankParameterGeneratorList list of functions that will generate a number for each streetEdge
+    * @param rankParameterGeneratorList list of functions that will generate a number (normalized to between 0 and 1) for each streetEdge
     * @param weightVector that will be used to weight the generated parameters. This should be a list of positive real numbers between 0 and 1 that sum to 1.
     * @return
     */
@@ -127,8 +127,7 @@ object StreetEdgePriorityTable {
       // Run the i'th rankParameter generator.
       // Store this in the priorityParamTable variable
       val priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
-      var normalizedPriorityParamTable : List[StreetEdgePriorityParameter] = normalizePriorityParamMinMax(priorityParamTable)
-      normalizedPriorityParamTable.foreach{ street_edge =>
+      priorityParamTable.foreach{ street_edge =>
         val q2 = for { edg <- streetEdgePriorities if edg.regionId === street_edge.regionId &&  edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
         val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
         val updatePriority = q2.update(tempPriority)
@@ -165,6 +164,7 @@ object StreetEdgePriorityTable {
         |  AND street_edge.deleted = FALSE
         |  ORDER BY street_edge.street_edge_id,region.region_id,region.region_id""".stripMargin
     )
-    selectCompletionCountQuery.list
+    val priorityParamTable = selectCompletionCountQuery.list
+    normalizePriorityParamMinMax(priorityParamTable)
   }
 }
