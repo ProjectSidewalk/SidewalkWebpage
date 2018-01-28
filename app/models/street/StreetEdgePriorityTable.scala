@@ -110,6 +110,19 @@ object StreetEdgePriorityTable {
   }
 
   /**
+    * Helper function to normalize the priorityParameter of a list of StreetEdgePriorityParameter objects to between 0 and 1
+    * This returns the reciprocal for each street edge's parameter value.
+    * The reciprocal is calculated after adding some prior to the value to prevent divide by zero errors
+    * @param z
+    * @return
+    */
+
+  def normalizePriorityReciprocal(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
+    val prior = 1
+    priorityParamTable.map{x => x.copy(priorityParameter = 1/(x.priorityParameter + prior ))}
+  }
+
+  /**
     * Recalculate the priority attribute for all streetEdges. (This uses hardcoded min-max normalization)
     * @param rankParameterGeneratorList list of functions that will generate a number (normalized to between 0 and 1) for each streetEdge
     * @param weightVector that will be used to weight the generated parameters. This should be a list of positive real numbers between 0 and 1 that sum to 1.
@@ -165,6 +178,6 @@ object StreetEdgePriorityTable {
         |  ORDER BY street_edge.street_edge_id,region.region_id,region.region_id""".stripMargin
     )
     val priorityParamTable = selectCompletionCountQuery.list
-    normalizePriorityParamMinMax(priorityParamTable)
+    normalizePriorityReciprocal(priorityParamTable)
   }
 }
