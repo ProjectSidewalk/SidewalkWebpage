@@ -214,8 +214,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
      * Returns labeling guide page
      * @return
      */
-  /**
-  def labeling_guide = UserAwareAction.async { implicit request =>
+
+  def labelingGuide = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
@@ -223,13 +223,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
-        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - About", Some(user))))
+        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk = About", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
         Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - About")))
     }
   }
-  */
+
   /**
     * Returns the terms page
     * @return
