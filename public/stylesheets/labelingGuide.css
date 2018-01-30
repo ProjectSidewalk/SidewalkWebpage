@@ -1,0 +1,8 @@
+/*#faq-panel {
+    position: fixed;
+    width: 18%;
+}*/
+
+.faq ul#questions-list #subtopics li {
+    padding-left: 40px;
+}

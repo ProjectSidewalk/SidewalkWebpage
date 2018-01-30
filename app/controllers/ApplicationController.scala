@@ -230,6 +230,51 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  def curbRamps = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Curb_Ramps", timestamp))
+        Future.successful(Ok(views.html.curbRamps("Project Sidewalk = About", Some(user))))
+      case None =>
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Curb_Ramps", timestamp))
+        Future.successful(Ok(views.html.curbRamps("Project Sidewalk - About")))
+    }
+  }
+
+  def surfaceProblems = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Surface_Problems", timestamp))
+        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk = About", Some(user))))
+      case None =>
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Surface_Problems", timestamp))
+        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk - About")))
+    }
+  }
+
+  def obstacles = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Obstacles", timestamp))
+        Future.successful(Ok(views.html.obstacles("Project Sidewalk = About", Some(user))))
+      case None =>
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Obstacles", timestamp))
+        Future.successful(Ok(views.html.obstacles("Project Sidewalk - About")))
+    }
+  }
+
   /**
     * Returns the terms page
     * @return

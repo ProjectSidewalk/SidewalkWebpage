@@ -1,0 +1,384 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <div class="spacer20"></div>
+
+    <div class="container faq">
+        <div class="row">
+            <div class="col-md-3">
+                <div id="faq-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Curbs Ramps and Missing Curb Ramps
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                                <!--This list will be automatically filled-->
+                            <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.curbRamps'><strong>Curb Ramps</strong></a></li>
+                            <div id="subtopics">
+                            </div>
+                            <li><a href='@routes.ApplicationController.surfaceProblems'>Surface Problems</a></li>
+                            <li><a href='@routes.ApplicationController.obstacles'>Obstacles</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuide#no-sidewalk'>No Sidewalk</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuide#occlusion'>Occlusion</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuide#graveyard'>Graveyard</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="faq-item">
+                    <h2 class="question" id="corners-with-only-one-curb-ramp">Corners with only one curb ramp</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place a missing curb ramp</strong> if the existing ramp is clearly only
+                                meant for crossing one of the streets. For example, in the image on left, the arrow
+                                marks a missing curb ramp because there is a crosswalk but no curb ramp
+                                and the existing ramp is facing the other street. This would get a severity
+                                rating ~3 because there is another curb ramp on that corner that could be
+                                used instead, though pedestrians are moderately lead into traffic due to
+                                it’s orientation (ADA 406.6).
+                            </p>
+                            <p>
+                                <strong>DO NOT place a missing curb ramp</strong> label if the one curb ramp is clearly
+                                meant for crossing both streets (as in image on right), but the severity of the curb
+                                ramp is likely > 1, depending on how much it would lead someone into traffic
+                                (ADA 406.6). In the example below on the right, the severity rating would be ~2,
+                                since pedestrians are minorly directed into traffic. It would have a severity
+                                of 3-4 if the visible lanes were not parking lanes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="where-there-is-no-sidewalk,-but-there-is-a-curb-ramp">
+                        Where there is NO sidewalk, but there IS a curb ramp</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place a curb ramp label</strong> if there is a curb ramp,
+                                regardless of the presence of sidewalk (or the usefulness of the curb ramp.
+                                A curb ramp is a curb ramp is a curb ramp is a curb ramp! In the image on
+                                the left, the curb ramps could be useful for someone who wants to cross
+                                both streets. They could safely cross one street, then safely wait on the
+                                space provided by the curb ramps for an opportune time to cross the other
+                                street. The image on the left… No idea why it is there, but place a label anyway.
+                            </p>
+                                <!--place the two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="where-there-is-no-sidewalk-and-there-is-no-curb-ramp">
+                        Where there is NO sidewalk and there is NO curb ramp</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO NOT place a missing curb ramp</strong> if there is no sidewalk.
+                                A curb ramp is not required in these situations (nor would it be very useful)
+                                since this is not part of a pedestrian route. Do not place a missing curb ramp
+                                even in those cases where there are crosswalks but no sidewalk as in the image
+                                on the right (ADA 303.4)
+                            </p>
+                                <!--place the two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="driveways">Driveways</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place a surface problem label</strong> (note: not a ‘missing
+                                curb ramp’ label) if the driveway is not level with the sidewalk (there is
+                                a steep slope) as in the illustration on the left. Because this is a surface
+                                problem and not a curb ramp problem, we cover this in more detail in the Surface
+                                Problem’s Driveways section.
+                            </p>
+                            <p>
+                                <strong>DO NOT</strong> label driveways with either <strong>curb ramp or
+                                missing curb ramp</strong> labels, because pedestrians are not meant to follow
+                                the driveway into the street.
+                            </p>
+                                <!--place the two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="small-side-streets-or-alleyways">Small side streets or alleyways</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place a curb ramp or missing curb ramp label</strong> if the side street
+                                is not level with the sidewalk, since a curb ramp is required for the street to be
+                                passable. (ADA 402.2).
+                            </p>
+                                <!--place one image here-->
+                            <p>
+                                <strong>DO NOT label with a curb ramp or missing curb ramp</strong> if the side
+                                street is level with the sidewalk, since the intersection is passable without a
+                                curb ramp. (ADA 402.2).
+                            </p>
+                                <!--place one image here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="crosswalks">Crosswalks</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place curb ramp or missing curb ramp labels</strong> anywhere there
+                                is a crosswalk (as long as there is a sidewalk as well), as this implies that
+                                pedestrians are meant to cross (but do not mistake stop lines for crosswalks,
+                                as in image on the right!) (ADA 303.4).
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="there-is-curb-ramp-on-opposite-side-of-street">
+                        There is curb ramp on opposite side of street</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place a missing curb ramp label</strong> if one side of the street
+                                has a curb ramp but the opposite side does not, since the presence of one curb
+                                ramp implies that this is meant to be part of a pedestrian route. Normally this
+                                would get a severity of 5, but in the image on the right, there is an adjacent
+                                driveway that can be used in place of a curb ramp (ADA 303.4), so it gets a severity of 4.
+                            </p>
+                                <!--place one image here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="islands">Islands</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place curb ramp or missing curb ramp label(s)</strong> if the island
+                                interferes with the crosswalk, as in the image on the right. (ADA 406.7).
+                            </p>
+                            <p>
+                                <strong>DO NOT place curb ramp or missing curb ramp labels</strong> if the island is
+                                cut (as in leftmost illustration, below) or does not interfere with or block the crosswalk.
+                            </p>
+                            <p>
+                                For islands that should have a curb ramp but do not, severity of the problem depends on how far into traffic one would have to go to avoid the island.
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="extension-of-walkway-to-a-house">Extension of walkway to a house</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                <strong>DO place a curb ramp label</strong> only if there is a curb ramp present,
+                                or a <strong>missing curb ramp</strong> label only if there is a curb ramp on the
+                                opposite side of the street.
+                            </p>
+                            <p>
+                                <strong>DO NOT place a missing curb ramp label</strong> if there is no curb ramp on
+                                either side of the street, as curb ramps are generally not expected here because it
+                                is not at an intersection (ADA 406.6).
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="friction-strips">Friction strips</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> does not have friction strips, then it
+                                should have a severity > 1. If a missing friction strip is the only problem
+                                with a ramp, then the severity would just be 2 (ADA 705). In the example on
+                                the left, the severity would be 2. The severity would be 1 for those on the
+                                right, since they have friction strips, and meet all other requirements.
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="surface-problems-on-curb-ramps">Surface problems ON curb ramps</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> has surface problems, increase the severity
+                                of the curb ramp, but <strong>DO NOT</strong> place a <strong>surface problem</strong>
+                                label. The rationale is that cracks and such in a curb ramp are one of the many
+                                factors that can make a curb ramp less passable, so there should be a higher curb
+                                ramp severity. But we don’t need to double-count the issue by also labeling it as
+                                a surface problem.
+                            </p>
+                            <p>
+                                <strong>NOTE:</strong> This differs from how we deal with obstacles on curb ramps.
+                                We actually take the opposite approach with obstacles. The idea is that a bad curb
+                                ramp is just a bad curb ramp, while an obstacle is something external to the curb
+                                ramp. This is honestly pretty confusing and could be clarified in the future.
+                            </p>
+                            <p>
+                                Severity ratings should be equivalent to how they are done for surface problems,
+                                described in the sections on Sidewalk Cracks and Grass between sidewalk blocks.
+                                However, here are a few examples.
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="narrow-ramps">Narrow ramps</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> appears narrow, then it should have
+                                severity > 1 (the ADA requires a width of at least 3 ft - ADA 403.5.1).
+                                Since we have no measuring tools, use your best judgement. For example,
+                                the ramp on the right would get a severity of 3 because it is a bit narrower
+                                than 3ft, and is also missing a friction strip.
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="debris-on/around-ramp">Debris on/around ramp</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> has a large amount of dead leaves
+                                (or other debris) on it, the severity should be > 1 (FHWA Guide for
+                                Maintaining Pedestrian Facilities for Enhanced Safety 3.2.2), but
+                                would not result in severity > 3 if the debris is the only issue.
+                                This could cause slippery conditions or could slow down wheelchair
+                                users in extreme cases. Do not place a surface problem label along
+                                with the curb ramp label. Only place a surface problem label on the
+                                sidewalk (not on curb ramp).
+                            </p>
+                                <!--place 3 images here for severity 1, 2, and 3-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="insufficient-landing-space">Insufficient landing space</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> does not have enough landing space at the top
+                                of the ramp for making turns, the severity should be > 1 (the ADA requires at
+                                least 3ft - ADA 406.4). In situations of insufficient landing space, severity
+                                also depends on presence and steepness of the angled sides of a ramp (called flares),
+                                so also consult the section on Steep flares. The example on the right gets a severity
+                                of ~2, since there is not enough landing space, but the flares are not too steep.
+                                The ramps on the 2nd row would get a severity of ~3, since they both have no landing
+                                space at all, while again having flared sides that are not steep.
+                            </p>
+                                <!--place 2-4 images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="steep-flares">Steep flares</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> has overly steep angled sides (called flares),
+                                severity should be > 1, but would not result in severity > 3 if the flares are
+                                the only issue. Steep flares are particularly problematic when there is Insufficient
+                                landing space at the top of the ramp, since wheelchair users may need to use the
+                                flares to make turns and could lose their balance. However, steep flares are not
+                                an issue when pedestrians are not meant to be using them anyway, as in the rightmost
+                                illustration.
+                            </p>
+                            <p>
+                                The leftmost image has very steep sides, is far too narrow, and also is missing a
+                                friction strip, so it would get a severity of ~3. The middle image has insufficient
+                                landing space, but it’s flares are not steep, so the severity is only ~2. The
+                                illustration on the right does not need flares, since the sides of the ramp are
+                                lined by grass (meaning pedestrians are not meant to use it), so the severity would
+                                probably be 1.
+                            </p>
+                                <!--place 3 images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="steep-counter-slopes">Steep counter slopes</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> has a steep counter slope (the slope opposite to
+                                the end of a ramp, see left illustration below) then the severity of the curb ramp
+                                should be > 1 (the ADA requires counter slopes to be at no more than a ~3 degree
+                                angle - ADA 406.2). You only need to consider obvious cases of steep counter slopes,
+                                as we have no angle measurement tools. The illustration on the left would get a
+                                severity of ~3 for the curb ramp, assuming the rest of the ADA standards are met.
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="pooled-water">Pooled water</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                If a <strong>curb ramp</strong> seems to have pooled water due to poor drainage,
+                                severity should be > 1 (ADA 405.10), but would not result in a severity of 5 if pooled
+                                water is the only issue (since water typically pools only after rainfall).
+                            </p>
+                                <!--place two images here-->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}

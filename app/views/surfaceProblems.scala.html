@@ -1,0 +1,221 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <div class="spacer20"></div>
+
+    <div class="container faq">
+        <div class="row">
+            <div class="col-md-3">
+                <div id="faq-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Surface Problems
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                                <!--This list will be automatically filled-->
+                            <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.curbRamps'>Curb Ramps</a></li>
+                            <li><a href='@routes.ApplicationController.surfaceProblems'><strong>Surface Problems</strong></a></li>
+                            <div id="subtopics">
+                            </div>
+                            <li><a href='@routes.ApplicationController.obstacles'>Obstacles</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuide#no-sidewalk'>No Sidewalk</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuide#occlusion'>Occlusion</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuide#graveyard'>Graveyard</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="faq-item">
+                    <h2 class="question" id="sidewalk-cracks">Sidewalk cracks</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                Only label sidewalk cracks that would result in a bumpy or otherwise uncomfortable
+                                experience for someone using a wheelchair or other assistive device. Small elevation
+                                changes will typically be noted as severity 1, as seen in the example below, provided
+                                there are no other issues with the surface. Follow a similar procedure for sidewalk
+                                cracks that come from weathering; only label them if they would cause difficult traversal.
+                            </p>
+                                <!-- add two images-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="driveways">Driveways</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO place a label (on each side of the driveway) if a driveway causes a steep slope
+                                in the sidewalk (ADA 403.3). This illustration is bad enough to warrant a severity
+                                of ~4, since it could greatly destabilize a user of a wheelchair.
+                            </p>
+                                <!--place two images here-->
+                            <p>
+                                DO NOT place any labels if the driveway is level with the sidewalk, as in the
+                                examples below.
+                            </p>
+                                <!--place three images here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="gravel">Gravel</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label gravel surfaces, as they are not firm/stable enough for a wheelchair/walker
+                                (ADA 302.1). They typically get a severity of ~5 since they are so hard to traverse
+                                by wheelchair.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="cobblestone-and-other-rough-surfaces">
+                        Cobblestone and other rough surfaces</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label cobblestone and other rough surfaces, since they can be difficult/painful to
+                                traverse due to the vibrations and catching of wheelchair casters (USAB ADA guidelines
+                                302.1). In addition, as shared by one of our wheelchair pilot testers, these types of
+                                surfaces can also make it difficult to control the joystick in electric chairs. The
+                                example below would get a severity rating of ~3, though cobblestone with wider/narrower
+                                gaps may have higher/lower severity.
+                            </p>
+                                <!--add one image here-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="grates-gaps-and-other-openings">Grates, gaps, and other openings</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label grates, gaps, and other opening if (and only if) it appears that a wheelchair
+                                caster could get caught or if the ride would be extremely bumpy (ADA 302.3). (The ADA
+                                specifies ½” openings but do your best to estimate). For grates, pay particular
+                                attention to whether the elongated openings are perpendicular to the direction of travel.
+                            </p>
+                            <p>
+                                Severity will be higher if the grates are not perpendicular to the direction of travel.
+                                Severity will be also higher for wider gaps, and it will be higher for grates that cover
+                                more of the sidewalk (i.e., if the grating is easy to avoid, it gets a lower severity,
+                                see avoidable problems).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="narrow-sidewalks">Narrow sidewalks</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label if a long stretch of sidewalk is less than 3ft wide (ADA 403.5). Place one
+                                label at the beginning of a stretch of narrow sidewalk, and one label at the end of
+                                that stretch. If the narrow sidewalk stretches multiple streets, label at the beginning
+                                and end of each street (with only 1 needed at a corner).
+                            </p>
+                            <p>
+                                DO NOT label if the stretch of narrow sidewalk is very short, as often occurs to get
+                                around trees (unless the narrow section is very narrow) (ADA 403.5.1).
+                            </p>
+                                <!--add image-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="debris-on-sidewalk">Debris on sidewalk</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label if there are a large amount of dead leaves (or other debris) on the ground
+                                (FHWA Guide for Maintaining Pedestrian Facilities for Enhanced Safety 3.2.2). This
+                                could cause slippery conditions or could slow down wheelchair users in extreme cases.
+                                Label as temporary.
+                            </p>
+                                <!--add image-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="grass-on-sidewalk-blocks">Grass on sidewalk blocks</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label these as surface problems unless they are very minor; however, they are typically
+                                only severity of 1 or 2 (unless extreme). Though they may not always directly impact the
+                                accessibility of the sidewalk, they are “surface problems”. Without being monitored, they
+                                could deteriorate further and cause accessibility problems in the future (FHWA Guide for
+                                Maintaining Pedestrian Facilities for Enhanced Safety 3.2.1). Whether or not to label
+                                these is difficult to assess. On the left, there are probably two surface problem labels
+                                to be applied. On the right, it is very ambiguous, but there are two that should probably
+                                be labeled, with further ones down possibly being labeled, though closer inspection would
+                                be necessary.
+                            </p>
+                                <!--add two images-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="avoidable-problems">Avoidable problems</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label surface problems, even if they are avoidable. In the cases in which they are
+                                avoidable, as in the picture on the right, you can mark a lower severity rating (this
+                                one having severity ~2). But if the problem were not directly on the pedestrian route
+                                (so imagine the picture below, with the surface problem being over by the trashcan),
+                                then the severity would be ~1.
+                            </p>
+                                <!--add image-->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h2 class="question" id="problems-in-a-crosswalk">Problems in a crosswalk</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                DO label surface problems, even if they are avoidable. In the cases in which they are
+                                avoidable, as in the picture on the right, you can mark a lower severity rating (this
+                                one having severity ~2). But if the problem were not directly on the pedestrian route
+                                (so imagine the picture below, with the surface problem being over by the trashcan),
+                                then the severity would be ~1.
+                            </p>
+                                <!--add image-->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}

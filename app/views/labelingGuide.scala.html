@@ -5,6 +5,7 @@
     @navbar(user)
     <script type="text/javascript" src='@routes.Assets.at("javascripts/FAQ/build/FAQ.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
     <div class="spacer20"></div>
 
@@ -18,13 +19,17 @@
                     <div class="panel-body">
                         <ul id="questions-list">
                             <!--This list will be automatically filled-->
+                            <li><a href="#introduction">Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.curbRamps'>Curb Ramps</a></li>
+                            <li><a href='@routes.ApplicationController.surfaceProblems'>Surface Problems</a></li>
+                            <li><a href='@routes.ApplicationController.obstacles'>Obstacles</a></li>
                         </ul>
                     </div>
                 </div>
             </div>
             <div class="col-md-9 maincontent">
                 <div class="faq-item">
-                    <h2 class="question" id="introduction">Introduction</h2>
+                    <h2 id="introduction">Introduction</h2>
                     <div class="row">
                         <div class="col-sm-12">
                             <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
@@ -57,18 +62,6 @@
                             </p>
                         </div>
                     </div>
-                </div>
-
-                <div class="faq-item">
-                    <h2 class="question" id="curb-ramps-and-missing-curb-ramps"><a href="curbRamps.scala.html">Curb ramps and missing curb ramps</a></h2>
-                </div>
-
-                <div class="faq-item">
-                    <h2 class="question" id="surface-problems"><a href="surfaceProblems.scala.html">Surface Problems</a></h2>
-                </div>
-
-                <div class="faq-item">
-                    <h2 class="question" id="obstacles"><a href="obstacles.scala.html">Obstacles</a></h2>
                 </div>
 
                 <div class="faq-item">
