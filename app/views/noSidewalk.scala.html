@@ -1,0 +1,64 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <div class="spacer20"></div>
+
+    <div class="container faq">
+        <div class="row">
+            <div class="col-md-3" id="sidebar">
+                <div id="faq-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        No Sidewalk
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                            <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.curbRamps'>Curb Ramps</a></li>
+                            <li><a href='@routes.ApplicationController.surfaceProblems'>Surface Problems</a></li>
+                            <li><a href='@routes.ApplicationController.obstacles'>Obstacles</a></li>
+                            <li><a href='@routes.ApplicationController.noSidewalk'><strong>No Sidewalk</strong></a></li>
+                            <li><a href='@routes.ApplicationController.occlusion'>Occlusion</a></li>
+                            <li><a href='@routes.ApplicationController.graveyard'>Graveyard</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="faq-item">
+                    <h2 class="question" id="no-sidewalk">No Sidewalk</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                The protocol for labeling no sidewalk for ground truth collection is as follows: place
+                                one label where the sidewalk ends, and one label where the sidewalk begins again. If
+                                an entire block or more has no sidewalk, then place a label at the beginning and end
+                                of each street. (and if two intersecting streets both have no sidewalk, then a single
+                                label can be placed on the corner)
+                            </p>
+                            <p>
+                                Do not place No Sidewalk labels in narrow side streets or alleys.
+                            </p>
+                            <p>
+                                If you reach a 3-way intersection that has no sidewalk DO place a no sidewalk label
+                                in the center of the opposite street where a sidewalk would be.
+                            </p>
+                            <p>
+                                DO NOT place no sidewalk labels on a median that separates the two directions of traffic
+                                (unless the median has a sidewalk that abruptly ends).
+                            </p>
+                                <!-- insert image here-->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}

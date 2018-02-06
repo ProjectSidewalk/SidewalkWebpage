@@ -1,0 +1,47 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <div class="spacer20"></div>
+
+    <div class="container faq">
+        <div class="row">
+            <div class="col-md-3" id="sidebar">
+                <div id="faq-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Graveyard
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                            <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.curbRamps'>Curb Ramps</a></li>
+                            <li><a href='@routes.ApplicationController.surfaceProblems'>Surface Problems</a></li>
+                            <li><a href='@routes.ApplicationController.obstacles'>Obstacles</a></li>
+                            <li><a href='@routes.ApplicationController.noSidewalk'>No Sidewalk</a></li>
+                            <li><a href='@routes.ApplicationController.occlusion'>Occlusion</a></li>
+                            <li><a href='@routes.ApplicationController.graveyard'><strong>Graveyard</strong></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="faq-item">
+                    <h2 class="question" id="graveyard">Graveyard</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <p>
+                                < still need to do >
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

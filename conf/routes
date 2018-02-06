@@ -18,6 +18,9 @@ GET     /labelingGuide                                       @controllers.Applic
 GET     /curbRamps                                           @controllers.ApplicationController.curbRamps
 GET     /surfaceProblems                                     @controllers.ApplicationController.surfaceProblems
 GET     /obstacles                                           @controllers.ApplicationController.obstacles
+GET     /noSidewalk                                          @controllers.ApplicationController.noSidewalk
+GET     /occlusion                                           @controllers.ApplicationController.occlusion
+GET     /graveyard                                           @controllers.ApplicationController.graveyard
 GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
