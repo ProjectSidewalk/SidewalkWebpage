@@ -6,3 +6,7 @@
 .faq ul#questions-list #subtopics li {
     padding-left: 40px;
 }
+
+#img-container img{
+    height: 213px;
+}
