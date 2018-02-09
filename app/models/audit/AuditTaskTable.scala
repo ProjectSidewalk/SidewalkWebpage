@@ -435,22 +435,17 @@ object AuditTaskTable {
     } yield _edges
 
     val edgePriorityInRegion = streetEdgePriorities.filter(edg => edg.regionId === regionId)
-    val edgesSortedByPriority = for{
+    val edgesSortedByPriority = for {
       (_priorities, _edges) <- edgePriorityInRegion.sortBy(_.priority.desc).innerJoin(edgesInRegion)
     } yield _edges
 
-    //val edges: List[StreetEdge] = leastAuditedEdges.list
     val edges: List[StreetEdge] = edgesSortedByPriority.list
-    //edges.foreach{edg => println(edg.streetEdgeId)}
 
     edges match {
       case edges if edges.nonEmpty =>
         // Increment the assignment count and return the task
-        //val e: StreetEdge = Random.shuffle(edges).head
         //Since the list of streetedges is sorted by priority we only need to get the first task
         val e: StreetEdge = edges.head
-        //println("Selected: ")
-        //println(e.streetEdgeId)
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, lowestCompletionCount, completed=false)
       case _ =>

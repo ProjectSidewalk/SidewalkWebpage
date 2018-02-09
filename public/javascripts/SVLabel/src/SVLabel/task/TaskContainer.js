@@ -173,14 +173,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         if (typeof regionId == "number") {
 
-            // First get the priorities for the street edges in the region and then store the tasks with these priorities
+            // First get the priorities for the street edges in the region, then store the tasks with these priorities
             $.ajax({
                 url: "/audit/getRegionStreetPriority/" + regionId,
                 async: async,
                 type: 'get',
                 success: function (result) {
                     self._streetEdgePriorityMap[regionId] = {};
-                    result.forEach(function(streetEdge){
+                    result.forEach(function(streetEdge) {
                         self._streetEdgePriorityMap[regionId][streetEdge['streetEdgeId']] = streetEdge['priority'];
                     });
 
@@ -508,19 +508,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         // Return the new task. Change the starting point of the new task accordingly.
 
-        /*Old code: Select randomly from the candidate edges
-        newTask = _.shuffle(userCandidateTasks)[0];*/
-
         /*New code: Select the edge with the highest priority value*/
-        console.log("Candidate tasks:");
-        userCandidateTasks.forEach(function (el) {
-            console.log("streetEdgeId=",el.getProperty('streetEdgeId')," priority= ",el.getProperty('priority'));
-        });
-        userCandidateTasks.sort(function(t1,t2){
+        userCandidateTasks.sort(function(t1,t2) {
             return t2.getProperty('priority')-t1.getProperty('priority');
         });
         newTask = userCandidateTasks[0];
-        console.log("Selected task: streetEdgeId=",newTask.getProperty('streetEdgeId')," priority= ",newTask.getProperty('priority'));
 
         if (finishedTask) {
             var coordinate = finishedTask.getLastCoordinate();
