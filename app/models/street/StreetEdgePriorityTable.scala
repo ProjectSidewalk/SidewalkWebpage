@@ -11,24 +11,23 @@ import scala.slick.jdbc.GetResult
 
 import scala.math.exp
 
-case class StreetEdgePriorityParameter(regionId: Int, streetEdgeId: Int, priorityParameter: Double)
-case class StreetEdgePriority(streetEdgePriorityId: Int, regionId: Int, streetEdgeId: Int, priority: Double){
+case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
+case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double){
   /**
     * This method converts the data into the JSON format
     * @return
     */
   def toJSON: JsObject = {
-    Json.obj("regionId" -> regionId, "streetEdgeId" -> streetEdgeId, "priority" -> priority)
+    Json.obj("streetEdgeId" -> streetEdgeId, "priority" -> priority)
   }
 }
 
 class StreetEdgePriorityTable(tag: Tag) extends Table[StreetEdgePriority](tag, Some("sidewalk"),  "street_edge_priority") {
   def streetEdgePriorityId = column[Int]("street_edge_priority_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def regionId = column[Int]("region_id",O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def priority = column[Double]("priority", O.NotNull)
 
-  def * = (streetEdgePriorityId, regionId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
+  def * = (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -45,7 +44,6 @@ object StreetEdgePriorityTable {
   /**
     * Save a record.
     * @param streetEdgeId
-    * @param regionId
     * @return
     */
   def save(streetEdgePriority: StreetEdgePriority): Int = db.withTransaction { implicit session =>
@@ -61,17 +59,21 @@ object StreetEdgePriorityTable {
     * @return
     */
 
-  def updateSingleStreetEdgePriority(regionId: Int, streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
-    val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId && edg.regionId === regionId} yield edg.priority
+  def updateSingleStreetEdgePriority(streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
+    val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId} yield edg.priority
     q.update(priority)
   }
 
-  def getSingleStreetEdgePriority(regionId: Int, streetEdgeId: Int): Double = db.withTransaction { implicit session =>
-    streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId && edg.regionId === regionId}.map(_.priority).list.head
+  def getSingleStreetEdgePriority(streetEdgeId: Int): Double = db.withTransaction { implicit session =>
+    streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId}.map(_.priority).list.head
   }
 
   def getAllStreetEdgeInRegionPriority(regionId: Int): List[StreetEdgePriority] = db.withTransaction { implicit session =>
-    streetEdgePriorities.filter{ edg => edg.regionId === regionId}.list
+    // Merge with street edge region table
+    val sep = for {
+      (sep, ser) <- streetEdgePriorities join streetEdgeRegion
+    } yield sep
+    sep.list
   }
 
   def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>
@@ -141,7 +143,7 @@ object StreetEdgePriorityTable {
       // Store this in the priorityParamTable variable
       val priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
       priorityParamTable.foreach{ street_edge =>
-        val q2 = for { edg <- streetEdgePriorities if edg.regionId === street_edge.regionId &&  edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
+        val q2 = for { edg <- streetEdgePriorities if edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
         val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
         val updatePriority = q2.update(tempPriority)
       }
@@ -164,7 +166,7 @@ object StreetEdgePriorityTable {
     */
   def selectCompletionCount: List[StreetEdgePriorityParameter] = db.withSession { implicit session =>
     val selectCompletionCountQuery =  Q.queryNA[StreetEdgePriorityParameter](
-      """SELECT region.region_id, street_edge.street_edge_id, CAST(-street_edge_assignment_count.completion_count as float) AS completion_count
+      """SELECT street_edge.street_edge_id, CAST(-street_edge_assignment_count.completion_count as float) AS completion_count
         |  FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge_region
         |  ON street_edge_region.region_id = region.region_id

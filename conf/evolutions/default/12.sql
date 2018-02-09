@@ -2,15 +2,14 @@
 CREATE TABLE street_edge_priority
 (
  street_edge_priority_id SERIAL NOT NULL,
- region_id INT NOT NULL,
  street_edge_id INT NOT NULL,
  priority DOUBLE PRECISION NOT NULL DEFAULT 0.0,
  PRIMARY KEY (street_edge_priority_id),
  FOREIGN KEY (street_edge_id) REFERENCES street_edge(street_edge_id)
 );
 
-INSERT INTO street_edge_priority (street_edge_id, region_id)
-SELECT street_edge_id, region_id
+INSERT INTO street_edge_priority (street_edge_id)
+SELECT UNIQUE(street_edge_id) AS street_edge_id
   FROM street_edge_region;
 
 # --- !Downs
