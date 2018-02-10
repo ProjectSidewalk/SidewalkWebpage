@@ -434,9 +434,8 @@ object AuditTaskTable {
       if !_counts._1.?.isEmpty && _counts._2 === lowestCompletionCount
     } yield _edges
 
-    val edgePriorityInRegion = streetEdgePriorities.filter(edg => edg.regionId === regionId)
     val edgesSortedByPriority = for {
-      (_priorities, _edges) <- edgePriorityInRegion.sortBy(_.priority.desc).innerJoin(edgesInRegion)
+      (_priorities, _edges) <- streetEdgePriorities.sortBy(_.priority.desc).innerJoin(edgesInRegion)
     } yield _edges
 
     val edges: List[StreetEdge] = edgesSortedByPriority.list

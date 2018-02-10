@@ -39,7 +39,7 @@ object StreetEdgePriorityTable {
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
 
   implicit val streetEdgePriorityParameterConverter = GetResult(r => {
-    StreetEdgePriorityParameter(r.nextInt, r.nextInt, r.nextDouble)
+    StreetEdgePriorityParameter(r.nextInt, r.nextDouble)
   })
 
   /**
@@ -74,7 +74,7 @@ object StreetEdgePriorityTable {
   def getAllStreetEdgeInRegionPriority(regionId: Int): List[StreetEdgePriority] = db.withTransaction { implicit session =>
     // Merge with street edge region table
     val sep = for {
-      (sep, ser) <- streetEdgePriorities join streetEdgeRegion
+      (sep, ser) <- streetEdgePriorities join StreetEdgeRegionTable.streetEdgeRegionTable
     } yield sep
     sep.list
   }
