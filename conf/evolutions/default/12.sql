@@ -9,8 +9,7 @@ CREATE TABLE street_edge_priority
 );
 
 INSERT INTO street_edge_priority (street_edge_id)
-SELECT UNIQUE(street_edge_id) AS street_edge_id
-  FROM street_edge_region;
+SELECT DISTINCT(street_edge_id) FROM street_edge_region;
 
 # --- !Downs
 DROP TABLE street_edge_priority;
