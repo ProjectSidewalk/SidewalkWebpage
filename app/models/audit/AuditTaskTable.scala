@@ -417,37 +417,33 @@ object AuditTaskTable {
     import models.street.StreetEdgeTable.streetEdgeConverter
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
-
+    println('1')
     val edgesInRegion = for {
-      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
-      _edges <- streetEdgesWithoutDeleted if _ser.streetEdgeId === _edges.streetEdgeId
+      _ser <- StreetEdgeRegionTable.nonDeletedStreetEdgeRegions if _ser.regionId === regionId
+      _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
     } yield _edges
+    println('2')
 
     val lowestCompletionCount: Int = (for {
       (_counts, _edges) <- StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts.innerJoin(edgesInRegion).on(_._1 === _.streetEdgeId)
       if !_counts._1.?.isEmpty
     } yield _counts._2.?.getOrElse(-1)).min.run.getOrElse(-1)
-
-    val leastAuditedEdges = for {
-      (_counts, _edges) <- StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts.innerJoin(edgesInRegion).on(_._1 === _.streetEdgeId)
-      if !_counts._1.?.isEmpty && _counts._2 === lowestCompletionCount
-    } yield _edges
+    println('3')
 
     val edgesSortedByPriority = for {
       (_priorities, _edges) <- streetEdgePriorities.sortBy(_.priority.desc).innerJoin(edgesInRegion)
     } yield _edges
+    println('4')
 
-    val edges: List[StreetEdge] = edgesSortedByPriority.list
+    val highPriorityEdge: Option[StreetEdge] = edgesSortedByPriority.list.headOption
+    println('5')
 
-    edges match {
-      case edges if edges.nonEmpty =>
+    highPriorityEdge match {
+      case Some(e) =>
         // Increment the assignment count and return the task
-        //Since the list of streetedges is sorted by priority we only need to get the first task
-        val e: StreetEdge = edges.head
         StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
         NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, lowestCompletionCount, completed=false)
-      case _ =>
+      case None =>
         Logger.warn("Unable to assign a task in region " + regionId + " to an anonymous user.")
         selectANewTask // The list is empty for whatever the reason
     }
