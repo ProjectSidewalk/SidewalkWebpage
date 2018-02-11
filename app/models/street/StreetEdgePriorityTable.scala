@@ -174,17 +174,11 @@ object StreetEdgePriorityTable {
     * @return
     */
   def selectCompletionCountPriority: List[StreetEdgePriorityParameter] = db.withSession { implicit session =>
-
-    val completionCounts = for {
-      _counts <- StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts
-      _edgeRegion <- StreetEdgeRegionTable.streetEdgeRegionTable if _edgeRegion.streetEdgeId === _counts._1
-      _region <- RegionTable.regionsWithoutDeleted if _region.regionId === _edgeRegion.regionId
-      if _region.regionTypeId === 2 // only neighborhood (exclude cities)
-    } yield (_region.regionId, _counts._1, _counts._2)
-
-    val priorityParamTable: List[StreetEdgePriorityParameter] = completionCounts.list.map {
-      x => StreetEdgePriorityParameter.tupled((x._2, x._3.toDouble))
-    }
+    
+    val priorityParamTable: List[StreetEdgePriorityParameter] =
+      StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts.list.map {
+        x => StreetEdgePriorityParameter.tupled((x._1, x._2.toDouble))
+      }
     normalizePriorityReciprocal(priorityParamTable)
   }
 }
