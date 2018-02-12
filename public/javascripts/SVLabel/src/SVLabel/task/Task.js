@@ -20,7 +20,8 @@ function Task (geojson, currentLat, currentLng) {
     var properties = {
         auditTaskId: null,
         streetEdgeId: null,
-        completionCount: null
+        completionCount: null,
+        priority: null
     };
 
     /**

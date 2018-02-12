@@ -18,6 +18,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousPaths = [];
 
     self._taskStoreByRegionId = {};
+    self._streetEdgePriorityMap = {};
 
     self._handleTaskFetchCompleted = function () {
         var nextTask = self.nextTask();
@@ -171,19 +172,39 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (typeof async == "undefined") async = true;
 
         if (typeof regionId == "number") {
+
+            // First get the priorities for the street edges in the region, then store the tasks with these priorities
             $.ajax({
-                url: "/tasks?regionId=" + regionId,
+                url: "/audit/getRegionStreetPriority/" + regionId,
                 async: async,
                 type: 'get',
                 success: function (result) {
-                    var task;
-                    for (var i = 0; i < result.length; i++) {
-                        task = svl.taskFactory.create(result[i]);
-                        if ((result[i].features[0].properties.completed)) task.complete();
-                        storeTask(regionId, task);
-                    }
+                    self._streetEdgePriorityMap[regionId] = {};
+                    result.forEach(function(streetEdge) {
+                        self._streetEdgePriorityMap[regionId][streetEdge['streetEdgeId']] = streetEdge['priority'];
+                    });
 
-                    if (callback) callback();
+                    $.ajax({
+                        url: "/tasks?regionId=" + regionId,
+                        async: async,
+                        type: 'get',
+                        success: function (result) {
+                            var task,streetEdgeId,priority;
+                            for (var i = 0; i < result.length; i++) {
+                                task = svl.taskFactory.create(result[i]);
+                                streetEdgeId = task.getProperty('streetEdgeId');
+                                priority = self._streetEdgePriorityMap[regionId][streetEdgeId];
+                                task.setProperty('priority',priority);
+                                if ((result[i].features[0].properties.completed)) task.complete();
+                                storeTask(regionId, task);
+                            }
+
+                            if (callback) callback();
+                        },
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
                 },
                 error: function (result) {
                     console.error(result);
@@ -486,7 +507,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (userCandidateTasks.length === 0) return null;
 
         // Return the new task. Change the starting point of the new task accordingly.
-        newTask = _.shuffle(userCandidateTasks)[0];
+
+        /*New code: Select the edge with the highest priority value*/
+        userCandidateTasks.sort(function(t1,t2) {
+            return t2.getProperty('priority')-t1.getProperty('priority');
+        });
+        newTask = userCandidateTasks[0];
+
         if (finishedTask) {
             var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
