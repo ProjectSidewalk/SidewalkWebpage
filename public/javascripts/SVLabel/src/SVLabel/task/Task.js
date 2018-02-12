@@ -35,6 +35,7 @@ function Task (geojson, currentLat, currentLng) {
 
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
         self.setProperty("completionCount", _geojson.features[0].properties.completion_count);
+        self.setProperty("priority", _geojson.features[0].properties.priority);
 
         if (_geojson.features[0].properties.completed) {
             self.complete();
@@ -340,6 +341,10 @@ function Task (geojson, currentLat, currentLng) {
 
     this.getStreetCompletionCount = function () {
         return _geojson.features[0].properties.completion_count;
+    };
+
+    this.getStreetPriority = function () {
+        return _geojson.features[0].properties.priority;
     };
 
     /**
