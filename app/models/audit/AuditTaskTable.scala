@@ -417,26 +417,23 @@ object AuditTaskTable {
     import models.street.StreetEdgeTable.streetEdgeConverter
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    println('1')
     val edgesInRegion = for {
       _ser <- StreetEdgeRegionTable.nonDeletedStreetEdgeRegions if _ser.regionId === regionId
       _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
+      if _ser.regionId === regionId
     } yield _edges
-    println('2')
 
     val lowestCompletionCount: Int = (for {
       (_counts, _edges) <- StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts.innerJoin(edgesInRegion).on(_._1 === _.streetEdgeId)
       if !_counts._1.?.isEmpty
     } yield _counts._2.?.getOrElse(-1)).min.run.getOrElse(-1)
-    println('3')
 
-    val edgesSortedByPriority = for {
-      (_priorities, _edges) <- streetEdgePriorities.sortBy(_.priority.desc).innerJoin(edgesInRegion)
-    } yield _edges
-    println('4')
-
-    val highPriorityEdge: Option[StreetEdge] = edgesSortedByPriority.list.headOption
-    println('5')
+    val minPriority: Option[Double] =
+      streetEdgePriorities.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId).map(_._1.priority).min.run
+    val highPriorityEdge: Option[StreetEdge] =
+      streetEdgePriorities.filter(_.priority === minPriority)
+      .innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId)
+      .map(_._2).list.headOption
 
     highPriorityEdge match {
       case Some(e) =>
@@ -460,11 +457,16 @@ object AuditTaskTable {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
     val userId: String = user.toString
 
-    val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
+    val edgesAuditedByUser: List[Int] =
+      auditTasks
+      .filter(task => task.userId === userId && task.completed)
+      .groupBy(_.streetEdgeId).map(_._1).list
 
     val edgesInRegion = for {
-      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _ser.regionId === regionId
-      _edges <- streetEdgesWithoutDeleted if _ser.streetEdgeId === _edges.streetEdgeId
+      _ser <- StreetEdgeRegionTable.nonDeletedStreetEdgeRegions if _ser.regionId === regionId
+      _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
+      if _ser.regionId === regionId
+      if !(_edges.streetEdgeId inSet edgesAuditedByUser)
     } yield _edges
 
     // Gets the lowest completion count (across all users) for the set of streets in this region that this particular
@@ -474,26 +476,26 @@ object AuditTaskTable {
       if !_counts._1.?.isEmpty
     } yield _counts._2.?.getOrElse(-1)).min.run
 
+    val minPriority: Option[Double] =
+      streetEdgePriorities.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId).map(_._1.priority).min.run
+    val highPriorityEdge: Option[StreetEdge] =
+      streetEdgePriorities.filter(_.priority === minPriority)
+        .innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId)
+        .map(_._2).list.headOption
+
     // Gets the list of edges in the region that has the minimum completion count.
     lowestCompletionCount match {
       case Some(completionCount) =>
-        // Gets the list of edges in the region that has the minimum completion count.
-        val leastAuditedEdges = for {
-          (_counts, _edges) <- StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts.innerJoin(edgesInRegion).on(_._1 === _.streetEdgeId)
-          if !_counts._1.?.isEmpty && _counts._2 === completionCount
-        } yield _edges
-        val edges: List[StreetEdge] = leastAuditedEdges.list
 
-        edges match {
-          case edges if edges.nonEmpty =>
+        highPriorityEdge match {
+          case Some(e) =>
             // Increment the assignment count and return the task
-            val e: StreetEdge = Random.shuffle(edges).head
             StreetEdgeAssignmentCountTable.incrementAssignment(e.streetEdgeId)
             NewTask(e.streetEdgeId, e.geom, e.x1, e.y1, e.x2, e.y2, timestamp, completionCount, completed=false)
 
           // If the user has already audited all streets in the region, then the count would be null, so give them a
           // new task in a new region.
-          case _ =>
+          case None =>
             selectANewTask(user)
         }
       // If the user has already audited all streets in the region, then the count would be null, so give them a
