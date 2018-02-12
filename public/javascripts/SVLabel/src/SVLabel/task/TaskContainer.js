@@ -18,7 +18,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousPaths = [];
 
     self._taskStoreByRegionId = {};
-    self._streetEdgePriorityMap = {};
 
     self._handleTaskFetchCompleted = function () {
         var nextTask = self.nextTask();
@@ -172,39 +171,19 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (typeof async == "undefined") async = true;
 
         if (typeof regionId == "number") {
-
-            // First get the priorities for the street edges in the region, then store the tasks with these priorities
             $.ajax({
-                url: "/audit/getRegionStreetPriority/" + regionId,
+                url: "/tasks?regionId=" + regionId,
                 async: async,
                 type: 'get',
                 success: function (result) {
-                    self._streetEdgePriorityMap[regionId] = {};
-                    result.forEach(function(streetEdge) {
-                        self._streetEdgePriorityMap[regionId][streetEdge['streetEdgeId']] = streetEdge['priority'];
-                    });
+                    var task;
+                    for (var i = 0; i < result.length; i++) {
+                        task = svl.taskFactory.create(result[i]);
+                        if ((result[i].features[0].properties.completed)) task.complete();
+                        storeTask(regionId, task);
+                    }
 
-                    $.ajax({
-                        url: "/tasks?regionId=" + regionId,
-                        async: async,
-                        type: 'get',
-                        success: function (result) {
-                            var task,streetEdgeId,priority;
-                            for (var i = 0; i < result.length; i++) {
-                                task = svl.taskFactory.create(result[i]);
-                                streetEdgeId = task.getProperty('streetEdgeId');
-                                priority = self._streetEdgePriorityMap[regionId][streetEdgeId];
-                                task.setProperty('priority',priority);
-                                if ((result[i].features[0].properties.completed)) task.complete();
-                                storeTask(regionId, task);
-                            }
-
-                            if (callback) callback();
-                        },
-                        error: function (result) {
-                            console.error(result);
-                        }
-                    });
+                    if (callback) callback();
                 },
                 error: function (result) {
                     console.error(result);
@@ -451,6 +430,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Get the next task and set it as a current task.
      *
      * Procedure:
+     * Get the list of highest priority streets that this user has not audited
+     * - If the street you just audited connects to any of those, pick the highest priority one
+     * - O/w jump to the highest priority street
+     *
+     *
      * If the neighborhood is not 100% complete (across all users)
      *    - If the street you just audited connects to any
      *     streets that no one has audited, then pick one, otherwise jump.
@@ -510,7 +494,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         /*New code: Select the edge with the highest priority value*/
         userCandidateTasks.sort(function(t1,t2) {
-            return t2.getProperty('priority')-t1.getProperty('priority');
+            return t2.getStreetPriority() - t1.getStreetPriority();
         });
         newTask = userCandidateTasks[0];
 
