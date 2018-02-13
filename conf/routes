@@ -52,8 +52,8 @@ GET     /adminapi/labelCounts/registered                     @controllers.AdminC
 GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
 GET     /adminapi/labelCounts/turker                         @controllers.AdminController.getAllTurkerUserLabelCounts
 GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
-GET     /adminiapi/audittimesAnon                            @controllers.AdminController.getAnonAuditTimes()
-GET     /adminapi/audittimesTurker                           @controllers.AdminController.getTurkerAuditTimes()
+GET     /adminapi/auditTimesAnon                             @controllers.AdminController.getAnonAuditTimes()
+GET     /adminapi/auditTimesTurker                           @controllers.AdminController.getTurkerAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
