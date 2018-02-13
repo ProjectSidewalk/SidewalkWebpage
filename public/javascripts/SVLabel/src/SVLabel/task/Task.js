@@ -347,6 +347,12 @@ function Task (geojson, currentLat, currentLng) {
         return _geojson.features[0].properties.priority;
     };
 
+    // Returns an integer in the range 0 to n-1, where larger n means higher priority.
+    this.getStreetPriorityDiscretized = function() {
+        var n = 4;
+        return Math.min(Math.floor(_geojson.features[0].properties.priority / 0.25), n - 1);
+    };
+
     /**
      * Returns the task start time
      */

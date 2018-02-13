@@ -451,53 +451,37 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
-        // If the neighborhood is 100% complete (across all users)
-        if (findNeighborhoodCompleteAcrossAllUsers(currentNeighborhoodId, finishedTask)) {
-            // If the street you just audited connects to any streets that you have not personally audited,
-            // pick any one of those at random. Otherwise, jump.
-
-            // Find connected tasks that are incomplete by the user
-            userCandidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, false, null, null);
-            userCandidateTasks = userCandidateTasks.filter(function (t) {
-                return !t.isCompleted();
-            });
-
-            if (userCandidateTasks.length === 0) {
-                userCandidateTasks = self.getIncompleteTasks(currentNeighborhoodId).filter(function (t) {
-                    return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
-                });
-            }
-
-        }
-        // If the neighborhood is NOT 100% complete (across all users)
-        else {
-            // If the street you just audited connects to any streets that no one has audited, then pick one,
-            // otherwise jump.
-
-            // Find connected tasks across all users that are also incomplete by the user
-            userCandidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, true, null, null);
-            userCandidateTasks = userCandidateTasks.filter(function (t) {
-                return !t.isCompleted();
-            });
-
-            // If there aren't any amongst connected tasks, select an incomplete task (or unaudited street) in the
-            // neighborhood
-            if (userCandidateTasks.length === 0) {
-                userCandidateTasks = self.getIncompleteTasksAcrossAllUsers(currentNeighborhoodId).filter(function(t) {
-                    return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId(): null));
-                });
-            }
-        }
-        if (userCandidateTasks.length === 0) return null;
-
-        // Return the new task. Change the starting point of the new task accordingly.
-
-        /*New code: Select the edge with the highest priority value*/
-        userCandidateTasks.sort(function(t1,t2) {
+        // Find highest priority task not audited by the user
+        var tasksNotCompletedByUser = self.getTasksInRegion(currentNeighborhoodId).filter(function (t) {
+            return !t.isCompleted() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
+        }).sort(function(t1, t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });
-        newTask = userCandidateTasks[0];
+        if (tasksNotCompletedByUser.length === 0) {
+            return null;
+        }
+        var highestPriorityTask = tasksNotCompletedByUser[0];
+        console.log(highestPriorityTask);
 
+        // If any of the connected tasks has max discretized priority, pick the highest priority one, o/w take the
+        // highest priority task in the region.
+        userCandidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, false, null, null);
+        console.log(userCandidateTasks);
+
+        userCandidateTasks = userCandidateTasks.filter(function(t) {
+            return !t.isCompleted() && t.getStreetPriorityDiscretized() === highestPriorityTask.getStreetPriorityDiscretized();
+        }).sort(function(t1,t2) {
+            return t2.getStreetPriority() - t1.getStreetPriority();
+        });
+        console.log(userCandidateTasks);
+
+        if (userCandidateTasks.length > 0) {
+            newTask = userCandidateTasks[0];
+        } else {
+            newTask = highestPriorityTask;
+        }
+
+        // Return the new task. Change the starting point of the new task accordingly.
         if (finishedTask) {
             var coordinate = finishedTask.getLastCoordinate();
             newTask.setStreetEdgeDirection(coordinate.lat, coordinate.lng);
