@@ -69,7 +69,6 @@ GET     /audit                                               @controllers.AuditC
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
-GET     /audit/getRegionStreetPriority/:regionId             @controllers.AuditPriorityController.getRegionStreetPriority(regionId: Int)
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 

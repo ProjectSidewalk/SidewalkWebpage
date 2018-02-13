@@ -47,15 +47,4 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
       Future.successful(Redirect("/"))
     }
   }
-
-  /**
-    * Returns the street edge priority for all streets in a region.
-    *
-    * @param regionId
-    * @return
-    */
-  def getRegionStreetPriority(regionId: Int) = UserAwareAction.async { implicit request =>
-    val regionStreetPriorities: List[JsObject] = StreetEdgePriorityTable.getAllStreetEdgeInRegionPriority(regionId).map(_.toJSON)
-    Future.successful(Ok(JsArray(regionStreetPriorities)))
-  }
 }

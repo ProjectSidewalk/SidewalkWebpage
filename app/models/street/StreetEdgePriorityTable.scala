@@ -71,16 +71,6 @@ object StreetEdgePriorityTable {
     streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId}.map(_.priority).list.head
   }
 
-  def getAllStreetEdgeInRegionPriority(regionId: Int): List[StreetEdgePriority] = db.withTransaction { implicit session =>
-    // Merge with street edge region table
-    val priorities = for {
-      _priorities <- streetEdgePriorities
-      _edgeRegions <- StreetEdgeRegionTable.nonDeletedStreetEdgeRegions if _priorities.streetEdgeId === _edgeRegions.streetEdgeId
-      if _edgeRegions.regionId === regionId
-    } yield _priorities
-    priorities.list
-  }
-
   def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>
     streetEdgePriorities.map(_.priority).update(priority)
   }
