@@ -449,7 +449,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }).sort(function(t1, t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });
-        if (tasksNotCompletedByUser.length === 0) {
+        if (tasksNotCompletedByUser.length === 0) { // user has audited entire region
             return null;
         }
         var highestPriorityTask = tasksNotCompletedByUser[0];
