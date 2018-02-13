@@ -434,14 +434,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * - If the street you just audited connects to any of those, pick the highest priority one
      * - O/w jump to the highest priority street
      *
-     *
-     * If the neighborhood is not 100% complete (across all users)
-     *    - If the street you just audited connects to any
-     *     streets that no one has audited, then pick one, otherwise jump.
-     * Else
-     *    - If the street you just audited connects to any streets
-     *     that you have not personally audited, pick any one of those at random. Otherwise, jump.
-     *
      * @param finishedTask The task that has been finished.
      * @returns {*} Next task
      */
