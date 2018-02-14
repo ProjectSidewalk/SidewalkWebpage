@@ -72,7 +72,6 @@ POST    /audit/comment                                       @controllers.AuditC
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 
 # Task API.
-GET     /task                                                @controllers.TaskController.getTask
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post

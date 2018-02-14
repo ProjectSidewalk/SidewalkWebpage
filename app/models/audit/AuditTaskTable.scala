@@ -272,6 +272,17 @@ object AuditTaskTable {
   }
 
   /**
+    * Returns a true if the user has a completed audit task for the given street edge, false otherwise.
+    *
+    * @param streetEdgeId
+    * @param user
+    * @return
+    */
+  def userHasAuditedStreet(streetEdgeId: Int, user: UUID): Boolean = db.withSession { implicit session =>
+    completedTasks.filter(task => task.streetEdgeId === streetEdgeId && task.userId === user.toString).list.nonEmpty
+  }
+
+  /**
     * Return audited street edges
     *
     * @return
@@ -328,7 +339,7 @@ object AuditTaskTable {
   }
 
   /**
-   * Get a new task for the user.
+   * Get a new task for the user. This is called if the user is not already assigned a region.
    *
    * Reference for creating java.sql.timestamp
    * http://stackoverflow.com/questions/308683/how-can-i-get-the-current-date-and-time-in-utc-or-gmt-in-java
@@ -372,7 +383,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get task without username
+    * Get task without username. Used only as a backup in case selectANewTaskInARegion(regionId) fails.
     *
     * @return
     */
@@ -397,22 +408,25 @@ object AuditTaskTable {
   }
 
   /**
-    * Get a new task specified by the street edge id.
+    * Get a new task specified by the street edge id. Used when calling the /audit/street route.
     *
     * @param streetEdgeId Street edge id
     * @return
     */
-  def selectANewTask(streetEdgeId: Int): NewTask = db.withSession { implicit session =>
+  def selectANewTask(streetEdgeId: Int, user: Option[UUID]): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+
+    // Set completed to true if the user has already audited this street.
+    val userCompleted: Boolean = if (user.isDefined) userHasAuditedStreet(streetEdgeId, user.get) else false
 
     val edges = (for {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       scc <- streetCompletionCounts if se.streetEdgeId === scc._1
       sep <- streetEdgePriorities if scc._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, false)).list
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, userCompleted)).list
 
     assert(edges.nonEmpty)
-    val task: NewTask = NewTask.tupled(edges.head)
+    var task: NewTask = NewTask.tupled(edges.head)
 
     StreetEdgeAssignmentCountTable.incrementAssignment(task.edgeId)
     task
@@ -420,7 +434,7 @@ object AuditTaskTable {
 
 
   /**
-   * Get a task that is in a given region
+   * Get a task that is in a given region. Used for anon users in all situations, except when using /audit/street.
     *
     * @param regionId region id
    * @return
@@ -454,7 +468,7 @@ object AuditTaskTable {
   }
 
   /**
-   * Get a task that is in a given region
+   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /audit/region.
    *
    * @param regionId region id
    * @param user User ID.
@@ -495,7 +509,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get tasks in the region
+    * Get tasks in the region. Called when an anonymous user begins auditing a region.
     *
     * @param regionId Region id
     * @return
@@ -514,7 +528,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get tasks in the region
+    * Get tasks in the region. Called when a registered user begins auditing a region.
     *
     * @param regionId Region id
     * @param user User id

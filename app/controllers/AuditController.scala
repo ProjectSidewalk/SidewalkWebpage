@@ -62,7 +62,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             UserCurrentRegionTable.assignEasyRegion(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
           case Some("regular") =>
-            // Assign an easy region if the query string has nextRegion=regular
+            // Assign a difficult region if the query string has nextRegion=regular and the user is experienced
             UserCurrentRegionTable.assignNextRegion(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
           case Some(illformedString) =>
@@ -145,7 +145,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
     val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
     val region: Option[NamedRegion] = try {
       Some(regions.head)
@@ -155,7 +154,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     // TODO: Should this function be modified?
-    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
     request.identity match {
       case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))

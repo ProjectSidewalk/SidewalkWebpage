@@ -37,24 +37,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
 
   /**
-   * This method returns a task definition in the GeoJSON format.
-   * @return Task definition
-   */
-  def getTask = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val task = AuditTaskTable.selectANewTask(user.userId)
-        Future.successful(Ok(task.toJSON))
-      case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
-    }
-  }
-
-  /**
     * This method returns a task definition specified by the streetEdgeId.
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
     Future.successful(Ok(task.toJSON))
   }
 
