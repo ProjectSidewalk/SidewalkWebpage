@@ -6,6 +6,7 @@ import java.util.UUID
 import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.gsv.GSVOnboardingPanoTable
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
@@ -88,6 +89,8 @@ object LabelTable {
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+
+  val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filterNot(_.gsvPanoramaId inSet GSVOnboardingPanoTable.getOnboardingPanoIds)
 
 
   val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
