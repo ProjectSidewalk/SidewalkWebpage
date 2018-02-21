@@ -41,10 +41,10 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
 
       //Final Priority for each street edge is calculated by some transformation (paramScalingFunction)
       //of the weighted sum (weights are given by the weightVector) of the priority parameters.
-      val paramScalingFunction: (Double) => Double = StreetEdgePriorityTable.logisticFunction
+//      val paramScalingFunction: (Double) => Double = StreetEdgePriorityTable.logisticFunction
       val weightVector: List[Double] = List(1)
 //      val weightVector: List[Double] = List(0.1,0.9) -- how it would look with two priority param funcs
-      StreetEdgePriorityTable.updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
+      StreetEdgePriorityTable.updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList, weightVector)
       Future.successful(Ok("Successfully recalculated street priorities"))
     } else {
       Future.successful(Redirect("/"))

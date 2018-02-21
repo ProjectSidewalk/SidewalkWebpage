@@ -130,7 +130,7 @@ object StreetEdgePriorityTable {
   }
 
   /**
-    * Recalculate the priority attribute for all streetEdges (this uses hardcoded min-max normalization).
+    * Recalculate the priority attribute for all streetEdges.
     *
     * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
@@ -151,6 +151,32 @@ object StreetEdgePriorityTable {
         val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
         val updatePriority = q2.update(tempPriority)
       }
+    }
+  }
+
+  /**
+    * Recalculate the priority attribute for all streetEdges.
+    *
+    * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
+    * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
+    * @return
+    */
+  def updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double]) = db.withTransaction { implicit session =>
+
+    // Create a map from each street edge to a default priority value of 0
+    val edgePriorityMap = collection.mutable.Map[Int, Double]().withDefaultValue(0.0)
+    for (id <- streetEdgePriorities.map(_.streetEdgeId).list) { edgePriorityMap += (id -> 0.0) }
+
+    // Compute weighted sum of priority based on the rankParameter generators
+    for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)) {
+      val priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
+      priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter*w_i) }
+    }
+
+    // Set priority values in the table.
+    for ((edgeId, newPriority) <- edgePriorityMap) {
+      val q = for { edge <- streetEdgePriorities if edge.streetEdgeId === edgeId } yield edge.priority
+      val updateAction = q.update(newPriority)
     }
   }
 
