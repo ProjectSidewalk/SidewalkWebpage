@@ -226,7 +226,7 @@ object StreetEdgePriorityTable {
     //     else                          -> priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
 
     // Compute distance of each street edge
-    val streetDist = StreetEdgeTable.streetEdgesWithoutDeleted.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
+    val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
 
     /********** Registered Users **********/
