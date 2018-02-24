@@ -1,17 +1,22 @@
 package app
 
 import com.google.inject.Guice
-import com.mohiva.play.silhouette.api.{ Logger, SecuredSettings }
+import com.mohiva.play.silhouette.api.{Logger, SecuredSettings}
 import controllers.routes
 import play.api._
 import play.api.GlobalSettings
-import play.api.i18n.{ Lang, Messages }
+import play.api.i18n.{Lang, Messages}
 import play.api.mvc._
 import play.api.mvc.Results._
-import play.api.mvc.{ RequestHeader, Result }
+import play.api.mvc.{RequestHeader, Result}
 import utils.di.SilhouetteModule
 import controllers.headers._
+import play.api.libs.concurrent.Akka
+
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import play.api.Play.current
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * The global object.
@@ -31,6 +36,14 @@ object Global extends Global {
    */
   override def onError(request: RequestHeader, throwable: Throwable) = {
     Future.successful(InternalServerError(views.html.errors.onError(throwable)))
+  }
+
+  override def onStart(app: Application) = {
+    println("hello init")
+    Akka.system.scheduler.schedule(0.microsecond, 1000.microsecond) {
+      Future.successful(Redirect(routes.AuditPriorityController.test("abc")))
+//      println("hello!")
+    }
   }
 
   /**
