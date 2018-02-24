@@ -16,7 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
-import models.street.StreetEdgeAssignmentCountTable
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
 import models.user.User
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
@@ -139,9 +139,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           val auditTaskId: Int = updateAuditTaskTable(request.identity, data.auditTask, amtAssignmentId)
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
+          // If the task was completed, update the street's priority.
+          data.auditTask.completed.map { completed =>
+            if (completed) { StreetEdgePriorityTable.partiallyUpdatePriority(data.auditTask.streetEdgeId) }
+          }
+
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           if (data.incomplete.isDefined) {
-            val incomplete = data.incomplete.get
+            val incomplete: IncompleteTaskSubmission = data.incomplete.get
             AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
           }
 

@@ -335,4 +335,22 @@ object StreetEdgePriorityTable {
     println(normalizePriorityReciprocal(priorityParamTable).count(_.priorityParameter > 0.5)) // number with high priority
     normalizePriorityReciprocal(priorityParamTable)
   }
+
+  /**
+    * Partially updates the priority of a street edge (to be used after an audit of this street is completed)
+    *
+    * @param streetEdgeId
+    * @return success boolean
+    */
+  def partiallyUpdatePriority(streetEdgeId: Int): Boolean = db.withTransaction { implicit session =>
+    val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
+    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map {
+      currPriority =>
+        val oldAuditCount: Double = (1 - currPriority) / currPriority
+        val newPriority: Double = 1 / (2 + oldAuditCount)
+        val rowsUpdated: Int = priorityQuery.update(newPriority)
+        rowsUpdated > 0
+    }
+    rowsWereUpdated.getOrElse(false)
+  }
 }
