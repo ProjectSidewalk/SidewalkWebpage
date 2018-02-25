@@ -217,13 +217,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             if (!threshold) threshold = 0.01;  // 0.01 km.
             if (!unit) unit = "kilometers";
 
-            console.log("Before task completion filter");
-            for(var i = 0; i < tasks.length; i++){
-                var task_i = tasks[i];
-                console.log(task_i.getStreetEdgeId() + ":" + task_i.isCompleted() + ":" + task_i.getStreetCompletionCount() + ":" +
-                    task_i.getStreetPriority());
-            }
-
             tasks = tasks.filter(function (t) { return !t.isCompleted(); });
 
             if (taskIn) {
@@ -461,19 +454,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             return null;
         }
         var highestPriorityTask = tasksNotCompletedByUser[0];
-        console.log("Highest Priority Task:" + highestPriorityTask.getStreetEdgeId());
 
         // If any of the connected tasks has max discretized priority, pick the highest priority one, o/w take the
         // highest priority task in the region.
         userCandidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, false, null, null);
-        console.log(userCandidateTasks);
 
         userCandidateTasks = userCandidateTasks.filter(function(t) {
             return !t.isCompleted() && t.getStreetPriorityDiscretized() === highestPriorityTask.getStreetPriorityDiscretized();
         }).sort(function(t1,t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });
-        console.log(userCandidateTasks);
 
         if (userCandidateTasks.length > 0) {
             newTask = userCandidateTasks[0];

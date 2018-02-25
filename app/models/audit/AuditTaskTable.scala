@@ -356,7 +356,6 @@ object AuditTaskTable {
       _task <- completedTasks if _task.userId === _user.userId
     } yield (_user.username.?, _task.streetEdgeId.?)
 
-    println("Called selectANewTask:userid - no region assigned")
     // Gets list of streets that user has not audited, takes 100, then picks the one with highest priority to assign
     // TODO: Remove randomness once real-time updates of priority have been implemented.
     val edges = (for {
@@ -393,7 +392,6 @@ object AuditTaskTable {
 
     // Take up to 100 of the highest priority edges, and assign one at random
     // TODO Remove randomness once real-time updates of priority have been implemented.
-    println("Called selectANewTask:anon - backup")
     val maxPriority: Option[Double] = streetEdgePriorities.map(_.priority).max.run
     val possibleTasks = (for {
       sep <- streetEdgePriorities if sep.priority === maxPriority
@@ -443,7 +441,6 @@ object AuditTaskTable {
    */
   def selectANewTaskInARegion(regionId: Int): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-    println("Called selectANewTask:anon - in a region")
 
     val edgesInRegion = for {
       _ser <- nonDeletedStreetEdgeRegions if _ser.regionId === regionId
@@ -479,7 +476,6 @@ object AuditTaskTable {
    */
   def selectANewTaskInARegion(regionId: Int, user: UUID): NewTask = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-    println("Called selectANewTask:user - in a region")
 
     val edgesAuditedByUser: List[Int] =
       completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
