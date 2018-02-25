@@ -368,8 +368,7 @@ object StreetEdgePriorityTable {
     val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
     val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map {
       currPriority =>
-        val oldAuditCount: Double = (1 - currPriority) / currPriority
-        val newPriority: Double = 1 / (2 + oldAuditCount)
+        val newPriority: Double = 1 / (1 + (1 / currPriority))
         val rowsUpdated: Int = priorityQuery.update(newPriority)
         rowsUpdated > 0
     }
