@@ -14,9 +14,8 @@ import controllers.headers._
 import play.api.libs.concurrent.Akka
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import play.api.Play.current
-import scala.concurrent.ExecutionContext.Implicits.global
+import utils.actor.MyDailyActor
 
 /**
  * The global object.
@@ -36,14 +35,6 @@ object Global extends Global {
    */
   override def onError(request: RequestHeader, throwable: Throwable) = {
     Future.successful(InternalServerError(views.html.errors.onError(throwable)))
-  }
-
-  override def onStart(app: Application) = {
-    println("hello init")
-    Akka.system.scheduler.schedule(0.microsecond, 1000.microsecond) {
-      Future.successful(Redirect(routes.AuditPriorityController.test("abc")))
-//      println("hello!")
-    }
   }
 
   /**
@@ -78,6 +69,10 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
    * @throws Exception if the controller couldn't be instantiated.
    */
   override def getControllerInstance[A](controllerClass: Class[A]) = injector.getInstance(controllerClass)
+
+  override def onStart(app: Application) = {
+    Akka.system.actorOf(MyDailyActor.props, MyDailyActor.Name)
+  }
 
   /**
    * Called when a user is not authenticated.

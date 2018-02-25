@@ -130,6 +130,28 @@ object StreetEdgePriorityTable {
   }
 
   /**
+    * Recalculates street edge priority for all streets.
+    */
+  def recalculateStreetPriority = {
+    // Function pointer to the function that returns priority based on audit counts of good/bad users
+    // The functions being pointed to should always have the signature ()=>List[StreetEdgePriorityParameter]
+    // (Takes no input arguments and returns a List[StreetEdgePriorityParameter])
+    val completionCountPriority = () => { StreetEdgePriorityTable.selectGoodBadUserCompletionCountPriority }
+
+    // List of function pointers that will generate priority parameters.
+    val rankParameterGeneratorList: List[() => List[StreetEdgePriorityParameter]] =
+      List(completionCountPriority)
+    // List(completionCountPriority1,completionCountPriority2) // how it would look with two priority param funcs
+
+    // Final Priority for each street edge is calculated by some transformation (paramScalingFunction)
+    // of the weighted sum (weights are given by the weightVector) of the priority parameters.
+    // val paramScalingFunction: (Double) => Double = StreetEdgePriorityTable.logisticFunction
+    val weightVector: List[Double] = List(1)
+    // val weightVector: List[Double] = List(0.1,0.9) -- how it would look with two priority param funcs
+    updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList, weightVector)
+  }
+
+  /**
     * Recalculate the priority attribute for all streetEdges.
     *
     * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
