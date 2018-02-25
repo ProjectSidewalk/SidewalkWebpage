@@ -2,18 +2,14 @@ package controllers
 
 import javax.inject.Inject
 
-import akka.actor.Actor
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.User
-import models.street.{StreetEdgePriorityParameter, StreetEdgePriorityTable}
-
-import scala.io.Source
+import models.street.StreetEdgePriorityTable
 
 import scala.concurrent.Future
-
 
 
 class AuditPriorityController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
