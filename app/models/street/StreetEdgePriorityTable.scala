@@ -132,7 +132,7 @@ object StreetEdgePriorityTable {
   /**
     * Recalculates street edge priority for all streets.
     */
-  def recalculateStreetPriority = {
+  def recalculateStreetPriority() = {
     // Function pointer to the function that returns priority based on audit counts of good/bad users
     // The functions being pointed to should always have the signature ()=>List[StreetEdgePriorityParameter]
     // (Takes no input arguments and returns a List[StreetEdgePriorityParameter])
