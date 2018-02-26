@@ -7,7 +7,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
 
-import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
+import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable, StreetEdgeTable}
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -93,24 +93,24 @@ object UserCurrentRegionTable {
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
 
-    // TODO: Add a detailed comment
-    val difficultRegionCompletions: List[RegionCompletion] =
-      RegionCompletionTable.regionCompletions
-        .filter(_.regionId inSet regionIds)
-        .filter(_.regionId inSet difficultRegionIds)
-        .sortBy(region => region.auditedDistance / region.totalDistance).list
-        .filterNot(region => StreetEdgeRegionTable.allStreetsInARegionAudited(region.regionId))
+    val highestPriorityRegions: List[(Int, Option[Double])] = StreetEdgeRegionTable.streetEdgeRegionTable
+      .filter(_.regionId inSet regionIds)
+      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
+      .map { case (_edgeRegion, _edgePriority) => (_edgeRegion.regionId, _edgePriority.priority) }
+      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) }
+      .sortBy(_._2.desc).take(5).list
 
-    // If there are no difficult regions left, or if they are inexperienced and there is an easy region left, give them
-    // an easy region.
-    if (difficultRegionCompletions.isEmpty ||
-        (regionIds.filterNot(difficultRegionIds.contains(_)).nonEmpty && !isUserExperienced(userId))) {
-      assignEasyRegion(userId)
-    }
-    else {
-      // Take the least-audited difficult region
-      val regionId: Int = difficultRegionCompletions.head.regionId
-      update(userId, regionId)
+    println(highestPriorityRegions)
+    val chosenRegionId: Option[Int] = scala.util.Random.shuffle(highestPriorityRegions).headOption.map(_._1)
+    chosenRegionId match {
+      case Some(regionId) => update(userId, regionId)
+      case _ =>
+        scala.util.Random.shuffle(regionIds).headOption match {
+          case Some(anyIncompleteRegionId) => update(userId, anyIncompleteRegionId)
+          case _ =>
+            val anyRegion: Int = scala.util.Random.shuffle(RegionTable.regionsWithoutDeleted.map(_.regionId).list).head
+            update(userId, anyRegion)
+        }
     }
   }
 
