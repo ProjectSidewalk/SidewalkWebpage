@@ -150,7 +150,7 @@ object StreetEdgePriorityTable {
     // val paramScalingFunction: (Double) => Double = StreetEdgePriorityTable.logisticFunction
     val weightVector: List[Double] = List(1)
     // val weightVector: List[Double] = List(0.1,0.9) -- how it would look with two priority param funcs
-    updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList, weightVector)
+    updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
   }
 
   /**
