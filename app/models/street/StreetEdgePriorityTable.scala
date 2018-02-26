@@ -266,7 +266,9 @@ object StreetEdgePriorityTable {
       _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
       if !_env.ipAddress.isEmpty
       _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
-    } yield (_env.ipAddress, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT ip_address, COUNT(*)
+    } yield (_env.ipAddress, _lab.labelId))
+        .groupBy(x => x).map(_._1) // select distinct
+        .groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT ip_address, COUNT(*)
 
     // Finally, determine whether each anonymous user is above or below the label per meter threshold
     // SELECT ip_address, is_good_user (where is_good_user = label_count/distance_audited > threshold)
