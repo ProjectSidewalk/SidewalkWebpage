@@ -90,6 +90,8 @@ object LabelTable {
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
+  // Filters out the labels placed during onboarding (aka panoramas that are used during onboarding
+  // Onboarding labels have to be filtered out before a user's labeling frequency is computed
   val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filterNot(_.gsvPanoramaId inSet GSVOnboardingPanoTable.getOnboardingPanoIds)
 
 
