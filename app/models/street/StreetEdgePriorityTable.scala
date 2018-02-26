@@ -159,6 +159,9 @@ object StreetEdgePriorityTable {
   /**
     * Recalculate the priority attribute for all streetEdges.
     *
+    * This version updates a scala map object instead of the actual entries in the database (like in
+    * updateAllStreetEdgePriorities() above. This function will only values in the table once.
+    *
     * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
     * @return
