@@ -66,7 +66,7 @@ class RecalculateStreetPriorityActor extends Actor {
 }
 
 object RecalculateStreetPriorityActor {
-  val Name = "my-daily-actor"
-  def props = Props(new DailyActor)
+  val Name = "recalculate-street-priority-actor"
+  def props = Props(new RecalculateStreetPriorityActor)
   case object Tick
 }
