@@ -132,6 +132,28 @@ object StreetEdgePriorityTable {
   }
 
   /**
+    * Recalculates street edge priority for all streets.
+    */
+  def recalculateStreetPriority() = {
+    // Function pointer to the function that returns priority based on audit counts of good/bad users
+    // The functions being pointed to should always have the signature ()=>List[StreetEdgePriorityParameter]
+    // (Takes no input arguments and returns a List[StreetEdgePriorityParameter])
+    val completionCountPriority = () => { StreetEdgePriorityTable.selectGoodBadUserCompletionCountPriority }
+
+    // List of function pointers that will generate priority parameters.
+    val rankParameterGeneratorList: List[() => List[StreetEdgePriorityParameter]] =
+      List(completionCountPriority)
+    // List(completionCountPriority1,completionCountPriority2) // how it would look with two priority param funcs
+
+    // Final Priority for each street edge is calculated by some transformation (paramScalingFunction)
+    // of the weighted sum (weights are given by the weightVector) of the priority parameters.
+    // val paramScalingFunction: (Double) => Double = StreetEdgePriorityTable.logisticFunction
+    val weightVector: List[Double] = List(1)
+    // val weightVector: List[Double] = List(0.1,0.9) -- how it would look with two priority param funcs
+    updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
+  }
+
+  /**
     * Recalculate the priority attribute for all streetEdges.
     *
     * Explanation:
@@ -315,5 +337,28 @@ object StreetEdgePriorityTable {
       }
 
     normalizePriorityReciprocal(priorityParamTable)
+  }
+
+  /**
+    * Partially updates the priority of a street edge based on the current priority (to be used after an audit of this
+    * street is completed)
+    *
+    * Feb 25: This is equivalent to adding 1 to the good_user_audit_count...
+    * if old_priority = 1 / c' (where c' = 1 + good_user_audit_count + bad_user_audit_count), then c' = 1 / old_priority
+    * Then if you want to calculate a new priority with count c' + 1,
+    * you get new_priority = 1 / (1 + c') = 1 / (1 + (1 / old_priority))
+    *
+    * @param streetEdgeId
+    * @return success boolean
+    */
+  def partiallyUpdatePriority(streetEdgeId: Int): Boolean = db.withTransaction { implicit session =>
+    val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
+    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map {
+      currPriority =>
+        val newPriority: Double = 1 / (1 + (1 / currPriority))
+        val rowsUpdated: Int = priorityQuery.update(newPriority)
+        rowsUpdated > 0
+    }
+    rowsWereUpdated.getOrElse(false)
   }
 }

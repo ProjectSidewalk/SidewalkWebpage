@@ -552,6 +552,10 @@ object AuditTaskTable {
     tasks.list.map(NewTask.tupled(_))
   }
 
+  def isAuditComplete(auditTaskId: Int): Boolean = db.withSession { implicit session =>
+    auditTasks.filter(_.auditTaskId === auditTaskId).list.headOption.map(_.completed).getOrElse(false)
+  }
+
 
   /**
    * Saves a new audit task.
