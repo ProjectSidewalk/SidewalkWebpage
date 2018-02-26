@@ -221,12 +221,16 @@ object StreetEdgePriorityTable {
       _dist <- streetDist if _task.streetEdgeId === _dist._1
     } yield (_user.userId, _dist._2)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
 
+    println("regAuditedDists: " + regAuditedDists.filter(_._1 inSet List("25b85b51-574b-436e-a9c4-339eef879e78", "0c6cb637-05b7-4759-afb2-b0a25b615597")).list)
+
     // Gets all registered user tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
     val regLabelCounts = (for {
       _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.auditTasks if _task.userId === _user.userId
       _lab  <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
     } yield (_user.userId, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT user_id, COUNT(*)
+
+    println("regLabelCounts: " + regLabelCounts.filter(_._1 inSet List("25b85b51-574b-436e-a9c4-339eef879e78", "0c6cb637-05b7-4759-afb2-b0a25b615597")).list)
 
     // Finally, determine whether each registered user is above or below the label per meter threshold
     // SELECT ip_address, is_good_user (where is_good_user = label_count/distance_audited > threshold)
@@ -235,6 +239,9 @@ object StreetEdgePriorityTable {
         (_dist._1, _count._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _dist._2 > LABEL_PER_METER_THRESHOLD)
     }
 
+    println("regQuality: " + regQuality.filter(_._1 inSet List("25b85b51-574b-436e-a9c4-339eef879e78", "0c6cb637-05b7-4759-afb2-b0a25b615597")).list)
+
+
     // Now to each audit_task completed by a registered user, we attach a boolean indicating whether or not the user
     // had a labeling frequency above our threshold.
     val regCompletions = AuditTaskTable.completedTasks
@@ -242,6 +249,7 @@ object StreetEdgePriorityTable {
       .innerJoin(regQuality).on(_._2 === _._1)  // join on user id
       .map{ case (_task, _freq) => (_task._1, _freq._2) } // select street_edge_id, is_good_user
 
+    println("regCompletions: " + regCompletions.filter(_._1 === 1884).list)
 
     /********** Anonymous Users **********/
     // Gets the tasks performed by anonymous users, along with ip address; need to select distinct b/c there can be
@@ -252,12 +260,14 @@ object StreetEdgePriorityTable {
       _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
       if !_env.ipAddress.isEmpty
     } yield (_env.ipAddress, _task.auditTaskId, _task.streetEdgeId)).groupBy(x => x).map(_._1) // SELECT DISTINCT
+    println("anonTasks: " + anonTasks.filter(_._3 === 1884).list)
 
     // Takes all tasks completed by anon users, groups by ip_address, and sums over the distances of the street edges.
     val anonAuditedDists = anonTasks.innerJoin(streetDist).on(_._3 === _._1)
       .map { case (_task, _dist) => (_task._1, _dist._2) }   // SELECT ip_address, street_distance
       .groupBy(_._1)                                         // GROUP BY ip_address
       .map { case (ip, group) => (ip, group.map(_._2).sum) } // SELECT ip_address, SUM(street_distance)
+    println(anonAuditedDists.filter(_._1 === "0:0:0:0:0:0:0:1").list)
 
     // Gets all anon user tasks, groups by ip_address, and counts number of labels places (incl. incomplete tasks).
     val anonLabelCounts = (for {
@@ -267,6 +277,7 @@ object StreetEdgePriorityTable {
       if !_env.ipAddress.isEmpty
       _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
     } yield (_env.ipAddress, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT ip_address, COUNT(*)
+    println("anonLabelCounts: " + anonLabelCounts.filter(_._1 === "0:0:0:0:0:0:0:1").list)
 
     // Finally, determine whether each anonymous user is above or below the label per meter threshold
     // SELECT ip_address, is_good_user (where is_good_user = label_count/distance_audited > threshold)
@@ -274,6 +285,7 @@ object StreetEdgePriorityTable {
       case (_dist, _count) =>
         (_dist._1, _count._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _dist._2  > LABEL_PER_METER_THRESHOLD)
     }
+    println("anonQuality: " + anonQuality.filter(_._1 === "0:0:0:0:0:0:0:1").list)
 
     // Now to each audit_task completed by an anonymous user, we attach a boolean indicating whether or not the user
     // had a labeling frequency above our threshold.
@@ -282,6 +294,7 @@ object StreetEdgePriorityTable {
       _task <- anonTasks if _qual._1 === _task._1
     } yield (_task._3, _qual._2) // SELECT street_edge_id, is_good_user
 
+    println("anonCompletions: " + anonCompletions.filter(_._1 === 1884).list)
 
     /********** Compute Audit Counts **********/
     // Combine results from anonymous and registered users
@@ -291,6 +304,9 @@ object StreetEdgePriorityTable {
     val goodUserAuditCounts = completions.filter(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length)}
     val badUserAuditCounts = completions.filterNot(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length)}
 
+    println("goodUserAuditCounts: " + goodUserAuditCounts.filter(_._1 === 1884).list)
+    println("badUserAuditCounts: " + badUserAuditCounts.filter(_._1 === 1884).list)
+
     // Join the good and bad user audit counts with street_edge table, filling in any counts not present as 0. We now
     // have a table with three columns: street_edge_id, good_user_audit_count, bad_user_audit_count
     val allAuditCounts =
@@ -299,6 +315,8 @@ object StreetEdgePriorityTable {
       }.leftJoin(badUserAuditCounts).on(_._1 === _._1).map {
         case (_goodCount, _badCount) => (_goodCount._1, _goodCount._2, _badCount._2.ifNull(0.asColumnOf[Int]))
       }
+
+    println("allAuditCounts: " + allAuditCounts.filter(_._1 === 1884).list)
 
 
     /********** Compute Priority **********/
@@ -314,6 +332,7 @@ object StreetEdgePriorityTable {
             StreetEdgePriorityParameter.tupled((streetCount._1, 0.0))
           }
       }
+    println("x=" + priorityParamTable.filter(_.streetEdgeId == 1884))
 
     println(normalizePriorityReciprocal(priorityParamTable).length) // number of street edges
     println(normalizePriorityReciprocal(priorityParamTable).count(_.priorityParameter > 0.5)) // number with high priority
