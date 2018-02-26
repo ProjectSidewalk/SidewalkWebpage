@@ -2,6 +2,7 @@ package models.street
 
 import models.audit.{AuditTaskEnvironmentTable, AuditTaskTable}
 import models.daos.UserDAOImpl
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -38,6 +39,7 @@ class StreetEdgePriorityTable(tag: Tag) extends Table[StreetEdgePriority](tag, S
 object StreetEdgePriorityTable {
   val db = play.api.db.slick.DB
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
+  val userTable = TableQuery[UserTable]
 
   val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
@@ -232,14 +234,14 @@ object StreetEdgePriorityTable {
     /********** Registered Users **********/
     // Gets all tasks completed by registered users, groups by user_id, and sums over the distances of the street edges.
     val regAuditedDists = (for {
-      _user <- StreetEdgeTable.userTable if _user.username =!= "anonymous"
+      _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.completedTasks if _task.userId === _user.userId
       _dist <- streetDist if _task.streetEdgeId === _dist._1
     } yield (_user.userId, _dist._2)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
 
     // Gets all registered user tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
     val regLabelCounts = (for {
-      _user <- StreetEdgeTable.userTable if _user.username =!= "anonymous"
+      _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.auditTasks if _task.userId === _user.userId
       _lab  <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
     } yield (_user.userId, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT user_id, COUNT(*)
@@ -263,7 +265,7 @@ object StreetEdgePriorityTable {
     // Gets the tasks performed by anonymous users, along with ip address; need to select distinct b/c there can be
     // multiple audit_task_environment entries for a single task
     val anonTasks = (for {
-      _user <- StreetEdgeTable.userTable if _user.username === "anonymous"
+      _user <- userTable if _user.username === "anonymous"
       _task <- AuditTaskTable.completedTasks if _user.userId === _task.userId
       _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
       if !_env.ipAddress.isEmpty
@@ -277,7 +279,7 @@ object StreetEdgePriorityTable {
 
     // Gets all anon user tasks, groups by ip_address, and counts number of labels places (incl. incomplete tasks).
     val anonLabelCounts = (for {
-      _user <- StreetEdgeTable.userTable if _user.username === "anonymous"
+      _user <- userTable if _user.username === "anonymous"
       _task <- AuditTaskTable.auditTasks if _user.userId === _task.userId
       _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
       if !_env.ipAddress.isEmpty
