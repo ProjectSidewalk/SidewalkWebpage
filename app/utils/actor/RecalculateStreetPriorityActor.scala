@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
 // https://stackoverflow.com/questions/48977612/how-to-schedule-complex-tasks-using-scala-play-2-3/48977937?noredirect=1#comment84961371_48977937
-class DailyActor extends Actor {
+class RecalculateStreetPriorityActor extends Actor {
 
   private var cancellable: Option[Cancellable] = None
 
@@ -42,7 +42,7 @@ class DailyActor extends Actor {
         durationToNextUpdate,
         24.hour,
         self,
-        MyDailyActor.Tick
+        RecalculateStreetPriorityActor.Tick
       )(context.dispatcher)
     )
   }
@@ -54,13 +54,13 @@ class DailyActor extends Actor {
   }
 
   def receive: Receive = {
-    case MyDailyActor.Tick =>
+    case RecalculateStreetPriorityActor.Tick =>
       StreetEdgePriorityTable.recalculateStreetPriority
   }
 
 }
 
-object MyDailyActor {
+object RecalculateStreetPriorityActor {
   val Name = "my-daily-actor"
   def props = Props(new DailyActor)
   case object Tick
