@@ -86,21 +86,23 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Select a region where the user hasn't completed all the missions and assign that region to them.
+    * Select a region with high avg street priority, where the user hasn't completed all missions; assign it to them.
+    *
     * @param userId
     * @return
     */
   def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
 
+    // Takes the 5 regions with highest average street priority, and picks one at random to assign.
     val highestPriorityRegions: List[(Int, Option[Double])] = StreetEdgeRegionTable.streetEdgeRegionTable
       .filter(_.regionId inSet regionIds)
       .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
       .map { case (_edgeRegion, _edgePriority) => (_edgeRegion.regionId, _edgePriority.priority) }
-      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) }
-      .sortBy(_._2.desc).take(5).list
+      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get average priority
+      .sortBy(_._2.desc).take(5).list // take the 5 with highest average priority
 
-    println(highestPriorityRegions)
+    // If the list of regions is empty, try assigning any region the user hasn't finished.
     val chosenRegionId: Option[Int] = scala.util.Random.shuffle(highestPriorityRegions).headOption.map(_._1)
     chosenRegionId match {
       case Some(regionId) => update(userId, regionId)
@@ -108,6 +110,7 @@ object UserCurrentRegionTable {
         scala.util.Random.shuffle(regionIds).headOption match {
           case Some(anyIncompleteRegionId) => update(userId, anyIncompleteRegionId)
           case _ =>
+            // If that also fails, just assign any region to the user.
             val anyRegion: Int = scala.util.Random.shuffle(RegionTable.regionsWithoutDeleted.map(_.regionId).list).head
             update(userId, anyRegion)
         }
