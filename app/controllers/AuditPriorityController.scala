@@ -44,7 +44,7 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
 //      val paramScalingFunction: (Double) => Double = StreetEdgePriorityTable.logisticFunction
       val weightVector: List[Double] = List(1)
 //      val weightVector: List[Double] = List(0.1,0.9) -- how it would look with two priority param funcs
-      StreetEdgePriorityTable.updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList, weightVector)
+      StreetEdgePriorityTable.updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
       Future.successful(Ok("Successfully recalculated street priorities"))
     } else {
       Future.successful(Redirect("/"))

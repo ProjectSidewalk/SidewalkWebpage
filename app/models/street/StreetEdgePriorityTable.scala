@@ -147,35 +147,6 @@ object StreetEdgePriorityTable {
   def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]],
                                     weightVector: List[Double]) = db.withTransaction { implicit session =>
 
-    // Reset street edge priority to zero
-    val q1 = for { edg <- streetEdgePriorities} yield edg.priority
-    val updateAction = q1.update(0.0)
-
-    for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)) {
-      // Run the i'th rankParameter generator.
-      // Store this in the priorityParamTable variable
-      val priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
-      priorityParamTable.foreach{ street_edge =>
-        val q2 = for { edg <- streetEdgePriorities if edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
-        val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
-        val updatePriority = q2.update(tempPriority)
-      }
-    }
-  }
-
-  /**
-    * Recalculate the priority attribute for all streetEdges.
-    *
-    * This version updates a scala map object instead of the actual entries in the database like in
-    * updateAllStreetEdgePriorities() above. This function will only values in the table once.
-    *
-    * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
-    * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
-    * @return
-    */
-  def updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]],
-                                           weightVector: List[Double]) = db.withTransaction { implicit session =>
-
     // Create a map from each street edge to a default priority value of 0
     val edgePriorityMap = collection.mutable.Map[Int, Double]().withDefaultValue(0.0)
     for (id <- streetEdgePriorities.map(_.streetEdgeId).list) { edgePriorityMap += (id -> 0.0) }
@@ -189,7 +160,7 @@ object StreetEdgePriorityTable {
     // Set priority values in the table.
     for ((edgeId, newPriority) <- edgePriorityMap) {
       val q = for { edge <- streetEdgePriorities if edge.streetEdgeId === edgeId } yield edge.priority
-      val updateAction = q.update(newPriority)
+      val rowsUpdated: Int = q.update(newPriority)
     }
   }
 
