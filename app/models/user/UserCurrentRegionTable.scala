@@ -57,31 +57,20 @@ object UserCurrentRegionTable {
   def assignEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
     val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
 
-    // Assign one of the unaudited regions that are easy.
-    // TODO: Assign one of the least-audited regions that are easy.
-    val completions: List[RegionCompletion] =
-      RegionCompletionTable.regionCompletions
-        .filter(_.regionId inSet regionIds)
-        .filterNot(_.regionId inSet difficultRegionIds)
-        .filter(region => region.auditedDistance / region.totalDistance < 0.9999)
-        .sortBy(region => region.auditedDistance / region.totalDistance).take(10).list
+    // Takes the 5 regions with highest average street priority, and picks one at random to assign.
+    val highestPriorityRegions: List[(Int, Option[Double])] = StreetEdgeRegionTable.streetEdgeRegionTable
+      .filter(_.regionId inSet regionIds)
+      .filterNot(_.regionId inSet difficultRegionIds)
+      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
+      .map { case (_edgeRegion, _edgePriority) => (_edgeRegion.regionId, _edgePriority.priority) }
+      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get average priority
+      .sortBy(_._2.desc).take(5).list // take the 5 with highest average priority
 
-    val regionId: Int = completions match {
-      case Nil =>
-        // Indicates amongst the unaudited regions of the user, there are no unaudited regions across all users
-        // In this case, pick any easy region amongst regions that are not audited by the user
-        scala.util.Random.shuffle(regionIds).filterNot(difficultRegionIds.contains(_)).head
-      case _ =>
-        // Pick an easy region that is unaudited.
-        // TODO: Pick an easy region that is least audited.
-        scala.util.Random.shuffle(completions).head.regionId
-
-    }
-    if (!isAssigned(userId)) {
-      save(userId, regionId)
-      regionId
-    } else {
-      update(userId, regionId)
+    // If the list of easy regions is empty, try assigning any region the user hasn't finished.
+    val chosenRegionId: Option[Int] = scala.util.Random.shuffle(highestPriorityRegions).headOption.map(_._1)
+    chosenRegionId match {
+      case Some(regionId) => update(userId, regionId)
+      case _ => assignNextRegion(userId)
     }
   }
 
