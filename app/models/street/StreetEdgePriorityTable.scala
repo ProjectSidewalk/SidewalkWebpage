@@ -134,6 +134,12 @@ object StreetEdgePriorityTable {
   /**
     * Recalculate the priority attribute for all streetEdges.
     *
+    * Explanation:
+    * Computes a weighted sum of factors that influence priority (e.g. audit count). It takes a list of functions that
+    * generate a list of StreetEdgePriorityParameters (which just means a value between 0 and 1 representing priority
+    * for each street), and for each street edge, it computes a weighted sum of the priority parameters to get
+    * our final street edge priority.
+    *
     * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
     * @return
