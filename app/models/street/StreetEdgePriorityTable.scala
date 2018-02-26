@@ -277,10 +277,10 @@ object StreetEdgePriorityTable {
 
     // Now to each audit_task completed by an anonymous user, we attach a boolean indicating whether or not the user
     // had a labeling frequency above our threshold.
-    val anonCompletions = for {
-      _qual <- anonQuality
-      _task <- anonTasks if _qual._1 === _task._1
-    } yield (_task._3, _qual._2) // SELECT street_edge_id, is_good_user
+    val anonCompletions = anonTasks
+      .groupBy(task => (task._1, task._3)).map(_._1) // select distinct on ip address and street edge id
+      .innerJoin(anonQuality).on(_._1 === _._1) // join on ip address
+      .map { case (_task, _qual) => (_task._2, _qual._2) } // SELECT street_edge_id, is_good_user
 
 
     /********** Compute Audit Counts **********/
