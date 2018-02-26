@@ -266,10 +266,10 @@ object StreetEdgePriorityTable {
 
     // Now to each audit_task completed by a registered user, we attach a boolean indicating whether or not the user
     // had a labeling frequency above our threshold.
-    val regCompletions = for {
-      _freq <- regQuality
-      _task <- AuditTaskTable.completedTasks if _freq._1 === _task.userId
-    } yield (_task.streetEdgeId, _freq._2) // SELECT street_edge_id, is_good_user
+    val regCompletions = AuditTaskTable.completedTasks
+      .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1) // select distinct on street edge id and user id
+      .innerJoin(regQuality).on(_._2 === _._1)  // join on user id
+      .map{ case (_task, _freq) => (_task._1, _freq._2) } // select street_edge_id, is_good_user
 
 
     /********** Anonymous Users **********/
