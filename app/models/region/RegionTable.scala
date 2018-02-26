@@ -3,7 +3,6 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
-import models.mission.MissionTable
 
 import math._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeTable}

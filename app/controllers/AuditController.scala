@@ -9,13 +9,12 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.IssueFormats._
-import formats.json.TaskSubmissionFormats._
 import formats.json.CommentSubmissionFormats._
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.MissionTable
 import models.region._
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeIssue, StreetEdgeIssueTable}
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
@@ -63,7 +62,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             UserCurrentRegionTable.assignEasyRegion(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
           case Some("regular") =>
-            // Assign an easy region if the query string has nextRegion=regular
+            // Assign a difficult region if the query string has nextRegion=regular and the user is experienced
             UserCurrentRegionTable.assignNextRegion(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
           case Some(illformedString) =>
@@ -110,42 +109,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  /**
-    * Deprecated now: Main audit controller is being used for this
-    *
-    * Returns an audit page for an easy region, if any are available.
-    *
-    * @return
-    */
-  def auditNewEasyRegion = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
-    request.identity match {
-      case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
-
-        UserCurrentRegionTable.assignEasyRegion(user.userId)
-
-        var region: Option[NamedRegion] = RegionTable.selectTheCurrentNamedRegion(user.userId)
-        region = RegionTable.selectTheCurrentNamedRegion(user.userId)
-
-        val task: NewTask =
-          if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user.userId)
-          else AuditTaskTable.selectANewTask(user.userId)
-        region = RegionTable.selectTheCurrentNamedRegion(user.userId)
-
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
-      case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
-
-        val region: Option[NamedRegion] = RegionTable.selectALeastAuditedEasyRegion
-        val task: NewTask = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
-    }
-  }
-
 
   /**
     * Audit a given region
@@ -182,7 +145,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
     val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
     val region: Option[NamedRegion] = try {
       Some(regions.head)
@@ -192,7 +154,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     // TODO: Should this function be modified?
-    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
     request.identity match {
       case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
       case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))

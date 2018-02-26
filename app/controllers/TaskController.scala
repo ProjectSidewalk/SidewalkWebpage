@@ -1,7 +1,6 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -9,7 +8,6 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
-import formats.json.CommentSubmissionFormats._
 import formats.json.TaskSubmissionFormats._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
@@ -19,7 +17,7 @@ import models.label._
 import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
 import models.street.StreetEdgeAssignmentCountTable
-import models.user.{User, UserCurrentRegionTable}
+import models.user.User
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
@@ -39,24 +37,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
 
   /**
-   * This method returns a task definition in the GeoJSON format.
-   * @return Task definition
-   */
-  def getTask = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val task = AuditTaskTable.selectANewTask(user.userId)
-        Future.successful(Ok(task.toJSON))
-      case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
-    }
-  }
-
-  /**
     * This method returns a task definition specified by the streetEdgeId.
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
     Future.successful(Ok(task.toJSON))
   }
 

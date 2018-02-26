@@ -1,7 +1,5 @@
 package models.street
 
-import models.audit.AuditTaskTable
-import models.region.RegionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json._
@@ -69,16 +67,6 @@ object StreetEdgePriorityTable {
 
   def getSingleStreetEdgePriority(streetEdgeId: Int): Double = db.withTransaction { implicit session =>
     streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId}.map(_.priority).list.head
-  }
-
-  def getAllStreetEdgeInRegionPriority(regionId: Int): List[StreetEdgePriority] = db.withTransaction { implicit session =>
-    // Merge with street edge region table
-    val priorities = for {
-      _priorities <- streetEdgePriorities
-      _edgeRegions <- StreetEdgeRegionTable.nonDeletedStreetEdgeRegions if _priorities.streetEdgeId === _edgeRegions.streetEdgeId
-      if _edgeRegions.regionId === regionId
-    } yield _priorities
-    priorities.list
   }
 
   def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>

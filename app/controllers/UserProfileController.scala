@@ -10,7 +10,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import formats.json.TaskFormats._
 import forms._
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.label.LabelTable
 import models.mission.MissionTable
 import models.user.User
