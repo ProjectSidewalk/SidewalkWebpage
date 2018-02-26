@@ -2,6 +2,7 @@ package models.street
 
 import models.audit.{AuditTaskEnvironmentTable, AuditTaskTable}
 import models.daos.UserDAOImpl
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -38,6 +39,7 @@ class StreetEdgePriorityTable(tag: Tag) extends Table[StreetEdgePriority](tag, S
 object StreetEdgePriorityTable {
   val db = play.api.db.slick.DB
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
+  val userTable = TableQuery[UserTable]
 
   val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
@@ -154,36 +156,18 @@ object StreetEdgePriorityTable {
   /**
     * Recalculate the priority attribute for all streetEdges.
     *
-    * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
-    * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
-    * @return
-    */
-  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double]) = db.withTransaction { implicit session =>
-
-    // Reset street edge priority to zero
-    val q1 = for { edg <- streetEdgePriorities} yield edg.priority
-    val updateAction = q1.update(0.0)
-
-    for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)) {
-      // Run the i'th rankParameter generator.
-      // Store this in the priorityParamTable variable
-      val priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
-      priorityParamTable.foreach{ street_edge =>
-        val q2 = for { edg <- streetEdgePriorities if edg.streetEdgeId === street_edge.streetEdgeId } yield edg.priority
-        val tempPriority = q2.list.head + street_edge.priorityParameter*w_i
-        val updatePriority = q2.update(tempPriority)
-      }
-    }
-  }
-
-  /**
-    * Recalculate the priority attribute for all streetEdges.
+    * Explanation:
+    * Computes a weighted sum of factors that influence priority (e.g. audit count). It takes a list of functions that
+    * generate a list of StreetEdgePriorityParameters (which just means a value between 0 and 1 representing priority
+    * for each street), and for each street edge, it computes a weighted sum of the priority parameters to get
+    * our final street edge priority.
     *
     * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
     * @return
     */
-  def updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double]) = db.withTransaction { implicit session =>
+  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]],
+                                    weightVector: List[Double]) = db.withTransaction { implicit session =>
 
     // Create a map from each street edge to a default priority value of 0
     val edgePriorityMap = collection.mutable.Map[Int, Double]().withDefaultValue(0.0)
@@ -198,7 +182,7 @@ object StreetEdgePriorityTable {
     // Set priority values in the table.
     for ((edgeId, newPriority) <- edgePriorityMap) {
       val q = for { edge <- streetEdgePriorities if edge.streetEdgeId === edgeId } yield edge.priority
-      val updateAction = q.update(newPriority)
+      val rowsUpdated: Int = q.update(newPriority)
     }
   }
 
@@ -254,14 +238,14 @@ object StreetEdgePriorityTable {
     /********** Registered Users **********/
     // Gets all tasks completed by registered users, groups by user_id, and sums over the distances of the street edges.
     val regAuditedDists = (for {
-      _user <- StreetEdgeTable.userTable if _user.username =!= "anonymous"
+      _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.completedTasks if _task.userId === _user.userId
       _dist <- streetDist if _task.streetEdgeId === _dist._1
     } yield (_user.userId, _dist._2)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
 
     // Gets all registered user tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
     val regLabelCounts = (for {
-      _user <- StreetEdgeTable.userTable if _user.username =!= "anonymous"
+      _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.auditTasks if _task.userId === _user.userId
       _lab  <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
     } yield (_user.userId, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT user_id, COUNT(*)
@@ -275,17 +259,16 @@ object StreetEdgePriorityTable {
 
     // Now to each audit_task completed by a registered user, we attach a boolean indicating whether or not the user
     // had a labeling frequency above our threshold.
-    val regCompletions = for {
-      _freq <- regQuality
-      _task <- AuditTaskTable.completedTasks if _freq._1 === _task.userId
-    } yield (_task.streetEdgeId, _freq._2) // SELECT street_edge_id, is_good_user
-
+    val regCompletions = AuditTaskTable.completedTasks
+      .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1) // select distinct on street edge id and user id
+      .innerJoin(regQuality).on(_._2 === _._1)  // join on user id
+      .map{ case (_task, _freq) => (_task._1, _freq._2) } // select street_edge_id, is_good_user
 
     /********** Anonymous Users **********/
     // Gets the tasks performed by anonymous users, along with ip address; need to select distinct b/c there can be
     // multiple audit_task_environment entries for a single task
     val anonTasks = (for {
-      _user <- StreetEdgeTable.userTable if _user.username === "anonymous"
+      _user <- userTable if _user.username === "anonymous"
       _task <- AuditTaskTable.completedTasks if _user.userId === _task.userId
       _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
       if !_env.ipAddress.isEmpty
@@ -299,12 +282,14 @@ object StreetEdgePriorityTable {
 
     // Gets all anon user tasks, groups by ip_address, and counts number of labels places (incl. incomplete tasks).
     val anonLabelCounts = (for {
-      _user <- StreetEdgeTable.userTable if _user.username === "anonymous"
+      _user <- userTable if _user.username === "anonymous"
       _task <- AuditTaskTable.auditTasks if _user.userId === _task.userId
       _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
       if !_env.ipAddress.isEmpty
       _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
-    } yield (_env.ipAddress, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT ip_address, COUNT(*)
+    } yield (_env.ipAddress, _lab.labelId))
+        .groupBy(x => x).map(_._1) // select distinct
+        .groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT ip_address, COUNT(*)
 
     // Finally, determine whether each anonymous user is above or below the label per meter threshold
     // SELECT ip_address, is_good_user (where is_good_user = label_count/distance_audited > threshold)
@@ -315,11 +300,10 @@ object StreetEdgePriorityTable {
 
     // Now to each audit_task completed by an anonymous user, we attach a boolean indicating whether or not the user
     // had a labeling frequency above our threshold.
-    val anonCompletions = for {
-      _qual <- anonQuality
-      _task <- anonTasks if _qual._1 === _task._1
-    } yield (_task._3, _qual._2) // SELECT street_edge_id, is_good_user
-
+    val anonCompletions = anonTasks
+      .groupBy(task => (task._1, task._3)).map(_._1) // select distinct on ip address and street edge id
+      .innerJoin(anonQuality).on(_._1 === _._1) // join on ip address
+      .map { case (_task, _qual) => (_task._2, _qual._2) } // SELECT street_edge_id, is_good_user
 
     /********** Compute Audit Counts **********/
     // Combine results from anonymous and registered users
@@ -338,7 +322,6 @@ object StreetEdgePriorityTable {
         case (_goodCount, _badCount) => (_goodCount._1, _goodCount._2, _badCount._2.ifNull(0.asColumnOf[Int]))
       }
 
-
     /********** Compute Priority **********/
     // If good_user_audit_count > 0, priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
     // Else priority = 1 -- i.e., 1 / (1 + 0)
@@ -353,8 +336,6 @@ object StreetEdgePriorityTable {
           }
       }
 
-    println(normalizePriorityReciprocal(priorityParamTable).length) // number of street edges
-    println(normalizePriorityReciprocal(priorityParamTable).count(_.priorityParameter > 0.5)) // number with high priority
     normalizePriorityReciprocal(priorityParamTable)
   }
 

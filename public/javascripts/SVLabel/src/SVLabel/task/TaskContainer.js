@@ -216,6 +216,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             var connectedTasks = [];
             if (!threshold) threshold = 0.01;  // 0.01 km.
             if (!unit) unit = "kilometers";
+
             tasks = tasks.filter(function (t) { return !t.isCompleted(); });
 
             if (taskIn) {
@@ -402,28 +403,27 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return previousTasks.length;
     }
 
-    function findNeighborhoodCompleteAcrossAllUsers(neighborhoodId, finishedTask) {
-        var isNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
+	/**
+     * Checks if finishedTask makes the neighborhood complete across all users; if so, it displays the relevant overlay.
+     *
+	 * @param neighborhoodId
+	 * @param finishedTask
+	 */
+	function updateNeighborhoodCompleteAcrossAllUsersStatus(neighborhoodId, finishedTask) {
+        var wasNeighborhoodCompleteAcrossAllUsers = neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers();
 
-        // Only run this code if the neighborhood is set as incomplete
-        if (!isNeighborhoodCompleteAcrossAllUsers) {
+        // Only run this code if the neighborhood was set as incomplete
+        if (!wasNeighborhoodCompleteAcrossAllUsers) {
             var candidateTasks = self.getIncompleteTasksAcrossAllUsers(neighborhoodId).filter(function (t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
             });
             // Indicates neighborhood is complete
             if (candidateTasks.length === 0) {
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-                //console.log("Neighborhood complete");
-                isNeighborhoodCompleteAcrossAllUsers = true;
                 $('#neighborhood-completion-overlay').show();
                 tracker.push("NeighborhoodComplete_AcrossAllUsers", {'RegionId': neighborhoodId})
-            } else {
-                //console.log("Neighborhood not complete");
-                isNeighborhoodCompleteAcrossAllUsers = false;
             }
         }
-
-        return isNeighborhoodCompleteAcrossAllUsers;
     }
 
     /**
@@ -443,6 +443,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var neighborhood = neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = neighborhood.getProperty("regionId");
 
+        // Check if this task finishes the neighborhood across all users, if so, shows neighborhood complete overlay.
+		updateNeighborhoodCompleteAcrossAllUsersStatus(currentNeighborhoodId, finishedTask);
+
         // Find highest priority task not audited by the user
         var tasksNotCompletedByUser = self.getTasksInRegion(currentNeighborhoodId).filter(function (t) {
             return !t.isCompleted() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
@@ -453,19 +456,16 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             return null;
         }
         var highestPriorityTask = tasksNotCompletedByUser[0];
-        console.log(highestPriorityTask);
 
         // If any of the connected tasks has max discretized priority, pick the highest priority one, o/w take the
         // highest priority task in the region.
         userCandidateTasks = self._findConnectedTasks(currentNeighborhoodId, finishedTask, false, null, null);
-        console.log(userCandidateTasks);
 
         userCandidateTasks = userCandidateTasks.filter(function(t) {
             return !t.isCompleted() && t.getStreetPriorityDiscretized() === highestPriorityTask.getStreetPriorityDiscretized();
         }).sort(function(t1,t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });
-        console.log(userCandidateTasks);
 
         if (userCandidateTasks.length > 0) {
             newTask = userCandidateTasks[0];
