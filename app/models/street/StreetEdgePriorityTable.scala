@@ -144,7 +144,8 @@ object StreetEdgePriorityTable {
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
     * @return
     */
-  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double]) = db.withTransaction { implicit session =>
+  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]],
+                                    weightVector: List[Double]) = db.withTransaction { implicit session =>
 
     // Reset street edge priority to zero
     val q1 = for { edg <- streetEdgePriorities} yield edg.priority
@@ -165,14 +166,15 @@ object StreetEdgePriorityTable {
   /**
     * Recalculate the priority attribute for all streetEdges.
     *
-    * This version updates a scala map object instead of the actual entries in the database (like in
+    * This version updates a scala map object instead of the actual entries in the database like in
     * updateAllStreetEdgePriorities() above. This function will only values in the table once.
     *
     * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
     * @return
     */
-  def updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double]) = db.withTransaction { implicit session =>
+  def updateAllStreetEdgePrioritiesTakeTwo(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]],
+                                           weightVector: List[Double]) = db.withTransaction { implicit session =>
 
     // Create a map from each street edge to a default priority value of 0
     val edgePriorityMap = collection.mutable.Map[Int, Double]().withDefaultValue(0.0)
