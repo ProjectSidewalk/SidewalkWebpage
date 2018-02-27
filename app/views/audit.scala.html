@@ -1,5 +1,5 @@
 @import models.user.User
-@import models.user.UserCurrentRegionTable
+@import models.region.RegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
 @import models.survey._
@@ -945,7 +945,7 @@
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
-                if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
+                if(@RegionTable.difficultRegionIds.contains(region.get.regionId)){
                        $('#advanced-overlay').show();
                        mainParam.advancedOverlay = true
                 }

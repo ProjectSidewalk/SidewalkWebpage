@@ -1,13 +1,11 @@
 package models.user
 
-import models.audit.AuditTaskTable
-import models.mission.MissionTable
-import models.region.{NamedRegion, RegionCompletion, RegionCompletionTable, RegionTable}
+import models.region.{NamedRegion, RegionTable}
+import models.street.StreetEdgeTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
 
-import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable, StreetEdgeTable}
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -28,8 +26,6 @@ object UserCurrentRegionTable {
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
-  // these regions are buggy, and we steer new users away from them
-  val difficultRegionIds = List(251, 281, 317, 366)
   val experiencedUserMileageThreshold = 2.0
 
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
@@ -50,28 +46,15 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Select an easy region (if any left) where the user hasn't completed all missions and assign that region to them.
+    * Select an easy region w/ high avg street priority where the user hasn't completed all missions; assign it to them.
     * @param userId
     * @return
     */
-  def assignEasyRegion(userId: UUID): Int = db.withSession { implicit session =>
-    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
+  def assignEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
 
-    // Takes the 5 regions with highest average street priority, and picks one at random to assign.
-    val highestPriorityRegions: List[(Int, Option[Double])] = StreetEdgeRegionTable.streetEdgeRegionTable
-      .filter(_.regionId inSet regionIds)
-      .filterNot(_.regionId inSet difficultRegionIds)
-      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
-      .map { case (_edgeRegion, _edgePriority) => (_edgeRegion.regionId, _edgePriority.priority) }
-      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get average priority
-      .sortBy(_._2.desc).take(5).list // take the 5 with highest average priority
-
-    // If the list of easy regions is empty, try assigning any region the user hasn't finished.
-    val chosenRegionId: Option[Int] = scala.util.Random.shuffle(highestPriorityRegions).headOption.map(_._1)
-    chosenRegionId match {
-      case Some(regionId) => update(userId, regionId)
-      case _ => assignNextRegion(userId)
-    }
+    val newRegion: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion(userId)
+    newRegion.map(r => update(userId, r.regionId)) // If region successfully selected, assign it to them.
+    newRegion
   }
 
   /**
@@ -80,30 +63,14 @@ object UserCurrentRegionTable {
     * @param userId
     * @return
     */
-  def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
-    val regionIds: Set[Int] = MissionTable.selectIncompleteRegions(userId)
+  def assignNextRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
 
-    // Takes the 5 regions with highest average street priority, and picks one at random to assign.
-    val highestPriorityRegions: List[(Int, Option[Double])] = StreetEdgeRegionTable.streetEdgeRegionTable
-      .filter(_.regionId inSet regionIds)
-      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
-      .map { case (_edgeRegion, _edgePriority) => (_edgeRegion.regionId, _edgePriority.priority) }
-      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get average priority
-      .sortBy(_._2.desc).take(5).list // take the 5 with highest average priority
-
-    // If the list of regions is empty, try assigning any region the user hasn't finished.
-    val chosenRegionId: Option[Int] = scala.util.Random.shuffle(highestPriorityRegions).headOption.map(_._1)
-    chosenRegionId match {
-      case Some(regionId) => update(userId, regionId)
-      case _ =>
-        scala.util.Random.shuffle(regionIds).headOption match {
-          case Some(anyIncompleteRegionId) => update(userId, anyIncompleteRegionId)
-          case _ =>
-            // If that also fails, just assign any region to the user.
-            val anyRegion: Int = scala.util.Random.shuffle(RegionTable.regionsWithoutDeleted.map(_.regionId).list).head
-            update(userId, anyRegion)
-        }
-    }
+    // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
+    val newRegion: Option[NamedRegion] =
+      if(isUserExperienced(userId)) RegionTable.selectAHighPriorityRegion(userId)
+      else RegionTable.selectAHighPriorityEasyRegion(userId)
+    newRegion.map(r => update(userId, r.regionId)) // If region successfully selected, assign it to them.
+    newRegion
   }
 
   /**
@@ -113,17 +80,12 @@ object UserCurrentRegionTable {
     * @return
     */
   def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
-    try {
-      // Get rid of deleted regions
-      val ucr = for {
-        (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
-      } yield ucr
+    // Get rid of deleted regions
+    val ucr = for {
+      (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
+    } yield ucr
 
-      Some(ucr.filter(_.userId === userId.toString).list.map(_.regionId).head)
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // This shouldn't happen.
-    }
+    ucr.filter(_.userId === userId.toString).list.map(_.regionId).headOption
   }
 
   /**
