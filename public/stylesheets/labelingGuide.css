@@ -10,3 +10,11 @@
 #img-container img{
     height: 213px;
 }
+
+#img-grid {
+    display: inline-block;
+}
+
+.img-responsive {
+    cursor: pointer;
+}

@@ -7,6 +7,10 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+
     <div class="spacer20"></div>
 
     <div class="container faq">
@@ -73,12 +77,18 @@
                         <div id="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview1.png")' alt="A Street View image with a tree in the middle of the sidewalk" class="img-responsive" align="">
+                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview1.png")' href='@routes.Assets.at("images/obstacles/Obstacles_Overview1.png")'
+                                    alt="A Street View image with a tree in the middle of the sidewalk" class="img-responsive" align=""
+                                    title="A Street View image with a tree in the middle of the sidewalk">
+                                    <figcaption>A tree in the middle of a sidewalk.</figcaption>
                                 </figure>
                             </div>
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview2.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview2.png")' href='@routes.Assets.at("images/obstacles/Obstacles_Overview2.png")'
+                                    alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align=""
+                                    title="A Street View image of a long stretch of sidewalk under construction">
+                                    <figcaption>A long stretch of sidewalk under construction.</figcaption>
                                 </figure>
                             </div>
                         </div>
@@ -99,20 +109,26 @@
                         <!-- update all these alts -->
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity1.png")' alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp " class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity1.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity1.png")'
+                                alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp" class="img-responsive" align=""
+                                title="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp">
                                 <figcaption>Severity: 1. The pole is almost entirely out of the path, but it is still located in the ramp.</figcaption>
 
                             </figure>
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity3.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity3.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity3.png")'
+                                alt="A Street View image of a street light pole in the middle of the sidewalk" class="img-responsive" align=""
+                                title="A Street View image of a street light pole in the middle of the sidewalk">
                                 <figcaption>Severity: 3. There is probably enough space to maneuver around.</figcaption>
                             </figure>
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity5.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity5.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity5.png")'
+                                alt="A Street View image of a tree in the middle of the sidewalk" class="img-responsive" align=""
+                                title="A Street View image of a tree in the middle of the sidewalk">
                                 <figcaption>Severity: 5. There is no way to get around this obstacle without going into the street.</figcaption>
                             </figure>
                         </div>
@@ -130,19 +146,25 @@
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle1.png")' alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp " class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle1.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle1.png")'
+                                alt="A Street View image of a trashcan on a sidewalk" class="img-responsive" align=""
+                                title="A Street View image of a trashcan on a sidewalk">
                                 <figcaption>Severity: 1. The trash cans only slightly blocks the path, and is easy to avoid safely.</figcaption>
                             </figure>
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle2.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle2.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle2.png")'
+                                alt="A Street View image of leaves and foliage overflowing onto a sidewalk" class="img-responsive" align=""
+                                title="A Street View image of leaves and foliage overflowing onto a sidewalk">
                                 <figcaption>Severity: 1. There is enough space for pedestrians to use the sidewalk without being blocked by the leaves.</figcaption>
                             </figure>
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle3.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle3.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle3.png")'
+                                alt="A Street View image of overgrowth onto a sidewalk" class="img-responsive" align=""
+                                title="A Street View image of overgrowth onto a sidewalk">
                                 <figcaption>Severity: 3. This does not leave quite enough space to maneuver around.
                                     This is also on the edge of temporary and permanent; overgrowth that is any more
                                     severe than this would probably be permanent. (this also requires a surface problem label)</figcaption>
@@ -163,43 +185,49 @@
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/NonObstacle1.png")' alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp " class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/NonObstacle1.png")' href='@routes.Assets.at("images/obstacles/NonObstacle1.png")'
+                                alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp" class="img-responsive" align=""
+                                title="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp">
                                 <figcaption>This pole is clearly not on the path of a pedestrian route.</figcaption>
                             </figure>
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/NonObstacle2.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/NonObstacle2.png")' href='@routes.Assets.at("images/obstacles/NonObstacle2.png")'
+                                alt="A Street View image of a pole not on the path of a sidewalk" class="img-responsive" align=""
+                                title="A Street View image of a pole not on the path of a sidewalk">
                                 <figcaption>This pole is not at all on the actual path, nor on the curb ramp flare at all.</figcaption>
                             </figure>
                         </div>
                         <div class="col-md-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/obstacles/NonObstacle3.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                <img src='@routes.Assets.at("images/obstacles/NonObstacle3.png")' href='@routes.Assets.at("images/obstacles/NonObstacle3.png")'
+                                alt="A Street View image of a pole not on the path and not on the curb ramp flare at all" class="img-responsive" align=""
+                                title="A Street View image of a pole not on the path and not on the curb ramp flare at all">
                                 <figcaption>This pole is not on the path, and is also just barely not on the curb ramp flare at all.</figcaption>
                             </figure>
                         </div>
-                        <div>
+                        <div id="img-grid">
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle4.png")' alt="A Street View image with a tree in the middle of the sidewalk" class="img-responsive" align="">
+                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle4.png")' href='@routes.Assets.at("images/obstacles/NonObstacle4.png")'
+                                    alt="A Street View of a vehicle in motion" class="img-responsive" align=""
+                                    title="A Street View of a vehicle in motion">
                                     <figcaption>Vehicle in motion. Hopefully self-explanatory.</figcaption>
                                 </figure>
                             </div>
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle5.png")' alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align="">
+                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle5.png")' href='@routes.Assets.at("images/obstacles/NonObstacle5.png")'
+                                    alt="A Street View image of objects that are not obstacles, such as a trash can" class="img-responsive" align=""
+                                    title="A Street View image of objects that are not obstacles, such as a trash can">
+                                    <figcaption>These objects (labelled obstacle in the picture) are not obstacles. The wooden pole and
+                                        anchoring cable indicate that even without the objects on the path, pedestrians would
+                                        not walk in this area. The pole itself however, should be labelled as an obstacle,
+                                        since pedestrians in wheelchairs may have difficulty navigating around it if they
+                                        come up the curb ramp to the left.</figcaption>
                                 </figure>
                             </div>
-                        </div>
-                        <div class="col-sm-12">
-                            <p>
-                                These objects (labelled obstacle in the picture) are not obstacles. The wooden pole and
-                                anchoring cable indicate that even without the objects on the path, pedestrians would
-                                not walk in this area. The pole itself however, should be labelled as an obstacle,
-                                since pedestrians in wheelchairs may have difficulty navigating around it if they
-                                come up the curb ramp to the left.
-                            </p>
                         </div>
                     </div>
                 </div>

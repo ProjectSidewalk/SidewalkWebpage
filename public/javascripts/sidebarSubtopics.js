@@ -6,4 +6,8 @@ $(document).ready(function(){
         listItem = "<li><a href='#"+$(this).attr('id')+"'>"+$(this).text()+"</a></li>";
         $("#subtopics").append(listItem);
     });
+
+    $('.img-responsive').magnificPopup({
+        type:'image',
+    });
 });
