@@ -340,7 +340,13 @@ object StreetEdgePriorityTable {
   }
 
   /**
-    * Partially updates the priority of a street edge (to be used after an audit of this street is completed)
+    * Partially updates the priority of a street edge based on the current priority (to be used after an audit of this
+    * street is completed)
+    *
+    * Feb 25: This is equivalent to adding 1 to the good_user_audit_count...
+    * if old_priority = 1 / c' (where c' = 1 + good_user_audit_count + bad_user_audit_count), then c' = 1 / old_priority
+    * Then if you want to calculate a new priority with count c' + 1,
+    * you get new_priority = 1 / (1 + c') = 1 / (1 + (1 / old_priority))
     *
     * @param streetEdgeId
     * @return success boolean

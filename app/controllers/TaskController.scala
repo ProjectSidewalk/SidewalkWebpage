@@ -134,15 +134,35 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case _ => None
           }
 
+          val user = request.identity
+          val streetEdgeId = data.auditTask.streetEdgeId
+
+          if (data.auditTask.auditTaskId.isDefined) {
+            user match {
+              case Some(user) =>
+                // Update the street's priority only if the user has not completed this street previously
+                if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
+                  data.auditTask.completed.map { completed =>
+                    if (completed) {
+                      StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                    }
+                  }
+                }
+              case None =>
+                // Update the street's priority for anonymous user
+                data.auditTask.completed.map { completed =>
+                  if (completed) {
+                    StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                  }
+                }
+            }
+          }
+
+
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count
-          val auditTaskId: Int = updateAuditTaskTable(request.identity, data.auditTask, amtAssignmentId)
+          val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, amtAssignmentId)
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
-
-          // If the task was completed, update the street's priority.
-          data.auditTask.completed.map { completed =>
-            if (completed) { StreetEdgePriorityTable.partiallyUpdatePriority(data.auditTask.streetEdgeId) }
-          }
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           if (data.incomplete.isDefined) {

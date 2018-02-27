@@ -15,7 +15,7 @@ import play.api.libs.concurrent.Akka
 
 import scala.concurrent.Future
 import play.api.Play.current
-import utils.actor.MyDailyActor
+import utils.actor.RecalculateStreetPriorityActor
 
 /**
  * The global object.
@@ -71,7 +71,7 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
   override def getControllerInstance[A](controllerClass: Class[A]) = injector.getInstance(controllerClass)
 
   override def onStart(app: Application) = {
-    Akka.system.actorOf(MyDailyActor.props, MyDailyActor.Name)
+    Akka.system.actorOf(RecalculateStreetPriorityActor.props, RecalculateStreetPriorityActor.Name)
   }
 
   /**

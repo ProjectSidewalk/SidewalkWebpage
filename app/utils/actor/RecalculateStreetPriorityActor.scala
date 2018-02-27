@@ -5,11 +5,12 @@ import java.util.Calendar
 import akka.actor.{Actor, Cancellable, Props}
 import models.street.StreetEdgePriorityTable
 
+import play.api.Logger
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
 // https://stackoverflow.com/questions/48977612/how-to-schedule-complex-tasks-using-scala-play-2-3/48977937?noredirect=1#comment84961371_48977937
-class DailyActor extends Actor {
+class RecalculateStreetPriorityActor extends Actor {
 
   private var cancellable: Option[Cancellable] = None
 
@@ -42,7 +43,7 @@ class DailyActor extends Actor {
         durationToNextUpdate,
         24.hour,
         self,
-        MyDailyActor.Tick
+        RecalculateStreetPriorityActor.Tick
       )(context.dispatcher)
     )
   }
@@ -54,14 +55,18 @@ class DailyActor extends Actor {
   }
 
   def receive: Receive = {
-    case MyDailyActor.Tick =>
+    case RecalculateStreetPriorityActor.Tick =>
+      val currentTimeStart: String = Calendar.getInstance.getTime.toString
+      Logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
       StreetEdgePriorityTable.recalculateStreetPriority
+      val currentEndTime: String = Calendar.getInstance.getTime.toString
+      Logger.info(s"Street priority recalculation completed at: $currentEndTime")
   }
 
 }
 
-object MyDailyActor {
-  val Name = "my-daily-actor"
-  def props = Props(new DailyActor)
+object RecalculateStreetPriorityActor {
+  val Name = "recalculate-street-priority-actor"
+  def props = Props(new RecalculateStreetPriorityActor)
   case object Tick
 }
