@@ -119,6 +119,19 @@
                 </div>
             </div>
         </div>
+        <div id="already-completed-neighborhood-overlay">
+            <div class="overlay-text">
+                <div id="already-completed-neighborhood-text">
+                    <p>
+                        <span class="overlay-header">Neighborhood Already Complete!</span>
+                    </p>
+                    <p>
+                        You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.
+                    </p>
+                    <span class="overlay-option" id="accept-redirect">OK</span>
+                </div>
+            </div>
+        </div>
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -824,6 +837,9 @@
 
                 }
             });
+        } else {
+            $(".toolUI").css({"visibility": "visible"});
+            $('#already-completed-neighborhood-overlay').show();
         }
 
         $(document).ready(function(){
@@ -850,6 +866,11 @@
 
             $('#redirect-new').on('click', function(){
                 $(location).attr('href', '/audit?nextRegion=regular');
+            });
+
+            // Already Completed Neighborhood Overlay
+            $('#accept-redirect').on('click', function(){
+                $(location).attr('href', '/audit');
             });
         });
 
@@ -990,5 +1011,4 @@
         }
 
     </script>
-
 }

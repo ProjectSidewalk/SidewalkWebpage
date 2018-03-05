@@ -362,63 +362,6 @@ object AuditTaskTable {
   }
 
   /**
-   * Get a new task for the user. This is called if the user is not already assigned a region.
-   *
-   * Reference for creating java.sql.timestamp
-   * http://stackoverflow.com/questions/308683/how-can-i-get-the-current-date-and-time-in-utc-or-gmt-in-java
-   * http://alvinalexander.com/java/java-timestamp-example-current-time-now
-   *
-   * @param user User ID.
-   * @return
-   */
-  def selectANewTask(user: UUID): Option[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
-    // Get list of streets that user has not audited, then pick the one with highest priority to assign.
-    val edges = streetEdges.filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user))
-
-    // Join with other queries to get completion count and priority for each of the street edges.
-    val edgesWithCompletionCountAndPriority = for {
-      se <- edges
-      scc <- streetCompletionCounts if se.streetEdgeId === scc._1
-      sep <- StreetEdgePriorityTable.streetEdgePriorities if scc._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, false)
-
-    // Take the highest priority street.
-    val edge: Option[NewTask] = edgesWithCompletionCountAndPriority.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
-
-    // If we find a task that the user hasn't completed, update userCurrentRegion & streetEdgeAssignment_count tables.
-    if (edge.isDefined) {
-      val regionId: Int = StreetEdgeRegionTable.selectNonDeletedByStreetEdgeId(edge.get.edgeId).head.regionId
-      UserCurrentRegionTable.update(user, regionId)
-      StreetEdgeAssignmentCountTable.incrementAssignment(edge.get.edgeId)
-    }
-    edge
-  }
-
-  /**
-    * Get task without username. Used only as a backup in case selectANewTaskInARegion(regionId) fails.
-    *
-    * @return
-    */
-  def selectANewTask: NewTask = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
-    // Join with other queries to get completion count and priority for each of the street edges.
-    val possibleTasks = for {
-      sep <- streetEdgePriorities
-      se <- streetEdgesWithoutDeleted if sep.streetEdgeId === se.streetEdgeId
-      scc <- streetCompletionCounts if se.streetEdgeId === scc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, false)
-
-    // Take the highest priority street.
-    val task: NewTask = NewTask.tupled(possibleTasks.sortBy(_._9.desc).first)
-
-    StreetEdgeAssignmentCountTable.incrementAssignment(task.edgeId)
-    task
-  }
-
-  /**
     * Get a new task specified by the street edge id. Used when calling the /audit/street route.
     *
     * @param streetEdgeId Street edge id
@@ -450,7 +393,7 @@ object AuditTaskTable {
     * @param regionId region id
    * @return
    */
-  def selectANewTaskInARegion(regionId: Int): NewTask = db.withSession { implicit session =>
+  def selectANewTaskInARegion(regionId: Int): Option[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     // Join with other queries to get completion count and priority for each of the street edges.
@@ -462,17 +405,7 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)
 
     // Take the highest priority street.
-    val task: Option[NewTask] = edgesWithCompletionCountAndPriority.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
-
-    task match {
-      case Some(e) =>
-        // Increment the assignment count and return the task
-        StreetEdgeAssignmentCountTable.incrementAssignment(e.edgeId)
-        e
-      case None =>
-        Logger.warn("Unable to assign a task in region " + regionId + " to an anonymous user.")
-        selectANewTask // If for some reason there were no streets associated with that region id, take any street
-    }
+    edgesWithCompletionCountAndPriority.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
   }
 
   /**
