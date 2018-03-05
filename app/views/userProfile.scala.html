@@ -1,5 +1,5 @@
 @import models.user.User
-@import models.user.UserCurrentRegionTable
+@import models.region.RegionTable
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)
@@ -89,7 +89,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
     <script>
     $(document).ready(function () {
-        var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+        var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
         window.progress = Progress(_, $, c3, L, difficultRegionIds);
     });
     </script>

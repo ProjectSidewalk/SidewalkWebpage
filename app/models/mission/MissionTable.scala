@@ -2,8 +2,9 @@ package models.mission
 
 import java.util.UUID
 
+import models.audit.AuditTaskTable
+import models.audit.AuditTaskTable.nonDeletedStreetEdgeRegions
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.{roleTable, userRoles}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.UserRoleTable
@@ -101,7 +102,7 @@ object MissionTable {
     * @return
     */
   def isMissionAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
-    val incompleteMissions = selectIncompleteMissionsByAUser(userId, regionId)
+    val incompleteMissions: List[Mission] = selectIncompleteMissionsByAUser(userId, regionId)
     incompleteMissions.nonEmpty
   }
 
@@ -192,6 +193,8 @@ object MissionTable {
 
   /**
     * Get a set of regions where the user has not completed all the missions.
+    * NOTE: The mission_user table is not always accurate, thus it is advised to use completed audit tasks instead. An
+    *       alternative method to this one is below; selectIncompleteRegionsUsingTasks
     *
     * @param userId UUID for the user
     * @return
@@ -201,6 +204,21 @@ object MissionTable {
     val incompleteRegions: Set[Int] = incompleteMissions.map(_.regionId).flatten.toSet
     incompleteRegions
   }
+
+  /**
+    * Get a set of regions where the user has not completed all the street edges.
+    *
+    * @param user UUID for the user
+    * @return
+    */
+  def selectIncompleteRegionsUsingTasks(user: UUID): Set[Int] = db.withSession { implicit session =>
+
+    nonDeletedStreetEdgeRegions
+      .filter(_.streetEdgeId inSet AuditTaskTable.streetEdgeIdsNotAuditedByUser(user))
+      .map(_.regionId)
+      .list.toSet
+  }
+
 
   /**
     * Returns all the missions

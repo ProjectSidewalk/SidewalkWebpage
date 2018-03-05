@@ -49,12 +49,11 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
 
               case None =>
                 // Assigns a region to the user on request from a signed in user
-                UserCurrentRegionTable.assignNextRegion(user.userId)
+                UserCurrentRegionTable.assignRegion(user.userId).get.regionId
             }
           case None =>
           // Get a region for the anonymous user
-            val region: Option[NamedRegion] = RegionTable.selectALeastAuditedEasyRegion
-            region.get.regionId
+            RegionTable.selectAHighPriorityEasyRegion.get.regionId
         }
 
         Future.successful(Ok(Json.obj(
@@ -69,7 +68,7 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     * @return
     */
   def getDifficultNeighborhoods = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(Json.obj("regionIds" -> UserCurrentRegionTable.difficultRegionIds)))
+    Future.successful(Ok(Json.obj("regionIds" -> RegionTable.difficultRegionIds)))
   }
 
   /**

@@ -214,25 +214,48 @@ object AuditTaskTable {
   }
 
   /**
+    * Gets list streets that the user has not audited.
+    *
+    * @param user
+    * @return
+    */
+  def streetEdgeIdsNotAuditedByUser(user: UUID): List[Int] = db.withSession { implicit session =>
+
+    val edgesAuditedByUser: List[Int] =
+      completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
+
+    streetEdgesWithoutDeleted.filterNot(_.streetEdgeId inSet edgesAuditedByUser).map(_.streetEdgeId).list
+  }
+
+  /**
+    * Gets the list of streets in the specified region that the user has not audited.
+    *
+    * @param user
+    * @param regionId
+    * @return
+    */
+  def streetEdgeIdsNotAuditedByUser(user: UUID, regionId: Int): List[Int] = db.withSession { implicit session =>
+
+    val edgesAuditedByUser: List[Int] =
+      completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
+
+    val unAuditedEdges = for {
+      _ser <- nonDeletedStreetEdgeRegions if _ser.regionId === regionId
+      _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
+      if !(_edges.streetEdgeId inSet edgesAuditedByUser)
+    } yield _edges
+
+    unAuditedEdges.map(_.streetEdgeId).list
+  }
+
+  /**
     * Verify if there are tasks available for the user in the given region
     *
-    * @param userId user id
+    * @param user user id
     */
-  def isTaskAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
-    val selectAvailableTaskQuery = Q.query[(Int, String), Int](
-      """SELECT COUNT(audit_task.*) FROM sidewalk.user_current_region
-        |INNER JOIN sidewalk.region
-        |ON region.region_id = ?
-        |INNER JOIN sidewalk.street_edge
-        |ON ST_Intersects(region.geom, street_edge.geom)
-        |LEFT JOIN sidewalk.audit_task
-        |ON street_edge.street_edge_id = audit_task.street_edge_id
-        |WHERE user_current_region.user_id = ?
-        |AND (audit_task.audit_task_id IS NULL OR NOT audit_task.completed)
-      """.stripMargin
-    )
+  def isTaskAvailable(user: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
 
-    val availableTasks: Int = selectAvailableTaskQuery((regionId, userId.toString)).list.head
+    val availableTasks: Int = streetEdgeIdsNotAuditedByUser(user, regionId).length
     availableTasks > 0
   }
 
@@ -339,75 +362,6 @@ object AuditTaskTable {
   }
 
   /**
-   * Get a new task for the user. This is called if the user is not already assigned a region.
-   *
-   * Reference for creating java.sql.timestamp
-   * http://stackoverflow.com/questions/308683/how-can-i-get-the-current-date-and-time-in-utc-or-gmt-in-java
-   * http://alvinalexander.com/java/java-timestamp-example-current-time-now
-   *
-   * @param user User ID.
-   * @return
-   */
-  def selectANewTask(user: UUID): NewTask = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
-    val tasksCompletedByUser = for {
-      _user <- users.filter(_.userId === user.toString)
-      _task <- completedTasks if _task.userId === _user.userId
-    } yield (_user.username.?, _task.streetEdgeId.?)
-
-    // Gets list of streets that user has not audited, takes 100, then picks the one with highest priority to assign
-    // TODO: Remove randomness once real-time updates of priority have been implemented.
-    val edges = (for {
-      (_edge, _task) <- streetEdgesWithoutDeleted.leftJoin(tasksCompletedByUser).on(_.streetEdgeId === _._2)
-      if _task._1.isEmpty
-    } yield _edge).take(100)
-
-    val edgesWithCompletionCountAndPriority = for {
-      se <- edges
-      scc <- streetCompletionCounts if se.streetEdgeId === scc._1
-      sep <- StreetEdgePriorityTable.streetEdgePriorities if scc._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority)
-    assert(edgesWithCompletionCountAndPriority.list.nonEmpty)
-
-    val maxPriority: Option[Double] = edgesWithCompletionCountAndPriority.map(_._9).max.run
-    val edge = edgesWithCompletionCountAndPriority.filter(_._9 === maxPriority).list.head
-
-    // Find a region that this street belongs to, and assign user to that region
-    val regionId: Int = StreetEdgeRegionTable.selectNonDeletedByStreetEdgeId(edge._1).head.regionId
-    UserCurrentRegionTable.update(user, regionId)
-
-    // Increment the assignment count and return the task
-    StreetEdgeAssignmentCountTable.incrementAssignment(edge._1)
-    NewTask(edge._1, edge._2, edge._3, edge._4, edge._5, edge._6, edge._7, edge._8, edge._9, completed=false)
-  }
-
-  /**
-    * Get task without username. Used only as a backup in case selectANewTaskInARegion(regionId) fails.
-    *
-    * @return
-    */
-  def selectANewTask: NewTask = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
-    // Take up to 100 of the highest priority edges, and assign one at random
-    // TODO Remove randomness once real-time updates of priority have been implemented.
-    val maxPriority: Option[Double] = streetEdgePriorities.map(_.priority).max.run
-    val possibleTasks = (for {
-      sep <- streetEdgePriorities if sep.priority === maxPriority
-      se <- streetEdgesWithoutDeleted if sep.streetEdgeId === se.streetEdgeId
-      scc <- streetCompletionCounts if se.streetEdgeId === scc._1
-    } yield (
-      se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, false)).take(100).list
-
-    assert(possibleTasks.nonEmpty)
-    val task = Random.shuffle(possibleTasks).head
-
-    StreetEdgeAssignmentCountTable.incrementAssignment(task._1)
-    NewTask.tupled(task)
-  }
-
-  /**
     * Get a new task specified by the street edge id. Used when calling the /audit/street route.
     *
     * @param streetEdgeId Street edge id
@@ -419,14 +373,14 @@ object AuditTaskTable {
     // Set completed to true if the user has already audited this street.
     val userCompleted: Boolean = if (user.isDefined) userHasAuditedStreet(streetEdgeId, user.get) else false
 
-    val edges = (for {
+    // Join with other queries to get completion count and priority for each of the street edges.
+    val edges = for {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       scc <- streetCompletionCounts if se.streetEdgeId === scc._1
       sep <- streetEdgePriorities if scc._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, userCompleted)).list
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, userCompleted)
 
-    assert(edges.nonEmpty)
-    var task: NewTask = NewTask.tupled(edges.head)
+    var task: NewTask = NewTask.tupled(edges.first)
 
     StreetEdgeAssignmentCountTable.incrementAssignment(task.edgeId)
     task
@@ -439,32 +393,23 @@ object AuditTaskTable {
     * @param regionId region id
    * @return
    */
-  def selectANewTaskInARegion(regionId: Int): NewTask = db.withSession { implicit session =>
+  def selectANewTaskInARegion(regionId: Int): Option[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val edgesInRegion = for {
-      _ser <- nonDeletedStreetEdgeRegions if _ser.regionId === regionId
-      _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
-    } yield _edges
+    // Join with other queries to get completion count and priority for each of the street edges.
+    val edgesWithCompletionCountAndPriority = for {
+      ser <- nonDeletedStreetEdgeRegions if ser.regionId === regionId
+      se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
+      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
+      cc <- streetCompletionCounts if sp.streetEdgeId === cc._1
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)
 
-    val maxPriority: Option[Double] =
-      streetEdgePriorities.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId).map(_._1.priority).max.run
+    // Take the highest priority street.
+    val task: Option[NewTask] = edgesWithCompletionCountAndPriority.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
 
-    val highPriorityTask = (for {
-      sp <- streetEdgePriorities if sp.priority === maxPriority
-      se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
-      cc <- streetCompletionCounts if se.streetEdgeId === cc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)).list.headOption
-
-    highPriorityTask match {
-      case Some(e) =>
-        // Increment the assignment count and return the task
-        StreetEdgeAssignmentCountTable.incrementAssignment(e._1)
-        NewTask.tupled(e)
-      case None =>
-        Logger.warn("Unable to assign a task in region " + regionId + " to an anonymous user.")
-        selectANewTask // The list is empty for whatever the reason
-    }
+    // If a task was found, update the street_edge_assignment_count table.
+    task.map(t => StreetEdgeAssignmentCountTable.incrementAssignment(t.edgeId))
+    task
   }
 
   /**
@@ -474,38 +419,25 @@ object AuditTaskTable {
    * @param user User ID.
    * @return
    */
-  def selectANewTaskInARegion(regionId: Int, user: UUID): NewTask = db.withSession { implicit session =>
+  def selectANewTaskInARegion(regionId: Int, user: UUID): Option[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
-    val edgesAuditedByUser: List[Int] =
-      completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
+    // Get the streets that the user has not already completed.
+    val edgesInRegion = streetEdges.filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user, regionId))
 
-    val edgesInRegion = for {
-      _ser <- nonDeletedStreetEdgeRegions if _ser.regionId === regionId
-      _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
-      if !(_edges.streetEdgeId inSet edgesAuditedByUser)
-    } yield _edges
-
-    val maxPriority: Option[Double] =
-      streetEdgePriorities.innerJoin(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId).map(_._1.priority).max.run
-
-    val highPriorityTask = (for {
-      sp <- streetEdgePriorities if sp.priority === maxPriority
+    // Join with other queries to get completion count and priority for each of the street edges.
+    val possibleTasks = for {
+      sp <- streetEdgePriorities
       se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
       cc <- streetCompletionCounts if se.streetEdgeId === cc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)).list.headOption
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)
 
-    highPriorityTask match {
-      case Some(e) =>
-        // Increment the assignment count and return the task
-        StreetEdgeAssignmentCountTable.incrementAssignment(e._1)
-        NewTask.tupled(e)
+    // Get the highest priority task.
+    val task: Option[NewTask] = possibleTasks.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
 
-      // If the user has already audited all streets in the region, then the count would be null, so give them a
-      // new task in a new region.
-      case None =>
-        selectANewTask(user)
-    }
+    // If a task was found, update the street_edge_assignment_count table.
+    task.map(t => StreetEdgeAssignmentCountTable.incrementAssignment(t.edgeId))
+    task
   }
 
   /**
