@@ -63,7 +63,7 @@ object UserCurrentRegionTable {
     * @param userId
     * @return
     */
-  def assignNextRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def assignRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     println("REGULAR ASSIGNMENT FOR USER")
     // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
     val newRegion: Option[NamedRegion] =

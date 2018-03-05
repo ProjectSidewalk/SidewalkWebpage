@@ -122,7 +122,7 @@ object RegionTable {
     */
   def selectAHighPriorityRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     println("REGULAR SELECTION FOR USER")
-    val possibleRegionIds: List[Int] = MissionTable.selectIncompleteRegions(userId).toList
+    val possibleRegionIds: List[Int] = MissionTable.selectIncompleteRegionsUsingTasks(userId).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
       case Some(region) => Some(region)
@@ -139,7 +139,7 @@ object RegionTable {
   def selectAHighPriorityEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     println("EASY SELECTION FOR USER")
     val possibleRegionIds: List[Int] =
-      MissionTable.selectIncompleteRegions(userId).filterNot(difficultRegionIds.contains(_)).toList
+      MissionTable.selectIncompleteRegionsUsingTasks(userId).filterNot(difficultRegionIds.contains(_)).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
       case Some(region) => Some(region)

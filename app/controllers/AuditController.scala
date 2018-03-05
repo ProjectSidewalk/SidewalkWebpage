@@ -53,22 +53,27 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           case Some("easy") => // Assign an easy region if the query string has nextRegion=easy.
             UserCurrentRegionTable.assignEasyRegion(user.userId)
           case Some("regular") => // Assign any region if nextRegion=regular and the user is experienced.
-            UserCurrentRegionTable.assignNextRegion(user.userId)
+            UserCurrentRegionTable.assignRegion(user.userId)
           case Some(illformedString) => // Log warning, assign new region if one is not already assigned.
             Logger.warn(s"Parameter to audit must be \'easy\' or \'regular\', but \'$illformedString\' was passed.")
             if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.selectTheCurrentNamedRegion(user.userId)
-            else UserCurrentRegionTable.assignEasyRegion(user.userId)
+            else UserCurrentRegionTable.assignRegion(user.userId)
           case None => // Assign new region if one is not already assigned.
             if (UserCurrentRegionTable.isAssigned(user.userId)) RegionTable.selectTheCurrentNamedRegion(user.userId)
-            else UserCurrentRegionTable.assignEasyRegion(user.userId)
+            else UserCurrentRegionTable.assignRegion(user.userId)
         }
+        println(region.map(_.regionId))
+        println("IS REGION EMPTY? " + region.isEmpty)
+        println("IS TASK AVAILABLE? " + AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId))
+        println("IS MISSION AVAILABLE? " + MissionTable.isMissionAvailable(user.userId, region.get.regionId))
 
         // Check if a user still has tasks available in this region.
         if (region.isEmpty ||
             !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) ||
             !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
-          //println("Executing when next is set to: " + nextRegion)
-          region = UserCurrentRegionTable.assignNextRegion(user.userId)
+          println(region.map(_.regionId))
+          region = UserCurrentRegionTable.assignRegion(user.userId)
+          println(region.map(_.regionId))
         }
 
         nextRegion match {
@@ -80,12 +85,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
-            val task: NewTask =
+            val task: Option[NewTask] =
               if (region.isDefined) AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user.userId)
               else AuditTaskTable.selectANewTask(user.userId)
             region = RegionTable.selectTheCurrentNamedRegion(user.userId)
+            println(region.map(_.regionId))
 
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, Some(user))))
         }
       case None =>
         nextRegion match {
@@ -121,9 +127,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // Update the currently assigned region for the user
         UserCurrentRegionTable.update(user.userId, regionId)
+        println("IS MISSION AVAILABLE? " + MissionTable.isMissionAvailable(user.userId, region.get.regionId))
 
-        val task: NewTask = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+        val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
         val task: NewTask = AuditTaskTable.selectANewTaskInARegion(regionId)
