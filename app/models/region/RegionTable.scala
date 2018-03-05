@@ -89,7 +89,6 @@ object RegionTable {
     * @return
     */
   def selectAHighPriorityEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
-    println("EASY SELECTION")
     val possibleRegionIds: List[Int] =
       regionsWithoutDeleted.filterNot(_.regionId inSet difficultRegionIds).map(_.regionId).list
 
@@ -105,7 +104,6 @@ object RegionTable {
     * @return
     */
   def selectAHighPriorityRegion: Option[NamedRegion] = db.withSession { implicit session =>
-    println("REGULAR SELECTION")
     val possibleRegionIds: List[Int] = regionsWithoutDeleted.map(_.regionId).list
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
@@ -121,7 +119,6 @@ object RegionTable {
     * @return
     */
   def selectAHighPriorityRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    println("REGULAR SELECTION FOR USER")
     val possibleRegionIds: List[Int] = MissionTable.selectIncompleteRegionsUsingTasks(userId).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
@@ -137,7 +134,6 @@ object RegionTable {
     * @return
     */
   def selectAHighPriorityEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    println("EASY SELECTION FOR USER")
     val possibleRegionIds: List[Int] =
       MissionTable.selectIncompleteRegionsUsingTasks(userId).filterNot(difficultRegionIds.contains(_)).toList
 
@@ -154,7 +150,6 @@ object RegionTable {
     * @return
     */
   def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[NamedRegion] = db.withSession { implicit session =>
-    println("GENERIC SELECTION")
 
     val highestPriorityRegions: List[Int] =
       StreetEdgeRegionTable.streetEdgeRegionTable
@@ -163,8 +158,6 @@ object RegionTable {
       .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
       .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
       .sortBy(_._2.desc).take(5).map(_._1).list // take the 5 with highest average priority, select region_id
-    println("Highest priority regions: " + highestPriorityRegions)
-    println()
 
     scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(selectANamedRegion)
   }
