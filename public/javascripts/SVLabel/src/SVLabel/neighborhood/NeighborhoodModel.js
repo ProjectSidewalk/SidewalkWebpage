@@ -39,8 +39,9 @@ function NeighborhoodModel () {
             }
         })).done(callback);
     };
-    
-    this.fetchNextLeastAuditedRegion = function (async) {
+
+    // TODO test if this is used, we suspect it is never called and can be deleted.
+    this.fetchNextHighPriorityRegion = function (async) {
         if (typeof async === "undefined") async = true;
         $.ajax({
             async: async,
