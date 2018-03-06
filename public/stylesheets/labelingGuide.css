@@ -1,6 +1,7 @@
 /*#faq-panel {
     position: fixed;
     width: 18%;
+    .faq ul#questions-list #subtopics li
 }*/
 
 .faq ul#questions-list #subtopics li {
@@ -15,6 +16,17 @@
     display: inline-block;
 }
 
-.img-responsive {
+.img-responsive, .topic {
     cursor: pointer;
+}
+
+.plusminus {
+    float:right;
+    font-size: 18px;
+}
+
+#subtopics {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
 }
