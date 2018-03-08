@@ -995,10 +995,7 @@
                 url: surveyUrl,
                 type: 'post',
                 dataType: 'json',
-                data: JSON.stringify({
-                    "answered_questions": formData,
-                    "is_admin": equals(@user.get.role.getOrElse(""), "Administrator")
-                }),
+                data: JSON.stringify(formData), 
                 success: function (data) {
                     //close survey modal here
                     $('#survey-modal-container').modal('hide');
