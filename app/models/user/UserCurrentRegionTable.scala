@@ -51,7 +51,6 @@ object UserCurrentRegionTable {
     * @return
     */
   def assignEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    println("EASY ASSIGNMENT FOR USER")
     val newRegion: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion(userId)
     newRegion.map(r => update(userId, r.regionId)) // If region successfully selected, assign it to them.
     newRegion
@@ -64,7 +63,6 @@ object UserCurrentRegionTable {
     * @return
     */
   def assignRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    println("REGULAR ASSIGNMENT FOR USER")
     // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
     val newRegion: Option[NamedRegion] =
       if(isUserExperienced(userId)) RegionTable.selectAHighPriorityRegion(userId)
