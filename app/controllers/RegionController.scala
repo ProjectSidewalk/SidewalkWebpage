@@ -45,7 +45,7 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
             submission.regionId match {
               case Some(regId) =>
                 // Sets a region based on the request from the user
-                UserCurrentRegionTable.update(user.userId, regId)
+                UserCurrentRegionTable.saveOrUpdate(user.userId, regId)
 
               case None =>
                 // Assigns a region to the user on request from a signed in user

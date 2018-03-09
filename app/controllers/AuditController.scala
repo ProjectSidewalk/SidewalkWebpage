@@ -115,7 +115,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Update the currently assigned region for the user
-        UserCurrentRegionTable.update(user.userId, regionId)
+        UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
 
         val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, Some(user))))

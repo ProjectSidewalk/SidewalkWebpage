@@ -51,9 +51,8 @@ object UserCurrentRegionTable {
     * @return
     */
   def assignEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    println("EASY ASSIGNMENT FOR USER")
     val newRegion: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion(userId)
-    newRegion.map(r => update(userId, r.regionId)) // If region successfully selected, assign it to them.
+    newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
     newRegion
   }
 
@@ -64,12 +63,11 @@ object UserCurrentRegionTable {
     * @return
     */
   def assignRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    println("REGULAR ASSIGNMENT FOR USER")
     // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
     val newRegion: Option[NamedRegion] =
       if(isUserExperienced(userId)) RegionTable.selectAHighPriorityRegion(userId)
       else RegionTable.selectAHighPriorityEasyRegion(userId)
-    newRegion.map(r => update(userId, r.regionId)) // If region successfully selected, assign it to them.
+    newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
     newRegion
   }
 
@@ -111,10 +109,29 @@ object UserCurrentRegionTable {
     *
     * @param userId user ID
     * @param regionId region id
+    * @return the number of rows updated
     */
   def update(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
     val q = for { ucr <- userCurrentRegions if ucr.userId === userId.toString } yield ucr.regionId
     q.update(regionId)
+  }
+
+  /**
+    * Update the current region, or save a new entry if the user does not have one.
+    *
+    * Reference:
+    * http://slick.typesafe.com/doc/2.1.0/queries.html#updating
+    *
+    * @param userId user ID
+    * @param regionId region id
+    * @return region id
+    */
+  def saveOrUpdate(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
+    val rowsUpdated: Int = update(userId, regionId)
+    // If no rows are updated, a new record needs to be created
+    if (rowsUpdated == 0) {
+      save(userId, regionId)
+    }
     regionId
   }
 }
