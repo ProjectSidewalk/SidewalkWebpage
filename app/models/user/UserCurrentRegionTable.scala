@@ -128,6 +128,7 @@ object UserCurrentRegionTable {
     */
   def saveOrUpdate(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
     val rowsUpdated: Int = update(userId, regionId)
+    // If no rows are updated, a new record needs to be created
     if (rowsUpdated == 0) {
       save(userId, regionId)
     }
