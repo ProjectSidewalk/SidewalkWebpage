@@ -7,6 +7,10 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+
     <div class="spacer20"></div>
 
     <div class="container faq">
@@ -18,11 +22,12 @@
                     </div>
                     <div class="panel-body">
                         <ul id="questions-list">
-                                <!--This list will be automatically filled-->
                             <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
                             <li><a href='@routes.ApplicationController.curbRamps'>Curb Ramps</a></li>
-                            <li><a href='@routes.ApplicationController.surfaceProblems'><strong>Surface Problems</strong></a></li>
+                            <li class="topic"><a href='@routes.ApplicationController.surfaceProblems'><strong>Surface Problems</strong></a>
+                                <span class="plusminus">+</span></li>
                             <div id="subtopics">
+                                    <!--This list will be automatically filled-->
                             </div>
                             <li><a href='@routes.ApplicationController.obstacles'>Obstacles</a></li>
                             <li><a href='@routes.ApplicationController.noSidewalk'>No Sidewalk</a></li>

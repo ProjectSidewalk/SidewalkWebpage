@@ -26,7 +26,7 @@ $(document).ready(function(){
             $(this).children(".plusminus").text('-');
         }
     });*/
-    
+
     $(".topic").click(function() {
         this.classList.toggle("active");
 
