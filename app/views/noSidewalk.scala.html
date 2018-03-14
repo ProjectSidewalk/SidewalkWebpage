@@ -7,6 +7,10 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+
     <div class="spacer20"></div>
 
     <div class="container faq">
@@ -33,7 +37,6 @@
                     <h2 class="question" id="no-sidewalk">No Sidewalk</h2>
                     <div class="row">
                         <div class="col-sm-12">
-                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
                             <p>
                                 The protocol for labeling no sidewalk for ground truth collection is as follows: place
                                 one label where the sidewalk ends, and one label where the sidewalk begins again. If
@@ -52,7 +55,24 @@
                                 DO NOT place no sidewalk labels on a median that separates the two directions of traffic
                                 (unless the median has a sidewalk that abruptly ends).
                             </p>
-                                <!-- insert image here-->
+                        </div>
+                        <div>
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk1.png")' href='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk1.png")'
+                                    alt="A Map View image of a 3-way intersection that has no sidewalk" class="img-responsive" align=""
+                                    title="In this example, we approached this intersection from NW, saw there was no label on the opposite street, and placed a No Sidewalk label.">
+                                    <figcaption>In this example, we approached this intersection from NW, saw there was no label on the opposite street, and placed a No Sidewalk label.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk2.png")' href='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk2.png")'
+                                    alt="A Street View image of a median that separates two directions of traffic" class="img-responsive" align=""
+                                    title="A median that separates two directions of traffic">
+                                    <figcaption>A median that separates two directions of traffic</figcaption>
+                                </figure>
+                            </div>
                         </div>
                     </div>
                 </div>

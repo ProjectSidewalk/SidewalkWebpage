@@ -3,9 +3,13 @@
 
 @main(title) {
     @navbar(user)
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/FAQ/build/FAQ.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
 
     <div class="spacer20"></div>
 
@@ -54,7 +58,33 @@
                                 obstacle could give a very inaccurate lat-lng. The left and center images show correct placement, and
                                 the right image shows incorrect placement.
                             </p>
-                            <!-- insert links to images(3) here in a div-->
+                        </div>
+                        <div class="col-md-4">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")'
+                                alt="A Street View image of a curb ramp with a label" class="img-responsive" align=""
+                                title="A label correctly placed at the center of a curb ramp">
+                                <figcaption>A label correctly placed at the center of a curb ramp</figcaption>
+
+                            </figure>
+                        </div>
+                        <div class="col-md-4">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")'
+                                alt="A Street View image of an obstacle with a label at its base" class="img-responsive" align=""
+                                title="A label correctly placed at the base of an obstacle">
+                                <figcaption>A label correctly placed at the base of an obstacle</figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-md-4">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")'
+                                alt="A Street View image of an obstacle with a label at th top of the obstacle" class="img-responsive" align=""
+                                title="A label incorrectly placed at the top of an obstacle">
+                                <figcaption>A label incorrectly placed at the top of an obstacle</figcaption>
+                            </figure>
+                        </div>
+                        <div>
                             <p>
                                 <strong>Important note on temporal change between adjacent panos: </strong>If you take a step and things
                                 change (temporary obstacles like construction are removed, a curb ramp has been added or improved, etc),
