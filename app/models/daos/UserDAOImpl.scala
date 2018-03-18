@@ -243,7 +243,7 @@ object UserDAOImpl {
             |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
             |INNER JOIN sidewalk.role
             |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
-            |WHERE role.role in ('Owner', 'Administrator', 'Researcher')
+            |WHERE role.role IN ('Owner', 'Administrator', 'Researcher')
             |  AND audit_task.completed = true
           """.stripMargin
         )
@@ -257,7 +257,7 @@ object UserDAOImpl {
             |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
             |INNER JOIN sidewalk.role
             |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
-            |WHERE role.role in ('Owner', 'Administrator', 'Researcher')
+            |WHERE role.role IN ('Owner', 'Administrator', 'Researcher')
           """.stripMargin
         )
     }
