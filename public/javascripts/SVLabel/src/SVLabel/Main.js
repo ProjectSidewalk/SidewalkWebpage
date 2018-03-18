@@ -349,8 +349,9 @@ function Main (params) {
 
     // Query the server for the next least unaudited region (across users)
     // and that hasn't been done by the user
+    // TODO test if this is used, we suspect it is never called and can be deleted.
     function findTheNextRegionWithMissions () {
-        svl.neighborhoodModel.fetchNextLeastAuditedRegion(false);
+        svl.neighborhoodModel.fetchNextHighPriorityRegion(false);
     }
 
     function findTheNextRegionWithMissionsOld (currentNeighborhood) {
@@ -517,6 +518,8 @@ function Main (params) {
         var availableMissions = svl.missionContainer.getIncompleteMissionsByRegionId(regionId);
         var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
 
+
+        // TODO test if this is used, we suspect it is never true and can be deleted. This check is done on back-end now
         if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
             findTheNextRegionWithMissions();
             currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();

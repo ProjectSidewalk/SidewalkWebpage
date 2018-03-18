@@ -1,6 +1,6 @@
 @import models.user.User
 @import models.user.WebpageActivityTable
-@import models.user.UserCurrentRegionTable
+@import models.region.RegionTable
 @import models.user.UserRoleTable
 @import models.daos._
 @import models.audit._
@@ -696,7 +696,7 @@
     <script>
         $(document).ready(function () {
 
-        var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+        var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
         window.admin = Admin(_, $, c3, turf, difficultRegionIds);
         $('#commentsTable').dataTable();
         $('#labelTable').dataTable();
