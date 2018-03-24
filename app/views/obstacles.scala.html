@@ -39,40 +39,41 @@
             </div>
             <div class="col-md-9 maincontent">
                 <div class="faq-item">
-                    <h2 class="question" id="obstacles-overview">Obstacles Overview</h2>
+                    <h2 id="obstacles">Obstacles</h2>
                     <div class="row">
                         <div class="col-sm-12">
-                                <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <!--Informed by the Project Sidewalk: Labeling Codebook CHI2018-->
                             <p>
-                                <strong>Background on obstacles.</strong> The ADA standards require a “clear floor or ground space” along
-                                accessible pedestrian routes (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006198">ADA 305</a>). This allows pedestrians to remain safely on the
-                                sidewalk or crosswalk; clear paths are particularly important for pedestrians using
-                                walkers or wheelchairs, since moving off the path to avoid an obstacle may be impossible
-                                or more likely to cause imbalance, tripping, etc.
+                                Obstacles are objects that are directly on the path of a pedestrian route, thus
+                                blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor
+                                or ground space" along accessible pedestrian routes (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006198">ADA 305</a>).
+                                This allows pedestrians, especially those using walkers or wheelchairs, to remain safely
+                                on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible
+                                or may cause imbalance, tripping, or other hazards.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class=question id="how-should-I-mark-an-obstacle">How should I mark an obstacle?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should place labels at the base of the obstacle, which is any object that blocks a path. Placing a
+                                label any higher may make the lat-lng estimation inaccurate. Notice on the left below, how the
+                                label that is not placed at the base of the tree has a lat-lng that is very far from the
+                                sidewalk (as seen in the mini map).
                             </p>
                             <p>
-                                <strong>What should I mark as an obstacle?</strong> Place an obstacle label on any object that is
-                                directly on the path of a pedestrian route (meaning, do not place labels on objects
-                                that do not block a path).
+                                If there is a long stretch of construction, like in the example on the right below, you should place
+                                a temporary obstacle label at the beginning and end of the construction (in the same manner as in the
+                                <a href='@routes.ApplicationController.surfaceProblems'>Surface Problems</a> section.
                             </p>
                             <p>
-                                <strong>How should I rate severity?</strong> Severity is higher for obstacles that cover more of the
-                                path, have less room for navigating around them, or would cause pedestrians that avoid
-                                them to put themselves into harm’s way (by going into traffic, going off the sidewalk,
-                                etc). There are numerous examples below of permanent and temporary obstacles at a range
-                                of severity ratings.
-                            </p>
-                            <p>
-                                <strong>Important note on label placement:</strong> Place labels at the base of obstacles. Placing at
-                                higher positions may increase the likelihood that lat-lng estimation from the label
-                                is inaccurate. Notice on the left below, how the label that is not placed at the base
-                                of the tree has a lat-lng that it is very far from the sidewalk (seen in the mini map).
-                            </p>
-                            <p>
-                                <strong>Important note on labeling a long stretch of construction:</strong> If a long stretch of sidewalk
-                                is under construction (as in the example on the left below), place a temporary obstacle
-                                label once at the beginning of the construction and once at the end, in the same manner
-                                as in the Surface problems section.
+                                Severity should be higher for obstacles that cover more of the path, have less room for navigating
+                                around them, or would cause pedestrians that avoid them to put themselves into harm’s way (by going
+                                into traffic, going off the sidewalk, etc). There are more examples throughout this page.
                             </p>
                         </div>
                         <div class="img-container">
@@ -97,14 +98,13 @@
                 </div>
 
                 <div class="faq-item">
-                    <h2 class="question" id="permanent-obstacles">Permanent Obstacles</h2>
+                    <h3 class="question" id="permanent-obstacles">What do I do about permanent obstacles?</h3>
                     <div class="row">
                         <div class="col-sm-12">
                             <p>
-                                Any permanent fixture that is placed in the direct path of pedestrian routes is a
-                                permanent obstacle. This could also include extreme instances of overgrowth, as
-                                in the fourth example. Poles that are located (even partially) within curb ramp flares
-                                are an edge case, but you should mark them as obstacles.
+                                You should use an <i>Obstacle</i> label on any permanent fixture that is placed in the direct path of pedestrian routes.
+                                This could also include extreme instances of overgrowth or poles that are located (even partially) within
+                                curb ramp flares. Below are examples with various degrees of severity.
                             </p>
                         </div>
                         <div class="img-container-3">
@@ -138,12 +138,13 @@
                 </div>
 
                 <div class="faq-item">
-                    <h2 class="question" id="temporary-obstacles">Temporary Obstacles</h2>
+                    <h3 class="question" id="temporary-obstacles">Do I label temporary obstacles as obstacles?</h3>
                     <div class="row">
                         <div class="col-sm-12">
                             <p>
-                                Generally encompasses obstacles that are not part of the “built environment”,
-                                such as construction, minor overgrowth, parked cars, and trash cans.
+                                You should label temporary obstacles with the <i>Obstacle</i> label. Temporary obstacles
+                                are objects that are not part of the "built environment", such as construction, minor
+                                overgrowth, parked cars, and trash cans.
                             </p>
                         </div>
                         <div class="img-container-3">
@@ -178,13 +179,13 @@
                 </div>
 
                 <div class="faq-item">
-                    <h2 class="question" id="non-obstacles">Non-obstacles</h2>
+                    <h3 class="question" id="non-obstacles">Do I label non-obstacles as obstacles?</h3>
                     <div class="row">
                         <div class="col-sm-12">
                             <p>
                                 Any objects that are not directly on the path of a pedestrian route (as in the first
                                 three examples below) should not be marked as obstacles. Perhaps more obviously, things
-                                like moving cars and other pedestrians are not obstacles either.
+                                like moving cars and other pedestrians are not obstacles either, so these should not be marked.
                             </p>
                         </div>
                         <div class="img-container-3">
@@ -227,7 +228,7 @@
                                         <img src='@routes.Assets.at("images/obstacles/NonObstacle5.png")' href='@routes.Assets.at("images/obstacles/NonObstacle5.png")'
                                         alt="A Street View image of objects that are not obstacles, such as a trash can" class="img-responsive" align=""
                                         title="A Street View image of objects that are not obstacles, such as a trash can">
-                                        <figcaption>These objects (labelled obstacle in the picture) are not obstacles. The wooden pole and
+                                        <figcaption>These objects (labeled obstacle in the picture) are not obstacles. The wooden pole and
                                             anchoring cable indicate that even without the objects on the path, pedestrians would
                                             not walk in this area. The pole itself however, should be labelled as an obstacle,
                                             since pedestrians in wheelchairs may have difficulty navigating around it if they
