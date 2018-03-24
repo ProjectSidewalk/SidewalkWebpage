@@ -27,7 +27,7 @@ $(document).ready(function(){
         }
     });*/
 
-    $(".topic").click(function() {
+    $(".plusminus").click(function() {
         this.classList.toggle("active");
 
         var panel = document.getElementById("subtopics");

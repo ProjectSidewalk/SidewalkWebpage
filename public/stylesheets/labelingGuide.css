@@ -8,15 +8,30 @@
     padding-left: 40px;
 }
 
-#img-container img{
+.img-container img{
     height: 213px;
+    margin: auto;
+}
+
+.img-container-3 img {
+    height: 150px;
+    margin: auto;
+}
+
+#img-container1 img {
+    height: 150px;
+    margin: auto;
+}
+
+.col-md-4 {
+    padding-bottom: 20px;
 }
 
 #img-grid {
     display: inline-block;
 }
 
-.img-responsive, .topic {
+.img-responsive, .plusminus {
     cursor: pointer;
 }
 

@@ -38,59 +38,70 @@
                     <h2 id="introduction">Introduction</h2>
                     <div class="row">
                         <div class="col-sm-12">
-                            <!--taken directly from Project Sidewalk: Labeling Codebook CHI2018-->
+                            <!--Informed by the Project Sidewalk: Labeling Codebook CHI2018: https://docs.google.com/document/d/1rTw7Q0A542lIy-OmDyqq8BgIsIPd624PBCazoGqOt7Y/edit?ts=5a4ac269#-->
                             <p>
-                                This codebook is meant to be used as a guide for how to use Project Sidewalk to label accessibility
-                                problems in a standardized way, that is grounded in a close reading of the specifications of the
-                                Americans with Disabilities Act (ADA) and related documents. The codebook contains instructions
-                                for where to place labels, how to rate severity of the labels, along with rationale for those
-                                decisions (including ADA citations where appropriate).
+                                This guide is intended to help you label accessibility features and problems in Project Sidewalk.
+
+                                It is based on specifications from the Americans with Disabilities Act
+                                (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm">ADA</a>) and related documents, and
+                                describes different accessibility problems, where and how to place labels, and how to rate severity
+                                (including ADA citations where appropriate).
+                            </p>
+                            <h3>How to Place a Label</h3>
+                            <p>You should place labels at the center of curb ramps or surface problems, and at the base of obstacles.</p>
+                            <strong>TODO:</strong> Animated gif(s) on how to place a label
+                            <p>
+                                <strong>How do I know which image to label a problem from? </strong>
+                                Often, an accessibility problem is visible from multiple viewpoints (Google Streetview Images).
+                                <strong>TODO:</strong> insert an example showing a accessibility problem viewable from multiple locations
+                                You only need to label a problem once and you should so from the
+                                place where it is most visible or closest (technical aside: being closer to the thing you label makes the lat/long interpolation
+                                of the label more accurate). Note: you can, of course, label problems multiple times from different viewpoints (but this takes more time and is unnecessary).
                             </p>
                             <p>
-                                <strong>Important note on which pano to label from: </strong>Always label an issue/feature from the
-                                place where it is most visible or closest (being closer to the thing you label makes the lat-lng
-                                of the label more accurate).
-                            </p>
-                            <p>
-                                <strong>Important note on label placement: </strong>Place labels at the center of curb ramp or surface
-                                problem, and at the base of an obstacle. This is both to standardize the placement and, in the case
-                                of obstacles, making sure that the location is accurate. Placing a label higher than the base of an
+                                <strong>Specifically, where should I place a label on an identified acessibility feature or problem?</strong>
+                                You should place labels at the center of curb ramp or surface
+                                problem, and at the base of an obstacle. This is both to standardize the placement and, in the case of obstacles,
+                                making sure that the location is accurate. Placing a label higher than the base of an
                                 obstacle could give a very inaccurate lat-lng. The left and center images show correct placement, and
                                 the right image shows incorrect placement.
                             </p>
                         </div>
-                        <div class="col-md-4">
-                            <figure class="text-center">
-                                <img src='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")'
-                                alt="A Street View image of a curb ramp with a label" class="img-responsive" align=""
-                                title="A label correctly placed at the center of a curb ramp">
-                                <figcaption>A label correctly placed at the center of a curb ramp</figcaption>
-
-                            </figure>
+                        <div id="img-container1">
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")'
+                                    alt="A Street View image of a curb ramp with a label" class="img-responsive" align=""
+                                    title="A label correctly placed at the center of a curb ramp">
+                                    <figcaption>A label correctly placed at the center of a curb ramp</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")'
+                                    alt="A Street View image of an obstacle with a label at its base" class="img-responsive" align=""
+                                    title="A label correctly placed at the base of an obstacle">
+                                    <figcaption>A label correctly placed at the base of an obstacle</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")'
+                                    alt="A Street View image of an obstacle with a label at th top of the obstacle" class="img-responsive" align=""
+                                    title="A label incorrectly placed at the top of an obstacle">
+                                    <figcaption>A label incorrectly placed at the top of an obstacle</figcaption>
+                                </figure>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <figure class="text-center">
-                                <img src='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")'
-                                alt="A Street View image of an obstacle with a label at its base" class="img-responsive" align=""
-                                title="A label correctly placed at the base of an obstacle">
-                                <figcaption>A label correctly placed at the base of an obstacle</figcaption>
-                            </figure>
-                        </div>
-                        <div class="col-md-4">
-                            <figure class="text-center">
-                                <img src='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")'
-                                alt="A Street View image of an obstacle with a label at th top of the obstacle" class="img-responsive" align=""
-                                title="A label incorrectly placed at the top of an obstacle">
-                                <figcaption>A label incorrectly placed at the top of an obstacle</figcaption>
-                            </figure>
-                        </div>
-                        <div>
+                        <div class="col-sm-12">
                             <p>
-                                <strong>Important note on temporal change between adjacent panos: </strong>If you take a step and things
-                                change (temporary obstacles like construction are removed, a curb ramp has been added or improved, etc),
-                                then label each panorama appropriately. When doing this, also click the feedback button and write a
-                                message saying what changed between the 2 panos. You do not need to label the same problem from multiple
-                                panoramas if nothing changes.
+                                <strong>What happens if a location has been updated from one viewpoint to the other?</strong>
+                                If you take a step and things change (temporary obstacles like construction are removed, a curb ramp
+                                has been added or improved, etc), then label each panorama appropriately. When doing this, also click
+                                the feedback button and write a message saying what changed between the 2 panos. You do not need to label
+                                the same problem from multiple panoramas if nothing changes.
+
+                                <strong>TODO:</strong> add pictures.
                             </p>
                         </div>
                     </div>
