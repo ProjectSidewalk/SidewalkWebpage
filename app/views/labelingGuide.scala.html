@@ -49,24 +49,53 @@
                             </p>
                             <h3>How to Place a Label</h3>
                             <p>You should place labels at the center of curb ramps or surface problems, and at the base of obstacles.</p>
-                            <strong>TODO:</strong> Animated gif(s) on how to place a label
+                            <!-- Animated GIF on how to place a label -->
                             <p>
                                 <strong>How do I know which image to label a problem from? </strong>
                                 Often, an accessibility problem is visible from multiple viewpoints (Google Streetview Images).
-                                <strong>TODO:</strong> insert an example showing a accessibility problem viewable from multiple locations
-                                You only need to label a problem once and you should so from the
-                                place where it is most visible or closest (technical aside: being closer to the thing you label makes the lat/long interpolation
-                                of the label more accurate). Note: you can, of course, label problems multiple times from different viewpoints (but this takes more time and is unnecessary).
+                                You only need to label a problem once and you should so from the place where it is most visible or
+                                closest (technical aside: being closer to the thing you label makes the lat/long interpolation
+                                of the label more accurate). Note: you can, of course, label problems multiple times from different
+                                viewpoints (but this takes more time and is unnecessary).
                             </p>
-                            <p>
-                                <strong>Specifically, where should I place a label on an identified acessibility feature or problem?</strong>
-                                You should place labels at the center of curb ramp or surface
-                                problem, and at the base of an obstacle. This is both to standardize the placement and, in the case of obstacles,
-                                making sure that the location is accurate. Placing a label higher than the base of an
-                                obstacle could give a very inaccurate lat-lng. The left and center images show correct placement, and
-                                the right image shows incorrect placement.
-                            </p>
+
+                            <div>
+                                <div class="col-md-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/Viewpoint1.png")' href='@routes.Assets.at("images/labeling_guide_misc/Viewpoint1.png")'
+                                        alt="A Street View image of a curb ramp from a distance" class="img-responsive" align=""
+                                        title="A Street View image of a curb ramp from a distance">
+                                        <figcaption>A Street View image of a curb ramp from a distance without a label</figcaption>
+                                    </figure>
+                                </div>
+                                <div class="col-md-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/Viewpoint2.png")' href='@routes.Assets.at("images/labeling_guide_misc/Viewpoint2.png")'
+                                        alt="A Street View image of a labeled curb ramp at a close distance" class="img-responsive" align=""
+                                        title="A Street View image of a labeled curb ramp at a close distance">
+                                        <figcaption>A Street View image of a curb ramp at a close distance with a label</figcaption>
+                                    </figure>
+                                </div>
+                                <div class="col-md-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/Viewpoint3.png")' href='@routes.Assets.at("images/labeling_guide_misc/Viewpoint3.png")'
+                                        alt="A Street View image of a curb ramp from a distance without a label" class="img-responsive" align=""
+                                        title="A Street View image of a curb ramp from a distance without a label">
+                                        <figcaption>A Street View image of a curb ramp from a distance without a label</figcaption>
+                                    </figure>
+                                </div>
+                            </div>
                         </div>
+
+                        <p class="col-sm-12">
+                            <strong>Specifically, where should I place a label on an identified accessibility feature or problem?</strong>
+                            You should place labels at the center of curb ramp or surface
+                            problem, and at the base of an obstacle. This is both to standardize the placement and, in the case of obstacles,
+                            making sure that the location is accurate. Placing a label higher than the base of an
+                            obstacle could give a very inaccurate lat-lng. The left and center images show correct placement, and
+                            the right image shows incorrect placement.
+                        </p>
+
                         <div id="img-container1">
                             <div class="col-md-4">
                                 <figure class="text-center">
@@ -87,23 +116,22 @@
                             <div class="col-md-4">
                                 <figure class="text-center">
                                     <img src='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")'
-                                    alt="A Street View image of an obstacle with a label at th top of the obstacle" class="img-responsive" align=""
+                                    alt="A Street View image of an obstacle with a label at the top of the obstacle" class="img-responsive" align=""
                                     title="A label incorrectly placed at the top of an obstacle">
                                     <figcaption>A label incorrectly placed at the top of an obstacle</figcaption>
                                 </figure>
                             </div>
                         </div>
-                        <div class="col-sm-12">
-                            <p>
-                                <strong>What happens if a location has been updated from one viewpoint to the other?</strong>
-                                If you take a step and things change (temporary obstacles like construction are removed, a curb ramp
-                                has been added or improved, etc), then label each panorama appropriately. When doing this, also click
-                                the feedback button and write a message saying what changed between the 2 panos. You do not need to label
-                                the same problem from multiple panoramas if nothing changes.
 
-                                <strong>TODO:</strong> add pictures.
-                            </p>
-                        </div>
+                        <p class="col-sm-12">
+                            <strong>What happens if a location has been updated from one viewpoint to the other?</strong>
+                            If you take a step and things change (temporary obstacles like construction are removed, a curb ramp
+                            has been added or improved, etc), then label each panorama appropriately. When doing this, also click
+                            the feedback button and write a message saying what changed between the 2 panos. You do not need to label
+                            the same problem from multiple panoramas if nothing changes.
+                        </p>
+                        <!-- TODO: Need to add pictures for this, but could not find in Labeling Guide Codebook
+                                    and could not find in auditing myself -->
                     </div>
                 </div>
 
