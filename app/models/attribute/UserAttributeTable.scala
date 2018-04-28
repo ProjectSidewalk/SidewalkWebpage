@@ -16,7 +16,8 @@ case class UserAttribute(userAttributeId: Int,
                          userClusteringSessionId: Int,
                          clusteringThreshold: Float,
                          labelTypeId: Int,
-                         lat: Float, lng: Float,
+                         lat: Float,
+                         lng: Float,
                          severity: Option[Int],
                          temporary: Boolean)
 
@@ -28,7 +29,7 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
   def labelTypeId: Column[Int] = column[Int]("label_type_id", O.NotNull)
   def lat: Column[Float] = column[Float]("lat", O.NotNull)
   def lng: Column[Float] = column[Float]("lng", O.NotNull)
-  def severity: Column[Option[Int]] = column[Option[Int]]("user_id")
+  def severity: Column[Option[Int]] = column[Option[Int]]("severity")
   def temporary: Column[Boolean] = column[Boolean]("temporary", O.NotNull)
 
   def * : ProvenShape[UserAttribute] = (userAttributeId,

@@ -28,7 +28,7 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
   def labelTypeId: Column[Int] = column[Int]("label_type_id", O.NotNull)
   def lat: Column[Float] = column[Float]("lat", O.NotNull)
   def lng: Column[Float] = column[Float]("lng", O.NotNull)
-  def severity: Column[Option[Int]] = column[Option[Int]]("global_id")
+  def severity: Column[Option[Int]] = column[Option[Int]]("severity")
   def temporary: Column[Boolean] = column[Boolean]("temporary", O.NotNull)
 
   def * : ProvenShape[GlobalAttribute] = (globalAttributeId,
