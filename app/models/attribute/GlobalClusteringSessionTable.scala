@@ -34,8 +34,11 @@ object GlobalClusteringSessionTable {
     globalClusteringSessions.list
   }
 
+  /**
+    * Truncates global_clustering_session, global_attribute, and global_attribute_user_attribute.
+    */
   def truncateTable(): Unit = db.withTransaction { implicit session =>
-    Q.updateNA("TRUNCATE TABLE global_clustering_session").execute
+    Q.updateNA("TRUNCATE TABLE global_clustering_session CASCADE").execute
   }
 
   def save(newSess: GlobalClusteringSession): Int = db.withTransaction { implicit session =>
