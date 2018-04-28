@@ -128,3 +128,8 @@ POST    /survey                                              @controllers.Survey
 
 # Update AMTAssignment Table
 POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
+
+# Clustering and Attributes
+GET     /runSingleUserClusteringAllUsers                     @controllers.AttributeController.runSingleUserClusteringAllUsers
+GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(userId: String, isAnonymous: Boolean)
+POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(userId: String, isAnonymous: Boolean)
