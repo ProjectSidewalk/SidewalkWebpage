@@ -102,7 +102,6 @@ if __name__ == '__main__':
         print "Failed to get labels needed to cluster."
         sys.exit()
 
-
     # Define thresholds for single and multi user clustering (numbers are in kilometers)
     if SINGLE_USER:
         thresholds = {'CurbRamp': 0.002,
@@ -125,7 +124,7 @@ if __name__ == '__main__':
 
     # Pick which label types should be included in clustering, and which should be included in the "Problem" type.
     label_types = ['CurbRamp', 'NoSidewalk', 'Problem', 'Occlusion', 'SurfaceProblem', 'Obstacle', 'Other', 'NoCurbRamp']
-    problem_types = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp']
+    problem_types = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp'] if SINGLE_USER else ['Problem']
 
     # These are the columns required in the POST requests for the labels and clusters, respectively.
     label_cols = ['label_id', 'label_type', 'cluster']

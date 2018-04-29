@@ -174,4 +174,61 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       }
     )
   }
+
+  /**
+    * Takes in results of multi-user clustering, and adds the data to the relevant tables.
+    *
+    * @param regionId
+    * @return
+    */
+  def postMultiUserClusteringResults(regionId: Int) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
+    // 100MB max size
+    // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
+    val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
+    submission.fold(
+      errors => {
+        println("Failed to parse JSON POST request for multi-user clustering results.")
+        println(Json.prettyPrint(request.body))
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
+        val clusters: List[AttributeFormats.ClusterSubmission] = submission.clusters
+        val labels: List[AttributeFormats.ClusteredLabelSubmission] = submission.labels
+
+        val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+
+        // Add corresponding entry to the global_clustering_session table
+        val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))
+
+        // Add the clusters to global_attribute table
+        for (cluster <- clusters) yield {
+          val attributeId: Int =
+            GlobalAttributeTable.save(
+              GlobalAttribute(0,
+                globalSessionId,
+                thresholds(cluster.labelType),
+                LabelTypeTable.labelTypeToId(cluster.labelType),
+                cluster.lat,
+                cluster.lng,
+                cluster.severity,
+                cluster.temporary)
+            )
+          // Add all the associated labels to the global_attribute_user_attribute table
+          groupedLabels get cluster.clusterNum match {
+            case Some(group) =>
+              for (label <- group) yield {
+                GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
+              }
+            case None =>
+              Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+          }
+        }
+        val json = Json.obj("session" -> globalSessionId)
+        Future.successful(Ok(json))
+      }
+    )
+  }
 }
