@@ -10,7 +10,7 @@ import json
 from pandas.io.json import json_normalize
 from concurrent.futures import ProcessPoolExecutor
 
-# Custom distance function that returns max float if from the same turker id, haversine distance otherwise
+# Custom distance function that returns max float if from the same user id, haversine distance otherwise
 def custom_dist(u, v):
     if u[2] == v[2]:
         return sys.float_info.max
@@ -25,7 +25,7 @@ def cluster(labels, curr_type, thresholds, single_user):
     if single_user:
         dist_matrix = pdist(np.array(labels[['lat', 'lng']].as_matrix()), lambda x, y: haversine(x, y))
     else:
-        dist_matrix = pdist(np.array(labels[['lat', 'lng', 'turker_id']].as_matrix()), custom_dist)
+        dist_matrix = pdist(np.array(labels[['lat', 'lng', 'user_id_or_ip']].as_matrix()), custom_dist)
     link = linkage(dist_matrix, method='complete')
 
     # Copies the labels dataframe and adds a column to it for the cluster id each label is in.
@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # Read in arguments from command line
     parser = argparse.ArgumentParser(description='Gets a set of labels, posts the labels grouped into clusters.')
-    parser.add_argument('--user_id', type=str,
+    parser.add_argument('--user_id_or_ip', type=str,
                         help='User id of a single user who\'s labels should be clustered.')
     parser.add_argument('--region_id', type=int,
                         help='Region id of a region who\'s user-clustered should be clustered.')
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     DEBUG = args.debug
     IS_ANONYMOUS = args.is_anonymous
-    USER_ID = args.user_id.strip('\'\"') if args.user_id else None
+    USER_ID_OR_IP = args.user_id_or_ip.strip('\'\"') if args.user_id_or_ip else None
     REGION_ID = args.region_id
 
     N_PROCESSORS = 3
@@ -77,13 +77,13 @@ if __name__ == '__main__':
     postURL = None
     SINGLE_USER = None
 
-    if USER_ID:
+    if USER_ID_OR_IP:
         SINGLE_USER = True
         getURL = 'http://localhost:9000/userLabelsToCluster' \
-                 '?userId=' + str(USER_ID) + \
+                 '?userIdOrIp=' + str(USER_ID_OR_IP) + \
                  '&isAnonymous=' + str.lower(str(IS_ANONYMOUS))
         postURL = 'http://localhost:9000/singleUserClusteringResults' + \
-                  '?userId=' + str(USER_ID) + \
+                  '?userIdOrIp=' + str(USER_ID_OR_IP) + \
                   '&isAnonymous=' + str.lower(str(IS_ANONYMOUS))
     elif REGION_ID:
         SINGLE_USER = False

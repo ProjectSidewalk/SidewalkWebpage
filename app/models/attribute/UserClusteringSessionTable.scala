@@ -16,12 +16,13 @@ import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
 import scala.slick.jdbc.{StaticQuery => Q}
 import scala.language.postfixOps
 
-case class UserLabelToCluster(labelId: Int,
-                              labelType: String,
-                              lat: Option[Float],
-                              lng: Option[Float],
-                              severity: Option[Int],
-                              temporary: Boolean) {
+case class LabelToCluster(userIdOrIp: Option[String],
+                          labelId: Int,
+                          labelType: String,
+                          lat: Option[Float],
+                          lng: Option[Float],
+                          severity: Option[Int],
+                          temporary: Boolean) {
   /**
     * This method converts the data into the JSON format
     *
@@ -29,6 +30,7 @@ case class UserLabelToCluster(labelId: Int,
     */
   def toJSON: JsObject = {
     Json.obj(
+      "user_id_or_ip" -> userIdOrIp,
       "label_id" -> labelId,
       "label_type" -> labelType,
       "lat" -> lat,
@@ -75,26 +77,26 @@ object UserClusteringSessionTable {
     * @param userId
     * @return
     */
-  def getRegisteredUserLabelsToCluster(userId: String): List[UserLabelToCluster] = db.withSession { implicit session =>
+  def getRegisteredUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
 
     val labels = for {
-      _tasks <- AuditTaskTable.auditTasks if _tasks.userId === userId
-      _labs <- LabelTable.labelsWithoutDeletedOrOnboarding if _labs.auditTaskId === _tasks.auditTaskId
-      _latlngs <- LabelTable.labelPoints if _labs.labelId === _latlngs.labelId
-      _types <- LabelTable.labelTypes if _labs.labelTypeId === _types.labelTypeId
-    } yield (_labs.labelId, _types.labelType, _latlngs.lat, _latlngs.lng)
+      _task <- AuditTaskTable.auditTasks if _task.userId === userId
+      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.auditTaskId === _task.auditTaskId
+      _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
+      _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
+    } yield (_task.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng)
 
     // Left joins to get severity for any labels that have them
     val labelsWithSeverity = for {
-      (_labs, _severity) <- labels.leftJoin(LabelTable.severities).on(_._1 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _severity.severity.?)
+      (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
+    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
 
     // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false)
     val labelsWithTemporariness = for {
-      (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._1 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _temporariness.temporaryProblem.?.getOrElse(false))
+      (_lab, _temp) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
+    } yield (_lab._1.asColumnOf[Option[String]], _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
 
-    labelsWithTemporariness.list.map(UserLabelToCluster.tupled)
+    labelsWithTemporariness.list.map(LabelToCluster.tupled)
   }
 
   /**
@@ -103,7 +105,7 @@ object UserClusteringSessionTable {
     * @param ipAddress
     * @return
     */
-  def getAnonymousUserLabelsToCluster(ipAddress: String): List[UserLabelToCluster] = db.withSession { implicit session =>
+  def getAnonymousUserLabelsToCluster(ipAddress: String): List[LabelToCluster] = db.withSession { implicit session =>
 
     val userAudits: Set[Int] =
       AuditTaskEnvironmentTable.auditTaskEnvironments
@@ -112,23 +114,23 @@ object UserClusteringSessionTable {
         .list.toSet
 
     val labels = for {
-      _tasks <- AuditTaskTable.auditTasks if _tasks.auditTaskId inSet userAudits
-      _labs <- LabelTable.labelsWithoutDeletedOrOnboarding if _labs.auditTaskId === _tasks.auditTaskId
-      _latlngs <- LabelTable.labelPoints if _labs.labelId === _latlngs.labelId
-      _types <- LabelTable.labelTypes if _labs.labelTypeId === _types.labelTypeId
-    } yield (_labs.labelId, _types.labelType, _latlngs.lat, _latlngs.lng)
+      _task <- AuditTaskTable.auditTasks if _task.auditTaskId inSet userAudits
+      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.auditTaskId === _task.auditTaskId
+      _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
+      _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
+    } yield (_task.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng)
 
     // Left joins to get severity for any labels that have them
     val labelsWithSeverity = for {
-      (_labs, _severity) <- labels.leftJoin(LabelTable.severities).on(_._1 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _severity.severity.?)
+      (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
+    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
 
     // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false)
     val labelsWithTemporariness = for {
-      (_labs, _temporariness) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._1 === _.labelId)
-    } yield (_labs._1, _labs._2, _labs._3, _labs._4, _labs._5, _temporariness.temporaryProblem.?.getOrElse(false))
+      (_lab, _temp) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
+    } yield (_lab._1.asColumnOf[Option[String]], _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
 
-    labelsWithTemporariness.list.map(UserLabelToCluster.tupled)
+    labelsWithTemporariness.list.map(LabelToCluster.tupled)
   }
 
   /**
