@@ -131,5 +131,5 @@ POST    /amtAssignment                                       @controllers.Missio
 
 # Clustering and Attributes
 GET     /runSingleUserClusteringAllUsers                     @controllers.AttributeController.runSingleUserClusteringAllUsers
-GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(userId: String, isAnonymous: Boolean)
+GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(userIdOrIp: String, isAnonymous: Boolean)
 POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(userId: String, isAnonymous: Boolean)
