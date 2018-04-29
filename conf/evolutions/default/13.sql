@@ -39,8 +39,10 @@ CREATE TABLE user_attribute_label
 CREATE TABLE global_clustering_session
 (
   global_clustering_session_id SERIAL NOT NULL,
+  region_id INT NOT NULL,
   time_created timestamp default current_timestamp NOT NULL,
-  PRIMARY KEY (global_clustering_session_id)
+  PRIMARY KEY (global_clustering_session_id),
+  FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
 CREATE TABLE global_attribute

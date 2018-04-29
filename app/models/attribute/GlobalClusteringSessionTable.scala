@@ -4,23 +4,28 @@ package models.attribute
   * Created by misaugstad on 4/27/17.
   */
 
+import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
 
-import scala.slick.lifted.ProvenShape
+import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
 import scala.slick.jdbc.{StaticQuery => Q}
 import scala.language.postfixOps
 
-case class GlobalClusteringSession(globalClusteringSessionId: Int, timeCreated: java.sql.Timestamp)
+case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: java.sql.Timestamp)
 
 
 class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSession](tag, Some("sidewalk"), "global_clustering_session") {
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
+  def regionId: Column[Int] = column[Int]("region_id", O.NotNull)
   def timeCreated: Column[java.sql.Timestamp] = column[java.sql.Timestamp]("time_created", O.NotNull)
 
-  def * : ProvenShape[GlobalClusteringSession] = (globalClusteringSessionId, timeCreated) <>
+  def * : ProvenShape[GlobalClusteringSession] = (globalClusteringSessionId, regionId, timeCreated) <>
     ((GlobalClusteringSession.apply _).tupled, GlobalClusteringSession.unapply)
+
+  def region: ForeignKeyQuery[RegionTable, Region] =
+    foreignKey("global_clustering_session_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
 }
 
 /**
