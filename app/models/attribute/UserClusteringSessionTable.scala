@@ -13,7 +13,7 @@ import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
 
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
-import scala.slick.jdbc.{StaticQuery => Q}
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.language.postfixOps
 
 case class LabelToCluster(userIdOrIp: Option[String],
@@ -66,6 +66,10 @@ class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](
 object UserClusteringSessionTable {
   val db: slick.Database = play.api.db.slick.DB
   val userClusteringSessions: TableQuery[UserClusteringSessionTable] = TableQuery[UserClusteringSessionTable]
+
+  implicit val labelToClusterConverter = GetResult[LabelToCluster](r => {
+    LabelToCluster(r.nextStringOption, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
+  })
 
   def getAllSessions: List[UserClusteringSession] = db.withTransaction { implicit session =>
     userClusteringSessions.list
@@ -131,6 +135,38 @@ object UserClusteringSessionTable {
     } yield (_lab._1.asColumnOf[Option[String]], _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
 
     labelsWithTemporariness.list.map(LabelToCluster.tupled)
+  }
+
+  /**
+    * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
+    *
+    * @param regionId
+    * @return
+    */
+  def getClusteredLabelsInRegion(regionId: Int): List[LabelToCluster] = db.withTransaction { implicit session =>
+    val clustersInRegionQuery = Q.query[Int, LabelToCluster](
+      """SELECT COALESCE(ip_address, user_id) AS user_id_or_ip,
+        |       user_attribute.user_attribute_id,
+        |       label_type.label_type,
+        |       user_attribute.lat,
+        |       user_attribute.lng,
+        |       user_attribute.severity,
+        |       user_attribute.temporary
+        |FROM user_clustering_session
+        |INNER JOIN user_attribute
+        |    ON user_clustering_session.user_clustering_session_id = user_attribute.user_clustering_session_id
+        |INNER JOIN label_type
+        |    ON user_attribute.label_type_id = label_type.label_type_id
+        |INNER JOIN region
+        |    ON st_intersects
+        |    (
+        |        st_setsrid(st_makepoint(user_attribute.lng, user_attribute.lat), 4326),
+        |        region.geom
+        |    )
+        |WHERE region.region_id = ?;
+      """.stripMargin
+    )
+    clustersInRegionQuery(regionId).list
   }
 
   /**

@@ -102,6 +102,18 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   }
 
   /**
+    * Returns the set of clusters from single-user clustering that are in this region as JSON.
+    *
+    * @param regionId
+    * @return
+    */
+  def getClusteredLabelsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+    val labelsToCluster: List[LabelToCluster] = UserClusteringSessionTable.getClusteredLabelsInRegion(regionId)
+    val json = Json.arr(labelsToCluster.map(_.toJSON))
+    Future.successful(Ok(json))
+  }
+
+  /**
     * Takes in results of single-user clustering, and adds the data to the relevant tables.
     *
     * @param userIdOrIp
