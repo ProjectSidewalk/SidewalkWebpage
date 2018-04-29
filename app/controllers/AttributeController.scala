@@ -49,11 +49,29 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   }
 
   /**
+    * Calls the appropriate clustering functions; either single-user clustering, multi-user clustering, or both.
+    *
+    * @param clusteringType
+    * @return
+    */
+  def runClustering(clusteringType: String) = UserAwareAction.async { implicit request =>
+    if (clusteringType == "singleUser" || clusteringType == "both") {
+      runSingleUserClusteringAllUsers()
+    }
+    if (clusteringType == "multiUser" || clusteringType == "both") {
+      runMultiUserClusteringAllRegions()
+    }
+
+    val testJson = Json.obj("clustering_type" -> clusteringType)
+    Future.successful(Ok(testJson))
+  }
+
+  /**
     * Runs single user clustering for each high quality user.
     *
     * @return
     */
-  def runSingleUserClusteringAllUsers = UserAwareAction.async {implicit request =>
+  def runSingleUserClusteringAllUsers() = {
 
     // First truncate the user_clustering_session table
     UserClusteringSessionTable.truncateTable()
@@ -75,9 +93,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 //      println(clusteringOutput)
     }
     println("\nFinshed 100% of users!!\n")
-
-    val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> "something")
-    Future.successful(Ok(testJson))
   }
 
   /**
@@ -85,7 +100,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @return
     */
-  def runMultiUserClusteringAllRegions = UserAwareAction.async {implicit request =>
+  def runMultiUserClusteringAllRegions() = {
 
     // First truncate the global_clustering_session table
     GlobalClusteringSessionTable.truncateTable()
@@ -98,9 +113,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       val clusteringOutput = ("python label_clustering.py --region_id " + regionId).!!
     }
     println("\nFinshed 100% of regions!!\n\n")
-
-    val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> "something")
-    Future.successful(Ok(testJson))
   }
 
   /**

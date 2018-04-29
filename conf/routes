@@ -130,8 +130,7 @@ POST    /survey                                              @controllers.Survey
 POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
 
 # Clustering and Attributes
-GET     /runSingleUserClusteringAllUsers                     @controllers.AttributeController.runSingleUserClusteringAllUsers
-GET     /runMultiUserClusteringAllRegions                    @controllers.AttributeController.runMultiUserClusteringAllRegions
+GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both")
 GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(userIdOrIp: String, isAnonymous: Boolean)
 GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(regionId: Int)
 POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(userIdOrIp: String, isAnonymous: Boolean)
