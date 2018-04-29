@@ -16,6 +16,7 @@ import play.api.libs.json.Json
 import formats.json.AttributeFormats
 import models.attribute._
 import models.label.LabelTypeTable
+import models.region.RegionTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 
@@ -54,10 +55,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def runSingleUserClusteringAllUsers = UserAwareAction.async {implicit request =>
 
-    // ----------------------------------
-    // ----- SINGLE USER CLUSTERING -----
-    // ----------------------------------
-
     // First truncate the user_clustering_session table
     UserClusteringSessionTable.truncateTable()
 
@@ -78,6 +75,29 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 //      println(clusteringOutput)
     }
     println("\nFinshed 100% of users!!\n")
+
+    val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> "something")
+    Future.successful(Ok(testJson))
+  }
+
+  /**
+    * Runs multi user clustering for the user attributes in each region.
+    *
+    * @return
+    */
+  def runMultiUserClusteringAllRegions = UserAwareAction.async {implicit request =>
+
+    // First truncate the global_clustering_session table
+    GlobalClusteringSessionTable.truncateTable()
+    val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
+    //    val regionIds = List(199, 200,s 203, 211, 261)
+    val nRegions: Int = regionIds.length
+
+    for ((regionId, i) <- regionIds.view.zipWithIndex) {
+      println(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
+      val clusteringOutput = ("python label_clustering.py --region_id " + regionId).!!
+    }
+    println("\nFinshed 100% of regions!!\n\n")
 
     val testJson = Json.obj("what did we run?" -> "clustering!", "output" -> "something")
     Future.successful(Ok(testJson))
