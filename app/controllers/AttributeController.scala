@@ -17,6 +17,7 @@ import formats.json.AttributeFormats
 import models.attribute._
 import models.label.LabelTypeTable
 import models.region.RegionTable
+import models.street.StreetEdgePriorityTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 
@@ -76,11 +77,12 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     // First truncate the user_clustering_session table
     UserClusteringSessionTable.truncateTable()
 
-//    val goodRegisteredUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodRegisteredUsers
-//    val goodAnonymousUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodAnonymousUsers
-    val goodRegisteredUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863")
-    val goodAnonymousUsers: List[String] = List("73.163.171.105")
+    val goodRegisteredUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodRegisteredUsers
+    val goodAnonymousUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodAnonymousUsers
+//    val goodRegisteredUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863")
+//    val goodAnonymousUsers: List[String] = List("73.163.171.105")
     val nUsers = goodRegisteredUsers.length + goodAnonymousUsers.length
+    println("N users = " + nUsers)
 
     for ((userId, i) <- goodAnonymousUsers.view.zipWithIndex) {
       println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
