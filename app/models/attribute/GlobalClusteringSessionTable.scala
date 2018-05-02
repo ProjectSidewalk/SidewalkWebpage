@@ -35,14 +35,14 @@ object GlobalClusteringSessionTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalClusteringSessions: TableQuery[GlobalClusteringSessionTable] = TableQuery[GlobalClusteringSessionTable]
 
-  def getAllSessions: List[GlobalClusteringSession] = db.withTransaction { implicit session =>
+  def getAllGlobalClusteringSessions: List[GlobalClusteringSession] = db.withTransaction { implicit session =>
     globalClusteringSessions.list
   }
 
   /**
     * Truncates global_clustering_session, global_attribute, and global_attribute_user_attribute.
     */
-  def truncateTable(): Unit = db.withTransaction { implicit session =>
+  def truncateTables(): Unit = db.withTransaction { implicit session =>
     Q.updateNA("TRUNCATE TABLE global_clustering_session CASCADE").execute
   }
 

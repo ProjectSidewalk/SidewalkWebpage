@@ -75,7 +75,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   def runSingleUserClusteringAllUsers() = {
 
     // First truncate the user_clustering_session table
-    UserClusteringSessionTable.truncateTable()
+    UserClusteringSessionTable.truncateTables()
 
     val goodRegisteredUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodRegisteredUsers
     val goodAnonymousUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodAnonymousUsers
@@ -105,7 +105,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   def runMultiUserClusteringAllRegions() = {
 
     // First truncate the global_clustering_session table
-    GlobalClusteringSessionTable.truncateTable()
+    GlobalClusteringSessionTable.truncateTables()
     val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
     //    val regionIds = List(199, 200,s 203, 211, 261)
     val nRegions: Int = regionIds.length

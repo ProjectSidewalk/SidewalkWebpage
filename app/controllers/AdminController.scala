@@ -108,7 +108,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAllAttributes = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllAttributes
+      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
       val features: List[JsObject] = attributes.map { attribute =>
         val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
         val properties = Json.obj(

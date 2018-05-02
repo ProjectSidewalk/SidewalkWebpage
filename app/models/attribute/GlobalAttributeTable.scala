@@ -54,7 +54,7 @@ object GlobalAttributeTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalAttributes: TableQuery[GlobalAttributeTable] = TableQuery[GlobalAttributeTable]
 
-  def getAllAttributes: List[GlobalAttribute] = db.withTransaction { implicit session =>
+  def getAllGlobalAttributes: List[GlobalAttribute] = db.withTransaction { implicit session =>
     globalAttributes.list
   }
 

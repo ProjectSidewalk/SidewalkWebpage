@@ -71,7 +71,7 @@ object UserClusteringSessionTable {
     LabelToCluster(r.nextStringOption, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
   })
 
-  def getAllSessions: List[UserClusteringSession] = db.withTransaction { implicit session =>
+  def getAllUserClusteringSessions: List[UserClusteringSession] = db.withTransaction { implicit session =>
     userClusteringSessions.list
   }
 
@@ -172,7 +172,7 @@ object UserClusteringSessionTable {
   /**
     * Truncates user_clustering_session, user_attribute, user_attribute_label, and global_attribute_user_attribute.
     */
-  def truncateTable(): Unit = db.withTransaction { implicit session =>
+  def truncateTables(): Unit = db.withTransaction { implicit session =>
     Q.updateNA("TRUNCATE TABLE user_clustering_session CASCADE").execute
   }
 

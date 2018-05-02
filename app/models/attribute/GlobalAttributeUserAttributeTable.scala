@@ -36,7 +36,7 @@ object GlobalAttributeUserAttributeTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalAttributeUserAttributes: TableQuery[GlobalAttributeUserAttributeTable] = TableQuery[GlobalAttributeUserAttributeTable]
 
-  def getAllSessions: List[GlobalAttributeUserAttribute] = db.withTransaction { implicit session =>
+  def getAllGlobalAttributeUserAttributes: List[GlobalAttributeUserAttribute] = db.withTransaction { implicit session =>
     globalAttributeUserAttributes.list
   }
 

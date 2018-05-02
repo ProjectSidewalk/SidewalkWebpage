@@ -37,7 +37,7 @@ object UserAttributeLabelTable {
   val db: slick.Database = play.api.db.slick.DB
   val userAttributeLabels: TableQuery[UserAttributeLabelTable] = TableQuery[UserAttributeLabelTable]
 
-  def getAllSessions: List[UserAttributeLabel] = db.withTransaction { implicit session =>
+  def getAllUserAttributeLabels: List[UserAttributeLabel] = db.withTransaction { implicit session =>
     userAttributeLabels.list
   }
 
