@@ -51,6 +51,7 @@ GET     /adminapi/label/:labelId                             @controllers.AdminC
 GET     /adminapi/labelCounts/registered                     @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
 GET     /adminapi/labelCounts/turker                         @controllers.AdminController.getAllTurkerUserLabelCounts
+GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
 GET     /adminapi/auditTimesAnon                             @controllers.AdminController.getAnonAuditTimes()
 GET     /adminapi/auditTimesTurker                           @controllers.AdminController.getTurkerAuditTimes()
