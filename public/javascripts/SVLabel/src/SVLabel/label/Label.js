@@ -434,12 +434,13 @@ function Label (svl, pathIn, params) {
         if (!status.deleted) {
             if (status.visibility === 'visible') {
 
-                // Render a tag
+                // Render a tag -- triggered on mouse hover
                 // Get a text to render (e.g, attribute type), and
                 // canvas coordinate to render the tag.
                 if(status.tagVisibility == 'visible') {
                     renderTag(ctx);
                     // path.renderBoundingBox(ctx);
+                    showSeverity();
                     showDelete();
                 }
 
@@ -776,10 +777,30 @@ function Label (svl, pathIn, params) {
             // Show a delete button
             $("#delete-icon-holder").css({
                 visibility: 'visible',
-                left : x + 25, // + width - 5,
+                left : x - 6, // + width - 5,
                 top : y - 20
             });
         }
+    }
+
+    /**
+     * Shows the severity of the label
+     */
+    function showSeverity() {
+        // if (status.tagVisibility !== 'hidden') {
+            var boundingBox = path.getBoundingBox(),
+                x = boundingBox.x + boundingBox.width - 20,
+                y = boundingBox.y;
+
+            $("severity-icon").css({
+                visibility: 'visible',
+                left: x - 6,
+                top: y - 20
+            })
+            // console.log('show severity');
+            // console.log('severity: ' + self.getProperties.severity);
+
+        // }
     }
 
     /**

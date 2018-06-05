@@ -726,7 +726,9 @@ function Main (params) {
         svl.ui.canvas = {};
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
+        svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
         svl.ui.canvas.deleteIcon = $("#LabelDeleteIcon");
+        svl.ui.canvas.severityIcon = $("#severity-icon");
 
         // Interaction viewer
         svl.ui.tracker = {};
