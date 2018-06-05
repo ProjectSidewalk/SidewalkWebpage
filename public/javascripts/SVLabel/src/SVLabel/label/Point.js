@@ -201,7 +201,7 @@ function Point (svl, x, y, pov, params) {
     }
 
     /**
-     * Renders this point
+     * Renders a label
      * @param pov
      * @param ctx
      */
@@ -233,7 +233,7 @@ function Point (svl, x, y, pov, params) {
             ctx.closePath();
             ctx.fill();
 
-            // Render an icon
+            // Renders label icon
             var imagePath = getProperty("iconImagePath");
             if (imagePath) {
                 var imageObj, imageHeight, imageWidth, imageX, imageY;

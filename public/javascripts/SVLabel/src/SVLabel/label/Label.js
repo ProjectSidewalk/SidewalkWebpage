@@ -428,26 +428,23 @@ function Label (svl, pathIn, params) {
      * @returns {self}
      */
     function render (ctx, pov, evaluationMode) {
-        if (!evaluationMode) {
-            evaluationMode = false;
-        }
         if (!status.deleted) {
             if (status.visibility === 'visible') {
 
-                // Render a tag -- triggered on mouse hover
+                // Render a tag -- triggered by mouse hover event
                 // Get a text to render (e.g, attribute type), and
                 // canvas coordinate to render the tag.
                 if(status.tagVisibility == 'visible') {
                     renderTag(ctx);
                     // path.renderBoundingBox(ctx);
-                    showSeverity();
                     showDelete();
                 }
-
-                // Render a path
+                showSeverity(); // this is always getting called
+                // Renders the label image
                 path.render2(ctx, pov);
 
             } else if (false) {
+                console.log ('test');
                 // TAG: OLD IMAGE COORDINATE USED
                 // Render labels that are not in the current panorama but are close enough.
                 // Get the label'svar latLng = toLatLng();
@@ -785,30 +782,44 @@ function Label (svl, pathIn, params) {
 
     /**
      * Shows the severity of the label
-     */
+    */
     function showSeverity() {
         // if (status.tagVisibility !== 'hidden') {
-            var boundingBox = path.getBoundingBox(),
-                x = boundingBox.x + boundingBox.width - 20,
-                y = boundingBox.y;
+        var boundingBox = path.getBoundingBox(),
+            x = boundingBox.x + boundingBox.width - 20,
+            y = boundingBox.y;
 
-            if (properties.severity) {
-                document.getElementById("severity-icon").innerHTML = properties.severity;
-            } else {
-                document.getElementById("severity-icon").innerHTML = "!";
-            }
+        document.getElementById("delete-icon-holder").style.top = (y - 20) + 'px';
+        document.getElementById("delete-icon-holder").style.left = (x - 6) + 'px';
 
+        document.getElementById("severity-icon").style.visibility = 'visible';
+        document.getElementById("severity-icon").style.left = '0px';
+        document.getElementById("severity-icon").style.top = '0px';
 
-            $("severity-icon").css({
-                visibility: 'visible',
-                left: x - 6,
-                top: y - 20
-            })
-            // console.log('show severity');
-            // console.log('severity: ' + self.getProperties.severity);
+        if (properties.severity) {
+            document.getElementById("severity-icon").innerHTML = properties.severity;
+        } else {
+            document.getElementById("severity-icon").innerHTML = "!";
+        }
+
+        console.log('x: ' + x + ' y: ' + y);
+
+        console.log('show severity');
+        // console.log('severity: ' + self.getProperties.severity);
 
         // }
     }
+
+
+    /*
+    function calculateCanvasCoordinate(pov){
+        var canvasCoord = getCanvasCoordinate();
+        var origPov = getOriginalPov();
+        self.canvasCoordinate =  util.panomarker.getCanvasCoordinate(canvasCoord, origPov, pov);
+        return self.canvasCoordinate;
+    }
+    */
+
 
     /**
      * Calculate the offset to the label
