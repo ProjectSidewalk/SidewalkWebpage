@@ -530,7 +530,7 @@ function Label (svl, pathIn, params) {
         ctx.lineWidth = 2;
         ctx.fillStyle = util.color.changeAlphaRGBA(util.misc.getLabelColors(getProperty('labelType')), 0.9);
         ctx.strokeStyle = 'rgba(255,255,255,1)';
-
+        // console.log('severity: ' + properties.severity);
         // Tag background
         ctx.beginPath();
         ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
@@ -791,6 +791,13 @@ function Label (svl, pathIn, params) {
             var boundingBox = path.getBoundingBox(),
                 x = boundingBox.x + boundingBox.width - 20,
                 y = boundingBox.y;
+
+            if (properties.severity) {
+                document.getElementById("severity-icon").innerHTML = properties.severity;
+            } else {
+                document.getElementById("severity-icon").innerHTML = "!";
+            }
+
 
             $("severity-icon").css({
                 visibility: 'visible',
