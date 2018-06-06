@@ -31,7 +31,6 @@ function Point (svl, x, y, pov, params) {
         originalStrokeStyleOuterCircle: undefined,
         radiusInnerCircle: 4,
         radiusOuterCircle: 5,
-        severity: undefined,
         strokeStyleOuterCircle: 'rgba(255,255,255,1)',
         storedInDatabase: false
     };
@@ -202,7 +201,7 @@ function Point (svl, x, y, pov, params) {
     }
 
     /**
-     * Renders label and severity icons onto the main screen
+     * Renders label image icon
      * @param pov
      * @param ctx
      */
@@ -257,9 +256,9 @@ function Point (svl, x, y, pov, params) {
             ctx.restore();
 
             // Only create a severity icon if there's an option for marking severity
-            if (properties.iconType != 'NoSidewalk' && properties.iconType != 'Occlusion') {
-                showSeverity(pov, ctx);
-            }
+            // if (properties.iconType != 'NoSidewalk' && properties.iconType != 'Occlusion') {
+                // showSeverity(pov, ctx);
+            // }
         }
     }
 
@@ -416,57 +415,6 @@ function Point (svl, x, y, pov, params) {
         }
         return this;
     }
-
-    /**
-     * Shows the severity of the label
-     */
-    function showSeverity(pov, ctx) {
-        // if (status.tagVisibility !== 'hidden') {
-        var coord = calculateCanvasCoordinate(pov),
-            x = coord.x,
-            y = coord.y;
-
-        // console.log('x: ' + x + ' y: ' + y);
-        ctx.save();
-        ctx.beginPath();
-        ctx.fillStyle = 'rgb(60, 60, 60, 0.9)';
-        ctx.ellipse(x - 14, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.closePath();
-        ctx.beginPath();
-        ctx.fillStyle = 'rgb(255, 255, 255)';
-        ctx.font = "12px Open Sans";
-
-        if (properties.severity == undefined) {
-            ctx.fillText('!', x - 16.5, y - 7.5);
-        } else {
-            ctx.fillText(properties.severity, x - 16.5, y - 7.5);
-        }
-
-        ctx.closePath();
-        ctx.restore();
-
-        // document.getElementById("severity-icon").style.visibility = 'visible';
-        // document.getElementById("severity-icon").style.left = "100px";
-        // document.getElementById("severity-icon").style.top = "100px";
-
-        // if (properties.severity) {
-        //    document.getElementById("severity-icon").innerHTML = properties.severity;
-        // } else {
-        //    document.getElementById("severity-icon").innerHTML = "!";
-        //}
-
-        // $("severity-icon").css({
-        //    visibility: 'visible',
-        //    left: "100px",
-        //    top: "100px",
-        // })
-        // console.log('show severity');
-        // console.log('severity: ' + self.getProperties.severity);
-
-        // }
-    }
-
 
     // Todo. Deprecated method. Get rid of this later.
     self.resetProperties = self.setProperties;

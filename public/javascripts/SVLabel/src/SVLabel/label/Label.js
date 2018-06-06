@@ -439,9 +439,14 @@ function Label (svl, pathIn, params) {
                     // path.renderBoundingBox(ctx);
                     showDelete();
                 }
-                // showSeverity(); // this is always getting called
+
                 // Renders the label image
                 path.render2(ctx, pov);
+
+                // Only render severity label if there's a severity option
+                if (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion') {
+                    showSeverity(ctx); // this is always getting called
+                }
 
             } else if (false) {
                 console.log ('test');
@@ -784,35 +789,59 @@ function Label (svl, pathIn, params) {
 
     /**
      * Shows the severity of the label
-    */
-    /*
-    function showSeverity() {
+     */
+    function showSeverity (ctx) {
         // if (status.tagVisibility !== 'hidden') {
-        var boundingBox = path.getBoundingBox(),
-            x = boundingBox.x + boundingBox.width - 20,
-            y = boundingBox.y;
+        var labelCoordinate = getCoordinate();
+        var x = labelCoordinate.x;
+        var y = labelCoordinate.y;
 
-        document.getElementById("delete-icon-holder").style.top = (y - 20) + 'px';
-        document.getElementById("delete-icon-holder").style.left = (x - 6) + 'px';
+        /*
+        var coord = calculateCanvasCoordinate(pov),
+            x = coord.x,
+            y = coord.y;
+        */
 
-        document.getElementById("severity-icon").style.visibility = 'visible';
-        document.getElementById("severity-icon").style.left = '0px';
-        document.getElementById("severity-icon").style.top = '0px';
+        // console.log('x: ' + x + ' y: ' + y);
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(60, 60, 60, 0.9)';
+        ctx.ellipse(x - 14, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.closePath();
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        ctx.font = "12px Open Sans";
 
-        if (properties.severity) {
-            document.getElementById("severity-icon").innerHTML = properties.severity;
+        if (properties.severity == undefined) {
+            ctx.fillText('!', x - 16.5, y - 7.5);
         } else {
-            document.getElementById("severity-icon").innerHTML = "!";
+            ctx.fillText(properties.severity, x - 16.5, y - 7.5);
         }
 
-        console.log('LABEL x: ' + (x - 6) + ' y: ' + (y - 20));
+        ctx.closePath();
+        ctx.restore();
 
-        console.log('show severity');
+        // document.getElementById("severity-icon").style.visibility = 'visible';
+        // document.getElementById("severity-icon").style.left = "100px";
+        // document.getElementById("severity-icon").style.top = "100px";
+
+        // if (properties.severity) {
+        //    document.getElementById("severity-icon").innerHTML = properties.severity;
+        // } else {
+        //    document.getElementById("severity-icon").innerHTML = "!";
+        //}
+
+        // $("severity-icon").css({
+        //    visibility: 'visible',
+        //    left: "100px",
+        //    top: "100px",
+        // })
+        // console.log('show severity');
         // console.log('severity: ' + self.getProperties.severity);
 
         // }
     }
-    */
 
 
     /*
