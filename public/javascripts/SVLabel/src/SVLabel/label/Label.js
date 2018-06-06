@@ -639,6 +639,8 @@ function Label (svl, pathIn, params) {
                 setTagVisibility(value);
             } else if (key === 'deleted' && typeof value === 'boolean') {
                 status[key] = value;
+            } else if (key === 'severity') {
+                status[key] = value;
             }
         }
     }

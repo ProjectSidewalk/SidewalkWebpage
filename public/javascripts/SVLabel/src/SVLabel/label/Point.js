@@ -31,11 +31,11 @@ function Point (svl, x, y, pov, params) {
         originalStrokeStyleOuterCircle: undefined,
         radiusInnerCircle: 4,
         radiusOuterCircle: 5,
+        severity: undefined,
         strokeStyleOuterCircle: 'rgba(255,255,255,1)',
         storedInDatabase: false
     };
     var unnessesaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
-    var severity = undefined;
     var status = {
             'deleted' : false,
             'visibility' : 'visible',
@@ -202,7 +202,7 @@ function Point (svl, x, y, pov, params) {
     }
 
     /**
-     * Renders a label
+     * Renders label and severity icons onto the main screen
      * @param pov
      * @param ctx
      */
@@ -255,7 +255,11 @@ function Point (svl, x, y, pov, params) {
                 //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
             }
             ctx.restore();
-            showSeverity(pov, ctx);
+
+            // Only create a severity icon if there's an option for marking severity
+            if (properties.iconType != 'NoSidewalk' && properties.iconType != 'Occlusion') {
+                showSeverity(pov, ctx);
+            }
         }
     }
 
@@ -322,6 +326,17 @@ function Point (svl, x, y, pov, params) {
     function setPhotographerPov (heading, pitch) {
         properties.photographerHeading = heading;
         properties.photographerPitch = pitch;
+        return this;
+    }
+
+    /**
+     * This function sets a single property
+     * @param key       Property value to be changed
+     * @param value     New value for property field
+     */
+    function setProperty (key, value) {
+        properties[key] = value;
+        console.log('Key: ' + key + ' Value: ' + value);
         return this;
     }
 
@@ -405,14 +420,13 @@ function Point (svl, x, y, pov, params) {
     /**
      * Shows the severity of the label
      */
-
     function showSeverity(pov, ctx) {
         // if (status.tagVisibility !== 'hidden') {
         var coord = calculateCanvasCoordinate(pov),
             x = coord.x,
             y = coord.y;
 
-        console.log('x: ' + x + ' y: ' + y);
+        // console.log('x: ' + x + ' y: ' + y);
         ctx.save();
         ctx.beginPath();
         ctx.fillStyle = 'rgb(60, 60, 60, 0.9)';
@@ -421,7 +435,14 @@ function Point (svl, x, y, pov, params) {
         ctx.closePath();
         ctx.beginPath();
         ctx.fillStyle = 'rgb(255, 255, 255)';
-        ctx.fillText('?', x - 18, y - 8.5);
+        ctx.font = "12px Open Sans";
+
+        if (properties.severity == undefined) {
+            ctx.fillText('!', x - 16.5, y - 7.5);
+        } else {
+            ctx.fillText(properties.severity, x - 16.5, y - 7.5);
+        }
+
         ctx.closePath();
         ctx.restore();
 

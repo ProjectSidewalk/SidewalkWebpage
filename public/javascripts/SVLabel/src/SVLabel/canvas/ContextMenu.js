@@ -2,6 +2,7 @@ function ContextMenu (uiContextMenu) {
     var self = { className: "ContextMenu" },
         status = {
             targetLabel: null,
+            targetPoint: null,      // is always null - can't set targetPoint elsewhere
             visibility: 'hidden'
         };
     var $menuWindow = uiContextMenu.holder,
@@ -102,8 +103,23 @@ function ContextMenu (uiContextMenu) {
      * Get the current target label
      * @returns {null}
      */
+    function getSeverity () {
+        console.log('getSeverity: ' + getStatus('severity'));
+        return getStatus('severity');
+    }
+
     function getTargetLabel () {
         return getStatus('targetLabel');
+    }
+
+    /**
+     * Get the point associated to the label that is being clicked.
+     * (currently does not work: undefined)
+     * @returns {null}
+     */
+    function getTargetPoint () {
+        console.log('getTargetPoint: ' + getStatus('targetPoint'));
+        return getStatus('targetPoint');
     }
 
     /**
@@ -173,12 +189,25 @@ function ContextMenu (uiContextMenu) {
     function _handleRadioChange (e) {
         var severity = parseInt($(this).val(), 10);
         var label = getTargetLabel();
+        var point = getTargetPoint();
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
         self.updateRadioButtonImages();
 
         if (label) {
+            console.log('Checkpoint 1');
             label.setProperty('severity', severity);
+        }
+
+        // Update the severity (Point) here - need to figure out a way to get access to the point
+        // that is being modified.
+
+        // Doesn't work yet - should work after we can figure out a way to reference the point
+        // that is associated to the clicked label (since 'permanent' rendering is done through
+        // point)
+        if (point) {
+            console.log('Checkpoint 2');
+            point.setProperty('severity', severity);
         }
     }
 
@@ -295,6 +324,7 @@ function ContextMenu (uiContextMenu) {
     function show (x, y, param) {
 
         setStatus('targetLabel', null);
+        setStatus('targetPoint', null);
         $radioButtons.prop('checked', false);
         $temporaryProblemCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
@@ -303,6 +333,7 @@ function ContextMenu (uiContextMenu) {
                 acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'CurbRamp'];
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
+                setStatus('targetPoint', param.targetPoint);    // param doesn't include targetPoint
                 var topCoordinate = y + 20;
                 var connectorCoordinate = -13;
                 //if the menu is so far down the screen that it will get cut off
@@ -332,6 +363,8 @@ function ContextMenu (uiContextMenu) {
                     temporaryProblem = param.targetLabel.getProperty('temporaryProblem'),
                     description = param.targetLabel.getProperty('description');
                 if (severity) {
+                    // condition: a severity is defined for this label
+                    console.log(severity);
                     $radioButtons.each(function (i, v) {
                        if (severity == i + 1) { $(this).prop("checked", true); }
                     });
