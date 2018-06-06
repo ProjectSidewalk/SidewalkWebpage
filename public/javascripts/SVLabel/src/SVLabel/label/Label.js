@@ -439,7 +439,7 @@ function Label (svl, pathIn, params) {
                     // path.renderBoundingBox(ctx);
                     showDelete();
                 }
-                showSeverity(); // this is always getting called
+                // showSeverity(); // this is always getting called
                 // Renders the label image
                 path.render2(ctx, pov);
 
@@ -783,6 +783,7 @@ function Label (svl, pathIn, params) {
     /**
      * Shows the severity of the label
     */
+    /*
     function showSeverity() {
         // if (status.tagVisibility !== 'hidden') {
         var boundingBox = path.getBoundingBox(),
@@ -802,13 +803,14 @@ function Label (svl, pathIn, params) {
             document.getElementById("severity-icon").innerHTML = "!";
         }
 
-        console.log('x: ' + x + ' y: ' + y);
+        console.log('LABEL x: ' + (x - 6) + ' y: ' + (y - 20));
 
         console.log('show severity');
         // console.log('severity: ' + self.getProperties.severity);
 
         // }
     }
+    */
 
 
     /*

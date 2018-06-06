@@ -433,7 +433,7 @@ function Path (svl, points, params) {
     }
 
     /**
-     * This method renders the label icon. (Formerly rendered path)
+     * This method renders a path.
      * @param pov
      * @param ctx
      */
@@ -459,7 +459,6 @@ function Path (svl, points, params) {
             }
 
             if (pathLen > 1) {
-                // Doesn't seem to ever go in here - deprecated?
                 // Render fill
                 ctx.moveTo(canvasCoords[0].x, canvasCoords[0].y);
                 for (j = 1; j < pathLen; j += 1) {
@@ -472,8 +471,8 @@ function Path (svl, points, params) {
             }
 
             /**
-             * This is the main part for the current sidewalk.umiacs.umd.edu interface
-             * This is the actual place where label icons are getting drawn
+             * This is the main part for the current sidewalk.umiacs.umd.edu
+             * interface
              */
             // Start
             // Render points

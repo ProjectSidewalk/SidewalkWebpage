@@ -35,6 +35,7 @@ function Point (svl, x, y, pov, params) {
         storedInDatabase: false
     };
     var unnessesaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
+    var severity = undefined;
     var status = {
             'deleted' : false,
             'visibility' : 'visible',
@@ -233,7 +234,7 @@ function Point (svl, x, y, pov, params) {
             ctx.closePath();
             ctx.fill();
 
-            // Renders label icon
+            // Render an icon
             var imagePath = getProperty("iconImagePath");
             if (imagePath) {
                 var imageObj, imageHeight, imageWidth, imageX, imageY;
@@ -254,6 +255,7 @@ function Point (svl, x, y, pov, params) {
                 //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
             }
             ctx.restore();
+            showSeverity(pov, ctx);
         }
     }
 
@@ -399,6 +401,51 @@ function Point (svl, x, y, pov, params) {
         }
         return this;
     }
+
+    /**
+     * Shows the severity of the label
+     */
+
+    function showSeverity(pov, ctx) {
+        // if (status.tagVisibility !== 'hidden') {
+        var coord = calculateCanvasCoordinate(pov),
+            x = coord.x,
+            y = coord.y;
+
+        console.log('x: ' + x + ' y: ' + y);
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(60, 60, 60, 0.9)';
+        ctx.ellipse(x - 14, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.closePath();
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        ctx.fillText('?', x - 18, y - 8.5);
+        ctx.closePath();
+        ctx.restore();
+
+        // document.getElementById("severity-icon").style.visibility = 'visible';
+        // document.getElementById("severity-icon").style.left = "100px";
+        // document.getElementById("severity-icon").style.top = "100px";
+
+        // if (properties.severity) {
+        //    document.getElementById("severity-icon").innerHTML = properties.severity;
+        // } else {
+        //    document.getElementById("severity-icon").innerHTML = "!";
+        //}
+
+        // $("severity-icon").css({
+        //    visibility: 'visible',
+        //    left: "100px",
+        //    top: "100px",
+        // })
+        // console.log('show severity');
+        // console.log('severity: ' + self.getProperties.severity);
+
+        // }
+    }
+
 
     // Todo. Deprecated method. Get rid of this later.
     self.resetProperties = self.setProperties;
