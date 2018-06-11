@@ -887,17 +887,6 @@ function Label (svl, pathIn, params) {
         ctx.restore();
     }
 
-
-    /*
-    function calculateCanvasCoordinate(pov){
-        var canvasCoord = getCanvasCoordinate();
-        var origPov = getOriginalPov();
-        self.canvasCoordinate =  util.panomarker.getCanvasCoordinate(canvasCoord, origPov, pov);
-        return self.canvasCoordinate;
-    }
-    */
-
-
     /**
      * Calculate the offset to the label
      * @returns {{dx: number, dy: number, dz: number}}
