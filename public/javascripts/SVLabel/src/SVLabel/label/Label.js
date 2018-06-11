@@ -518,13 +518,18 @@ function Label (svl, pathIn, params) {
         // labelCoordinate represents the upper left corner of the tag
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
+            hasSeverity = (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion'),
             i, w, height, width,
-            labelRows = 2,
+            labelRows = 1,
             severityImage = selectSeverityImage(),
             severityMessage = 'Severity: ' + properties.severity,
             msg = properties.labelDescription,
             messages = msg.split('\n'),
             padding = {left: 12, right: 5, bottom: 0, top: 18};
+
+        if (hasSeverity) {
+            labelRows = 2;
+        }
 
         if (properties.labelerId !== 'DefaultValue') {
             messages.push('Labeler: ' + properties.labelerId);
@@ -548,8 +553,10 @@ function Label (svl, pathIn, params) {
                 width = w;
             }
 
-            if (severityImage != undefined) {
-                width += 40;
+            if (hasSeverity) {
+                if (severityImage != undefined) {
+                    width += 40;
+                }
             }
         }
         properties.tagWidth = width;
@@ -577,17 +584,21 @@ function Label (svl, pathIn, params) {
         // Tag text
         ctx.fillStyle = '#ffffff';
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
-        ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
+        if (hasSeverity) {
+            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
+        }
         ctx.restore();
 
-        if (properties.severity != undefined) {
-            // Tag image
-            try {
-                var imageObj = new Image();
-                imageObj.src = severityImage;
-                ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 10, 25, 25);
-            } catch (e) {
-                // console.log(e);
+        if (hasSeverity) {
+            if (properties.severity != undefined) {
+                // Tag image
+                try {
+                    var imageObj = new Image();
+                    imageObj.src = severityImage;
+                    ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 10, 25, 25);
+                } catch (e) {
+                    // console.log(e);
+                }
             }
         }
 
