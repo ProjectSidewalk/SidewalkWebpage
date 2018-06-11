@@ -445,7 +445,12 @@ function Label (svl, pathIn, params) {
 
                 // Only render severity label if there's a severity option
                 if (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion') {
-                    showSeverity(ctx); // this is always getting called
+                    // showSeverity(ctx); // for persistent labeling everywhere
+
+                    if (properties.severity == undefined) {
+                        showSeverityAlert(ctx);
+                    }
+
                 }
 
             } else if (false) {
@@ -506,25 +511,46 @@ function Label (svl, pathIn, params) {
      * @returns {boolean}
      */
     function renderTag(ctx) {
-        if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
+        if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+            return false;
+        }
 
+        // labelCoordinate represents the upper left corner of the tag
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
             i, w, height, width,
+            labelRows = 2,
+            severityImage = selectSeverityImage(),
+            severityMessage = 'Severity: ' + properties.severity,
             msg = properties.labelDescription,
             messages = msg.split('\n'),
-            padding = { left: 12, right: 5, bottom: 0, top: 18};
+            padding = {left: 12, right: 5, bottom: 0, top: 18};
 
-        if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
+        if (properties.labelerId !== 'DefaultValue') {
+            messages.push('Labeler: ' + properties.labelerId);
+        }
+
+        if (properties.severity == undefined) {
+            severityMessage = 'Severity: unmarked';
+        }
 
         // Set rendering properties and draw a tag
         ctx.save();
-        ctx.font = '10.5pt Calibri';
-        height = properties.tagHeight * messages.length;
+        ctx.font = '10.5pt Calibri'; // font isn't working correctly: ask if we want to change
+
+        height = properties.tagHeight * labelRows;
         width = -1;
         for (i = 0; i < messages.length; i += 1) {
-            w = ctx.measureText(messages[i]).width + 5;
-            if (width < w) { width = w; }
+            // console.log('Description width: ' + ctx.measureText(messages[i]).width);
+            // console.log('Severity width: ' + ctx.measureText(severityMessage).width);
+            w = Math.max(ctx.measureText(messages[i]).width + 5, ctx.measureText(severityMessage).width + 5);
+            if (width < w) {
+                width = w;
+            }
+
+            if (severityImage != undefined) {
+                width += 40;
+            }
         }
         properties.tagWidth = width;
 
@@ -532,7 +558,8 @@ function Label (svl, pathIn, params) {
         ctx.lineWidth = 2;
         ctx.fillStyle = util.color.changeAlphaRGBA(util.misc.getLabelColors(getProperty('labelType')), 0.9);
         ctx.strokeStyle = 'rgba(255,255,255,1)';
-        // console.log('severity: ' + properties.severity);
+
+
         // Tag background
         ctx.beginPath();
         ctx.moveTo(labelCoordinate.x + cornerRadius, labelCoordinate.y);
@@ -550,6 +577,20 @@ function Label (svl, pathIn, params) {
         // Tag text
         ctx.fillStyle = '#ffffff';
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
+        ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
+        ctx.restore();
+
+        if (properties.severity != undefined) {
+            // Tag image
+            try {
+                var imageObj = new Image();
+                imageObj.src = severityImage;
+                ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 10, 25, 25);
+            } catch (e) {
+                // console.log(e);
+            }
+        }
+
         ctx.restore();
     }
 
@@ -594,6 +635,23 @@ function Label (svl, pathIn, params) {
             points[i].setFillStyle(fillColor);
         }
         return this;
+    }
+
+
+    function selectSeverityImage () {
+        var severityImage = undefined;
+        if (properties.severity == 1) {
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White.png';
+        } else if (properties.severity == 2) {
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White.png';
+        } else if (properties.severity == 3) {
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White.png';
+        } else if (properties.severity == 4) {
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White.png';
+        } else if (properties.severity == 5) {
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White.png';
+        }
+        return severityImage;
     }
 
     /**
@@ -789,6 +847,7 @@ function Label (svl, pathIn, params) {
 
     /**
      * Shows the severity of the label
+     * @param ctx   Rendering tool for severity label (2D context)
      */
     function showSeverity (ctx) {
         // if (status.tagVisibility !== 'hidden') {
@@ -796,31 +855,35 @@ function Label (svl, pathIn, params) {
         var x = labelCoordinate.x;
         var y = labelCoordinate.y;
 
-        /*
-        var coord = calculateCanvasCoordinate(pov),
-            x = coord.x,
-            y = coord.y;
-        */
-
         // console.log('x: ' + x + ' y: ' + y);
         ctx.save();
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(60, 60, 60, 0.9)';
-        ctx.ellipse(x - 14, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
+
+        // select label color
+        if (properties.severity == undefined) {
+            ctx.fillStyle = 'rgb(201, 65, 72, 0.9)';
+        } else {
+            // draw a grey background circle for labels w/ severity
+            ctx.fillStyle = 'rgb(60, 60, 60, 0.9)';
+        }
+
+        ctx.ellipse(x - 15, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(255, 255, 255)';
-        ctx.font = "12px Open Sans";
 
+        ctx.font = "12px Open Sans";
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        // draw text on severity label
         if (properties.severity == undefined) {
-            ctx.fillText('!', x - 16.5, y - 7.5);
+            ctx.fillText('?', x - 17.5, y - 7);
         } else {
-            ctx.fillText(properties.severity, x - 16.5, y - 7.5);
+            ctx.fillText(properties.severity, x - 18.5, y - 7);
         }
 
         ctx.closePath();
         ctx.restore();
+
 
         // document.getElementById("severity-icon").style.visibility = 'visible';
         // document.getElementById("severity-icon").style.left = "100px";
@@ -841,6 +904,32 @@ function Label (svl, pathIn, params) {
         // console.log('severity: ' + self.getProperties.severity);
 
         // }
+    }
+
+    /**
+     * Renders a question mark if a label has an unmarked severity
+     * @param ctx   Rendering tool for severity (2D context)
+     */
+    function showSeverityAlert(ctx) {
+        var labelCoordinate = getCoordinate();
+        var x = labelCoordinate.x;
+        var y = labelCoordinate.y;
+
+        // draws circle
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(201, 65, 72, 0.9)';
+        ctx.ellipse(x - 15, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.closePath();
+
+        // draws text
+        ctx.beginPath();
+        ctx.font = "12px Open Sans";
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        ctx.fillText('?', x - 17.5, y - 7);
+        ctx.closePath();
+        ctx.restore();
     }
 
 

@@ -254,11 +254,6 @@ function Point (svl, x, y, pov, params) {
                 //ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
             }
             ctx.restore();
-
-            // Only create a severity icon if there's an option for marking severity
-            // if (properties.iconType != 'NoSidewalk' && properties.iconType != 'Occlusion') {
-                // showSeverity(pov, ctx);
-            // }
         }
     }
 
