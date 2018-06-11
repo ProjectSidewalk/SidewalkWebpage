@@ -589,6 +589,7 @@ function Label (svl, pathIn, params) {
         }
         ctx.restore();
 
+        // Tag severity image
         if (hasSeverity) {
             if (properties.severity != undefined) {
                 // Tag image
@@ -648,19 +649,23 @@ function Label (svl, pathIn, params) {
         return this;
     }
 
-
+    /**
+     * This function gets the image location of the current label based on the severity
+     * rating that has been selected
+     * @returns {str: location of image in project directory}
+     */
     function selectSeverityImage () {
         var severityImage = undefined;
         if (properties.severity == 1) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png';
         } else if (properties.severity == 2) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png';
         } else if (properties.severity == 3) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png';
         } else if (properties.severity == 4) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png';
         } else if (properties.severity == 5) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png';
         }
         return severityImage;
     }
@@ -857,67 +862,6 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * Shows the severity of the label
-     * @param ctx   Rendering tool for severity label (2D context)
-     */
-    function showSeverity (ctx) {
-        // if (status.tagVisibility !== 'hidden') {
-        var labelCoordinate = getCoordinate();
-        var x = labelCoordinate.x;
-        var y = labelCoordinate.y;
-
-        // console.log('x: ' + x + ' y: ' + y);
-        ctx.save();
-        ctx.beginPath();
-
-        // select label color
-        if (properties.severity == undefined) {
-            ctx.fillStyle = 'rgb(201, 65, 72, 0.9)';
-        } else {
-            // draw a grey background circle for labels w/ severity
-            ctx.fillStyle = 'rgb(60, 60, 60, 0.9)';
-        }
-
-        ctx.ellipse(x - 15, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.closePath();
-        ctx.beginPath();
-
-        ctx.font = "12px Open Sans";
-        ctx.fillStyle = 'rgb(255, 255, 255)';
-        // draw text on severity label
-        if (properties.severity == undefined) {
-            ctx.fillText('?', x - 17.5, y - 7);
-        } else {
-            ctx.fillText(properties.severity, x - 18.5, y - 7);
-        }
-
-        ctx.closePath();
-        ctx.restore();
-
-
-        // document.getElementById("severity-icon").style.visibility = 'visible';
-        // document.getElementById("severity-icon").style.left = "100px";
-        // document.getElementById("severity-icon").style.top = "100px";
-
-        // if (properties.severity) {
-        //    document.getElementById("severity-icon").innerHTML = properties.severity;
-        // } else {
-        //    document.getElementById("severity-icon").innerHTML = "!";
-        //}
-
-        // $("severity-icon").css({
-        //    visibility: 'visible',
-        //    left: "100px",
-        //    top: "100px",
-        // })
-        // console.log('show severity');
-        // console.log('severity: ' + self.getProperties.severity);
-
-        // }
-    }
-
-    /**
      * Renders a question mark if a label has an unmarked severity
      * @param ctx   Rendering tool for severity (2D context)
      */
@@ -929,8 +873,8 @@ function Label (svl, pathIn, params) {
         // draws circle
         ctx.save();
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(201, 65, 72, 0.9)';
-        ctx.ellipse(x - 15, y - 10.5, 10, 10, 0, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgb(160, 45, 50, 0.9)';
+        ctx.ellipse(x - 15, y - 10.5, 8, 8, 0, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
 
@@ -938,7 +882,7 @@ function Label (svl, pathIn, params) {
         ctx.beginPath();
         ctx.font = "12px Open Sans";
         ctx.fillStyle = 'rgb(255, 255, 255)';
-        ctx.fillText('?', x - 17.5, y - 7);
+        ctx.fillText('?', x - 17.5, y - 6);
         ctx.closePath();
         ctx.restore();
     }
