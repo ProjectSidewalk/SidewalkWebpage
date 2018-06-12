@@ -324,17 +324,6 @@ function Point (svl, x, y, pov, params) {
     }
 
     /**
-     * This function sets a single property
-     * @param key       Property value to be changed
-     * @param value     New value for property field
-     */
-    function setProperty (key, value) {
-        properties[key] = value;
-        console.log('Key: ' + key + ' Value: ' + value);
-        return this;
-    }
-
-    /**
      * This function resets all the properties specified in params.
      * @param params
      * @returns {self}

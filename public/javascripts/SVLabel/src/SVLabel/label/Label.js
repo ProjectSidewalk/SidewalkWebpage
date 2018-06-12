@@ -519,7 +519,8 @@ function Label (svl, pathIn, params) {
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
             hasSeverity = (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion'),
-            i, height, width,
+            i, height,
+            width = 0,
             labelRows = 1,
             severityImage = selectSeverityImage(),
             severityMessage = selectSeverityMessage(),
@@ -541,14 +542,15 @@ function Label (svl, pathIn, params) {
         ctx.font = '13px Open Sans';
 
         height = properties.tagHeight * labelRows;
+
         for (i = 0; i < messages.length; i += 1) {
             // width of the tag is determined by the width of the longest row
-            const firstRow = ctx.measureText(messages[i]).width;
-            const secondRow = ctx.measureText(severityMessage).width;
-            width = Math.max(firstRow, secondRow) + 5;
+            var firstRow = ctx.measureText(messages[i]).width;
+            var secondRow = -1;
 
             // do additional adjustments on tag width to make room for smiley icon
             if (hasSeverity) {
+                secondRow = ctx.measureText(severityMessage).width;
                 if (severityImage != undefined) {
                     if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
                         width += 15 - firstRow + secondRow;
@@ -557,6 +559,8 @@ function Label (svl, pathIn, params) {
                     }
                 }
             }
+
+            width += Math.max(firstRow, secondRow) + 5;
         }
         properties.tagWidth = width;
 
@@ -585,7 +589,6 @@ function Label (svl, pathIn, params) {
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
-            // ctx.fillRect(labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width, labelCoordinate.y + 25, 5, 5);
         }
 
         // Tag severity image
@@ -675,7 +678,7 @@ function Label (svl, pathIn, params) {
      * @returns {string: description of the current severity label}
      */
     function selectSeverityMessage () {
-        var severityMessage = 'Severity: unmarked';
+        var severityMessage = 'Please click to label a severity';
         if (properties.severity != undefined) {
             if (properties.severity == 1) {
                 severityMessage = 'Passable';
