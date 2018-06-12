@@ -522,7 +522,8 @@ function Label (svl, pathIn, params) {
             i, w, height, width,
             labelRows = 1,
             severityImage = selectSeverityImage(),
-            severityMessage = 'Severity: ' + properties.severity,
+            severityMessage = selectSeverityMessage(),
+            // severityMessage = 'Severity: ' + properties.severity,
             msg = properties.labelDescription,
             messages = msg.split('\n'),
             padding = {left: 12, right: 5, bottom: 0, top: 18};
@@ -535,9 +536,9 @@ function Label (svl, pathIn, params) {
             messages.push('Labeler: ' + properties.labelerId);
         }
 
-        if (properties.severity == undefined) {
-            severityMessage = 'Severity: unmarked';
-        }
+        // if (properties.severity == undefined) {
+        //    severityMessage = 'Severity: unmarked';
+        // }
 
         // Set rendering properties and draw a tag
         ctx.save();
@@ -555,7 +556,14 @@ function Label (svl, pathIn, params) {
 
             if (hasSeverity) {
                 if (severityImage != undefined) {
-                    width += 40;
+                    // Option 1: (big)
+                    // width += 40;
+
+                    // Option 2: (small)
+                    // width += 30;
+
+                    // Option 3: (inline)
+                    width += 15;
                 }
             }
         }
@@ -586,8 +594,8 @@ function Label (svl, pathIn, params) {
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
+            // ctx.fillRect(labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width, labelCoordinate.y + 25, 5, 5);
         }
-        ctx.restore();
 
         // Tag severity image
         if (hasSeverity) {
@@ -596,7 +604,14 @@ function Label (svl, pathIn, params) {
                 try {
                     var imageObj = new Image();
                     imageObj.src = severityImage;
-                    ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 10, 25, 25);
+                    // Option 1: (big)
+                    // ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 10, 25, 25);
+
+                    // Option 2: (small)
+                    // ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 12, 20, 20);
+
+                    // Option 3: (inline)
+                    ctx.drawImage(imageObj, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
                 } catch (e) {
                     // console.log(e);
                 }
@@ -657,17 +672,35 @@ function Label (svl, pathIn, params) {
     function selectSeverityImage () {
         var severityImage = undefined;
         if (properties.severity == 1) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small2.png';
         } else if (properties.severity == 2) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small2.png';
         } else if (properties.severity == 3) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small2.png';
         } else if (properties.severity == 4) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small2.png';
         } else if (properties.severity == 5) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small2.png';
         }
         return severityImage;
+    }
+
+    function selectSeverityMessage () {
+        var severityMessage = 'Severity: unmarked';
+        if (properties.severity != undefined) {
+            if (properties.severity == 1) {
+                severityMessage = 'Passable';
+            } else if (properties.severity == 2) {
+                severityMessage = 'Somewhat passable';
+            } else if (properties.severity == 3) {
+                severityMessage = 'Difficult to pass';
+            } else if (properties.severity == 4) {
+                severityMessage = 'Very difficult to pass';
+            } else if (properties.severity == 5) {
+                severityMessage = 'Not passable'
+            }
+        }
+        return severityMessage;
     }
 
     /**
