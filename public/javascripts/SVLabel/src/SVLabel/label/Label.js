@@ -519,7 +519,7 @@ function Label (svl, pathIn, params) {
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
             hasSeverity = (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion'),
-            i, w, height, width,
+            i, height, width,
             labelRows = 1,
             severityImage = selectSeverityImage(),
             severityMessage = selectSeverityMessage(),
@@ -536,34 +536,25 @@ function Label (svl, pathIn, params) {
             messages.push('Labeler: ' + properties.labelerId);
         }
 
-        // if (properties.severity == undefined) {
-        //    severityMessage = 'Severity: unmarked';
-        // }
-
         // Set rendering properties and draw a tag
         ctx.save();
-        ctx.font = '10.5pt Calibri'; // font isn't working correctly: ask if we want to change
+        ctx.font = '13px Open Sans';
 
         height = properties.tagHeight * labelRows;
-        width = -1;
         for (i = 0; i < messages.length; i += 1) {
-            // console.log('Description width: ' + ctx.measureText(messages[i]).width);
-            // console.log('Severity width: ' + ctx.measureText(severityMessage).width);
-            w = Math.max(ctx.measureText(messages[i]).width + 5, ctx.measureText(severityMessage).width + 5);
-            if (width < w) {
-                width = w;
-            }
+            // width of the tag is determined by the width of the longest row
+            const firstRow = ctx.measureText(messages[i]).width;
+            const secondRow = ctx.measureText(severityMessage).width;
+            width = Math.max(firstRow, secondRow) + 5;
 
+            // do additional adjustments on tag width to make room for smiley icon
             if (hasSeverity) {
                 if (severityImage != undefined) {
-                    // Option 1: (big)
-                    // width += 40;
-
-                    // Option 2: (small)
-                    // width += 30;
-
-                    // Option 3: (inline)
-                    width += 15;
+                    if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
+                        width += 15 - firstRow + secondRow;
+                    } else if (firstRow - secondRow < 0) {
+                        width += 20;
+                    }
                 }
             }
         }
@@ -604,13 +595,6 @@ function Label (svl, pathIn, params) {
                 try {
                     var imageObj = new Image();
                     imageObj.src = severityImage;
-                    // Option 1: (big)
-                    // ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 10, 25, 25);
-
-                    // Option 2: (small)
-                    // ctx.drawImage(imageObj, labelCoordinate.x + w + 17, labelCoordinate.y + 12, 20, 20);
-
-                    // Option 3: (inline)
                     ctx.drawImage(imageObj, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
                 } catch (e) {
                     // console.log(e);
@@ -667,24 +651,29 @@ function Label (svl, pathIn, params) {
     /**
      * This function gets the image location of the current label based on the severity
      * rating that has been selected
-     * @returns {str: location of image in project directory}
+     * @returns {string: location of image in project directory}
      */
     function selectSeverityImage () {
         var severityImage = undefined;
         if (properties.severity == 1) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small2.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png';
         } else if (properties.severity == 2) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small2.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png';
         } else if (properties.severity == 3) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small2.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png';
         } else if (properties.severity == 4) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small2.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png';
         } else if (properties.severity == 5) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small2.png';
+            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png';
         }
         return severityImage;
     }
 
+    /**
+     * This function selects the severity message displayed inside a tag depending on the
+     * severity rating of the current label
+     * @returns {string: description of the current severity label}
+     */
     function selectSeverityMessage () {
         var severityMessage = 'Severity: unmarked';
         if (properties.severity != undefined) {
