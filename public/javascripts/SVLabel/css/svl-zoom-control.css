@@ -2,8 +2,8 @@
     background: transparent;
 
     position: absolute;
-    left: 560px;
-    top: 22px;
+    left: 530px;
+    top: 51px;
     height: 50px;
     width: 150px;
 }
@@ -11,9 +11,9 @@
 .zoom-control-button {
     color: rgba(0,0,0,1);
     font-size: 9px;
-    height: 33px;
-    width: 65px;
-    margin-right: 5px;
+    height: 43px;
+    width: 43px;
+    margin-right: 2px;
 }
 
 .zoom-button-icon {
