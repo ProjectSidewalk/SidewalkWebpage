@@ -111,7 +111,7 @@ function UtilitiesMisc (JSON) {
             NoSidewalk: {
                 id: 'NoSidewalk',
                 iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoSidewalk.png',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoSidewalk.png'
             },
             Void: {
                 id: 'Void',
