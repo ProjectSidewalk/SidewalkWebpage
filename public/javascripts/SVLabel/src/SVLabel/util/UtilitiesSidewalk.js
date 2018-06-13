@@ -65,7 +65,7 @@ function UtilitiesMisc (JSON) {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_NoSidewalk.png'
             }
         }
     }
