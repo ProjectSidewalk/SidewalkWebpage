@@ -318,12 +318,35 @@ function ContextMenu (uiContextMenu) {
      * @param label     Current label being modified
      */
     function setTags (label) {
-        console.log('setTag');
+        var maxButtons = 5;
         if (label) {
-            var labelType = label.getProperty('labelType');
-            if (labelType == 'CurbRamp') {
-                console.log('This label is a curb ramp');
-                // TODO: figure out how to modify the tags for a specific label here
+            var labelTags = label.getProperty('labelTags');
+            if (labelTags) {
+                document.getElementById("context-menu-tag-holder").style.height = '25px';
+                document.getElementById("context-menu-holder").style.height = '170px';
+                document.getElementById("context-menu-ok-button").style.top = '65px';
+                // console.log('Label Tags: ' + labelTags + ' length = ' + labelTags.length);
+                var count = 0;
+                // go through each label tag, modify each button to display tag
+                labelTags.forEach(function (t) {
+                    console.log('Thing: ' + t + ' Count: ' + count);
+                    $("body").find("button[id=" + count + "]").html(t);
+                    $("body").find("button[id=" + count + "]").css('visibility', 'inherit');
+                    count += 1;
+                });
+
+                // if number of tags is less than the max number of elements, hide
+                var i;
+                for (i = labelTags.length; i < maxButtons; i++) {
+                    $("body").find("button[id=" + i + "]").css('visibility', 'hidden');
+                }
+            } else {
+                document.getElementById("context-menu-tag-holder").style.height = '0px';
+                document.getElementById("context-menu-holder").style.height = '155px';
+                $("body").find("button").css('visibility', 'hidden');
+                document.getElementById("context-menu-ok-button").style.visibility = 'inherit';
+                document.getElementById("context-menu-ok-button").style.top = '40px';
+
             }
         }
     }

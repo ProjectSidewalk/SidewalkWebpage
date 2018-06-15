@@ -168,6 +168,22 @@ function UtilitiesMisc (JSON) {
     }
 
     /**
+     * This function returns the tags to be displayed for a given label
+     */
+    function getLabelTags() {
+        return {
+            CurbRamp: {
+                id: 'CurbRamp',
+                labelTags: ['narrow', 'points into traffic', 'missing friction strips', 'steep']
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                labelTags: ['uneven surface', 'unleveled surface', 'cracks', 'narrow']
+            }
+        }
+    }
+
+    /**
      * Todo. This should be moved to RibbonMenu.js
      * @returns {{Walk: {id: string, text: string, labelRibbonConnection: string}, CurbRamp: {id: string, labelRibbonConnection: string}, NoCurbRamp: {id: string, labelRibbonConnection: string}, Obstacle: {id: string, labelRibbonConnection: string}, SurfaceProblem: {id: string, labelRibbonConnection: string}, Other: {id: string, labelRibbonConnection: string}, Occlusion: {id: string, labelRibbonConnection: string}, NoSidewalk: {id: string, labelRibbonConnection: string}}}
      */
@@ -225,7 +241,8 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 67,
                     keyChar: 'C'
-                }
+                },
+                labelTags: ['narrow', 'points into traffic', 'missing friction strips', 'steep']
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
@@ -241,7 +258,8 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 79,
                     keyChar: 'O'
-                }
+                },
+                labelTags: ['trash can', 'fire hydrant', 'pole', 'tree', 'vegetation']
             },
             Other: {
                 id: 'Other',
@@ -269,7 +287,8 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 83,
                     keyChar: 'S'
-                }
+                },
+                labelTags: ['uneven surface', 'unleveled surface', 'cracks', 'narrow']
             },
             Void: {
                 id: 'Void',
@@ -300,6 +319,7 @@ function UtilitiesMisc (JSON) {
     self.getLabelCursorImagePath = getLabelCursorImagePath;
     self.getIconImagePaths = getIconImagePaths;
     self.getLabelInstructions = getLabelInstructions;
+    self.getLabelTags = getLabelTags;
     self.getRibbonConnectionPositions = getRibbonConnectionPositions;
     self.getLabelDescriptions = getLabelDescriptions;
     self.getLabelColors = ColorScheme.SidewalkColorScheme2;

@@ -21,6 +21,7 @@ function Label (svl, pathIn, params) {
         labelId: 'DefaultValue',
         labelType: undefined,
         labelDescription: undefined,
+        labelTags: undefined,
         labelFillStyle: undefined,
         panoId: undefined,
         panoramaLat: undefined,
