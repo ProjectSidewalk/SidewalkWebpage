@@ -120,11 +120,8 @@ function ContextMenu (uiContextMenu) {
         var description = $(this).val(),
             label = getTargetLabel();
         svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
-
-        console.log('Changing description: ' + description);
         if (label) {
             label.setProperty('description', description);
-            console.log('Label description is: ' + label.getProperty('description'));
         }
     }
 
@@ -221,27 +218,32 @@ function ContextMenu (uiContextMenu) {
         }
     };
 
+    /**
+     * This function adds the description from a tag to the label's description box when clicked
+     * @private
+     */
     function _handleTagClick () {
         var label = getTargetLabel();
         svl.tracker.push('ContextMenu_TagClicked');
 
-
-        $("button").click(function(e){
+        // From: https://stackoverflow.com/questions/25779475/jquery-click-event-doesnt-work-after-first-click
+        $("body").on('click', 'button', function(e){
             if (e.target.name == 'tag') {
-                console.log('Tag value: ' + e.target.value);
+                var tagValue = e.target.textContent || e.target.innerText;
                 if (label) {
                     var currentDescription = label.getProperty('description');
-                    console.log(currentDescription);
-
                     if (currentDescription == null || currentDescription.length == 0) {
-                        label.setProperty('description', e.target.value);
+                        label.setProperty('description', tagValue);
+                        $descriptionTextBox.val(label.getProperty('description'));
                     } else {
-                        label.setProperty('description', currentDescription + ', ' + e.target.value);
+                        // only add the tag to the description if it isn't in the description yet
+                        if (!currentDescription.includes(tagValue)) {
+                            label.setProperty('description', currentDescription + ', ' + tagValue);
+                            $descriptionTextBox.val(label.getProperty('description'));
+                        }
                     }
                 }
             }
-
-
         });
     }
 
@@ -312,13 +314,27 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
+     * Sets the description and value of the tag based on the label type
+     * @param label     Current label being modified
+     */
+    function setTags (label) {
+        console.log('setTag');
+        if (label) {
+            var labelType = label.getProperty('labelType');
+            if (labelType == 'CurbRamp') {
+                console.log('This label is a curb ramp');
+                // TODO: figure out how to modify the tags for a specific label here
+            }
+        }
+    }
+
+    /**
      * Show the context menu
      * @param x x-coordinate on the canvas pane
      * @param y y-coordinate on the canvas pane
      * @param param a parameter object
      */
     function show (x, y, param) {
-
         setStatus('targetLabel', null);
         $radioButtons.prop('checked', false);
         $temporaryProblemCheckbox.prop('checked', false);
@@ -328,6 +344,7 @@ function ContextMenu (uiContextMenu) {
                 acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'CurbRamp'];
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
+                setTags(param.targetLabel);
                 var topCoordinate = y + 20;
                 var connectorCoordinate = -13;
                 //if the menu is so far down the screen that it will get cut off
