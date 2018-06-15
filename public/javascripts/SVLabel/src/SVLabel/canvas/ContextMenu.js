@@ -13,7 +13,7 @@ function ContextMenu (uiContextMenu) {
         windowHeight = $menuWindow.height();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
-
+    var $tags = uiContextMenu.tags;
     var lastShownLabelColor;
 
     var context_menu_el = document.getElementById('context-menu-holder');
@@ -52,6 +52,7 @@ function ContextMenu (uiContextMenu) {
     $OKButton.on('click', _handleOKButtonClick);
     $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
     $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
+    $tags.on('click', _handleTagClick);
 
     var down = {};
     var lastKeyPressed = 0;
@@ -82,7 +83,7 @@ function ContextMenu (uiContextMenu) {
     }//handles both key down and key up events
 
     function checkRadioButton (value) {
-        uiContextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
+        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click");
     }
 
     function getContextMenuUI(){
@@ -120,8 +121,10 @@ function ContextMenu (uiContextMenu) {
             label = getTargetLabel();
         svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
 
+        console.log('Changing description: ' + description);
         if (label) {
             label.setProperty('description', description);
+            console.log('Label description is: ' + label.getProperty('description'));
         }
     }
 
@@ -146,7 +149,6 @@ function ContextMenu (uiContextMenu) {
     }
 
     function _handleOKButtonClick () {
-
         svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
         _handleSeverityPopup();
@@ -219,6 +221,29 @@ function ContextMenu (uiContextMenu) {
         }
     };
 
+    function _handleTagClick () {
+        var label = getTargetLabel();
+        svl.tracker.push('ContextMenu_TagClicked');
+
+
+        $("button").click(function(e){
+            if (e.target.name == 'tag') {
+                console.log('Tag value: ' + e.target.value);
+                if (label) {
+                    var currentDescription = label.getProperty('description');
+                    console.log(currentDescription);
+
+                    if (currentDescription == null || currentDescription.length == 0) {
+                        label.setProperty('description', e.target.value);
+                    } else {
+                        label.setProperty('description', currentDescription + ', ' + e.target.value);
+                    }
+                }
+            }
+
+
+        });
+    }
 
     /**
      *

@@ -331,9 +331,9 @@
                                     <div class="problem-severity-axis-label">Passable</div>
                                 </div>
                                 <div class="radio-inline" id="severity-one" data-toggle="tooltip" onmouseut="function(){}">
-                                  <label class="radio-button-labels">
-                                    <input type="radio" name="problem-severity" value="1">
-                                        <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
+                                    <label class="radio-button-labels">
+                                        <input type="radio" name="problem-severity" value="1">
+                                            <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             value="1" alt="Smiley face rating 1">
                                         <div>1</div>
@@ -382,17 +382,18 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="spacer10"></div>
                         <div id="problem-property-menu">
                             <div>
-                                <div>
-                                    <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
-                                </div>
+                                <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                             </div>
-                            <div>
-                                <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                    <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
-                                </div>
+                            <div id="context-menu-tag-holder">
+                                <button id="context-menu-tag" name='tag' value="tag 1">test</button>
+                                <button id="context-menu-tag" name='tag' value="tag 2">another tag</button>
+                                <button id="context-menu-tag" name='tag' value="tag 3">three</button>
+                                <button id="context-menu-tag" name='tag' value="tag 4">four</button>
+                            </div>
+                            <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
+                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
                             </div>
                             <div>
                                 <button id="context-menu-ok-button">OK</button>
