@@ -288,7 +288,7 @@ function UtilitiesMisc (JSON) {
                     keyNumber: 83,
                     keyChar: 'S'
                 },
-                labelTags: ['uneven surface', 'unleveled surface', 'cracks', 'narrow']
+                labelTags: ['bumpy', 'unleveled surface', 'cracks', 'narrow', 'hole']
             },
             Void: {
                 id: 'Void',
