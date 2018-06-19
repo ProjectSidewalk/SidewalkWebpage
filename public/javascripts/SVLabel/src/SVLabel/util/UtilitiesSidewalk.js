@@ -250,7 +250,8 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 77,
                     keyChar: 'M'
-                }
+                },
+                labelTags: ['alternate route present', 'no alternate route', 'unclear if needed']
             },
             Obstacle: {
                 id: 'Obstacle',
@@ -263,7 +264,8 @@ function UtilitiesMisc (JSON) {
             },
             Other: {
                 id: 'Other',
-                text: 'Other'
+                text: 'Other',
+                labelTags: ['narrow sidewalk', 'missing crosswalk', 'no bus stop access']
             },
             Occlusion: {
                 id: 'Occlusion',
@@ -288,7 +290,7 @@ function UtilitiesMisc (JSON) {
                     keyNumber: 83,
                     keyChar: 'S'
                 },
-                labelTags: ['bumpy', 'unleveled surface', 'cracks', 'narrow', 'hole']
+                labelTags: ['bumpy', 'unleveled surface', 'cracks', 'grass', 'hole']
             },
             Void: {
                 id: 'Void',

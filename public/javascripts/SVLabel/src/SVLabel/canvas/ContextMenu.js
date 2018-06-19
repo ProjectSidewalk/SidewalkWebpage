@@ -224,13 +224,13 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleTagClick () {
         var label = getTargetLabel();
-        svl.tracker.push('ContextMenu_TagClicked');
 
         // From: https://stackoverflow.com/questions/25779475/jquery-click-event-doesnt-work-after-first-click
         $("body").on('click', 'button', function(e){
             if (e.target.name == 'tag') {
                 var tagValue = e.target.textContent || e.target.innerText;
                 if (label) {
+                    svl.tracker.push('ContextMenu_TagClicked', { Tag: tagValue });
                     var currentDescription = label.getProperty('description');
                     if (currentDescription == null || currentDescription.length == 0) {
                         label.setProperty('description', tagValue);
