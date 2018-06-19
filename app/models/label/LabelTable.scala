@@ -5,7 +5,10 @@ import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
+import models.daos.slick.DBTableDefinitions.UserTable
+import models.gsv.GSVOnboardingPanoTable
 import models.region.RegionTable
+import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -81,9 +84,15 @@ object LabelTable {
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
   val severities = TableQuery[ProblemSeverityTable]
+  val userRoles = TableQuery[UserRoleTable]
+  val roleTable = TableQuery[RoleTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
+
+  // Filters out the labels placed during onboarding (aka panoramas that are used during onboarding
+  // Onboarding labels have to be filtered out before a user's labeling frequency is computed
+  val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filterNot(_.gsvPanoramaId inSet GSVOnboardingPanoTable.getOnboardingPanoIds)
 
 
   val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
@@ -93,7 +102,6 @@ object LabelTable {
   } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
 
   val anonIps = anonUsersAudits.groupBy(_._1).map{case(ip,group)=>ip}
-
 
   case class LabelCountPerDay(date: String, count: Int)
 
@@ -651,5 +659,22 @@ object LabelTable {
     // right now the count is an option; replace the None with a 0 -- it was none b/c only users who had completed
     // missions ended up in the completedMissions query.
     labelCounts.map{pair => (pair._1.get, pair._2.getOrElse(0))}
+  }
+
+  /**
+    * Select label counts per turker user
+    */
+  def getLabelCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
+    val turkerUsers = UserRoleTable.getUsersByType("Turker")
+
+    val turkerAudits = for {
+      _audits <- completedAudits
+      _turkerAudits <- turkerUsers if _audits.userId === _turkerAudits.userId
+      _labels <- labelsWithoutDeleted if _audits.auditTaskId === _labels.auditTaskId
+    } yield _turkerAudits.userId
+
+
+    // counts the number of tasks for each user
+    turkerAudits.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.list
   }
 }

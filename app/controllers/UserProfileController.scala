@@ -10,7 +10,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import formats.json.TaskFormats._
 import forms._
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.label.LabelTable
 import models.mission.MissionTable
 import models.user.User
@@ -260,6 +260,14 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
 
   def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
     val missionCounts = MissionTable.selectMissionCountsPerUser
+    val json = Json.arr(missionCounts.map(x =>
+      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
+    ))
+    Future.successful(Ok(json))
+  }
+
+  def getTurkerCompletedMissionCounts = UserAwareAction.async { implicit request =>
+    val missionCounts = MissionTable.selectMissionCountsPerTurkerUser
     val json = Json.arr(missionCounts.map(x =>
       Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
     ))

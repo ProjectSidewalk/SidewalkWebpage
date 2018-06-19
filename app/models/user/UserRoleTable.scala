@@ -1,5 +1,6 @@
 package models.user
 
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
@@ -21,6 +22,7 @@ object UserRoleTable {
   val db = play.api.db.slick.DB
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
+  val userTable = TableQuery[UserTable]
 
   val roleMapping = Map("User" -> 1, "Turker" -> 2, "Researcher" -> 3, "Administrator" -> 4, "Owner" -> 5)
 
@@ -55,6 +57,15 @@ object UserRoleTable {
   }
 
   def isResearcher(userId: UUID): Boolean = db.withSession { implicit session =>
-    getRole(userId) == "Researcher"
+    List("Researcher", "Administrator", "Owner").contains(getRole(userId))
+  }
+
+  def getUsersByType(userType: String): Query[UserTable, DBUser, Seq] = {
+    val turkerUsers = for {
+      _roleIds <- userRoles
+      _roles <- roles if _roles.roleId === _roleIds.roleId && _roles.role === userType
+      _users <- userTable if _users.userId === _roleIds.userId
+    } yield _users
+    turkerUsers
   }
 }

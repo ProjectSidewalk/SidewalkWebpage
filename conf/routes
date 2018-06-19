@@ -50,8 +50,10 @@ GET     /adminapi/labels/panoid                              @controllers.AdminC
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts/registered                     @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
+GET     /adminapi/labelCounts/turker                         @controllers.AdminController.getAllTurkerUserLabelCounts
 GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
-GET     /adminiapi/audittimesAnon                            @controllers.AdminController.getAnonAuditTimes()
+GET     /adminapi/auditTimesAnon                             @controllers.AdminController.getAnonAuditTimes()
+GET     /adminapi/auditTimesTurker                           @controllers.AdminController.getTurkerAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -63,14 +65,13 @@ PUT     /adminapi/setRole                                    @controllers.AdminC
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
-#GET     /audit/easyRegion                                    @controllers.AuditController.auditNewEasyRegion
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
+GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 
 # Task API.
-GET     /task                                                @controllers.TaskController.getTask
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
@@ -106,6 +107,7 @@ GET     /isTurker                                            @controllers.UserPr
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
 GET     /userapi/completedMissionCounts/all                  @controllers.UserProfileController.getAllUserCompletedMissionCounts
+GET     /userapi/completedMissionCounts/turker               @controllers.UserProfileController.getTurkerCompletedMissionCounts
 
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
