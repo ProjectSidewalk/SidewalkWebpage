@@ -42,11 +42,21 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @return
     */
   def authenticate(key: String): Boolean = {
+    val trueKey: Option[String] = readKeyFile()
+    if (trueKey.isDefined) trueKey.get == key else false
+  }
+
+  /**
+    * Reads a key from a file and returns it.
+    *
+    * @return
+    */
+  def readKeyFile(): Option[String] = {
     val bufferedSource = Source.fromFile("special_api_key.txt")
     val lines = bufferedSource.getLines()
-    val keyMatch: Boolean = if (lines.hasNext) lines.next() == key else false
+    val key: Option[String] = if (lines.hasNext) Some(lines.next()) else None
     bufferedSource.close
-    keyMatch
+    key
   }
 
   /**
@@ -63,8 +73,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       runMultiUserClusteringAllRegions()
     }
 
-    val testJson = Json.obj("clustering_type" -> clusteringType)
-    Future.successful(Ok(testJson))
+    Future.successful(Ok(Json.obj("clustering_type" -> clusteringType)))
   }
 
   /**
@@ -77,24 +86,39 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     // First truncate the user_clustering_session table
     UserClusteringSessionTable.truncateTables()
 
-    val goodRegisteredUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodRegisteredUsers
-    val goodAnonymousUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodAnonymousUsers
-//    val goodRegisteredUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863")
-//    val goodAnonymousUsers: List[String] = List("73.163.171.105")
-    val nUsers = goodRegisteredUsers.length + goodAnonymousUsers.length
-    println("N users = " + nUsers)
+    // Read key from keyfile. If we aren't able to read it, we can't do anything :(
+    val maybeKey: Option[String] = readKeyFile()
 
-    for ((userId, i) <- goodAnonymousUsers.view.zipWithIndex) {
-      println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
-      val clusteringOutput = Seq("python", "label_clustering.py", "--user_id_or_ip", userId, "--is_anonymous").!!
-//      println(clusteringOutput)
+    if (maybeKey.isDefined) {
+      val key: String = maybeKey.get
+      // All users
+      //    val goodRegisteredUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodRegisteredUsers
+      //    val goodAnonymousUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodAnonymousUsers
+      // Test users with a lot of labels
+      //    val goodRegisteredUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863")
+      //    val goodAnonymousUsers: List[String] = List("73.163.171.105")
+      // Test users with fewer labels
+      val goodRegisteredUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5")
+      val goodAnonymousUsers: List[String] = List("24.22.251.129")
+      val nUsers = goodRegisteredUsers.length + goodAnonymousUsers.length
+      println("N users = " + nUsers)
+
+      for ((userId, i) <- goodAnonymousUsers.view.zipWithIndex) {
+        println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
+        val clusteringOutput =
+          Seq("python", "label_clustering.py", "--key", key, "--user_id_or_ip", userId, "--is_anonymous").!!
+        //      println(clusteringOutput)
+      }
+      for ((userId, i) <- goodRegisteredUsers.view.zipWithIndex) {
+        println(s"Finished ${f"${100.0 * (i + goodAnonymousUsers.length) / nUsers}%1.2f"}% of users, next: $userId.")
+        val clusteringOutput =
+          Seq("python", "label_clustering.py", "--key", key, "--user_id_or_ip", userId).!!
+        //      println(clusteringOutput)
+      }
+      println("\nFinshed 100% of users!!\n")
+    } else {
+      println("Could not read keyfile, so nothing happened :(")
     }
-    for ((userId, i) <- goodRegisteredUsers.view.zipWithIndex) {
-      println(s"Finished ${f"${100.0 * (i + goodAnonymousUsers.length) / nUsers}%1.2f"}% of users, next: $userId.")
-      val clusteringOutput = Seq("python", "label_clustering.py", "--user_id_or_ip", userId).!!
-//      println(clusteringOutput)
-    }
-    println("\nFinshed 100% of users!!\n")
   }
 
   /**
@@ -106,15 +130,24 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 
     // First truncate the global_clustering_session table
     GlobalClusteringSessionTable.truncateTables()
-    val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
-    //    val regionIds = List(199, 200,s 203, 211, 261)
-    val nRegions: Int = regionIds.length
 
-    for ((regionId, i) <- regionIds.view.zipWithIndex) {
-      println(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
-      val clusteringOutput = ("python label_clustering.py --region_id " + regionId).!!
+    // Read key from keyfile. If we aren't able to read it, we can't do anything :(
+    val maybeKey: Option[String] = readKeyFile()
+
+    if (maybeKey.isDefined) {
+      val key: String = maybeKey.get
+      val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
+      //    val regionIds = List(199, 200, 203, 211, 261)
+      val nRegions: Int = regionIds.length
+
+      for ((regionId, i) <- regionIds.view.zipWithIndex) {
+        println(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
+        val clusteringOutput = Seq("python", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+      }
+      println("\nFinshed 100% of regions!!\n\n")
+    } else {
+      println("Could not read keyfile, so nothing happened :(")
     }
-    println("\nFinshed 100% of regions!!\n\n")
   }
 
   /**
@@ -123,15 +156,18 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @param userIdOrIp
     * @return
     */
-  def getUserLabelsToCluster(userIdOrIp: String, isAnonymous: Boolean) = UserAwareAction.async { implicit request =>
+  def getUserLabelsToCluster(key: String, userIdOrIp: String, isAnonymous: Boolean) = UserAwareAction.async { implicit request =>
 
-    // TODO add check for key
-    val labelsToCluster: List[LabelToCluster] = if(isAnonymous) {
-      UserClusteringSessionTable.getAnonymousUserLabelsToCluster(userIdOrIp)
+    val json = if (authenticate(key)) {
+      val labelsToCluster: List[LabelToCluster] = if (isAnonymous) {
+        UserClusteringSessionTable.getAnonymousUserLabelsToCluster(userIdOrIp)
+      } else {
+        UserClusteringSessionTable.getRegisteredUserLabelsToCluster(userIdOrIp)
+      }
+      Json.arr(labelsToCluster.map(_.toJSON))
     } else {
-      UserClusteringSessionTable.getRegisteredUserLabelsToCluster(userIdOrIp)
+      Json.obj("error_msg" -> "Could not authenticate.")
     }
-    val json = Json.arr(labelsToCluster.map(_.toJSON))
     Future.successful(Ok(json))
   }
 
@@ -141,9 +177,13 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @param regionId
     * @return
     */
-  def getClusteredLabelsInRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val labelsToCluster: List[LabelToCluster] = UserClusteringSessionTable.getClusteredLabelsInRegion(regionId)
-    val json = Json.arr(labelsToCluster.map(_.toJSON))
+  def getClusteredLabelsInRegion(key: String, regionId: Int) = UserAwareAction.async { implicit request =>
+    val json = if (authenticate(key)) {
+      val labelsToCluster: List[LabelToCluster] = UserClusteringSessionTable.getClusteredLabelsInRegion(regionId)
+      Json.arr(labelsToCluster.map(_.toJSON))
+    } else {
+      Json.obj("error_msg" -> "Could not authenticate.")
+    }
     Future.successful(Ok(json))
   }
 
@@ -154,59 +194,62 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @param isAnonymous
     * @return
     */
-  def postSingleUserClusteringResults(userIdOrIp: String, isAnonymous: Boolean) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
+  def postSingleUserClusteringResults(key: String, userIdOrIp: String, isAnonymous: Boolean) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
     // 100MB max size
-    // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
-    val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
-    submission.fold(
-      errors => {
-        println("Failed to parse JSON POST request for multi-user clustering results.")
-        println(Json.prettyPrint(request.body))
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-        val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
-        val clusters: List[AttributeFormats.ClusterSubmission] = submission.clusters
-        val labels: List[AttributeFormats.ClusteredLabelSubmission] = submission.labels
+    if (authenticate(key)) {
+      // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
+      val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
+      submission.fold(
+        errors => {
+          println("Failed to parse JSON POST request for multi-user clustering results.")
+          println(Json.prettyPrint(request.body))
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+        },
+        submission => {
+          val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
+          val clusters: List[AttributeFormats.ClusterSubmission] = submission.clusters
+          val labels: List[AttributeFormats.ClusteredLabelSubmission] = submission.labels
 
-        val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
 
-        // Add corresponding entry to the user_clustering_session table
-        val userSessionId: Int = if (isAnonymous) {
-          UserClusteringSessionTable.save(UserClusteringSession(0, isAnonymous, None, Some(userIdOrIp), timestamp))
-        } else {
-          UserClusteringSessionTable.save(UserClusteringSession(0, isAnonymous, Some(userIdOrIp), None, timestamp))
-        }
-        // Add the clusters to user_attribute table
-        for (cluster <- clusters) yield {
-          val attributeId: Int =
-            UserAttributeTable.save(
-              UserAttribute(0,
-                userSessionId,
-                thresholds(cluster.labelType),
-                LabelTypeTable.labelTypeToId(cluster.labelType),
-                cluster.lat,
-                cluster.lng,
-                cluster.severity,
-                cluster.temporary
-              )
-            )
-          // Add all the associated labels to the user_attribute_label table
-          groupedLabels get cluster.clusterNum match {
-            case Some(group) =>
-              for (label <- group) yield {
-                UserAttributeLabelTable.save(UserAttributeLabel(0, attributeId, label.labelId))
-              }
-            case None =>
-              Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+          // Add corresponding entry to the user_clustering_session table
+          val userSessionId: Int = if (isAnonymous) {
+            UserClusteringSessionTable.save(UserClusteringSession(0, isAnonymous, None, Some(userIdOrIp), timestamp))
+          } else {
+            UserClusteringSessionTable.save(UserClusteringSession(0, isAnonymous, Some(userIdOrIp), None, timestamp))
           }
+          // Add the clusters to user_attribute table
+          for (cluster <- clusters) yield {
+            val attributeId: Int =
+              UserAttributeTable.save(
+                UserAttribute(0,
+                  userSessionId,
+                  thresholds(cluster.labelType),
+                  LabelTypeTable.labelTypeToId(cluster.labelType),
+                  cluster.lat,
+                  cluster.lng,
+                  cluster.severity,
+                  cluster.temporary
+                )
+              )
+            // Add all the associated labels to the user_attribute_label table
+            groupedLabels get cluster.clusterNum match {
+              case Some(group) =>
+                for (label <- group) yield {
+                  UserAttributeLabelTable.save(UserAttributeLabel(0, attributeId, label.labelId))
+                }
+              case None =>
+                Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+            }
+          }
+          Future.successful(Ok(Json.obj("session" -> userSessionId)))
         }
-        val json = Json.obj("session" -> userSessionId)
-        Future.successful(Ok(json))
-      }
-    )
+      )
+    } else {
+      Future.successful(Ok(Json.obj("error_msg" -> "Could not authenticate.")))
+    }
   }
 
   /**
@@ -215,54 +258,57 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @param regionId
     * @return
     */
-  def postMultiUserClusteringResults(regionId: Int) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
+  def postMultiUserClusteringResults(key: String, regionId: Int) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
     // 100MB max size
-    // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
-    val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
-    submission.fold(
-      errors => {
-        println("Failed to parse JSON POST request for multi-user clustering results.")
-        println(Json.prettyPrint(request.body))
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-        val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
-        val clusters: List[AttributeFormats.ClusterSubmission] = submission.clusters
-        val labels: List[AttributeFormats.ClusteredLabelSubmission] = submission.labels
+    if (authenticate(key)) {
+      // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
+      val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
+      submission.fold(
+        errors => {
+          println("Failed to parse JSON POST request for multi-user clustering results.")
+          println(Json.prettyPrint(request.body))
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+        },
+        submission => {
+          val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
+          val clusters: List[AttributeFormats.ClusterSubmission] = submission.clusters
+          val labels: List[AttributeFormats.ClusteredLabelSubmission] = submission.labels
 
-        val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
 
-        // Add corresponding entry to the global_clustering_session table
-        val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))
+          // Add corresponding entry to the global_clustering_session table
+          val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))
 
-        // Add the clusters to global_attribute table
-        for (cluster <- clusters) yield {
-          val attributeId: Int =
-            GlobalAttributeTable.save(
-              GlobalAttribute(0,
-                globalSessionId,
-                thresholds(cluster.labelType),
-                LabelTypeTable.labelTypeToId(cluster.labelType),
-                cluster.lat,
-                cluster.lng,
-                cluster.severity,
-                cluster.temporary)
-            )
-          // Add all the associated labels to the global_attribute_user_attribute table
-          groupedLabels get cluster.clusterNum match {
-            case Some(group) =>
-              for (label <- group) yield {
-                GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
-              }
-            case None =>
-              Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+          // Add the clusters to global_attribute table
+          for (cluster <- clusters) yield {
+            val attributeId: Int =
+              GlobalAttributeTable.save(
+                GlobalAttribute(0,
+                  globalSessionId,
+                  thresholds(cluster.labelType),
+                  LabelTypeTable.labelTypeToId(cluster.labelType),
+                  cluster.lat,
+                  cluster.lng,
+                  cluster.severity,
+                  cluster.temporary)
+              )
+            // Add all the associated labels to the global_attribute_user_attribute table
+            groupedLabels get cluster.clusterNum match {
+              case Some(group) =>
+                for (label <- group) yield {
+                  GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
+                }
+              case None =>
+                Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+            }
           }
+          Future.successful(Ok(Json.obj("session" -> globalSessionId)))
         }
-        val json = Json.obj("session" -> globalSessionId)
-        Future.successful(Ok(json))
-      }
-    )
+      )
+    } else {
+      Future.successful(Ok(Json.obj("error_msg" -> "Could not authenticate.")))
+    }
   }
 }

@@ -55,6 +55,8 @@ if __name__ == '__main__':
 
     # Read in arguments from command line
     parser = argparse.ArgumentParser(description='Gets a set of labels, posts the labels grouped into clusters.')
+    parser.add_argument('--key', type=str,
+                        help='Key string that is used to authenticate when using API.')
     parser.add_argument('--user_id_or_ip', type=str,
                         help='User id of a single user who\'s labels should be clustered.')
     parser.add_argument('--region_id', type=int,
@@ -64,6 +66,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true',
                         help='Debug mode adds print statements')
     args = parser.parse_args()
+    KEY = args.key
     DEBUG = args.debug
     IS_ANONYMOUS = args.is_anonymous
     USER_ID_OR_IP = args.user_id_or_ip.strip('\'\"') if args.user_id_or_ip else None
@@ -80,15 +83,17 @@ if __name__ == '__main__':
     if USER_ID_OR_IP:
         SINGLE_USER = True
         getURL = 'http://localhost:9000/userLabelsToCluster' \
-                 '?userIdOrIp=' + str(USER_ID_OR_IP) + \
+                 '?key=' + KEY + \
+                 '&userIdOrIp=' + str(USER_ID_OR_IP) + \
                  '&isAnonymous=' + str.lower(str(IS_ANONYMOUS))
         postURL = 'http://localhost:9000/singleUserClusteringResults' + \
-                  '?userIdOrIp=' + str(USER_ID_OR_IP) + \
+                  '?key=' + KEY + \
+                  '&userIdOrIp=' + str(USER_ID_OR_IP) + \
                   '&isAnonymous=' + str.lower(str(IS_ANONYMOUS))
     elif REGION_ID:
         SINGLE_USER = False
-        getURL = 'http://localhost:9000/clusteredLabelsInRegion?regionId=' + str(REGION_ID)
-        postURL = 'http://localhost:9000/multiUserClusteringResults?regionId=' + str(REGION_ID)
+        getURL = 'http://localhost:9000/clusteredLabelsInRegion?key=' + KEY + '&regionId=' + str(REGION_ID)
+        postURL = 'http://localhost:9000/multiUserClusteringResults?key=' + KEY + '&regionId=' + str(REGION_ID)
 
     # Send GET request to get the labels to be clustered.
     try:
