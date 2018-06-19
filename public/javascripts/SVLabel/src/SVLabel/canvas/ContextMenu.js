@@ -173,6 +173,7 @@ function ContextMenu (uiContextMenu) {
         self.updateRadioButtonImages();
         if (label) {
             label.setProperty('severity', severity);
+            svl.canvas.clear().render2();
         }
     }
 
