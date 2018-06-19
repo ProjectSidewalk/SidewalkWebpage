@@ -98,15 +98,6 @@ function ContextMenu (uiContextMenu) {
         return (key in status) ? status[key] : null;
     }
 
-    /**
-     * Get the current target label
-     * @returns {null}
-     */
-    function getSeverity () {
-        console.log('getSeverity: ' + getStatus('severity'));
-        return getStatus('severity');
-    }
-
     function getTargetLabel () {
         return getStatus('targetLabel');
     }
@@ -151,7 +142,6 @@ function ContextMenu (uiContextMenu) {
     }
 
     function _handleOKButtonClick () {
-
         svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
         _handleSeverityPopup();
@@ -181,7 +171,6 @@ function ContextMenu (uiContextMenu) {
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
         self.updateRadioButtonImages();
-
         if (label) {
             label.setProperty('severity', severity);
         }

@@ -21,9 +21,9 @@
     visibility: hidden;
     /* Position */
     position: absolute;
-    width: 50px;
+    width: 20px;
     height: 20px;
-    left: 0;
+    left: 30px;
     top: 10px;
     display: -webkit-box;
 }
@@ -44,20 +44,4 @@
     width: 20px;
     left: 30px;
     position: absolute;
-}
-
-#severity-icon {
-    position: absolute;
-    height: 20px;
-    width: 20px;
-    margin-right: 10px;
-    /* create circle */
-    border-radius: 50%;
-    background: rgb(60, 60, 60);
-    opacity: 0.9;
-    /* style text */
-    color: white;
-    text-align: center;
-    vertical-align: 50%;
-    font-size: 12px;
 }

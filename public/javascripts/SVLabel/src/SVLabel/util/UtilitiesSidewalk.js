@@ -284,6 +284,42 @@ function UtilitiesMisc (JSON) {
     }
 
     /**
+     * Gets the severity message and severity image location that is displayed on a label tag
+     * @returns {{1: {message: string, severityImage: string}, 2: {message: string, severityImage: string},
+     *              3: {message: string, severityImage: string}, 4: {message: string, severityImage: string},
+     *              5: {message: string, severityImage: string}}}
+     */
+    function getSeverityDescription() {
+        var severityTagDescription = {
+            1: {
+                message: 'Passable',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
+            },
+
+            2: {
+                message: 'Somewhat Passable',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
+            },
+
+            3: {
+                message: 'Difficult to pass',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
+            },
+
+            4: {
+                message: 'Very difficult to pass',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png'
+            },
+
+            5: {
+                message: 'Not passable',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
+            }
+        }
+        return severityTagDescription;
+    }
+
+    /**
      * References: Ajax without jQuery.
      * http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
      * http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
@@ -302,6 +338,7 @@ function UtilitiesMisc (JSON) {
     self.getLabelInstructions = getLabelInstructions;
     self.getRibbonConnectionPositions = getRibbonConnectionPositions;
     self.getLabelDescriptions = getLabelDescriptions;
+    self.getSeverityDescription = getSeverityDescription;
     self.getLabelColors = ColorScheme.SidewalkColorScheme2;
     self.reportNoStreetView = reportNoStreetView;
 

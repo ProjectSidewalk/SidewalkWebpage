@@ -54,6 +54,8 @@ function Label (svl, pathIn, params) {
         visibility : false
     };
 
+    var tagProperties = util.misc.getSeverityDescription();
+
     function _init (param, pathIn) {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
@@ -445,16 +447,12 @@ function Label (svl, pathIn, params) {
 
                 // Only render severity label if there's a severity option
                 if (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion') {
-                    // showSeverity(ctx); // for persistent labeling everywhere
-
                     if (properties.severity == undefined) {
                         showSeverityAlert(ctx);
                     }
-
                 }
 
             } else if (false) {
-                console.log ('test');
                 // TAG: OLD IMAGE COORDINATE USED
                 // Render labels that are not in the current panorama but are close enough.
                 // Get the label'svar latLng = toLatLng();
@@ -522,15 +520,20 @@ function Label (svl, pathIn, params) {
             i, height,
             width = 0,
             labelRows = 1,
-            severityImage = selectSeverityImage(),
-            severityMessage = selectSeverityMessage(),
-            // severityMessage = 'Severity: ' + properties.severity,
+            severityImage = new Image(),
+            severityImagePath = undefined,
+            severityMessage = 'Please click to label a severity',
             msg = properties.labelDescription,
             messages = msg.split('\n'),
             padding = {left: 12, right: 5, bottom: 0, top: 18};
 
         if (hasSeverity) {
             labelRows = 2;
+            if (properties.severity != undefined) {
+                severityImagePath = tagProperties[properties.severity].severityImage;
+                severityImage.src = severityImagePath;
+                severityMessage = tagProperties[properties.severity].message;
+            }
         }
 
         if (properties.labelerId !== 'DefaultValue') {
@@ -551,7 +554,7 @@ function Label (svl, pathIn, params) {
             // do additional adjustments on tag width to make room for smiley icon
             if (hasSeverity) {
                 secondRow = ctx.measureText(severityMessage).width;
-                if (severityImage != undefined) {
+                if (severityImagePath != undefined) {
                     if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
                         width += 15 - firstRow + secondRow;
                     } else if (firstRow - secondRow < 0) {
@@ -584,25 +587,12 @@ function Label (svl, pathIn, params) {
         ctx.stroke();
         ctx.closePath();
 
-        // Tag text
+        // Tag text and image
         ctx.fillStyle = '#ffffff';
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
-        }
-
-        // Tag severity image
-        if (hasSeverity) {
-            if (properties.severity != undefined) {
-                // Tag image
-                try {
-                    var imageObj = new Image();
-                    imageObj.src = severityImage;
-                    ctx.drawImage(imageObj, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
-                } catch (e) {
-                    // console.log(e);
-                }
-            }
+            ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
         }
 
         ctx.restore();
@@ -649,50 +639,6 @@ function Label (svl, pathIn, params) {
             points[i].setFillStyle(fillColor);
         }
         return this;
-    }
-
-    /**
-     * This function gets the image location of the current label based on the severity
-     * rating that has been selected
-     * @returns {string: location of image in project directory}
-     */
-    function selectSeverityImage () {
-        var severityImage = undefined;
-        if (properties.severity == 1) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png';
-        } else if (properties.severity == 2) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png';
-        } else if (properties.severity == 3) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png';
-        } else if (properties.severity == 4) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png';
-        } else if (properties.severity == 5) {
-            severityImage = svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png';
-        }
-        return severityImage;
-    }
-
-    /**
-     * This function selects the severity message displayed inside a tag depending on the
-     * severity rating of the current label
-     * @returns {string: description of the current severity label}
-     */
-    function selectSeverityMessage () {
-        var severityMessage = 'Please click to label a severity';
-        if (properties.severity != undefined) {
-            if (properties.severity == 1) {
-                severityMessage = 'Passable';
-            } else if (properties.severity == 2) {
-                severityMessage = 'Somewhat passable';
-            } else if (properties.severity == 3) {
-                severityMessage = 'Difficult to pass';
-            } else if (properties.severity == 4) {
-                severityMessage = 'Very difficult to pass';
-            } else if (properties.severity == 5) {
-                severityMessage = 'Not passable'
-            }
-        }
-        return severityMessage;
     }
 
     /**
