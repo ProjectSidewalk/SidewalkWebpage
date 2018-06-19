@@ -268,6 +268,13 @@ function LabelCounter (d3) {
             dotPlots[key].count -= 1;
         }
         update(key);
+
+        if ("labelContainer" in svl) {
+            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+            var count = svl.labelContainer.countLabels(regionId) - 1;
+            svl.statusFieldNeighborhood.setLabelCount(count);
+        }
+
     };
 
     /**
@@ -279,6 +286,12 @@ function LabelCounter (d3) {
         if (key in dotPlots) {
             dotPlots[key].count += 1;
             update(key);
+        }
+
+        if ("labelContainer" in svl) {
+            var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+            var count = svl.labelContainer.countLabels(regionId) + 1;
+            svl.statusFieldNeighborhood.setLabelCount(count);
         }
     };
 
