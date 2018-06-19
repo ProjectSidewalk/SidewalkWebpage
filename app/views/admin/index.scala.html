@@ -100,6 +100,12 @@
                                 <td>@LabelTable.countYesterdayLabelsBasedOnType("SurfaceProblem")</td>
                             </tr>
                             <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">No Sidewalk</td>
+                                <td>@LabelTable.countLabelsBasedOnType("NoSidewalk")</td>
+                                <td>@LabelTable.countTodayLabelsBasedOnType("NoSidewalk")</td>
+                                <td>@LabelTable.countYesterdayLabelsBasedOnType("NoSidewalk")</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Other</td>
                                 <td>@LabelTable.countLabelsBasedOnType("Other")</td>
                                 <td>@LabelTable.countTodayLabelsBasedOnType("Other")</td>
@@ -110,12 +116,6 @@
                                 <td>@LabelTable.countLabelsBasedOnType("Occlusion")</td>
                                 <td>@LabelTable.countTodayLabelsBasedOnType("Occlusion")</td>
                                 <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
-                            </tr>
-                            <tr style="font-size: 90%;">
-                                <td style="padding-left: 30px">No Sidewalk</td>
-                                <td>@LabelTable.countLabelsBasedOnType("NoSidewalk")</td>
-                                <td>@LabelTable.countTodayLabelsBasedOnType("NoSidewalk")</td>
-                                <td>@LabelTable.countYesterdayLabelsBasedOnType("NoSidewalk")</td>
                             </tr>
 
                             <tr>
@@ -210,7 +210,6 @@
                                         <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
                                         <td align= "center"><span id="missing-curb-ramp-severity-label">All</span></td>
                                     </tr>
-
                                     <tr>
                                         <td id="map-legend-obstacle"></td>
                                         <td>Obstacle in Path</td>
@@ -225,6 +224,11 @@
                                         <td align="center"><span id="surface-problem-severity-label">All</span></td>
                                     </tr>
                                     <tr>
+                                        <td id="map-legend-nosidewalk"></td>
+                                        <td>No Sidewalk</td>
+                                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
+                                    </tr>
+                                    <tr>
                                         <td id="map-legend-other"></td>
                                         <td>Other</td>
                                         <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
@@ -235,11 +239,6 @@
                                         <td id="map-legend-occlusion"></td>
                                         <td>Can't see sidewalk</td>
                                         <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider')"></td>
-                                    </tr>
-                                    <tr>
-                                        <td id="map-legend-nosidewalk"></td>
-                                        <td>No Sidewalk</td>
-                                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
                                     </tr>
                                     <tr>
                                       <td id="map-legend-audited-street"></td>

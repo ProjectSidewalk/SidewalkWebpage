@@ -386,7 +386,7 @@ var ColorScheme = (function () {
             NoSidewalk: {
                 id: 'NoSidewalk',
                 fillStyle: 'rgba(153, 131, 239, 1)',
-                strokeStyle: '#ff0000'
+                strokeStyle: '#ffffff'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
