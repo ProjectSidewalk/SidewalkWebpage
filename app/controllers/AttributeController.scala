@@ -66,14 +66,18 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @return
     */
   def runClustering(clusteringType: String) = UserAwareAction.async { implicit request =>
-    if (clusteringType == "singleUser" || clusteringType == "both") {
-      runSingleUserClusteringAllUsers()
-    }
-    if (clusteringType == "multiUser" || clusteringType == "both") {
-      runMultiUserClusteringAllRegions()
-    }
+    if (isAdmin(request.identity)) {
+      if (clusteringType == "singleUser" || clusteringType == "both") {
+        runSingleUserClusteringAllUsers()
+      }
+      if (clusteringType == "multiUser" || clusteringType == "both") {
+        runMultiUserClusteringAllRegions()
+      }
 
-    Future.successful(Ok(Json.obj("clustering_type" -> clusteringType)))
+      Future.successful(Ok(Json.obj("clustering_type" -> clusteringType)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
   }
 
   /**
