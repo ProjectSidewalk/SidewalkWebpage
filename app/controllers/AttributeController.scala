@@ -28,6 +28,15 @@ import scala.io.Source
 class AttributeController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
+  // Pages
+  def index = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
@@ -74,7 +83,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
         runMultiUserClusteringAllRegions()
       }
 
-      Future.successful(Ok(Json.obj("clustering_type" -> clusteringType)))
+      Future.successful(Ok(Json.obj("result" -> "Success!")))
     } else {
       Future.successful(Redirect("/"))
     }
