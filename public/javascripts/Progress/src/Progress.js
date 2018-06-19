@@ -167,13 +167,6 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 //this.setStyle(neighborhoodPolygonStyle);
             });
             layer.on('click', function (e) {
-                var center = turf.center(this.feature),
-                    coordinates = center.geometry.coordinates,
-                    latlng = L.latLng(coordinates[1], coordinates[0]),
-                    zoom = map.getZoom();
-                zoom = zoom > 14 ? zoom : 14;
-
-                map.setView(latlng, zoom, { animate: true });
                 currentLayer = this;
 
 
@@ -276,6 +269,54 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         });
     }
 
+    function updateTotalRewardEarned(missionJson){
+        //console.log(missionJson);
+        var completedMissionJson = missionJson
+            .filter(function(el){return el.is_completed && el.region_id!=null})
+            .reduce(function(region_groups,el){
+            region_groups[el.region_id] = region_groups[el.region_id] || 0.0;
+            if(el.distance_mi>region_groups[el.region_id]){
+                region_groups[el.region_id] = el.distance_mi;
+            }
+            return region_groups;}
+            ,{});
+        //console.log(completedMissionJson);
+        var totalMissionCompleteDistance = Object.values(completedMissionJson).reduce(function(sum, el) {
+            return sum + el;
+        }, 0.0);
+        //console.log(totalMissionCompleteDistance);
+        //Calculate accumulated reward if the user is a turker
+        var url = '/isTurker';
+        $.ajax({
+            async: true,
+            url: url,//endpoint that checks above conditions
+            type: 'get',
+            success: function(data){
+                if(data.isTurker){
+                    var url = '/rewardPerMile';
+                    $.ajax({
+                        async: true,
+                        url: url,//endpoint that checks above conditions
+                        type: 'get',
+                        success: function(data){
+                            var missionReward = totalMissionCompleteDistance*data.rewardPerMile;
+                            // Mission Rewards.
+                            document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toFixed(2);
+                            //console.log("Expected output: "+missionReward);
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            console.log(thrownError);
+                        }
+                    });
+                    //console.log('Survey displayed');
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(thrownError);
+            }
+        });
+    }
+
     /**
      * This function queries the streets that the user audited and visualize them as segmetns on the map.
      */
@@ -318,6 +359,8 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
+            //Calculate the total reward earned by the user in completed missions
+            $.when($.ajax("/mission")).done(updateTotalRewardEarned);
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);

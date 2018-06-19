@@ -1,5 +1,5 @@
 @import models.user.User
-@import models.user.UserCurrentRegionTable
+@import models.region.RegionTable
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)
@@ -30,10 +30,16 @@
                 <tr>
                     <th>Total Distance Audited</th>
                     <th>Number of Missions Completed</th>
+                    @if(user){
+                        @if(user.get.role.getOrElse("") == "Turker") {
+                            <th>Total Reward Earned</th>
+                        }
+                    }
                 </tr>
                 <tr>
                     <td id="td-total-distance-audited"></td>
                     <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId)</td>
+                    <td id="td-total-reward-earned"></td>
                 </tr>
             </table>
             <table class="table table-striped table-condensed">
@@ -87,7 +93,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
     <script>
     $(document).ready(function () {
-        var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+        var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
         window.progress = Progress(_, $, c3, L, difficultRegionIds);
     });
     </script>

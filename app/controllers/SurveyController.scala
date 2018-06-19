@@ -21,6 +21,7 @@ import play.api.mvc._
 import play.api.Play.current
 import play.extras.geojson
 
+import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
 /**
@@ -32,7 +33,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
   val anonymousUser: DBUser = UserTable.find("anonymous").get
 
   def postSurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[SurveySubmission]
+    var submission = request.body.validate[Seq[SurveySingleSubmission]]
 
     submission.fold(
       errors => {
@@ -54,14 +55,13 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
 
         val allSurveyQuestions = SurveyQuestionTable.listAll
         val allSurveyQuestionIds = allSurveyQuestions.map(_.surveyQuestionId)
-        val answeredQuestions = submission.answeredQuestions
-        val answeredQuestionIds = submission.answeredQuestions.map(_.surveyQuestionId.toInt)
+        val answeredQuestionIds = submission.map(_.surveyQuestionId.toInt)
         val unansweredQuestionIds = allSurveyQuestionIds diff answeredQuestionIds
         // Iterate over all the questions and check if there is a submission attribute matching question id.
         // Add the associated submission to the user_submission tables for that question
 
 
-        answeredQuestions.foreach{ q =>
+        submission.foreach{ q =>
           val questionId = q.surveyQuestionId.toInt
           val temp_question = SurveyQuestionTable.getQuestionById(questionId)
           temp_question match{
@@ -108,12 +108,12 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         val user: Option[DBUser] = UserTable.find("anonymous")
         UUID.fromString(user.get.userId)
     }
-    val userRoles = UserRoleTable.getRoles(userId)
+    val userRole: String = UserRoleTable.getRole(userId)
 
     val numMissionsBeforeSurvey = 2
     val userRoleForSurvey = "Turker"
 
-    val displaySurvey = userRoles.contains(userRoleForSurvey) //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
+    val displaySurvey = userRole == userRoleForSurvey //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
     Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
 
   }

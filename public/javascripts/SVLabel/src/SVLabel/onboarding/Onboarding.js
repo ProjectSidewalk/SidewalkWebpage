@@ -552,6 +552,21 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             modalMission.setMissionMessage(mission, neighborhood, null, function () {
                 svl.initialMissionInstruction.start(neighborhood);
             });
+            var url = '/isTurker';
+            $.ajax({
+                async: true,
+                url: url,//endpoint that checks above conditions
+                type: 'get',
+                success: function(data){
+                    if(data.isTurker){
+                        svl.ui.status.currentMissionReward.show();
+                        svl.ui.status.totalMissionReward.show();
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError);
+                }
+            });
 
         }else{
             modalMission.setMissionMessage(mission, neighborhood);

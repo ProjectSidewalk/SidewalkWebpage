@@ -1,5 +1,5 @@
 @import models.user.User
-@import models.user.UserCurrentRegionTable
+@import models.region.RegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
 @import models.survey._
@@ -22,7 +22,7 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
     @if(user){
-        @if(user.get.roles.getOrElse(Seq("")).contains("Turker")){
+        @if(user.get.role.getOrElse("") == "Turker"){
             <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content" id="survey-modal">
@@ -95,7 +95,7 @@
                         <span class="overlay-header">Advanced Neighborhood</span>
                     </p>
                     <p>
-                        <b>Warning:</b> This neighborhood is difficult to travel, and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
+                        <b>Warning:</b> This neighborhood is difficult to travel and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
                     </p>
                     <p>
                         If you get stuck, click the Jump button to navigate to a different area.
@@ -116,6 +116,19 @@
                     </p>
                     <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
                     <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
+                </div>
+            </div>
+        </div>
+        <div id="already-completed-neighborhood-overlay">
+            <div class="overlay-text">
+                <div id="already-completed-neighborhood-text">
+                    <p>
+                        <span class="overlay-header">Neighborhood Already Complete!</span>
+                    </p>
+                    <p>
+                        You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.
+                    </p>
+                    <span class="overlay-option" id="accept-redirect">OK</span>
                 </div>
             </div>
         </div>
@@ -237,7 +250,7 @@
                         <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
                     </a>-->
 
-                    <div class="status-row">
+                    <div class="status-row" id="neighborhood-status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
                             <span><span class="bold" id="status-audited-distance">0.00</span> <small>miles</small></span>
@@ -257,6 +270,8 @@
                         </div>
                     </div>
                     <br class="clear">
+                    <h2 id="current-mission-reward" style="display:none"></h2>
+                    <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
                 <div class="status-box">
                     <div id="label-counter"></div>
@@ -459,6 +474,11 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
+                    @if(user){
+                        @if(user.get.role.getOrElse("") == "Turker") {
+                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
+                        }
+                    }
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -505,6 +525,14 @@
                             <h3>Neighborhood Progress</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
+                                @if(user){
+                                    @if(user.get.role.getOrElse("") == "Turker") {
+                                        <tr>
+                                            <th>Earned in this mission</th>
+                                            <td id="modal-mission-complete-mission-reward" class="col-right" style="color: forestgreen;"></td>
+                                        </tr>
+                                    }
+                                }
                                 <tr>
                                     <th>Audited in this mission</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
@@ -519,7 +547,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.roles.getOrElse(Seq("")).contains("Turker") && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -693,13 +721,37 @@
                     <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">Let's get started!</button>
                 </p>
             </div>
-            <div class="col-md-12">
-                <p class="text-right"><span style='font-size: 65%;'>
-                    Already taken the tutorial? Have an account?
-                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a> now
-                    or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
-                </span></p>
-            </div>
+
+                <div class="col-md-12" id="onboarding-skip-option">
+                    <p class="text-right"><span style='font-size: 65%;'>
+                        Already taken the tutorial? Have an account?
+                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a>
+                        now
+                        or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                    </span></p>
+                </div>
+
+            <script>
+                    var url = '/isTurker';
+                    var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
+                    $.ajax({
+                        async: true,
+                        url: url,//endpoint that checks above conditions
+                        type: 'get',
+                        success: function(data){
+                            if(data.isTurker && numMissionsCompleted == 0){
+                                $("#onboarding-skip-option").hide();
+                            }
+                            else{
+                                $("#onboarding-skip-option").show();
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            console.log(thrownError);
+                        }
+                    });
+            </script>
+
         </div>
     </template>
     <template class="onboarding" val="outro" id="onboarding-outro">
@@ -786,6 +838,9 @@
 
                 }
             });
+        } else {
+            $(".toolUI").css({"visibility": "visible"});
+            $('#already-completed-neighborhood-overlay').show();
         }
 
         $(document).ready(function(){
@@ -812,6 +867,11 @@
 
             $('#redirect-new').on('click', function(){
                 $(location).attr('href', '/audit?nextRegion=regular');
+            });
+
+            // Already Completed Neighborhood Overlay
+            $('#accept-redirect').on('click', function(){
+                $(location).attr('href', '/audit');
             });
         });
 
@@ -862,19 +922,36 @@
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
             @if(user){
-                @if(user.get.roles.getOrElse(Seq("")).contains("Turker")) {
+                @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                     @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
-                        $("#left-column-confirmation-code-button").hide();
+                        $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
-                        $("#left-column-confirmation-code-button").show();
+                        $("#left-column-confirmation-code-button").css('visibility', "");
                         $("#left-column-confirmation-code-button").attr('data-toggle','popover');
                         $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
                         $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
                         $("#left-column-confirmation-code-button").popover();
+
+                        //Hide the confirmation popover on clicking the background
+                        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+
+                        $(document).on('click', function (e) {
+                            $("#left-column-confirmation-code-button").each(function () {
+                                //the 'is' for buttons that trigger popups
+                                //the 'has' for icons within a button that triggers a popup
+                                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                                }
+
+                            });
+                        });
                     }
+                    $("#current-mission-reward").show();
+                    $("#total-mission-reward").show();
+                    $("#modal-mission-reward-text").show();
                 } else{
                     $("#left-column-confirmation-code-button").css('visibility', "hidden");
                 }
@@ -889,7 +966,7 @@
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
-                if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
+                if(@RegionTable.difficultRegionIds.contains(region.get.regionId)){
                        $('#advanced-overlay').show();
                        mainParam.advancedOverlay = true
                 }
@@ -918,10 +995,7 @@
                 url: surveyUrl,
                 type: 'post',
                 dataType: 'json',
-                data: JSON.stringify({
-                    "answered_questions": formData,
-                    "is_admin":@user.get.roles.getOrElse(Seq("")).contains("Admin")
-                }),
+                data: JSON.stringify(formData),
                 success: function (data) {
                     //close survey modal here
                     $('#survey-modal-container').modal('hide');
@@ -934,5 +1008,4 @@
         }
 
     </script>
-
 }

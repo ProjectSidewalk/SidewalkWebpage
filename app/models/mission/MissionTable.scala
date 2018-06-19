@@ -2,9 +2,12 @@ package models.mission
 
 import java.util.UUID
 
+import models.audit.AuditTaskTable
+import models.audit.AuditTaskTable.nonDeletedStreetEdgeRegions
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.utils.MyPostgresDriver.simple._
 import models.region._
+import models.user.UserRoleTable
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -53,6 +56,8 @@ object MissionTable {
   val db = play.api.db.slick.DB
   val missions = TableQuery[MissionTable]
   val missionUsers = TableQuery[MissionUserTable]
+  val turkerUsers = UserRoleTable.getUsersByType("Turker")
+
   val users = TableQuery[UserTable]
   val regionProperties = TableQuery[RegionPropertyTable]
   val regions = TableQuery[RegionTable]
@@ -97,7 +102,7 @@ object MissionTable {
     * @return
     */
   def isMissionAvailable(userId: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
-    val incompleteMissions = selectIncompleteMissionsByAUser(userId, regionId)
+    val incompleteMissions: List[Mission] = selectIncompleteMissionsByAUser(userId, regionId)
     incompleteMissions.nonEmpty
   }
 
@@ -188,6 +193,8 @@ object MissionTable {
 
   /**
     * Get a set of regions where the user has not completed all the missions.
+    * NOTE: The mission_user table is not always accurate, thus it is advised to use completed audit tasks instead. An
+    *       alternative method to this one is below; selectIncompleteRegionsUsingTasks
     *
     * @param userId UUID for the user
     * @return
@@ -197,6 +204,21 @@ object MissionTable {
     val incompleteRegions: Set[Int] = incompleteMissions.map(_.regionId).flatten.toSet
     incompleteRegions
   }
+
+  /**
+    * Get a set of regions where the user has not completed all the street edges.
+    *
+    * @param user UUID for the user
+    * @return
+    */
+  def selectIncompleteRegionsUsingTasks(user: UUID): Set[Int] = db.withSession { implicit session =>
+
+    nonDeletedStreetEdgeRegions
+      .filter(_.streetEdgeId inSet AuditTaskTable.streetEdgeIdsNotAuditedByUser(user))
+      .map(_.regionId)
+      .list.toSet
+  }
+
 
   /**
     * Returns all the missions
@@ -231,6 +253,23 @@ object MissionTable {
   def selectMissionCountsPerUser: List[(String, Int)] = db.withSession { implicit session =>
     val _missions = for {
       (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
+    } yield _missionUsers.userId
+
+    _missions.groupBy(m => m).map{ case(id, group) => (id, group.length)}.list
+  }
+
+  /**
+    * Select mission counts for turkers
+    *
+    * @ List[(user_id,count)]
+    */
+  def selectMissionCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
+    val missionTurkers = for {
+      (_missionusers, _turkerusers) <- missionUsers.innerJoin(turkerUsers).on(_.userId === _.userId)
+    } yield _missionusers
+
+    val _missions = for {
+      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionTurkers).on(_.missionId === _.missionId)
     } yield _missionUsers.userId
 
     _missions.groupBy(m => m).map{ case(id, group) => (id, group.length)}.list
