@@ -485,64 +485,6 @@ var ColorScheme = (function () {
         };
         return category ? colors[category].fillStyle : colors;
     }
-    /**
-     * http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
-     * @returns {{Walk: {id: string, fillStyle: string}, CurbRamp: {id: string, fillStyle: string}, NoCurbRamp: {id: string, fillStyle: string}, StopSign: {id: string, fillStyle: string}, StopSign_OneLeg: {id: string, fillStyle: string}, StopSign_TwoLegs: {id: string, fillStyle: string}, StopSign_Column: {id: string, fillStyle: string}, Landmark_Shelter: {id: string, fillStyle: string}, Landmark_Bench: {id: string, fillStyle: string}, Landmark_TrashCan: {id: string, fillStyle: string}, Landmark_MailboxAndNewsPaperBox: {id: string, fillStyle: string}, Landmark_OtherPole: {id: string, fillStyle: string}}}
-     */
-    function colorScheme2 () {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                fillStyle: 'rgba(106, 230, 36, 0.9)'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                fillStyle: 'rgba(215, 0, 96, 0.9)'
-            },
-            'StopSign' : {
-                'id' : 'StopSign',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'StopSign_OneLeg' : {
-                'id' : 'StopSign_OneLeg',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'StopSign_TwoLegs' : {
-                'id' : 'StopSign_TwoLegs',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'StopSign_Column' : {
-                'id' : 'StopSign_Column',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'Landmark_Shelter' : {
-                'id' : 'Landmark_Shelter',
-                'fillStyle' : 'rgba(215, 0, 96, 0.9)'
-            },
-            'Landmark_Bench' : {
-                'id' : 'Landmark_Bench',
-                // 'fillStyle' : 'rgba(229, 64, 40, 0.9)' // Kind of hard to distinguish from pink
-                // 'fillStyle' : 'rgba(209, 209, 2, 0.9)' // Puke-y
-                'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-            },
-            'Landmark_TrashCan' : {
-                'id' : 'Landmark_TrashCan',
-                'fillStyle' : 'rgba(97, 174, 36, 0.9)'
-            },
-            'Landmark_MailboxAndNewsPaperBox' : {
-                'id' : 'Landmark_MailboxAndNewsPaperBox',
-                'fillStyle' : 'rgba(67, 113, 190, 0.9)'
-            },
-            'Landmark_OtherPole' : {
-                'id' : 'Landmark_OtherPole',
-                'fillStyle' : 'rgba(249, 79, 101, 0.9)'
-            }
-        }
-    }
 
     return {
         className: 'ColorScheme',

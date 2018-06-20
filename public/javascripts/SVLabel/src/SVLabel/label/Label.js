@@ -525,7 +525,7 @@ function Label (svl, pathIn, params) {
             severityMessage = 'Please click to label a severity',
             msg = properties.labelDescription,
             messages = msg.split('\n'),
-            padding = {left: 12, right: 5, bottom: 0, top: 18};
+            padding = { left: 12, right: 5, bottom: 0, top: 18 };
 
         if (hasSeverity) {
             labelRows = 2;
