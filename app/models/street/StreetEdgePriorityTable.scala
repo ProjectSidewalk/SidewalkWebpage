@@ -239,15 +239,17 @@ object StreetEdgePriorityTable {
 
     // To each audit_task completed by a registered user, we attach a boolean indicating whether or not the user had a
     // labeling frequency above our threshold.
-  val regCompletions = AuditTaskTable.completedTasks
-    .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1) // select distinct on street edge id and user id
-    .innerJoin(getQualityOfRegisteredUserIds).on(_._2 === _._1) // join on user_id
-    .map { case (_task, _qual) => (_task._1, _qual._2) } // SELECT street_edge_id, is_good_user
+    // NOTE We are calling the getQualityOfRegisteredUserIds function below, which does the heavy lifting.
+    val regCompletions = AuditTaskTable.completedTasks
+      .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1) // select distinct on street edge id and user id
+      .innerJoin(getQualityOfRegisteredUserIds).on(_._2 === _._1) // join on user_id
+      .map { case (_task, _qual) => (_task._1, _qual._2) } // SELECT street_edge_id, is_good_user
 
     /********** Anonymous Users **********/
 
     // Gets the tasks performed by anonymous users, along with ip address; need to select distinct b/c there can be
-    // multiple audit_task_environment entries for a single task
+    // multiple audit_task_environment entries for a single task.
+    // NOTE We are calling the getQualityOfAnonymousUserIps function below, which does the heavy lifting.
     val anonTasks = (for {
       _user <- userTable if _user.username === "anonymous"
       _task <- AuditTaskTable.completedTasks if _user.userId === _task.userId
@@ -257,10 +259,10 @@ object StreetEdgePriorityTable {
 
     // Now to each audit_task completed by an anonymous user, we attach a boolean indicating whether or not the user
     // had a labeling frequency above our threshold.
-  val anonCompletions = anonTasks
-    .groupBy(task => (task._1, task._3)).map(_._1) // select distinct on ip address and street edge id
-    .innerJoin(getQualityOfAnonymousUserIps).on(_._1 === _._1) // join on ip address
-    .map { case (_task, _qual) => (_task._2, _qual._2) } // SELECT street_edge_id, is_good_user
+    val anonCompletions = anonTasks
+      .groupBy(task => (task._1, task._3)).map(_._1) // select distinct on ip address and street edge id
+      .innerJoin(getQualityOfAnonymousUserIps).on(_._1 === _._1) // join on ip address
+      .map { case (_task, _qual) => (_task._2, _qual._2) } // SELECT street_edge_id, is_good_user
 
     /********** Compute Audit Counts **********/
     // Combine results from anonymous and registered users

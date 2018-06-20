@@ -144,7 +144,6 @@ if __name__ == '__main__':
     if sum(label_data.lng > 360) > 0:
         if DEBUG: print 'There are %d invalid longitude vals, removing those entries.' % sum(label_data.lng > 360)
         label_data = label_data.drop(label_data[label_data.lng > 360].index)
-
     if sum(pd.isnull(label_data.lng)) > 0:
         if DEBUG: print 'There are %d NaN longitude vals, removing those entries.' % sum(pd.isnull(label_data.lng))
         label_data = label_data.drop(label_data[pd.isnull(label_data.lng)].index)
@@ -185,6 +184,7 @@ if __name__ == '__main__':
             res = executor.map(func, args)
         return list(res)
 
+    # Calls the clustering function via the multiprocessing function.
     clust_results_by_label_type = multiprocessing(cluster_label_type_at_index, range(0, len(label_types)), N_PROCESSORS)
 
     # Clustering results were done individually for each label type, so their cluster_ids start at 1 for each type. So

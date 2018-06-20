@@ -76,13 +76,14 @@ object UserClusteringSessionTable {
   }
 
   /**
-    * Returns labels that were placed by the specified user, in the form needed for clustering.
+    * Returns labels that were placed by the specified user, in the format needed for clustering.
     *
     * @param userId
     * @return
     */
   def getRegisteredUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
 
+    // Gets all non-deleted, non-tutorial labels placed by the specified user.
     val labels = for {
       _task <- AuditTaskTable.auditTasks if _task.userId === userId
       _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.auditTaskId === _task.auditTaskId
@@ -111,12 +112,14 @@ object UserClusteringSessionTable {
     */
   def getAnonymousUserLabelsToCluster(ipAddress: String): List[LabelToCluster] = db.withSession { implicit session =>
 
+    // Gets the audit tasks completed by this anonymous user.
     val userAudits: Set[Int] =
       AuditTaskEnvironmentTable.auditTaskEnvironments
         .filter(_.ipAddress === ipAddress)
         .map(_.auditTaskId)
         .list.toSet
 
+    // Gets all non-deleted, non-tutorial labels placed by the specified user (filters using audit tasks from above).
     val labels = for {
       _task <- AuditTaskTable.auditTasks if _task.auditTaskId inSet userAudits
       _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.auditTaskId === _task.auditTaskId

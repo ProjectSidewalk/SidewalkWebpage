@@ -6,15 +6,14 @@
     <div id="content">
         <div class="container">
             <h1>Clustering labels into attributes</h1>
-            <br>
             <button id="btnSingleUserClustering">Single User Clustering</button>
             <button id="btnMultiUserClustering">Multi User Clustering</button>
             <button id="btnBothClustering">Single AND Multi User Clustering</button>
-            <br><br>
             <p id="clustering-status"></p>
         </div>
     </div>
 
+    @*Adds onclicks to each button that calls clustering code and extracts results from the response.*@
     <script>
         $(document).ready(function () {
             let singleUserButton = document.getElementById('btnSingleUserClustering');
@@ -25,7 +24,6 @@
                     url: "/runClustering?clusteringType=singleUser",
                     contentType: 'application/json; charset=utf-8',
                     success: function (data) {
-                        // $( "#clustering-status" ).prepend(data.result + '\n')
                         $( "#clustering-status" ).html(
                             "Clustered "
                                 + String(data.user_labels)

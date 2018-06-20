@@ -102,7 +102,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Get a list of all attributes
+    * Get a list of all global attributes
     *
     * @return
     */
