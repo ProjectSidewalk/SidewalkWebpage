@@ -510,13 +510,13 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 var year = date.getFullYear();
 
                 tableRows += "<tr>" +
-                    "<td class='col-xs-2'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["CurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["NoCurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Obstacle"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["SurfaceProblem"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["NoSidewalk"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Other"] + "</td>" +
+                    "<td class='col-xs-1'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["Other"] + "</td>" +
                     "</tr>";
             }
 
