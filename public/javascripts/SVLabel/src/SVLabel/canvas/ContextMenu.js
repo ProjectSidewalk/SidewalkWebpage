@@ -327,8 +327,6 @@ function ContextMenu (uiContextMenu) {
                     temporaryProblem = param.targetLabel.getProperty('temporaryProblem'),
                     description = param.targetLabel.getProperty('description');
                 if (severity) {
-                    // condition: a severity is defined for this label
-                    // console.log(severity);
                     $radioButtons.each(function (i, v) {
                        if (severity == i + 1) { $(this).prop("checked", true); }
                     });

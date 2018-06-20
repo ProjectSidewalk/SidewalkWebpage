@@ -70,7 +70,7 @@ function Label (svl, pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            if (param && param.labelType && typeof google != "undefined" && google && google.maps) {
+            if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
                 googleMarker = createGoogleMapsMarker(param.labelType);
                 googleMarker.setMap(svl.map.getMap());
             }
@@ -142,7 +142,7 @@ function Label (svl, pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function createGoogleMapsMarker (labelType) {
-        if (typeof google != "undefined") {
+        if (typeof google !== "undefined") {
             var latlng = toLatLng();
 
             if (latlng) {
@@ -430,23 +430,26 @@ function Label (svl, pathIn, params) {
      * @returns {self}
      */
     function render (ctx, pov, evaluationMode) {
+        if (!evaluationMode) {
+            evaluationMode = false;
+        }
+
         if (!status.deleted) {
             if (status.visibility === 'visible') {
 
-                // Render a tag -- triggered by mouse hover event
-                // Get a text to render (e.g, attribute type), and
-                // canvas coordinate to render the tag.
-                if(status.tagVisibility == 'visible') {
+                // Render a tag -- triggered by mouse hover event.
+                // Get a text to render (e.g, attribute type), and canvas coordinate to render the tag.
+                if(status.tagVisibility === 'visible') {
                     renderTag(ctx);
                     // path.renderBoundingBox(ctx);
                     showDelete();
                 }
 
-                // Renders the label image
+                // Renders the label image.
                 path.render2(ctx, pov);
 
-                // Only render severity label if there's a severity option
-                if (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion') {
+                // Only render severity label if there's a severity option.
+                if (properties.labelType !== 'NoSidewalk' && properties.labelType !== 'Occlusion') {
                     if (properties.severity == undefined) {
                         showSeverityAlert(ctx);
                     }
@@ -513,10 +516,10 @@ function Label (svl, pathIn, params) {
             return false;
         }
 
-        // labelCoordinate represents the upper left corner of the tag
+        // labelCoordinate represents the upper left corner of the tag.
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
-            hasSeverity = (properties.labelType != 'NoSidewalk' && properties.labelType != 'Occlusion'),
+            hasSeverity = (properties.labelType !== 'NoSidewalk' && properties.labelType !== 'Occlusion'),
             i, height,
             width = 0,
             labelRows = 1,
@@ -529,7 +532,7 @@ function Label (svl, pathIn, params) {
 
         if (hasSeverity) {
             labelRows = 2;
-            if (properties.severity != undefined) {
+            if (properties.severity !== undefined) {
                 severityImagePath = tagProperties[properties.severity].severityImage;
                 severityImage.src = severityImagePath;
                 severityMessage = tagProperties[properties.severity].message;
@@ -540,18 +543,18 @@ function Label (svl, pathIn, params) {
             messages.push('Labeler: ' + properties.labelerId);
         }
 
-        // Set rendering properties and draw a tag
+        // Set rendering properties and draw a tag.
         ctx.save();
         ctx.font = '13px Open Sans';
 
         height = properties.tagHeight * labelRows;
 
         for (i = 0; i < messages.length; i += 1) {
-            // width of the tag is determined by the width of the longest row
+            // Width of the tag is determined by the width of the longest row.
             var firstRow = ctx.measureText(messages[i]).width;
             var secondRow = -1;
 
-            // do additional adjustments on tag width to make room for smiley icon
+            // Do additional adjustments on tag width to make room for smiley icon.
             if (hasSeverity) {
                 secondRow = ctx.measureText(severityMessage).width;
                 if (severityImagePath != undefined) {
@@ -771,7 +774,7 @@ function Label (svl, pathIn, params) {
             if (panoramaId === properties.panoId) {
                 setVisibility(visibility);
             } else {
-                visibility = visibility == 'visible' ? 'hidden' : 'visible';
+                visibility = visibility === 'visible' ? 'hidden' : 'visible';
                 setVisibility(visibility);
             }
         }
@@ -823,10 +826,10 @@ function Label (svl, pathIn, params) {
                 x = boundingBox.x + boundingBox.width - 20,
                 y = boundingBox.y;
 
-            // Show a delete button
+            // Show a delete button.
             $("#delete-icon-holder").css({
                 visibility: 'visible',
-                left : x - 6, // + width - 5,
+                left : x + 25, // + width - 5,
                 top : y - 20
             });
         }
@@ -841,7 +844,7 @@ function Label (svl, pathIn, params) {
         var x = labelCoordinate.x;
         var y = labelCoordinate.y;
 
-        // draws circle
+        // Draws circle
         ctx.save();
         ctx.beginPath();
         ctx.fillStyle = 'rgb(160, 45, 50, 0.9)';
@@ -849,7 +852,7 @@ function Label (svl, pathIn, params) {
         ctx.fill();
         ctx.closePath();
 
-        // draws text
+        // Draws text
         ctx.beginPath();
         ctx.font = "12px Open Sans";
         ctx.fillStyle = 'rgb(255, 255, 255)';
