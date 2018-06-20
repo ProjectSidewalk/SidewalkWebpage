@@ -83,7 +83,23 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
         runMultiUserClusteringAllRegions()
       }
 
-      Future.successful(Ok(Json.obj("result" -> "Success!")))
+      val json = clusteringType match {
+        case "singleUser" => Json.obj(
+          "user_labels" -> UserAttributeLabelTable.countUserAttributeLabels,
+          "user_attributes" -> UserAttributeTable.countUserAttributes
+        )
+        case "multiUser" => Json.obj(
+          "user_attributes" -> UserAttributeTable.countUserAttributes,
+          "global_attributes" -> GlobalAttributeTable.countGlobalAttributes
+        )
+        case "both" => Json.obj(
+          "user_labels" -> UserAttributeLabelTable.countUserAttributeLabels,
+          "user_attributes" -> UserAttributeTable.countUserAttributes,
+          "global_attributes" -> GlobalAttributeTable.countGlobalAttributes
+        )
+        case _ => Json.obj("error_msg" -> "Invalid clusteringType")
+      }
+      Future.successful(Ok(json))
     } else {
       Future.successful(Redirect("/"))
     }

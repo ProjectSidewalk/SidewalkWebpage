@@ -58,6 +58,10 @@ object GlobalAttributeTable {
     globalAttributes.list
   }
 
+  def countGlobalAttributes: Int = db.withTransaction { implicit session =>
+    globalAttributes.length.run
+  }
+
   def save(newSess: GlobalAttribute): Int = db.withTransaction { implicit session =>
     val newId: Int = (globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess
     newId
