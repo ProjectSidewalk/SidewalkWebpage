@@ -364,7 +364,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 "CurbRamp": 0,
                 "NoCurbRamp": 0,
                 "Obstacle": 0,
-                "SurfaceProblem": 0
+                "SurfaceProblem": 0,
+                "NoSidewalk": 0
             };
 
             for (var i = data.features.length - 1; i >= 0; i--) {
@@ -429,10 +430,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAllLayers(data) {
+        var count = 1;
         for (i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
-            if(labelType == "Occlusion" || labelType == "NoSidewalk"){
-                //console.log(data.features[i]);
+            if(labelType === "Occlusion" || labelType === "NoSidewalk"){
+                // count here is 7?
+                if (labelType === "NoSidewalk") {
+                    console.log("No sidewalk: " + count);
+                    count += 1;
+                }
             }
             if (data.features[i].properties.severity == 1) {
                 self.allLayers[labelType][0].push(data.features[i]);
