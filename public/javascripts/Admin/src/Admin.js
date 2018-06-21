@@ -434,11 +434,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         for (i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
             if(labelType === "Occlusion" || labelType === "NoSidewalk"){
-                // count here is 7?
-                if (labelType === "NoSidewalk") {
-                    console.log("No sidewalk: " + count);
-                    count += 1;
-                }
+                // console.log(data.features[i]);
             }
             if (data.features[i].properties.severity == 1) {
                 self.allLayers[labelType][0].push(data.features[i]);
