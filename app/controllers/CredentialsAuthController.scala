@@ -108,7 +108,7 @@ class CredentialsAuthController @Inject() (
     val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-      UserCurrentRegionTable.assignEasyRegion(user.userId)
+      UserCurrentRegionTable.assignRegion(user.userId)
     }
 
     // Add Timestamp

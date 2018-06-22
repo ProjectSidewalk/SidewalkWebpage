@@ -1,20 +1,31 @@
 #action-stack-control-holder {
-    font-size: 11px;
     background: transparent;
     position: absolute;
-    left: 600px;
+    left: 632px;
     top: 54px;
     height: 50px;
-    width: 135px;
+    width: 150px;
 }
 
 .action-stack-button {
+    font-size: 9px;    
     color: rgba(0,0,0,1);
-    height: 40px;
-    width: 65px;
+    height:40px;
+    width: 40px;
+    margin-right: 2px;
 }
 
 .action-stack-icons {
-    height: 16px;
-    width: 16px;
+    height: 12px;
+    width: 12px;
+}
+
+#undo-button small{
+    position: relative;
+    top: -5px;
+}
+
+#redo-button small{
+    position: relative;
+    top: -7px;
 }

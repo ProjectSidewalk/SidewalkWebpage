@@ -1,6 +1,6 @@
 @import models.daos.slick.DBTableDefinitions.UserTable
 @import models.user.User
-@import models.user.UserCurrentRegionTable
+@import models.region.RegionTable
 @import models.daos._
 @import models.label._
 @import models.street.StreetEdgeTable
@@ -88,7 +88,7 @@
 
 <script>
         $(document).ready(function () {
-            var difficultRegionIds = @Json.toJson(UserCurrentRegionTable.difficultRegionIds);
+            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             window.choropleth = AccessibilityChoropleth(_, $, turf, difficultRegionIds);
         });
 </script>

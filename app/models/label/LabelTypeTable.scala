@@ -30,13 +30,8 @@ object LabelTypeTable {
    * @return
    */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
-    try {
-      labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.head
-    } catch {
-      case e: java.util.NoSuchElementException => {
-        LabelTypeTable.save(LabelType(0, labelType, ""))
-      }
-    }
+    val typeId: Option[Int] = labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.headOption
+    typeId.getOrElse(LabelTypeTable.save(LabelType(0, labelType, "")))
   }
 
   /**

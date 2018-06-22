@@ -364,7 +364,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 "CurbRamp": 0,
                 "NoCurbRamp": 0,
                 "Obstacle": 0,
-                "SurfaceProblem": 0
+                "SurfaceProblem": 0,
+                "NoSidewalk": 0
             };
 
             for (var i = data.features.length - 1; i >= 0; i--) {
@@ -379,9 +380,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
             document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+            document.getElementById("map-legend-nosidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
             document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
             document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
-            document.getElementById("map-legend-nosidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
 
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
@@ -429,10 +430,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAllLayers(data) {
+        var count = 1;
         for (i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
-            if(labelType == "Occlusion" || labelType == "NoSidewalk"){
-                //console.log(data.features[i]);
+            if(labelType === "Occlusion" || labelType === "NoSidewalk"){
+                // console.log(data.features[i]);
             }
             if (data.features[i].properties.severity == 1) {
                 self.allLayers[labelType][0].push(data.features[i]);
@@ -767,8 +769,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             //Draw a chart of total time spent auditing
             $.getJSON("/adminapi/audittimes", function (regData) {
-                  $.getJSON("/adminiapi/audittimesAnon", function (anonData) {
-                      $.getJSON("/adminapi/audittimesTurker", function (turkerData) {
+                  $.getJSON("/adminapi/auditTimesAnon", function (anonData) {
+                      $.getJSON("/adminapi/auditTimesTurker", function (turkerData) {
                           var allTimes = [];
                           var regTimes = [];
                           var anonTimes = [];
@@ -1122,14 +1124,14 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                 count: regData[0][i].count,
                                 user: regData[0][i].user_id,
                                 is_researcher: regData[0][i].is_researcher
-                            })
+                            });
                         }
                         for (var i = 0; i < turkerData[0].length; i++) {
                             allData.push({
                                 count: turkerData[0][i].count,
                                 user: turkerData[0][i].user_id,
                                 is_researcher: turkerData[0][i].is_researcher
-                            })
+                            });
                         }
 
                         var allStats = getSummaryStats(allData, "count");
@@ -1177,9 +1179,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         var turkerFilteredChart = getVegaLiteHistogram(turkerData[0], turkerFilteredStats.mean, turkerFilteredStats.median, turkerFilteredHistOpts);
                         var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
 
-                        $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
-                        $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
-                        $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
+                        $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                        $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                        $("#turker-missions-std").html((turkerFilteredStats.std).toFixed(2) + " Missions");
                         $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
 
                         var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
@@ -1215,14 +1217,14 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                 count: anonData[0][i].count,
                                 user: anonData[0][i].ip_address,
                                 is_researcher: anonData[0][i].is_researcher
-                            })
+                            });
                         }
                         for (var i = 0; i < regData[0].length; i++) {
                             allData.push({
                                 count: regData[0][i].count,
                                 user: regData[0][i].user_id,
                                 is_researcher: regData[0][i].is_researcher
-                            })
+                            });
                         }
                         for (var i = 0; i < turkerData[0].length; i++) {
                             allData.push({
@@ -1277,9 +1279,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         var turkerFilteredChart = getVegaLiteHistogram(turkerData[0], turkerFilteredStats.mean, turkerFilteredStats.median, turkerFilteredHistOpts);
                         var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
 
-                        $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
-                        $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
-                        $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
+                        $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                        $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                        $("#turker-labels-std").html((turkerFilteredStats.std).toFixed(2) + " Labels");
                         $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
 
                         var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
@@ -1310,8 +1312,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var stats = getSummaryStats(data[0], "count");
                 var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
 
-                $("#login-count-std").html((stats.std).toFixed(2) + " Logins");
-
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};
@@ -1319,6 +1319,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
                 var filteredChart = getVegaLiteHistogram(data[0], filteredStats.mean, filteredStats.median, histFilteredOpts);
 
+                $("#login-count-std").html((filteredStats.std).toFixed(2) + " Logins");
                 vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
 
                 var checkbox = document.getElementById("login-count-include-researchers-checkbox").addEventListener("click", function(cb) {
@@ -1437,7 +1438,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
 
-    $('.change-role').on('click', changeRole)
+    $('.change-role').on('click', changeRole);
 
     return self;
 }

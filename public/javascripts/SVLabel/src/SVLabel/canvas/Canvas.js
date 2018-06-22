@@ -906,16 +906,6 @@ function Canvas(ribbon) {
         }
         var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
-        var labelCount = {
-            Landmark_Bench: 0,
-            Landmark_Shelter: 0,
-            Landmark_TrashCan: 0,
-            Landmark_MailboxAndNewsPaperBox: 0,
-            Landmark_OtherPole: 0,
-            StopSign: 0,
-            CurbRamp: 0,
-            NoCurbRamp: 0
-        };
         status.totalLabelCount = 0;
         var pov = svl.map.getPov();
 
@@ -986,7 +976,6 @@ function Canvas(ribbon) {
             label.render(ctx, pov);
 
             if (label.isVisible() && !label.isDeleted()) {
-                labelCount[label.getLabelType()] += 1;
                 status.totalLabelCount += 1;
             }
         }
@@ -1007,11 +996,6 @@ function Canvas(ribbon) {
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) {
             renderTempPath();
-        }
-
-        // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) {
-            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
         }
 
         // Update the opacity of undo and redo buttons.

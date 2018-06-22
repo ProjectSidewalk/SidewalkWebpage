@@ -85,6 +85,9 @@ object StreetEdgeAssignmentCountTable {
 
   /**
     * This method returns how many times streets are audited
+    *
+    * NOTE: Do not use this function; the values in this table are not reliable right now. Instead, use `computeEdgeCompletionCounts`
+    *
     * @return
     */
   def selectCompletionCount: List[CompletionCount] = db.withSession { implicit session =>
