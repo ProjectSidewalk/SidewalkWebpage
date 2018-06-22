@@ -8,14 +8,15 @@
 function LabelCounter (d3) {
     var self = this;
 
-    var radius = 0.4, dR = radius / 2,
+    var radius = 0.2, dR = radius / 3,
         svgWidth = 200, svgHeight = 120,
         margin = {top: 10, right: 10, bottom: 10, left: 0},
         padding = {left: 5, top: 15},
         width = 200 - margin.left - margin.right,
         height = 40 - margin.top - margin.bottom,
         colorScheme = util.misc.getLabelColors(),
-        imageWidth = 22, imageHeight = 22;
+        imageWidth = 22, imageHeight = 22,
+        rightColumn = 1.8;
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
@@ -43,9 +44,9 @@ function LabelCounter (d3) {
       "Obstacle": {
         id: "Obstacle",
         description: "obstacle",
-        left: margin.left + (width/1.7),
+        left: margin.left,
         // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
-          top: (2 * margin.top) + margin.bottom + height,
+        top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
         fillColor: colorScheme["Obstacle"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
         count: 0,
@@ -54,18 +55,28 @@ function LabelCounter (d3) {
       "SurfaceProblem": {
         id: "SurfaceProblem",
         description: "surface problem",
-        left: margin.left,
+        left: margin.left + (width/rightColumn),
         //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
-          top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
+          top: margin.top,
         fillColor: colorScheme["SurfaceProblem"].fillStyle,
           imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
+        count: 0,
+        data: []
+      },
+      "NoSidewalk": {
+        id: "NoSidewalk",
+        description: "no sidewalk",
+        left: margin.left + (width/rightColumn),        
+        top: (2 * margin.top) + margin.bottom + height,  
+        fillColor: colorScheme["NoSidewalk"].fillStyle,
+          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoSidewalk.png",
         count: 0,
         data: []
       },
         "Other": {
             id: "Other",
             description: "other",
-            left: margin.left + (width/1.7),
+            left: margin.left + (width/rightColumn),
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
             imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Other.png",
@@ -113,7 +124,7 @@ function LabelCounter (d3) {
                 ret += dotPlots[key].count > 1 ? "s" : "";
                 return ret;
             })
-            .style("font-size", "10px")
+            .style("font-size", "9px")
             .attr("class", "visible")
             .attr('transform', 'translate(0,' + imageHeight + ')');
 
