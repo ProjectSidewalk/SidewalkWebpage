@@ -532,7 +532,7 @@ function Label (svl, pathIn, params) {
 
         if (hasSeverity) {
             labelRows = 2;
-            if (properties.severity !== undefined) {
+            if (properties.severity != undefined) {
                 severityImagePath = tagProperties[properties.severity].severityImage;
                 severityImage.src = severityImagePath;
                 severityMessage = tagProperties[properties.severity].message;
