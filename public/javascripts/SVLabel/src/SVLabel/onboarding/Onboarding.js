@@ -113,7 +113,8 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
     };
 
     function renderRoutesOnGoogleMap(state) {
-        if ('map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
+
+        if (svl.isOnboarding() && 'map' in svl && google && ["initialize", "walk-4"].includes(state.properties.name)) {
             var paths = [];
             //var currentPosition = svl.map.getPosition();
 
@@ -540,7 +541,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             missionModel.completeMission(onboardingMission, null);
         }
 
-
         // Check if mission was previously in progress before onboarding
         // If so, reload it
         // If not, find a new one
@@ -561,6 +561,21 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer);
                 modalMission.setMissionMessage(mission, neighborhood, null, function () {
                     svl.initialMissionInstruction.start(neighborhood);
+                });
+                var url = '/isTurker';
+                $.ajax({
+                    async: true,
+                    url: url,//endpoint that checks above conditions
+                    type: 'get',
+                    success: function(data){
+                        if(data.isTurker){
+                            svl.ui.status.currentMissionReward.show();
+                            svl.ui.status.totalMissionReward.show();
+                        }
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
                 });
             }else{
                 modalMission.setMissionMessage(mission, neighborhood);
@@ -642,7 +657,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             "NoCurbRamp": "Missing Curb Ramp",
             "Obstacle": "Obstacle in Path",
             "SurfaceProblem": "Surface Problem",
-            "Other": "No Sidewalk"
+            "NoSidewalk": "No Sidewalk"
         };
 
         // Callback for deleted label

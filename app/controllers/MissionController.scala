@@ -2,14 +2,18 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
+import java.sql.Timestamp
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import org.joda.time.{DateTime, DateTimeZone}
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
+import formats.json.TaskSubmissionFormats.{AMTAssignmentCompletionSubmission}
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
-import models.user.{User, UserCurrentRegionTable}
+import models.user.{User, UserRoleTable, UserCurrentRegionTable}
+import models.amt.{AMTAssignment, AMTAssignmentTable}
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json._
@@ -20,6 +24,11 @@ import scala.concurrent.Future
 
 class MissionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+
+  val precision = 0.10
+  val missionLength1000 = 1000.0
+  val missionLength500 = 500.0
+  val payPerMile = 4.17
 
   /**
     * Return the completed missions in a JSON array
@@ -33,11 +42,43 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         // Mark the missions that should be completed.
         val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
         if (regionId.isDefined) {
-          updatedUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
+          updateUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
         }
 
         val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId)
-        val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId)
+
+        // Finds the regions where the user has completed the original 1000-ft mission
+        // Filters original 1000-ft mission out from incomplete missions for each region since it has been replaced by
+        // new 500-ft and 1000-ft mission (https://github.com/ProjectSidewalk/SidewalkWebpage/issues/841)
+        // If user has already completed the original 1000-ft mission in a region, filters out the new 500-ft and
+        // 1000-ft missions in that region
+        val regionsWhereOriginal1000FtMissionCompleted = completedMissions.filter(m => {
+          val coverage = m.coverage
+          val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
+          coverage match {
+            case None => ~=(distanceFt, missionLength1000, precision)
+            case _ => false
+          }
+        }).map(_.regionId.getOrElse(-1)).filter(_ != -1)
+        val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId).filter(m => {
+          val coverage = m.coverage
+          val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
+          val missionRegionId = m.regionId.getOrElse(-1)
+
+          !(coverage match {
+            case None =>
+              // Filter out original 1000-ft missions
+              ~=(distanceFt, missionLength1000, precision) ||
+              // Filter out new 500-ft mission if user has already completed original 1000-ft mission in that region
+              (regionsWhereOriginal1000FtMissionCompleted.exists(_ == missionRegionId) &&
+               ~=(distanceFt, missionLength500, precision))
+            case _ =>
+              // Filter out new 1000-ft mission if user has already completed original 1000-ft mission in that region
+              regionsWhereOriginal1000FtMissionCompleted.exists(_ == missionRegionId) &&
+              ~=(distanceFt, missionLength1000, precision)
+            }
+          )
+        })
 
         val completedMissionJsonObjects: List[JsObject] = completedMissions.map( m =>
           Json.obj("is_completed" -> true,
@@ -65,8 +106,20 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
         val concatenated = completedMissionJsonObjects ++ incompleteMissionJsonObjects
         Future.successful(Ok(JsArray(concatenated)))
+
+
+
+      // For anonymous users
       case _ =>
-        val missions = MissionTable.selectMissions
+        // Selects all missions except the original 1000-ft mission
+        val missions = MissionTable.selectMissions.filter(m => {
+          val coverage = m.coverage
+          val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
+          coverage match {
+            case None => !(~=(distanceFt, missionLength1000, precision))
+            case _ => true
+          }
+        })
         val missionJsonObjects: List[JsObject] = missions.map( m =>
           Json.obj("is_completed" -> false,
             "mission_id" -> m.missionId,
@@ -78,10 +131,10 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             "distance_mi" -> m.distance_mi,
             "coverage" -> m.coverage)
         )
-
         Future.successful(Ok(JsArray(missionJsonObjects)))
     }
   }
+
 
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
@@ -97,7 +150,11 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             for (mission <- submission) yield {
               // Check if duplicate user-mission exists. If not, save it.
               if (!MissionUserTable.exists(mission.missionId, user.userId.toString)) {
-                MissionUserTable.save(mission.missionId, user.userId.toString)
+                if(UserRoleTable.getRole(user.userId) == "Turker") {
+                  MissionUserTable.save(mission.missionId, user.userId.toString, false, payPerMile)
+                } else {
+                  MissionUserTable.save(mission.missionId, user.userId.toString, false, 0.0)
+                }
               }
             }
           case _ =>
@@ -108,23 +165,96 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     )
   }
 
-  /**
+  def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+
+    val submission = request.body.validate[AMTAssignmentCompletionSubmission]
+
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val amtAssignmentId: Option[Int] = Option(submission.assignmentId)
+        amtAssignmentId match {
+          case Some(asgId) =>
+            // Update the AMTAssignmentTable
+            AMTAssignmentTable.updateAssignmentEnd(asgId, timestamp)
+            AMTAssignmentTable.updateCompleted(asgId, completed=true)
+            Future.successful(Ok(Json.obj("success" -> true)))
+          case None =>
+            Future.successful(Ok(Json.obj("success" -> false)))
+        }
+      }
+    )
+  }
+
+
+  // Approximate equality check for Doubles
+  // https://alvinalexander.com/scala/how-to-compare-floating-point-numbers-in-scala-float-double
+  def ~=(x: Double, y: Double, precision: Double) = { // Approximate equality check for Doubles
+    if ((x - y).abs < precision) true else false
+  }
+
+
+  /** If the dist a user has audited in a region implies that they should have completed more missions, add them.
     *
     * @param userId
     * @param regionId
     */
-  def updatedUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
-    val missions = MissionTable.selectIncompleteMissionsByAUser(userId, regionId)
-    val streets = StreetEdgeTable.selectStreetsAuditedByAUser(userId, regionId)
-    val CRSEpsg4326 = CRS.decode("epsg:4326")
-    val CRSEpsg26918 = CRS.decode("epsg:26918")
-    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
-    val completedDistance_m = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
+  def updateUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
+    // Checks if user has completed original 1000-ft mission
+    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId)
+    val hasCompletedOriginal1000FtMission = completedMissions.exists(m => {
+      val coverage = m.coverage
+      val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
+      coverage match {
+        case None => ~=(distanceFt, missionLength1000, precision)
+        case _ => false
+      }
+    })
 
-    val missionsToComplete = missions.filter(_.distance.getOrElse(Double.PositiveInfinity) < completedDistance_m)
+    val incompleteMissions = MissionTable.selectIncompleteMissionsByAUser(userId, regionId)
+    val completedDistance_m = StreetEdgeTable.getDistanceAudited(userId, regionId)
+
+    // If User has audited more distance than a particular mission's distance in this region, marks the mission as
+    // completed, unless user has completed original 1000-ft mission (in which case the new 500-ft and 1000-ft
+    // missions are not marked as completed). Also does not mark original 1000-ft mission as completed, ever
+    val missionsToComplete = incompleteMissions.filter(m => {
+      val distance = m.distance.getOrElse(Double.PositiveInfinity)
+      val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
+      val coverage = m.coverage
+
+      distance < completedDistance_m &&
+      !(coverage match {
+        case None => (
+          // Does not mark original 1000-ft mission as completed
+          ~=(distanceFt, missionLength1000, precision) ||
+          // Does not mark new 500-ft mission as completed if user has already completed original 1000-ft mission
+          (hasCompletedOriginal1000FtMission && ~=(distanceFt, missionLength500, precision))
+        )
+        case _ => (
+          // Does not mark new 1000-ft mission as completed if user has already completed original 1000-ft mission
+          hasCompletedOriginal1000FtMission && ~=(distanceFt, missionLength1000, precision)
+        )
+      })
+    })
     missionsToComplete.foreach { m =>
-      MissionUserTable.save(m.missionId, userId.toString)
+      if(UserRoleTable.getRole(userId) == "Turker") {
+        MissionUserTable.save(m.missionId, userId.toString, false, payPerMile)
+      } else {
+        MissionUserTable.save(m.missionId, userId.toString, false, 0.0)
+      }
+
     }
   }
+
+  def getRewardPerMile = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(Json.obj("rewardPerMile" -> payPerMile)))
+  }
+
 }
 

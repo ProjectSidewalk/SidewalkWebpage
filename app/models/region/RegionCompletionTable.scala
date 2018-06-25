@@ -2,10 +2,6 @@ package models.region
 
 import java.util.UUID
 
-import com.vividsolutions.jts.geom.Polygon
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
-
 import math._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeRegionTable, StreetEdgeTable, StreetEdge}
 import models.user.UserCurrentRegionTable
@@ -52,7 +48,6 @@ object RegionCompletionTable {
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
   val streetEdges = TableQuery[StreetEdgeTable]
-  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
@@ -87,52 +82,53 @@ object RegionCompletionTable {
     * @return
     */
   def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
-    val distToAdd: Float = streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
-    val regionId: Int = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list.head
 
-    val q = for { regionCompletion <- regionCompletions if regionCompletion.regionId === regionId } yield regionCompletion
+    val distToAdd: Float = StreetEdgeTable.getStreetEdgeDistance(streetEdgeId)
+    val regionIds: List[Int] = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list
 
-    val updatedDist = q.firstOption match {
-      case Some(rC) => q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
-      case None => -1
+    for (regionId <- regionIds) yield {
+      val q = for {regionCompletion <- regionCompletions if regionCompletion.regionId === regionId} yield regionCompletion
+
+      val updatedDist = q.firstOption match {
+        case Some(rC) =>
+          // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+          // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
+          // Also doing a check to see if the completion is erroneously over 100%, when the streets have not all been
+          // audited in that neighborhood; this has never been observed, but it could theoretically be an issue if there
+          // is a sizable error, while there is a single (very very short) street segment left to be audited. That case
+          // shouldn't happen, but we are just being safe, and setting audited_distance to be less than total_distance.
+          if (StreetEdgeRegionTable.allStreetsInARegionAudited(regionId)) {
+            q.map(_.auditedDistance).update(rC.totalDistance)
+          } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
+            q.map(_.auditedDistance).update(rC.totalDistance * 0.995)
+          } else {
+            q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
+          }
+        case None => -1
+      }
     }
-    updatedDist
   }
 
   def initializeRegionCompletionTable() = db.withTransaction { implicit session =>
 
     if (regionCompletions.length.run == 0) {
-      // http://docs.geotools.org/latest/tutorials/geometry/geometrycrs.html
-      val CRSEpsg4326 = CRS.decode("epsg:4326")
-      val CRSEpsg26918 = CRS.decode("epsg:26918")
-      val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
 
       val neighborhoods = RegionTable.selectAllNamedNeighborhoods
       for (neighborhood <- neighborhoods) yield {
-        val streets: List[StreetEdge] = StreetEdgeTable.selectStreetsByARegionId(neighborhood.regionId)
-        val auditedStreets: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsByARegionId(neighborhood.regionId)
 
-        val auditedDistance = auditedStreets.map(s => JTS.transform(s.geom, transform).getLength).sum
-        val totalDistance = streets.map(s => JTS.transform(s.geom, transform).getLength).sum
+        // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+        // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
+        if (StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId)) {
+          val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
-        regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
+          regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
+        } else {
+          val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
+          val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
+
+          regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
+        }
       }
     }
   }
-
-//
-//  /**
-//    * Update the `task_end` column of the specified audit task row
-//    *
-//    * @param auditTaskId
-//    * @param timestamp
-//    * @return
-//    */
-//  def updateTaskEnd(auditTaskId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
-//    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.taskEnd
-//    q.update(Some(timestamp))
-//  }
-
-
-
 }

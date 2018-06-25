@@ -78,7 +78,7 @@ class CredentialsAuthController @Inject() (
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
-        case _ => Future.failed(new ConfigurationException(s"Cannot find credentials provider"))
+        case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
@@ -92,7 +92,7 @@ class CredentialsAuthController @Inject() (
         }
       }.recover {
         case e: ProviderException =>
-          Redirect(routes.ApplicationController.index)
+          Redirect(routes.ApplicationController.index())
       }
     )
   }
@@ -108,7 +108,7 @@ class CredentialsAuthController @Inject() (
     val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-      UserCurrentRegionTable.assignRandomly(user.userId)
+      UserCurrentRegionTable.assignRegion(user.userId)
     }
 
     // Add Timestamp

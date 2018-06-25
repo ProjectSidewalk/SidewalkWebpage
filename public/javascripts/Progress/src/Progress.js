@@ -1,4 +1,4 @@
-function Progress (_, $, c3, L) {
+function Progress (_, $, c3, L, difficultRegionIds) {
     var self = {};
     var completedInitializingOverlayPolygon = false,
         completedInitializingNeighborhoodPolygons = false,
@@ -112,7 +112,7 @@ function Progress (_, $, c3, L) {
                 regionName = feature.properties.region_name,
                 url = "/audit/region/" + regionId,
                 // default popup content if we don't find neighborhood in list of neighborhoods from query
-                popupContent = "Do you want to find accessibility problems in " + regionName + "? " + 
+                popupContent = "Do you want to find accessibility problems in " + regionName + "? " +
                     "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>",
                 compRate = 0,
                 milesLeft = 0;
@@ -120,26 +120,32 @@ function Progress (_, $, c3, L) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(100.0 * rates[i].rate);
                     milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    
+                    var advancedMessage = '';
+                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                    }
+
                     if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to find accessibility issues in this neighborhood yourself!";
                     }
                     else if (milesLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left!<br>" +
+                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to help finish this neighborhood!";
                     }
                     else if (milesLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left!<br>" +
+                            milesLeft + " mile left!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to help finish this neighborhood!";
                     }
                     else {
                         var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left!<br>" +
+                            milesLeft + " miles left!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to help finish this neighborhood!";
                     }
@@ -161,13 +167,6 @@ function Progress (_, $, c3, L) {
                 //this.setStyle(neighborhoodPolygonStyle);
             });
             layer.on('click', function (e) {
-                var center = turf.center(this.feature),
-                    coordinates = center.geometry.coordinates,
-                    latlng = L.latLng(coordinates[1], coordinates[0]),
-                    zoom = map.getZoom();
-                zoom = zoom > 14 ? zoom : 14;
-
-                map.setView(latlng, zoom, { animate: true });
                 currentLayer = this;
 
 
@@ -270,6 +269,54 @@ function Progress (_, $, c3, L) {
         });
     }
 
+    function updateTotalRewardEarned(missionJson){
+        //console.log(missionJson);
+        var completedMissionJson = missionJson
+            .filter(function(el){return el.is_completed && el.region_id!=null})
+            .reduce(function(region_groups,el){
+            region_groups[el.region_id] = region_groups[el.region_id] || 0.0;
+            if(el.distance_mi>region_groups[el.region_id]){
+                region_groups[el.region_id] = el.distance_mi;
+            }
+            return region_groups;}
+            ,{});
+        //console.log(completedMissionJson);
+        var totalMissionCompleteDistance = Object.values(completedMissionJson).reduce(function(sum, el) {
+            return sum + el;
+        }, 0.0);
+        //console.log(totalMissionCompleteDistance);
+        //Calculate accumulated reward if the user is a turker
+        var url = '/isTurker';
+        $.ajax({
+            async: true,
+            url: url,//endpoint that checks above conditions
+            type: 'get',
+            success: function(data){
+                if(data.isTurker){
+                    var url = '/rewardPerMile';
+                    $.ajax({
+                        async: true,
+                        url: url,//endpoint that checks above conditions
+                        type: 'get',
+                        success: function(data){
+                            var missionReward = totalMissionCompleteDistance*data.rewardPerMile;
+                            // Mission Rewards.
+                            document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toFixed(2);
+                            //console.log("Expected output: "+missionReward);
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            console.log(thrownError);
+                        }
+                    });
+                    //console.log('Survey displayed');
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(thrownError);
+            }
+        });
+    }
+
     /**
      * This function queries the streets that the user audited and visualize them as segmetns on the map.
      */
@@ -312,6 +359,8 @@ function Progress (_, $, c3, L) {
                 distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
+            //Calculate the total reward earned by the user in completed missions
+            $.when($.ajax("/mission")).done(updateTotalRewardEarned);
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);
@@ -343,7 +392,8 @@ function Progress (_, $, c3, L) {
                 "CurbRamp": 0,
                 "NoCurbRamp": 0,
                 "Obstacle": 0,
-                "SurfaceProblem": 0
+                "SurfaceProblem": 0,
+                "NoSidewalk": 0
             };
 
             for (var i = data.features.length - 1; i >= 0; i--) {
@@ -353,11 +403,13 @@ function Progress (_, $, c3, L) {
             document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
             document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
             document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+            document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
 
             document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
             document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+            document.getElementById("map-legend-no-sidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "'></svg>";
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='rgba(128, 128, 128, 1.0)' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
@@ -441,7 +493,7 @@ function Progress (_, $, c3, L) {
             });
 
             for (i = auditTaskIdsLength - 1; i >= 0; i--) {
-                labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "Other": 0 };
+                labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
                 auditTaskId = auditTaskIds[i];
                 labelsLength = grouped[auditTaskId].length;
                 for (j = 0; j < labelsLength; j++) {
@@ -458,12 +510,13 @@ function Progress (_, $, c3, L) {
                 var year = date.getFullYear();
 
                 tableRows += "<tr>" +
-                    "<td class='col-xs-2'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["CurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["NoCurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Obstacle"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["SurfaceProblem"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Other"] + "</td>" +
+                    "<td class='col-xs-1'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["Other"] + "</td>" +
                     "</tr>";
             }
 

@@ -19,7 +19,9 @@ function Task (geojson, currentLat, currentLng) {
     };
     var properties = {
         auditTaskId: null,
-        streetEdgeId: null
+        streetEdgeId: null,
+        completionCount: null,
+        priority: null
     };
 
     /**
@@ -32,6 +34,8 @@ function Task (geojson, currentLat, currentLng) {
         _geojson = geojson;
 
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
+        self.setProperty("completionCount", _geojson.features[0].properties.completion_count);
+        self.setProperty("priority", _geojson.features[0].properties.priority);
 
         if (_geojson.features[0].properties.completed) {
             self.complete();
@@ -248,7 +252,7 @@ function Task (geojson, currentLat, currentLng) {
     }
 
     this._hasAdvanced = function (currentLat, currentLng) {
-        if (typeof _furthestPoint == "undefined") return false;
+        if (typeof _furthestPoint === "undefined") return false;
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];
         var distanceAtTheFurthestPoint = this.getDistanceFromStart(latFurthest, lngFurthest);
@@ -335,6 +339,29 @@ function Task (geojson, currentLat, currentLng) {
         return _geojson.features[0].properties.street_edge_id;
     };
 
+    this.getStreetCompletionCount = function () {
+        return _geojson.features[0].properties.completion_count;
+    };
+
+    this.getStreetPriority = function () {
+        return _geojson.features[0].properties.priority;
+    };
+
+    /**
+     * Returns an integer in the range 0 to n-1, where larger n means higher priority.
+     *
+     * Explanation:
+     * We want to split the range [0,1] into n = 4 ranges, each sub-range has a length of 1 / n = 1 / 4 = 0.25.
+     * To get the discretized order, we take the floor(priority / 0.25), which brings [0,0.25) -> 0, [0.25,0.5) -> 1,
+     * [0.5,0.75) -> 2, [0.75,1) -> 3, and 1 -> 4. But we really want [0.75-1] -> 3, so instead of
+     * floor(priority / (1 / n)), we have min(floor(priority / (1 / n)), n - 1).
+     * @returns {number}
+     */
+    this.getStreetPriorityDiscretized = function() {
+        var n = 4;
+        return Math.min(Math.floor(_geojson.features[0].properties.priority / (1 / n)), n - 1);
+    };
+
     /**
      * Returns the task start time
      */
@@ -343,7 +370,7 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     this.getAuditedDistance = function (unit) {
-        if (typeof _furthestPoint == "undefined") return 0;
+        if (typeof _furthestPoint === "undefined") return 0;
         if (!unit) unit = "kilometers";
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];

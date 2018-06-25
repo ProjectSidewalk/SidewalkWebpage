@@ -32,7 +32,7 @@
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=3.27&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=3.31&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
@@ -52,6 +52,13 @@
     <meta name="twitter:description" content="Help us make sidewalks more accessible, for everyone.">
     @*TODO: url should not be hardcoded*@
     <meta name="twitter:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
+
+    <!-- Facebook Link Info -->
+    <meta property="og:image" content="http://sidewalk.umiacs.umd.edu@routes.Assets.at("images/twitter_card.png")">
+    <meta property="og:description" content='Help us make sidewalks more accessible, for everyone.' />
+    <meta property="og:url"content="http:/sidewalk.umiacs.umd.edu" />
+    <meta property="og:title" content="Project Sidewalk" />
+
 </head>
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
@@ -69,7 +76,8 @@
         <div id="mini-footer-audit">
           Project Sidewalk is designed and operated by the
           <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
-          <a href="http://www.umd.edu/">University of Maryland</a><br>
+          <a href="http://www.umd.edu/">University of Maryland</a> and
+              <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
           <span id="application-version"></span>
         </div>
 
@@ -95,6 +103,7 @@
                 <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
                 <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
                 <a target="_blank" href="mailto:sidewalk@@umiacs.umd.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
+                <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.at("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
             </div>
         </div>
     </div>
@@ -126,7 +135,8 @@
 
         Project Sidewalk is designed and operated by the
         <a href="https://makeabilitylab.umiacs.umd.edu/" id="makeability-link">Makeability Lab</a> at the
-        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a><br>
+        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
+        <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
         <span id="application-version"></span>
     </div>
 
@@ -149,6 +159,7 @@
             // Column is 'Connect'
             //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
             $("#footer-container").on('click', 'a', function(e){
+                var currentRoute = window.location.pathname;
                 var id = e.currentTarget.id.split("-");
                 var column = id[0];
                 var link = id[1];
@@ -160,6 +171,7 @@
                 else{
                     activity = activity+"platform="+link;
                 }
+                activity = activity + "_route="+currentRoute;
 
                 var url = "/userapi/logWebpageActivity";
                 var async = true;
@@ -178,10 +190,11 @@
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
-            // Log is of form: "Click_module=InfoFooter_target=<link>"
+            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/faq|...>"
             $('#info-footer').on('click','a', function(e){
+                var currentRoute = window.location.pathname;
                 var link = e.currentTarget.id.split("-")[0];
-                var activity = "Click_module=InfoFooter_"+"target="+link;
+                var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
                 var url = "/userapi/logWebpageActivity";
                 var async = true;
                 $.ajax({

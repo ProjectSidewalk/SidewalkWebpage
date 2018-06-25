@@ -26,7 +26,7 @@ object TaskFormats {
   // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],
   // pitch: Option[Float], zoom: Option[Int],note: Option[String], temporaryLabelId: Option[Int], timestamp: java.sql.Timestamp)
 
-  implicit val auidtTaskInteractionWrites: Writes[AuditTaskInteraction] = (
+  implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
     (__ \ "audit_task_interaction_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "action").write[String] and

@@ -1,4 +1,4 @@
-function Choropleth(_, $, turf) {
+function Choropleth(_, $, turf, difficultRegionIds) {
     var neighborhoodPolygonLayer;
 
 // Construct a bounding box for these maps that the user cannot move out of
@@ -101,10 +101,7 @@ function Choropleth(_, $, turf) {
                     milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
 
                     var advancedMessage = '';
-                    if(feature.properties.region_id == 251 ||
-                       feature.properties.region_id == 281 ||
-                       feature.properties.region_id == 317 ||
-                       feature.properties.region_id == 366) {
+                    if(difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
@@ -148,15 +145,7 @@ function Choropleth(_, $, turf) {
                 }
             });
             layer.on('click', function (e) {
-                var center = turf.center(this.feature),
-                    coordinates = center.geometry.coordinates,
-                    latlng = L.latLng(coordinates[1], coordinates[0]),
-                    zoom = map.getZoom();
-                zoom = zoom > 14 ? zoom : 14;
-
-                map.setView(latlng, zoom, {animate: true});
                 currentLayer = this;
-
 
                 // Log when a user clicks on a region on the choropleth
                 // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"

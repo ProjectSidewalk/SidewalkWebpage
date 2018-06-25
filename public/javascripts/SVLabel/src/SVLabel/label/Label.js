@@ -54,6 +54,8 @@ function Label (svl, pathIn, params) {
         visibility : false
     };
 
+    var tagProperties = util.misc.getSeverityDescription();
+
     function _init (param, pathIn) {
             if (!pathIn) {
                 throw 'The passed "path" is empty.';
@@ -68,7 +70,7 @@ function Label (svl, pathIn, params) {
             // Set belongs to of the path.
             path.setBelongsTo(self);
 
-            if (param && param.labelType && typeof google != "undefined" && google && google.maps) {
+            if (param && param.labelType && typeof google !== "undefined" && google && google.maps) {
                 googleMarker = createGoogleMapsMarker(param.labelType);
                 googleMarker.setMap(svl.map.getMap());
             }
@@ -140,7 +142,7 @@ function Label (svl, pathIn, params) {
      * @returns {google.maps.Marker}
      */
     function createGoogleMapsMarker (labelType) {
-        if (typeof google != "undefined") {
+        if (typeof google !== "undefined") {
             var latlng = toLatLng();
 
             if (latlng) {
@@ -334,8 +336,8 @@ function Label (svl, pathIn, params) {
      * @param key
      * @returns {*}
      */
-    function getStatus (key) { 
-        return status[key]; 
+    function getStatus (key) {
+        return status[key];
     }
 
     function getVisibility () { return status.visibility; }
@@ -431,20 +433,27 @@ function Label (svl, pathIn, params) {
         if (!evaluationMode) {
             evaluationMode = false;
         }
+
         if (!status.deleted) {
             if (status.visibility === 'visible') {
 
-                // Render a tag
-                // Get a text to render (e.g, attribute type), and
-                // canvas coordinate to render the tag.
-                if(status.tagVisibility == 'visible') {
+                // Render a tag -- triggered by mouse hover event.
+                // Get a text to render (e.g, attribute type), and canvas coordinate to render the tag.
+                if(status.tagVisibility === 'visible') {
                     renderTag(ctx);
                     // path.renderBoundingBox(ctx);
                     showDelete();
                 }
 
-                // Render a path
+                // Renders the label image.
                 path.render2(ctx, pov);
+
+                // Only render severity label if there's a severity option.
+                if (properties.labelType !== 'NoSidewalk' && properties.labelType !== 'Occlusion') {
+                    if (properties.severity == undefined) {
+                        showSeverityAlert(ctx);
+                    }
+                }
 
             } else if (false) {
                 // TAG: OLD IMAGE COORDINATE USED
@@ -469,7 +478,7 @@ function Label (svl, pathIn, params) {
                     var imageCoordinateY = 3328 - iy * 26;
                     var canvasPoint = util.panomarker.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
 
-                    console.log(canvasPoint);
+                    //console.log(canvasPoint);
                     ctx.save();
                     ctx.strokeStyle = 'rgba(255,255,255,1)';
                     ctx.lineWidth = 2;
@@ -503,25 +512,61 @@ function Label (svl, pathIn, params) {
      * @returns {boolean}
      */
     function renderTag(ctx) {
-        if ('contextMenu' in svl && svl.contextMenu.isOpen()) { return false; }
+        if ('contextMenu' in svl && svl.contextMenu.isOpen()) {
+            return false;
+        }
 
+        // labelCoordinate represents the upper left corner of the tag.
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
-            i, w, height, width,
+            hasSeverity = (properties.labelType !== 'NoSidewalk' && properties.labelType !== 'Occlusion'),
+            i, height,
+            width = 0,
+            labelRows = 1,
+            severityImage = new Image(),
+            severityImagePath = undefined,
+            severityMessage = 'Please click to label a severity',
             msg = properties.labelDescription,
             messages = msg.split('\n'),
-            padding = { left: 12, right: 5, bottom: 0, top: 18};
+            padding = { left: 12, right: 5, bottom: 0, top: 18 };
 
-        if (properties.labelerId !== 'DefaultValue') { messages.push('Labeler: ' + properties.labelerId); }
+        if (hasSeverity) {
+            labelRows = 2;
+            if (properties.severity != undefined) {
+                severityImagePath = tagProperties[properties.severity].severityImage;
+                severityImage.src = severityImagePath;
+                severityMessage = tagProperties[properties.severity].message;
+            }
+        }
 
-        // Set rendering properties and draw a tag
+        if (properties.labelerId !== 'DefaultValue') {
+            messages.push('Labeler: ' + properties.labelerId);
+        }
+
+        // Set rendering properties and draw a tag.
         ctx.save();
-        ctx.font = '10.5pt Calibri';
-        height = properties.tagHeight * messages.length;
-        width = -1;
+        ctx.font = '13px Open Sans';
+
+        height = properties.tagHeight * labelRows;
+
         for (i = 0; i < messages.length; i += 1) {
-            w = ctx.measureText(messages[i]).width + 5;
-            if (width < w) { width = w; }
+            // Width of the tag is determined by the width of the longest row.
+            var firstRow = ctx.measureText(messages[i]).width;
+            var secondRow = -1;
+
+            // Do additional adjustments on tag width to make room for smiley icon.
+            if (hasSeverity) {
+                secondRow = ctx.measureText(severityMessage).width;
+                if (severityImagePath != undefined) {
+                    if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
+                        width += 15 - firstRow + secondRow;
+                    } else if (firstRow - secondRow < 0) {
+                        width += 20;
+                    }
+                }
+            }
+
+            width += Math.max(firstRow, secondRow) + 5;
         }
         properties.tagWidth = width;
 
@@ -529,6 +574,7 @@ function Label (svl, pathIn, params) {
         ctx.lineWidth = 2;
         ctx.fillStyle = util.color.changeAlphaRGBA(util.misc.getLabelColors(getProperty('labelType')), 0.9);
         ctx.strokeStyle = 'rgba(255,255,255,1)';
+
 
         // Tag background
         ctx.beginPath();
@@ -544,9 +590,14 @@ function Label (svl, pathIn, params) {
         ctx.stroke();
         ctx.closePath();
 
-        // Tag text
+        // Tag text and image
         ctx.fillStyle = '#ffffff';
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
+        if (hasSeverity) {
+            ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
+            ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
+        }
+
         ctx.restore();
     }
 
@@ -641,6 +692,8 @@ function Label (svl, pathIn, params) {
                 setTagVisibility(value);
             } else if (key === 'deleted' && typeof value === 'boolean') {
                 status[key] = value;
+            } else if (key === 'severity') {
+                status[key] = value;
             }
         }
     }
@@ -721,7 +774,7 @@ function Label (svl, pathIn, params) {
             if (panoramaId === properties.panoId) {
                 setVisibility(visibility);
             } else {
-                visibility = visibility == 'visible' ? 'hidden' : 'visible';
+                visibility = visibility === 'visible' ? 'hidden' : 'visible';
                 setVisibility(visibility);
             }
         }
@@ -773,13 +826,39 @@ function Label (svl, pathIn, params) {
                 x = boundingBox.x + boundingBox.width - 20,
                 y = boundingBox.y;
 
-            // Show a delete button
+            // Show a delete button.
             $("#delete-icon-holder").css({
                 visibility: 'visible',
                 left : x + 25, // + width - 5,
                 top : y - 20
             });
         }
+    }
+
+    /**
+     * Renders a question mark if a label has an unmarked severity
+     * @param ctx   Rendering tool for severity (2D context)
+     */
+    function showSeverityAlert(ctx) {
+        var labelCoordinate = getCoordinate();
+        var x = labelCoordinate.x;
+        var y = labelCoordinate.y;
+
+        // Draws circle
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(160, 45, 50, 0.9)';
+        ctx.ellipse(x - 15, y - 10.5, 8, 8, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.closePath();
+
+        // Draws text
+        ctx.beginPath();
+        ctx.font = "12px Open Sans";
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        ctx.fillText('?', x - 17.5, y - 6);
+        ctx.closePath();
+        ctx.restore();
     }
 
     /**

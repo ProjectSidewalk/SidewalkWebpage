@@ -28,9 +28,9 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     * Assign a new neighborhood to audit
     * @return
     */
-  def setANewRegion = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    case class RegionId(regionId:Int)
-    implicit val regionIdReads: Reads[RegionId] = (JsPath \ "region_id").read[Int].map(RegionId(_))
+  def assignANewRegion = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    case class RegionId(regionId:Option[Int])
+    implicit val regionIdReads: Reads[RegionId] = (JsPath \ "region_id").read[Option[Int]].map(RegionId(_))
     var submission = request.body.validate[RegionId]
 
     submission.fold(
@@ -38,18 +38,37 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val regionId: Int = submission.regionId
-        request.identity match {
+
+        val regionId: Int = request.identity match {
           case Some(user) =>
 
-            UserCurrentRegionTable.update(user.userId, regionId)
+            submission.regionId match {
+              case Some(regId) =>
+                // Sets a region based on the request from the user
+                UserCurrentRegionTable.saveOrUpdate(user.userId, regId)
+
+              case None =>
+                // Assigns a region to the user on request from a signed in user
+                UserCurrentRegionTable.assignRegion(user.userId).get.regionId
+            }
           case None =>
+          // Get a region for the anonymous user
+            RegionTable.selectAHighPriorityEasyRegion.get.regionId
         }
+
         Future.successful(Ok(Json.obj(
           "region_id" -> regionId
         )))
       }
     )
+  }
+
+  /**
+    * This returns the list of difficult neighborhood ids
+    * @return
+    */
+  def getDifficultNeighborhoods = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(Json.obj("regionIds" -> RegionTable.difficultRegionIds)))
   }
 
   /**

@@ -16,14 +16,13 @@
     width: 720px;
 }
 
-
 #delete-icon-holder {
     cursor: pointer;
     visibility: hidden;
     /* Position */
     position: absolute;
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     left: 0;
     top: 10px;
 }
@@ -42,4 +41,5 @@
 #LabelDeleteIcon, #LabelEditIcon {
     height: 20px;
     width: 20px;
+    position: absolute;
 }

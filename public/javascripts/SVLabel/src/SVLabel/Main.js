@@ -9,15 +9,14 @@ var svl = svl || {};
  */
 function Main (params) {
     var self = { className: 'Main' };
-    var status = {
-        isFirstTask: false
-    };
 
     // Initialize things that needs data loading.
-    var loadingAnOboardingTaskCompleted = false;
+    var loadingAnOnboardingTaskCompleted = false;
     var loadingTasksCompleted = false;
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
+    var loadDifficultNeighborhoodsCompleted = false;
+
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
@@ -97,7 +96,6 @@ function Main (params) {
         svl.onboardingModel = new OnboardingModel();
 
         if (!("tracker" in svl)) svl.tracker = new Tracker();
-        svl.tracker.push('TaskStart');
 
         if (!("storage" in svl)) svl.storage = new TemporaryStorage(JSON);
         svl.labelContainer = new LabelContainer($);
@@ -108,6 +106,7 @@ function Main (params) {
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
+        svl.advancedOverlay = params.advancedOverlay;
 
 
 
@@ -125,7 +124,9 @@ function Main (params) {
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
 
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel, svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
+            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.tracker.initTaskId();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -181,6 +182,8 @@ function Main (params) {
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
+        // Survey for select users
+        svl.surveyModalContainer = $("#survey-modal-container").get(0);
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
@@ -190,19 +193,33 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        if (getStatus("isFirstTask")) {
-            svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
-            svl.popUpMessage.setMessage("<span class='bold'>Remember, label all the landmarks close to the bus stop.</span> " +
-                "Now the actual task begins. Click OK to start the task.");
-            svl.popUpMessage.appendOKButton();
-            svl.popUpMessage.show();
-        } else {
-            svl.popUpMessage.hide();
+        // Mark neighborhood as complete if the initial task's completion count > 0
+        // Proxy for knowing if the neighborhood is complete across all users
+        if(task.getStreetCompletionCount() > 0) {
+            svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
         $("#toolbar-onboarding-link").on('click', function () {
             startOnboarding();
         });
+
+        $('#survey-modal-container').on('show.bs.modal', function () {
+            svl.popUpMessage.disableInteractions();
+            svl.ribbon.disableModeSwitch();
+            svl.zoomControl.disableZoomIn();
+            svl.zoomControl.disableZoomOut();
+        });
+        $('#survey-modal-container').on('hide.bs.modal', function () {
+            svl.popUpMessage.enableInteractions();
+            svl.ribbon.enableModeSwitch();
+            svl.zoomControl.enableZoomIn();
+            svl.zoomControl.enableZoomOut();
+        });
+
+        $('#survey-modal-container').keydown(function(e) {
+            e.stopPropagation();
+        });
+
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
             $(".toolUI").css('opacity', 1);
@@ -241,7 +258,8 @@ function Main (params) {
             }
         });
         $('[data-toggle="tooltip"]').tooltip({
-            delay: { "show": 500, "hide": 100 }
+            delay: { "show": 500, "hide": 100 },
+            html: true
         });
     }
 
@@ -249,7 +267,7 @@ function Main (params) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
-            loadingAnOboardingTaskCompleted = true;
+            loadingAnOnboardingTaskCompleted = true;
             handleDataLoadComplete();
         });
 
@@ -267,6 +285,11 @@ function Main (params) {
 
         neighborhoodModel.fetchNeighborhoods(function () {
             loadNeighborhoodsCompleted = true;
+            handleDataLoadComplete();
+        });
+
+        neighborhoodModel.fetchDifficultNeighborhoods(function () {
+            loadDifficultNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
     }
@@ -336,18 +359,25 @@ function Main (params) {
         svl.missionContainer.setCurrentMission(onboardingMission);
     }
 
-    function findTheNextRegionWithMissions (currentNeighborhood) {
+    // Query the server for the next least unaudited region (across users)
+    // and that hasn't been done by the user
+    // TODO test if this is used, we suspect it is never called and can be deleted.
+    function findTheNextRegionWithMissions () {
+        svl.neighborhoodModel.fetchNextHighPriorityRegion(false);
+    }
+
+    function findTheNextRegionWithMissionsOld (currentNeighborhood) {
         var currentRegionId = currentNeighborhood.getProperty("regionId");
         var allRegionIds = svl.neighborhoodContainer.getRegionIds();
         var nextRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, allRegionIds);
         var availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
         availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
 
-        while(availableMissions.length == 0) {
+        while(availableMissions.length === 0) {
             nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, allRegionIds);
             availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            if (nextRegionId == currentRegionId) {
+            if (nextRegionId === currentRegionId) {
                 console.error("No more available regions to audit");
                 return null;
             }
@@ -356,7 +386,7 @@ function Main (params) {
     }
 
     function isAnAnonymousUser() {
-        return 'user' in svl || svl.user.getProperty('username') == "anonymous"; // Todo. it should access the user through UserModel
+        return 'user' in svl && svl.user.getProperty('username') === "anonymous"; // Todo. it should access the user through UserModel
     }
 
     function startTheMission(mission, neighborhood) {
@@ -369,18 +399,20 @@ function Main (params) {
             svl.missionModel.submitMissions([onboardingMission]);
         }
 
-        // Popup the message explaining the goal of the current mission
-        if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
-            svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                svl.initialMissionInstruction.start(neighborhood);
-            });
-        } else {
-            svl.modalMission.setMissionMessage(mission, neighborhood);
+        if(params.init !== "noInit") {
+            // Popup the message explaining the goal of the current mission
+            if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
+                var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
+                    svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
+                svl.modalMission.setMissionMessage(mission, neighborhood, null, function () {
+                    svl.initialMissionInstruction.start(neighborhood);
+                });
+            } else {
+                svl.modalMission.setMissionMessage(mission, neighborhood);
+            }
+            svl.modalMission.show();
         }
-        svl.modalMission.show();
         svl.missionModel.updateMissionProgress(mission, neighborhood);
 
         // Get the labels collected in the current neighborhood
@@ -424,8 +456,9 @@ function Main (params) {
 
     // This is a callback function that is executed after every loading process is done.
     function handleDataLoadComplete () {
-        if (loadingAnOboardingTaskCompleted && loadingTasksCompleted &&
-            loadingMissionsCompleted && loadNeighborhoodsCompleted) {
+        if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
+            loadingMissionsCompleted && loadNeighborhoodsCompleted &&
+            loadDifficultNeighborhoodsCompleted) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
@@ -451,6 +484,12 @@ function Main (params) {
                 currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 svl.missionContainer.setCurrentMission(mission);
                 $("#mini-footer-audit").css("visibility", "visible");
+
+                var regionId = currentNeighborhood.getProperty("regionId");
+                var difficultRegionIds = svl.neighborhoodModel.difficultRegionIds;
+                if(difficultRegionIds.includes(regionId) && !svl.advancedOverlay){
+                    $('#advanced-overlay').show();
+                }
                 startTheMission(mission, currentNeighborhood);
             }
         }
@@ -488,13 +527,19 @@ function Main (params) {
         var availableMissions = svl.missionContainer.getIncompleteMissionsByRegionId(regionId);
         var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
 
-        if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
-            regionId = findTheNextRegionWithMissions(currentNeighborhood);
-            if (regionId == null) return;  // No missions available.
 
-            currentNeighborhood = svl.neighborhoodContainer.get(regionId);
-            svl.neighborhoodModel.moveToANewRegion(regionId);
-            svl.neighborhoodModel.setCurrentNeighborhood(currentNeighborhood);
+        // TODO test if this is used, we suspect it is never true and can be deleted. This check is done on back-end now
+        if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
+            findTheNextRegionWithMissions();
+            currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+            if (currentNeighborhood)
+                regionId = currentNeighborhood.getProperty("regionId");
+            else
+                regionId = null;
+
+            // TODO: This case will execute when the entire city is audited by the user. Should handle properly!
+            if (regionId === null) return;  // No missions available.
+
             availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
             availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
             svl.taskContainer.getFinishedAndInitNextTask();
@@ -512,14 +557,6 @@ function Main (params) {
         return _tasks.length > 0;
     }
 
-    function getStatus (key) { 
-        return key in status ? status[key] : null; 
-    }
-
-    function setStatus (key, value) { 
-        status[key] = value; return this; 
-    }
-
     /**
      * Store jQuery DOM elements under svl.ui
      * Todo. Once we update all the modules to take ui elements as injected argumentss, get rid of the svl.ui namespace and everything in it.
@@ -529,8 +566,8 @@ function Main (params) {
         svl.ui = {};
         svl.ui.actionStack = {};
         svl.ui.actionStack.holder = $("#action-stack-control-holder");
-        svl.ui.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br /><small>Undo</small></button>');
-        svl.ui.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br /><small>Redo</small></button>');
+        svl.ui.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br />Undo</button>');
+        svl.ui.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br />Redo</button>');
         svl.ui.actionStack.redo = $("#redo-button");
         svl.ui.actionStack.undo = $("#undo-button");
 
@@ -557,7 +594,10 @@ function Main (params) {
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
+        svl.ui.status.currentMissionReward = $("#current-mission-reward");
+        svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
+        svl.ui.status.statusRow = $("#neighborhood-status-row");
 
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
@@ -584,7 +624,7 @@ function Main (params) {
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};
-        svl.ui.ribbonMenu.holder = $("#ribbon-menu-landmark-button-holder");
+        svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
         svl.ui.ribbonMenu.buttons = $('span.modeSwitch');
         svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
@@ -626,6 +666,7 @@ function Main (params) {
         svl.ui.modalMission.foreground = $("#modal-mission-foreground");
         svl.ui.modalMission.background = $("#modal-mission-background");
         svl.ui.modalMission.missionTitle = $("#modal-mission-header");
+        svl.ui.modalMission.rewardText = $("#modal-mission-reward-text");
         svl.ui.modalMission.instruction = $("#modal-mission-instruction");
         svl.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
@@ -642,12 +683,14 @@ function Main (params) {
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
+        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
         svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
         svl.ui.modalMissionComplete.curbRampCount = $("#modal-mission-complete-curb-ramp-count");
         svl.ui.modalMissionComplete.noCurbRampCount = $("#modal-mission-complete-no-curb-ramp-count");
         svl.ui.modalMissionComplete.obstacleCount = $("#modal-mission-complete-obstacle-count");
         svl.ui.modalMissionComplete.surfaceProblemCount = $("#modal-mission-complete-surface-problem-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
+        svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
 
         // Zoom control
         svl.ui.zoomControl = {};
@@ -673,6 +716,7 @@ function Main (params) {
         svl.ui.leftColumn.soundIcon = $("#left-column-sound-icon");
         svl.ui.leftColumn.jump = $("#left-column-jump-button");
         svl.ui.leftColumn.feedback = $("#left-column-feedback-button");
+        svl.ui.leftColumn.confirmationCode = $("#left-column-confirmation-code-button");
 
         // Navigation compass
         svl.ui.compass = {};
@@ -683,7 +727,9 @@ function Main (params) {
         svl.ui.canvas = {};
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
+        svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
         svl.ui.canvas.deleteIcon = $("#LabelDeleteIcon");
+        svl.ui.canvas.severityIcon = $("#severity-icon");
 
         // Interaction viewer
         svl.ui.tracker = {};
@@ -701,12 +747,13 @@ function Main (params) {
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
 
-    _initUI();
-    _init(params);
+    if(params.init !== "noInit") {
+        _initUI();
+        _init(params);
+    }
 
-    self.getStatus = getStatus;
-    self.setStatus = setStatus;
     self.isAnAnonymousUser = isAnAnonymousUser;
+    self.loadData = loadData;
 
     return self;
 }

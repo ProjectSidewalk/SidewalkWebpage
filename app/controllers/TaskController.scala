@@ -1,7 +1,6 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -9,7 +8,6 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
-import formats.json.CommentSubmissionFormats._
 import formats.json.TaskSubmissionFormats._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
@@ -18,9 +16,10 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
-import models.street.StreetEdgeAssignmentCountTable
-import models.user.{User, UserCurrentRegionTable}
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
+import models.user.User
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
@@ -38,24 +37,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
 
   /**
-   * This method returns a task definition in the GeoJSON format.
-   * @return Task definition
-   */
-  def getTask = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val task = AuditTaskTable.selectANewTask(user.username)
-        Future.successful(Ok(task.toJSON))
-      case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
-    }
-  }
-
-  /**
     * This method returns a task definition specified by the streetEdgeId.
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId)
+    val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
     Future.successful(Ok(task.toJSON))
   }
 
@@ -142,58 +128,121 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Insert assignment (if any)
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
-              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None)
+              // TODO Used an empty string for volunteer_id and None for confirmationCode. Needs to be changed.
+              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None, "",None, false)
               Some(AMTAssignmentTable.save(newAsg))
             case _ => None
           }
 
+          val user = request.identity
+          val streetEdgeId = data.auditTask.streetEdgeId
+
+          if (data.auditTask.auditTaskId.isDefined) {
+            user match {
+              case Some(user) =>
+                // Update the street's priority only if the user has not completed this street previously
+                if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
+                  data.auditTask.completed.map { completed =>
+                    if (completed) {
+                      StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                    }
+                  }
+                }
+              case None =>
+                // Update the street's priority for anonymous user
+                data.auditTask.completed.map { completed =>
+                  if (completed) {
+                    StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                  }
+                }
+            }
+          }
+
+
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count
-          val auditTaskId: Int = updateAuditTaskTable(request.identity, data.auditTask, amtAssignmentId)
+          val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, amtAssignmentId)
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           if (data.incomplete.isDefined) {
-            val incomplete = data.incomplete.get
+            val incomplete: IncompleteTaskSubmission = data.incomplete.get
             AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
           }
 
           // Insert labels
-          for (label <- data.labels) {
+          for (label: LabelSubmission <- data.labels) {
             val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
-            val labelId: Int = LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading, label.photographerPitch,
-              label.panoramaLat, label.panoramaLng, label.deleted.value, label.temporaryLabelId))
+
+            val existingLabelId: Option[Int] = label.temporaryLabelId match {
+              case Some(tempLabelId) =>
+                LabelTable.find(tempLabelId, label.auditTaskId)
+              case None =>
+                Logger.error("Received label with Null temporary_label_id")
+                None
+            }
+
+            // If the label already exists, update deleted field, o/w insert the new label.
+            val labelId: Int = existingLabelId match {
+              case Some(labId) =>
+                LabelTable.updateDeleted(labId, label.deleted.value)
+                labId
+              case None =>
+                // get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp
+                val timeCreated: Option[Timestamp] = label.timeCreated match {
+                  case Some(time) => Some(new Timestamp(time))
+                  case None =>
+                    Logger.error("No timestamp given for a new label")
+                    None
+                }
+                LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
+                                      label.photographerPitch, label.panoramaLat, label.panoramaLng,
+                                      label.deleted.value, label.temporaryLabelId, timeCreated))
+            }
 
             // Insert label points
-            for (point <- label.points) {
+            for (point: LabelPointSubmission <- label.points) {
               val pointGeom: Option[Point] = (point.lat, point.lng) match {
                 case (Some(lat), Some(lng)) =>
                   val coord: Coordinate = new Coordinate(lng.toDouble, lat.toDouble)
                   Some(gf.createPoint(coord))
                 case _ => None
               }
-              LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX, point.canvasY,
-                point.heading, point.pitch, point.zoom, point.canvasHeight, point.canvasWidth,
-                point.alphaX, point.alphaY, point.lat, point.lng, pointGeom))
+              // If this label id does not have an entry in the label point table, add it.
+              if (LabelPointTable.find(labelId).isEmpty) {
+                LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX,
+                                                point.canvasY, point.heading, point.pitch, point.zoom,
+                                                point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
+                                                point.lat, point.lng, pointGeom))
+              }
             }
 
-            // Insert temporariness and severity if they are set.
+            // If temporariness/severity/description they are set, update/insert them.
             if (label.severity.isDefined) {
-              ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              ProblemSeverityTable.find(labelId) match {
+                case Some(ps) => ProblemSeverityTable.updateSeverity(ps.problemSeverityId, label.severity.get)
+                case None => ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              }
             }
 
             if (label.temporaryProblem.isDefined) {
-              val temporaryProblem = label.temporaryProblem.get.value
-              ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, temporaryProblem))
+              val tempProblem = label.temporaryProblem.get.value
+              ProblemTemporarinessTable.find(labelId) match {
+                case Some(pt) => ProblemTemporarinessTable.updateTemporariness(pt.problemTemporarinessId, tempProblem)
+                case None => ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, tempProblem))
+              }
             }
 
             if (label.description.isDefined) {
-              ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              ProblemDescriptionTable.find(labelId) match {
+                case Some(pd) => ProblemDescriptionTable.updateDescription(pd.problemDescriptionId, label.description.get)
+                case None => ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              }
             }
           }
 
           // Insert interaction
-          for (interaction <- data.interactions) {
+          for (interaction: InteractionSubmission <- data.interactions) {
             AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
               interaction.zoom, interaction.note, interaction.temporaryLabelId, new Timestamp(interaction.timestamp)))

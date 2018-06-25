@@ -12,12 +12,15 @@
             that support people with mobility impairments!
         </p>
         <p class="text-justify">
-            We serve the accessibility data in two formats: <span class="bold">Access Feature and Access Score.</span> Access Feature contains
-            point-level information on what accessibility feature exist and where (latitude-longitude). <a data-scroll href="#access-api-access-feature-row">See below for an example.</a>
-            Access Score is a numerical value that indicates how (in)accesible a given street/area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score APIs for examples.</a>
+            We serve our accessibility data in two formats: <span class="bold">Access Feature and Access Score.</span> Access Feature contains
+            point-level information on what accessibility features exist and where (latitude-longitude). <a data-scroll href="#access-api-access-feature-row">See below for an example.</a>
+            Access Score is a value that indicates how (in)accessible a given street/area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score APIs for examples.</a>
         </p>
         <p class="text-justify">
-            You can get the data either through the <a data-scroll href="#access-api-header">REST APIs</a> or <a data-scroll href="#access-dataset">download the zip file.</a>
+            You can get the data through the <a data-scroll href="#access-api-header">REST APIs</a>.
+                @*or <a data-scroll href="#access-dataset">download the zip file.</a>*@
+                You can also help <a data-scroll href="#contribute">contribute</a>! The code is available on
+                <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank">github</a>.
         </p>
 
         <div class="row">
@@ -36,9 +39,9 @@
                 <table class="table">
                     <tr>
                         <td colspan="2">
-                            This API serves point-level location data on accessibility features. The major categories of the features include:
-                            "Curb Ramp," "Missing Curb Ramp," "Obstacles," and "Surface Problem."
-                            You would occasionally find an accessibility feature like "No Sidewalk."
+                            This API serves point-level location data on accessibility features. The major categories of features include:
+                            "Curb Ramp", "Missing Curb Ramp", "Obstacle", and "Surface Problem".
+                            The less common features are "No Sidewalk", "Occlusion", and "Other".
                         </td>
                     </tr>
                     <tr>
@@ -109,7 +112,7 @@
                     <tr>
                         <td colspan="2">
                             This API serves Accessibility Scores of the streets within a specified region.
-                            Accessibility Score is a numerical value between 0 and 1, where 0 means inaccessible and
+                            Accessibility Score is a value between 0 and 1, where 0 means inaccessible and
                             1 means accessible.
                         </td>
                     </tr>
@@ -151,7 +154,7 @@
                             <dl>
                                 <dt>200</dt>
                                 <dd>
-                                    The API returns the streets that has been audited at least once as a <a href="http://geojson.org/geojson-spec.html#feature-collection-objects">Feature Collection</a> of
+                                    The API returns the streets that have been audited at least once as a <a href="http://geojson.org/geojson-spec.html#feature-collection-objects">Feature Collection</a> of
                                     <a href="http://geojson.org/geojson-spec.html#linestring">LineString features.</a> Each LineString feature
                                     include street's geometry as well as the corresponding Access Score.
                                 </dd>
@@ -182,7 +185,7 @@
                     <tr>
                         <td colspan="2">
                             This API serves Accessibility Scores of the neighborhoods within a specified region.
-                            Accessibility Score is a numerical value between 0 and 1, where 0 means inaccessible and
+                            Accessibility Score is a value between 0 and 1, where 0 means inaccessible and
                             1 means accessible.
                         </td>
                     </tr>
@@ -252,26 +255,28 @@
 
         <div class="row">
             <div class="col-sm-12">
-                <h2>Warning</h2>
+                <h2>Disclaimer</h2>
                 <p class="text-justify">
-                    We are still in the experimental stage of the project, and so we want you to keep in mind a few things, for example:
+                    We are still in the experimental stage of the project, so we want you to keep in mind a few things,
+                    for example:
                 </p>
                 <ol>
-                    <li>APIs' design (e.g., URL, response formats) could change</li>
-                    <li>we are focusing on collecting data only from Washington, D.C. at the moment</li>
-                    <li>since we have only covered @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of the entire area of DC,
-                        you would find neighborhoods where we don't have the accessibility data yet
-                        (note you can help us by <a href='@routes.AuditController.audit'>contributing to data collection too ;)</a>).</li>
+                    <li>APIs' design (e.g., URL, response formats) could change.</li>
+                    <li>We are focusing on collecting data only from Washington, D.C. at the moment.</li>
+                    <li>Since we have only covered @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of DC,
+                        there are neighborhoods where we currently have very little accessibility data.
+                        Note: You can help us by <a href='@routes.AuditController.audit()'>contributing to data collection</a> too ;-).</li>
                 </ol>
             </div>
         </div>
 
         <div class="row">
             <div class="col-sm-12">
-                <h2>Contribute</h2>
+                <h2 id="contribute">Contribute</h2>
                 <p class="text-justify">
-                    All the code for Project Sidewalk is open source. You can find it in our <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub repo</a>.
-                    We welcome your help in advancing the project. If you make enhancement, fix a bug, etc, send a pull request!
+                    All the code for Project Sidewalk is open source. You can find it in our
+                        <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank">GitHub repo</a>.
+                    We welcome your help in advancing the project. If you make an enhancement or fix a bug, send a pull request!
                 </p>
             </div>
         </div>
@@ -280,9 +285,11 @@
             <div class="col-sm-12">
                 <h2>Contact Us</h2>
                 <p class="text-justify">
-                    Questions? Bugs? Feature requests and suggestions? Or anything else? Email us (sidewalk@@umiacs.umd.edu),
-                    post a <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues">GitHub issue</a>, or follow and talk to us
-                    on <a href="https://twitter.com/umd_sidewalk">Twitter (@@umd_sidewalk)!</a>
+                    Questions? Bugs? Feature requests and suggestions? Or anything else? Email us
+                    (<a href="mailto:sidewalk@@umiacs.umd.edu">sidewalk@@umiacs.umd.edu</a>), post a
+                    <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues" target="_blank">GitHub issue</a>,
+                    or follow and talk to us on <a href="https://twitter.com/projsidewalk" target="_blank">Twitter
+                        @@projsidewalk</a>!
                 </p>
             </div>
         </div>
@@ -291,8 +298,8 @@
             <div class="col-sm-12">
                 <h2>License</h2>
                 <p>
-                    We are working on this! We'll choose a license that gives as much flexibilities as possible for
-                    developers and researchers to use the data ;)
+                    We are working on this! We plan to choose a license that gives as much flexibility as possible for
+                    developers and researchers to use the data.
                 </p>
             </div>
         </div>

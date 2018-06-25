@@ -1,11 +1,11 @@
 package models.user
 
-import models.audit.AuditTaskTable
-import models.mission.MissionTable
 import models.region.{NamedRegion, RegionTable}
+import models.street.StreetEdgeTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
+
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -26,6 +26,8 @@ object UserCurrentRegionTable {
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
+  val experiencedUserMileageThreshold = 2.0
+
   def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
     val userCurrentRegionId: Int =
@@ -34,45 +36,39 @@ object UserCurrentRegionTable {
   }
 
   /**
-    * Assign a region to the given user. This is used for the initial assignment.
+    * Checks if the given user is "experienced" (have audited at least 2 miles).
     *
-    * @param userId user id
-    * @return region id
-    */
-  def assignRandomly(userId: UUID): Int = db.withSession { implicit session =>
-    // Check if there are any records
-    val _currentRegions = for {
-      (_regions, _currentRegions) <- neighborhoods.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
-      if _currentRegions.userId === userId.toString
-    } yield _currentRegions
-    val currentRegionList = _currentRegions.list
-
-    if (currentRegionList.isEmpty) {
-      // val regionId: Int = scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head // Todo. I can do better than randomly shuffling this...
-
-      val region: Option[NamedRegion] = RegionTable.selectANamedRegionRoundRobin
-
-      val regionId: Int = if (region.isDefined) {
-        region.get.regionId
-      } else {
-        scala.util.Random.shuffle(neighborhoods.list).map(_.regionId).head
-      }
-      save(userId, regionId)
-      regionId
-    } else {
-      assignNextRegion(userId)
-    }
-  }
-
-  /**
-    * Select a region where the user hasn't completed all the missions and assign that region to them.
     * @param userId
     * @return
     */
-  def assignNextRegion(userId: UUID): Int = db.withSession { implicit session =>
-    val regionIds = MissionTable.selectIncompleteRegions(userId)
-    val regionId = scala.util.Random.shuffle(regionIds).head
-    update(userId, regionId)
+  def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
+    StreetEdgeTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
+  }
+
+  /**
+    * Select an easy region w/ high avg street priority where the user hasn't completed all missions; assign it to them.
+    * @param userId
+    * @return
+    */
+  def assignEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+    val newRegion: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion(userId)
+    newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
+    newRegion
+  }
+
+  /**
+    * Select a region with high avg street priority, where the user hasn't completed all missions; assign it to them.
+    *
+    * @param userId
+    * @return
+    */
+  def assignRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+    // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
+    val newRegion: Option[NamedRegion] =
+      if(isUserExperienced(userId)) RegionTable.selectAHighPriorityRegion(userId)
+      else RegionTable.selectAHighPriorityEasyRegion(userId)
+    newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
+    newRegion
   }
 
   /**
@@ -82,17 +78,12 @@ object UserCurrentRegionTable {
     * @return
     */
   def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
-    try {
-      // Get rid of deleted regions
-      val ucr = for {
-        (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
-      } yield ucr
+    // Get rid of deleted regions
+    val ucr = for {
+      (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
+    } yield ucr
 
-      Some(ucr.filter(_.userId === userId.toString).list.map(_.regionId).head)
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // This shouldn't happen.
-    }
+    ucr.filter(_.userId === userId.toString).list.map(_.regionId).headOption
   }
 
   /**
@@ -118,10 +109,29 @@ object UserCurrentRegionTable {
     *
     * @param userId user ID
     * @param regionId region id
+    * @return the number of rows updated
     */
   def update(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
     val q = for { ucr <- userCurrentRegions if ucr.userId === userId.toString } yield ucr.regionId
     q.update(regionId)
+  }
+
+  /**
+    * Update the current region, or save a new entry if the user does not have one.
+    *
+    * Reference:
+    * http://slick.typesafe.com/doc/2.1.0/queries.html#updating
+    *
+    * @param userId user ID
+    * @param regionId region id
+    * @return region id
+    */
+  def saveOrUpdate(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
+    val rowsUpdated: Int = update(userId, regionId)
+    // If no rows are updated, a new record needs to be created
+    if (rowsUpdated == 0) {
+      save(userId, regionId)
+    }
     regionId
   }
 }

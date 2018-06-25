@@ -159,13 +159,34 @@ function Canvas(ribbon) {
         labels.push(status.currentLabel);  // Todo. Delete this. I think this is not necessary.
         svl.labelContainer.push(status.currentLabel);
 
+
         // Todo. Instead of calling the contextMenu show, throw an Canvas:closeLabelPath event.
         if ('contextMenu' in svl) {
             svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
                 targetLabel: status.currentLabel,
                 targetLabelColor: labelColor.fillStyle
             });
-        }
+            if(labelType === "Other"){
+              //no tooltips for other
+              $('#severity-one').tooltip('destroy');
+              $('#severity-three').tooltip('destroy');
+              $('#severity-five').tooltip('destroy');
+            }else{
+              //update tooltips
+              $('#severity-one').tooltip('destroy').tooltip({
+                  placement: "top", html: true, delay: { "show": 300, "hide": 10 },
+                  title: "Severity Level 1 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.PNG' height='110' alt='CRseverity 1'/><br/><i>Press Keys 1-5 for Severity</i>"
+              });
+              $('#severity-three').tooltip('destroy').tooltip({
+                  placement: "top", html: true, delay: { "show": 300, "hide": 10 },
+                  title: "Severity Level 3 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.PNG' height='110' alt='CRseverity 3'/><br/><i>Press Keys 1-5 for Severity</i>"
+              });
+              $('#severity-five').tooltip('destroy').tooltip({
+                  placement: "top", html: true, delay: { "show": 300, "hide": 10 },
+                  title: "Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.PNG' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"
+              });
+            }
+          }
 
         // Todo. Again, thrown an event (e.g., Canvas:closeLabelPath) instead of svl.onboarding.pushOnboardingLabel invocation.
         if ('onboarding' in svl && svl.onboarding && svl.onboarding.isOnboarding()) {
@@ -885,16 +906,6 @@ function Canvas(ribbon) {
         }
         var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
-        var labelCount = {
-            Landmark_Bench: 0,
-            Landmark_Shelter: 0,
-            Landmark_TrashCan: 0,
-            Landmark_MailboxAndNewsPaperBox: 0,
-            Landmark_OtherPole: 0,
-            StopSign: 0,
-            CurbRamp: 0,
-            NoCurbRamp: 0
-        };
         status.totalLabelCount = 0;
         var pov = svl.map.getPov();
 
@@ -965,7 +976,6 @@ function Canvas(ribbon) {
             label.render(ctx, pov);
 
             if (label.isVisible() && !label.isDeleted()) {
-                labelCount[label.getLabelType()] += 1;
                 status.totalLabelCount += 1;
             }
         }
@@ -986,11 +996,6 @@ function Canvas(ribbon) {
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) {
             renderTempPath();
-        }
-
-        // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) {
-            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
         }
 
         // Update the opacity of undo and redo buttons.

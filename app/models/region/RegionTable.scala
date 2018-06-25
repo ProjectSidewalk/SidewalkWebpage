@@ -3,8 +3,10 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
+import models.mission.MissionTable
+
 import math._
-import models.street.StreetEdgeAssignmentCountTable
+import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -53,37 +55,16 @@ object RegionTable {
   val regions = TableQuery[RegionTable]
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
-  val streetEdgeAssignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
+  // These regions are buggy, so we steer new users away from them
+  val difficultRegionIds: List[Int] = List(251, 281, 317, 366)
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
-
-  // Create a round robin neighborhood supplier to be used in getRegion.
-  // http://stackoverflow.com/questions/19771992/is-there-a-round-robin-circular-queue-avaliable-in-scala-collections
-  // http://stackoverflow.com/questions/7619642/consume-items-from-a-scala-iterator
-  val neighborhoodRoundRobin = db.withSession { implicit session =>
-    val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2).list
-    Iterator.continually(neighborhoods).flatten
-  }
-
-  val namedRegionRoundRobin = db.withSession { implicit session =>
-    val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
-    val namedRegions = for {
-      (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
-
-    val namedRegionsList: List[NamedRegion] = namedRegions.list.map(x => NamedRegion.tupled(x))
-    val namedRegionMap: Map[Int, NamedRegion] = namedRegionsList.map(nr => nr.regionId -> nr).toMap
-
-    // Sort the NamedRegions based on their completion rates
-    val completionRates = StreetEdgeAssignmentCountTable.computeNeighborhoodComplationRate(1).sortWith(_.rate < _.rate)
-    val sortedRegionIds = completionRates.map(_.regionId)
-    val sortedNamedRegionList: List[NamedRegion] = for (regionId <- sortedRegionIds) yield namedRegionMap(regionId)
-
-    Iterator.continually(sortedNamedRegionList).flatten
-  }
+  val namedRegions = for {
+    (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
+    if _regionProperties.key === "Neighborhood Name"
+  } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
 
   /**
    * Returns a list of all the neighborhood regions
@@ -99,30 +80,86 @@ object RegionTable {
     * @return
     */
   def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
-    val namedRegions = for {
-      (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
-
     namedRegions.list.map(x => NamedRegion.tupled(x))
   }
 
   /**
-    * Get a Region in a round-robin fashion.
+    * Picks one of the easy regions with highest average priority.
     *
     * @return
     */
-  def selectARegionRoundRobin: Option[Region] = db.withSession { implicit session =>
-    Some(neighborhoodRoundRobin.next)
+  def selectAHighPriorityEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
+    val possibleRegionIds: List[Int] =
+      regionsWithoutDeleted.filterNot(_.regionId inSet difficultRegionIds).map(_.regionId).list
+
+    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
+      case Some(region) => Some(region)
+      case _ => selectAHighPriorityRegion // Should only happen if all regions are difficult regions.
+    }
   }
 
   /**
-    * Get a Named Region in a round-robin fashion
+    * Picks one of the regions with highest average priority.
     *
     * @return
     */
-  def selectANamedRegionRoundRobin: Option[NamedRegion] = db.withSession { implicit session =>
-    Some(namedRegionRoundRobin.next)
+  def selectAHighPriorityRegion: Option[NamedRegion] = db.withSession { implicit session =>
+    val possibleRegionIds: List[Int] = regionsWithoutDeleted.map(_.regionId).list
+
+    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
+      case Some(region) => Some(region)
+      case _ => None // Should never happen.
+    }
+  }
+
+  /**
+    * Picks one of the regions with highest average priority out of those that the user has not completed.
+    *
+    * @param userId
+    * @return
+    */
+  def selectAHighPriorityRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+    val possibleRegionIds: List[Int] = MissionTable.selectIncompleteRegionsUsingTasks(userId).toList
+
+    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
+      case Some(region) => Some(region)
+      case _ => selectAHighPriorityRegion // Should only happen if user has completed all regions.
+    }
+  }
+
+  /**
+    * Picks one of the easy regions with highest average priority out of those that the user has not completed.
+    *
+    * @param userId
+    * @return
+    */
+  def selectAHighPriorityEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+    val possibleRegionIds: List[Int] =
+      MissionTable.selectIncompleteRegionsUsingTasks(userId).filterNot(difficultRegionIds.contains(_)).toList
+
+    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
+      case Some(region) => Some(region)
+      case _ => selectAHighPriorityRegion(userId) // Should only happen if user has completed all easy regions.
+    }
+  }
+
+  /**
+    * Out of the provided regions, picks one of the 5 with highest average priority across their street edges.
+    *
+    * @param possibleRegionIds
+    * @return
+    */
+  def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[NamedRegion] = db.withSession { implicit session =>
+
+    val highestPriorityRegions: List[Int] =
+      StreetEdgeRegionTable.streetEdgeRegionTable
+      .filter(_.regionId inSet possibleRegionIds)
+      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
+      .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
+      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
+      .sortBy(_._2.desc).take(5).map(_._1).list // take the 5 with highest average priority, select region_id
+
+    scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(selectANamedRegion)
   }
 
   /**
@@ -132,13 +169,7 @@ object RegionTable {
     * @return
     */
   def selectANeighborhood(regionId: Int): Option[Region] = db.withSession { implicit session =>
-    try {
-      val l = neighborhoods.filter(_.regionId === regionId).list
-      l.headOption
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // Shouldn't reach here
-    }
+      neighborhoods.filter(_.regionId === regionId).list.headOption
   }
 
   /**
@@ -148,18 +179,12 @@ object RegionTable {
     * @return
     */
   def selectANamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
-    try {
-      val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
-      val _regions = for {
-        (_neighborhoods, _properties) <- filteredNeighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
-        if _properties.key === "Neighborhood Name"
-      } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
-      val namedRegionsList = _regions.list.map(x => NamedRegion.tupled(x))
-      namedRegionsList.headOption
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // Shouldn't reach here
-    }
+    val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
+    val _regions = for {
+      (_neighborhoods, _properties) <- filteredNeighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
+      if _properties.key === "Neighborhood Name"
+    } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
+    _regions.list.headOption.map(x => NamedRegion.tupled(x))
   }
 
   /**
@@ -169,16 +194,11 @@ object RegionTable {
     * @return
     */
   def selectTheCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    try {
-      val currentRegions = for {
-        (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
-        if ucr.userId === userId.toString
-      } yield r
-      Some(currentRegions.list.head)
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // Shouldn't reach here
-    }
+    val currentRegions = for {
+      (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      if ucr.userId === userId.toString
+    } yield r
+    currentRegions.list.headOption
   }
 
   /**
@@ -188,7 +208,6 @@ object RegionTable {
     * @return
     */
   def selectTheCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    try {
       val currentRegions = for {
         (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
         if ucr.userId === userId.toString
@@ -198,11 +217,7 @@ object RegionTable {
         (_regions, _properties) <- currentRegions.leftJoin(regionProperties).on(_.regionId === _.regionId)
         if _properties.key === "Neighborhood Name"
       } yield (_regions.regionId, _properties.value.?, _regions.geom)
-      Some(_regions.list.map(x => NamedRegion.tupled(x)).head)
-    } catch {
-      case e: NoSuchElementException => None
-      case _: Throwable => None  // Shouldn't reach here
-    }
+      _regions.list.headOption.map(x => NamedRegion.tupled(x))
   }
 
   def selectNamedRegionsIntersectingAStreet(streetEdgeId: Int): List[NamedRegion] = db.withSession { implicit session =>
@@ -281,16 +296,16 @@ object RegionTable {
   def selectNamedRegionsOfAType(regionType: String): List[NamedRegion] = db.withSession { implicit session =>
 
     val _regions = for {
-      (_regions, _regionTypes) <- regionsWithoutDeleted.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId) if _regionTypes.regionType === regionType
+      (_regions, _regionTypes) <- regionsWithoutDeleted.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId)
+      if _regionTypes.regionType === regionType
     } yield _regions
 
 
     val _namedRegions = for {
-      (_regions, _regionProperties) <- _regions.leftJoin(regionProperties).on(_.regionId === _.regionId) if _regionProperties.key === "Neighborhood Name"
+      (_regions, _regionProperties) <- _regions.leftJoin(regionProperties).on(_.regionId === _.regionId)
+      if _regionProperties.key === "Neighborhood Name"
     } yield (_regions.regionId, _regionProperties.value.?, _regions.geom)
 
     _namedRegions.list.map(x => NamedRegion.tupled(x))
   }
-
-
 }
