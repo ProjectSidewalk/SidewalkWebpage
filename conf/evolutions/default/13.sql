@@ -1,5 +1,11 @@
 
 # --- !Ups
+DROP TABLE sidewalk_edge_accessibility_feature;
+
+DROP TABLE accessibility_feature;
+
+INSERT INTO label_type VALUES (8, 'Problem', 'Composite type: represents cluster of NoCurbRamp, Obstacle, and/or SurfaceProblem labels');
+
 CREATE TABLE user_clustering_session
 (
   user_clustering_session_id SERIAL NOT NULL,
@@ -73,8 +79,36 @@ CREATE TABLE global_attribute_user_attribute
 
 # --- !Downs
 DROP TABLE global_attribute_user_attribute;
+
 DROP TABLE global_attribute;
+
 DROP TABLE global_clustering_session;
+
 DROP TABLE user_attribute_label;
+
 DROP TABLE user_attribute;
+
 DROP TABLE user_clustering_session;
+
+DELETE FROM label_type WHERE label_type.label_type = 'Problem';
+
+CREATE TABLE accessibility_feature
+(
+  accessibility_feature_id SERIAL NOT NULL,
+  geom public.geometry,
+  label_type_id INTEGER,
+  x DOUBLE PRECISION,
+  y DOUBLE PRECISION,
+  PRIMARY KEY (accessibility_feature_id),
+  FOREIGN KEY (label_type_id) REFERENCES label_type (label_type_id)
+);
+
+CREATE TABLE sidewalk_edge_accessibility_feature
+(
+  sidewalk_edge_accessibility_feature_id SERIAL NOT NULL,
+  sidewalk_edge_id INTEGER,
+  accessibility_feature_id INTEGER,
+  PRIMARY KEY (accessibility_feature_id),
+  FOREIGN KEY (sidewalk_edge_id) REFERENCES sidewalk_edge (sidewalk_edge_id),
+  FOREIGN KEY (accessibility_feature_id) REFERENCES accessibility_feature (accessibility_feature_id)
+);
