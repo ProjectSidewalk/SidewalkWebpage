@@ -39,7 +39,7 @@ def cluster(labels, curr_type, thresholds, single_user):
     for clust_num, clust in clusters:
         ave_pos = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters
         ave_sev = None if pd.isnull(clust['severity']).all() else int(round(np.nanmedian(clust['severity'])))
-        ave_temp = None if pd.isnull(clust['temporary']).all() else bool(round(1 - np.mean(clust['temporary'])))
+        ave_temp = None if pd.isnull(clust['temporary']).all() else bool(round(np.mean(clust['temporary'])))
 
         cluster_list.append((curr_type, clust_num, ave_pos[0], ave_pos[1], ave_sev, ave_temp))
 
