@@ -117,7 +117,7 @@
     width: 100%;
 }
 
-#landmark-holder {
+#label-type-holder {
     background: transparent;
 
     position: absolute;
@@ -127,7 +127,7 @@
     width: 470px;
 }
 
-#ribbon-menu-landmark-title {
+#ribbon-menu-label-type-title {
     background: transparent;
     border-bottom: 1px solid #ccc;
     font-size: 9pt;
@@ -139,10 +139,10 @@
     left: 0;
     top: 5px;
     height: 16px;
-    width: 380px;
+    width: 452px;
 }
 
-#ribbon-menu-landmark-button-holder {
+#ribbon-menu-label-type-button-holder {
     background: transparent;
     margin-left: 10px;
     margin-right: 10px;
