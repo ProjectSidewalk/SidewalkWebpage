@@ -41,11 +41,14 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api"       % "1.7.7",
   "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
   "joda-time" % "joda-time" % "2.9.4",
+  "javax.media" % "jai_core" % "1.1.3" from "http://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
+  "javax.media" % "jai_codec" % "1.1.3" from "http://download.osgeo.org/webdav/geotools/javax/media/jai_codec/1.1.3/jai_codec-1.1.3.jar",
+  "javax.media" % "jai_imageio" % "1.1" from "http://download.osgeo.org/webdav/geotools/javax/media/jai_imageio/1.1/jai_imageio-1.1.jar",
   "org.geotools" % "gt-coverage" % "14.3",
   "org.geotools" % "gt-epsg-hsql" % "14.3",
   "org.geotools" % "gt-geotiff" % "14.3",
   "org.geotools" % "gt-main" % "14.3",
-  "org.geotools" % "gt-referencing" % "14.3"
+  "org.geotools" % "gt-referencing" % "14.3" exclude("javax.media", "jai_core")
 ).map(_.force())
 
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
