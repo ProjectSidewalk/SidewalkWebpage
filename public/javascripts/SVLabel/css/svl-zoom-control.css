@@ -2,21 +2,21 @@
     background: transparent;
 
     position: absolute;
-    left: 530px;
-    top: 51px;
-    height: 50px;
-    width: 150px;
+    left: 558px;
+    top: 58px;
+    height: 40px;
+    width: 135px;
 }
 
 .zoom-control-button {
     color: rgba(0,0,0,1);
     font-size: 9px;
-    height: 43px;
-    width: 43px;
+    height: 35px;
+    width: 65px;
     margin-right: 2px;
 }
 
 .zoom-button-icon {
-    height: 15px;
-    width: 15px;
+    height: 18px;
+    width: 18px;
 }
