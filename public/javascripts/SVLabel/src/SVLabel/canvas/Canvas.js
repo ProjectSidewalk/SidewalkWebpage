@@ -200,7 +200,6 @@ function Canvas(ribbon) {
         }, {
             temporaryLabelId: status.currentLabel.getProperty('temporary_label_id')
         });
-        svl.actionStack.push('addLabel', status.currentLabel);
 
         // Sound effect
         if ('audioEffect' in svl) {
@@ -416,7 +415,6 @@ function Canvas(ribbon) {
 
             if (currLabel) {
                 svl.labelContainer.removeLabel(currLabel);
-                svl.actionStack.push('deleteLabel', self.getCurrentLabel());
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
 
                 // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
@@ -878,9 +876,6 @@ function Canvas(ribbon) {
     function pushLabel(label) {
         status.currentLabel = label;
         svl.labelContainer.push(label);
-        if (svl.actionStack) {
-            svl.actionStack.push('addLabel', label);
-        }
         return this;
     }
 
@@ -996,11 +991,6 @@ function Canvas(ribbon) {
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) {
             renderTempPath();
-        }
-
-        // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) {
-            svl.actionStack.updateOpacity();
         }
 
         // Update the opacity of Zoom In and Zoom Out buttons.

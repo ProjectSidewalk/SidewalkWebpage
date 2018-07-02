@@ -134,7 +134,6 @@ function Main (params) {
 
         svl.labelCounter = new LabelCounter(d3);
 
-        svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         svl.pointCloud = new PointCloud();
@@ -316,7 +315,7 @@ function Main (params) {
 
             // Todo. It should pass UserModel instead of User (i.e., svl.user)
 
-            svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form,
+            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form,
                 onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
                 svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
@@ -542,13 +541,6 @@ function Main (params) {
      */
     function _initUI () {
         svl.ui = {};
-        svl.ui.actionStack = {};
-        svl.ui.actionStack.holder = $("#action-stack-control-holder");
-        svl.ui.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br />Undo</button>');
-        svl.ui.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br />Redo</button>');
-        svl.ui.actionStack.redo = $("#redo-button");
-        svl.ui.actionStack.undo = $("#undo-button");
-
         svl.ui.counterHolder = $("#counter-holder");
         svl.ui.labelCounter = $("#label-counter");
 
