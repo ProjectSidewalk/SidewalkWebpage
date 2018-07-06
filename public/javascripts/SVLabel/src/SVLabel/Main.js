@@ -594,7 +594,7 @@ function Main (params) {
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};
-        svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-button-holder");
+        svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
         svl.ui.ribbonMenu.buttons = $('span.modeSwitch');
         svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
