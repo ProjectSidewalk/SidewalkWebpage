@@ -5,6 +5,7 @@ package models.attribute
   */
 
 import models.label.{LabelType, LabelTypeTable}
+import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -16,6 +17,7 @@ case class GlobalAttribute(globalAttributeId: Int,
                            globalClusteringSessionId: Int,
                            clusteringThreshold: Float,
                            labelTypeId: Int,
+                           regionId: Int,
                            lat: Float, lng: Float,
                            severity: Option[Int],
                            temporary: Boolean)
@@ -26,6 +28,7 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull)
   def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)
   def labelTypeId: Column[Int] = column[Int]("label_type_id", O.NotNull)
+  def regionId: Column[Int] = column[Int]("region_id", O.NotNull)
   def lat: Column[Float] = column[Float]("lat", O.NotNull)
   def lng: Column[Float] = column[Float]("lng", O.NotNull)
   def severity: Column[Option[Int]] = column[Option[Int]]("severity")
@@ -35,6 +38,7 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
                                           globalClusteringSessionId,
                                           clusteringThreshold,
                                           labelTypeId,
+                                          regionId,
                                           lat, lng,
                                           severity,
                                           temporary) <>
@@ -42,6 +46,9 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("global_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
+
+  def region: ForeignKeyQuery[RegionTable, Region] =
+    foreignKey("global_attribute_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
 
   def globalClusteringSession: ForeignKeyQuery[GlobalClusteringSessionTable, GlobalClusteringSession] =
     foreignKey("global_attribute_global_clustering_session_id_fkey", globalClusteringSessionId, TableQuery[GlobalClusteringSessionTable])(_.globalClusteringSessionId)

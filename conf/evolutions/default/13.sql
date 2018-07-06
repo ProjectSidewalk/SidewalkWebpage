@@ -23,13 +23,15 @@ CREATE TABLE user_attribute
   user_clustering_session_id INT NOT NULL,
   clustering_threshold DOUBLE PRECISION NOT NULL,
   label_type_id INT NOT NULL,
+  region_id INT NOT NULL,
   lat DOUBLE PRECISION NOT NULL,
   lng DOUBLE PRECISION NOT NULL,
   severity INT,
   temporary BOOLEAN NOT NULL,
   PRIMARY KEY (user_attribute_id),
   FOREIGN KEY (user_clustering_session_id) REFERENCES user_clustering_session(user_clustering_session_id),
-  FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id)
+  FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id),
+  FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
 CREATE TABLE user_attribute_label
@@ -57,13 +59,15 @@ CREATE TABLE global_attribute
   global_clustering_session_id INT NOT NULL,
   clustering_threshold DOUBLE PRECISION NOT NULL,
   label_type_id INT NOT NULL,
+  region_id INT NOT NULL,
   lat DOUBLE PRECISION NOT NULL,
   lng DOUBLE PRECISION NOT NULL,
   severity INT,
   temporary BOOLEAN NOT NULL,
   PRIMARY KEY (global_attribute_id),
   FOREIGN KEY (global_clustering_session_id) REFERENCES global_clustering_session(global_clustering_session_id),
-  FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id)
+  FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id),
+  FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
 CREATE TABLE global_attribute_user_attribute

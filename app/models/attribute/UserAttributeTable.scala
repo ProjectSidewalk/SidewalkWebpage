@@ -5,6 +5,7 @@ package models.attribute
   */
 
 import models.label.{LabelType, LabelTypeTable}
+import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -16,6 +17,7 @@ case class UserAttribute(userAttributeId: Int,
                          userClusteringSessionId: Int,
                          clusteringThreshold: Float,
                          labelTypeId: Int,
+                         regionId: Int,
                          lat: Float,
                          lng: Float,
                          severity: Option[Int],
@@ -27,6 +29,7 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
   def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull)
   def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)
   def labelTypeId: Column[Int] = column[Int]("label_type_id", O.NotNull)
+  def regionId: Column[Int] = column[Int]("region_id", O.NotNull)
   def lat: Column[Float] = column[Float]("lat", O.NotNull)
   def lng: Column[Float] = column[Float]("lng", O.NotNull)
   def severity: Column[Option[Int]] = column[Option[Int]]("severity")
@@ -36,6 +39,7 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
                                         userClusteringSessionId,
                                         clusteringThreshold,
                                         labelTypeId,
+                                        regionId,
                                         lat, lng,
                                         severity,
                                         temporary) <>
@@ -43,6 +47,9 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("user_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
+
+  def region: ForeignKeyQuery[RegionTable, Region] =
+    foreignKey("user_attribute_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
 
   def userClusteringSession: ForeignKeyQuery[UserClusteringSessionTable, UserClusteringSession] =
     foreignKey("user_attribute_user_clustering_session_id_fkey", userClusteringSessionId, TableQuery[UserClusteringSessionTable])(_.userClusteringSessionId)

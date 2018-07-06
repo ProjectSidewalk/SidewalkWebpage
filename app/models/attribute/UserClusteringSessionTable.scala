@@ -6,7 +6,7 @@ package models.attribute
 
 import models.audit.{AuditTaskEnvironmentTable, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, ProblemTemporarinessTable}
+import models.label.{LabelTable, LabelTypeTable, ProblemTemporarinessTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -147,29 +147,22 @@ object UserClusteringSessionTable {
     * @return
     */
   def getClusteredLabelsInRegion(regionId: Int): List[LabelToCluster] = db.withTransaction { implicit session =>
-    val clustersInRegionQuery = Q.query[Int, LabelToCluster](
-      """SELECT COALESCE(ip_address, user_id) AS user_id_or_ip,
-        |       user_attribute.user_attribute_id,
-        |       label_type.label_type,
-        |       user_attribute.lat,
-        |       user_attribute.lng,
-        |       user_attribute.severity,
-        |       user_attribute.temporary
-        |FROM user_clustering_session
-        |INNER JOIN user_attribute
-        |    ON user_clustering_session.user_clustering_session_id = user_attribute.user_clustering_session_id
-        |INNER JOIN label_type
-        |    ON user_attribute.label_type_id = label_type.label_type_id
-        |INNER JOIN region
-        |    ON st_intersects
-        |    (
-        |        st_setsrid(st_makepoint(user_attribute.lng, user_attribute.lat), 4326),
-        |        region.geom
-        |    )
-        |WHERE region.region_id = ?;
-      """.stripMargin
+    val labelsInRegion = for {
+      _sess <- userClusteringSessions
+      _att <- UserAttributeTable.userAttributes if _sess.userClusteringSessionId === _att.userClusteringSessionId
+      _type <- LabelTypeTable.labelTypes if _att.labelTypeId === _type.labelTypeId
+      if _att.regionId === regionId
+    } yield (
+      _sess.ipAddress.ifNull(_sess.userId),
+      _att.userAttributeId,
+      _type.labelType,
+      _att.lat.?,
+      _att.lng.?,
+      _att.severity,
+      _att.temporary
     )
-    clustersInRegionQuery(regionId).list
+
+    labelsInRegion.list.map(LabelToCluster.tupled)
   }
 
   /**
