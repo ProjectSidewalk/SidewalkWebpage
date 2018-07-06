@@ -23,9 +23,9 @@ def cluster(labels, curr_type, thresholds, single_user):
     # Makes a normal dist matrix for a single user, but uses special dist function for multi-user clustering that
     # prevents the same user's attributes from being clustered together.
     if single_user:
-        dist_matrix = pdist(np.array(labels[['lat', 'lng']].as_matrix()), lambda x, y: haversine(x, y))
+        dist_matrix = pdist(np.array(labels[['lat', 'lng']].values), lambda x, y: haversine(x, y))
     else:
-        dist_matrix = pdist(np.array(labels[['lat', 'lng', 'user_id_or_ip']].as_matrix()), custom_dist)
+        dist_matrix = pdist(np.array(labels[['lat', 'lng', 'user_id_or_ip']].values), custom_dist)
     link = linkage(dist_matrix, method='complete')
 
     # Copies the labels dataframe and adds a column to it for the cluster id each label is in.
