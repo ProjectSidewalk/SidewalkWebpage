@@ -170,6 +170,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 svl.tracker.push("KeyboardShortcut_Severity_1", {
                                     keyCode: e.keyCode
                                 });
+                                svl.canvas.clear().render2();
                             }
                         }
 
@@ -183,6 +184,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 svl.tracker.push("KeyboardShortcut_Severity_2", {
                                     keyCode: e.keyCode
                                 });
+                                svl.canvas.clear().render2();
                             }
                         }
                         break;
@@ -195,6 +197,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 svl.tracker.push("KeyboardShortcut_Severity_3", {
                                     keyCode: e.keyCode
                                 });
+                                svl.canvas.clear().render2();
                             }
                         }
                         break;
@@ -207,6 +210,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 svl.tracker.push("KeyboardShortcut_Severity_4", {
                                     keyCode: e.keyCode
                                 });
+                                svl.canvas.clear().render2();
                             }
                         }
                         break;
@@ -219,6 +223,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 svl.tracker.push("KeyboardShortcut_Severity_5", {
                                     keyCode: e.keyCode
                                 });
+                                svl.canvas.clear().render2();
                             }
                         }
                         break;

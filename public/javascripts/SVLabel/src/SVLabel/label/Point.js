@@ -201,7 +201,7 @@ function Point (svl, x, y, pov, params) {
     }
 
     /**
-     * Renders this point
+     * Renders label image icon
      * @param pov
      * @param ctx
      */

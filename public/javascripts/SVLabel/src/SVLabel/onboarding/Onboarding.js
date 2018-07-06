@@ -648,7 +648,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             "NoCurbRamp": "Missing Curb Ramp",
             "Obstacle": "Obstacle in Path",
             "SurfaceProblem": "Surface Problem",
-            "Other": "No Sidewalk"
+            "NoSidewalk": "No Sidewalk"
         };
 
         // Callback for deleted label
