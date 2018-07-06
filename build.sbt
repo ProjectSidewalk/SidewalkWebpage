@@ -18,7 +18,8 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 resolvers ++= Seq(
   "geosolutions" at "http://maven.geo-solutions.it/",
-  "boundlessgeo" at "https://repo.boundlessgeo.com/main/org/"
+  "boundlessgeo" at "https://repo.boundlessgeo.com/main/",
+  "osgeo" at "http://download.osgeo.org/webdav/geotools/"
 )
 
 libraryDependencies ++= Seq(
@@ -44,11 +45,15 @@ libraryDependencies ++= Seq(
   "javax.media" % "jai_core" % "1.1.3" from "http://maven.geomajas.org/nexus/content/groups/public/javax/media/jai-core/1.1.3",
   "javax.media" % "jai_codec" % "1.1.3" from "http://maven.geomajas.org/nexus/content/groups/public/javax/media/jai_codec/1.1.3",
   "javax.media" % "jai_imageio" % "1.1" from "http://maven.geomajas.org/nexus/content/groups/public/javax/media/jai_imageio/1.1",
+  "jgridshift" % "jgridshift" % "1.0",
   "org.geotools" % "gt-coverage" % "14.3",
   "org.geotools" % "gt-epsg-hsql" % "14.3",
   "org.geotools" % "gt-geotiff" % "14.3",
   "org.geotools" % "gt-main" % "14.3",
-  "org.geotools" % "gt-referencing" % "14.3" exclude("javax.media", "jai_core")
+  "org.geotools" % "gt-referencing" % "14.3" excludeAll(
+  	ExclusionRule(organization = "javax.media"),
+	ExclusionRule(organization = "jgridshift")
+  )
 ).map(_.force())
 
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
