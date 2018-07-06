@@ -44,11 +44,11 @@ libraryDependencies ++= Seq(
   "javax.media" % "jai_core" % "1.1.3" from "http://maven.geomajas.org/nexus/content/groups/public/javax/media/jai-core/1.1.3",
   "javax.media" % "jai_codec" % "1.1.3" from "http://maven.geomajas.org/nexus/content/groups/public/javax/media/jai_codec/1.1.3",
   "javax.media" % "jai_imageio" % "1.1" from "http://maven.geomajas.org/nexus/content/groups/public/javax/media/jai_imageio/1.1",
-  "geotools" % "gt-coverage" % "14.3",
-  "geotools" % "gt-epsg-hsql" % "14.3",
-  "geotools" % "gt-geotiff" % "14.3",
-  "geotools" % "gt-main" % "14.3",
-  "geotools" % "gt-referencing" % "14.3" exclude("javax.media", "jai_core")
+  "org.geotools" % "gt-coverage" % "14.3",
+  "org.geotools" % "gt-epsg-hsql" % "14.3",
+  "org.geotools" % "gt-geotiff" % "14.3",
+  "org.geotools" % "gt-main" % "14.3",
+  "org.geotools" % "gt-referencing" % "14.3" exclude("javax.media", "jai_core")
 ).map(_.force())
 
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
