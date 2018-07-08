@@ -218,7 +218,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
                 "top": 0,
-                "left": 325
+                "left": 428
             },
             "panoId": panoId,
             "annotations": null,
@@ -499,7 +499,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
                 "top": 0,
-                "left": 400
+                "left": 495
             },
             "panoId": panoId,
             "annotations": null,
