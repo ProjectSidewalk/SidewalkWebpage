@@ -48,7 +48,7 @@ case class LabelLocationWithSeverity(labelId: Int,
 /**
  *
  */
-class LabelTable(tag: Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
+class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)

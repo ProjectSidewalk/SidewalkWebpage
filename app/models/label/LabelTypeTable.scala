@@ -9,7 +9,7 @@ case class LabelType(labelTypeId: Int, labelType: String, description: String)
 /**
  *
  */
-class LabelTypeTable(tag: Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
+class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
   def labelType = column[String]("label_type", O.NotNull)
   def description = column[String]("description")
@@ -26,12 +26,24 @@ object LabelTypeTable {
 
   /**
    * Return the label id
+    *
    * @param labelType
    * @return
    */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
     val typeId: Option[Int] = labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.headOption
     typeId.getOrElse(LabelTypeTable.save(LabelType(0, labelType, "")))
+  }
+
+  /**
+    * Return the label type
+    *
+    * @param labelTypeId
+    * @return
+    */
+  def labelTypeIdToLabelType(labelTypeId: Int): String = db.withTransaction { implicit session =>
+    val labelType: Option[String] = labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).list.headOption
+    labelType.get
   }
 
   /**

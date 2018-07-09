@@ -186,6 +186,20 @@ function ContextMenu (uiContextMenu) {
         self.updateRadioButtonImages();
     }
 
+    self.fetchLabelTags = function (callback) {
+        $.when($.ajax({
+            contentType: 'application/json; charset=utf-8',
+            url: "/label/tags",
+            type: 'get',
+            success: function (json) {
+                self.labelTags = json;
+            },
+            error: function (result) {
+                throw result;
+            }
+        })).done(callback);
+    };
+
     self.updateRadioButtonImages = function (hoveredRadioButtonValue) {
         var $radioButtonImages = $radioButtonLabels.find("input + img");
         var $selectedRadioButtonImage;
@@ -315,6 +329,7 @@ function ContextMenu (uiContextMenu) {
      */
     function setTags (label) {
         var maxButtons = 5;
+        console.log(self.labelTags);
         if (label) {
             var labelTags = label.getProperty('labelTags');
             if (labelTags) {
