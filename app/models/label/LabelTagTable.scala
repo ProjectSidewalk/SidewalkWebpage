@@ -35,6 +35,27 @@ object LabelTagTable {
   }
 
   /**
+    * Get all records for the given label_id.
+    *
+    * @param labelId
+    * @return
+    */
+  def selectTagIdsForLabelId(labelId: Int): List[Int] = db.withTransaction { implicit session =>
+    labelTagTable.filter(_.labelId === labelId).map(_.tagId).list
+  }
+
+  /**
+    * Delete a record with the given label_id and tag_id.
+    *
+    * @param labelId
+    * @param tagId
+    * @return Number of deleted rows.
+    */
+  def delete(labelId: Int, tagId: Int): Int = db.withTransaction { implicit session =>
+    labelTagTable.filter(labelTag => labelTag.labelId === labelId && labelTag.tagId === tagId).delete
+  }
+
+  /**
     * Save a record.
     *
     * @param labelTag

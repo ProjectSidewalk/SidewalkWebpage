@@ -85,6 +85,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 label_points : [],
                 severity: label.getProperty('severity'),
                 temporary_problem: label.getProperty('temporaryProblem'),
+                tag_ids: [], // TODO record the tag_ids so we can submit them here
                 description: label.getProperty('description'),
                 time_created: timeCreated
             };
