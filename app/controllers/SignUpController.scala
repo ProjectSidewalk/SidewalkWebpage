@@ -185,7 +185,7 @@ class SignUpController @Inject() (
     * @param url
     * @return
     */
-  def signInAnon(url: String) = UserAwareAction.async { implicit request =>
+  def signUpAnon(url: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => Future.successful(Redirect(url))
       case None =>

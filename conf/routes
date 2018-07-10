@@ -24,7 +24,7 @@ GET     /signIn                                              @controllers.UserCo
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
 GET     /signOut                                             @controllers.UserController.signOut(url: String ?= "/")
 GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
-GET     /anonSignup                                          @controllers.SignUpController.signInAnon(url: String ?= "/")
+GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
 POST    /signUp                                              @controllers.SignUpController.signUp(url: String ?= "/")
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate

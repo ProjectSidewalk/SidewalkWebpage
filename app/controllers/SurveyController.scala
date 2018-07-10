@@ -102,20 +102,18 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
   }
 
   def shouldDisplaySurvey = UserAwareAction.async { implicit request =>
-    val userId: UUID = request.identity match {
-      case Some(user) => user.userId
-      case None =>
-        val user: Option[DBUser] = UserTable.find("anonymous")
-        UUID.fromString(user.get.userId)
+    request.identity match {
+      case Some(user) =>
+        val userId: UUID = user.userId
+        val userRole: String = UserRoleTable.getRole(userId)
+
+        val numMissionsBeforeSurvey = 2
+        val userRoleForSurvey = "Turker"
+
+        val displaySurvey = userRole == userRoleForSurvey //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
+        Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
+
+      case None => Future.successful(Redirect(s"/anonSignUp?url=/survey/display"))
     }
-    val userRole: String = UserRoleTable.getRole(userId)
-
-    val numMissionsBeforeSurvey = 2
-    val userRoleForSurvey = "Turker"
-
-    val displaySurvey = userRole == userRoleForSurvey //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
-    Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
-
   }
-
 }

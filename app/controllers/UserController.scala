@@ -38,9 +38,10 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @return The result to display.
    */
   def signIn(url: String) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => Future.successful(Redirect(url))
-      case None => Future.successful(Ok(views.html.signIn(SignInForm.form, url)))
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signIn(SignInForm.form, url)))
+    } else {
+      Future.successful(Redirect(url))
     }
   }
 

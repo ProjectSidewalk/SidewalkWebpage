@@ -36,7 +36,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val username: String = user.username
         Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user))))
-      case None => Future.successful(Redirect("/"))
+      case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }
   }
 
@@ -45,7 +45,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val username: String = user.username
         Future.successful(Ok(views.html.previousAudit(s"Project Sidewalk - $username", Some(user))))
-      case None => Future.successful(Redirect("/"))
+      case None => Future.successful(Redirect("/anonSignUp?url=/contribution/previousAudit"))
     }
   }
 

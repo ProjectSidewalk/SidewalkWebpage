@@ -386,32 +386,6 @@ object AuditTaskTable {
     task
   }
 
-
-  /**
-   * Get a task that is in a given region. Used for anon users in all situations, except when using /audit/street.
-    *
-    * @param regionId region id
-   * @return
-   */
-  def selectANewTaskInARegion(regionId: Int): Option[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
-    // Join with other queries to get completion count and priority for each of the street edges.
-    val edgesWithCompletionCountAndPriority = for {
-      ser <- nonDeletedStreetEdgeRegions if ser.regionId === regionId
-      se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
-      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-      cc <- streetCompletionCounts if sp.streetEdgeId === cc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)
-
-    // Take the highest priority street.
-    val task: Option[NewTask] = edgesWithCompletionCountAndPriority.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
-
-    // If a task was found, update the street_edge_assignment_count table.
-    task.map(t => StreetEdgeAssignmentCountTable.incrementAssignment(t.edgeId))
-    task
-  }
-
   /**
    * Get a task that is in a given region. Used if a user has already been assigned a region, or from /audit/region.
    *

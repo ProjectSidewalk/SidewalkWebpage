@@ -24,7 +24,7 @@ class MapController @Inject() (implicit val env: Environment[User, SessionAuthen
   def edit = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>Future.successful(Ok(views.html.mapEdit("Project Sidewalk", Some(user))))
-      case None => Future.successful(Ok(views.html.mapEdit("Project Sidewalk")))
+      case None => Future.successful(Redirect("/anonSignUp?url=/map/edit"))
     }
   }
 }
