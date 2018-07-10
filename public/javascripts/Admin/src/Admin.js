@@ -364,7 +364,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 "CurbRamp": 0,
                 "NoCurbRamp": 0,
                 "Obstacle": 0,
-                "SurfaceProblem": 0
+                "SurfaceProblem": 0,
+                "NoSidewalk": 0
             };
 
             for (var i = data.features.length - 1; i >= 0; i--) {
@@ -379,9 +380,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
             document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+            document.getElementById("map-legend-nosidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
             document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
             document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
-            document.getElementById("map-legend-nosidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
 
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
@@ -429,10 +430,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAllLayers(data) {
+        var count = 1;
         for (i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
-            if(labelType == "Occlusion" || labelType == "NoSidewalk"){
-                //console.log(data.features[i]);
+            if(labelType === "Occlusion" || labelType === "NoSidewalk"){
+                // console.log(data.features[i]);
             }
             if (data.features[i].properties.severity == 1) {
                 self.allLayers[labelType][0].push(data.features[i]);

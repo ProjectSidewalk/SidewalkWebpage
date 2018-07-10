@@ -218,7 +218,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
                 "top": 0,
-                "left": 325
+                "left": 428
             },
             "panoId": panoId,
             "annotations": null,
@@ -499,7 +499,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
                 "top": 0,
-                "left": 400
+                "left": 495
             },
             "panoId": panoId,
             "annotations": null,
@@ -1019,15 +1019,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "select-label-type-6": {
             "properties": {
                 "action": "SelectLabelType",
-                "labelType": "Other",
-                "subcategory": "NoSidewalk",
+                "labelType": "NoSidewalk",
                 "minHeading": headingRanges["stage-3"][0],
                 "maxHeading": headingRanges["stage-3"][1],
                 "maxLabelCount": 5
             },
             "message": {
                 "message": 'Notice that the sidewalk suddenly ends here. Let’s label this. ' +
-                '<span class="bold">Click the "Other" button then "No Sidewalk"</span> to label it.',
+                'Click the <span class="bold">"No Sidewalk"</span> button to label it.',
                 "position": "top-left",
                 "parameters": null
             },
@@ -1055,8 +1054,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "label-attribute-6": {
             "properties": [{
                 "action": "LabelAccessibilityAttribute",
-                "labelType": "Other",
-                "subcategory": "NoSidewalk",
+                "labelType": "NoSidewalk",
                 "imageX": 2766,
                 "imageY": -550,
                 "tolerance": 300,

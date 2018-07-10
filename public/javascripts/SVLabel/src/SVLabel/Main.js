@@ -9,9 +9,6 @@ var svl = svl || {};
  */
 function Main (params) {
     var self = { className: 'Main' };
-    var status = {
-        isFirstTask: false
-    };
 
     // Initialize things that needs data loading.
     var loadingAnOnboardingTaskCompleted = false;
@@ -137,7 +134,6 @@ function Main (params) {
 
         svl.labelCounter = new LabelCounter(d3);
 
-        svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         svl.pointCloud = new PointCloud();
@@ -200,16 +196,6 @@ function Main (params) {
         // Proxy for knowing if the neighborhood is complete across all users
         if(task.getStreetCompletionCount() > 0) {
             svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-        }
-
-        if (getStatus("isFirstTask")) {
-            svl.popUpMessage.setPosition(10, 120, width=400, height=undefined, background=true);
-            svl.popUpMessage.setMessage("<span class='bold'>Remember, label all the landmarks close to the bus stop.</span> " +
-                "Now the actual task begins. Click OK to start the task.");
-            svl.popUpMessage.appendOKButton();
-            svl.popUpMessage.show();
-        } else {
-            svl.popUpMessage.hide();
         }
 
         $("#toolbar-onboarding-link").on('click', function () {
@@ -329,7 +315,7 @@ function Main (params) {
 
             // Todo. It should pass UserModel instead of User (i.e., svl.user)
 
-            svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form,
+            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form,
                 onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
                 svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
@@ -548,14 +534,6 @@ function Main (params) {
         return _tasks.length > 0;
     }
 
-    function getStatus (key) {
-        return key in status ? status[key] : null;
-    }
-
-    function setStatus (key, value) {
-        status[key] = value; return this;
-    }
-
     /**
      * Store jQuery DOM elements under svl.ui
      * Todo. Once we update all the modules to take ui elements as injected argumentss, get rid of the svl.ui namespace and everything in it.
@@ -563,13 +541,6 @@ function Main (params) {
      */
     function _initUI () {
         svl.ui = {};
-        svl.ui.actionStack = {};
-        svl.ui.actionStack.holder = $("#action-stack-control-holder");
-        svl.ui.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br /><small>Undo</small></button>');
-        svl.ui.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br /><small>Redo</small></button>');
-        svl.ui.actionStack.redo = $("#redo-button");
-        svl.ui.actionStack.undo = $("#undo-button");
-
         svl.ui.counterHolder = $("#counter-holder");
         svl.ui.labelCounter = $("#label-counter");
 
@@ -623,7 +594,7 @@ function Main (params) {
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};
-        svl.ui.ribbonMenu.holder = $("#ribbon-menu-landmark-button-holder");
+        svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
         svl.ui.ribbonMenu.buttons = $('span.modeSwitch');
         svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
@@ -726,7 +697,9 @@ function Main (params) {
         svl.ui.canvas = {};
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
+        svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
         svl.ui.canvas.deleteIcon = $("#LabelDeleteIcon");
+        svl.ui.canvas.severityIcon = $("#severity-icon");
 
         // Interaction viewer
         svl.ui.tracker = {};
@@ -749,8 +722,6 @@ function Main (params) {
         _init(params);
     }
 
-    self.getStatus = getStatus;
-    self.setStatus = setStatus;
     self.isAnAnonymousUser = isAnAnonymousUser;
     self.loadData = loadData;
 
