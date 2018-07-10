@@ -89,7 +89,7 @@ object StreetEdgeTable {
     _users <- userTable
     _tasks <- completedAuditTasks if _users.userId === _tasks.userId && _users.username =!= "anonymous"
     _roleIds <- userRoles if _roleIds.userId === _tasks.userId
-    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "User"
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Registered"
   } yield _tasks
 
   val researcherCompletedAuditTasks = for {

@@ -128,7 +128,8 @@ object AuditTaskInteractionTable {
   }
 
   /**
-  * Select all audit task interaction times
+  * Select all audit task interaction times for non-researchers.
+    *
   * @return
   */
 def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
@@ -145,7 +146,13 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
       |       ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
       |    WHERE action = 'ViewControl_MouseDown'
       |        AND audit_task.user_id <> ?
-      |        AND audit_task.user_id NOT IN (SELECT user_id FROM user_role WHERE role_id > 1)
+      |        AND audit_task.user_id IN
+      |        (
+      |            SELECT user_id
+      |            FROM user_role
+      |            INNER JOIN role ON user_role.role_id = role.role_id
+      |            WHERE role IN ('Registered', 'Anonymous')
+      |        )
       |    ) user_audit_times
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       |GROUP BY user_id;""".stripMargin
@@ -156,6 +163,7 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
 
   /**
     * Select all audit task interaction times for Turker users
+    *
     * @return
     */
   def selectAllTurkerAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>

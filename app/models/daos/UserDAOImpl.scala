@@ -113,7 +113,7 @@ object UserDAOImpl {
             |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
             |INNER JOIN sidewalk.role
             |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
-            |WHERE role.role = 'User'
+            |WHERE role.role = 'Registered'
             |  AND audit_task.completed = true
           """.stripMargin
         )
@@ -127,7 +127,7 @@ object UserDAOImpl {
             |  ON sidewalk.user.user_id = sidewalk.user_role.user_id
             |INNER JOIN sidewalk.role
             |  ON sidewalk.role.role_id = sidewalk.user_role.role_id
-            |WHERE role.role = 'User'
+            |WHERE role.role = 'Registered'
           """.stripMargin
         )
     }
@@ -350,7 +350,7 @@ object UserDAOImpl {
         |      AND audit_task.user_id != (SELECT user_id
         |                                 FROM sidewalk.user
         |                                 WHERE username = 'anonymous')
-        |      AND role.role = 'User'
+        |      AND role.role = 'Registered'
         |      AND audit_task.completed = true""".stripMargin
     )
     val count = countQuery.list.head

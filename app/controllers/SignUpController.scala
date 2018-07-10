@@ -98,7 +98,7 @@ class SignUpController @Inject() (
                   ))
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
-                  UserRoleTable.setRole(user.userId, "User")
+                  UserRoleTable.setRole(user.userId, "Registered")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
@@ -159,7 +159,7 @@ class SignUpController @Inject() (
                   ))
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
-                  UserRoleTable.setRole(user.userId, "User")
+                  UserRoleTable.setRole(user.userId, "Registered")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp

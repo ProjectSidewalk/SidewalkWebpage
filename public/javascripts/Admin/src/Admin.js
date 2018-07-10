@@ -1420,7 +1420,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var button = $('#userRoleDropdown' + result.user_id);
                 var buttonContents = button.html();
                 var newRole = result.role;
-                button.html(buttonContents.replace(/User|Turker|Researcher|Administrator/g, newRole));
+                button.html(buttonContents.replace(/Registered|Turker|Researcher|Administrator|Anonymous/g, newRole));
             },
             error: function (result) {
                 console.error(result);
