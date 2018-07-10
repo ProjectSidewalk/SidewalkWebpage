@@ -52,7 +52,7 @@ class SignUpController @Inject() (
    *
    * @return The result to display.
    */
-  def signUp(url: String) = Action.async { implicit request =>
+  def signUp(url: String) = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
@@ -75,11 +75,14 @@ class SignUpController @Inject() (
                 WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
               case None =>
-                val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
                 val authInfo = passwordHasher.hash(data.password)
                 val user = User(
-                  userId = UUID.randomUUID(),
-                  loginInfo = loginInfo,
+                  userId = if (request.identity.isDefined) {
+                    request.identity.get.userId
+                  } else {
+                    UUID.randomUUID()
+                  },
+                  loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
                   username = data.username,
                   email = data.email,
                   role = None
@@ -87,7 +90,7 @@ class SignUpController @Inject() (
 
                 for {
                   user <- userService.save(user)
-                  authInfo <- authInfoService.save(loginInfo, authInfo)
+                  authInfo <- authInfoService.save(user.loginInfo, authInfo)
                   authenticator <- env.authenticatorService.create(user.loginInfo)
                   value <- env.authenticatorService.init(authenticator)
                   result <- env.authenticatorService.embed(value, Future.successful(
@@ -174,6 +177,61 @@ class SignUpController @Inject() (
         }
       }
     )
+  }
+
+  /**
+    * If there is no user signed in, an anon user with randomly generated username/password is created.
+    *
+    * @param url
+    * @return
+    */
+  def signInAnon(url: String) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => Future.successful(Redirect(url))
+      case None =>
+        val ipAddress: String = request.remoteAddress
+
+        // Generate random strings for anonymous username/email/password (keep trying if we accidentally make a duplicate).
+        var randomUsername: String = Random.alphanumeric take 16 mkString ""
+        while (UserTable.find(randomUsername).isDefined) randomUsername = Random.alphanumeric take 16 mkString ""
+        var randomEmail: String = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+        while (UserTable.findEmail(randomEmail).isDefined)
+          randomEmail = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+        val randomPassword: String = Random.alphanumeric take 16 mkString ""
+
+        val loginInfo = LoginInfo(CredentialsProvider.ID, randomEmail)
+        val authInfo = passwordHasher.hash(randomPassword)
+        val user = User(
+          userId = UUID.randomUUID(),
+          loginInfo = loginInfo,
+          username = randomUsername,
+          email = randomEmail,
+          role = None
+        )
+
+        for {
+          user <- userService.save(user)
+          authInfo <- authInfoService.save(loginInfo, authInfo)
+          authenticator <- env.authenticatorService.create(user.loginInfo)
+          value <- env.authenticatorService.init(authenticator)
+          result <- env.authenticatorService.embed(value, Future.successful(
+            Redirect(url)
+          ))
+        } yield {
+          // Set the user role.
+          UserRoleTable.setRole(user.userId, "Anonymous")
+
+          // Add Timestamp
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUpAnonymous", timestamp))
+
+          env.eventBus.publish(SignUpEvent(user, request, request2lang))
+          env.eventBus.publish(LoginEvent(user, request, request2lang))
+
+          result
+        }
+    }
   }
 
   def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>

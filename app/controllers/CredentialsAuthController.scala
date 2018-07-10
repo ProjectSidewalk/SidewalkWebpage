@@ -6,7 +6,6 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.exceptions.{ConfigurationException, ProviderException}
-import com.mohiva.play.silhouette.api.services.AuthInfoService
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
@@ -35,8 +34,7 @@ import scala.concurrent.Future
   */
 class CredentialsAuthController @Inject() (
                                             implicit val env: Environment[User, SessionAuthenticator],
-                                            val userService: UserService,
-                                            val authInfoService: AuthInfoService)
+                                            val userService: UserService)
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
   /**

@@ -24,7 +24,7 @@ object UserRoleTable {
   val roles = TableQuery[RoleTable]
   val userTable = TableQuery[UserTable]
 
-  val roleMapping = Map("User" -> 1, "Turker" -> 2, "Researcher" -> 3, "Administrator" -> 4, "Owner" -> 5)
+  val roleMapping = Map("User" -> 1, "Turker" -> 2, "Researcher" -> 3, "Administrator" -> 4, "Owner" -> 5, "Anonymous" -> 6)
 
 
   /**
