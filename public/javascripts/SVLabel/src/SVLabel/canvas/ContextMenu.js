@@ -229,30 +229,31 @@ function ContextMenu (uiContextMenu) {
     };
 
     /**
-     * This function adds the description from a tag to the label's description box when clicked
-     * @private
+     * Adds the description from a tag to the label's description box when clicked.
      */
     function _handleTagClick () {
         var label = getTargetLabel();
+        var labelTags = label.getProperty('tagIds');
 
-        // From: https://stackoverflow.com/questions/25779475/jquery-click-event-doesnt-work-after-first-click
-        $("body").on('click', 'button', function(e){
+        $("body").unbind('click').on('click', 'button', function(e){
             if (e.target.name == 'tag') {
                 var tagValue = e.target.textContent || e.target.innerText;
-                if (label) {
-                    svl.tracker.push('ContextMenu_TagClicked', { Tag: tagValue });
-                    var currentDescription = label.getProperty('description');
-                    if (currentDescription == null || currentDescription.length == 0) {
-                        label.setProperty('description', tagValue);
-                        $descriptionTextBox.val(label.getProperty('description'));
-                    } else {
-                        // only add the tag to the description if it isn't in the description yet
-                        if (!currentDescription.includes(tagValue)) {
-                            label.setProperty('description', currentDescription + ', ' + tagValue);
-                            $descriptionTextBox.val(label.getProperty('description'));
+                svl.tracker.push('ContextMenu_TagClicked', { Tag: tagValue });
+
+                // Adds or removes tag from the label's current list of tags.
+                self.labelTags.forEach(function (tag) {
+                    if (tag.tag === tagValue) {
+                        if (!labelTags.includes(tag.tag_id)) {
+                            labelTags.push(tag.tag_id);
+                        } else {
+                            var index = labelTags.indexOf(tag.tag_id);
+                            labelTags.splice(index, 1);
                         }
+                        console.log("Label Tags: " + labelTags);
+                        _toggleTagColor(labelTags, tag.tag_id, e.target);
+                        label.setProperty('tagIds', labelTags);
                     }
-                }
+                })
             }
         });
     }
@@ -323,32 +324,63 @@ function ContextMenu (uiContextMenu) {
         return this;
     }
 
+
     /**
-     * Sets the description and value of the tag based on the label type
-     * @param label     Current label being modified
+     * Sets the color of a label's tags based off of tags that were previously chosen.
+     * @param label     Current label being modified.
+     */
+    function setTagColor(label) {
+        console.log('Resetting tag color');
+        var labelTags = label.getProperty('tagIds');
+        $("body").find("button[name=tag]").each(function(t) {
+            var buttonText = $(this).text();
+            if (buttonText) {
+                var tagId = undefined;
+
+                // Finds the tag id based of the current button based off text description.
+                self.labelTags.forEach(function (tag) {
+                    console.log('labelTag: ' + tag.tag + ', text: ' + buttonText);
+                    if (tag.tag === buttonText) {
+                        tagId = tag.tag_id;
+                    }
+                });
+
+                // Sets color to be white or gray if the label tag has been selected.
+                if (labelTags.includes(tagId)) {
+                    $(this).css('background-color', 'rgb(200, 200, 200)');
+                } else {
+                    $(this).css('background-color', 'white');
+                }
+            }
+        });
+    }
+
+    /**
+     * Sets the description and value of the tag based on the label type.
+     * @param label     Current label being modified.
      */
     function setTags (label) {
-        var maxButtons = 5;
-        console.log(self.labelTags);
+        var maxTags = 5;
         if (label) {
-            var labelTags = label.getProperty('labelTags');
-            if (labelTags) {
+            var labelTags = self.labelTags;
+            if (self.labelTags) {
                 document.getElementById("context-menu-tag-holder").style.height = '25px';
                 document.getElementById("context-menu-holder").style.height = '170px';
                 document.getElementById("context-menu-ok-button").style.top = '65px';
-                // console.log('Label Tags: ' + labelTags + ' length = ' + labelTags.length);
                 var count = 0;
-                // go through each label tag, modify each button to display tag
-                labelTags.forEach(function (t) {
-                    console.log('Thing: ' + t + ' Count: ' + count);
-                    $("body").find("button[id=" + count + "]").html(t);
-                    $("body").find("button[id=" + count + "]").css('visibility', 'inherit');
-                    count += 1;
+
+                // Go through each label tag, modify each button to display tag.
+                labelTags.forEach(function (tag) {
+                    if (tag.label_type === label.getProperty('labelType')) {
+                        $("body").find("button[id=" + count + "]").html(tag.tag);
+                        $("body").find("button[id=" + count + "]").css('visibility', 'inherit');
+                        count += 1;
+                    }
                 });
 
-                // if number of tags is less than the max number of elements, hide
+                // If number of tags is less than the max number of tags, hide button.
                 var i;
-                for (i = labelTags.length; i < maxButtons; i++) {
+                for (i = count; i < maxTags; i++) {
                     $("body").find("button[id=" + i + "]").css('visibility', 'hidden');
                 }
             } else {
@@ -379,6 +411,7 @@ function ContextMenu (uiContextMenu) {
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
+                setTagColor(param.targetLabel);
                 var topCoordinate = y + 20;
                 var connectorCoordinate = -13;
                 //if the menu is so far down the screen that it will get cut off
@@ -439,6 +472,20 @@ function ContextMenu (uiContextMenu) {
             }
         }
         self.updateRadioButtonImages();
+    }
+
+    /**
+     * Toggles the color of the tag when selected/deselected.
+     * @param labelTags     List of tags that the current label has.
+     * @param tagValue      Text value of tag that has been selected.
+     * @param target        Tag button that is being modified.
+     */
+    function _toggleTagColor(labelTags, id, target) {
+        if (labelTags.includes(id)) {
+            target.style.backgroundColor = 'rgb(200, 200, 200)';
+        } else {
+            target.style.backgroundColor = "white";
+        }
     }
 
     self.getContextMenuUI = getContextMenuUI;

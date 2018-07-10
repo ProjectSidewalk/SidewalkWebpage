@@ -85,7 +85,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 label_points : [],
                 severity: label.getProperty('severity'),
                 temporary_problem: label.getProperty('temporaryProblem'),
-                tag_ids: [], // TODO record the tag_ids so we can submit them here
+                tag_ids: label.getProperty('tagIds'), // TODO record the tag_ids (chosen) so we can submit them here
                 description: label.getProperty('description'),
                 time_created: timeCreated
             };
@@ -235,6 +235,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
      * @param async
      */
     this.submit = function (data, task, async) {
+        console.log("Submitting data");
         if (typeof async === "undefined") { async = true; }
 
         if (data.constructor !== Array) { data = [data]; }

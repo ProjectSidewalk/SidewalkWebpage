@@ -137,7 +137,6 @@ function Canvas(ribbon) {
             //labelId: svl.getLabelCounter(),
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
-            labelTags: labelDescription.labelTags,
             labelFillStyle: labelColor.fillStyle,
             panoId: svl.map.getPanoId(),
             panoramaLat: latlng.lat,
