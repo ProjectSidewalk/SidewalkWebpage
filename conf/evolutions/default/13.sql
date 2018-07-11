@@ -1,44 +1,117 @@
 # --- !Ups
-CREATE TABLE tag
+DROP TABLE sidewalk_edge_accessibility_feature;
+
+DROP TABLE accessibility_feature;
+
+INSERT INTO label_type VALUES (8, 'Problem', 'Composite type: represents cluster of NoCurbRamp, Obstacle, and/or SurfaceProblem labels');
+
+CREATE TABLE user_clustering_session
 (
-  tag_id SERIAL NOT NULL,
+  user_clustering_session_id SERIAL NOT NULL,
+  is_anonymous BOOLEAN NOT NULL,
+  user_id TEXT,
+  ip_address TEXT,
+  time_created timestamp default current_timestamp NOT NULL,
+  PRIMARY KEY (user_clustering_session_id),
+  FOREIGN KEY (user_id) REFERENCES "user" (user_id)
+);
+
+CREATE TABLE user_attribute
+(
+  user_attribute_id SERIAL NOT NULL,
+  user_clustering_session_id INT NOT NULL,
+  clustering_threshold DOUBLE PRECISION NOT NULL,
   label_type_id INT NOT NULL,
-  tag TEXT NOT NULL,
+  region_id INT NOT NULL,
+  lat DOUBLE PRECISION NOT NULL,
+  lng DOUBLE PRECISION NOT NULL,
+  severity INT,
+  temporary BOOLEAN NOT NULL,
+  PRIMARY KEY (user_attribute_id),
+  FOREIGN KEY (user_clustering_session_id) REFERENCES user_clustering_session(user_clustering_session_id),
   FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id),
-  PRIMARY KEY (tag_id)
+  FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
-CREATE TABLE label_tag
+CREATE TABLE user_attribute_label
 (
-  label_tag_id SERIAL NOT NULL,
+  user_attribute_label_id SERIAL NOT NULL,
+  user_attribute_id INT NOT NULL,
   label_id INT NOT NULL,
-  tag_id INT NOT NULL,
-  PRIMARY KEY (label_tag_id),
-  FOREIGN KEY (label_id) REFERENCES label(label_id),
-  FOREIGN KEY (tag_id) REFERENCES tag(tag_id)
+  PRIMARY KEY (user_attribute_label_id),
+  FOREIGN KEY (user_attribute_id) REFERENCES user_attribute(user_attribute_id),
+  FOREIGN KEY (label_id) REFERENCES label(label_id)
 );
 
-INSERT INTO tag (label_type_id, tag) VALUES ( 1, 'narrow' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 1, 'points into traffic' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 1, 'missing friction strip' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 1, 'steep' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 2, 'alternate route present' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 2, 'no alternate route' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 2, 'unclear if needed' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 3, 'trash can' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 3, 'fire hydrant' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 3, 'pole' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 3, 'tree' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 3, 'vegetation' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 4, 'bumpy' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 4, 'uneven' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 4, 'cracks' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 4, 'grass' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 4, 'narrow sidewalk' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 5, 'missing crosswalk' );
-INSERT INTO tag (label_type_id, tag) VALUES ( 5, 'no bus stop access' );
+CREATE TABLE global_clustering_session
+(
+  global_clustering_session_id SERIAL NOT NULL,
+  region_id INT NOT NULL,
+  time_created timestamp default current_timestamp NOT NULL,
+  PRIMARY KEY (global_clustering_session_id),
+  FOREIGN KEY (region_id) REFERENCES region(region_id)
+);
+
+CREATE TABLE global_attribute
+(
+  global_attribute_id SERIAL NOT NULL,
+  global_clustering_session_id INT NOT NULL,
+  clustering_threshold DOUBLE PRECISION NOT NULL,
+  label_type_id INT NOT NULL,
+  region_id INT NOT NULL,
+  lat DOUBLE PRECISION NOT NULL,
+  lng DOUBLE PRECISION NOT NULL,
+  severity INT,
+  temporary BOOLEAN NOT NULL,
+  PRIMARY KEY (global_attribute_id),
+  FOREIGN KEY (global_clustering_session_id) REFERENCES global_clustering_session(global_clustering_session_id),
+  FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id),
+  FOREIGN KEY (region_id) REFERENCES region(region_id)
+);
+
+CREATE TABLE global_attribute_user_attribute
+(
+  global_attribute_user_attribute_id SERIAL NOT NULL,
+  global_attribute_id INT NOT NULL,
+  user_attribute_id INT NOT NULL,
+  PRIMARY KEY (global_attribute_user_attribute_id),
+  FOREIGN KEY (user_attribute_id) REFERENCES user_attribute(user_attribute_id),
+  FOREIGN KEY (global_attribute_id) REFERENCES global_attribute(global_attribute_id)
+);
+
 
 # --- !Downs
-DROP TABLE label_tag;
+DROP TABLE global_attribute_user_attribute;
 
-DROP TABLE tag;
+DROP TABLE global_attribute;
+
+DROP TABLE global_clustering_session;
+
+DROP TABLE user_attribute_label;
+
+DROP TABLE user_attribute;
+
+DROP TABLE user_clustering_session;
+
+DELETE FROM label_type WHERE label_type.label_type = 'Problem';
+
+CREATE TABLE accessibility_feature
+(
+  accessibility_feature_id SERIAL NOT NULL,
+  geom public.geometry,
+  label_type_id INTEGER,
+  x DOUBLE PRECISION,
+  y DOUBLE PRECISION,
+  PRIMARY KEY (accessibility_feature_id),
+  FOREIGN KEY (label_type_id) REFERENCES label_type (label_type_id)
+);
+
+CREATE TABLE sidewalk_edge_accessibility_feature
+(
+  sidewalk_edge_accessibility_feature_id SERIAL NOT NULL,
+  sidewalk_edge_id INTEGER,
+  accessibility_feature_id INTEGER,
+  PRIMARY KEY (accessibility_feature_id),
+  FOREIGN KEY (sidewalk_edge_id) REFERENCES sidewalk_edge (sidewalk_edge_id),
+  FOREIGN KEY (accessibility_feature_id) REFERENCES accessibility_feature (accessibility_feature_id)
+);
