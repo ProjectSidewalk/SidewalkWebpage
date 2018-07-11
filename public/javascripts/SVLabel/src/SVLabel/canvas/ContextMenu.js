@@ -278,6 +278,7 @@ function ContextMenu (uiContextMenu) {
      */
     function hide () {
         $menuWindow.css('visibility', 'hidden');
+        $connector.css('visibility', 'hidden');
         setBorderColor('black');
         setStatus('visibility', 'hidden');
         return this;
@@ -339,7 +340,7 @@ function ContextMenu (uiContextMenu) {
 
                 // Finds the tag id based of the current button based off text description.
                 self.labelTags.forEach(function (tag) {
-                    console.log('labelTag: ' + tag.tag + ', text: ' + buttonText);
+                    // console.log('labelTag: ' + tag.tag + ', text: ' + buttonText);
                     if (tag.tag === buttonText) {
                         tagId = tag.tag_id;
                     }
@@ -364,9 +365,6 @@ function ContextMenu (uiContextMenu) {
         if (label) {
             var labelTags = self.labelTags;
             if (self.labelTags) {
-                document.getElementById("context-menu-tag-holder").style.height = '25px';
-                document.getElementById("context-menu-holder").style.height = '170px';
-                document.getElementById("context-menu-ok-button").style.top = '65px';
                 var count = 0;
 
                 // Go through each label tag, modify each button to display tag.
@@ -378,10 +376,18 @@ function ContextMenu (uiContextMenu) {
                     }
                 });
 
+                // Overflow test for CurbRamp
+                if (label.getProperty('labelType') === 'CurbRamp') {
+                    $("body").find("button[id=4]").html("this is a really long tag");
+                    $("body").find("button[id=4]").css('visibility', 'inherit');
+                    count += 1;
+                }
+
                 // If number of tags is less than the max number of tags, hide button.
                 var i;
                 for (i = count; i < maxTags; i++) {
                     $("body").find("button[id=" + i + "]").css('visibility', 'hidden');
+                    $("body").find("button[id=" + i + "]").css('position', 'fixed');
                 }
             } else {
                 document.getElementById("context-menu-tag-holder").style.height = '0px';
@@ -389,8 +395,9 @@ function ContextMenu (uiContextMenu) {
                 $("body").find("button").css('visibility', 'hidden');
                 document.getElementById("context-menu-ok-button").style.visibility = 'inherit';
                 document.getElementById("context-menu-ok-button").style.top = '40px';
-
             }
+
+            // console.log('Context menu height: ' + $('#context-menu-holder').outerHeight());
         }
     }
 
@@ -412,10 +419,14 @@ function ContextMenu (uiContextMenu) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
+
+                console.log('x = ' + x + ', y = ' + y);
+                console.log('Context menu height: ' + $('#context-menu-holder').outerHeight());
+
                 var topCoordinate = y + 20;
                 var connectorCoordinate = -13;
                 //if the menu is so far down the screen that it will get cut off
-                if(topCoordinate>370){
+                if(topCoordinate > 370){
                   topCoordinate = y - 40 - windowHeight;
                   connectorCoordinate = windowHeight + 13;
                 }
@@ -424,8 +435,11 @@ function ContextMenu (uiContextMenu) {
                     left: x - windowWidth / 2,
                     top: topCoordinate
                 });
+
                 $connector.css({
-                  top: connectorCoordinate
+                    visibility: 'visible',
+                    top: topCoordinate + connectorCoordinate,
+                    left: x + windowWidth / 2
                 });
 
                 if (param) {

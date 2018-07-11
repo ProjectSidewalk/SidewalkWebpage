@@ -1,9 +1,8 @@
 #context-menu-holder {
     position: relative;
-    top: 0;
+    top: 0px;
     left: 0;
     width: 390px;
-    height: 170px;
     padding: 5px;
     background-color: white;
     border: solid 5px black;
@@ -157,9 +156,8 @@
 }
 
 #context-menu-tag-holder {
-    height: 25px;
     width: 355px;
-    margin: 5px 5px 0px 5px;
+    margin: 5px;
 }
 
 #context-menu-tag-holder button {
