@@ -123,7 +123,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def runSingleUserClusteringAllUsers() = {
 
-    // First truncate the user_clustering_session table
+    // First truncate the user_clustering_session, user_attribute, and user_attribute_label tables
     UserClusteringSessionTable.truncateTables()
 
     // Read key from keyfile. If we aren't able to read it, we can't do anything :(
@@ -170,7 +170,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def runMultiUserClusteringAllRegions() = {
 
-    // First truncate the global_clustering_session table
+    // First truncate the global_clustering_session, global_attribute, and global_attribute_user_attribute tables.
     GlobalClusteringSessionTable.truncateTables()
 
     // Read key from keyfile. If we aren't able to read it, we can't do anything :(
@@ -179,7 +179,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     if (maybeKey.isDefined) {
       val key: String = maybeKey.get
       val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
-      //    val regionIds = List(199, 200, 203, 211, 261)
+      //    val regionIds = List(199, 200, 203, 211, 261) // Small test set.
       val nRegions: Int = regionIds.length
 
       // Runs multi-user clustering within each region.
@@ -242,7 +242,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @return
     */
   def postSingleUserClusteringResults(key: String, userIdOrIp: String, isAnonymous: Boolean) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
-    // 100MB max size
+    // The maxLength argument above allows a 100MB max load size for the POST request.
     if (authenticate(key)) {
       // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
       val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
@@ -310,7 +310,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * @return
     */
   def postMultiUserClusteringResults(key: String, regionId: Int) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
-    // 100MB max size
+    // The maxLength argument above allows a 100MB max load size for the POST request.
     if (authenticate(key)) {
       // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
       val submission = request.body.validate[AttributeFormats.ClusteringSubmission]

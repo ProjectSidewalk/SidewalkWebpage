@@ -10,7 +10,7 @@ import json
 from pandas.io.json import json_normalize
 from concurrent.futures import ProcessPoolExecutor
 
-# Custom distance function that returns max float if from the same user id, haversine distance otherwise
+# Custom distance function that returns max float if from the same user id, haversine distance otherwise.
 def custom_dist(u, v):
     if u[2] == v[2]:
         return sys.float_info.max
@@ -35,9 +35,10 @@ def cluster(labels, curr_type, thresholds, single_user):
     # Cuts tree so that only labels less than clust_threth kilometers apart are clustered.
     clusters = labelsCopy.groupby('cluster')
 
-    cluster_list = [] # list of tuples (label_type, cluster_num, lat, lng, severity, temporary)
+    # Computes the center of each cluster and assigns temporariness and severity.
+    cluster_list = [] # list of tuples (label_type, cluster_num, lat, lng, severity, temporary).
     for clust_num, clust in clusters:
-        ave_pos = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters
+        ave_pos = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
         ave_sev = None if pd.isnull(clust['severity']).all() else int(round(np.nanmedian(clust['severity'])))
         ave_temp = None if pd.isnull(clust['temporary']).all() else bool(round(np.mean(clust['temporary'])))
 
@@ -53,7 +54,7 @@ if __name__ == '__main__':
 
     POST_HEADER = {'content-type': 'application/json; charset=utf-8'}
 
-    # Read in arguments from command line
+    # Read in arguments from command line.
     parser = argparse.ArgumentParser(description='Gets a set of labels, posts the labels grouped into clusters.')
     parser.add_argument('--key', type=str,
                         help='Key string that is used to authenticate when using API.')
@@ -73,7 +74,6 @@ if __name__ == '__main__':
     REGION_ID = args.region_id
 
     N_PROCESSORS = 3
-
 
     # Determine what type of clustering should be done from command line args, and set variable accordingly.
     getURL = None
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         print "Failed to get labels needed to cluster."
         sys.exit()
 
-    # Define thresholds for single and multi user clustering (numbers are in kilometers)
+    # Define thresholds for single and multi user clustering (numbers are in kilometers).
     if SINGLE_USER:
         thresholds = {'CurbRamp': 0.002,
                       'NoCurbRamp': 0.002,
@@ -140,7 +140,7 @@ if __name__ == '__main__':
         response = requests.post(postURL, data=json.dumps({'thresholds': [], 'labels': [], 'clusters': []}), headers=POST_HEADER)
         sys.exit()
 
-    # Remove weird entries with latitude and longitude values (on the order of 10^14)
+    # Remove weird entries with latitude and longitude values (on the order of 10^14).
     if sum(label_data.lng > 360) > 0:
         if DEBUG: print 'There are %d invalid longitude vals, removing those entries.' % sum(label_data.lng > 360)
         label_data = label_data.drop(label_data[label_data.lng > 360].index)
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         response = requests.post(postURL, data=json.dumps({'thresholds': [], 'labels': [], 'clusters': []}), headers=POST_HEADER)
         sys.exit()
 
-    # Put lat-lng in a tuple so it plays nice w/ haversine function
+    # Put lat-lng in a tuple so it plays nice w/ haversine function.
     label_data['coords'] = label_data.apply(lambda x: (x.lat, x.lng), axis = 1)
     label_data['id'] =  label_data.index.values
 
@@ -211,7 +211,7 @@ if __name__ == '__main__':
                   str(label_output[label_output.label_type == label_type].cluster.nunique()) + \
                   " -> " + str(cluster_output[cluster_output.label_type == label_type].cluster.nunique())
 
-    # Convert to JSON
+    # Convert to JSON.
     cluster_json = cluster_output.to_json(orient='records', lines=False)
     label_json = label_output.to_json(orient='records', lines=False)
     threshold_json = pd.DataFrame({'label_type': thresholds.keys(),
@@ -222,5 +222,6 @@ if __name__ == '__main__':
     # print output_json
     # print 'chars in json: ' + str(len(output_json))
 
+    # POST results.
     response = requests.post(postURL, data=output_json, headers=POST_HEADER)
     sys.exit()

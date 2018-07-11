@@ -91,12 +91,12 @@ object UserClusteringSessionTable {
       _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
     } yield (_task.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng)
 
-    // Left joins to get severity for any labels that have them
+    // Left joins to get severity for any labels that have them.
     val labelsWithSeverity = for {
       (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
     } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
 
-    // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false)
+    // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
     val labelsWithTemporariness = for {
       (_lab, _temp) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
     } yield (_lab._1.asColumnOf[Option[String]], _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
@@ -127,12 +127,12 @@ object UserClusteringSessionTable {
       _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
     } yield (_task.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng)
 
-    // Left joins to get severity for any labels that have them
+    // Left joins to get severity for any labels that have them.
     val labelsWithSeverity = for {
       (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
     } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
 
-    // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false)
+    // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
     val labelsWithTemporariness = for {
       (_lab, _temp) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
     } yield (_lab._1.asColumnOf[Option[String]], _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
