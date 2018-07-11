@@ -361,23 +361,30 @@ function ContextMenu (uiContextMenu) {
         var maxTags = 5;
         if (label) {
             var labelTags = self.labelTags;
-            if (self.labelTags) {
+            if (labelTags) {
                 var count = 0;
 
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
                         $("body").find("button[id=" + count + "]").html(tag.tag);
-                        $("body").find("button[id=" + count + "]").css('visibility', 'inherit');
+                        $("body").find("button[id=" + count + "]").css({
+                            visibility: 'inherit',
+                            position: 'inherit'
+                        });
                         count += 1;
                     }
                 });
 
                 // If number of tags is less than the max number of tags, hide button.
-                var i;
-                for (i = count; i < maxTags; i++) {
-                    $("body").find("button[id=" + i + "]").css('visibility', 'hidden');
-                    $("body").find("button[id=" + i + "]").css('position', 'fixed');
+                var i = count;
+                for (i; i < maxTags; i++) {
+                    $("body").find("button[id=" + i + "]").css({
+                        visibility: 'hidden',
+                        position: 'absolute',
+                        top: '0px',
+                        left: '0px'
+                    });
                 }
             }
         }
