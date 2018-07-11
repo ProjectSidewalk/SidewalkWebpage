@@ -9,8 +9,8 @@ function ContextMenu (uiContextMenu) {
         $radioButtons = uiContextMenu.radioButtons,
         $temporaryProblemCheckbox = uiContextMenu.temporaryProblemCheckbox,
         $descriptionTextBox = uiContextMenu.textBox,
-        windowWidth = $menuWindow.width();
-        windowHeight = $menuWindow.height();
+        windowWidth = $menuWindow.width(),
+        windowHeight = $menuWindow.outerHeight();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
     var $tags = uiContextMenu.tags;
@@ -249,7 +249,6 @@ function ContextMenu (uiContextMenu) {
                             var index = labelTags.indexOf(tag.tag_id);
                             labelTags.splice(index, 1);
                         }
-                        console.log("Label Tags: " + labelTags);
                         _toggleTagColor(labelTags, tag.tag_id, e.target);
                         label.setProperty('tagIds', labelTags);
                     }
@@ -331,7 +330,6 @@ function ContextMenu (uiContextMenu) {
      * @param label     Current label being modified.
      */
     function setTagColor(label) {
-        console.log('Resetting tag color');
         var labelTags = label.getProperty('tagIds');
         $("body").find("button[name=tag]").each(function(t) {
             var buttonText = $(this).text();
@@ -340,7 +338,6 @@ function ContextMenu (uiContextMenu) {
 
                 // Finds the tag id based of the current button based off text description.
                 self.labelTags.forEach(function (tag) {
-                    // console.log('labelTag: ' + tag.tag + ', text: ' + buttonText);
                     if (tag.tag === buttonText) {
                         tagId = tag.tag_id;
                     }
@@ -376,28 +373,13 @@ function ContextMenu (uiContextMenu) {
                     }
                 });
 
-                // Overflow test for CurbRamp
-                if (label.getProperty('labelType') === 'CurbRamp') {
-                    $("body").find("button[id=4]").html("this is a really long tag");
-                    $("body").find("button[id=4]").css('visibility', 'inherit');
-                    count += 1;
-                }
-
                 // If number of tags is less than the max number of tags, hide button.
                 var i;
                 for (i = count; i < maxTags; i++) {
                     $("body").find("button[id=" + i + "]").css('visibility', 'hidden');
                     $("body").find("button[id=" + i + "]").css('position', 'fixed');
                 }
-            } else {
-                document.getElementById("context-menu-tag-holder").style.height = '0px';
-                document.getElementById("context-menu-holder").style.height = '155px';
-                $("body").find("button").css('visibility', 'hidden');
-                document.getElementById("context-menu-ok-button").style.visibility = 'inherit';
-                document.getElementById("context-menu-ok-button").style.top = '40px';
             }
-
-            // console.log('Context menu height: ' + $('#context-menu-holder').outerHeight());
         }
     }
 
@@ -419,17 +401,27 @@ function ContextMenu (uiContextMenu) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
+                windowHeight = $('#context-menu-holder').outerHeight();
 
-                console.log('x = ' + x + ', y = ' + y);
-                console.log('Context menu height: ' + $('#context-menu-holder').outerHeight());
+                $("#test-rectangle").css({
+                    position: 'absolute',
+                    visibility: 'visible',
+                    top: y,
+                    left: x,
+                    width: '2px',
+                    height: '2px',
+                })
 
+                // Determines coordinates for context menu when displayed below the label.
                 var topCoordinate = y + 20;
-                var connectorCoordinate = -13;
-                //if the menu is so far down the screen that it will get cut off
-                if(topCoordinate > 370){
-                  topCoordinate = y - 40 - windowHeight;
-                  connectorCoordinate = windowHeight + 13;
+                var connectorCoordinate = -10;
+
+                // Determines coordinates for context menu when displayed above the label.
+                if(y + windowHeight + 22 > 480) {
+                    topCoordinate = y - windowHeight - 22;
+                    connectorCoordinate = windowHeight;
                 }
+
                 $menuWindow.css({
                     visibility: 'visible',
                     left: x - windowWidth / 2,
@@ -439,7 +431,7 @@ function ContextMenu (uiContextMenu) {
                 $connector.css({
                     visibility: 'visible',
                     top: topCoordinate + connectorCoordinate,
-                    left: x + windowWidth / 2
+                    left: x - 3
                 });
 
                 if (param) {

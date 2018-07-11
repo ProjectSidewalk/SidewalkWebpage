@@ -138,21 +138,20 @@
 }
 
 #context-menu-temporary-problem-checkbox-holder {
-    margin: 5px 5px 5px 5px;
+    margin: 0px 5px 5px 5px;
 }
 
 #context-menu-temporary-problem-checkbox-holder label {
     color: #888;
     font-weight: normal;
+    margin-right: 65px;
 }
 
 #problem-property-menu button {
     background: none;
     border: none;
     color: #888;
-    position: absolute;
-    top: 65px;
-    right: 8px;
+    position: inherit;
 }
 
 #context-menu-tag-holder {
@@ -163,7 +162,7 @@
 #context-menu-tag-holder button {
     position: inherit;
     display: inline-block;
-    margin-right: 2px;
+    margin: 0px 2px 2px 0px;
     padding: 2px 10px 2px 10px;
     border-radius: 5px;
     border: 1px solid rgb(200, 200, 200);

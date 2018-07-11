@@ -235,7 +235,6 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
      * @param async
      */
     this.submit = function (data, task, async) {
-        console.log("Submitting data");
         if (typeof async === "undefined") { async = true; }
 
         if (data.constructor !== Array) { data = [data]; }
