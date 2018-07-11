@@ -2,27 +2,27 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
-import java.sql.Time
 import java.net.URLDecoder
 
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.attribute.{GlobalAttribute, GlobalAttributeTable}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
-import models.label.{LabelPointTable, LabelTable}
+import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
 import models.mission.MissionTable
-import models.region.{RegionCompletionTable, RegionTable}
-import models.street.{StreetEdge, StreetEdgeTable}
+import models.region.RegionCompletionTable
+import models.street.StreetEdgeTable
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.daos.UserDAOImpl
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
-import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
+import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
 
@@ -91,6 +91,30 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           "gsv_panorama_id" -> label.gsvPanoramaId,
           "label_type" -> label.labelType,
           "severity" -> label.severity
+        )
+        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+      }
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Future.successful(Ok(featureCollection))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+    * Get a list of all global attributes
+    *
+    * @return
+    */
+  def getAllAttributes = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
+      val features: List[JsObject] = attributes.map { attribute =>
+        val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
+        val properties = Json.obj(
+          "attribute_id" -> attribute.globalAttributeId,
+          "label_type" -> LabelTypeTable.labelTypeIdToType(attribute.labelTypeId),
+          "severity" -> attribute.severity
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
       }

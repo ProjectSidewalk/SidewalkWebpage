@@ -25,13 +25,24 @@ object LabelTypeTable {
   val labelTypes = TableQuery[LabelTypeTable]
 
   /**
-   * Return the label id
-   * @param labelType
-   * @return
-   */
+    * Gets the label type id from the label type name
+    *
+    * @param labelType
+    * @return
+    */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
     val typeId: Option[Int] = labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.headOption
     typeId.getOrElse(LabelTypeTable.save(LabelType(0, labelType, "")))
+  }
+
+  /**
+    * Gets the label type name from the label type id
+    *
+    * @param labelTypeId
+    * @return
+    */
+  def labelTypeIdToType(labelTypeId: Int): String = db.withTransaction { implicit session =>
+    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).list.head
   }
 
   /**
