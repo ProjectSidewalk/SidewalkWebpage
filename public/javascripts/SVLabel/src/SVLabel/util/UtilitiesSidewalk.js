@@ -233,7 +233,7 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 77,
                     keyChar: 'M'
-                },
+                }
             },
             Obstacle: {
                 id: 'Obstacle',
@@ -241,7 +241,7 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 79,
                     keyChar: 'O'
-                },
+                }
             },
             Other: {
                 id: 'Other',
@@ -269,7 +269,7 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 83,
                     keyChar: 'S'
-                },
+                }
             },
             Void: {
                 id: 'Void',

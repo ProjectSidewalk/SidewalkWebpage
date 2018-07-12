@@ -229,7 +229,7 @@ function ContextMenu (uiContextMenu) {
     };
 
     /**
-     * Adds the description from a tag to the label's description box when clicked.
+     * Records tag ID when clicked and updates tag color
      */
     function _handleTagClick () {
         var label = getTargetLabel();
