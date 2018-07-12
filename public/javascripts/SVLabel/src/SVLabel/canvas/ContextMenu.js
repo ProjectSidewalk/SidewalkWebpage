@@ -245,12 +245,12 @@ function ContextMenu (uiContextMenu) {
                         if (!labelTags.includes(tag.tag_id)) {
                             labelTags.push(tag.tag_id);
                             svl.tracker.push('ContextMenu_TagAdded',
-                                { ID: tag.tag_id, Name: tag.tag });
+                                { tagId: tag.tag_id, tagName: tag.tag });
                         } else {
                             var index = labelTags.indexOf(tag.tag_id);
                             labelTags.splice(index, 1);
                             svl.tracker.push('ContextMenu_TagRemoved',
-                                { ID: tag.tag_id, Name: tag.tag });
+                                { tagId: tag.tag_id, tagName: tag.tag });
                         }
                         _toggleTagColor(labelTags, tag.tag_id, e.target);
                         label.setProperty('tagIds', labelTags);
@@ -469,17 +469,8 @@ function ContextMenu (uiContextMenu) {
                 if (description) {
                     $descriptionTextBox.val(description);
                 } else {
-                    var example = '', defaultText = "Description";
-                    if (labelType == 'CurbRamp') {
-                        example = " (e.g., narrow curb ramp)";
-                    } else if (labelType == 'NoCurbRamp') {
-                        example = " (e.g., unclear if a curb ramp is needed)";
-                    } else if (labelType == 'Obstacle') {
-                        example = " (e.g., light pole blocking sidewalk)";
-                    } else if (labelType == 'SurfaceProblem') {
-                        example = " (e.g., unleveled due to a tree root)";
-                    }
-                    $descriptionTextBox.prop("placeholder", defaultText + example);
+                    var defaultText = "Description (optional)";
+                    $descriptionTextBox.prop("placeholder", defaultText);
                 }
                 var labelProperties = self.getTargetLabel().getProperties();
 
