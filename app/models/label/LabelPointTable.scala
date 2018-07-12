@@ -14,7 +14,7 @@ case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: 
 /**
  *
  */
-class LabelPointTable(tag: Tag) extends Table[LabelPoint](tag, Some("sidewalk"), "label_point") {
+class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some("sidewalk"), "label_point") {
   def labelPointId = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def svImageX = column[Int]("sv_image_x", O.NotNull)

@@ -1,4 +1,3 @@
-
 # --- !Ups
 DROP TABLE sidewalk_edge_accessibility_feature;
 

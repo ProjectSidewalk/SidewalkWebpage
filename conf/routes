@@ -84,6 +84,7 @@ POST    /mission                                             @controllers.Missio
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
+GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
