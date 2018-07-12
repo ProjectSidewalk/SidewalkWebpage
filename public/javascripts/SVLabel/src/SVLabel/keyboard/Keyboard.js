@@ -7,13 +7,20 @@
  */
 function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     var self = this;
+    var lastShiftHit = new Date(0).getTime();
+    var maxShiftDelay = 100;
+
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
-        shiftDown: false,
+        shiftDown: function(){
+            return (new Date().getTime() - lastShiftHit) < maxShiftDelay;
+        },
         disableKeyboard: false,
         moving: false
     };
+
+
 
     this.disableKeyboard = function (){
         status.disableKeyboard = true;
@@ -107,6 +114,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @private
      */
     this._documentKeyDown = function (e) {
+        console.log("focus on text field: " + status.focusOnTextField);
+        console.log("keyboard is disabled: " + status.disableKeyboard);
         // The callback method that is triggered with a keyUp event.
         //equal button || - button
         if (e.keyCode == 187 || e.keyCode == 189) {
@@ -114,14 +123,14 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             return;
         }else if (!status.focusOnTextField && !status.disableKeyboard) {
             if (e.keyCode == 16) { //shift key
-                status.shiftDown = true;
+                lastShiftHit = new Date().getTime();
             }
+            console.log("shift down: " + status.shiftDown());
 
             if (!svl.contextMenu.isOpen()) {
                 // lock scrolling in response to key pressing
                 switch (e.keyCode) {
                     case 16:  // "Shift"
-                        status.shiftDown = true;
                         break;
                     case 37:  // "Left"
                         self._rotatePov(-2);
@@ -159,7 +168,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 switch (e.keyCode) {
                     case 16:
                         // "Shift"
-                        status.shiftDown = false;
+                        console.log("shift up");
                         break;
                     case 49:  // "1"
                         if (contextMenu.isOpen()) {
@@ -279,14 +288,17 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         }
+                        console.log(status.shiftDown());
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                        if (status.shiftDown) {
+                        if (status.shiftDown()) {
+                            console.log("shift down, zooming out");
                             // Zoom out
                             zoomControl.zoomOut();
                             svl.tracker.push("KeyboardShortcut_ZoomOut", {
                                 keyCode: e.keyCode
                             });
                         } else {
+                            console.log("shift not down, zooming in");
                             // Zoom in
                             zoomControl.zoomIn();
                             svl.tracker.push("KeyboardShortcut_ZoomIn", {
@@ -348,7 +360,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @returns {boolean}
      */
     this.isShiftDown = function () {
-        return status.shiftDown;
+        return status.shiftDown();
     };
 
     /**
