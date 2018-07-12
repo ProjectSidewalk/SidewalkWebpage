@@ -7,12 +7,20 @@
  */
 function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     var self = this;
+
+    //fix for the shift-getting-stuck bug. Note the last time that shift was hit, check if it is within the maxShiftDelay.
+    //this is a documented issue, see here: https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
+    //essentially what's going on is that JS sometimes fires a final keydown after a keyup. (usually happens when multiple keys are released)
+    //so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
+    //to fix this, we log the last shift hit time, then check if it was within an interval.
+    //not a great fix, but it solves the issue.
     var lastShiftHit = new Date(0).getTime();
     var maxShiftDelay = 100;
 
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
+        //method to find if the last shift event was within a time interval.
         shiftDown: function(){
             return (new Date().getTime() - lastShiftHit) < maxShiftDelay;
         },
@@ -123,6 +131,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             return;
         }else if (!status.focusOnTextField && !status.disableKeyboard) {
             if (e.keyCode == 16) { //shift key
+                //when shift is pressed, note the time.
                 lastShiftHit = new Date().getTime();
             }
             console.log("shift down: " + status.shiftDown());
@@ -168,6 +177,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 switch (e.keyCode) {
                     case 16:
                         // "Shift"
+                        //ignore the shift keyup - just use the last time the shift was pressed.
                         console.log("shift up");
                         break;
                     case 49:  // "1"
