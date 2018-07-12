@@ -245,7 +245,7 @@ function UtilitiesMisc (JSON) {
             },
             Other: {
                 id: 'Other',
-                text: 'Other',
+                text: 'Other'
             },
             Occlusion: {
                 id: 'Occlusion',
