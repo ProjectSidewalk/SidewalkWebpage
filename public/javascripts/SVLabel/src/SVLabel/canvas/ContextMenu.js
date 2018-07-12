@@ -238,16 +238,19 @@ function ContextMenu (uiContextMenu) {
         $("body").unbind('click').on('click', 'button', function(e){
             if (e.target.name == 'tag') {
                 var tagValue = e.target.textContent || e.target.innerText;
-                svl.tracker.push('ContextMenu_TagClicked', { Tag: tagValue });
 
                 // Adds or removes tag from the label's current list of tags.
                 self.labelTags.forEach(function (tag) {
                     if (tag.tag === tagValue) {
                         if (!labelTags.includes(tag.tag_id)) {
                             labelTags.push(tag.tag_id);
+                            svl.tracker.push('ContextMenu_TagAdded',
+                                { ID: tag.tag_id, Name: tag.tag });
                         } else {
                             var index = labelTags.indexOf(tag.tag_id);
                             labelTags.splice(index, 1);
+                            svl.tracker.push('ContextMenu_TagRemoved',
+                                { ID: tag.tag_id, Name: tag.tag });
                         }
                         _toggleTagColor(labelTags, tag.tag_id, e.target);
                         label.setProperty('tagIds', labelTags);
