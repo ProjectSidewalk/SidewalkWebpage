@@ -1074,104 +1074,73 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
-            $.getJSON("/adminapi/anonUserMissionCounts", function (anonData) {
-                $.getJSON("/userapi/completedMissionCounts/all", function (regData) {
-                    $.getJSON("/userapi/completedMissionCounts/turker", function (turkerData) {
-                        var allData = [];
-                        for (var i = 0; i < anonData[0].length; i++) {
-                            allData.push({
-                                count: anonData[0][i].count,
-                                user: anonData[0][i].ip_address,
-                                is_researcher: anonData[0][i].is_researcher
-                            })
-                        }
-                        for (var i = 0; i < regData[0].length; i++) {
-                            allData.push({
-                                count: regData[0][i].count,
-                                user: regData[0][i].user_id,
-                                is_researcher: regData[0][i].is_researcher
-                            });
-                        }
-                        for (var i = 0; i < turkerData[0].length; i++) {
-                            allData.push({
-                                count: turkerData[0][i].count,
-                                user: turkerData[0][i].user_id,
-                                is_researcher: turkerData[0][i].is_researcher
-                            });
-                        }
+            $.getJSON("/userapi/completedMissionCounts/turker", function (allData) {
+                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                var anonData = allData.filter(user => user.role === 'Anonymous');
+                var turkerData = allData.filter(user => user.role === 'Turker');
 
-                        var allStats = getSummaryStats(allData, "count");
-                        var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
-                        var regStats = getSummaryStats(regData[0], "count");
-                        var regFilteredStats = getSummaryStats(regData[0], "count", {excludeResearchers: true});
-                        var turkerStats = getSummaryStats(turkerData[0], "count");
-                        var turkerFilteredStats = getSummaryStats(turkerData[0], "count", {excludeResearchers: true});
-                        var anonStats = getSummaryStats(anonData[0], "count");
+                var allStats = getSummaryStats(allData, "count");
+                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
+                var regStats = getSummaryStats(regData[0], "count");
+                var regFilteredStats = getSummaryStats(regData[0], "count", {excludeResearchers: true});
+                var turkerStats = getSummaryStats(turkerData[0], "count");
+                var anonStats = getSummaryStats(anonData[0], "count");
 
-                        var allHistOpts = {
-                            xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
-                            binStep: 5, legendOffset: -80
-                        };
-                        var allFilteredHistOpts = {
-                            xAxisTitle: "# Missions per User (all)", xDomain: [0, allFilteredStats.max],
-                            width: 187, binStep: 5, legendOffset: -80, excludeResearchers: true
-                        };
-                        var regHistOpts = {
-                            xAxisTitle: "# Missions per Registered User", xDomain: [0, regStats.max], width: 187,
-                            binStep: 5, legendOffset: -80
-                        };
-                        var regFilteredHistOpts = {
-                            xAxisTitle: "# Missions per Registered User", width: 187, legendOffset: -80,
-                            xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 5
-                        };
-                        var turkerHistOpts = {
-                            xAxisTitle: "# Missions per Turker User", xDomain: [0, turkerStats.max], width: 187,
-                            binStep: 5, legendOffset: -80
-                        };
-                        var turkerFilteredHistOpts = {
-                            xAxisTitle: "# Missions per Turker User", width: 187, legendOffset: -80,
-                            xDomain: [0, turkerFilteredStats.max], excludeResearchers: true, binStep: 5
-                        };
-                        var anonHistOpts = {
-                            xAxisTitle: "# Missions per Anon User", xDomain: [0, anonStats.max],
-                            width: 187, legendOffset: -80
-                        };
+                var allHistOpts = {
+                    xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
+                    binStep: 5, legendOffset: -80
+                };
+                var allFilteredHistOpts = {
+                    xAxisTitle: "# Missions per User (all)", xDomain: [0, allFilteredStats.max],
+                    width: 187, binStep: 5, legendOffset: -80, excludeResearchers: true
+                };
+                var regHistOpts = {
+                    xAxisTitle: "# Missions per Registered User", xDomain: [0, regStats.max], width: 187,
+                    binStep: 5, legendOffset: -80
+                };
+                var regFilteredHistOpts = {
+                    xAxisTitle: "# Missions per Registered User", width: 187, legendOffset: -80,
+                    xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 5
+                };
+                var turkerHistOpts = {
+                    xAxisTitle: "# Missions per Turker User", xDomain: [0, turkerStats.max], width: 187,
+                    binStep: 5, legendOffset: -80
+                };
+                var anonHistOpts = {
+                    xAxisTitle: "# Missions per Anon User", xDomain: [0, anonStats.max],
+                    width: 187, legendOffset: -80
+                };
 
-                        var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                        var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
-                        var regChart = getVegaLiteHistogram(regData[0], regStats.mean, regStats.median, regHistOpts);
-                        var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-                        var turkerChart = getVegaLiteHistogram(turkerData[0], turkerStats.mean, turkerStats.median, turkerHistOpts);
-                        var turkerFilteredChart = getVegaLiteHistogram(turkerData[0], turkerFilteredStats.mean, turkerFilteredStats.median, turkerFilteredHistOpts);
-                        var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
+                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                var regChart = getVegaLiteHistogram(regData[0], regStats.mean, regStats.median, regHistOpts);
+                var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                var turkerChart = getVegaLiteHistogram(turkerData[0], turkerStats.mean, turkerStats.median, turkerHistOpts);
+                var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
 
+                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
+                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
+
+                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+
+                vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
+                });
+
+                var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.srcElement.checked) {
+                        $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
+                        $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
+                        vega.embed("#mission-count-chart", combinedChart, opt, function (error, results) {
+                        });
+                    } else {
                         $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
                         $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                        $("#turker-missions-std").html((turkerFilteredStats.std).toFixed(2) + " Missions");
-                        $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
-
-                        var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                        var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerFilteredChart, regFilteredChart, anonChart]};
-
                         vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
                         });
-
-                        var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function (cb) {
-                            if (cb.srcElement.checked) {
-                                $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
-                                $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
-                                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
-                                vega.embed("#mission-count-chart", combinedChart, opt, function (error, results) {
-                                });
-                            } else {
-                                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
-                                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                                $("#turker-missions-std").html((turkerFilteredStats.std).toFixed(2) + " Missions");
-                                vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
-                                });
-                            }
-                        });
-                    });
+                    }
                 });
             });
             $.getJSON("/adminapi/labelCounts", function (allData) {

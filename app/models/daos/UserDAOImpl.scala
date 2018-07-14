@@ -284,30 +284,6 @@ object UserDAOImpl {
     interactions
   }
 
-  /**
-    * Gets the number of missions completed by each anonymous user.
-    *
-    * Unfortunate limitation of slick: https://groups.google.com/forum/#!topic/scalaquery/lrumVNo3JE4
-    *
-    * @return List[(String: ipAddress, Int: missionCount)]
-    */
-  def getAnonUserCompletedMissionCounts: List[(Option[String], Int)] = db.withSession { implicit session =>
-    // filter down to only the MissionComplete interactions, then get the set of unique ip/taskId pairs, then group by
-    // ip and count the number of audit tasks in there.
-    val completedMissions = anonUserInteractions.filter(_._5 === "MissionComplete").groupBy(x => (x._1, x._2)).map{
-      case ((ip, taskId), group) => (ip, taskId)
-    }.groupBy(x => x._1).map{case(ip, group) => (ip, group.map(_._2).length)}
-
-    // then join with the table of anon user ip addresses to give those with no completed missions a 0.
-    val missionCounts: List[(Option[String], Option[Int])] = completedMissions.rightJoin(anonIps).on(_._1 === _).map{
-      case (cm, ai) => (ai, cm._2.?)
-    }.list
-
-    // right now the count is an option; replace the None with a 0 -- it was none b/c only users who had completed
-    // missions ended up in the completedMissions query.
-    missionCounts.map{pair => (pair._1, pair._2.getOrElse(0))}
-  }
-
   /*
    * Counts anonymous user records visited today
    * Date: Nov 10, 2016

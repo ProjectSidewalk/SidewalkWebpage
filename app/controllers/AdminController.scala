@@ -151,11 +151,11 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     *
     * @return
     */
-  def getAllAnonUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
+  def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val counts: List[(Option[String], Int)] = UserDAOImpl.getAnonUserCompletedMissionCounts
-      val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false)
+      val missionCounts: List[(String, String, Int)] = MissionTable.selectMissionCountsPerUser
+      val jsonArray = Json.arr(missionCounts.map(x => {
+        Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
       }))
       Future.successful(Ok(jsonArray))
     } else {

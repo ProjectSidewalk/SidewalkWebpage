@@ -37,7 +37,7 @@ GET     /admin/task/:taskId                                  @controllers.AdminC
 
 GET     /adminapi/missionsCompletedByUsers                   @controllers.AdminController.getMissionsCompletedByUsers
 GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate
-GET     /adminapi/anonUserMissionCounts                      @controllers.AdminController.getAllAnonUserCompletedMissionCounts
+GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
 GET     /adminapi/allSignInCounts                            @controllers.AdminController.getAllUserSignInCounts
 GET     /adminapi/completionRateByDate                       @controllers.AdminController.getCompletionRateByDate
 GET     /adminapi/tasks/:username                            @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
@@ -107,8 +107,6 @@ GET     /isTurker                                            @controllers.UserPr
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
-GET     /userapi/completedMissionCounts/all                  @controllers.UserProfileController.getAllUserCompletedMissionCounts
-GET     /userapi/completedMissionCounts/turker               @controllers.UserProfileController.getTurkerCompletedMissionCounts
 
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 

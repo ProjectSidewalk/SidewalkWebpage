@@ -258,22 +258,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(json))
   }
 
-  def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
-    val missionCounts = MissionTable.selectMissionCountsPerUser
-    val json = Json.arr(missionCounts.map(x =>
-      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
-    ))
-    Future.successful(Ok(json))
-  }
-
-  def getTurkerCompletedMissionCounts = UserAwareAction.async { implicit request =>
-    val missionCounts = MissionTable.selectMissionCountsPerTurkerUser
-    val json = Json.arr(missionCounts.map(x =>
-      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
-    ))
-    Future.successful(Ok(json))
-  }
-
   def isTurker = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
