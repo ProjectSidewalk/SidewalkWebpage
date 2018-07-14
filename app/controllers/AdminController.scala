@@ -455,26 +455,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * USER CENTRIC ANALYTICS
     */
 
-  def getAllRegisteredUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerRegisteredUser
+  def getAllUserLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.getLabelCountsPerUser
     val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1))
-    )))
-    Future.successful(Ok(json))
-  }
-
-  def getAllTurkerUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerTurkerUser
-    val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1))
-    )))
-    Future.successful(Ok(json))
-  }
-
-  def getAllAnonUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerAnonUser
-    val json = Json.arr(labelCounts.map(x => Json.obj(
-      "ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false
+      "user_id" -> x._1, "role" -> x._2, "count" -> x._3
     )))
     Future.successful(Ok(json))
   }

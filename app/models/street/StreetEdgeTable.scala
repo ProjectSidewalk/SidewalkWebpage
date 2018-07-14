@@ -101,7 +101,9 @@ object StreetEdgeTable {
 
   val anonCompletedAuditTasks = for {
     _users <- userTable
-    _tasks <- completedAuditTasks if _users.userId === _tasks.userId && _users.username === "anonymous"
+    _tasks <- completedAuditTasks if _users.userId === _tasks.userId && _users.username =!= "anonymous"
+    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
+    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Anonymous"
   } yield _tasks
 
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)

@@ -84,6 +84,7 @@ object LabelTable {
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
   val severities = TableQuery[ProblemSeverityTable]
+  val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
 
@@ -615,66 +616,21 @@ object LabelTable {
 
 
   /**
-    * Select label counts per registered user
+    * Select label counts per user.
+    *
+    * @return list of tuples of (user_id, role, label_count)
     */
-  def getLabelCountsPerRegisteredUser: List[(String, Int)] = db.withSession { implicit session =>
+  def getLabelCountsPerUser: List[(String, String, Int)] = db.withSession { implicit session =>
 
-    val regUserAudits = completedAudits.filterNot(_.userId === "97760883-8ef0-4309-9a5e-0c086ef27573")
+    val audits = for {
+      _user <- users if _user.username =!= "anonymous"
+      _userRole <- userRoles if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      _audit <- auditTasks if _user.userId === _audit.userId
+      _label <- labelsWithoutDeleted if _audit.auditTaskId === _label.auditTaskId
+    } yield (_user.userId, _role.role, _label.labelId)
 
-    val _labels = for {
-      (_tasks, _labels) <- regUserAudits.innerJoin(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
-    } yield _tasks.userId
-
-    // counts the number of tasks for each user
-    _labels.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.list
-  }
-
-  /**
-    * Select label counts per anonymous user
-    */
-  def getLabelCountsPerAnonUser: List[(String, Int)] = db.withSession { implicit session =>
-
-    // gets ip address and audit task id of all audits (possibly incomplete) done by anonymous users
-    // TODO figure out how to select a distinct environment for each ip address, right now we get duplicates!!!
-    val _anonAudits = for {
-      (_environment, _task) <- auditTaskEnvironments.innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
-      if _task.userId === anonId
-    } yield (_environment.ipAddress, _environment.auditTaskId)
-
-    val uniqueAudits = _anonAudits.groupBy(x => x).map(_._1)
-
-    // join with label table, but only return ip address; we end up with an occurrence of an ip address for each label
-    // that was placed from this ip address
-    val _labels = for {
-      (_tasks, _labels) <- uniqueAudits.innerJoin(labelsWithoutDeleted).on(_._2 === _.auditTaskId)
-    } yield _tasks._1
-
-    // now count the occurrences of each ip address, this gives you the label counts. Also right join on the list of
-    // anonymous users, since anon users that didn't supply any labels at all would not have been in the list, and we
-    // want to associate a 0 with their ip address.
-    val labelCounts = _labels.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.rightJoin(anonIps).on(_._1 === _).map{
-      case (cm, ai) => (ai, cm._2.?)
-    }.list
-
-    // right now the count is an option; replace the None with a 0 -- it was none b/c only users who had completed
-    // missions ended up in the completedMissions query.
-    labelCounts.map{pair => (pair._1.get, pair._2.getOrElse(0))}
-  }
-
-  /**
-    * Select label counts per turker user
-    */
-  def getLabelCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
-    val turkerUsers = UserRoleTable.getUsersByType("Turker")
-
-    val turkerAudits = for {
-      _audits <- completedAudits
-      _turkerAudits <- turkerUsers if _audits.userId === _turkerAudits.userId
-      _labels <- labelsWithoutDeleted if _audits.auditTaskId === _labels.auditTaskId
-    } yield _turkerAudits.userId
-
-
-    // counts the number of tasks for each user
-    turkerAudits.groupBy(l => l).map{ case (uid, group) => (uid, group.length)}.list
+    // Counts the number of labels for each user by grouping by user_id and role.
+    audits.groupBy(l => (l._1, l._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
   }
 }
