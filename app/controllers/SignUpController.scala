@@ -57,6 +57,7 @@ class SignUpController @Inject() (
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
@@ -65,28 +66,25 @@ class SignUpController @Inject() (
         // Check presence of user by username
         UserTable.find(data.username) match {
           case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
+            WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
           case None =>
 
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
-                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
+                WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
               case None =>
                 val authInfo = passwordHasher.hash(data.password)
                 val user = User(
-                  userId = if (request.identity.isDefined) {
-                    request.identity.get.userId
-                  } else {
-                    UUID.randomUUID()
-                  },
+                  userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
                   loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
                   username = data.username,
                   email = data.email,
                   role = None
                 )
+                println(user.userId)
 
                 for {
                   user <- userService.save(user)
@@ -117,11 +115,12 @@ class SignUpController @Inject() (
     )
   }
 
-  def postSignUp = Action.async { implicit request =>
+  def postSignUp = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
@@ -129,20 +128,20 @@ class SignUpController @Inject() (
         // Check presence of user by username
         UserTable.find(data.username) match {
           case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
+            WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
             Future.successful(Status(409)("Username already exists"))
           case None =>
 
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
-                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
+                WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Status(409)("Email already exists"))
               case None =>
                 val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
                 val authInfo = passwordHasher.hash(data.password)
                 val user = User(
-                  userId = UUID.randomUUID(),
+                  userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
                   loginInfo = loginInfo,
                   username = data.username,
                   email = data.email,
