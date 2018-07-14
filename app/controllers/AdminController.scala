@@ -170,10 +170,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAllUserSignInCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val counts: List[(String, Int)] = WebpageActivityTable.selectAllSignInCounts
-      val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
-      }))
+      val counts: List[(String, String, Int)] = WebpageActivityTable.selectAllSignInCounts
+      val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
       Future.successful(Ok(jsonArray))
     } else {
       Future.successful(Redirect("/"))

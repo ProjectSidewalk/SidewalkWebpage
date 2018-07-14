@@ -21,6 +21,8 @@ class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, Some("s
 object WebpageActivityTable {
   val db = play.api.db.slick.DB
   val activities = TableQuery[WebpageActivityTable]
+  val userRoles = TableQuery[UserRoleTable]
+  val roles = TableQuery[RoleTable]
 
   def save(activity: WebpageActivity): Int = db.withTransaction { implicit session =>
     if (activity.ipAddress == "128.8.132.187") {
@@ -76,12 +78,18 @@ object WebpageActivityTable {
   /**
     * Returns a list of signin counts, each element being a count of logins for a user
     *
-    * @return List[(userId: String, count: Int)]
+    * @return List[(userId: String, role: String, count: Int)]
     */
-  def selectAllSignInCounts: List[(String, Int)] = db.withTransaction { implicit session =>
-    activities.filter(_.activity === "SignIn").groupBy(x => x.userId).map{
-      case (id, group) => (id, group.map(_.activity).length)
-    }.list
+  def selectAllSignInCounts: List[(String, String, Int)] = db.withTransaction { implicit session =>
+    val signIns = for {
+      _activity <- activities if _activity.activity === "SignIn"
+      _userRole <- userRoles if _activity.userId === _userRole.userId
+      _role <- roles if _userRole.roleId === _role.roleId
+      if _role.role =!= "Anonymous"
+    } yield (_userRole.userId, _role.role, _activity.webpageActivityId)
+
+    // Count sign in counts by grouping by (user_id, role).
+    signIns.groupBy(x => (x._1, x._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
   }
 
   /**
