@@ -19,7 +19,7 @@
                             Keep logged in while you are auditing so I can keep track of your progress!
                     </li>
                     <li>
-                        @if(user.isDefined) {
+                        @if(user.isDefined && user.get.role.getOrElse("") != "Anonymous") {
                             Check the number of the missions that you have completed on <a href='@routes.UserProfileController.userProfile(user.get.username)'>your dashboard.</a>
                         } else {
                             Check the number of the missions that you have completed on your dashboard. You can access the dashboard once you are logged in.
