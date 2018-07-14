@@ -85,6 +85,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 label_points : [],
                 severity: label.getProperty('severity'),
                 temporary_problem: label.getProperty('temporaryProblem'),
+                tag_ids: label.getProperty('tagIds'),
                 description: label.getProperty('description'),
                 time_created: timeCreated
             };

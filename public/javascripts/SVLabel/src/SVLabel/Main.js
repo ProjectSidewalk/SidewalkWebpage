@@ -16,6 +16,7 @@ function Main (params) {
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
     var loadDifficultNeighborhoodsCompleted = false;
+    var loadLabelTags = false;
 
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
@@ -186,7 +187,7 @@ function Main (params) {
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
-        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
@@ -262,7 +263,7 @@ function Main (params) {
         });
     }
 
-    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
+    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel, contextMenu) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -291,6 +292,11 @@ function Main (params) {
             loadDifficultNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
+
+        contextMenu.fetchLabelTags(function () {
+            loadLabelTags = true;
+            handleDataLoadComplete();
+        })
     }
 
     function hasCompletedOnboarding(completedMissions) {
@@ -435,7 +441,7 @@ function Main (params) {
     function handleDataLoadComplete () {
         if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted &&
-            loadDifficultNeighborhoodsCompleted) {
+            loadDifficultNeighborhoodsCompleted && loadLabelTags) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
@@ -608,6 +614,7 @@ function Main (params) {
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
         svl.ui.contextMenu.radioButtons = $("input[name='problem-severity']");
         svl.ui.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
+        svl.ui.contextMenu.tags = $("button[name='tag']");
         svl.ui.contextMenu.textBox = $("#context-menu-problem-description-text-box");
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");
 

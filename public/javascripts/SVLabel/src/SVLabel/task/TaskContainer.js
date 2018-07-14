@@ -532,7 +532,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param regionId {number} Region id
      * @param task {object} Task object
      */
-    // TODO: Issue 839
     function storeTask(regionId, task) {
         if (!(regionId in self._taskStoreByRegionId)) self._taskStoreByRegionId[regionId] = [];
         var streetEdgeIds = self._taskStoreByRegionId[regionId].map(function (task) {

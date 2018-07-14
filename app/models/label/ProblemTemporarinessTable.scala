@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class ProblemTemporariness(problemTemporarinessId: Int, labelId: Int, temporaryProblem: Boolean)
 
-class ProblemTemporarinessTable(tag: Tag) extends Table[ProblemTemporariness](tag, Some("sidewalk"), "problem_temporariness") {
+class ProblemTemporarinessTable(tag: slick.lifted.Tag) extends Table[ProblemTemporariness](tag, Some("sidewalk"), "problem_temporariness") {
   def problemTemporarinessId = column[Int]("problem_temporariness_id", O.PrimaryKey, O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def temporaryProblem = column[Boolean]("temporary_problem", O.NotNull)
