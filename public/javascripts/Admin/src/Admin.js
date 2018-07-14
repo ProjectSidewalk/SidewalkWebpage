@@ -528,7 +528,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         var legendOffset = options.legendOffset || 0;
         var excludeResearchers = options.excludeResearchers || false;
 
-        var transformList = excludeResearchers ? [{"filter": "!datum.is_researcher"}] : [];
+        // var transformList = excludeResearchers ? [{"filter": "!datum.is_researcher"}] : [];
+        var nonResearcherRoles = ['Registered', 'Anonymous', 'Turker'];
+        var transformList = excludeResearchers ? [{"filter": {"field": "role", "oneOf": nonResearcherRoles}}] : [];
 
         return {
             "height": height,
@@ -734,68 +736,51 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             });
 
             //Draw a chart of total time spent auditing
-            $.getJSON("/adminapi/audittimes", function (regData) {
-                  $.getJSON("/adminapi/auditTimesAnon", function (anonData) {
-                      $.getJSON("/adminapi/auditTimesTurker", function (turkerData) {
-                          var allTimes = [];
-                          var regTimes = [];
-                          var anonTimes = [];
-                          var turkerTimes = [];
-                          for (var i = 0; i < regData.length; i++) {
-                              regTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
-                              allTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
-                          }
-                          for (var i = 0; i < anonData.length; i++) {
-                              allTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
-                              anonTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
-                          }
-                          for (var i = 0; i < turkerData.length; i++) {
-                              allTimes.push({time: turkerData[i].time, binned: Math.min(200.0, turkerData[i].time)});
-                              turkerTimes.push({time: turkerData[i].time, binned: Math.min(200.0, turkerData[i].time)});
-                          }
+            $.getJSON("/adminapi/auditTimes", function (allTimes) {
+                var regTimes = allTimes.filter(user => user.role === 'Registered');
+                var anonTimes = allTimes.filter(user => user.role === 'Anonymous');
+                var turkTimes = allTimes.filter(user => user.role === 'Turker');
 
-                          var allStats = getSummaryStats(allTimes, "time");
-                          var regStats = getSummaryStats(regTimes, "time");
-                          var anonStats = getSummaryStats(anonTimes, "time");
-                          var turkerStats = getSummaryStats(turkerTimes, "time");
+                var allStats = getSummaryStats(allTimes, "time");
+                var regStats = getSummaryStats(regTimes, "time");
+                var anonStats = getSummaryStats(anonTimes, "time");
+                var turkerStats = getSummaryStats(turkTimes, "time");
 
-                          var allHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - All Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
-                          var regHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Registered Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
-                          var turkerHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Turker Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
-                          var anonHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Anon Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
+                var allHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - All Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 10, legendOffset: -80
+                };
+                var regHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Registered Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 10, legendOffset: -80
+                };
+                var turkerHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Turker Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 10, legendOffset: -80
+                };
+                var anonHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Anon Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 10, legendOffset: -80
+                };
 
-                          var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
-                          var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
-                          var turkerChart = getVegaLiteHistogram(turkerTimes, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                          var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
+                var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
+                var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
+                var turkerChart = getVegaLiteHistogram(turkTimes, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
 
-                          $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
-                          $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
-                          $("#turker-audittimes-std").html((turkerStats.std).toFixed(2) + " Minutes");
-                          $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
+                $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
+                $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
+                $("#turker-audittimes-std").html((turkerStats.std).toFixed(2) + " Minutes");
+                $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
 
-                          var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
 
-                          vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function (error, results) {
-                          });
-                      });
-                  });
+                vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function (error, results) {
+                });
             });
 
             $.getJSON('/adminapi/labels/all', function (data) {

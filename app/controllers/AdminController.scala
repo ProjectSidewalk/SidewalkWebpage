@@ -11,7 +11,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel, UserAuditTime}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
@@ -295,38 +295,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getAuditTimes() = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
+        Json.obj("user_id" -> auditTime.userId, "role" -> auditTime.role, "time" -> auditTime.duration))
       Future.successful(Ok(JsArray(auditTimes)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get all auditing times for Turkers
-    *
-    * @return
-    */
-  def getTurkerAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val auditTimes = AuditTaskInteractionTable.selectAllTurkerAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
-      Future.successful(Ok(JsArray(auditTimes)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get all anonymous auditing times
-    *
-    * @return
-    */
-  def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
-      Future.successful(Ok(JsArray(anonAuditTimes)))
     } else {
       Future.successful(Redirect("/"))
     }

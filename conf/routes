@@ -51,9 +51,7 @@ GET     /adminapi/labels/panoid                              @controllers.AdminC
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
-GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
-GET     /adminapi/auditTimesAnon                             @controllers.AdminController.getAnonAuditTimes()
-GET     /adminapi/auditTimesTurker                           @controllers.AdminController.getTurkerAuditTimes()
+GET     /adminapi/auditTimes                                 @controllers.AdminController.getAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
