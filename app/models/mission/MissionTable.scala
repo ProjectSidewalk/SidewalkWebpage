@@ -259,6 +259,7 @@ object MissionTable {
       _role <- roles if _userRole.roleId === _role.roleId
       _missionUser <- missionUsers if _user.userId === _missionUser.userId
       _mission <- missionsWithoutDeleted if _missionUser.missionId === _mission.missionId
+      if _mission.label =!= "onboarding"
     } yield (_user.userId, _role.role, _missionUser.missionUserId)
 
     // Count missions per user by grouping by (user_id, role).
