@@ -72,13 +72,10 @@ object UserDAOImpl {
 
   val anonIps = anonUsers.groupBy(_._1).map{case(ip,group)=>ip}
 
-  val anonUserInteractions = getAnonUserInteractions
-
 
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
   case class AnonymousUserProfile(ipAddress: String, timestamp: java.sql.Timestamp, auditCount: Int, labelCount: Int)
-  case class AnonymousUserRecords(ipAddress: String, taskId: Int)
 
   def all: List[DBUser] = db.withTransaction { implicit session =>
     userTable.list
@@ -98,7 +95,6 @@ object UserDAOImpl {
   def countUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
 
     val tasks = if (taskCompleted) auditTaskTable.filter(_.completed) else auditTaskTable
-//    val rolesQuery = roleTable.filter(_.role inSet roles)
 
     val users = for {
       _task <- tasks
@@ -133,59 +129,6 @@ object UserDAOImpl {
     */
   def countAllUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
     countUsersContributed(roleTable.map(_.role).list, taskCompleted)
-  }
-
-  /*
-   * Gets anonymous user records
-   * Date: Oct 11, 2016
-   */
-  def getAnonymousUsers(taskCompleted: Boolean): List[AnonymousUserRecords] = db.withSession { implicit session =>
-
-    // TODO: Not able to find a better way of coding this right now. Need to clean up later.
-    val anonUsers = taskCompleted match {
-      case true =>
-        Q.queryNA[(String, Int)](
-          """SELECT DISTINCT ip_address, audit_task_id
-             FROM sidewalk.audit_task_environment
-             WHERE audit_task_id IN (SELECT audit_task_id
-                                      FROM sidewalk.audit_task
-                                      WHERE user_id = (SELECT user_id
-                                                        FROM sidewalk.user
-                                                        WHERE username = 'anonymous')
-                                      AND completed = true);
-          """.stripMargin
-        )
-      case _ =>
-        Q.queryNA[(String, Int)](
-          """SELECT DISTINCT ip_address, audit_task_id
-             FROM sidewalk.audit_task_environment
-             WHERE audit_task_id IN (SELECT audit_task_id
-                                      FROM sidewalk.audit_task
-                                      WHERE user_id = (SELECT user_id
-                                                        FROM sidewalk.user
-                                                        WHERE username = 'anonymous')
-                                      );
-          """.stripMargin
-        )
-    }
-    anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
-  }
-
-  /**
-    * Gets a query for all audit task interactions done by anonymous users
-    *
-    * @return a query
-    */
-  def getAnonUserInteractions = db.withSession { implicit session =>
-    val anonAuditTasks = for {
-      (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
-      if _at.userId === anonId
-    } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
-
-    val interactions = for {
-      (_ati, _au) <-auditTaskInteractionTable.innerJoin(anonAuditTasks).on(_.auditTaskId === _._2)
-    } yield (_au._1, _au._2, _au._3, _au._4, _ati.action)
-    interactions
   }
 
   /**
@@ -284,124 +227,5 @@ object UserDAOImpl {
       countUsersContributedYesterday("Anonymous") +
       countUsersContributedYesterday("Turker") +
       countResearchersContributedYesterday
-  }
-
-  /*
-   * Counts anonymous user records
-   * Date: Oct 11, 2016
-   */
-
-  def getAnonymousUserProfiles: List[AnonymousUserProfile] = db.withSession { implicit session =>
-    // TODO: Implement a more cleaner, elegant solution
-    /*
-    Correct way of doing it:
-      - Using anonUsersTable, filter/join to get (i) ip_address with timestamp
-        (ii) user records with ip_address and the audit and label counts
-    - Join both results based on ip_address
-
-    The following solution does:
-      - Runs two sub-queries to get the above mentioned results (which has a redundant computation of anonUsersTable
-      - Does a join on the result of the two queries.
-    */
-    val anonProfileQuery = Q.queryNA[(String, java.sql.Timestamp, Int, Int)](
-      """SELECT AnonProfile.ip_address, LastAuditTimestamp.new_timestamp, AnonProfile.audit_count, AnonProfile.label_count
-        |FROM (SELECT anonProfile.ip_address, count(anonProfile.audit_task_id) AS audit_count,
-        |      sum (anonProfile.n_labels) AS label_count
-        |		FROM (SELECT anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) AS n_labels
-        |				   FROM (SELECT DISTINCT ip_address, audit_task_id
-        |						     FROM sidewalk.audit_task_environment
-        |						     WHERE audit_task_id IN (SELECT audit_task_id
-        |                                        FROM sidewalk.audit_task
-        |                                        WHERE user_id = (SELECT user_id
-        |                                                         FROM sidewalk.user
-        |                                                         WHERE username = 'anonymous')
-        |                                  AND completed = true)
-        |           ) AS anonUsersTable
-        |         LEFT JOIN sidewalk.label AS l
-        |           ON anonUsersTable.audit_task_id = l.audit_task_id
-        |         GROUP BY anonUsersTable.ip_address, anonUsersTable.audit_task_id
-        |       ) AS anonProfile
-        |   GROUP BY anonProfile.ip_address) AS AnonProfile,
-        |
-        |	(SELECT ip_address, max(timestamp) AS new_timestamp
-        |  FROM (SELECT ip_address, anonUsersTable.audit_task_id AS task_id, task_end AS timestamp
-        |        FROM (SELECT DISTINCT ip_address, audit_task_id
-        |              FROM sidewalk.audit_task_environment
-        |              WHERE audit_task_id IN (SELECT audit_task_id
-        |                                      FROM sidewalk.audit_task
-        |                                      WHERE user_id = (SELECT user_id
-        |			      							                              FROM sidewalk.user
-        |                                                       WHERE username = 'anonymous')
-        |                                      AND completed = true)
-        |             ) AS anonUsersTable
-        |
-        |      LEFT JOIN sidewalk.audit_task AS at
-        |      ON anonUsersTable.audit_task_id = at.audit_task_id) AS t
-        |   GROUP BY ip_address) AS LastAuditTimestamp
-        |WHERE AnonProfile.ip_address = LastAuditTimestamp.ip_address;""".stripMargin
-    )
-
-    anonProfileQuery.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
-    /*
-    An attempt:
-
-    val anonProfileQuery = Q.queryNA[(String, Int, Int)](
-      """SELECT anonProfile.ip_address, count(anonProfile.audit_task_id) AS audit_count, sum (anonProfile.n_labels) AS label_count
-        |FROM (SELECT anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) AS n_labels
-        |		   FROM (SELECT DISTINCT ip_address, audit_task_id
-        |				     FROM sidewalk.audit_task_environment
-        |				     WHERE audit_task_id IN (SELECT audit_task_id
-        |											                FROM sidewalk.audit_task
-        |											                WHERE user_id = (SELECT user_id
-        |												                              FROM sidewalk.user
-        |												                              WHERE username = 'anonymous')
-        |											         AND completed = true)
-        |				) AS anonUsersTable
-        |		  LEFT JOIN sidewalk.label AS l
-        |		  	on anonUsersTable.audit_task_id = l.audit_task_id
-        |		  GROUP BY anonUsersTable.ip_address, anonUsersTable.audit_task_id
-        |	  ) AS anonProfile
-        |GROUP BY anonProfile.ip_address;""".stripMargin
-    )
-
-
-    val anonProfiles = anonProfileQuery.list
-
-    val lastAuditedTimestampQuery = Q.queryNA[(String, Int)](
-      """SELECT ip_address, max(timestamp) AS new_timestamp
-        |FROM (SELECT ip_address, anonUsersTable.audit_task_id AS task_id, task_end AS timestamp
-        |	 FROM (SELECT DISTINCT ip_address, audit_task_id
-        |				     FROM sidewalk.audit_task_environment
-        |				     WHERE audit_task_id IN (SELECT audit_task_id
-        |							                 FROM sidewalk.audit_task
-        |							                 WHERE user_id = (SELECT user_id
-        |								                              FROM sidewalk.user
-        |								                              WHERE username = 'anonymous')
-        |											 AND completed = true)
-        |				) AS anonUsersTable
-        |	 LEFT JOIN sidewalk.audit_task AS at
-        |		on anonUsersTable.audit_task_id = at.audit_task_id) AS t
-        |GROUP BY ip_address;""".stripMargin
-    )
-
-    val recordsWithLastAudit = lastAuditedTimestampQuery.list
-
-    val anonUsers = for {
-      (_anonProfiles, _recordsWithLastAudit) <- anonProfiles.innerJoin(recordsWithLastAudit).on(_.ip_address === _.ip_address)
-    } yield _anonProfiles
-
-    anonUsers.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
-    */
-
-    /*
-    val anonymousUser: DBUser = UserTable.find("anonymous").get
-
-    // Placeholder code -- won't compile
-    val entries = (for {
-      a <- anonUsers
-      t <- auditTaskTable
-      l <- labelTable
-    }.yield(a, t, l)).groupby(_.ipAddress).map{case (a,t,l) => (a,a.map(_.audit_task_id).length)}
-    */
   }
 }
