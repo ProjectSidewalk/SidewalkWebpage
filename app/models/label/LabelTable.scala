@@ -95,15 +95,6 @@ object LabelTable {
   // Onboarding labels have to be filtered out before a user's labeling frequency is computed
   val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filterNot(_.gsvPanoramaId inSet GSVOnboardingPanoTable.getOnboardingPanoIds)
 
-
-  val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
-  val anonUsersAudits = for {
-    (_ate, _at) <- auditTaskEnvironments.innerJoin(completedAudits).on(_.auditTaskId === _.auditTaskId)
-    if _at.userId === anonId
-  } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
-
-  val anonIps = anonUsersAudits.groupBy(_._1).map{case(ip,group)=>ip}
-
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,

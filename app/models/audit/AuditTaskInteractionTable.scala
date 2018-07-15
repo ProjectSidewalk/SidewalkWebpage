@@ -1,6 +1,5 @@
 package models.audit
 
-import java.sql.Timestamp
 import java.util.UUID
 
 import models.label._
@@ -95,8 +94,6 @@ object AuditTaskInteractionTable {
   val labels = TableQuery[LabelTable]
   val labelPoints = TableQuery[LabelPointTable]
 
-  val anonUserId = "97760883-8ef0-4309-9a5e-0c086ef27573"
-
 
 
   def save(interaction: AuditTaskInteraction): Int = db.withTransaction { implicit session =>
@@ -133,7 +130,7 @@ object AuditTaskInteractionTable {
   * @return
   */
 def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
-  val selectAuditTimesQuery = Q.query[String, UserAuditTime](
+  val selectAuditTimesQuery = Q.queryNA[UserAuditTime](
     """SELECT user_audit_times.user_id,
       |       user_audit_times.role,
       |       CAST(extract( second from SUM(diff) ) /60 +
@@ -146,18 +143,20 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
       |    FROM audit_task_interaction
       |    INNER JOIN audit_task
       |        ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
+      |    INNER JOIN sidewalk.user
+      |        ON audit_task.user_id = sidewalk.user.user_id
       |    INNER JOIN user_role
       |        ON audit_task.user_id = user_role.user_id
       |    INNER JOIN role
       |        ON user_role.role_id = role.role_id
       |    WHERE action = 'ViewControl_MouseDown'
-      |        AND audit_task.user_id <> ?
+      |        AND sidewalk.user.username <> 'anonymous'
       |        AND role.role IN ('Registered', 'Anonymous', 'Turker')
       |    ) user_audit_times
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       |GROUP BY user_id, role;""".stripMargin
     )
-    val auditTimes: List[UserAuditTime] = selectAuditTimesQuery(anonUserId).list
+    val auditTimes: List[UserAuditTime] = selectAuditTimesQuery.list
     auditTimes
 }
 
@@ -198,16 +197,6 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
 
     val result: List[AuditTaskInteraction] = selectInteractionQuery((regionId, userId.toString)).list
     result
-  }
-
-  /**
-   * Get a list of audit task interaction
-    *
-    * @param auditTaskId
-   * @return
-   */
-  def selectAuditTaskInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    auditTaskInteractions.filter(_.auditTaskId === auditTaskId).list
   }
 
   /**

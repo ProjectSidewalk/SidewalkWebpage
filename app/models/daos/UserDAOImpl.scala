@@ -6,7 +6,6 @@ import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.{RoleTable, User, UserRoleTable}
-import models.label.Label
 import models.audit._
 import play.api.Play.current
 
@@ -64,18 +63,7 @@ object UserDAOImpl {
   val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
   val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
 
-  val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
-  val anonUsers = for {
-    (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
-    if _at.userId === anonId && _at.completed === true
-  } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
-
-  val anonIps = anonUsers.groupBy(_._1).map{case(ip,group)=>ip}
-
-
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
-
-  case class AnonymousUserProfile(ipAddress: String, timestamp: java.sql.Timestamp, auditCount: Int, labelCount: Int)
 
   def all: List[DBUser] = db.withTransaction { implicit session =>
     userTable.list
