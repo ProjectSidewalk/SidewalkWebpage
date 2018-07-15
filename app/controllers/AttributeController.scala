@@ -132,27 +132,17 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     if (maybeKey.isDefined) {
       val key: String = maybeKey.get
       // All users
-      val goodRegisteredUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodRegisteredUsers
-      val goodAnonymousUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodAnonymousUsers
+      val goodUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodUsers
       // Test users with a lot of labels
-//      val goodRegisteredUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863")
-//      val goodAnonymousUsers: List[String] = List("73.163.171.105")
+//      val goodUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863")
       // Test users with fewer labels
-//      val goodRegisteredUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5")
-//      val goodAnonymousUsers: List[String] = List("24.22.251.129")
-      val nUsers = goodRegisteredUsers.length + goodAnonymousUsers.length
+//      val goodUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5")
+      val nUsers = goodUsers.length
       println("N users = " + nUsers)
 
-      // Runs clustering for each anonymous user.
-      for ((userId, i) <- goodAnonymousUsers.view.zipWithIndex) {
+      // Runs clustering for each good user.
+      for ((userId, i) <- goodUsers.view.zipWithIndex) {
         println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
-        val clusteringOutput =
-          Seq("python", "label_clustering.py", "--key", key, "--user_id_or_ip", userId, "--is_anonymous").!!
-        //      println(clusteringOutput)
-      }
-      // Runs clustering for each registered user.
-      for ((userId, i) <- goodRegisteredUsers.view.zipWithIndex) {
-        println(s"Finished ${f"${100.0 * (i + goodAnonymousUsers.length) / nUsers}%1.2f"}% of users, next: $userId.")
         val clusteringOutput =
           Seq("python", "label_clustering.py", "--key", key, "--user_id_or_ip", userId).!!
         //      println(clusteringOutput)
