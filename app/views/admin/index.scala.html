@@ -54,33 +54,33 @@
                             </tr>
                             <tr>
                                 <th>Total Users</th>
-                                <th>@UserDAOImpl.countContributingUsers(false) (@UserDAOImpl.countContributingUsers(true))</th>
-                                <th>@UserDAOImpl.countTodayUsers</th>
-                                <th>@UserDAOImpl.countYesterdayUsers</th>
+                                <th>@UserDAOImpl.countAllUsersContributed(false) (@UserDAOImpl.countAllUsersContributed(true))</th>
+                                <th>@UserDAOImpl.countAllUsersContributedToday</th>
+                                <th>@UserDAOImpl.countAllUsersContributedYesterday</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countRegisteredVolunteers(false) (@UserDAOImpl.countRegisteredVolunteers(true))</td>
-                                <td>@UserDAOImpl.countRegisteredVolunteersVisitedToday</td>
-                                <td>@UserDAOImpl.countRegisteredVolunteersVisitedYesterday</td>
+                                <td>@UserDAOImpl.countUsersContributed(List("Registered"), false) (@UserDAOImpl.countUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOImpl.countUsersContributedToday("Registered")</td>
+                                <td>@UserDAOImpl.countUsersContributedYesterday("Registered")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countAnonymousUsers(false) (@UserDAOImpl.countAnonymousUsers(true))</td>
-                                <td>@UserDAOImpl.countAnonymousUsersVisitedToday</td>
-                                <td>@UserDAOImpl.countAnonymousUsersVisitedYesterday</td>
+                                <td>@UserDAOImpl.countUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOImpl.countUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOImpl.countUsersContributedYesterday("Anonymous")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOImpl.countTurkers(false) (@UserDAOImpl.countTurkers(true))</td>
-                                <td>@UserDAOImpl.countTurkersVisitedToday</td>
-                                <td>@UserDAOImpl.countTurkersVisitedYesterday</td>
+                                <td>@UserDAOImpl.countUsersContributed(List("Turker"), false) (@UserDAOImpl.countUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOImpl.countUsersContributedToday("Turker")</td>
+                                <td>@UserDAOImpl.countUsersContributedYesterday("Turker")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOImpl.countResearchers(false) (@UserDAOImpl.countResearchers(true))</td>
-                                <td>@UserDAOImpl.countResearchersVisitedToday</td>
-                                <td>@UserDAOImpl.countResearchersVisitedYesterday</td>
+                                <td>@UserDAOImpl.countResearchersContributed(false) (@UserDAOImpl.countResearchersContributed(true))</td>
+                                <td>@UserDAOImpl.countResearchersContributedToday</td>
+                                <td>@UserDAOImpl.countResearchersContributedYesterday</td>
                             </tr>
                             <tr>
                                 <th>Total Labels</th>
