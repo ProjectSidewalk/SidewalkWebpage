@@ -131,12 +131,9 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 
     if (maybeKey.isDefined) {
       val key: String = maybeKey.get
-      // All users
-      val goodUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodUsers
-      // Test users with a lot of labels
-//      val goodUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863")
-      // Test users with fewer labels
-//      val goodUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5")
+      val goodUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodUsers // All users
+//      val goodUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863") // Test users with a lot of labels
+//      val goodUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5") // Test users with fewer labels
       val nUsers = goodUsers.length
       println("N users = " + nUsers)
 
@@ -144,7 +141,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       for ((userId, i) <- goodUsers.view.zipWithIndex) {
         println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
         val clusteringOutput =
-          Seq("python", "label_clustering.py", "--key", key, "--user_id_or_ip", userId).!!
+          Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
         //      println(clusteringOutput)
       }
       println("\nFinshed 100% of users!!\n")
@@ -187,19 +184,13 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * Returns the set of all labels associated with the given user, in the format needed for clustering.
     *
     * @param key A key used for authentication.
-    * @param userIdOrIp The username of IP address of the user who's labels should be retrieved.
-    * @param isAnonymous Indicating whether the user is anonymous or registered.
+    * @param userId The user_id of the user who's labels should be retrieved.
     * @return
     */
-  def getUserLabelsToCluster(key: String, userIdOrIp: String, isAnonymous: Boolean) = UserAwareAction.async { implicit request =>
+  def getUserLabelsToCluster(key: String, userId: String) = UserAwareAction.async { implicit request =>
 
     val json = if (authenticate(key)) {
-      val labelsToCluster: List[LabelToCluster] = if (isAnonymous) {
-        UserClusteringSessionTable.getAnonymousUserLabelsToCluster(userIdOrIp)
-      } else {
-        UserClusteringSessionTable.getRegisteredUserLabelsToCluster(userIdOrIp)
-      }
-      Json.arr(labelsToCluster.map(_.toJSON))
+      Json.arr(UserClusteringSessionTable.getUserLabelsToCluster(userId).map(_.toJSON))
     } else {
       Json.obj("error_msg" -> "Could not authenticate.")
     }
@@ -227,11 +218,10 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * Takes in results of single-user clustering, and adds the data to the relevant tables.
     *
     * @param key A key used for authentication.
-    * @param userIdOrIp The username of IP address of the user who's labels were clustered.
-    * @param isAnonymous Indicating whether the user is anonymous or registered.
+    * @param userId The user_id address of the user who's labels were clustered.
     * @return
     */
-  def postSingleUserClusteringResults(key: String, userIdOrIp: String, isAnonymous: Boolean) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
+  def postSingleUserClusteringResults(key: String, userId: String) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
     // The maxLength argument above allows a 100MB max load size for the POST request.
     if (authenticate(key)) {
       // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
@@ -254,11 +244,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
           val timestamp: Timestamp = new Timestamp(now.getMillis)
 
           // Add corresponding entry to the user_clustering_session table
-          val userSessionId: Int = if (isAnonymous) {
-            UserClusteringSessionTable.save(UserClusteringSession(0, isAnonymous, None, Some(userIdOrIp), timestamp))
-          } else {
-            UserClusteringSessionTable.save(UserClusteringSession(0, isAnonymous, Some(userIdOrIp), None, timestamp))
-          }
+          val userSessionId: Int = UserClusteringSessionTable.save(UserClusteringSession(0, userId, timestamp))
           // Add the clusters to user_attribute table, and the associated user_attribute_labels after each cluster.
           for (cluster <- clusters) yield {
             val attributeId: Int =
