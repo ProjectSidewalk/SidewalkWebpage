@@ -1,7 +1,6 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -19,10 +18,7 @@ import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.Logger
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.Play.current
-import play.extras.geojson
 
 import scala.concurrent.Future
 
@@ -156,6 +152,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId: String = request.identity match {
           case Some(user) => user.userId.toString
           case None =>
+            Logger.warn("User without a user_id submitted a comment, but every user should have a user_id.")
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
@@ -187,6 +184,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId: String = request.identity match {
           case Some(user) => user.userId.toString
           case None =>
+            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }

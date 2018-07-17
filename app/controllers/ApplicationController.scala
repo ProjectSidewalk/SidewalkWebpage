@@ -3,16 +3,14 @@ package controllers
 import java.sql.Timestamp
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette, LogoutEvent}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Play.current
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.data.Forms._
+import play.api.mvc._
 
 
 import scala.concurrent.Future
@@ -126,49 +124,43 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
    * @return
    */
   def about = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_About", timestamp))
         Future.successful(Ok(views.html.about("Project Sidewalk - About", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_About", timestamp))
-//        Future.successful(Ok(views.html.about("Project Sidewalk - About")))
         Future.successful(Redirect("/anonSignUp?url=/about"))
     }
   }
 
   def mobile = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
         Future.successful(Ok(views.html.mobile("Project Sidewalk", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
-//        Future.successful(Ok(views.html.mobile("Project Sidewalk")))
         Future.successful(Redirect("/anonSignUp?url=/mobile"))
     }
   }
 
   def student = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Student", timestamp))
         Future.successful(Ok(views.html.student("Project Sidewalk", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Student", timestamp))
-//        Future.successful(Ok(views.html.student("Project sidewalk")))
         Future.successful(Redirect("/anonSignUp?url=/student"))
     }
 
@@ -179,17 +171,15 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def developer = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
         Future.successful(Ok(views.html.developer("Project Sidewalk - Developers", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Developer", timestamp))
-//        Future.successful(Ok(views.html.developer("Project Sidewalk - Developers")))
         Future.successful(Redirect("/anonSignUp?url=/developer"))
     }
   }
@@ -199,17 +189,15 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def faq = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_FAQ", timestamp))
-        Future.successful(Ok(views.html.faq("Project Sidewalk - About", Some(user))))
+        Future.successful(Ok(views.html.faq("Project Sidewalk - FAQ", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_FAQ", timestamp))
-//        Future.successful(Ok(views.html.faq("Project Sidewalk - About")))
         Future.successful(Redirect("/anonSignUp?url=/faq"))
     }
   }
@@ -219,58 +207,52 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def terms = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Terms", timestamp))
         Future.successful(Ok(views.html.terms("Project Sidewalk - Terms", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Terms", timestamp))
-//        Future.successful(Ok(views.html.terms("Project Sidewalk - Terms")))
         Future.successful(Redirect("/anonSignUp?url=/terms"))
     }
   }
 
   def results = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Results", timestamp))
         Future.successful(Ok(views.html.results("Project Sidewalk - Explore Accessibility", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Results", timestamp))
-//        Future.successful(Ok(views.html.results("Project Sidewalk - Explore Accessibility")))
         Future.successful(Redirect("/anonSignUp?url=/results"))
     }
   }
 
   def demo = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))
         Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Map", timestamp))
-//        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility")))
         Future.successful(Redirect("/anonSignUp?url=/demo"))
     }
   }
 
-  def noAvailableMissionIndex = UserAwareAction.async { implicit request =>
+  def noAvailableMissionIndex = Action.async { implicit request =>
     Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
   }
 
-  def turkerIdExists = UserAwareAction.async { implicit request =>
+  def turkerIdExists = Action.async { implicit request =>
     Future.successful(Ok(views.html.turkerIdExists("Project Sidewalk")))
   }
 

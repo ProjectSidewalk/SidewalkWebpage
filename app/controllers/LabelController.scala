@@ -1,38 +1,20 @@
 package controllers
 
-import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import controllers.helper.LabelControllerHelper
 import formats.json.LabelFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.audit._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
-import models.mission.{Mission, MissionStatus, MissionTable}
-import models.region._
-import models.street.StreetEdgeAssignmentCountTable
-import models.user.{User, UserCurrentRegionTable}
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
-import org.joda.time.{DateTime, DateTimeZone}
+import models.user.User
 import play.api.libs.json._
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
-import play.api.Play.current
-import controllers.helper.LabelControllerHelper._
+import play.api.mvc.Action
 
 import scala.concurrent.Future
 
-/**
-  * Street controller
-  */
+
 class LabelController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -48,7 +30,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         val jsLabels = JsArray(labels.map(l => Json.toJson(l)))
         Future.successful(Ok(jsLabels))
       case None =>
-        Future.successful(Ok(JsArray(List())))
+        Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
     }
   }
 
@@ -57,7 +39,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     *
     * @return
     */
-  def getLabelTags() = UserAwareAction.async { implicit request =>
+  def getLabelTags() = Action.async { implicit request =>
     Future.successful(Ok(JsArray(TagTable.selectAllTags().map { tag => Json.obj(
       "tag_id" -> tag.tagId,
       "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),

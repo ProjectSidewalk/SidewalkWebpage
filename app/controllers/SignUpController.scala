@@ -1,20 +1,17 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
+import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService}
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms.SignUpForm
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.daos.slick.UserDAOSlick
 import models.services.UserService
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}

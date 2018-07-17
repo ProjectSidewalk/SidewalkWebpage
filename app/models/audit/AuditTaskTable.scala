@@ -5,20 +5,17 @@ import java.sql.Timestamp
 import java.util.{Calendar, Date, TimeZone, UUID}
 
 import models.street._
-import models.user.{UserCurrentRegionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.street.StreetEdgePriorityTable
-import play.api.Logger
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
 
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp,
@@ -415,7 +412,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get tasks in the region. Called when an anonymous user begins auditing a region.
+    * Get tasks in the region. Called when a list of tasks is requested through the API.
     *
     * @param regionId Region id
     * @return
@@ -434,7 +431,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get tasks in the region. Called when a registered user begins auditing a region.
+    * Get tasks in the region. Called when a user begins auditing a region.
     *
     * @param regionId Region id
     * @param user User id

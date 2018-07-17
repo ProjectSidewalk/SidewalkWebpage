@@ -10,7 +10,7 @@ import formats.json.UserFormats._
 import forms._
 import models.user._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import play.api.mvc.{BodyParsers, RequestHeader, Result}
+import play.api.mvc.BodyParsers
 import play.api.libs.json._
 import org.joda.time.{DateTime, DateTimeZone}
 import scala.concurrent.Future
@@ -22,15 +22,6 @@ import scala.concurrent.Future
  */
 class UserController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
-
-  /**
-   * Handles the index action.
-   *
-   * @return The result to display.
-   */
-//  def index = SecuredAction.async { implicit request =>
-//    Future.successful(Ok(views.html.home(request.identity)))
-//  }
 
   /**
    * Handles the Sign In action.
