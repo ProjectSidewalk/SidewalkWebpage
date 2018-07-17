@@ -163,35 +163,34 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
 
   def selectAuditTaskInteractionsOfAUser(regionId: Int, userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
     val selectInteractionQuery = Q.query[(Int, String), AuditTaskInteraction](
-      """SELECT
-        |  audit_task_interaction.audit_task_interaction_id,
-        |  audit_task_interaction.audit_task_id,
-        |  audit_task_interaction.action,
-        |  audit_task_interaction.gsv_panorama_id,
-        |  audit_task_interaction.lat,
-        |  audit_task_interaction.lng,
-        |  audit_task_interaction.heading,
-        |  audit_task_interaction.pitch,
-        |  audit_task_interaction.zoom,
-        |  audit_task_interaction.note,
-        |  audit_task_interaction.temporary_label_id,
-        |  audit_task_interaction.timestamp
+      """SELECT audit_task_interaction.audit_task_interaction_id,
+        |       audit_task_interaction.audit_task_id,
+        |       audit_task_interaction.action,
+        |       audit_task_interaction.gsv_panorama_id,
+        |       audit_task_interaction.lat,
+        |       audit_task_interaction.lng,
+        |       audit_task_interaction.heading,
+        |       audit_task_interaction.pitch,
+        |       audit_task_interaction.zoom,
+        |       audit_task_interaction.note,
+        |       audit_task_interaction.temporary_label_id,
+        |       audit_task_interaction.timestamp
         |FROM "sidewalk"."audit_task"
         |INNER JOIN "sidewalk"."street_edge"
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |    ON street_edge.street_edge_id = audit_task.street_edge_id
         |INNER JOIN "sidewalk"."region"
-        |  ON region.region_id = ?
-        |  AND ST_Intersects(region.geom, street_edge.geom)
+        |    ON region.region_id = ?
+        |    AND ST_Intersects(region.geom, street_edge.geom)
         |INNER JOIN "sidewalk"."audit_task_interaction"
-        |  ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
+        |    ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
         |WHERE "audit_task".user_id = ?
-        |  AND (
-        |    audit_task_interaction.action = 'MissionComplete'
-        |    OR (
-        |      audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
-        |      AND audit_task.completed = TRUE
+        |    AND (
+        |        audit_task_interaction.action = 'MissionComplete'
+        |        OR (
+        |            audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
+        |            AND audit_task.completed = TRUE
+        |        )
         |    )
-        |  )
         |ORDER BY audit_task_interaction.audit_task_interaction_id""".stripMargin
     )
 
@@ -208,20 +207,29 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
     */
   def selectAuditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
     val selectInteractionWithLabelQuery = Q.query[Int, InteractionWithLabel](
-      """SELECT interaction.audit_task_interaction_id, interaction.audit_task_id, interaction.action,
-        |interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-        |interaction.zoom, interaction. note, interaction.timestamp, label_type.label_type,
-        |label_point.lat AS label_lat, label_point.lng AS label_lng, label_point.canvas_x as canvas_x,
-        |label_point.canvas_y as canvas_y, label_point.canvas_width as canvas_width,
-        |label_point.canvas_height as canvas_height
+      """SELECT interaction.audit_task_interaction_id,
+        |       interaction.audit_task_id,
+        |       interaction.action,
+        |       interaction.gsv_panorama_id,
+        |       interaction.lat,
+        |       interaction.lng,
+        |       interaction.heading,
+        |       interaction.pitch,
+        |       interaction.zoom,
+        |       interaction.note,
+        |       interaction.timestamp,
+        |       label_type.label_type,
+        |       label_point.lat AS label_lat,
+        |       label_point.lng AS label_lng,
+        |       label_point.canvas_x AS canvas_x,
+        |       label_point.canvas_y AS canvas_y,
+        |       label_point.canvas_width AS canvas_width,
+        |       label_point.canvas_height AS canvas_height
         |FROM sidewalk.audit_task_interaction AS interaction
-        |LEFT JOIN sidewalk.label
-        |ON interaction.temporary_label_id = label.temporary_label_id
-        |AND interaction.audit_task_id = label.audit_task_id
-        |LEFT JOIN sidewalk.label_type
-        |ON label.label_type_id = label_type.label_type_id
-        |LEFT JOIN sidewalk.label_point
-        |ON label.label_id = label_point.label_id
+        |LEFT JOIN sidewalk.label ON interaction.temporary_label_id = label.temporary_label_id
+        |                         AND interaction.audit_task_id = label.audit_task_id
+        |LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
+        |LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
         |WHERE interaction.audit_task_id = ?
         |ORDER BY interaction.timestamp""".stripMargin
     )

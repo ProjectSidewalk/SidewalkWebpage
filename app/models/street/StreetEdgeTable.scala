@@ -5,13 +5,10 @@ import java.util.UUID
 import java.util.Calendar
 import java.text.SimpleDateFormat
 
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
-
 import com.vividsolutions.jts.geom.LineString
-import models.audit.{AuditTask, AuditTaskTable}
+import models.audit.AuditTaskTable
 import models.region.RegionTable
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slick.DBTableDefinitions.UserTable
 import models.user.UserRoleTable
 import models.user.RoleTable
 import models.utils.MyPostgresDriver
@@ -312,15 +309,23 @@ object StreetEdgeTable {
     */
   def selectAuditedStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
     val selectAuditedStreetsQuery = Q.query[Int, StreetEdge](
-      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
-        |  FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.region
-        |  ON ST_Intersects(street_edge.geom, region.geom)
-        |INNER JOIN sidewalk.audit_task
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
-        |  AND audit_task.completed = TRUE
+      """SELECT street_edge.street_edge_id,
+        |       street_edge.geom,
+        |       source,
+        |       target,
+        |       x1,
+        |       y1,
+        |       x2,
+        |       y2,
+        |       way_type,
+        |       street_edge.deleted,
+        |       street_edge.timestamp
+        |FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.region ON ST_Intersects(street_edge.geom, region.geom)
+        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |                               AND audit_task.completed = TRUE
         |WHERE region.region_id=?
-        |  AND street_edge.deleted=FALSE
+        |    AND street_edge.deleted = FALSE
       """.stripMargin
     )
     selectAuditedStreetsQuery(regionId).list.groupBy(_.streetEdgeId).map(_._2.head).toList
@@ -329,16 +334,24 @@ object StreetEdgeTable {
   /** Gets a list of all street edges that the user has audited in the specified region */
   def selectStreetsAuditedByAUser(userId: UUID, regionId: Int): List[StreetEdge] = db.withSession { implicit session =>
     val selectAuditedStreetsQuery = Q.query[(String, Int), StreetEdge](
-      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
-        |  FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.street_edge_region
-        |  ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        |INNER JOIN sidewalk.audit_task
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
-        |  AND audit_task.completed = TRUE
-        |  AND audit_task.user_id = ?
-        |WHERE street_edge_region.region_id=?
-        |  AND street_edge.deleted=FALSE
+      """SELECT street_edge.street_edge_id,
+        |       street_edge.geom,
+        |       source,
+        |       target,
+        |       x1,
+        |       y1,
+        |       x2,
+        |       y2,
+        |       way_type,
+        |       street_edge.deleted,
+        |       street_edge.timestamp
+        |FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.street_edge_regio ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |                               AND audit_task.completed = TRUE
+        |                               AND audit_task.user_id = ?
+        |WHERE street_edge_region.region_id = ?
+        |    AND street_edge.deleted=FALSE
       """.stripMargin
     )
     selectAuditedStreetsQuery((userId.toString, regionId)).list.groupBy(_.streetEdgeId).map(_._2.head).toList
@@ -418,12 +431,21 @@ object StreetEdgeTable {
     */
   def selectStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
     val selectStreetsInARegionQuery = Q.query[Int, StreetEdge](
-      """SELECT street_edge.street_edge_id, street_edge.geom, source, target, x1, y1, x2, y2, way_type, street_edge.deleted, street_edge.timestamp
-        |  FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.region
-        |  ON ST_Intersects(street_edge.geom, region.geom)
-        |WHERE region.region_id=?
-        |  AND street_edge.deleted=FALSE
+      """SELECT street_edge.street_edge_id,
+        |       street_edge.geom,
+        |       source,
+        |       target,
+        |       x1,
+        |       y1,
+        |       x2,
+        |       y2,
+        |       way_type,
+        |       street_edge.deleted,
+        |       street_edge.timestamp
+        |FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.region ON ST_Intersects(street_edge.geom, region.geom)
+        |WHERE region.region_id = ?
+        |    AND street_edge.deleted = FALSE
       """.stripMargin
     )
 
@@ -438,9 +460,20 @@ object StreetEdgeTable {
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT st_e.street_edge_id, st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
-       |FROM sidewalk.street_edge AS st_e
-       |WHERE st_e.deleted = FALSE AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+      """SELECT st_e.street_edge_id,
+        |       st_e.geom,
+        |       st_e.source,
+        |       st_e.target,
+        |       st_e.x1,
+        |       st_e.y1,
+        |       st_e.x2,
+        |       st_e.y2,
+        |       st_e.way_type,
+        |       st_e.deleted,
+        |       st_e.timestamp
+        |FROM sidewalk.street_edge AS st_e
+        |WHERE st_e.deleted = FALSE
+        |    AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
@@ -451,13 +484,22 @@ object StreetEdgeTable {
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT DISTINCT(street_edge.street_edge_id), street_edge.geom, street_edge.source, street_edge.target, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2, street_edge.way_type, street_edge.deleted, street_edge.timestamp
-        |  FROM sidewalk.street_edge
-        |  INNER JOIN sidewalk.audit_task
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
-        |  WHERE street_edge.deleted = FALSE
-        |  AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |  AND audit_task.completed = TRUE""".stripMargin
+      """SELECT DISTINCT(street_edge.street_edge_id),
+        |       street_edge.geom,
+        |       street_edge.source,
+        |       street_edge.target,
+        |       street_edge.x1,
+        |       street_edge.y1,
+        |       street_edge.x2,
+        |       street_edge.y2,
+        |       street_edge.way_type,
+        |       street_edge.deleted,
+        |       street_edge.timestamp
+        |FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |WHERE street_edge.deleted = FALSE
+        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |    AND audit_task.completed = TRUE""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
@@ -466,10 +508,20 @@ object StreetEdgeTable {
 
   def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT DISTINCT(st_e.street_edge_id), st_e.geom, st_e.source, st_e.target, st_e.x1, st_e.y1, st_e.x2, st_e.y2, st_e.way_type, st_e.deleted, st_e.timestamp
+      """SELECT DISTINCT(st_e.street_edge_id),
+        |       st_e.geom,
+        |       st_e.source,
+        |       st_e.target,
+        |       st_e.x1,
+        |       st_e.y1,
+        |       st_e.x2,
+        |       st_e.y2,
+        |       st_e.way_type,
+        |       st_e.deleted,
+        |       st_e.timestamp
         |FROM sidewalk.street_edge AS st_e
         |WHERE st_e.deleted = FALSE
-        |AND ST_Within(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
+        |    AND ST_Within(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
@@ -478,13 +530,22 @@ object StreetEdgeTable {
 
   def selectAuditedStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT DISTINCT(street_edge.street_edge_id), street_edge.geom, street_edge.source, street_edge.target, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2, street_edge.way_type, street_edge.deleted, street_edge.timestamp
-        |  FROM sidewalk.street_edge
-        |  INNER JOIN sidewalk.audit_task
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
-        |  WHERE street_edge.deleted = FALSE
-        |  AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |  AND audit_task.completed = TRUE""".stripMargin
+      """SELECT DISTINCT(street_edge.street_edge_id),
+        |       street_edge.geom,
+        |       street_edge.source,
+        |       street_edge.target,
+        |       street_edge.x1,
+        |       street_edge.y1,
+        |       street_edge.x2,
+        |       street_edge.y2,
+        |       street_edge.way_type,
+        |       street_edge.deleted,
+        |       street_edge.timestamp
+        |FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |WHERE street_edge.deleted = FALSE
+        |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
+        |    AND audit_task.completed = TRUE""".stripMargin
     )
 
     val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list

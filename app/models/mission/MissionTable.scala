@@ -164,18 +164,27 @@ object MissionTable {
     */
   def selectIncompleteMissionsByAUser(userId: UUID): List[Mission] = db.withSession { implicit session =>
     val selectIncompleteMissionQuery = Q.query[String, Mission](
-      """SELECT mission.mission_id, mission.region_id, mission.label, mission.level, mission.distance, mission.distance_ft, mission.distance_mi, mission.coverage, mission.deleted
-        |  FROM sidewalk.mission
-        |LEFT JOIN (
+      """SELECT mission.mission_id,
+        |       mission.region_id,
+        |       mission.label,
+        |       mission.level,
+        |       mission.distance,
+        |       mission.distance_ft,
+        |       mission.distance_mi,
+        |       mission.coverage,
+        |       mission.deleted
+        |FROM sidewalk.mission
+        |LEFT JOIN
+        |(
         |    SELECT mission.mission_id
-        |      FROM sidewalk.mission
-        |    LEFT JOIN sidewalk.mission_user
-        |      ON mission.mission_id = mission_user.mission_id
-        |    WHERE mission.deleted = false
-        |    AND mission_user.user_id = ?
+        |    FROM sidewalk.mission
+        |    LEFT JOIN sidewalk.mission_user ON mission.mission_id = mission_user.mission_id
+        |    WHERE mission.deleted = FALSE
+        |        AND mission_user.user_id = ?
         |) AS completed_mission
-        |  ON mission.mission_id = completed_mission.mission_id
-        |WHERE deleted = false AND completed_mission.mission_id IS NULL""".stripMargin
+        |    ON mission.mission_id = completed_mission.mission_id
+        |WHERE deleted = false
+        |    AND completed_mission.mission_id IS NULL""".stripMargin
     )
     val incompleteMissions: List[Mission] = selectIncompleteMissionQuery(userId.toString).list
     incompleteMissions
