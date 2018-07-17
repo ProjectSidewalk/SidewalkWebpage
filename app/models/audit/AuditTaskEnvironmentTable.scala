@@ -1,7 +1,5 @@
 package models.audit
 
-import java.sql.Timestamp
-
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 

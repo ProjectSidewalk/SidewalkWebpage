@@ -187,7 +187,7 @@ class SignUpController @Inject() (
       case None =>
         val ipAddress: String = request.remoteAddress
 
-        // Generate random strings for anonymous username/email/password (keep trying if we accidentally make a duplicate).
+        // Generate random strings for anonymous username/email/password (keep trying if we make a duplicate).
         var randomUsername: String = Random.alphanumeric take 16 mkString ""
         while (UserTable.find(randomUsername).isDefined) randomUsername = Random.alphanumeric take 16 mkString ""
         var randomEmail: String = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
@@ -314,7 +314,7 @@ class SignUpController @Inject() (
       UserCurrentRegionTable.assignEasyRegion(user.userId)
     }
 
-    // Add Timestamp
+    // Log the sign in.
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))

@@ -46,7 +46,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
       case Some(ref) =>
         ref match {
           case "mturk" =>
-            //The referrer is mechanical turk
+            // The referrer is mechanical turk.
             val workerId: String = qString.get("workerId").get
             val assignmentId: String = qString.get("assignmentId").get
             val hitId: String = qString.get("hitId").get
@@ -54,7 +54,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
             request.identity match {
               case Some(user) =>
-                //Have different cases when the user.username is the same as the workerId and when it isnt
+                // Have different cases when the user.username is the same as the workerId and when it isn't.
                 user.username match{
                   case `workerId` =>
                     val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
@@ -65,15 +65,14 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     Future.successful(Redirect("/audit"))
                   case _ =>
                     Future.successful(Redirect(routes.UserController.signOut(request.uri)))
-                    //Need to be able to be able to login as a different user here
-                    // but the signout redirect isnt working
+                    // Need to be able to login as a different user here, but the signout redirect isn't working.
                 }
               case None =>
-                //Add an entry into the amt_assignment table
+                // Add an entry into the amt_assignment table.
                 val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
                 val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
-                // Since the turker doesnt exist in the user table create a new record with the role set to "Turker"
+                // Since the turker doesnt exist in the user table create a new record with the role set to "Turker".
                 val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
                 Future.successful(Redirect(redirectTo))
             }
@@ -97,7 +96,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             }
         }
       case None =>
-        // When there are no referrers, just load the landing page but store the query parameters that were passed anyway
+        // When there are no referrers, load the landing page but store the query parameters that were passed anyway.
         val activityLogText: String = "/?"+qString.keys.map(i => i.toString +"="+ qString(i).toString).mkString("&")
         request.identity match {
           case Some(user) =>
@@ -120,7 +119,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Returns an about page
+   * Returns an about page.
+    *
    * @return
    */
   def about = UserAwareAction.async { implicit request =>
@@ -137,6 +137,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+    * Returns a page saying that we do not yet support mobile devices.
+    *
+    * @return
+    */
   def mobile = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -151,23 +156,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
-  def student = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
-        val ipAddress: String = request.remoteAddress
-
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Student", timestamp))
-        Future.successful(Ok(views.html.student("Project Sidewalk", Some(user))))
-      case None =>
-        Future.successful(Redirect("/anonSignUp?url=/student"))
-    }
-
-  }
-
   /**
-    * Returns a developer page
+    * Returns a developer page.
+    *
     * @return
     */
   def developer = UserAwareAction.async { implicit request =>
@@ -185,7 +176,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns an FAQ page
+    * Returns an FAQ page.
+    *
     * @return
     */
   def faq = UserAwareAction.async { implicit request =>
@@ -203,7 +195,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns the terms page
+    * Returns the terms page.
+    *
     * @return
     */
   def terms = UserAwareAction.async { implicit request =>
@@ -220,6 +213,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+    * Returns the results page that contains a cool visualization.
+    *
+    * @return
+    */
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -234,6 +232,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+    * Returns the demo page that contains a cool visualization that is a work-in-progress.
+    *
+    * @return
+    */
   def demo = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -248,10 +251,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
+  /**
+    * Returns a page that tells Turkers that there are no further missions for them to complete at this time.
+    *
+    * @return
+    */
   def noAvailableMissionIndex = Action.async { implicit request =>
     Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
   }
 
+  /**
+    * Returns a page telling the turker that they already signed in with their worker id.
+    *
+    * @return
+    */
   def turkerIdExists = Action.async { implicit request =>
     Future.successful(Ok(views.html.turkerIdExists("Project Sidewalk")))
   }

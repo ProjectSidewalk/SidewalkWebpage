@@ -45,7 +45,6 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
             user.get.userId.toString
         }
 
-        val ipAddress: String = request.remoteAddress
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
         val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId))

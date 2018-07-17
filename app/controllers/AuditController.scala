@@ -29,8 +29,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
-  val anonymousUser: DBUser = UserTable.find("anonymous").get
-
   /**
     * Returns an audit page.
     *

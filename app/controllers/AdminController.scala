@@ -147,7 +147,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+    * Gets count of completed missions for each user.
     *
     * @return
     */
