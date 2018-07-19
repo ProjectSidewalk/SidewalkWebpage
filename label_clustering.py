@@ -174,6 +174,7 @@ if __name__ == '__main__':
         elif type_data.shape[0] == 1:
             labels_for_type_i = type_data.copy()
             labels_for_type_i.loc[:,'cluster'] = 1 # Gives the single cluster a cluster_id of 1.
+            labels_for_type_i.loc[:,'label_type'] = label_type # Gives Problem type if needed.
             clusters_for_type_i = labels_for_type_i.filter(items=cluster_cols)
 
         return (label_type, clusters_for_type_i, labels_for_type_i)
