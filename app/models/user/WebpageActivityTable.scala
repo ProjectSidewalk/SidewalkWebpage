@@ -37,11 +37,14 @@ object WebpageActivityTable {
 
   /**
     * Returns the last log in timestamp
+    *
     * @param userId User id
     * @return
     */
   def selectLastSignInTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
-    val signInActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").sortBy(_.timestamp.desc).list
+    val signInString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignIn"
+    val signInActivities: List[WebpageActivity] =
+      activities.filter(_.userId === userId.toString).filter(_.activity === signInString).sortBy(_.timestamp.desc).list
 
     if (signInActivities.nonEmpty) {
       Some(signInActivities.head.timestamp)
@@ -52,11 +55,14 @@ object WebpageActivityTable {
 
   /**
     * Returns the signup timestamp
+    *
     * @param userId User id
     * @return
     */
   def selectSignUpTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
-    val signUpActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignUp").sortBy(_.timestamp.desc).list
+    val signUpString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignUp"
+    val signUpActivities: List[WebpageActivity] =
+      activities.filter(_.userId === userId.toString).filter(_.activity === signUpString).sortBy(_.timestamp.desc).list
 
     if (signUpActivities.nonEmpty) {
       Some(signUpActivities.head.timestamp)

@@ -220,7 +220,7 @@ class SignUpController @Inject() (
           // Add Timestamp
           val now = new DateTime(DateTimeZone.UTC)
           val timestamp: Timestamp = new Timestamp(now.getMillis)
-          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUpAnonymous", timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "AnonAutoSignUp", timestamp))
 
           env.eventBus.publish(SignUpEvent(user, request, request2lang))
           env.eventBus.publish(LoginEvent(user, request, request2lang))
