@@ -119,10 +119,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Returns an about page.
+    * Returns an about page.
     *
-   * @return
-   */
+    * @return
+    */
   def about = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
