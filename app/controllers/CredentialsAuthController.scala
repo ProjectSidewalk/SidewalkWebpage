@@ -1,7 +1,6 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
@@ -14,7 +13,6 @@ import formats.json.UserFormats._
 import forms.SignInForm
 import models.services.UserService
 import models.user._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.i18n.Messages

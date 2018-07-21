@@ -81,7 +81,6 @@ class SignUpController @Inject() (
                   email = data.email,
                   role = None
                 )
-                println(user.userId)
 
                 for {
                   user <- userService.save(user)

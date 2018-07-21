@@ -1,22 +1,16 @@
 package controllers
 
 import javax.inject.Inject
-import java.util.UUID
 
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import formats.json.UserFormats._
 import formats.json.TaskFormats._
-import forms._
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.label.LabelTable
-import models.mission.MissionTable
 import models.user.User
-import models.user.UserRoleTable
 import play.api.libs.json.{JsArray, JsObject, Json}
-import play.api.mvc.{BodyParsers, RequestHeader, Result}
 import play.extras.geojson
 
 
