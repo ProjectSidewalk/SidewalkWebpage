@@ -9,11 +9,11 @@ function ContextMenu (uiContextMenu) {
         $radioButtons = uiContextMenu.radioButtons,
         $temporaryProblemCheckbox = uiContextMenu.temporaryProblemCheckbox,
         $descriptionTextBox = uiContextMenu.textBox,
-        windowWidth = $menuWindow.width();
-        windowHeight = $menuWindow.height();
+        windowWidth = $menuWindow.width(),
+        windowHeight = $menuWindow.outerHeight();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
     var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
-
+    var $tags = uiContextMenu.tags;
     var lastShownLabelColor;
 
     var context_menu_el = document.getElementById('context-menu-holder');
@@ -52,6 +52,7 @@ function ContextMenu (uiContextMenu) {
     $OKButton.on('click', _handleOKButtonClick);
     $radioButtonLabels.on('mouseenter', _handleRadioButtonLabelMouseEnter);
     $radioButtonLabels.on('mouseleave', _handleRadioButtonLabelMouseLeave);
+    $tags.on('click', _handleTagClick);
 
     var down = {};
     var lastKeyPressed = 0;
@@ -82,7 +83,7 @@ function ContextMenu (uiContextMenu) {
     }//handles both key down and key up events
 
     function checkRadioButton (value) {
-        uiContextMenu.radioButtons.filter(function(){return this.value==value}).prop("checked", true).trigger("click");
+        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click");
     }
 
     function getContextMenuUI(){
@@ -98,10 +99,6 @@ function ContextMenu (uiContextMenu) {
         return (key in status) ? status[key] : null;
     }
 
-    /**
-     * Get the current target label
-     * @returns {null}
-     */
     function getTargetLabel () {
         return getStatus('targetLabel');
     }
@@ -119,7 +116,6 @@ function ContextMenu (uiContextMenu) {
         var description = $(this).val(),
             label = getTargetLabel();
         svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
-
         if (label) {
             label.setProperty('description', description);
         }
@@ -146,7 +142,6 @@ function ContextMenu (uiContextMenu) {
     }
 
     function _handleOKButtonClick () {
-
         svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
         _handleSeverityPopup();
@@ -176,9 +171,9 @@ function ContextMenu (uiContextMenu) {
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
         self.updateRadioButtonImages();
-
         if (label) {
             label.setProperty('severity', severity);
+            svl.canvas.clear().render2();
         }
     }
 
@@ -190,6 +185,20 @@ function ContextMenu (uiContextMenu) {
     function _handleRadioButtonLabelMouseLeave () {
         self.updateRadioButtonImages();
     }
+
+    self.fetchLabelTags = function (callback) {
+        $.when($.ajax({
+            contentType: 'application/json; charset=utf-8',
+            url: "/label/tags",
+            type: 'get',
+            success: function (json) {
+                self.labelTags = json;
+            },
+            error: function (result) {
+                throw result;
+            }
+        })).done(callback);
+    };
 
     self.updateRadioButtonImages = function (hoveredRadioButtonValue) {
         var $radioButtonImages = $radioButtonLabels.find("input + img");
@@ -219,6 +228,37 @@ function ContextMenu (uiContextMenu) {
         }
     };
 
+    /**
+     * Records tag ID when clicked and updates tag color
+     */
+    function _handleTagClick () {
+        var label = getTargetLabel();
+        var labelTags = label.getProperty('tagIds');
+
+        $("body").unbind('click').on('click', 'button', function(e){
+            if (e.target.name == 'tag') {
+                var tagValue = e.target.textContent || e.target.innerText;
+
+                // Adds or removes tag from the label's current list of tags.
+                self.labelTags.forEach(function (tag) {
+                    if (tag.tag === tagValue) {
+                        if (!labelTags.includes(tag.tag_id)) {
+                            labelTags.push(tag.tag_id);
+                            svl.tracker.push('ContextMenu_TagAdded',
+                                { tagId: tag.tag_id, tagName: tag.tag });
+                        } else {
+                            var index = labelTags.indexOf(tag.tag_id);
+                            labelTags.splice(index, 1);
+                            svl.tracker.push('ContextMenu_TagRemoved',
+                                { tagId: tag.tag_id, tagName: tag.tag });
+                        }
+                        _toggleTagColor(labelTags, tag.tag_id, e.target);
+                        label.setProperty('tagIds', labelTags);
+                    }
+                })
+            }
+        });
+    }
 
     /**
      *
@@ -240,6 +280,7 @@ function ContextMenu (uiContextMenu) {
      */
     function hide () {
         $menuWindow.css('visibility', 'hidden');
+        $connector.css('visibility', 'hidden');
         setBorderColor('black');
         setStatus('visibility', 'hidden');
         return this;
@@ -286,6 +327,72 @@ function ContextMenu (uiContextMenu) {
         return this;
     }
 
+
+    /**
+     * Sets the color of a label's tags based off of tags that were previously chosen.
+     * @param label     Current label being modified.
+     */
+    function setTagColor(label) {
+        var labelTags = label.getProperty('tagIds');
+        $("body").find("button[name=tag]").each(function(t) {
+            var buttonText = $(this).text();
+            if (buttonText) {
+                var tagId = undefined;
+
+                // Finds the tag id based of the current button based off text description.
+                self.labelTags.forEach(function (tag) {
+                    if (tag.tag === buttonText) {
+                        tagId = tag.tag_id;
+                    }
+                });
+
+                // Sets color to be white or gray if the label tag has been selected.
+                if (labelTags.includes(tagId)) {
+                    $(this).css('background-color', 'rgb(200, 200, 200)');
+                } else {
+                    $(this).css('background-color', 'white');
+                }
+            }
+        });
+    }
+
+    /**
+     * Sets the description and value of the tag based on the label type.
+     * @param label     Current label being modified.
+     */
+    function setTags (label) {
+        var maxTags = 5;
+        if (label) {
+            var labelTags = self.labelTags;
+            if (labelTags) {
+                var count = 0;
+
+                // Go through each label tag, modify each button to display tag.
+                labelTags.forEach(function (tag) {
+                    if (tag.label_type === label.getProperty('labelType')) {
+                        $("body").find("button[id=" + count + "]").html(tag.tag);
+                        $("body").find("button[id=" + count + "]").css({
+                            visibility: 'inherit',
+                            position: 'inherit'
+                        });
+                        count += 1;
+                    }
+                });
+
+                // If number of tags is less than the max number of tags, hide button.
+                var i = count;
+                for (i; i < maxTags; i++) {
+                    $("body").find("button[id=" + i + "]").css({
+                        visibility: 'hidden',
+                        position: 'absolute',
+                        top: '0px',
+                        left: '0px'
+                    });
+                }
+            }
+        }
+    }
+
     /**
      * Show the context menu
      * @param x x-coordinate on the canvas pane
@@ -293,7 +400,6 @@ function ContextMenu (uiContextMenu) {
      * @param param a parameter object
      */
     function show (x, y, param) {
-
         setStatus('targetLabel', null);
         $radioButtons.prop('checked', false);
         $temporaryProblemCheckbox.prop('checked', false);
@@ -303,20 +409,39 @@ function ContextMenu (uiContextMenu) {
                 acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'CurbRamp'];
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
+                setTags(param.targetLabel);
+                setTagColor(param.targetLabel);
+                windowHeight = $('#context-menu-holder').outerHeight();
+
+                $("#test-rectangle").css({
+                    position: 'absolute',
+                    visibility: 'visible',
+                    top: y,
+                    left: x,
+                    width: '2px',
+                    height: '2px',
+                })
+
+                // Determines coordinates for context menu when displayed below the label.
                 var topCoordinate = y + 20;
-                var connectorCoordinate = -13;
-                //if the menu is so far down the screen that it will get cut off
-                if(topCoordinate>370){
-                  topCoordinate = y - 40 - windowHeight;
-                  connectorCoordinate = windowHeight + 13;
+                var connectorCoordinate = -10;
+
+                // Determines coordinates for context menu when displayed above the label.
+                if(y + windowHeight + 22 > 480) {
+                    topCoordinate = y - windowHeight - 22;
+                    connectorCoordinate = windowHeight;
                 }
+
                 $menuWindow.css({
                     visibility: 'visible',
                     left: x - windowWidth / 2,
                     top: topCoordinate
                 });
+
                 $connector.css({
-                  top: connectorCoordinate
+                    visibility: 'visible',
+                    top: topCoordinate + connectorCoordinate,
+                    left: x - 3
                 });
 
                 if (param) {
@@ -344,17 +469,8 @@ function ContextMenu (uiContextMenu) {
                 if (description) {
                     $descriptionTextBox.val(description);
                 } else {
-                    var example = '', defaultText = "Description";
-                    if (labelType == 'CurbRamp') {
-                        example = " (e.g., narrow curb ramp)";
-                    } else if (labelType == 'NoCurbRamp') {
-                        example = " (e.g., unclear if a curb ramp is needed)";
-                    } else if (labelType == 'Obstacle') {
-                        example = " (e.g., light pole blocking sidewalk)";
-                    } else if (labelType == 'SurfaceProblem') {
-                        example = " (e.g., unleveled due to a tree root)";
-                    }
-                    $descriptionTextBox.prop("placeholder", defaultText + example);
+                    var defaultText = "Description (optional)";
+                    $descriptionTextBox.prop("placeholder", defaultText);
                 }
                 var labelProperties = self.getTargetLabel().getProperties();
 
@@ -363,6 +479,20 @@ function ContextMenu (uiContextMenu) {
             }
         }
         self.updateRadioButtonImages();
+    }
+
+    /**
+     * Toggles the color of the tag when selected/deselected.
+     * @param labelTags     List of tags that the current label has.
+     * @param tagValue      Text value of tag that has been selected.
+     * @param target        Tag button that is being modified.
+     */
+    function _toggleTagColor(labelTags, id, target) {
+        if (labelTags.includes(id)) {
+            target.style.backgroundColor = 'rgb(200, 200, 200)';
+        } else {
+            target.style.backgroundColor = "white";
+        }
     }
 
     self.getContextMenuUI = getContextMenuUI;

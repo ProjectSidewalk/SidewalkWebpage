@@ -2,7 +2,6 @@
  * Onboarding module.
  * Todo. So many dependencies! If possible, break the module down into pieces.
  * @param svl
- * @param actionStack
  * @param audioEffect
  * @param compass
  * @param form
@@ -34,7 +33,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer,
+function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, missionContainer,
                     missionModel, modalComment, modalMission, modalSkip, neighborhoodContainer,
                     neighborhoodModel, onboardingModel, onboardingStates,
                     ribbon, statusField, statusModel, storage, taskContainer,
@@ -506,7 +505,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
 
         //Reset the label counts to zero after onboarding
         svl.labelCounter.reset();
-        actionStack.reset();
 
 
         $("#toolbar-onboarding-link").css("visibility", "visible");
@@ -611,9 +609,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                     case "zoom":
                         zoomControl.blink();
                         break;
-                    case "action-stack":
-                        actionStack.blink();
-                        break;
                     case "sound":
                         audioEffect.blink();
                         break;
@@ -648,7 +643,7 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
             "NoCurbRamp": "Missing Curb Ramp",
             "Obstacle": "Obstacle in Path",
             "SurfaceProblem": "Surface Problem",
-            "Other": "No Sidewalk"
+            "NoSidewalk": "No Sidewalk"
         };
 
         // Callback for deleted label
@@ -1005,7 +1000,6 @@ function Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation,
                 compass.stopBlinking();
                 statusField.stopBlinking();
                 zoomControl.stopBlinking();
-                actionStack.stopBlinking();
                 audioEffect.stopBlinking();
                 modalSkip.stopBlinking();
                 modalComment.stopBlinking();

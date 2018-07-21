@@ -392,7 +392,8 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 "CurbRamp": 0,
                 "NoCurbRamp": 0,
                 "Obstacle": 0,
-                "SurfaceProblem": 0
+                "SurfaceProblem": 0,
+                "NoSidewalk": 0
             };
 
             for (var i = data.features.length - 1; i >= 0; i--) {
@@ -402,11 +403,13 @@ function Progress (_, $, c3, L, difficultRegionIds) {
             document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
             document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
             document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+            document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
 
             document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
             document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+            document.getElementById("map-legend-no-sidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "'></svg>";
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='rgba(128, 128, 128, 1.0)' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
@@ -490,7 +493,7 @@ function Progress (_, $, c3, L, difficultRegionIds) {
             });
 
             for (i = auditTaskIdsLength - 1; i >= 0; i--) {
-                labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "Other": 0 };
+                labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
                 auditTaskId = auditTaskIds[i];
                 labelsLength = grouped[auditTaskId].length;
                 for (j = 0; j < labelsLength; j++) {
@@ -507,12 +510,13 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 var year = date.getFullYear();
 
                 tableRows += "<tr>" +
-                    "<td class='col-xs-2'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["CurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["NoCurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Obstacle"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["SurfaceProblem"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Other"] + "</td>" +
+                    "<td class='col-xs-1'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
+                    "<td class='col-xs-1'>" + labelCounter["Other"] + "</td>" +
                     "</tr>";
             }
 

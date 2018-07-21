@@ -92,7 +92,9 @@ public/javascripts/FAQ/build/*
 public/javascripts/Progress/build/*
 download
 
-#public/javascripts/SVLabel/build/SVLabel.js
+# Keys
+rootkey.csv
+special_api_key.txt
 
 # sidewalk-webpage-binary directory
 sidewalk-webpage/

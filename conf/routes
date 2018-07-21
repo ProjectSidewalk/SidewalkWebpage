@@ -51,6 +51,7 @@ GET     /adminapi/label/:labelId                             @controllers.AdminC
 GET     /adminapi/labelCounts/registered                     @controllers.AdminController.getAllRegisteredUserLabelCounts
 GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
 GET     /adminapi/labelCounts/turker                         @controllers.AdminController.getAllTurkerUserLabelCounts
+GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
 GET     /adminapi/auditTimesAnon                             @controllers.AdminController.getAnonAuditTimes()
 GET     /adminapi/auditTimesTurker                           @controllers.AdminController.getTurkerAuditTimes()
@@ -83,6 +84,7 @@ POST    /mission                                             @controllers.Missio
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
+GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
@@ -128,3 +130,11 @@ POST    /survey                                              @controllers.Survey
 
 # Update AMTAssignment Table
 POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
+
+# Clustering and Attributes
+GET     /clustering                                          @controllers.AttributeController.index
+GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both")
+GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(key: String, userIdOrIp: String, isAnonymous: Boolean)
+GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
+POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userIdOrIp: String, isAnonymous: Boolean)
+POST    /multiUserClusteringResults                          @controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)

@@ -734,16 +734,6 @@ video#bgvid {
 
 }
 
-#undo-button small{
-    position: relative;
-    top: -5px;
-}
-
-#redo-button small{
-    position: relative;
-    top: -5px;
-}
-
 #wrap {
     min-height: 100%;
     height: auto;
