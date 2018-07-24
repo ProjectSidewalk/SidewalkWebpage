@@ -513,25 +513,31 @@
                                 <th class="col-md-2">Label Type</th>
                                 <th class="col-md-1">Severity</th>
                                 <th class="col-md-1">Temporary?</th>
-                                <th class="col-md-5">Description</th>
+                                <th class="col-md-5">Tags</th>
                                 <th class="col-md-2">GSV</th>
                             </tr>
                             </thead>
                             <tbody>
                             @LabelTable.selectTopLabelsAndMetadata(1000).map { label =>
-                            <tr>
-                                <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
-                                </td>
-                                <td>@label.timestamp</td>
-                                <td>@label.labelTypeValue</td>
-                                <td>@label.severity</td>
-                                <td>@label.temporary</td>
-                                <td>@label.description</td>
-                                <td>
-                                    <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
-                                </td>
 
-                            </tr>
+                                <tr>
+                                    <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
+                                    </td>
+                                    <td>@label.timestamp</td>
+                                    <td>@label.labelTypeValue</td>
+                                    <td>@label.severity</td>
+                                    <td>@label.temporary</td>
+
+                                    <td>
+                                        @LabelTable.getTagsFromLabelId(label.labelId)
+                                    </td>
+
+                                    <td>
+                                        <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
+                                    </td>
+
+                                </tr>
+
                             }
                             </tbody>
                         </table>
