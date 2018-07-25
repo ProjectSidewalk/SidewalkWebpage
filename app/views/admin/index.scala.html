@@ -509,12 +509,13 @@
                             <thead>
                             <tr>
                                 <th class="col-md-2">Username</th>
-                                <th class="col-md-3" data-class-name="priority">Timestamp</th>
+                                <th class="col-md-2" data-class-name="priority">Timestamp</th>
                                 <th class="col-md-2">Label Type</th>
                                 <th class="col-md-1">Severity</th>
                                 <th class="col-md-1">Temporary?</th>
-                                <th class="col-md-5">Tags</th>
-                                <th class="col-md-2">GSV</th>
+                                <th class="col-md-2">Tags</th>
+                                <th class="col-md-5">Description</th>
+                                <th class="col-md-1">GSV</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -527,15 +528,9 @@
                                     <td>@label.labelTypeValue</td>
                                     <td>@label.severity</td>
                                     <td>@label.temporary</td>
-
-                                    <td>
-                                        @LabelTable.getTagsFromLabelId(label.labelId)
-                                    </td>
-
-                                    <td>
-                                        <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
-                                    </td>
-
+                                    <td>@LabelTable.getTagsFromLabelId(label.labelId)</td>
+                                    <td>@label.description</td>
+                                    <td><a class="labelView" data-label-id="@label.labelId" href="#">View</a></td>
                                 </tr>
 
                             }
