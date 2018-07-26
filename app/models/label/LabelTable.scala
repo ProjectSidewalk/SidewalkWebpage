@@ -111,7 +111,7 @@ object LabelTable {
                            userId: String, username: String,
                            timestamp: Option[java.sql.Timestamp],
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                           temporary: Boolean, description: Option[String], tags: String)
+                           temporary: Boolean, description: Option[String])
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
