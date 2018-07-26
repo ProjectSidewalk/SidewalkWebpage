@@ -111,7 +111,7 @@ object LabelTable {
                            userId: String, username: String,
                            timestamp: Option[java.sql.Timestamp],
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                           temporary: Boolean, description: Option[String])
+                           temporary: Boolean, description: Option[String], tags: String)
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -346,6 +346,7 @@ object LabelTable {
         |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
         |	ORDER BY lb1.label_id DESC""".stripMargin
     )
+
     selectQuery(labelId).list.map(label => LabelMetadata.tupled(label)).head
   }
 
@@ -375,32 +376,29 @@ object LabelTable {
       "label_type_value" -> labelMetadata.labelTypeValue,
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
-      //this one is different because we're pulling from the tags and label_tags databases
       "tags" -> getTagsFromLabelId(labelMetadata.labelId),
       "description" -> labelMetadata.description
     )
   }
 
-  //seperate sql request for getting tags, gets all the tags that correspond to the label Id.
+  /**
+    * This method returns a string with all the tags associated with a label
+    *
+    * @param userId Label id
+    * @return A string with all the tags asscociated with a label
+    */
   def getTagsFromLabelId(labelId: Int): String = db.withSession { implicit session =>
       val getTagsQuery = Q.query[Int, (String)](
-        """SELECT tag FROM sidewalk.tag
-             WHERE tag.tag_id IN (
-                  SELECT tag_id FROM sidewalk.label_tag
-                        WHERE label_tag.label_id = ?
-             )""".stripMargin
+        """SELECT tag
+          |FROM sidewalk.tag
+          |WHERE tag.tag_id IN
+          |(
+          |    SELECT tag_id
+          |    FROM sidewalk.label_tag
+          |    WHERE label_tag.label_id = ?
+          |)""".stripMargin
       )
-      var tags = getTagsQuery(labelId).list
-      var str = ""
-      var isFirst = true
-      for(tag <- tags){
-        if(!isFirst){
-          str += ", "
-        }
-        isFirst = false;
-        str += tag
-      }
-      return str
+      getTagsQuery(labelId).list.mkString(", ")
   }
 
   /*
