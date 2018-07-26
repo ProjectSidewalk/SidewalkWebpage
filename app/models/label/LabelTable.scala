@@ -271,7 +271,7 @@ object LabelTable {
         |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
         |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
         |               prob_desc.description
-        |                                      FROM label as lb
+        |					FROM label as lb
         |				LEFT JOIN sidewalk.label_type as lbt
         |					ON lb.label_type_id = lbt.label_type_id
         |				LEFT JOIN sidewalk.problem_severity as sev
