@@ -266,13 +266,12 @@ object LabelTable {
       """SELECT lb1.label_id, lb1.gsv_panorama_id, lp.heading, lp.pitch, lp.zoom, lp.canvas_x, lp.canvas_y,
         |       lp.canvas_width, lp.canvas_height, lb1.audit_task_id, u.user_id, u.username, lb1.time_created,
         |       lb_big.label_type, lb_big.label_type_desc, lb_big.severity, lb_big.temp_problem, lb_big.description
-        |
         |	FROM sidewalk.label as lb1, sidewalk.audit_task as at,
         |       sidewalk.user as u, sidewalk.label_point as lp,
         |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
         |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
         |               prob_desc.description
-        |	      				FROM label as lb
+        |					FROM label as lb
         |				LEFT JOIN sidewalk.label_type as lbt
         |					ON lb.label_type_id = lbt.label_type_id
         |				LEFT JOIN sidewalk.problem_severity as sev
@@ -333,7 +332,7 @@ object LabelTable {
         |				(SELECT lb.label_id, lb.gsv_panorama_id, lbt.label_type, lbt.description as label_type_desc, sev.severity,
         |               COALESCE(prob_temp.temporary_problem,'FALSE') as temp_problem,
         |               prob_desc.description
-        |                                      FROM label as lb
+        |					FROM label as lb
         |				LEFT JOIN sidewalk.label_type as lbt
         |					ON lb.label_type_id = lbt.label_type_id
         |				LEFT JOIN sidewalk.problem_severity as sev
@@ -382,24 +381,26 @@ object LabelTable {
     )
   }
 
-  /**
-    * This method returns the tags for a specific label id as a string
-    *
-    * @param userId label id
-    * @return string of tags attatched to label
-    */
+  //seperate sql request for getting tags, gets all the tags that correspond to the label Id.
   def getTagsFromLabelId(labelId: Int): String = db.withSession { implicit session =>
       val getTagsQuery = Q.query[Int, (String)](
-        """SELECT tag
-          |FROM sidewalk.tag
-          |WHERE tag.tag_id IN
-          |(
-          |    SELECT tag_id
-          |    FROM sidewalk.label_tag
-          |    WHERE label_tag.label_id = ?
-          |)""".stripMargin
+        """SELECT tag FROM sidewalk.tag
+             WHERE tag.tag_id IN (
+                  SELECT tag_id FROM sidewalk.label_tag
+                        WHERE label_tag.label_id = ?
+             )""".stripMargin
       )
-      return getTagsQuery(labelId).list.mkString(", ")
+      var tags = getTagsQuery(labelId).list
+      var str = ""
+      var isFirst = true
+      for(tag <- tags){
+        if(!isFirst){
+          str += ", "
+        }
+        isFirst = false;
+        str += tag
+      }
+      return str
   }
 
   /*
