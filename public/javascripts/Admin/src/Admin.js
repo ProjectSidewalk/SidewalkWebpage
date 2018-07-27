@@ -515,7 +515,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         self.adminGSVLabelView = AdminGSVLabel();
     }
 
-    function initializeLabelTableView() {
+    function initializeLabelTable() {
         $('.labelView').click(function (e) {
             e.preventDefault();
             self.adminGSVLabelView.showLabel($(this).data('labelId'));
@@ -1444,7 +1444,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     addTagsToTable();
-    initializeLabelTableView();
+    initializeLabelTable();
     initializeAdminGSVLabelView();
 
     self.clearMap = clearMap;

@@ -346,7 +346,6 @@ object LabelTable {
         |      lb1.label_id = lb_big.label_id and at.user_id = u.user_id and lb1.label_id = lp.label_id
         |	ORDER BY lb1.label_id DESC""".stripMargin
     )
-
     selectQuery(labelId).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
   }
 
