@@ -239,6 +239,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 case None => ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
               }
             }
+
+            // Remove any tag entries from database that were removed on the front-end and add any new ones.
+            val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labelId).toSet
+            val tagsToRemove: Set[Int] = existingTagIds -- label.tagIds.toSet
+            val tagsToAdd: Set[Int] = label.tagIds.toSet -- existingTagIds
+            tagsToRemove.map { tagId => LabelTagTable.delete(labelId, tagId) }
+            tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }
           }
 
           // Insert interaction

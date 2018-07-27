@@ -80,7 +80,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      */
     function disableZoomIn () {
         if (!lock.disableZoomIn) {
-            console.log("disabling zoom in");
             status.disableZoomIn = true;
             if (uiZoomControl) {
                 uiZoomControl.zoomIn.addClass('disabled');
@@ -94,7 +93,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      */
     function disableZoomOut () {
         if (!lock.disableZoomOut) {
-            console.log("disabling zoom out");
             status.disableZoomOut = true;
             if (uiZoomControl) {
                 uiZoomControl.zoomOut.addClass('disabled');
@@ -108,7 +106,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      */
     function enableZoomIn () {
         if (!lock.disableZoomIn) {
-            console.log("enabling zoom in");
             status.disableZoomIn = false;
             if (uiZoomControl) {
                 uiZoomControl.zoomIn.removeClass('disabled');
@@ -122,7 +119,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
      */
     function enableZoomOut () {
         if (!lock.disableZoomOut) {
-            console.log("enabling zoom out");
             status.disableZoomOut = false;
             if (uiZoomControl) {
                 uiZoomControl.zoomOut.removeClass('disabled');
