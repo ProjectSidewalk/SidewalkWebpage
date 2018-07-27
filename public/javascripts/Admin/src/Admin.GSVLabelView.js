@@ -95,7 +95,8 @@ function AdminGSVLabel() {
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
-        self.modalTags.html(labelMetadata['tags']);
+        //join is here to make the formatting nice, otherwise we don't have commas or spaces.
+        self.modalTags.html(labelMetadata['tags'].join(', '));
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
         self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
             labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +

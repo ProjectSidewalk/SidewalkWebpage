@@ -111,7 +111,7 @@ object LabelTable {
                            userId: String, username: String,
                            timestamp: Option[java.sql.Timestamp],
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                           temporary: Boolean, description: Option[String], tags: String)
+                           temporary: Boolean, description: Option[String], tags: List[String])
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -286,7 +286,7 @@ object LabelTable {
         |	ORDER BY lb1.label_id DESC
         | LIMIT ?""".stripMargin
     )
-    selectQuery(takeN).list.map(label => LabelMetadata.tupled(label))
+    selectQuery(takeN).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
   }
 
   def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
@@ -317,7 +317,7 @@ object LabelTable {
         |	ORDER BY lb1.label_id DESC
         | LIMIT ?""".stripMargin
     )
-    selectQuery((userId, takeN)).list.map(label => LabelMetadata.tupled(label))
+    selectQuery((userId, takeN)).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
   }
 
   def retrieveSingleLabelMetadata(labelId: Int): LabelMetadata = db.withSession { implicit session =>
@@ -347,7 +347,20 @@ object LabelTable {
         |	ORDER BY lb1.label_id DESC""".stripMargin
     )
 
-    selectQuery(labelId).list.map(label => LabelMetadata.tupled(label)).head
+    selectQuery(labelId).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
+  }
+
+  /**
+    * This method returns a LabelMetadata object that has the label properties as well as the tags.
+    *
+    * @param label label from query
+    * @param tags list of tags as strings
+    * @return LabelMetadata object
+    */
+  def labelAndTagsToLabelMetadata(label: (Int, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String]), tags: List[String]): LabelMetadata = {
+      LabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
+                    label._9,label._10,label._11,label._12,label._13,label._14,label._15,label._16,
+                    label._17, label._18, tags)
   }
 
 //  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
@@ -376,18 +389,18 @@ object LabelTable {
       "label_type_value" -> labelMetadata.labelTypeValue,
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
-      "tags" -> getTagsFromLabelId(labelMetadata.labelId),
-      "description" -> labelMetadata.description
+      "description" -> labelMetadata.description,
+      "tags" -> labelMetadata.tags
     )
   }
 
   /**
-    * This method returns a string with all the tags associated with a label
+    * This method returns a list of strings with all the tags associated with a label
     *
     * @param userId Label id
-    * @return A string with all the tags asscociated with a label
+    * @return A list of strings with all the tags asscociated with a label
     */
-  def getTagsFromLabelId(labelId: Int): String = db.withSession { implicit session =>
+  def getTagsFromLabelId(labelId: Int): List[String] = db.withSession { implicit session =>
       val getTagsQuery = Q.query[Int, (String)](
         """SELECT tag
           |FROM sidewalk.tag
@@ -398,7 +411,7 @@ object LabelTable {
           |    WHERE label_tag.label_id = ?
           |)""".stripMargin
       )
-      getTagsQuery(labelId).list.mkString(", ")
+      getTagsQuery(labelId).list
   }
 
   /*
