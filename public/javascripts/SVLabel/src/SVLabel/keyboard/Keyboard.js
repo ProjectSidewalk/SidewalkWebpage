@@ -14,16 +14,13 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     //so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
     //to fix this, we log the last shift hit time, then check if it was within an interval.
     //not a great fix, but it solves the issue.
-    var lastShiftHit = new Date(0).getTime();
-    var maxShiftDelay = 100;
+    var lastShiftKeyUpTimestamp = new Date(0).getTime();
 
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
         //method to find if the last shift event was within a time interval.
-        shiftDown: function(){
-            return (new Date().getTime() - lastShiftHit) < maxShiftDelay;
-        },
+        shiftDown: false,
         disableKeyboard: false,
         moving: false
     };
@@ -132,9 +129,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         }else if (!status.focusOnTextField && !status.disableKeyboard) {
             if (e.keyCode == 16) { //shift key
                 //when shift is pressed, note the time.
-                lastShiftHit = new Date().getTime();
+                console.log(e.timeStamp + " " + lastShiftKeyUpTimestamp);
+                if(e.timeStamp > lastShiftKeyUpTimestamp) {
+                    status.shiftDown = true;
+                }
             }
-            console.log("shift down: " + status.shiftDown());
 
             if (!svl.contextMenu.isOpen()) {
                 // lock scrolling in response to key pressing
@@ -176,9 +175,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 var label;
                 switch (e.keyCode) {
                     case 16:
-                        // "Shift"
-                        //ignore the shift keyup - just use the last time the shift was pressed.
-                        console.log("shift up");
+                        lastShiftKeyUpTimestamp = e.timeStamp;
+                        status.shiftDown = false;
                         break;
                     case 49:  // "1"
                         if (contextMenu.isOpen()) {
@@ -298,9 +296,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         }
-                        console.log(status.shiftDown());
+                        console.log(status.shiftDown);
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                        if (status.shiftDown()) {
+                        if (status.shiftDown) {
                             console.log("shift down, zooming out");
                             // Zoom out
                             zoomControl.zoomOut();
@@ -370,7 +368,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @returns {boolean}
      */
     this.isShiftDown = function () {
-        return status.shiftDown();
+        return status.shiftDown;
     };
 
     /**
