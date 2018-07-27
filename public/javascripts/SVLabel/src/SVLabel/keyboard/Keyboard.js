@@ -8,18 +8,22 @@
 function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     var self = this;
 
-    //fix for the shift-getting-stuck bug. Note the last time that shift was hit, check if it is within the maxShiftDelay.
-    //this is a documented issue, see here: https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
-    //essentially what's going on is that JS sometimes fires a final keydown after a keyup. (usually happens when multiple keys are released)
-    //so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
-    //to fix this, we log the last shift hit time, then check if it was within an interval.
-    //not a great fix, but it solves the issue.
+    /**
+     * fix for the shift-getting-stuck bug.
+     * this is a documented issue, see here:
+     * https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
+     *
+     * essentially what's going on is that JS sometimes fires a final keydown after a keyup.
+     * (usually happens when multiple events are fired)
+     * so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
+     * To fix this, we note the last time that shift was let go, then
+     * ignore any keydown events that were made BEFORE shift was let go, but are executing AFTER.     *
+     */
     var lastShiftKeyUpTimestamp = new Date(0).getTime();
 
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
-        //method to find if the last shift event was within a time interval.
         shiftDown: false,
         disableKeyboard: false,
         moving: false
@@ -128,8 +132,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             return;
         }else if (!status.focusOnTextField && !status.disableKeyboard) {
             if (e.keyCode == 16) { //shift key
-                //when shift is pressed, note the time.
-                console.log(e.timeStamp + " " + lastShiftKeyUpTimestamp);
+                //only set shift to true if the event was made after the keyup.
                 if(e.timeStamp > lastShiftKeyUpTimestamp) {
                     status.shiftDown = true;
                 }
@@ -175,6 +178,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 var label;
                 switch (e.keyCode) {
                     case 16:
+                        //note the timestamp, set shift to false.
                         lastShiftKeyUpTimestamp = e.timeStamp;
                         status.shiftDown = false;
                         break;
