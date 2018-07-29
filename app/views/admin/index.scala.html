@@ -528,9 +528,7 @@
                                         <td>@label.labelTypeValue</td>
                                         <td>@label.severity</td>
                                         <td>@label.temporary</td>
-                                        <!-- made bit of javascript to put in the tags, couldn't just do label.tags
-                                             because then we just get raw unformatted JSON -->
-                                        <td class = "labelTags"></td>
+                                        <td>@label.tags.mkString(", ")</td>
                                         <td>@label.description</td>
                                         <td>
                                             <a class="labelView" data-label-id="@label.labelId" href="#">View</a>

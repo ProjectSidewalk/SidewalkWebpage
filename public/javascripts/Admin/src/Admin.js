@@ -1428,22 +1428,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         });
     }
 
-    /**
-     * This method adds the tags to the table. It looks through each label row in #labelRows, finds labelView to get the label id,
-     * and then finds the JSON to get the tags. It formats the tags, then inserts them into labelTags. Called on initalization.
-     */
-    function addTagsToTable() {
-        $('#labelRows').each(function(){
-            var labelRow = this;
-            var labelUrl = "/adminapi/label/" + parseInt($(labelRow).find('.labelView')[0].getAttribute("data-label-id").toString());
-            console.log(labelUrl);
-            $.getJSON(labelUrl, function (data) {
-                $(labelRow).find('.labelTags')[0].textContent = data['tags'].join(', ');
-            });
-        });
-    }
-
-    addTagsToTable();
     initializeLabelTable();
     initializeAdminGSVLabelView();
 
