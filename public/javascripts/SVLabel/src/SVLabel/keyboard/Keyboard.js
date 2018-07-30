@@ -156,6 +156,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
              */
             if (!status.focusOnTextField) {
                 var label;
+                var tagSelected;
                 switch (e.keyCode) {
                     case 16:
                         // "Shift"
@@ -227,6 +228,22 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             }
                         }
                         break;
+
+                    case 81: //Q
+                        tagSelected = $('#context-menu-tag-holder').find('.context-menu-tag')[0];
+                        break;
+
+                    case 87: //W
+                        tagSelected = $('#context-menu-tag-holder').find('.context-menu-tag')[1];
+                        break;
+
+                    case 69: //E
+                        tagSelected = $('#context-menu-tag-holder').find('.context-menu-tag')[2];
+                        break;
+
+                    case 82: //R
+                        tagSelected = $('#context-menu-tag-holder').find('.context-menu-tag')[3];
+                        break;
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                         // "b" for a blocked view
                         ribbon.modeSwitch("Occlusion");
@@ -293,6 +310,17 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 keyCode: e.keyCode
                             });
                         }
+                }
+                //if we have a tag, then select it.
+                if(tagSelected) {
+                    selectTag($(tagSelected).text());
+                    //toggle the background color to indicate that the tag was selected
+                    if(tagSelected.style.backgroundColor !== 'rgb(200, 200, 200)'){
+                        tagSelected.style.backgroundColor = 'rgb(200, 200, 200)';
+                    }
+                    else{
+                        tagSelected.style.backgroundColor = 'white';
+                    }
                 }
             }
 
@@ -362,6 +390,27 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             status[key] = value;
         }
     };
+
+    function selectTag(tagValue){
+        var label = contextMenu.getTargetLabel();
+        var labelTags = label.getProperty('tagIds');
+        // Adds or removes tag from the label's current list of tags.
+        contextMenu.labelTags.forEach(function (tag) {
+            if (tag.tag === tagValue) {
+                if (!labelTags.includes(tag.tag_id)) {
+                    labelTags.push(tag.tag_id);
+                    svl.tracker.push('ContextMenu_TagAdded',
+                        { tagId: tag.tag_id, tagName: tag.tag });
+                } else {
+                    var index = labelTags.indexOf(tag.tag_id);
+                    labelTags.splice(index, 1);
+                    svl.tracker.push('ContextMenu_TagRemoved',
+                        { tagId: tag.tag_id, tagName: tag.tag });
+                }
+            }
+        });
+        label.setProperty('tagIds', labelTags);
+    }
 
 
     $(document).bind('keyup', this._documentKeyUp);
