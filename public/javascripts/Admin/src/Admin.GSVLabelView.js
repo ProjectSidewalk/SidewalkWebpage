@@ -36,6 +36,10 @@ function AdminGSVLabel() {
                                 '<td id="temporary"></td>'+
                             '</tr>'+
                             '<tr>'+
+                                '<th>Tags</th>'+
+                                '<td colspan="3" id="tags"></td>'+
+                            '</tr>'+
+                            '<tr>'+
                                 '<th>Description</th>'+
                                 '<td colspan="3" id="label-description"></td>'+
                             '</tr>'+
@@ -55,6 +59,7 @@ function AdminGSVLabel() {
         self.modalLabelTypeValue = self.modal.find("#label-type-value");
         self.modalSeverity = self.modal.find("#severity");
         self.modalTemporary = self.modal.find("#temporary");
+        self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
         self.modalTask = self.modal.find("#task");
     }
@@ -90,6 +95,8 @@ function AdminGSVLabel() {
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
+        //join is here to make the formatting nice, otherwise we don't have commas or spaces.
+        self.modalTags.html(labelMetadata['tags'].join(', '));
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
         self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
             labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
