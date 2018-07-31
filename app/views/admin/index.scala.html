@@ -506,31 +506,33 @@
                         <table id="labelTable" data-order='[[ 1, "desc" ]]' class="table table-striped table-condensed">
                             <thead>
                             <tr>
-                                <th class="col-md-2">Username</th>
-                                <th class="col-md-3" data-class-name="priority">Timestamp</th>
-                                <th class="col-md-2">Label Type</th>
+                                <th class="col-md-1">Username</th>
+                                <th class="col-md-1" data-class-name="priority">Timestamp</th>
+                                <th class="col-md-1">Label Type</th>
                                 <th class="col-md-1">Severity</th>
                                 <th class="col-md-1">Temporary?</th>
-                                <th class="col-md-5">Description</th>
-                                <th class="col-md-2">GSV</th>
+                                <th class="col-md-3">Tags</th>
+                                <th class="col-md-2">Description</th>
+                                <th class="col-md-1">GSV</th>
                             </tr>
                             </thead>
-                            <tbody>
-                            @LabelTable.selectTopLabelsAndMetadata(1000).map { label =>
-                            <tr>
-                                <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
-                                </td>
-                                <td>@label.timestamp</td>
-                                <td>@label.labelTypeValue</td>
-                                <td>@label.severity</td>
-                                <td>@label.temporary</td>
-                                <td>@label.description</td>
-                                <td>
-                                    <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
-                                </td>
-
-                            </tr>
-                            }
+                            <!-- using this id to locate the labelTags so we can insert the tags-->
+                            <tbody id = 'labelRows'>
+                                @LabelTable.selectTopLabelsAndMetadata(1000).map { label =>
+                                    <tr>
+                                        <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
+                                        </td>
+                                        <td>@label.timestamp</td>
+                                        <td>@label.labelTypeValue</td>
+                                        <td>@label.severity</td>
+                                        <td>@label.temporary</td>
+                                        <td>@label.tags.mkString(", ")</td>
+                                        <td>@label.description</td>
+                                        <td>
+                                            <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
+                                        </td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>
