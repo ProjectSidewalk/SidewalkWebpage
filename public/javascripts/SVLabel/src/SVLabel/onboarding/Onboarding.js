@@ -530,6 +530,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         setStatus("isOnboarding", false);
         storage.set("completedOnboarding", true);
 
+        // TODO remove the if statement around this once we have are positive that no one is getting through with the
+        //      username "anonymous"
         if (user.getProperty("username") !== "anonymous") {
             var onboardingMission = missionContainer.getMission(null, "onboarding");
             onboardingMission.setProperty("isCompleted", true);
