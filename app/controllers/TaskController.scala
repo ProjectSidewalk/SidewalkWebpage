@@ -192,9 +192,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                     Logger.error("No timestamp given for a new label")
                     None
                 }
-                LabelTable.save(Label(0, auditTaskId, label.gsvPanoramaId, labelTypeId, label.photographerHeading,
-                                      label.photographerPitch, label.panoramaLat, label.panoramaLng,
-                                      label.deleted.value, label.temporaryLabelId, timeCreated))
+                LabelTable.save(Label(0, auditTaskId, data.missionId, label.gsvPanoramaId, labelTypeId,
+                                      label.photographerHeading, label.photographerPitch, label.panoramaLat,
+                                      label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated))
             }
 
             // Insert label points
@@ -247,16 +247,16 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Insert interaction
           for (interaction: InteractionSubmission <- data.interactions) {
-            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, interaction.action,
+            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, data.missionId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
               interaction.zoom, interaction.note, interaction.temporaryLabelId, new Timestamp(interaction.timestamp)))
           }
 
           // Insert environment
           val env: EnvironmentSubmission = data.environment
-          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, env.browser, env.browserVersion,
-            env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
-            env.operatingSystem, Some(request.remoteAddress))
+          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, data.missionId, auditTaskId, env.browser,
+            env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
+            env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
 
           // Insert Street View metadata
