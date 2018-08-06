@@ -170,7 +170,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
              event occurs and focus is not on ContextMenu's textbox.
              */
             status.shiftDown = e.shiftKey;
-            console.log(status.shiftDown);
             if (!status.focusOnTextField) {
                 var label;
                 switch (e.keyCode) {
@@ -287,13 +286,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             keyCode: e.keyCode
                         });
                         break;
+                    case 16:
+                        lastShiftKeyUpTimestamp = e.timeStamp;
+                        break;
                     case 90:
                         if (contextMenu.isOpen()){
                             contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                        if (status.shiftDown) {
+                        if (status.shiftDown || (e.timeStamp - lastShiftKeyUpTimestamp) < 100) {
                             // Zoom out
                             zoomControl.zoomOut();
                             svl.tracker.push("KeyboardShortcut_ZoomOut", {
