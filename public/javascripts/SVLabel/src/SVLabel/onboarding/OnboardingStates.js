@@ -5,8 +5,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
     var headingRanges = {
         "stage-1": [250, 262],
         "stage-2-adjust": [200, 262],
-        "stage-2": [200, 245],
-        "stage-3-adjust": [97, 230],
+        "stage-2": [200, 210],
+        "stage-3-adjust": [97, 200],
         "stage-3": [97, 180],
         "stage-4-adjust": [7, 180],
         "stage-4": [7, 115],
@@ -181,7 +181,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "adjust-heading-angle-1": {
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 230,
+                "heading": 210,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-2-adjust"][0],
                 "maxHeading": headingRanges["stage-2-adjust"][1],
