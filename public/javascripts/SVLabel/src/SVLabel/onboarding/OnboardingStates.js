@@ -4,8 +4,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
     var afterWalkPanoId = "PTHUzZqpLdS1nTixJMoDSw";
     var headingRanges = {
         "stage-1": [250, 262],
-        "stage-2-adjust": [185, 262],
-        "stage-2": [185, 210],
+        "stage-2-adjust": [200, 262],
+        "stage-2": [200, 210],
         "stage-3-adjust": [97, 200],
         "stage-3": [97, 180],
         "stage-4-adjust": [7, 180],
