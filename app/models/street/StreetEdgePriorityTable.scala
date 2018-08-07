@@ -210,18 +210,13 @@ object StreetEdgePriorityTable {
   /**
     * Returns 1 if good_user_audit_count = 0, o/w 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
     *
-    * - for anonymous and registered users separately:
-    *    - assign each user as "good" or "bad" based on their labeling frequency
-    *      - compute total distance audited by each user, and total label count for each user
-    *      - join the audited distance and label count tables to compute labeling frequency (now done in separate func)
-    *  - combine the results for anonymous and registered users
+    *  - assign each user as "good" or "bad" based on their labeling frequency
+    *    - compute total distance audited by each user, and total label count for each user
+    *    - join the audited distance and label count tables to compute labeling frequency (now done in separate func)
     *  - for each street edge
     *    - count the number of audits by "good" users, and the number of audits by "bad" users
     *    - if good_user_audit_count == 0 -> priority = 1
     *      else                          -> priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
-    * NOTE The process for registered and anonymous users is identical, except that for anonymous users there is the
-    *      additional step of a join with the audit_task_environment table to get the ip_address, followed by a SELECT
-    *      DISTINCT on (ip_address, audit_task_id). This forces us to treat them separately until the end.
     *
     * @return
     */
@@ -231,38 +226,17 @@ object StreetEdgePriorityTable {
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
 
-    /********** Registered Users **********/
+    /********** Quality of Users **********/
 
-    // To each audit_task completed by a registered user, we attach a boolean indicating whether or not the user had a
-    // labeling frequency above our threshold.
-    // NOTE We are calling the getQualityOfRegisteredUserIds function below, which does the heavy lifting.
-    val regCompletions = AuditTaskTable.completedTasks
+    // To each audit_task completed by a user, we attach a boolean indicating whether or not the user had a labeling
+    // frequency above our threshold.
+    // NOTE We are calling the getQualityOfUsers function below, which does the heavy lifting.
+    val completions = AuditTaskTable.completedTasks
       .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
-      .innerJoin(getQualityOfRegisteredUserIds).on(_._2 === _._1)  // join on user_id
+      .innerJoin(getQualityOfUsers).on(_._2 === _._1)  // join on user_id
       .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
 
-    /********** Anonymous Users **********/
-
-    // Gets the tasks performed by anonymous users, along with ip address; need to select distinct b/c there can be
-    // multiple audit_task_environment entries for a single task.
-    // NOTE We are calling the getQualityOfAnonymousUserIps function below, which does the heavy lifting.
-    val anonTasks = (for {
-      _user <- userTable if _user.username === "anonymous"
-      _task <- AuditTaskTable.completedTasks if _user.userId === _task.userId
-      _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
-      if !_env.ipAddress.isEmpty
-    } yield (_env.ipAddress, _task.auditTaskId, _task.streetEdgeId)).groupBy(x => x).map(_._1)  // SELECT DISTINCT
-
-    // Now to each audit_task completed by an anonymous user, we attach a boolean indicating whether or not the user
-    // had a labeling frequency above our threshold.
-    val anonCompletions = anonTasks
-      .groupBy(task => (task._1, task._3)).map(_._1)  // select distinct on ip address and street edge id
-      .innerJoin(getQualityOfAnonymousUserIps).on(_._1 === _._1)  // join on ip address
-      .map { case (_task, _qual) => (_task._2, _qual._2) }  // SELECT street_edge_id, is_good_user
-
     /********** Compute Audit Counts **********/
-    // Combine results from anonymous and registered users.
-    val completions = anonCompletions ++ regCompletions
 
     // For audits by good users and bad users separately, group by street_edge_id and count the number of audits.
     val goodUserAuditCounts = completions.filter(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length)}
@@ -295,81 +269,36 @@ object StreetEdgePriorityTable {
   }
 
   /**
-    * Computes labeling frequency for each registered user, marking as "good" if above our labeling frequency threshold.
+    * Computes labeling frequency for each user, marking as "good" if above our labeling frequency threshold.
     *
     * @return A query with rows of the form (user_id: String, is_good_user: Boolean)
     */
-  def getQualityOfRegisteredUserIds: Query[(Column[String], Column[Option[Boolean]]), (String, Option[Boolean]), Seq] = db.withSession { implicit session =>
+  def getQualityOfUsers: Query[(Column[String], Column[Option[Boolean]]), (String, Option[Boolean]), Seq] = db.withSession { implicit session =>
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
-    // Gets all tasks completed by registered users, groups by user_id, and sums over the distances of the street edges.
-    val regAuditedDists = (for {
+    // Gets all tasks completed by users, groups by user_id, and sums over the distances of the street edges.
+    val auditedDists = (for {
       _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.completedTasks if _task.userId === _user.userId
       _dist <- streetDist if _task.streetEdgeId === _dist._1
     } yield (_user.userId, _dist._2)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
 
-    // Gets all registered user tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
-    val regLabelCounts = (for {
+    // Gets all audit tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
+    val labelCounts = (for {
       _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.auditTasks if _task.userId === _user.userId
       _lab  <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
     } yield (_user.userId, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT user_id, COUNT(*)
 
-    // Finally, determine whether each registered user is above or below the label per meter threshold
+    // Finally, determine whether each user is above or below the label per meter threshold.
     // SELECT user_id, is_good_user (where is_good_user = label_count/distance_audited > threshold)
-    regAuditedDists
-      .leftJoin(regLabelCounts).on(_._1 === _._1)
+    auditedDists
+      .leftJoin(labelCounts).on(_._1 === _._1)
       .map { case (d,c) => (d._1, c._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / d._2 > LABEL_PER_METER_THRESHOLD) }
   }
 
-  def getIdsOfGoodRegisteredUsers: List[String] = db.withSession { implicit session =>
-    getQualityOfRegisteredUserIds.filter(_._2).map(_._1).list
-  }
-
-  /**
-    * Computes labeling frequency for each anonymous user, marking as "good" if above our labeling frequency threshold.
-    *
-    * @return A query with rows of the form (ip_address: String, is_good_user: Boolean)
-    */
-  def getQualityOfAnonymousUserIps: Query[(Column[Option[String]], Column[Option[Boolean]]), (Option[String], Option[Boolean]), Seq] = db.withSession { implicit session =>
-    val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
-
-    // Gets the tasks performed by anonymous users, along with ip address; need to select distinct b/c there can be
-    // multiple audit_task_environment entries for a single task.
-    val anonTasks = (for {
-      _user <- userTable if _user.username === "anonymous"
-      _task <- AuditTaskTable.completedTasks if _user.userId === _task.userId
-      _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
-      if !_env.ipAddress.isEmpty
-    } yield (_env.ipAddress, _task.auditTaskId, _task.streetEdgeId)).groupBy(x => x).map(_._1)  // SELECT DISTINCT
-
-    // Takes all tasks completed by anon users, groups by ip_address, and sums over the distances of the street edges.
-    val anonAuditedDists = anonTasks.innerJoin(streetDist).on(_._3 === _._1)
-      .map { case (_task, _dist) => (_task._1, _dist._2) }    // SELECT ip_address, street_distance
-      .groupBy(_._1)                                          // GROUP BY ip_address
-      .map { case (ip, group) => (ip, group.map(_._2).sum) }  // SELECT ip_address, SUM(street_distance)
-
-    // Gets all anon user tasks, groups by ip_address, and counts number of labels places (incl. incomplete tasks).
-    val anonLabelCounts = (for {
-      _user <- userTable if _user.username === "anonymous"
-      _task <- AuditTaskTable.auditTasks if _user.userId === _task.userId
-      _env <- AuditTaskEnvironmentTable.auditTaskEnvironments if _task.auditTaskId === _env.auditTaskId
-      if !_env.ipAddress.isEmpty
-      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
-    } yield (_env.ipAddress, _lab.labelId))
-      .groupBy(x => x).map(_._1)  // SELECT DISTINCT
-      .groupBy(_._1).map(x => (x._1, x._2.length))  // SELECT ip_address, COUNT(*)
-
-    // Finally, determine whether each anonymous user is above or below the label per meter threshold.
-    // SELECT ip_address, is_good_user (where is_good_user = label_count/distance_audited > threshold)
-    anonAuditedDists
-      .leftJoin(anonLabelCounts).on(_._1 === _._1)
-      .map { case (d,c) => (d._1, c._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / d._2 > LABEL_PER_METER_THRESHOLD) }
-  }
-
-  def getIdsOfGoodAnonymousUsers: List[String] = db.withSession { implicit session =>
-    getQualityOfAnonymousUserIps.filter(_._2).map(_._1).list.flatten
+  def getIdsOfGoodUsers: List[String] = db.withSession { implicit session =>
+    getQualityOfUsers.filter(_._2).map(_._1).list
   }
 
   /**

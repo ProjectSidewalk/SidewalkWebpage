@@ -365,19 +365,12 @@ function Main (params) {
         return nextRegionId;
     }
 
-    function isAnAnonymousUser() {
-        return 'user' in svl && svl.user.getProperty('username') === "anonymous"; // Todo. it should access the user through UserModel
-    }
-
     function startTheMission(mission, neighborhood) {
-        // Check if this an anonymous user or not.
-        // If not, record that that this user has completed the onboarding.
-        if (!isAnAnonymousUser()) {
-            var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
-            onboardingMission.setProperty("isCompleted", true);
-            svl.missionContainer.addToCompletedMissions(onboardingMission);
-            svl.missionModel.submitMissions([onboardingMission]);
-        }
+        // Record that that this user has completed the onboarding.
+        var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+        onboardingMission.setProperty("isCompleted", true);
+        svl.missionContainer.addToCompletedMissions(onboardingMission);
+        svl.missionModel.submitMissions([onboardingMission]);
 
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
@@ -456,6 +449,8 @@ function Main (params) {
             } else {
                 // If the user has completed the onboarding mission but the data is only stored in the browser
                 // because the user completed it as an anonymous user, store the record on the server.
+                // TODO this check shouldn't be necessary anymore. We an delete it once we are positve that no one with
+                //      the username "anonymous" is getting through.
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                 var hasCompletionRecordStored = onboardingMission.getProperty("isCompleted");
                 if (svl.user.getProperty("username") !== "anonymous" && !hasCompletionRecordStored) {
@@ -729,7 +724,6 @@ function Main (params) {
         _init(params);
     }
 
-    self.isAnAnonymousUser = isAnAnonymousUser;
     self.loadData = loadData;
 
     return self;

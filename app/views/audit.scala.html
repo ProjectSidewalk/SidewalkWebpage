@@ -792,7 +792,8 @@
         svl.userModel = new UserModel();
         @if(user) {
             var userParam = {
-                username : '@user.get.username',
+                username: '@user.get.username',
+                role: '@user.get.role',
                 completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
             };
             svl.user = new User(userParam, svl.userModel);
@@ -801,7 +802,10 @@
         } else {
             $('#status-neighborhood-link').hide();
 
-            var userParam = { username : "anonymous" };
+            var userParam = {
+                username: "anonymous",
+                role: "Anonymous"
+            };
             svl.user = new User(userParam, svl.userModel);
         }
         svl.userModel._user = svl.user;
