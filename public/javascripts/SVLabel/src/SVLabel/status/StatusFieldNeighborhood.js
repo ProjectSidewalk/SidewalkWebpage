@@ -13,7 +13,7 @@ function StatusFieldNeighborhood (neighborhoodModel, statusModel, userModel, uiS
         self.setNeighborhoodName(newNeighborhood.getProperty("name"));
 
         var user = self._userModel.getUser();
-        if (user && user.getProperty("username") != "anonymous") {
+        if (user && user.getProperty("role") != "Anonymous") {
             var href = "/contribution/" + user.getProperty("username") + "?regionId=" + newNeighborhood.getProperty("regionId");
             self.setHref(href);
         }

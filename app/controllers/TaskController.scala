@@ -7,40 +7,36 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.MissionFormats._
 import formats.json.TaskSubmissionFormats._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
-import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
 import models.user.User
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.Play.current
 
 import scala.concurrent.Future
 
 /**
- * Street controller
+ * Task controller
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int)
 
   /**
     * This method returns a task definition specified by the streetEdgeId.
     * @return Task definition
     */
-  def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
+  def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
     val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
     Future.successful(Ok(task.toJSON))
   }
@@ -150,6 +146,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 }
               case None =>
                 // Update the street's priority for anonymous user
+                Logger.warn("User without user_id audited a street, but every user should have a user_id.")
                 data.auditTask.completed.map { completed =>
                   if (completed) {
                     StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
@@ -278,29 +275,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
           }
 
-          // Check if the user has cleared any mission
-          // Note: Deprecated. Delete this. The check for mission completion is done on the front-end side
-          val completed: List[Mission] = request.identity match {
-            case Some(user) =>
-              val region: Option[Region] = RegionTable.selectTheCurrentRegion(user.userId)
-              if (region.isDefined) {
-                val missions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId)
-                val status = MissionStatus(0.0, 0.0, 0)
-                missions.filter(m => m.completed(status))
-              } else {
-                List()
-              }
-            case _ => List()
-          }
-
-          TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, completed)
+          TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId)
         }
 
-        val jsMissions: List[JsValue] = returnValues.head.completedMissions.map(m => Json.toJson(m))
         Future.successful(Ok(Json.obj(
           "audit_task_id" -> returnValues.head.auditTaskId,
-          "street_edge_id" -> returnValues.head.streetEdgeId,
-          "completed_missions" -> JsArray(jsMissions)
+          "street_edge_id" -> returnValues.head.streetEdgeId
         )))
       }
     )

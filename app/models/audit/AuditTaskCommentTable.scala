@@ -50,7 +50,8 @@ object AuditTaskCommentTable {
   }
 
   /**
-    * Insert a task record
+    * Insert an audit_task_comment record.
+    *
     * @param comment AuditTaskComment object
     * @return
     */
@@ -61,7 +62,8 @@ object AuditTaskCommentTable {
   }
 
   /**
-    * Take the last n items
+    * Take the last n comments.
+    *
     * @param n
     * @return
     */

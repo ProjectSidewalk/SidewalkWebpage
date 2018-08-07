@@ -1,7 +1,6 @@
 package controllers
 
 
-import collection.immutable
 import collection.immutable.Seq
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -9,7 +8,6 @@ import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
-import java.util.UUID
 import javax.inject.Inject
 
 import math._
@@ -17,18 +15,15 @@ import models.region._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{StreetEdge, StreetEdgeTable}
-import models.user.{User, UserCurrentRegionTable, WebpageActivity, WebpageActivityTable}
+import models.user.{User, WebpageActivity, WebpageActivityTable}
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Application
 import play.api.cache.Cache
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
-import play.api.mvc._
-import play.extras.geojson.{Feature => JsonFeature, LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
+import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
 
 import scala.concurrent.Future
-import play.extras.geojson
 
 
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
@@ -198,7 +193,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   /**
     * AccessScore:Street
     *
-    * E.g., /v1/access/street?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
+    * E.g., /v1/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
     * @param lat1
     * @param lng1
     * @param lat2
