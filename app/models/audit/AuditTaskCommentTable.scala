@@ -53,7 +53,7 @@ object AuditTaskCommentTable {
   def all(username: String): Option[List[AuditTaskComment]] = db.withTransaction { implicit session =>
     val comments = (for {
       (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
-    } yield (c.auditTaskCommentId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
+    } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
       c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
 
     Some(comments)
@@ -80,7 +80,7 @@ object AuditTaskCommentTable {
   def takeRight(n: Integer): List[AuditTaskComment] = db.withTransaction { implicit session =>
     val comments = (for {
       (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-    } yield (c.auditTaskCommentId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
+    } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
       c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
 
     comments.take(n)
