@@ -32,7 +32,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     };
 
 
-
     this.disableKeyboard = function (){
         status.disableKeyboard = true;
     };
