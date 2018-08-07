@@ -254,7 +254,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Insert environment
           val env: EnvironmentSubmission = data.environment
-          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, data.missionId, auditTaskId, env.browser,
+          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, data.missionId, env.browser,
             env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
             env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)
