@@ -12,7 +12,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * fix for the shift-getting-stuck bug.
      * this is a documented issue, see here:
      * https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
-     *
      * essentially what's going on is that JS sometimes fires a final keydown after a keyup.
      * (usually happens when multiple events are fired)
      * so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
@@ -287,8 +286,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             keyCode: e.keyCode
                         });
                         break;
-                    // shift key
-                    case 16:
+                    case 16: //shift
                         // store the timestamp here so that we can check if the z-up event is in the buffer range
                         lastShiftKeyUpTimestamp = e.timeStamp;
                         break;
