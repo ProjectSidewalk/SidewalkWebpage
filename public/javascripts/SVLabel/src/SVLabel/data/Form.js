@@ -32,7 +32,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
     this.compileSubmissionData = function (task) {
         var data = {};
 
-        data.mission_id = svl.missionContainer.getCurrentMission().getProperty('missionId');
+        data.mission_id = (svl.missionContainer && svl.missionContainer.getCurrentMission()) ? svl.missionContainer.getCurrentMission().getProperty('missionId') : 1;
 
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
