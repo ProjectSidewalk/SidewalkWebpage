@@ -2,7 +2,6 @@ package models.label
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import play.api.Logger
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
