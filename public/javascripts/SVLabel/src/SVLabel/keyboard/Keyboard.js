@@ -18,6 +18,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
      * To fix this, we note the last time that shift was let go, then
      * ignore any keydown events that were made BEFORE shift was let go, but are executing AFTER.
+     *
+     * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
+     * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
      */
     var lastShiftKeyUpTimestamp = new Date(0).getTime();
     var status = {
@@ -27,8 +30,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         disableKeyboard: false,
         moving: false
     };
-
-
 
     this.disableKeyboard = function (){
         status.disableKeyboard = true;
@@ -286,7 +287,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             keyCode: e.keyCode
                         });
                         break;
+                    // shift key
                     case 16:
+                        // store the timestamp here so that we can check if the z-up event is in the buffer range
                         lastShiftKeyUpTimestamp = e.timeStamp;
                         break;
                     case 90:
@@ -295,6 +298,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
+                        // if shift was down w/in 100 ms of the z up, then it will also zoom out. 
+                        // This is to catch the scenarios where shift up is detected before the z up.
                         if (status.shiftDown || (e.timeStamp - lastShiftKeyUpTimestamp) < 100) {
                             // Zoom out
                             zoomControl.zoomOut();
