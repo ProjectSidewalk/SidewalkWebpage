@@ -158,8 +158,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
 
-        val comment = AuditTaskComment(0, submission.streetEdgeId, userId, ipAddress, submission.gsvPanoramaId,
-          submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
+        val comment = AuditTaskComment(0, submission.auditTaskId, submission.missionId, submission.streetEdgeId, userId,
+                                       ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+                                       submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
         val commentId: Int = AuditTaskCommentTable.save(comment)
 
         Future.successful(Ok(Json.obj("comment_id" -> commentId)))

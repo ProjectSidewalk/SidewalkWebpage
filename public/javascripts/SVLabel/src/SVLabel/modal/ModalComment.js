@@ -169,6 +169,8 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
             lng: lng,
             pitch: pov ? pov.pitch : null,
             street_edge_id: streetEdgeId,
+            audit_task_id: task.getAuditTaskId(),
+            mission_id: svl.missionContainer.getCurrentMission().getProperty('missionId'),
             zoom: pov ? pov.zoom : null
         };
     };
