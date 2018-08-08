@@ -7,6 +7,21 @@
  */
 function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     var self = this;
+
+    /**
+     * fix for the shift-getting-stuck bug.
+     * this is a documented issue, see here:
+     * https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
+     * essentially what's going on is that JS sometimes fires a final keydown after a keyup.
+     * (usually happens when multiple events are fired)
+     * so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
+     * To fix this, we note the last time that shift was let go, then
+     * ignore any keydown events that were made BEFORE shift was let go, but are executing AFTER.
+     *
+     * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
+     * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
+     */
+    var lastShiftKeyUpTimestamp = new Date(0).getTime();
     var status = {
         focusOnTextField: false,
         isOnboarding: false,
@@ -113,15 +128,15 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             svl.contextMenu.hide();
             return;
         }else if (!status.focusOnTextField && !status.disableKeyboard) {
-            if (e.keyCode == 16) { //shift key
-                status.shiftDown = true;
+            //only set shift if the event was made after the keyup.
+            if (e.timeStamp > lastShiftKeyUpTimestamp) {
+                status.shiftDown = e.shiftKey;
             }
 
             if (!svl.contextMenu.isOpen()) {
                 // lock scrolling in response to key pressing
                 switch (e.keyCode) {
                     case 16:  // "Shift"
-                        status.shiftDown = true;
                         break;
                     case 37:  // "Left"
                         self._rotatePov(-2);
@@ -154,13 +169,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
              This is a callback method that is triggered when a keyUp
              event occurs and focus is not on ContextMenu's textbox.
              */
+            status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
                 var label;
                 switch (e.keyCode) {
-                    case 16:
-                        // "Shift"
-                        status.shiftDown = false;
-                        break;
                     case 49:  // "1"
                         if (contextMenu.isOpen()) {
                             contextMenu.checkRadioButton(1);
@@ -274,13 +286,19 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             keyCode: e.keyCode
                         });
                         break;
+                    case 16: //shift
+                        // store the timestamp here so that we can check if the z-up event is in the buffer range
+                        lastShiftKeyUpTimestamp = e.timeStamp;
+                        break;
                     case 90:
                         if (contextMenu.isOpen()){
                             contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
-                        if (status.shiftDown) {
+                        // if shift was down w/in 100 ms of the z up, then it will also zoom out. 
+                        // This is to catch the scenarios where shift up is detected before the z up.
+                        if (status.shiftDown || (e.timeStamp - lastShiftKeyUpTimestamp) < 100) {
                             // Zoom out
                             zoomControl.zoomOut();
                             svl.tracker.push("KeyboardShortcut_ZoomOut", {
