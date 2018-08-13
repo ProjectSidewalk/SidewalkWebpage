@@ -523,14 +523,7 @@
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
                                         <td>@label.timestamp</td>
-                                        <td>
-                                            <!-- in the case that the description of the label type is null or empty, just display the key value -->
-                                            @if(label.labelTypeValue == null || label.labelTypeValue.isEmpty){
-                                                @label.labelTypeKey
-                                            }else{
-                                                @label.labelTypeValue
-                                            }
-                                        </td>
+                                        <td>@label.labelTypeKey</td>
                                         <td>@label.severity</td>
                                         <td>@label.temporary</td>
                                         <td>@label.tags.mkString(", ")</td>
