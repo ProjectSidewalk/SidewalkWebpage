@@ -1,13 +1,13 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.region.NamedRegion
-@import models.mission.MissionTable
+@import models.mission.{MissionTable, Mission}
 @import models.survey._
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Option[NamedRegion], user: Option[User] = None)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -980,6 +980,12 @@
                 mainParam.regionName = "";
                 mainParam.regionLayer = null;
             }
+
+            mainParam.mission = @Html(mission.toJSON.toString);
+            mainParam.mission.missionId = mainParam.mission.mission_id;
+            mainParam.mission.regionId = mainParam.mission.region_id;
+            delete mainParam.mission.mission_id;
+            delete mainParam.mission.region_id;
 
             svl.main = new Main(mainParam);
 

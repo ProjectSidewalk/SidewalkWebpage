@@ -13,7 +13,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
+function Form (labelContainer, missionModel, missionContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
     var properties = {
         dataStoreUrl : undefined
@@ -32,7 +32,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
     this.compileSubmissionData = function (task) {
         var data = {};
 
-        data.mission_id = (svl.missionContainer && svl.missionContainer.getCurrentMission()) ? svl.missionContainer.getCurrentMission().getProperty('missionId') : 1;
+        data.mission_id = missionContainer.getCurrentMission().getProperty('missionId');
 
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),

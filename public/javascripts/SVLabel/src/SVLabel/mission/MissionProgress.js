@@ -33,7 +33,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     });
 
 
-
     /**
      * Finish the mission.
      * @param mission
@@ -84,7 +83,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             });
         }*/
 
-        // Todo. Audio should listen to MissionProgress instead of MissionProgress telling what to do.
+        // TODO Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
         _gameEffectModel.playAudio({audioType: "applause"});
 
@@ -148,7 +147,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     };
 
     /**
-     * Todo. This method should be moved to other place. Maybe NeighborhoodModel...
+     * TODO This method should be moved to other place. Maybe NeighborhoodModel...
      * @param neighborhood
      * @private
      */

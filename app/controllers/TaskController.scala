@@ -1,8 +1,8 @@
 package controllers
 
 import java.sql.Timestamp
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
@@ -31,6 +31,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int)
+
 
   /**
     * This method returns a task definition specified by the streetEdgeId.
@@ -161,10 +162,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, amtAssignmentId)
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
+          // Update the MissionTable and get missionId
+          val missionId: Int = data.missionId
+          // val missionId: Int = updateMissionTable() -- same as updateAuditTaskTable()
+
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           if (data.incomplete.isDefined) {
             val incomplete: IncompleteTaskSubmission = data.incomplete.get
-            AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, data.missionId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
+            AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, missionId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
           }
 
           // Insert labels
@@ -192,7 +197,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                     Logger.error("No timestamp given for a new label")
                     None
                 }
-                LabelTable.save(Label(0, auditTaskId, data.missionId, label.gsvPanoramaId, labelTypeId,
+                LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
                                       label.photographerHeading, label.photographerPitch, label.panoramaLat,
                                       label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated))
             }
@@ -247,14 +252,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Insert interaction
           for (interaction: InteractionSubmission <- data.interactions) {
-            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, data.missionId, interaction.action,
+            AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, missionId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
               interaction.zoom, interaction.note, interaction.temporaryLabelId, new Timestamp(interaction.timestamp)))
           }
 
           // Insert environment
           val env: EnvironmentSubmission = data.environment
-          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, data.missionId, env.browser,
+          val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, missionId, env.browser,
             env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
             env.screenHeight, env.operatingSystem, Some(request.remoteAddress))
           AuditTaskEnvironmentTable.save(taskEnv)

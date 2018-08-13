@@ -103,12 +103,10 @@ function Main (params) {
         svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
 
-
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
         svl.advancedOverlay = params.advancedOverlay;
-
 
 
         // Set map parameters and instantiate it.
@@ -125,9 +123,6 @@ function Main (params) {
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
 
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
-            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
-        svl.tracker.initTaskId();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -135,7 +130,6 @@ function Main (params) {
 
         svl.labelCounter = new LabelCounter(d3);
 
-        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
@@ -168,6 +162,14 @@ function Main (params) {
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
             svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
+
+        var missionObj = svl.missionModel.trigger("MissionFactory:create", params.mission);
+        svl.missionContainer.setCurrentMission(svl.missionContainer.getMission(params.mission.regionId, params.mission.label, params.mission.level));
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel, svl.neighborhoodModel,
+            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.tracker.initTaskId();
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
+
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
@@ -301,7 +303,7 @@ function Main (params) {
 
     function hasCompletedOnboarding(completedMissions) {
         var missionLabels = completedMissions.map(function (m) { return m.label; });
-        return missionLabels.indexOf("onboarding") >= 0 || svl.storage.get("completedOnboarding");
+        return missionLabels.indexOf("onboarding") >= 0;
     }
 
     var onboardingHandAnimation = null;
@@ -319,7 +321,7 @@ function Main (params) {
 
         if (!("onboarding" in svl && svl.onboarding)) {
 
-            // Todo. It should pass UserModel instead of User (i.e., svl.user)
+            // TODO It should pass UserModel instead of User (i.e., svl.user)
 
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form,
                 onboardingHandAnimation, svl.map,

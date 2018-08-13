@@ -1,8 +1,8 @@
 package controllers
 
 import java.sql.Timestamp
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
@@ -11,7 +11,7 @@ import formats.json.IssueFormats._
 import formats.json.CommentSubmissionFormats._
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.mission.MissionTable
+import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
@@ -73,7 +73,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user.userId)
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, Some(user))))
+            val mission: Mission = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId).minBy(_.distance)
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, Some(user))))
         }
       // For anonymous users.
       case None =>
@@ -106,7 +107,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // Update the currently assigned region for the user
         UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
         val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, Some(user))))
+        val mission: Mission = MissionTable.selectIncompleteMissionsByAUser(user.userId, regionId).minBy(_.distance)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, Some(user))))
 
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/region/$regionId"))
@@ -127,7 +129,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // TODO: Should this function be modified?
         val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+        val mission: Mission = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId).minBy(_.distance)
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId"))
     }

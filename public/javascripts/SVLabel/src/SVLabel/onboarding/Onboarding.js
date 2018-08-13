@@ -528,7 +528,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         $("#left-column-jump-button").removeClass('disabled');
 
         setStatus("isOnboarding", false);
-        storage.set("completedOnboarding", true);
 
         // TODO remove the if statement around this once we have are positive that no one is getting through with the
         //      username "anonymous"
