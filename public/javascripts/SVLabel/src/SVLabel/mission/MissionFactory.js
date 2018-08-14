@@ -45,10 +45,11 @@ MissionFactory.prototype.create = function (regionId, missionId, label, level, d
 
 /**
  * Create the onboarding mission
+ * TODO probably create GET request to get onboarding mission data
  * @param level The level of the mission
  * @param isCompleted {boolean} A flag indicating if this mission is completed
  * @returns {svl.Mission}
  */
 MissionFactory.prototype.createOnboardingMission = function (level, isCompleted) {
-    return new Mission({label: "onboarding", level: level, isCompleted: isCompleted});
+    return new Mission({missionId: 2114, label: "onboarding", level: level, isCompleted: isCompleted});
 };

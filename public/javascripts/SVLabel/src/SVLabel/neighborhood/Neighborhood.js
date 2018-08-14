@@ -54,7 +54,7 @@ function Neighborhood (parameters) {
     function completedLineDistance (unit) {
         if (!unit) unit = "kilometers";
         if ("taskContainer" in svl && svl.taskContainer) {
-            return svl.taskContainer.getCompletedTaskDistance(getProperty("regionId"), unit);
+            return svl.taskContainer.getCompletedTaskDistance(unit);
         } else {
             return null;
         }

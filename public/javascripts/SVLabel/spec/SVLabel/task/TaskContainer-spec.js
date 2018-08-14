@@ -24,7 +24,7 @@ describe("TaskContainer module.", function () {
             var t2 = new TaskMock(2);
             taskContainer.storeTask(1, t1);
             taskContainer.storeTask(1, t2);
-            expect(taskContainer.getTasksInRegion(1).length).toBe(2);
+            expect(taskContainer.getTasks(1).length).toBe(2);
         });
 
         it("should not store duplicate task in taskStoreByRegionId", function () {
@@ -33,7 +33,7 @@ describe("TaskContainer module.", function () {
             taskContainer.storeTask(1, t1);
             taskContainer.storeTask(1, t2);
             taskContainer.storeTask(1, t2);
-            expect(taskContainer.getTasksInRegion(1).length).toBe(2);
+            expect(taskContainer.getTasks(1).length).toBe(2);
         });
     });
 

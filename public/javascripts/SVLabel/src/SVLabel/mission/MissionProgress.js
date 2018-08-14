@@ -52,26 +52,26 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // 1. User is a Turker (/survey/display endpoint returns true if this is the case).
         // 2. User has just completed numMissionsBeforeSurvey number of missions.
 
-            var url = '/survey/display';
-            var numMissionsBeforeSurvey = 2;
-            var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
-            $.ajax({
-                async: true,
-                url: url,//endpoint that checks above conditions
-                type: 'get',
-                success: function(data){
-                    if(data.displayModal && numMissionsCompleted == numMissionsBeforeSurvey){
-                        $('#survey-modal-container').modal({
-                            backdrop: 'static',
-                            keyboard: false
-                        });
-                        //console.log('Survey displayed');
-                    }
-                },
-                error: function (xhr, ajaxOptions, thrownError) {
-                    console.log(thrownError);
+        var url = '/survey/display';
+        var numMissionsBeforeSurvey = 2;
+        var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
+        $.ajax({
+            async: true,
+            url: url,//endpoint that checks above conditions
+            type: 'get',
+            success: function(data){
+                if(data.displayModal && numMissionsCompleted == numMissionsBeforeSurvey){
+                    $('#survey-modal-container').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    //console.log('Survey displayed');
                 }
-            });
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(thrownError);
+            }
+        });
 
 
         //this is placeholder; replace with above commented code once endpoint is implemented
@@ -94,25 +94,12 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             svl.statusFieldNeighborhood.setLabelCount(count);
         }
 
-        _missionModel.completeMission(mission, neighborhood);
-    };
-
-    this._completeMissionsWithSatisfiedCriteria = function (neighborhood) {
-        var regionId = neighborhood.getProperty("regionId");
-        var missions = missionContainer.getIncompleteMissionsByRegionId(regionId);
-
-        for (var i = 0, len = missions.length; i < len; i++) {
-            if (missions[i].getMissionCompletionRate() > 0.999) {
-                missions[i].complete();
-                _missionModel.completeMission(missions[i]);
-            }
-        }
+        _missionModel.completeMission(mission);
     };
 
     this._checkMissionComplete = function (mission, neighborhood) {
         if (mission.getMissionCompletionRate() > 0.999) {
             this._completeTheCurrentMission(mission, neighborhood);
-            this._completeMissionsWithSatisfiedCriteria(neighborhood);
 
             this._updateTheCurrentMission(mission, neighborhood);
 
@@ -128,8 +115,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     };
 
     this._updateTheCurrentMission = function (currentMission, currentNeighborhood) {
-        var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
-        var nextMission = missionContainer.nextMission(currentNeighborhoodId);
+        var nextMission = missionContainer.nextMission();
 
         if (nextMission == null) throw new Error("No missions available");
 
@@ -137,35 +123,14 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
 
         // If the current neighborhood is different from the next neighborhood
-        if (currentNeighborhood.getProperty("regionId") != nextMissionNeighborhood.getProperty("regionId")) {
-            this._updateTheCurrentNeighborhood(nextMissionNeighborhood);
-        }
+        // TODO I removed (commented) code, but it included "taskContainer.endTask(taskContainer.getCurrentTask());, we might need it!
+        // if (currentNeighborhood.getProperty("regionId") != nextMissionNeighborhood.getProperty("regionId")) {
+        //     this._updateTheCurrentNeighborhood(nextMissionNeighborhood);
+        // }
 
         // Adjust the target distance based on the tasks available
-        var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance(currentNeighborhoodId);
+        var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance();
         nextMission.adjustTheTargetDistance(incompleteTaskDistance);
-    };
-
-    /**
-     * TODO This method should be moved to other place. Maybe NeighborhoodModel...
-     * @param neighborhood
-     * @private
-     */
-    this._updateTheCurrentNeighborhood = function (neighborhood) {
-        var neighborhoodId = neighborhood.getProperty("regionId");
-        neighborhoodContainer.setCurrentNeighborhood(neighborhood);
-        neighborhoodModel.updateUserRegionInDatabase(neighborhoodId);
-
-        var currentTask = taskContainer.getCurrentTask();
-        taskContainer.endTask(currentTask);
-
-        taskContainer.fetchTasksInARegion(neighborhoodId, function () {
-            // Jump to the new location.
-            var newTask = taskContainer.nextTask();
-            if (!newTask) throw "You have audited all the streets in this neighborhood.";
-            taskContainer.setCurrentTask(newTask);
-            svl.map.moveToTheTaskLocation(newTask);
-        }, false);  // Fetch tasks in the new region
     };
 
     /**

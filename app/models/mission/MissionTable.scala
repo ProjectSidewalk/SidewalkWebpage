@@ -110,7 +110,7 @@ object MissionTable {
 
 
   /**
-    * Get a list of all the completed tasks
+    * Get a list of all the completed missions.
     *
     * @param userId User's UUID
     * @return
@@ -125,15 +125,17 @@ object MissionTable {
   }
 
   /**
-    * Get the list of the completed tasks in the given region for the given user
+    * Get the list of the completed missions in the given region for the given user.
     *
     * @param userId User's UUID
     * @param regionId region Id
+    * @param includeOnboarding should region-less onboarding mission be included if complete
     * @return
     */
-  def selectCompletedMissionsByAUser(userId: UUID, regionId: Int): List[Mission] = db.withSession { implicit session =>
+  def selectCompletedMissionsByAUser(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
     val completedMissions: List[Mission] = selectCompletedMissionsByAUser(userId)
-    completedMissions.filter(_.regionId.getOrElse(-1) == regionId)
+    if (includeOnboarding) completedMissions.filter(m => m.label == "onboarding" || m.regionId.getOrElse(-1) == regionId)
+    else completedMissions.filter(_.regionId.getOrElse(-1) == regionId)
   }
 
   /**

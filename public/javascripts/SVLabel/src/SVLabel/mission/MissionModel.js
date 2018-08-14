@@ -5,6 +5,7 @@
 function MissionModel () {
     var self = this;
 
+    // TODO this will probably be deleted or moved
     this.submitMissions = function (missions) {
         var data = [];
         for (var i = 0, len = missions.length; i < len; i++) {
@@ -29,7 +30,7 @@ function MissionModel () {
         });
     };
 
-    this.fetchMissions = function (callback) {
+    this.fetchCompletedMissions = function (regionId, callback) {
         function _onFetch (result1) {
             var missionParameters, missions = result1;
 
@@ -61,9 +62,9 @@ function MissionModel () {
         }
 
         if (callback) {
-            $.when($.ajax("/mission")).done(_onFetch).done(_onLoad).done(callback);
+            $.when($.ajax("/missions/" + regionId)).done(_onFetch).done(_onLoad).done(callback);
         } else {
-            $.when($.ajax("/mission")).done(_onFetch).done(_onLoad);
+            $.when($.ajax("/missions/" + regionId)).done(_onFetch).done(_onLoad);
         }
     };
 
@@ -76,8 +77,8 @@ MissionModel.prototype.addAMission = function (mission) {
     this.trigger("MissionContainer:addAMission", mission);
 };
 
-MissionModel.prototype.completeMission = function (mission, neighborhood) {
-    this.trigger("MissionProgress:complete", { mission: mission, neighborhood: neighborhood });
+MissionModel.prototype.completeMission = function (mission) {
+    this.trigger("MissionProgress:complete", { mission: mission });
 };
 
 MissionModel.prototype.createAMission = function (parameters) {

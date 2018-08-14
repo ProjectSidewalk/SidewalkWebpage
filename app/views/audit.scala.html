@@ -986,6 +986,8 @@
             mainParam.mission.regionId = mainParam.mission.region_id;
             delete mainParam.mission.mission_id;
             delete mainParam.mission.region_id;
+            mainParam.mission.distanceFt = mainParam.mission.distance * 3.28084;
+            mainParam.mission.distanceMi = mainParam.mission.distance / 1609.34;
 
             svl.main = new Main(mainParam);
 

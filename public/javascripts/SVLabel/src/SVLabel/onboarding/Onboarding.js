@@ -532,16 +532,16 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         // TODO remove the if statement around this once we have are positive that no one is getting through with the
         //      username "anonymous"
         if (user.getProperty("username") !== "anonymous") {
-            var onboardingMission = missionContainer.getMission(null, "onboarding");
+            var onboardingMission = missionContainer.getCurrentMission();
             onboardingMission.setProperty("isCompleted", true);
-            // missionContainer.addToCompletedMissions(onboardingMission);
-            missionModel.completeMission(onboardingMission, null);
+            missionModel.completeMission(onboardingMission);
         }
 
         // Set the next mission
         var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
-        var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-        var mission = missions[0];
+        // var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
+        // var mission = missions[0];
+        console.log("TODO: Get next mission in Onboarding.js");
 
         missionContainer.setCurrentMission(mission);
         if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {

@@ -39,33 +39,6 @@ function NeighborhoodModel () {
             }
         })).done(callback);
     };
-
-    // TODO test if this is used, we suspect it is never called and can be deleted.
-    this.fetchNextHighPriorityRegion = function (async) {
-        if (typeof async === "undefined") async = true;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: "/neighborhood/assignment",
-            type: 'post',
-            data: JSON.stringify({"region_id": null}),
-            dataType: 'json',
-            success: function (json) {
-                var regionId = json.region_id;
-                if (regionId) {
-                    var neighborhood = svl.neighborhoodContainer.get(json.region_id);
-                    self.setCurrentNeighborhood(neighborhood);
-                } else {
-                    // When no region is left to assign to the user
-                    self.setCurrentNeighborhood(null);
-                    console.error("No regions to assign to the user!");
-                }
-            },
-            error: function (result) {
-                throw result;
-            }
-        });
-    }
 }
 _.extend(NeighborhoodModel.prototype, Backbone.Events);
 

@@ -185,8 +185,7 @@ function Mission(parameters) {
     function getMissionCompletionRate (unit) {
         if (!unit) unit = "kilometers";
         if ("taskContainer" in svl) {
-            var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-            var completedDistance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+            var completedDistance = svl.taskContainer.getCompletedTaskDistance(unit);
             var lastMissionDistance = getProperty("distance") / 1000 - getProperty("auditDistance") / 1000;
 
             var currentMissionTargetDistance = getProperty("auditDistance") / 1000 + svl.missionContainer.getTasksMissionsOffset();

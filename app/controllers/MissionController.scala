@@ -33,18 +33,20 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     * Return the completed missions in a JSON array
     * @return
     */
-  def getMissions = UserAwareAction.async { implicit request =>
+  def getMissions(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         // Get the missions for the currently assigned neighborhood.
         // Compute the distance traveled thus far.
         // Mark the missions that should be completed.
-        val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
-        if (regionId.isDefined) {
-          updateUnmarkedCompletedMissionsAsCompleted(user.userId, regionId.get)
+        val userCurrentRegion: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
+        if (userCurrentRegion.isDefined) {
+          updateUnmarkedCompletedMissionsAsCompleted(user.userId, userCurrentRegion.get)
         }
+        if (userCurrentRegion.isEmpty || userCurrentRegion.get != regionId)
+          println(s"problem with /missions/:regionId endpoint: ${regionId}, ${userCurrentRegion}")
 
-        val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId)
+        val completedMissions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId, regionId, includeOnboarding = true)
 
         // Finds the regions where the user has completed the original 1000-ft mission
         // Filters original 1000-ft mission out from incomplete missions for each region since it has been replaced by
@@ -59,25 +61,25 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             case _ => false
           }
         }).map(_.regionId.getOrElse(-1)).filter(_ != -1)
-        val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId).filter(m => {
-          val coverage = m.coverage
-          val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
-          val missionRegionId = m.regionId.getOrElse(-1)
-
-          !(coverage match {
-            case None =>
-              // Filter out original 1000-ft missions
-              ~=(distanceFt, missionLength1000, precision) ||
-              // Filter out new 500-ft mission if user has already completed original 1000-ft mission in that region
-              (regionsWhereOriginal1000FtMissionCompleted.exists(_ == missionRegionId) &&
-               ~=(distanceFt, missionLength500, precision))
-            case _ =>
-              // Filter out new 1000-ft mission if user has already completed original 1000-ft mission in that region
-              regionsWhereOriginal1000FtMissionCompleted.exists(_ == missionRegionId) &&
-              ~=(distanceFt, missionLength1000, precision)
-            }
-          )
-        })
+//        val incompleteMissions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId).filter(m => {
+//          val coverage = m.coverage
+//          val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
+//          val missionRegionId = m.regionId.getOrElse(-1)
+//
+//          !(coverage match {
+//            case None =>
+//              // Filter out original 1000-ft missions
+//              ~=(distanceFt, missionLength1000, precision) ||
+//              // Filter out new 500-ft mission if user has already completed original 1000-ft mission in that region
+//              (regionsWhereOriginal1000FtMissionCompleted.exists(_ == missionRegionId) &&
+//               ~=(distanceFt, missionLength500, precision))
+//            case _ =>
+//              // Filter out new 1000-ft mission if user has already completed original 1000-ft mission in that region
+//              regionsWhereOriginal1000FtMissionCompleted.exists(_ == missionRegionId) &&
+//              ~=(distanceFt, missionLength1000, precision)
+//            }
+//          )
+//        })
 
         val completedMissionJsonObjects: List[JsObject] = completedMissions.map( m =>
           Json.obj("is_completed" -> true,
@@ -91,20 +93,19 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
             "coverage" -> m.coverage)
         )
 
-        val incompleteMissionJsonObjects: List[JsObject] = incompleteMissions.map( m =>
-          Json.obj("is_completed" -> false,
-            "mission_id" -> m.missionId,
-            "region_id" -> m.regionId,
-            "label" -> m.label,
-            "level" -> m.level,
-            "distance" -> m.distance,
-            "distance_ft" -> m.distance_ft,
-            "distance_mi" -> m.distance_mi,
-            "coverage" -> m.coverage)
-        )
-
-        val concatenated = completedMissionJsonObjects ++ incompleteMissionJsonObjects
-        Future.successful(Ok(JsArray(concatenated)))
+//        val incompleteMissionJsonObjects: List[JsObject] = incompleteMissions.map( m =>
+//          Json.obj("is_completed" -> false,
+//            "mission_id" -> m.missionId,
+//            "region_id" -> m.regionId,
+//            "label" -> m.label,
+//            "level" -> m.level,
+//            "distance" -> m.distance,
+//            "distance_ft" -> m.distance_ft,
+//            "distance_mi" -> m.distance_mi,
+//            "coverage" -> m.coverage)
+//        )
+//        val concatenated = completedMissionJsonObjects ++ incompleteMissionJsonObjects
+        Future.successful(Ok(JsArray(completedMissionJsonObjects)))
 
         // If the user doesn't already have an anonymous ID, sign them up and rerun.
       case _ => Future.successful(Redirect("/anonSignUp?url=/mission"))
@@ -183,7 +184,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     */
   def updateUnmarkedCompletedMissionsAsCompleted(userId: UUID, regionId: Int): Unit = {
     // Checks if user has completed original 1000-ft mission
-    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId)
+    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId, includeOnboarding = false)
     val hasCompletedOriginal1000FtMission = completedMissions.exists(m => {
       val coverage = m.coverage
       val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)

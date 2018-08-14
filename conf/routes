@@ -74,7 +74,7 @@ GET     /tasks                                               @controllers.TaskCo
 POST    /task                                                @controllers.TaskController.post
 
 # Missions
-GET     /mission                                             @controllers.MissionController.getMissions
+GET     /missions/:regionId                                  @controllers.MissionController.getMissions(regionId: Int)
 GET     /rewardPerMile                                       @controllers.MissionController.getRewardPerMile
 POST    /mission                                             @controllers.MissionController.post
 
