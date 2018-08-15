@@ -1,6 +1,7 @@
 package controllers
 
 import java.util.UUID
+
 import javax.inject.Inject
 import java.sql.Timestamp
 
@@ -14,6 +15,7 @@ import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
 import models.user.{User, UserCurrentRegionTable, UserRoleTable}
 import models.amt.AMTAssignmentTable
+import models.region.NamedRegion
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
@@ -28,6 +30,43 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   val missionLength1000 = 1000.0
   val missionLength500 = 500.0
   val payPerMile = 4.17
+
+
+  /**
+    * Gets the next mission that the user should do in specified region.
+    *
+    * @param regionId
+    * @return
+    */
+  def getNextMission(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        // TODO we shouldn't ever get to the part where the user has no missions left in the region; delete once we test
+        val mission: Mission = if (!MissionTable.hasCompletedOnboarding(user.userId)) {
+          MissionTable.getOnboardingMission
+        } else if (MissionTable.isMissionAvailable(user.userId, regionId)) {
+          MissionTable.selectIncompleteMissionsByAUser(user.userId, regionId).minBy(_.distance)
+        } else {
+          val newRegion: Option[NamedRegion] = UserCurrentRegionTable.assignRegion(user.userId)
+          MissionTable.selectIncompleteMissionsByAUser(user.userId, newRegion.get.regionId).minBy(_.distance)
+        }
+        val missionObj: JsObject = Json.obj(
+          "is_completed" -> false,
+          "mission_id" -> mission.missionId,
+          "region_id" -> mission.regionId,
+          "label" -> mission.label,
+          "level" -> mission.level,
+          "distance" -> mission.distance,
+          "distance_ft" -> mission.distance_ft,
+          "distance_mi" -> mission.distance_mi,
+          "coverage" -> mission.coverage
+        )
+        Future.successful(Ok(missionObj))
+
+      // If the user doesn't already have an anonymous ID, sign them up and rerun.
+      case _ => Future.successful(Redirect(s"/anonSignUp?url=/nextMission/$regionId"))
+    }
+  }
 
   /**
     * Return the completed missions in a JSON array
@@ -108,7 +147,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         Future.successful(Ok(JsArray(completedMissionJsonObjects)))
 
         // If the user doesn't already have an anonymous ID, sign them up and rerun.
-      case _ => Future.successful(Redirect("/anonSignUp?url=/mission"))
+      case _ => Future.successful(Redirect(s"/anonSignUp?url=/missions/$regionId"))
     }
   }
 

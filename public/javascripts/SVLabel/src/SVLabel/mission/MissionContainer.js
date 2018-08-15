@@ -157,6 +157,35 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @returns {*}
      */
     this.nextMission = function () {
+
+        var url = "/nextMission/" + self._currentMission.getProperty("regionId"),
+            async = false;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'get',
+            dataType: 'json',
+            success: function (result) {
+                console.log("success");
+                console.log(result);
+                var missionParameters = {
+                    regionId: result.region_id,
+                    missionId: result.mission_id,
+                    label: result.label,
+                    level: result.level,
+                    distance: result.distance,
+                    distanceFt: result.distance_ft,
+                    distanceMi: result.distance_mi,
+                    coverage: result.coverage,
+                    isCompleted: result.is_completed
+                };
+                missionModel.createAMission(missionParameters);
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
     };
 
 

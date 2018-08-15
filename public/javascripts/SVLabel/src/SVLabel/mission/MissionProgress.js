@@ -101,7 +101,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         if (mission.getMissionCompletionRate() > 0.999) {
             this._completeTheCurrentMission(mission, neighborhood);
 
-            this._updateTheCurrentMission(mission, neighborhood);
+            this._updateTheCurrentMission(mission, neighborhood); // TODO this could go after showModalMissionComplete maybe?
 
             // While the mission complete modal is open, after the **neighborhood** is 100% audited,
             // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
@@ -115,12 +115,13 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     };
 
     this._updateTheCurrentMission = function (currentMission, currentNeighborhood) {
-        var nextMission = missionContainer.nextMission();
+        // missionContainer.nextMission();
+        // var nextMission = missionContainer.getCurrentMission();
+        //
+        // if (nextMission == null) throw new Error("No missions available");
 
-        if (nextMission == null) throw new Error("No missions available");
-
-        missionContainer.setCurrentMission(nextMission);
-        var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
+        // missionContainer.setCurrentMission(nextMission);
+        // var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
 
         // If the current neighborhood is different from the next neighborhood
         // TODO I removed (commented) code, but it included "taskContainer.endTask(taskContainer.getCurrentTask());, we might need it!
@@ -128,9 +129,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         //     this._updateTheCurrentNeighborhood(nextMissionNeighborhood);
         // }
 
+        // TODO probably add back in this check later, after the mission is actually received from back-end
         // Adjust the target distance based on the tasks available
-        var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance();
-        nextMission.adjustTheTargetDistance(incompleteTaskDistance);
+        // var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance();
+        // nextMission.adjustTheTargetDistance(incompleteTaskDistance);
     };
 
     /**

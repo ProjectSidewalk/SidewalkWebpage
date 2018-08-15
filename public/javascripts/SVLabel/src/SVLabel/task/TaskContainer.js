@@ -510,7 +510,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      *
      * @param unit {string} Distance unit
      */
-    function totalLineDistanceInARegion(unit) {
+    function totalLineDistanceInNeighborhood(unit) {
         if (!unit) unit = "kilometers";
         var tasks = self.getTasks();
 
@@ -572,7 +572,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.push = pushATask;
 
     self.storeTask = storeTask;
-    self.totalLineDistanceInARegion = totalLineDistanceInARegion;
+    self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
 }

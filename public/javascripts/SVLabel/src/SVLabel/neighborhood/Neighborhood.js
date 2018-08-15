@@ -72,10 +72,10 @@ function Neighborhood (parameters) {
         return this;
     }
 
-    function totalLineDistanceInARegion (unit) {
+    function totalLineDistanceInNeighborhood (unit) {
         if (!unit) unit = "kilometers";
         if ("taskContainer" in svl && svl.taskContainer) {
-            return svl.taskContainer.totalLineDistanceInARegion(getProperty("regionId"), unit);
+            return svl.taskContainer.totalLineDistanceInNeighborhood(unit);
         } else {
             return null;
         }
@@ -97,7 +97,7 @@ function Neighborhood (parameters) {
     self.completedLineDistance = completedLineDistance;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
-    self.totalLineDistance = totalLineDistanceInARegion;
+    self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.getGeoJSON = getGeoJSON;
     return self;
 }

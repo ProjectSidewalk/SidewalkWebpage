@@ -63,6 +63,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             // reload the page to load another neighborhood
             window.location.replace('/audit');
         } else {
+            missionContainer.nextMission(); // TODO this is not async right now, would like to be partially
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
             self.hide();
@@ -165,11 +166,11 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         var missionDistance = mission.getProperty("auditDistanceMi");
         var auditedDistance = neighborhood.completedLineDistance(unit);
-        var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
+        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
 
         var completedTasks = taskContainer.getCompletedTasks(regionId);
         var missionTasks = mission.getRoute();
-        var totalLineDistance = taskContainer.totalLineDistanceInARegion(regionId, unit);
+        var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
         var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
 

@@ -108,6 +108,24 @@ object MissionTable {
     incompleteMissions.nonEmpty
   }
 
+  /**
+    * Check if the user has completed onboarding.
+    *
+    * @param userId
+    * @return
+    */
+  def hasCompletedOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
+    selectCompletedMissionsByAUser(userId).exists(_.label == "onboarding")
+  }
+
+  /**
+    * Returns the onboarding mission.
+    *
+    * @return
+    */
+  def getOnboardingMission: Mission = db.withSession {implicit session =>
+    missionsWithoutDeleted.filter(_.label === "onboarding").list.head
+  }
 
   /**
     * Get a list of all the completed missions.
