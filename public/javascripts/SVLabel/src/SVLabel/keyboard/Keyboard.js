@@ -275,7 +275,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         });
                         break;
                     case 90:
-                        if (contextMenu.isOpen()){
+                        if (contextMenu.isOpen()) {
                             contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         }
@@ -305,7 +305,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     // "Enter"
                     if (contextMenu.isOpen()) {
                         contextMenu.hide();
+                        contextMenu.handleSeverityPopup();
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        svl.tracker.push('ContextMenu_ClosePressEnter');
                     }
                     break;
                 case 27:
