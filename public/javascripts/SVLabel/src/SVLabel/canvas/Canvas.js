@@ -111,7 +111,6 @@ function Canvas(ribbon) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
-
         var labelType = ribbon.getStatus('selectedLabelType');
         var labelColor = util.misc.getLabelColors()[labelType],
             labelDescription = util.misc.getLabelDescriptions(labelType),
@@ -718,7 +717,6 @@ function Canvas(ribbon) {
             iconImagePaths = util.misc.getIconImagePaths(),
             length = labelPoints.length,
             points = [];
-
 
         for (var i = 0; i < length; i += 1) {
             pointData = labelPoints[i];

@@ -95,7 +95,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         // Update the total distance across neighborhoods that the user has audited
         updateAuditedDistance("miles");
 
-        if (!('user' in svl) || (svl.user.getProperty('username') === "anonymous" &&
+        if (!('user' in svl) || (svl.user.getProperty('role') === "Anonymous" &&
             getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers") > 0.15 &&
             !svl.popUpMessage.haveAskedToSignIn())) {
             svl.popUpMessage.promptSignIn();
@@ -532,7 +532,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param regionId {number} Region id
      * @param task {object} Task object
      */
-    // TODO: Issue 839
     function storeTask(regionId, task) {
         if (!(regionId in self._taskStoreByRegionId)) self._taskStoreByRegionId[regionId] = [];
         var streetEdgeIds = self._taskStoreByRegionId[regionId].map(function (task) {

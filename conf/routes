@@ -14,7 +14,6 @@ GET     /terms                                               @controllers.Applic
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
 GET     /faq                                                 @controllers.ApplicationController.faq
-GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
@@ -22,8 +21,9 @@ GET     /turkerIdExists                                      @controllers.Applic
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
-GET     /signOut                                             @controllers.UserController.signOut(url: String ?="/")
+GET     /signOut                                             @controllers.UserController.signOut(url: String ?= "/")
 GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
+GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
 POST    /signUp                                              @controllers.SignUpController.signUp(url: String ?= "/")
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
@@ -36,7 +36,7 @@ GET     /admin/task/:taskId                                  @controllers.AdminC
 
 GET     /adminapi/missionsCompletedByUsers                   @controllers.AdminController.getMissionsCompletedByUsers
 GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate
-GET     /adminapi/anonUserMissionCounts                      @controllers.AdminController.getAllAnonUserCompletedMissionCounts
+GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
 GET     /adminapi/allSignInCounts                            @controllers.AdminController.getAllUserSignInCounts
 GET     /adminapi/completionRateByDate                       @controllers.AdminController.getCompletionRateByDate
 GET     /adminapi/tasks/:username                            @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
@@ -48,12 +48,9 @@ GET     /adminapi/labelLocations/:username                   @controllers.AdminC
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
-GET     /adminapi/labelCounts/registered                     @controllers.AdminController.getAllRegisteredUserLabelCounts
-GET     /adminapi/labelCounts/anonymous                      @controllers.AdminController.getAllAnonUserLabelCounts
-GET     /adminapi/labelCounts/turker                         @controllers.AdminController.getAllTurkerUserLabelCounts
-GET     /adminapi/audittimes                                 @controllers.AdminController.getAuditTimes()
-GET     /adminapi/auditTimesAnon                             @controllers.AdminController.getAnonAuditTimes()
-GET     /adminapi/auditTimesTurker                           @controllers.AdminController.getTurkerAuditTimes()
+GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
+GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
+GET     /adminapi/auditTimes                                 @controllers.AdminController.getAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -83,6 +80,7 @@ POST    /mission                                             @controllers.Missio
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
+GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
@@ -106,8 +104,6 @@ GET     /isTurker                                            @controllers.UserPr
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
-GET     /userapi/completedMissionCounts/all                  @controllers.UserProfileController.getAllUserCompletedMissionCounts
-GET     /userapi/completedMissionCounts/turker               @controllers.UserProfileController.getTurkerCompletedMissionCounts
 
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
@@ -128,3 +124,11 @@ POST    /survey                                              @controllers.Survey
 
 # Update AMTAssignment Table
 POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
+
+# Clustering and Attributes
+GET     /clustering                                          @controllers.AttributeController.index
+GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both")
+GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
+GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
+POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)
+POST    /multiUserClusteringResults                          @controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)

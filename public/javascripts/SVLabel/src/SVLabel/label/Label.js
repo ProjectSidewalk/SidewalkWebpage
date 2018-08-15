@@ -34,6 +34,7 @@ function Label (svl, pathIn, params) {
         svImageHeight: undefined,
         svMode: undefined,
         tagHeight: 20,
+        tagIds: [],
         tagWidth: 1,
         tagX: -1,
         tagY: -1,
@@ -191,6 +192,20 @@ function Label (svl, pathIn, params) {
         return this;
     }
 
+    self.fetchLabelTags = function (callback) {
+        $.when($.ajax({
+            contentType: 'application/json; charset=utf-8',
+            url: "/label/tags",
+            type: 'get',
+            success: function (json) {
+                self.labelTags = json;
+            },
+            error: function (result) {
+                throw result;
+            }
+        })).done(callback);
+    };
+
     /**
      * This method changes the fill color of the path and points that constitute the path.
      * @param fillColor
@@ -241,6 +256,16 @@ function Label (svl, pathIn, params) {
      */
     function getImageCoordinates () {
         return path ? path.getImageCoordinates() : false;
+    }
+
+    function getLabelTags() {
+        var tags = [];
+        self.labelTags.forEach(function (tag) {
+            if (tag.label_type === properties.labelType) {
+                tags.push(tag.tag);
+            }
+        });
+        return tags;
     }
 
     /**
@@ -953,6 +978,7 @@ function Label (svl, pathIn, params) {
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
+    self.getLabelTags = getLabelTags;
     self.getLabelType = getLabelType;
     self.getPath = getPath;
     self.getPoint = getPoint;

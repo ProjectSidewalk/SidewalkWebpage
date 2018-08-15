@@ -7,7 +7,7 @@ import models.audit.AuditTaskTable.nonDeletedStreetEdgeRegions
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.utils.MyPostgresDriver.simple._
 import models.region._
-import models.user.UserRoleTable
+import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -59,6 +59,8 @@ object MissionTable {
   val turkerUsers = UserRoleTable.getUsersByType("Turker")
 
   val users = TableQuery[UserTable]
+  val userRoles = TableQuery[UserRoleTable]
+  val roles = TableQuery[RoleTable]
   val regionProperties = TableQuery[RegionPropertyTable]
   val regions = TableQuery[RegionTable]
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
@@ -162,18 +164,27 @@ object MissionTable {
     */
   def selectIncompleteMissionsByAUser(userId: UUID): List[Mission] = db.withSession { implicit session =>
     val selectIncompleteMissionQuery = Q.query[String, Mission](
-      """SELECT mission.mission_id, mission.region_id, mission.label, mission.level, mission.distance, mission.distance_ft, mission.distance_mi, mission.coverage, mission.deleted
-        |  FROM sidewalk.mission
-        |LEFT JOIN (
+      """SELECT mission.mission_id,
+        |       mission.region_id,
+        |       mission.label,
+        |       mission.level,
+        |       mission.distance,
+        |       mission.distance_ft,
+        |       mission.distance_mi,
+        |       mission.coverage,
+        |       mission.deleted
+        |FROM sidewalk.mission
+        |LEFT JOIN
+        |(
         |    SELECT mission.mission_id
-        |      FROM sidewalk.mission
-        |    LEFT JOIN sidewalk.mission_user
-        |      ON mission.mission_id = mission_user.mission_id
-        |    WHERE mission.deleted = false
-        |    AND mission_user.user_id = ?
+        |    FROM sidewalk.mission
+        |    LEFT JOIN sidewalk.mission_user ON mission.mission_id = mission_user.mission_id
+        |    WHERE mission.deleted = FALSE
+        |        AND mission_user.user_id = ?
         |) AS completed_mission
-        |  ON mission.mission_id = completed_mission.mission_id
-        |WHERE deleted = false AND completed_mission.mission_id IS NULL""".stripMargin
+        |    ON mission.mission_id = completed_mission.mission_id
+        |WHERE deleted = false
+        |    AND completed_mission.mission_id IS NULL""".stripMargin
     )
     val incompleteMissions: List[Mission] = selectIncompleteMissionQuery(userId.toString).list
     incompleteMissions
@@ -246,32 +257,21 @@ object MissionTable {
   }
 
   /**
-    * Select mission counts by user
+    * Select mission counts by user.
     *
-    * @ List[(user_id,count)]
+    * @return List[(user_id, role, count)]
     */
-  def selectMissionCountsPerUser: List[(String, Int)] = db.withSession { implicit session =>
-    val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionUsers).on(_.missionId === _.missionId)
-    } yield _missionUsers.userId
+  def selectMissionCountsPerUser: List[(String, String, Int)] = db.withSession { implicit session =>
+    val missions = for {
+      _user <- users if _user.username =!= "anonymous"
+      _userRole <- userRoles if _user.userId === _userRole.userId
+      _role <- roles if _userRole.roleId === _role.roleId
+      _missionUser <- missionUsers if _user.userId === _missionUser.userId
+      _mission <- missionsWithoutDeleted if _missionUser.missionId === _mission.missionId
+      if _mission.label =!= "onboarding"
+    } yield (_user.userId, _role.role, _missionUser.missionUserId)
 
-    _missions.groupBy(m => m).map{ case(id, group) => (id, group.length)}.list
-  }
-
-  /**
-    * Select mission counts for turkers
-    *
-    * @ List[(user_id,count)]
-    */
-  def selectMissionCountsPerTurkerUser: List[(String, Int)] = db.withSession { implicit session =>
-    val missionTurkers = for {
-      (_missionusers, _turkerusers) <- missionUsers.innerJoin(turkerUsers).on(_.userId === _.userId)
-    } yield _missionusers
-
-    val _missions = for {
-      (_missions, _missionUsers) <- missionsWithoutDeleted.innerJoin(missionTurkers).on(_.missionId === _.missionId)
-    } yield _missionUsers.userId
-
-    _missions.groupBy(m => m).map{ case(id, group) => (id, group.length)}.list
+    // Count missions per user by grouping by (user_id, role).
+    missions.groupBy(m => (m._1, m._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
   }
 }

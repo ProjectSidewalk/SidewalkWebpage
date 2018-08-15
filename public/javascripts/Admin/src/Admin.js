@@ -154,13 +154,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
      * @returns {string} color in hex
      */
     function getColor(p) {
-        return p > 80 ? '#08519c' :
-            p > 60 ? '#3182bd' :
-                p > 40 ? '#6baed6' :
-                    p > 20 ? '#bdd7e7' :
-                        '#eff3ff';
-    }
-    function getColor2(p) {
         return p > 90 ? '#08306b' :
             p > 80 ? '#08519c' :
                 p > 70 ? '#08719c' :
@@ -171,37 +164,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                     p > 20 ? '#c6dbef' :
                                         p > 10 ? '#deebf7' :
                                             '#f7fbff';
-    }
-    function getColor3(p) {
-        return p > 90 ? '#023858' :
-            p > 80 ? '#045a8d' :
-                p > 70 ? '#0570b0' :
-                    p > 60 ? '#3690c0' :
-                        p > 50 ? '#74a9cf' :
-                            p > 40 ? '#a6bddb' :
-                                p > 30 ? '#d0d1e6' :
-                                    p > 20 ? '#ece7f2' :
-                                        p > 10 ? '#fff7fb' :
-                                            '#ffffff';
-    }
-    function getColor4(p) {
-        return p > 80 ? '#045a8d' :
-            p > 60 ? '#2b8cbe' :
-                p > 40 ? '#74a9cf' :
-                    p > 20 ? '#bdc9e1' :
-                        '#f1eef6';
-    }
-    function getOpacity(p) {
-        return p > 90 ? 1.0 :
-            p > 80 ? 0.9 :
-                p > 70 ? 0.8 :
-                    p > 60 ? 0.7 :
-                        p > 50 ? 0.6 :
-                            p > 40 ? 0.5 :
-                                p > 30 ? 0.4 :
-                                    p > 20 ? 0.3 :
-                                        p > 10 ? 0.2 :
-                                            0.1;
     }
 
     /**
@@ -226,7 +188,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         color: '#888',
                         weight: 1,
                         opacity: 0.25,
-                        fillColor: getColor2(rates[i].rate),
+                        fillColor: getColor(rates[i].rate),
                         fillOpacity: 0.25 + (0.5 * rates[i].rate / 100.0)
                     }
                 }
@@ -522,7 +484,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         });
     }
 
-    // takes an array of objects and the name of a property of the objects, returns summary stats for that property
+    function isResearcherRole(roleName) {
+        return ['Researcher', 'Administrator', 'Owner'].indexOf(roleName) > 0;
+    }
+
+    // Takes an array of objects and the name of a property of the objects, returns summary stats for that property
     function getSummaryStats(data, col, options) {
         options = options || {};
         var excludeResearchers = options.excludeResearchers || false;
@@ -530,7 +496,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         var sum = 0;
         var filteredData = [];
         for (var j = 0; j < data.length; j++) {
-            if (!excludeResearchers || !data[j].is_researcher) {
+            if (!excludeResearchers || !isResearcherRole(data[j].role)) {
                 sum += data[j][col];
                 filteredData.push(data[j])
             }
@@ -562,7 +528,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         var legendOffset = options.legendOffset || 0;
         var excludeResearchers = options.excludeResearchers || false;
 
-        var transformList = excludeResearchers ? [{"filter": "!datum.is_researcher"}] : [];
+        // var transformList = excludeResearchers ? [{"filter": "!datum.is_researcher"}] : [];
+        var nonResearcherRoles = ['Registered', 'Anonymous', 'Turker'];
+        var transformList = excludeResearchers ? [{"filter": {"field": "role", "oneOf": nonResearcherRoles}}] : [];
 
         return {
             "height": height,
@@ -767,69 +735,53 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
             });
 
-            //Draw a chart of total time spent auditing
-            $.getJSON("/adminapi/audittimes", function (regData) {
-                  $.getJSON("/adminapi/auditTimesAnon", function (anonData) {
-                      $.getJSON("/adminapi/auditTimesTurker", function (turkerData) {
-                          var allTimes = [];
-                          var regTimes = [];
-                          var anonTimes = [];
-                          var turkerTimes = [];
-                          for (var i = 0; i < regData.length; i++) {
-                              regTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
-                              allTimes.push({time: regData[i].time, binned: Math.min(200.0, regData[i].time)});
-                          }
-                          for (var i = 0; i < anonData.length; i++) {
-                              allTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
-                              anonTimes.push({time: anonData[i].time, binned: Math.min(200.0, anonData[i].time)});
-                          }
-                          for (var i = 0; i < turkerData.length; i++) {
-                              allTimes.push({time: turkerData[i].time, binned: Math.min(200.0, turkerData[i].time)});
-                              turkerTimes.push({time: turkerData[i].time, binned: Math.min(200.0, turkerData[i].time)});
-                          }
+            // Draw a chart of total time spent auditing
+            $.getJSON("/adminapi/auditTimes", function (times) {
+                var allTimes = times.map(user => { user.binned = Math.min(200.0, user.time); return user; });
+                var regTimes = allTimes.filter(user => user.role === 'Registered');
+                var anonTimes = allTimes.filter(user => user.role === 'Anonymous');
+                var turkTimes = allTimes.filter(user => user.role === 'Turker');
 
-                          var allStats = getSummaryStats(allTimes, "time");
-                          var regStats = getSummaryStats(regTimes, "time");
-                          var anonStats = getSummaryStats(anonTimes, "time");
-                          var turkerStats = getSummaryStats(turkerTimes, "time");
+                var allStats = getSummaryStats(allTimes, "time");
+                var regStats = getSummaryStats(regTimes, "time");
+                var anonStats = getSummaryStats(anonTimes, "time");
+                var turkerStats = getSummaryStats(turkTimes, "time");
 
-                          var allHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - All Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
-                          var regHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Registered Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
-                          var turkerHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Turker Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
-                          var anonHistOpts = {
-                              col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Anon Users",
-                              yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                              binStep: 10, legendOffset: -80
-                          };
+                var allHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - All Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 10, legendOffset: -80
+                };
+                var regHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Registered Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 10, legendOffset: -80
+                };
+                var turkerHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Turker Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 10, legendOffset: -80
+                };
+                var anonHistOpts = {
+                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Anon Users",
+                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
+                    binStep: 1, legendOffset: -80
+                };
 
-                          var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
-                          var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
-                          var turkerChart = getVegaLiteHistogram(turkerTimes, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                          var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
+                var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
+                var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
+                var turkerChart = getVegaLiteHistogram(turkTimes, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
 
-                          $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
-                          $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
-                          $("#turker-audittimes-std").html((turkerStats.std).toFixed(2) + " Minutes");
-                          $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
+                $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
+                $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
+                $("#turker-audittimes-std").html((turkerStats.std).toFixed(2) + " Minutes");
+                $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
 
-                          var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
 
-                          vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function (error, results) {
-                          });
-                      });
-                  });
+                vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function (error, results) {
+                });
             });
 
             $.getJSON('/adminapi/labels/all', function (data) {
@@ -1108,204 +1060,144 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
-            $.getJSON("/adminapi/anonUserMissionCounts", function (anonData) {
-                $.getJSON("/userapi/completedMissionCounts/all", function (regData) {
-                    $.getJSON("/userapi/completedMissionCounts/turker", function (turkerData) {
-                        var allData = [];
-                        for (var i = 0; i < anonData[0].length; i++) {
-                            allData.push({
-                                count: anonData[0][i].count,
-                                user: anonData[0][i].ip_address,
-                                is_researcher: anonData[0][i].is_researcher
-                            })
-                        }
-                        for (var i = 0; i < regData[0].length; i++) {
-                            allData.push({
-                                count: regData[0][i].count,
-                                user: regData[0][i].user_id,
-                                is_researcher: regData[0][i].is_researcher
-                            });
-                        }
-                        for (var i = 0; i < turkerData[0].length; i++) {
-                            allData.push({
-                                count: turkerData[0][i].count,
-                                user: turkerData[0][i].user_id,
-                                is_researcher: turkerData[0][i].is_researcher
-                            });
-                        }
+            $.getJSON("/adminapi/userMissionCounts", function (data) {
+                var allData = data[0];
+                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                var anonData = allData.filter(user => user.role === 'Anonymous');
+                var turkerData = allData.filter(user => user.role === 'Turker');
 
-                        var allStats = getSummaryStats(allData, "count");
-                        var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
-                        var regStats = getSummaryStats(regData[0], "count");
-                        var regFilteredStats = getSummaryStats(regData[0], "count", {excludeResearchers: true});
-                        var turkerStats = getSummaryStats(turkerData[0], "count");
-                        var turkerFilteredStats = getSummaryStats(turkerData[0], "count", {excludeResearchers: true});
-                        var anonStats = getSummaryStats(anonData[0], "count");
+                var allStats = getSummaryStats(allData, "count");
+                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
+                var regStats = getSummaryStats(regData, "count");
+                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
+                var turkerStats = getSummaryStats(turkerData, "count");
+                var anonStats = getSummaryStats(anonData, "count");
 
-                        var allHistOpts = {
-                            xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
-                            binStep: 5, legendOffset: -80
-                        };
-                        var allFilteredHistOpts = {
-                            xAxisTitle: "# Missions per User (all)", xDomain: [0, allFilteredStats.max],
-                            width: 187, binStep: 5, legendOffset: -80, excludeResearchers: true
-                        };
-                        var regHistOpts = {
-                            xAxisTitle: "# Missions per Registered User", xDomain: [0, regStats.max], width: 187,
-                            binStep: 5, legendOffset: -80
-                        };
-                        var regFilteredHistOpts = {
-                            xAxisTitle: "# Missions per Registered User", width: 187, legendOffset: -80,
-                            xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 5
-                        };
-                        var turkerHistOpts = {
-                            xAxisTitle: "# Missions per Turker User", xDomain: [0, turkerStats.max], width: 187,
-                            binStep: 5, legendOffset: -80
-                        };
-                        var turkerFilteredHistOpts = {
-                            xAxisTitle: "# Missions per Turker User", width: 187, legendOffset: -80,
-                            xDomain: [0, turkerFilteredStats.max], excludeResearchers: true, binStep: 5
-                        };
-                        var anonHistOpts = {
-                            xAxisTitle: "# Missions per Anon User", xDomain: [0, anonStats.max],
-                            width: 187, legendOffset: -80
-                        };
+                var allHistOpts = {
+                    xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
+                    binStep: 15, legendOffset: -80
+                };
+                var allFilteredHistOpts = {
+                    xAxisTitle: "# Missions per User (all)", xDomain: [0, allFilteredStats.max],
+                    width: 187, binStep: 15, legendOffset: -80, excludeResearchers: true
+                };
+                var regHistOpts = {
+                    xAxisTitle: "# Missions per Registered User", xDomain: [0, regStats.max], width: 187,
+                    binStep: 10, legendOffset: -80
+                };
+                var regFilteredHistOpts = {
+                    xAxisTitle: "# Missions per Registered User", width: 187, legendOffset: -80,
+                    xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 10
+                };
+                var turkerHistOpts = {
+                    xAxisTitle: "# Missions per Turker User", xDomain: [0, turkerStats.max], width: 187,
+                    binStep: 15, legendOffset: -80
+                };
+                var anonHistOpts = {
+                    xAxisTitle: "# Missions per Anon User", xDomain: [0, anonStats.max], width: 187,
+                    binStep: 1, legendOffset: -80
+                };
 
-                        var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                        var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
-                        var regChart = getVegaLiteHistogram(regData[0], regStats.mean, regStats.median, regHistOpts);
-                        var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-                        var turkerChart = getVegaLiteHistogram(turkerData[0], turkerStats.mean, turkerStats.median, turkerHistOpts);
-                        var turkerFilteredChart = getVegaLiteHistogram(turkerData[0], turkerFilteredStats.mean, turkerFilteredStats.median, turkerFilteredHistOpts);
-                        var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
+                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
+                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
+                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
+
+                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+
+                vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
+                });
+
+                var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.srcElement.checked) {
+                        $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
+                        $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
+                        vega.embed("#mission-count-chart", combinedChart, opt, function (error, results) {
+                        });
+                    } else {
                         $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
                         $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                        $("#turker-missions-std").html((turkerFilteredStats.std).toFixed(2) + " Missions");
-                        $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
-
-                        var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                        var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerFilteredChart, regFilteredChart, anonChart]};
-
                         vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
                         });
-
-                        var checkbox = document.getElementById("mission-count-include-researchers-checkbox").addEventListener("click", function (cb) {
-                            if (cb.srcElement.checked) {
-                                $("#missions-std").html((allStats.std).toFixed(2) + " Missions");
-                                $("#reg-missions-std").html((regStats.std).toFixed(2) + " Missions");
-                                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
-                                vega.embed("#mission-count-chart", combinedChart, opt, function (error, results) {
-                                });
-                            } else {
-                                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
-                                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                                $("#turker-missions-std").html((turkerFilteredStats.std).toFixed(2) + " Missions");
-                                vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
-                                });
-                            }
-                        });
-                    });
+                    }
                 });
             });
-            $.getJSON("/adminapi/labelCounts/registered", function (regData) {
-                $.getJSON("/adminapi/labelCounts/anonymous", function (anonData) {
-                    $.getJSON("/adminapi/labelCounts/turker", function (turkerData) {
-                        var allData = [];
-                        for (var i = 0; i < anonData[0].length; i++) {
-                            allData.push({
-                                count: anonData[0][i].count,
-                                user: anonData[0][i].ip_address,
-                                is_researcher: anonData[0][i].is_researcher
-                            });
-                        }
-                        for (var i = 0; i < regData[0].length; i++) {
-                            allData.push({
-                                count: regData[0][i].count,
-                                user: regData[0][i].user_id,
-                                is_researcher: regData[0][i].is_researcher
-                            });
-                        }
-                        for (var i = 0; i < turkerData[0].length; i++) {
-                            allData.push({
-                                count: turkerData[0][i].count,
-                                user: turkerData[0][i].user_id,
-                                is_researcher: turkerData[0][i].is_researcher
-                            })
-                        }
+            $.getJSON("/adminapi/labelCounts", function (data) {
+                var allData = data[0];
+                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                var turkerData = allData.filter(user => user.role === 'Turker');
+                var anonData = allData.filter(user => user.role === 'Anonymous');
 
-                        var allStats = getSummaryStats(allData, "count");
-                        var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
-                        var regStats = getSummaryStats(regData[0], "count");
-                        var regFilteredStats = getSummaryStats(regData[0], "count", {excludeResearchers: true});
-                        var turkerStats = getSummaryStats(turkerData[0], "count");
-                        var turkerFilteredStats = getSummaryStats(turkerData[0], "count", {excludeResearchers: true});
-                        var anonStats = getSummaryStats(anonData[0], "count");
+                var allStats = getSummaryStats(allData, "count");
+                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
+                var regStats = getSummaryStats(regData, "count");
+                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
+                var turkerStats = getSummaryStats(turkerData, "count");
+                var anonStats = getSummaryStats(anonData, "count");
 
-                        var allHistOpts = {
-                            xAxisTitle: "# Labels per User (all)", xDomain: [0, allStats.max], width: 187,
-                            binStep: 200, legendOffset: -80
-                        };
-                        var allFilteredHistOpts = {
-                            xAxisTitle: "# Labels per User (all)", xDomain: [0, allFilteredStats.max],
-                            width: 187, binStep: 200, legendOffset: -80, excludeResearchers: true
-                        };
-                        var regHistOpts = {
-                            xAxisTitle: "# Labels per Registered User", xDomain: [0, regStats.max], width: 187,
-                            binStep: 200, legendOffset: -80
-                        };
-                        var regFilteredHistOpts = {
-                            xAxisTitle: "# Labels per Registered User", width: 187, legendOffset: -80,
-                            xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 200
-                        };
-                        var turkerHistOpts = {
-                            xAxisTitle: "# Labels per Turker User", xDomain: [0, turkerStats.max], width: 187,
-                            binStep: 200, legendOffset: -80
-                        };
-                        var turkerFilteredHistOpts = {
-                            xAxisTitle: "# Labels per Turker User", width: 187, legendOffset: -80,
-                            xDomain: [0, turkerFilteredStats.max], excludeResearchers: true, binStep: 200
-                        };
-                        var anonHistOpts = {
-                            xAxisTitle: "# Labels per Anon User", xDomain: [0, anonStats.max],
-                            width: 187, legendOffset: -80, binStep: 50
-                        };
+                var allHistOpts = {
+                    xAxisTitle: "# Labels per User (all)", xDomain: [0, allStats.max], width: 187,
+                    binStep: 500, legendOffset: -80
+                };
+                var allFilteredHistOpts = {
+                    xAxisTitle: "# Labels per User (all)", xDomain: [0, allFilteredStats.max],
+                    width: 187, binStep: 500, legendOffset: -80, excludeResearchers: true
+                };
+                var regHistOpts = {
+                    xAxisTitle: "# Labels per Registered User", xDomain: [0, regStats.max], width: 187,
+                    binStep: 500, legendOffset: -80
+                };
+                var regFilteredHistOpts = {
+                    xAxisTitle: "# Labels per Registered User", width: 187, legendOffset: -80,
+                    xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 500
+                };
+                var turkerHistOpts = {
+                    xAxisTitle: "# Labels per Turker User", xDomain: [0, turkerStats.max], width: 187,
+                    binStep: 500, legendOffset: -80
+                };
+                var anonHistOpts = {
+                    xAxisTitle: "# Labels per Anon User", xDomain: [0, anonStats.max],
+                    width: 187, legendOffset: -80, binStep: 2
+                };
 
-                        var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                        var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
-                        var regChart = getVegaLiteHistogram(regData[0], regStats.mean, regStats.median, regHistOpts);
-                        var regFilteredChart = getVegaLiteHistogram(regData[0], regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-                        var turkerChart = getVegaLiteHistogram(turkerData[0], turkerStats.mean, turkerStats.median, turkerHistOpts);
-                        var turkerFilteredChart = getVegaLiteHistogram(turkerData[0], turkerFilteredStats.mean, turkerFilteredStats.median, turkerFilteredHistOpts);
-                        var anonChart = getVegaLiteHistogram(anonData[0], anonStats.mean, anonStats.median, anonHistOpts);
+                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
+                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
+                $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
+
+                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+
+                vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
+                });
+
+                var checkbox = document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.srcElement.checked) {
+                        $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
+                        $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
+                        vega.embed("#label-count-hist", combinedChart, opt, function (error, results) {
+                        });
+                    } else {
                         $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
                         $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                        $("#turker-labels-std").html((turkerFilteredStats.std).toFixed(2) + " Labels");
-                        $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
-
-                        var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                        var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerFilteredChart, regFilteredChart, anonChart]};
-
                         vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
                         });
-
-                        var checkbox = document.getElementById("label-count-include-researchers-checkbox").addEventListener("click", function (cb) {
-                            if (cb.srcElement.checked) {
-                                $("#all-labels-std").html((allStats.std).toFixed(2) + " Labels");
-                                $("#reg-labels-std").html((regStats.std).toFixed(2) + " Labels");
-                                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
-                                vega.embed("#label-count-hist", combinedChart, opt, function (error, results) {
-                                });
-                            } else {
-                                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
-                                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                                $("#turker-labels-std").html((turkerFilteredStats.std).toFixed(2) + " Labels");
-                                vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
-                                });
-                            }
-                        });
-                    });
+                    }
                 });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
@@ -1420,7 +1312,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var button = $('#userRoleDropdown' + result.user_id);
                 var buttonContents = button.html();
                 var newRole = result.role;
-                button.html(buttonContents.replace(/User|Turker|Researcher|Administrator/g, newRole));
+                button.html(buttonContents.replace(/Registered|Turker|Researcher|Administrator|Anonymous/g, newRole));
             },
             error: function (result) {
                 console.error(result);

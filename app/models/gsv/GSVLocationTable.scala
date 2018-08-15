@@ -3,8 +3,6 @@ package models.gsv
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.lifted.ForeignKeyQuery
-
 case class GSVLocation(gsvPanoramaId: String, lat: Double, lng: Double, originalLat: Double, originalLng: Double,
                        region: String, country: String, description: String,
                        zoomLevels: Int, streetRange: Option[Int], elevationWgs84M: Double, elevationEgm96M: Double)
