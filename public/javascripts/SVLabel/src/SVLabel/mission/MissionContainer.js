@@ -156,11 +156,11 @@ function MissionContainer (statusFieldMission, missionModel) {
      * TODO this will probably end up calling an endpoint to get the next mission, or that might get moved to ModalMissionComplete.js
      * @returns {*}
      */
-    this.nextMission = function () {
+    this.nextMission = function (callback) {
 
         var url = "/nextMission/" + self._currentMission.getProperty("regionId"),
-            async = false;
-        $.ajax({
+            async = true;
+        $.when($.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: url,
@@ -185,7 +185,7 @@ function MissionContainer (statusFieldMission, missionModel) {
             error: function (result) {
                 console.error(result);
             }
-        });
+        })).done(callback);
     };
 
 

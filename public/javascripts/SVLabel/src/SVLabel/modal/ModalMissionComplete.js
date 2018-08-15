@@ -23,6 +23,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     this._status = {
         isOpen: false
     };
+    this._gotNextMission = false;
+    this._closeModalClicked = false;
 
     this._uiModalMissionComplete = uiModalMissionComplete;
     this._modalMissionCompleteMap = modalMissionCompleteMap;
@@ -50,12 +52,28 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
     });
 
-    this._handleBackgroundClick = function (e) {
-        self._closeModal();
+    /**
+     * Closes the mission complete modal when the close button is click _and_ we got the next mission from back-end.
+     * @private
+     */
+    this._handleLoadNextMission = function() {
+        if (self._closeModalClicked && this._gotNextMission) {
+            self._closeModalClicked = false;
+            self._gotNextMission = false;
+            self._closeModal();
+        }
     };
 
+    // TODO maybe deal with lost connection causing modal to not close
+    this._handleBackgroundClick = function (e) {
+        self._closeModalClicked = true;
+        self._handleLoadNextMission();
+    };
+
+    // TODO maybe deal with lost connection causing modal to not close
     this._handleCloseButtonClick = function (e) {
-        self._closeModal();
+        self._closeModalClicked = true;
+        self._handleLoadNextMission();
     };
 
     this._closeModal = function (e) {
@@ -63,7 +81,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             // reload the page to load another neighborhood
             window.location.replace('/audit');
         } else {
-            missionContainer.nextMission(); // TODO this is not async right now, would like to be partially
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
             self.hide();
@@ -98,6 +115,14 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.closeButton.css('visibility', "visible");
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
+
+        // Start GET request for next mission. If this req is complete and the user clicks continue/next button, the
+        // next mission shows up. So clicking continue does nothing until the mission is received from the back-end.
+        // This should never happen, unless we completely lose connection to the back-end anyway.
+        missionContainer.nextMission(function() {
+            self._gotNextMission = true;
+            self._handleLoadNextMission();
+        });
 
         /*If the user has completed his first mission then hide the continue button.
          Display the generate confirmation button. When clicked, remove this button completely
