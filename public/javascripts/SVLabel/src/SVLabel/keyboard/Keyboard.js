@@ -324,8 +324,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     if (contextMenu.isOpen()) {
                         contextMenu.hide();
                         contextMenu.handleSeverityPopup();
-                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                         svl.tracker.push('ContextMenu_ClosePressEnter');
+                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
                     }
                     break;
                 case 27:
