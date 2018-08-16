@@ -14,6 +14,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         lock = {
             renderLabels : false
         },
+        logPanoId = true,
         markers = [],
         properties = {
             browser : 'unknown',
@@ -771,7 +772,16 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                     //});
                                 }
                             }
-                            svl.tracker.push("PanoId_Changed");
+
+                            // Checks to see if we should log the PanoID.
+                            // Google maps API triggers the pano_changed event twice: once moving
+                            // between pano_ids  and once for setting the new pano_id.
+                            if (logPanoId) {
+                                svl.tracker.push("PanoId_Changed");
+                                logPanoId = false;
+                            } else {
+                                logPanoId = true;
+                            }
                         }
                         else {
                             handleImageryNotFound(panoId, panoStatus);
