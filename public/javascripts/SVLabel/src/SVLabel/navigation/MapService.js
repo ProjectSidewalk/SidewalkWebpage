@@ -14,8 +14,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         lock = {
             renderLabels : false
         },
-        logPanoId = true,
         markers = [],
+        prevPanoId = undefined,
         properties = {
             browser : 'unknown',
             latlng : {
@@ -773,14 +773,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                 }
                             }
 
-                            // Checks to see if we should log the PanoID.
+                            // Checks if pano_id is the same as the previous one.
                             // Google maps API triggers the pano_changed event twice: once moving
                             // between pano_ids  and once for setting the new pano_id.
-                            if (logPanoId) {
+                            if (panoId !== prevPanoId) {
                                 svl.tracker.push("PanoId_Changed");
-                                logPanoId = false;
-                            } else {
-                                logPanoId = true;
+                                console.log('panoID_changed: ' + panoId);
+                                prevPanoId = panoId;
                             }
                         }
                         else {
