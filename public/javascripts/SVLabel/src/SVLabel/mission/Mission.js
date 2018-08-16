@@ -184,7 +184,7 @@ function Mission(parameters) {
      */
     function getMissionCompletionRate (unit) {
         if (!unit) unit = "kilometers";
-        if ("taskContainer" in svl) {
+        if ("taskContainer" in svl && svl.missionContainer.getCurrentMission().getProperty("label") !== "onboarding") {
             var completedDistance = svl.taskContainer.getCompletedTaskDistance(unit);
             var lastMissionDistance = getProperty("distance") / 1000 - getProperty("auditDistance") / 1000;
 

@@ -501,79 +501,14 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var task = taskContainer.getCurrentTask();
         var data = form.compileSubmissionData(task);
         form.submit(data, task);
-        uiOnboarding.background.css("visibility", "hidden");
 
-        //Reset the label counts to zero after onboarding
-        svl.labelCounter.reset();
+        // TODO maybe get rid of this, all we are doing is submitting the missions data here.
+        var onboardingMission = missionContainer.getCurrentMission();
+        onboardingMission.setProperty("isCompleted", true);
+        missionModel.completeMission(onboardingMission);
 
-
-        $("#toolbar-onboarding-link").css("visibility", "visible");
-
-        canvas.unlockDisableLabelDelete();
-        canvas.enableLabelDelete();
-        canvas.lockDisableLabelDelete();
-
-        mapService.unlockDisableWalking();
-        mapService.enableWalking();
-
-        zoomControl.unlockDisableZoomIn();
-        zoomControl.enableZoomIn();
-
-        zoomControl.unlockDisableZoomOut();
-        zoomControl.enableZoomOut();
-
-        ribbon.unlockDisableModeSwitch();
-        ribbon.enableModeSwitch();
-
-        $("#left-column-jump-button").removeClass('disabled');
-
-        setStatus("isOnboarding", false);
-
-        // TODO remove the if statement around this once we have are positive that no one is getting through with the
-        //      username "anonymous"
-        if (user.getProperty("username") !== "anonymous") {
-            var onboardingMission = missionContainer.getCurrentMission();
-            onboardingMission.setProperty("isCompleted", true);
-            missionModel.completeMission(onboardingMission);
-        }
-
-        // Set the next mission
-        var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
-        // var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-        // var mission = missions[0];
-        console.log("TODO: Get next mission in Onboarding.js");
-
-        missionContainer.setCurrentMission(mission);
-        if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
-
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
-            modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                svl.initialMissionInstruction.start(neighborhood);
-            });
-            var url = '/isTurker';
-            $.ajax({
-                async: true,
-                url: url,//endpoint that checks above conditions
-                type: 'get',
-                success: function(data){
-                    if(data.isTurker){
-                        svl.ui.status.currentMissionReward.show();
-                        svl.ui.status.totalMissionReward.show();
-                    }
-                },
-                error: function (xhr, ajaxOptions, thrownError) {
-                    console.log(thrownError);
-                }
-            });
-
-        }else{
-            modalMission.setMissionMessage(mission, neighborhood);
-        }
-        modalMission.show();
-        $("#mini-footer-audit").css("visibility", "visible");
-
-        taskContainer.getFinishedAndInitNextTask();
+        // Reload the page.
+        window.location.replace('/audit');
     }
 
     function _onboardingStateAnnotationExists(state) {
@@ -723,12 +658,13 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 window.cancelAnimationFrame(blink_function_identifier.pop());
             }
         }
-        hideMessage();
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
         if (!state) {
             _endTheOnboarding();
             return;
+        } else {
+            hideMessage();
         }
 
         // Show user a message box.
@@ -976,7 +912,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _visitInstruction(state, listener) {
 
-        if (state == getState("outro")){
+        if (state == getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
         }
         renderRoutesOnGoogleMap(state);

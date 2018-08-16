@@ -73,7 +73,7 @@ function MissionContainer (statusFieldMission, missionModel) {
                 self._completedMissions[mi].setProperty("auditDistanceMi", distanceMi);
             }
         }
-        if (getCurrentMission()) {
+        if (getCurrentMission() && getCurrentMission().getProperty("coverage")) {
             var lastMission = self._completedMissions[self._completedMissions.length - 1];
             distance = self._currentMission.getProperty("distance") - lastMission.getProperty("distance");
             distanceFt = self._currentMission.getProperty("distanceFt") - lastMission.getProperty("distanceFt");
@@ -158,7 +158,7 @@ function MissionContainer (statusFieldMission, missionModel) {
      */
     this.nextMission = function (callback) {
 
-        var url = "/nextMission/" + self._currentMission.getProperty("regionId"),
+        var url = "/nextMission",
             async = true;
         $.when($.ajax({
             async: async,

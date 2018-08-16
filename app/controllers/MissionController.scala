@@ -38,14 +38,15 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     * @param regionId
     * @return
     */
-  def getNextMission(regionId: Int) = UserAwareAction.async { implicit request =>
+  def getNextMission() = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        // TODO we shouldn't ever get to the part where the user has no missions left in the region; delete once we test
+        // TODO we shouldn't ever get to the part where the user has no missions left in the region or needs tutorial; delete once we test
+        val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
         val mission: Mission = if (!MissionTable.hasCompletedOnboarding(user.userId)) {
           MissionTable.getOnboardingMission
-        } else if (MissionTable.isMissionAvailable(user.userId, regionId)) {
-          MissionTable.selectIncompleteMissionsByAUser(user.userId, regionId).minBy(_.distance)
+        } else if (regionId.isDefined && MissionTable.isMissionAvailable(user.userId, regionId.get)) {
+          MissionTable.selectIncompleteMissionsByAUser(user.userId, regionId.get).minBy(_.distance)
         } else {
           val newRegion: Option[NamedRegion] = UserCurrentRegionTable.assignRegion(user.userId)
           MissionTable.selectIncompleteMissionsByAUser(user.userId, newRegion.get.regionId).minBy(_.distance)
@@ -64,7 +65,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         Future.successful(Ok(missionObj))
 
       // If the user doesn't already have an anonymous ID, sign them up and rerun.
-      case _ => Future.successful(Redirect(s"/anonSignUp?url=/nextMission/$regionId"))
+      case _ => Future.successful(Redirect(s"/anonSignUp?url=/nextMission"))
     }
   }
 

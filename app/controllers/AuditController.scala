@@ -73,7 +73,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user.userId)
-            val mission: Mission = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId).minBy(_.distance)
+            val mission: Mission = if (!MissionTable.hasCompletedOnboarding(user.userId)) {
+              MissionTable.getOnboardingMission
+            } else {
+              MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId).minBy(_.distance)
+            }
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, Some(user))))
         }
       // For anonymous users.
