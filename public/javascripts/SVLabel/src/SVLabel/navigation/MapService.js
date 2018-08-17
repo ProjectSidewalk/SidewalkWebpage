@@ -15,6 +15,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             renderLabels : false
         },
         markers = [],
+        prevPanoId = undefined,
         properties = {
             browser : 'unknown',
             latlng : {
@@ -771,7 +772,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                     //});
                                 }
                             }
-                            svl.tracker.push("PanoId_Changed");
+
+                            // Checks if pano_id is the same as the previous one.
+                            // Google maps API triggers the pano_changed event twice: once moving
+                            // between pano_ids  and once for setting the new pano_id.
+                            if (panoId !== prevPanoId) {
+                                svl.tracker.push("PanoId_Changed");
+                                prevPanoId = panoId;
+                            }
                         }
                         else {
                             handleImageryNotFound(panoId, panoStatus);
