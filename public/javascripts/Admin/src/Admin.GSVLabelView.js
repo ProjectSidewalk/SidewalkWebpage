@@ -74,6 +74,7 @@ function AdminGSVLabel() {
         $.getJSON(adminLabelUrl, function (data) {
             _handleData(data);
         });
+        self.panorama.refreshGSV();
     }
 
     function _handleData(labelMetadata) {
@@ -87,7 +88,8 @@ function AdminGSVLabel() {
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_type_key'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'],
-            labelMetadata['canvas_width'], labelMetadata['canvas_height']);
+            labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
+            labelMetadata['pitch'], labelMetadata['zoom']);
         self.panorama.renderLabel(adminPanoramaLabel);
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
@@ -101,8 +103,6 @@ function AdminGSVLabel() {
         self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
             labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
             labelMetadata['username'] + "</a>");
-
-        self.panorama.refreshGSV();
     }
 
     _init();
