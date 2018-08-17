@@ -45,7 +45,7 @@ function Choropleth(_, $, turf, difficultRegionIds) {
 
     function getColor(p) {
         //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
-        return Math.abs(p - 100) < Number.EPSILON ? '#a5c287':
+        return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
                  p > 90 ? '#08306b' :
                     p > 80 ? '#08519c' :
                         p > 70 ? '#08719c' :
