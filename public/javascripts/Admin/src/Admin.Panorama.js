@@ -9,6 +9,7 @@ function AdminPanorama(svHolder) {
     var self = {
         className: "AdminPanorama",
         labelMarker: undefined,
+        panoId: undefined,
         panorama: undefined
     };
 
@@ -48,7 +49,16 @@ function AdminPanorama(svHolder) {
         self.svHolder.append($(self.panoCanvas));
 
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
-        self.panoId = null;
+        self.panorama.addListener('pano_changed', function() {
+            if (self.labelMarker) {
+                var currentPano = self.panorama.getPano();
+                if (currentPano === self.panoId) {
+                    self.labelMarker.setVisible(true);
+                } else {
+                    self.labelMarker.setVisible(false);
+                }
+            }
+        });
 
         if (self.panorama) {
             self.panorama.set('addressControl', false);
@@ -68,28 +78,19 @@ function AdminPanorama(svHolder) {
     }
 
     /**
+     * Sets the initial panorama ID
      * @param newId
      */
     function changePanoId(newId) {
-        if(self.panoId != newId) {
-            self.panorama.setPano(newId);
-            self.panoId = newId;
-            self.refreshGSV();
-        }
+        self.panorama.setPano(newId);
+        self.panoId = newId;
+        self.refreshGSV();
+
         return this;
     }
 
     /**
-     * @param newPov: The options object should have "heading", "pitch" and "zoom" keys
-     */
-    function setPov(newPov) {
-        self.panorama.set('pov', {heading: newPov['heading'], pitch: newPov['pitch']});
-        self.panorama.set('zoom', zoomLevel[newPov['zoom']]);
-        return this;
-    }
-
-    /**
-     *
+     * Renders a Panomarker (label) onto Google Streetview Panorama.
      * @param label: instance of AdminPanoramaLabel
      * @returns {renderLabel}
      */
@@ -98,7 +99,7 @@ function AdminPanorama(svHolder) {
         var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
-        this.labelMarker = new PanoMarker ({
+        self.labelMarker = new PanoMarker ({
             container: self.panoCanvas,
             pano: self.panorama,
             position: {heading: pos.heading, pitch: pos.pitch},
@@ -108,9 +109,20 @@ function AdminPanorama(svHolder) {
         });
         return this;
     }
+    /**
+     * Sets point of view for the panorama based off heading, pitch, and zoom values collected
+     * at the time of label placement.
+     * @param newPov: The options object should have "heading", "pitch" and "zoom" keys
+     */
+    function setPov(newPov) {
+        self.panorama.set('pov', {heading: newPov['heading'], pitch: newPov['pitch']});
+        self.panorama.set('zoom', zoomLevel[newPov['zoom']]);
+        return this;
+    }
 
     /**
      * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
+     * From PanoMarker spec
      * @param canvas_x          X coordinate (pixel) for label
      * @param canvas_y          Y coordinate (pixel) for label
      * @param canvas_width      Original canvas width
