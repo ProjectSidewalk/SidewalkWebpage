@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class ProblemDescription(problemDescriptionId: Int, labelId: Int, description: String)
 
-class ProblemDescriptionTable(tag: Tag) extends Table[ProblemDescription](tag, Some("sidewalk"), "problem_description") {
+class ProblemDescriptionTable(tag: slick.lifted.Tag) extends Table[ProblemDescription](tag, Some("sidewalk"), "problem_description") {
   def problemDescriptionId = column[Int]("problem_description_id", O.PrimaryKey, O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def description = column[String]("description", O.NotNull)

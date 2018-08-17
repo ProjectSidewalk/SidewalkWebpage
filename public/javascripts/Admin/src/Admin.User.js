@@ -75,6 +75,11 @@ function AdminUser(params) {
             };
 
         for (var i = data.features.length - 1; i >= 0; i--) labelCounter[data.features[i].properties.label_type] += 1;
+        document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
+        document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
+        document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
+        document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+        document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
 
         document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
         document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";

@@ -52,5 +52,16 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-
+  /**
+    * Gets all tags in the database in JSON.
+    *
+    * @return
+    */
+  def getLabelTags() = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(JsArray(TagTable.selectAllTags().map { tag => Json.obj(
+      "tag_id" -> tag.tagId,
+      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+      "tag" -> tag.tag
+    )})))
+  }
 }
