@@ -8,14 +8,14 @@ function AdminGSVLabel() {
     function _resetModal() {
         self.modal =
             $('<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
-                '<div class="modal-dialog" role="document" style="width: 390px">'+
+                '<div class="modal-dialog" role="document" style="width: 570px">'+
                     '<div class="modal-content">'+
                         '<div class="modal-header">'+
                             '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
                             '<h4 class="modal-title" id="myModalLabel">Label</h4>'+
                         '</div>'+
                         '<div class="modal-body">'+
-                            '<div id="svholder" style="width: 360px; height:240px">'+
+                            '<div id="svholder" style="width: 540px; height:360px">'+
                         '</div>'+
                         '<div class="modal-footer">'+
                             '<table class="table table-striped" style="font-size:small; margin-bottom: 0">'+

@@ -62,7 +62,7 @@ function AdminPanorama(svHolder) {
 
         if (self.panorama) {
             self.panorama.set('addressControl', false);
-            self.panorama.set('clickToGo', false);
+            self.panorama.set('clickToGo', true);
             self.panorama.set('disableDefaultUI', true);
             self.panorama.set('linksControl', false);
             self.panorama.set('navigationControl', false);
