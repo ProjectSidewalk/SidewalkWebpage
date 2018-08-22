@@ -4,10 +4,11 @@ function StatusFieldMission (modalModel, uiStatusField) {
 
     // These are messages that are shown under the "Current Mission" in the status pane. The object's keys correspond to
     // the "label"s of missions (e.g., "initial-mission"). Substitute __PLACEHOLDER__ depending on each mission.
+    // TODO update these to check for first mission and neighborhood completion mission status based on tasks, etc.
     var missionMessages = {
-        "onboarding": "Complete the onboarding tutorial!",
+        "auditOnboarding": "Complete the onboarding tutorial!",
         "initial-mission": "Walk for 1000ft and find all the sidewalk accessibility attributes",
-        "distance-mission": "Audit __PLACEHOLDER__ of this neighborhood",
+        "audit": "Audit __PLACEHOLDER__ of this neighborhood",
         "area-coverage-mission": "Make __PLACEHOLDER__ of this neighborhood accessible"
     };
 
@@ -29,15 +30,15 @@ function StatusFieldMission (modalModel, uiStatusField) {
      * @param mission
      */
     this.setMessage = function (mission) {
-        var missionLabel = mission.getProperty("label");
-        var missionMessage = this._getMissionMessage(missionLabel);
+        var missionType = mission.getProperty("missionType");
+        var missionMessage = this._getMissionMessage(missionType);
 
-        if (missionLabel == "distance-mission") {
+        if (missionType === "audit") {
             var distance = mission.getProperty("auditDistanceMi");
             var distanceString = this._auditDistanceToString(distance, "miles");
             missionMessage = missionMessage.replace("__PLACEHOLDER__", distanceString);
 
-        } else if (missionLabel == "area-coverage-mission") {
+        } else if (missionType === "area-coverage-mission") {
             var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
             missionMessage = missionMessage.replace("__PLACEHOLDER__", coverage);
         }

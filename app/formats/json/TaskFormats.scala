@@ -3,11 +3,9 @@ package formats.json
 import java.sql.Timestamp
 
 import models.audit.AuditTaskTable.AuditTaskWithALabel
-import models.mission.Mission
 import models.audit.{AuditTask, AuditTaskInteraction}
 import play.api.libs.json._
 
-import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
 object TaskFormats {

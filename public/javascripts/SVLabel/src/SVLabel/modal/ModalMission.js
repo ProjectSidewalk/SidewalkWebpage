@@ -35,9 +35,10 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     });
 
     // Mission titles. Keys are mission labels.
+    // TODO update to check for region completeness using tasks
     var missionTitles = {
         "initial-mission": "Initial Mission",
-        "distance-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
+        "audit": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
         "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
     };
 
@@ -101,14 +102,13 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     this.setMissionMessage = function (mission, neighborhood, parameters, callback) {
         // Set the title and the instruction of this mission.
 
-        var label = mission.getProperty("label"),
+        var missionType = mission.getProperty("missionType"),
             templateHTML,
-            missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
+            missionTitle = missionType in missionTitles ? missionTitles[missionType] : "Mission";
 
         svl.popUpMessage.disableInteractions();
-        if (label == "distance-mission") {
-            var auditDistance,
-                distanceString;
+        if (missionType === "audit") {
+            var distanceString;
                 templateHTML = distanceMissionHTML;
 
             if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
@@ -127,7 +127,8 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             uiModalMission.missionTitle.html(missionTitle);
             uiModalMission.instruction.html(templateHTML);
             $("#mission-target-distance").html(distanceString);
-        } else if (label == "area-coverage-mission") {
+            // TODO check for this using tasks
+        } else if (missionType === "area-coverage-mission") {
             // Set the title
             var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
             templateHTML = areaCoverageMissionHTML;

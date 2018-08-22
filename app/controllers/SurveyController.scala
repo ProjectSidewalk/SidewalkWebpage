@@ -47,7 +47,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
 
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
-        val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId))
+        val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
 
         val allSurveyQuestions = SurveyQuestionTable.listAll
         val allSurveyQuestionIds = allSurveyQuestions.map(_.surveyQuestionId)
@@ -106,7 +106,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         val numMissionsBeforeSurvey = 2
         val userRoleForSurvey = "Turker"
 
-        val displaySurvey = userRole == userRoleForSurvey //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
+        val displaySurvey = userRole == userRoleForSurvey //&& MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey
         Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
 
       case None => Future.successful(Redirect(s"/anonSignUp?url=/survey/display"))

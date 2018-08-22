@@ -13,7 +13,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                                uiModalMissionComplete, modalModel, statusModel, onboardingModel) {
     var self = this;
     var _modalModel = modalModel;
-    var nextMission;
 
     this._properties = {
         boxTop: 180,
@@ -54,26 +53,29 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
     /**
      * Closes the mission complete modal when the close button is click _and_ we got the next mission from back-end.
+     * TODO this was implemented for having a specific endpoint for missions; need to reimplement using Form.js.
      * @private
      */
-    this._handleLoadNextMission = function() {
-        if (self._closeModalClicked && this._gotNextMission) {
-            self._closeModalClicked = false;
-            self._gotNextMission = false;
-            self._closeModal();
-        }
-    };
+    // this._handleLoadNextMission = function() {
+    //     if (self._closeModalClicked && this._gotNextMission) {
+    //         self._closeModalClicked = false;
+    //         self._gotNextMission = false;
+    //         self._closeModal();
+    //     }
+    // };
 
     // TODO maybe deal with lost connection causing modal to not close
     this._handleBackgroundClick = function (e) {
         self._closeModalClicked = true;
-        self._handleLoadNextMission();
+        // self._handleLoadNextMission();
+        self._closeModal();
     };
 
     // TODO maybe deal with lost connection causing modal to not close
     this._handleCloseButtonClick = function (e) {
         self._closeModalClicked = true;
-        self._handleLoadNextMission();
+        // self._handleLoadNextMission();
+        self._closeModal();
     };
 
     this._closeModal = function (e) {
@@ -81,6 +83,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             // reload the page to load another neighborhood
             window.location.replace('/audit');
         } else {
+            // TODO can we require that we have a new mission before doing this?
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
             self.hide();
@@ -119,10 +122,10 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         // Start GET request for next mission. If this req is complete and the user clicks continue/next button, the
         // next mission shows up. So clicking continue does nothing until the mission is received from the back-end.
         // This should never happen, unless we completely lose connection to the back-end anyway.
-        missionContainer.nextMission(function() {
-            self._gotNextMission = true;
-            self._handleLoadNextMission();
-        });
+        // missionContainer.nextMission(function() {
+        //     self._gotNextMission = true;
+        //     self._handleLoadNextMission();
+        // });
 
         /*If the user has completed his first mission then hide the continue button.
          Display the generate confirmation button. When clicked, remove this button completely
@@ -189,7 +192,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var unit = "miles";
         var regionId = neighborhood.getProperty("regionId");
 
-        var missionDistance = mission.getProperty("auditDistanceMi");
+        var missionDistance = missionContainer.getCompletedMissionDistance(unit);
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
 

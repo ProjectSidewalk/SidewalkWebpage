@@ -38,7 +38,7 @@ object LabelControllerHelper {
     //    if (tasks.isEmpty) return List()
     //
     //    // Get missions in the current region
-    //    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId)
+    //    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId, includeOnboarding = true)
     //
     //    // Get the last mission distances (i.e., the cumulatirve mission distance traveled traveled).
     //    if (completedMissions.isEmpty) {

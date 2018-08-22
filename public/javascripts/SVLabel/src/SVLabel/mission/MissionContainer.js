@@ -16,122 +16,77 @@ function MissionContainer (statusFieldMission, missionModel) {
     This variable keeps the distance of completed missions minus completed audits to fix the problem that
     is discussed here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/297#issuecomment-259697107
      */
-    var tasksMissionsOffset= 0;
+    var tasksMissionsOffset= null;
 
     var _missionModel = missionModel;
 
     _missionModel.on("MissionProgress:complete", function (parameters) {
         var mission = parameters.mission;
         self.addToCompletedMissions(mission);
-        _missionModel.submitMissions([mission]);
     });
 
     _missionModel.on("MissionContainer:addAMission", function (mission) {
-        var nPrevMiss = self._completedMissions.length;
-        var lastMission = nPrevMiss > 0 ? self._completedMissions[nPrevMiss - 1] : null;
-        if (!lastMission || lastMission.getProperty("label") === "onboarding") {
+        if (mission.getProperty("missionType") === "audit") {
             mission.setProperty("auditDistance", mission.getProperty("distance"));
             mission.setProperty("auditDistanceFt", mission.getProperty("distanceFt"));
             mission.setProperty("auditDistanceMi", mission.getProperty("distanceMi"));
-        } else {
-            var distance = mission.getProperty("distance") - lastMission.getProperty("distance");
-            var distanceFt = mission.getProperty("distanceFt") - lastMission.getProperty("distanceFt");
-            var distanceMi = mission.getProperty("distanceMi") - lastMission.getProperty("distanceMi");
-            mission.setProperty("auditDistance", distance);
-            mission.setProperty("auditDistanceFt", distanceFt);
-            mission.setProperty("auditDistanceMi", distanceMi);
         }
         if (mission.getProperty("isCompleted")) {
             self._completedMissions.push(mission);
         } else {
-            self._currentMission = mission;
+            self.setCurrentMission(mission);
         }
     });
-
-    _missionModel.on("MissionModel:loadComplete", function () {
-        _onLoadComplete();
-    });
-
-    /**
-     * This method is called once all the missions are loaded. It sets the auditDistance, auditDistanceFt, and
-     * auditDistanceMi of all the missions in the container.
-     * @private
-     */
-    function _onLoadComplete () {
-        var distance, distanceFt, distanceMi;
-        for (var mi = 0, mlen = self._completedMissions.length; mi < mlen; mi++) {
-            if (mi === 0) {
-                self._completedMissions[mi].setProperty("auditDistance", self._completedMissions[mi].getProperty("distance"));
-                self._completedMissions[mi].setProperty("auditDistanceFt", self._completedMissions[mi].getProperty("distanceFt"));
-                self._completedMissions[mi].setProperty("auditDistanceMi", self._completedMissions[mi].getProperty("distanceMi"));
-            } else {
-                distance = self._completedMissions[mi].getProperty("distance") - self._completedMissions[mi - 1].getProperty("distance");
-                distanceFt = self._completedMissions[mi].getProperty("distanceFt") - self._completedMissions[mi - 1].getProperty("distanceFt");
-                distanceMi = self._completedMissions[mi].getProperty("distanceMi") - self._completedMissions[mi - 1].getProperty("distanceMi");
-                self._completedMissions[mi].setProperty("auditDistance", distance);
-                self._completedMissions[mi].setProperty("auditDistanceFt", distanceFt);
-                self._completedMissions[mi].setProperty("auditDistanceMi", distanceMi);
-            }
-        }
-        if (getCurrentMission() && getCurrentMission().getProperty("coverage")) {
-            var lastMission = self._completedMissions[self._completedMissions.length - 1];
-            distance = self._currentMission.getProperty("distance") - lastMission.getProperty("distance");
-            distanceFt = self._currentMission.getProperty("distanceFt") - lastMission.getProperty("distanceFt");
-            distanceMi = self._currentMission.getProperty("distanceMi") - lastMission.getProperty("distanceMi");
-            self._currentMission.setProperty("auditDistance", distance);
-            self._currentMission.setProperty("auditDistanceFt", distanceFt);
-            self._currentMission.setProperty("auditDistanceMi", distanceMi);
-
-        }
-    }
 
     /** Push the completed mission */
     this.addToCompletedMissions = function (mission) {
         var existingMissionIds = self._completedMissions.map(function (m) { return m.getProperty("missionId")});
         var currentMissionId = mission.getProperty("missionId");
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
+            mission.setProperty("distanceProgress", mission.getProperty("distance"));
             self._completedMissions.push(mission);
+        } else {
+            console.log("Oops, we are trying to add to completed missions array multiple times. Plz fix.")
         }
     };
 
     this.onlyMissionOnboardingDone = function (){
-       return self._completedMissions.length === 1 && self._completedMissions[0].getProperty("label") === "onboarding" && !svl.storage.get("completedFirstMission");
+       return self._completedMissions.length === 1
+           && self._completedMissions[0].getProperty("missionType") === "auditOnboarding"
+           && !svl.storage.get("completedFirstMission");
     };
 
     /** Get current mission */
-    function getCurrentMission () {
+    function getCurrentMission() {
         return self._currentMission;
-    }
-
-    /**
-     * Get a mission stored in the self._completedMissions.
-     * @param label
-     * @param level
-     * @returns {*}
-     */
-    function getMission(label, level) {
-        for (var i = 0, len = self._completedMissions.length; i < len; i++) {
-            if (self._completedMissions[i].getProperty("label") === label) {
-                if (level) {
-                    if (level === self._completedMissions[i].getProperty("level")) {
-                        return self._completedMissions[i];
-                    }
-                } else {
-                    return self._completedMissions[i];
-                }
-            }
-        }
-        return null;
     }
     
     /**
      * Get all the completed missions
      */
-    function getCompletedMissions () {
+    function getCompletedMissions() {
         return self._completedMissions;
     }
 
-    // TODO this needs to be reimplemented to query database, but really I just think that the back-end will decide for us during nextMission?
+    /**
+     * Get the sum of the distance of all the user's completed missions in this neighborhood.
+     * @param unit
+     * @returns {number}
+     */
+    function getCompletedMissionDistance(unit) {
+        if (!unit) unit = "meters";
+        var completedDistance = 0;
+        for (var missionIndex = 0; missionIndex < self._completedMissions.length; missionIndex++)
+            completedDistance += self._completedMissions[missionIndex].getProperty("distance");
+
+        if (unit === "meters") return completedDistance;
+        else if (unit === "kilometers") return completedDistance / 1000;
+        else if (unit === "miles") return completedDistance / 1609.34;
+        else if (unit === "feet") return completedDistance * 3.28084;
+        else console.error("Unit options are only meters, km, miles, and feet; was given " + unit);
+    }
+
+    // TODO the back-end should be sending us this mission.
     this.getNeighborhoodCompleteMission = function (regionId) {
         // if (typeof regionId == "undefined") throw "MissionContainer.getNeighborhoodCompleteMission: regionId undefined";
         // var missions = self.getMissionsByRegionId(regionId);
@@ -148,51 +103,8 @@ function MissionContainer (statusFieldMission, missionModel) {
      * @returns {boolean}
      */
     function isTheFirstMission () {
-        return getCompletedMissions().length == 0 && !svl.storage.get("completedFirstMission");
+        return getCompletedMissions().length === 1 && !svl.storage.get("completedFirstMission");
     }
-
-    /**
-     *
-     * TODO this will probably end up calling an endpoint to get the next mission, or that might get moved to ModalMissionComplete.js
-     * @returns {*}
-     */
-    this.nextMission = function (callback) {
-
-        var url = "/nextMission",
-            async = true;
-        $.when($.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            type: 'get',
-            dataType: 'json',
-            success: function (result) {
-                console.log("success");
-                console.log(result);
-                var missionParameters = {
-                    regionId: result.region_id,
-                    missionId: result.mission_id,
-                    label: result.label,
-                    level: result.level,
-                    distance: result.distance,
-                    distanceFt: result.distance_ft,
-                    distanceMi: result.distance_mi,
-                    coverage: result.coverage,
-                    isCompleted: result.is_completed
-                };
-                missionModel.createAMission(missionParameters);
-            },
-            error: function (result) {
-                console.error(result);
-            }
-        })).done(callback);
-    };
-
-
-    this.refresh = function () {
-        self._completedMissions = [];
-        self._currentMission = null;
-    };
 
     /**
      * This method sets the current mission
@@ -215,10 +127,9 @@ function MissionContainer (statusFieldMission, missionModel) {
         return tasksMissionsOffset;
     }
 
-    self._onLoadComplete = _onLoadComplete;
     self.getCompletedMissions = getCompletedMissions;
+    self.getCompletedMissionDistance = getCompletedMissionDistance;
     self.getCurrentMission = getCurrentMission;
-    self.getMission = getMission;
     self.isTheFirstMission = isTheFirstMission;
     self.setTasksMissionsOffset = setTasksMissionsOffset;
     self.getTasksMissionsOffset = getTasksMissionsOffset;

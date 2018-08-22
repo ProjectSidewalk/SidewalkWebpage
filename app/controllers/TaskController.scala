@@ -13,9 +13,10 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
+import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
-import models.user.User
+import models.user.{User, UserCurrentRegionTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
@@ -30,7 +31,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int)
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission])
 
 
   /**
@@ -84,6 +85,41 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false)
       }
       AuditTaskTable.save(auditTaskObj)
+    }
+  }
+
+  /**
+    * Updates the progress of the audit mission in the database, creating a new mission if this one is complete.
+    *
+    * @param user
+    * @param missionProgress
+    * @return Option[Mission] a new mission if the old one was completed, o/w None.
+    */
+  def updateMissionTable(user: Option[User], missionProgress: AuditMissionProgress): Option[Mission] = {
+    // TODO check that user current region entry is being updated where appropriate.
+    val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.get.userId)
+    if (MissionTable.isOnboardingMission(missionProgress.missionId)) {
+      if (missionProgress.completed) {
+        MissionTable.updateComplete(missionProgress.missionId)
+
+        val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.get.userId, regionId.get)
+        incompleteMission match {
+          case Some(startedMission) => Some(startedMission)
+          case _ => Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, 152.4F, regionId.get))
+        }
+      } else {
+        None
+      }
+    } else {
+      if (missionProgress.distanceProgress.isEmpty) Logger.error("Sent null distance progress for audit mission.")
+
+      MissionTable.updateAuditProgress(missionProgress.missionId, missionProgress.distanceProgress.get)
+      if (missionProgress.completed) {
+        MissionTable.updateComplete(missionProgress.missionId)
+        Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, 152.4F, regionId.get))
+      } else {
+        None
+      }
     }
   }
 
@@ -163,7 +199,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
           // Update the MissionTable and get missionId
-          val missionId: Int = data.missionId
+          val missionId: Int = data.missionProgress.missionId
+          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
           // val missionId: Int = updateMissionTable() -- same as updateAuditTaskTable()
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
@@ -280,12 +317,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
           }
 
-          TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId)
+          TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission)
         }
 
         Future.successful(Ok(Json.obj(
           "audit_task_id" -> returnValues.head.auditTaskId,
-          "street_edge_id" -> returnValues.head.streetEdgeId
+          "street_edge_id" -> returnValues.head.streetEdgeId,
+          "mission" -> returnValues.head.mission.map(_.toJSON)
         )))
       }
     )

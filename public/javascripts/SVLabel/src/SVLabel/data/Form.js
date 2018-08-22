@@ -2,6 +2,7 @@
  *
  * @param labelContainer
  * @param missionModel
+ * @param missionContainer
  * @param navigationModel
  * @param neighborhoodModel
  * @param panoramaContainer
@@ -32,7 +33,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     this.compileSubmissionData = function (task) {
         var data = {};
 
-        data.mission_id = missionContainer.getCurrentMission().getProperty('missionId');
+        var mission = missionContainer.getCurrentMission();
+        mission.updateDistanceProgress();
+        data.mission = {
+            mission_id: mission.getProperty("missionId"),
+            distance_progress: mission.getProperty("distanceProgress"),
+            completed: mission.getProperty("isCompleted")
+        };
 
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
@@ -155,32 +162,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         return data;
     };
 
-
-    /**
-     * Post a json object
-     * @param url
-     * @param data
-     * @param callback
-     * @param async
-     */
-    this.postJSON = function (url, data, callback, async) {
-        if (!async) async = true;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            type: 'post',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function (result) {
-                if (callback) callback(result);
-            },
-            error: function (result) {
-                console.error(result);
-            }
-        });
-    };
-
     this._prepareSkipData = function (issueDescription) {
         var position = navigationModel.getPosition();
         return {
@@ -260,6 +241,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
+                    if (result.mission) missionModel.createAMission(result.mission);
                 }
             },
             error: function (result) {

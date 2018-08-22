@@ -278,8 +278,7 @@ function Main (params) {
         });
 
         // Fetch all the missions
-        var regionId = neighborhoodModel.currentNeighborhood().getProperty("regionId");
-        missionModel.fetchCompletedMissions(regionId, function () {
+        missionModel.fetchCompletedMissionsInNeighborhood(function () {
             loadingMissionsCompleted = true;
             handleDataLoadComplete();
         });
@@ -331,22 +330,9 @@ function Main (params) {
                 svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
-
-        var onboardingMission = svl.missionContainer.getCurrentMission();
-        if (!onboardingMission || onboardingMission.getProperty("label") !== "onboarding") {
-            // Add the onboarding mission into the MissionContainer if it is not yet added.
-            onboardingMission = svl.missionFactory.createOnboardingMission(1, false);
-        }
-        svl.missionContainer.setCurrentMission(onboardingMission);
     }
 
     function startTheMission(mission, neighborhood) {
-        // Record that that this user has completed the onboarding.
-        var onboardingMission = svl.missionContainer.getMission("onboarding", 1);
-        onboardingMission.setProperty("isCompleted", true);
-        svl.missionContainer.addToCompletedMissions(onboardingMission);
-        svl.missionModel.submitMissions([onboardingMission]);
-
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
             if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
@@ -416,7 +402,7 @@ function Main (params) {
             $(".toolUI").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
 
-            if (mission.getProperty("label") === "onboarding") {
+            if (mission.getProperty("missionType") === "auditOnboarding") {
                 $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
@@ -435,42 +421,17 @@ function Main (params) {
     }
 
     function _calculateAndSetTasksMissionsOffset() {
-        var completedTasksDistance = svl.taskContainer.getCompletedTaskDistance();
+        var completedTasksDistance = svl.taskContainer.getCompletedTaskDistance() * 1000;
+        var completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
+        var curMission = svl.missionContainer.getCurrentMission();
+        var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
 
-        var completedMissions = svl.missionContainer.getCompletedMissions();
-
-        var completedMissionsDistance = 0;
-
-        if(completedMissions.length > 0)
-            completedMissionsDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;
-
-        if(completedMissionsDistance > completedTasksDistance) {
-            /*
-            In this case the user has audited part of a street to complete a mission, then refreshed the browser
-            and the audited street is not saved.
-             */
-            svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance);
-        } else {
-            /*
-            In this case we don't need to store any offset
-             */
-            svl.missionContainer.setTasksMissionsOffset(0);
-        }
-    }
-
-    function incompleteMissionExists(missions) {
-        var _missions = missions.filter(function (m) { return !m.isCompleted(); });
-        return _missions.length > 0;
-    }
-
-    function incompleteTaskExists(tasks) {
-        var _tasks = tasks.filter(function (t) { return !t.isCompleted(); });
-        return _tasks.length > 0;
+        svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance + missProgress);
     }
 
     /**
      * Store jQuery DOM elements under svl.ui
-     * Todo. Once we update all the modules to take ui elements as injected argumentss, get rid of the svl.ui namespace and everything in it.
+     * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace and everything in it.
      * @private
      */
     function _initUI () {

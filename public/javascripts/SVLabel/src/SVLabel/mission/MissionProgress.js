@@ -35,13 +35,14 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
     /**
      * Finish the mission.
+     * TODO update how we log this with the tracker
      * @param mission
      */
     this._completeTheCurrentMission = function (mission, neighborhood) {
         tracker.push(
             "MissionComplete",
             {
-                missionLabel: mission.getProperty("label"),
+                missionType: mission.getProperty("missionType"),
                 missionDistance: mission.getProperty("distance"),
                 neighborhoodId: neighborhood.getProperty("regionId")
             }

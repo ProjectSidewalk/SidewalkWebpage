@@ -247,7 +247,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 distance += turf.lineDistance(feature, unit);
             }
         }
-        distance += getCurrentTaskDistance(unit);
+        if (!currentTask.isCompleted()) distance += getCurrentTaskDistance(unit);
 
         return distance;
     }

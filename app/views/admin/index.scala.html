@@ -584,7 +584,7 @@
                                 <td>@WebpageActivityTable.selectSignUpTimestamp(UUID.fromString(u.userId))</td>
                                 <td>@WebpageActivityTable.selectLastSignInTimestamp(UUID.fromString(u.userId))</td>
                                 <td>@WebpageActivityTable.selectSignInCount(UUID.fromString(u.userId))</td>
-                                <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(u.userId))</td>
+                                <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(u.userId), includeOnboarding = false)</td>
                                 <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(u.userId))</td>
                                 <td>@LabelTable.countLabelsByUserId(UUID.fromString(u.userId))</td>
                             </tr>

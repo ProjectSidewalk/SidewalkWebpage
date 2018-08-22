@@ -34,7 +34,6 @@ GET     /admin                                               @controllers.AdminC
 GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                                  @controllers.AdminController.task(taskId: Int)
 
-GET     /adminapi/missionsCompletedByUsers                   @controllers.AdminController.getMissionsCompletedByUsers
 GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate
 GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
 GET     /adminapi/allSignInCounts                            @controllers.AdminController.getAllUserSignInCounts
@@ -74,10 +73,9 @@ GET     /tasks                                               @controllers.TaskCo
 POST    /task                                                @controllers.TaskController.post
 
 # Missions
-GET     /missions/:regionId                                  @controllers.MissionController.getMissions(regionId: Int)
-GET     /nextMission                                         @controllers.MissionController.getNextMission()
+GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
+GET     /completedMissions                                   @controllers.MissionController.getCompletedMissions()
 GET     /rewardPerMile                                       @controllers.MissionController.getRewardPerMile
-POST    /mission                                             @controllers.MissionController.post
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)

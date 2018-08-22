@@ -29,6 +29,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
+  // TODO Update this to be based on user role.
+  val DEFAULT_PAY = 0.0D
+  val DEFAULT_DISTANCE = 152.4F
+
   /**
     * Returns an audit page.
     *
@@ -57,9 +61,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         }
 
         // Check if a user still has tasks available in this region.
-        if (region.isEmpty ||
-            !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId) ||
-            !MissionTable.isMissionAvailable(user.userId, region.get.regionId)) {
+        if (region.isEmpty || !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
           region = UserCurrentRegionTable.assignRegion(user.userId)
         }
 
@@ -71,13 +73,25 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             Future.successful(Redirect("/audit"))
           case None =>
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
+            val regionId: Int = region.get.regionId
 
-            val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user.userId)
-            val mission: Mission = if (!MissionTable.hasCompletedOnboarding(user.userId)) {
-              MissionTable.getOnboardingMission
-            } else {
-              MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId).minBy(_.distance)
-            }
+            val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
+            println(MissionTable.hasCompletedAuditOnboarding(user.userId))
+            val mission: Mission =
+              if (!MissionTable.hasCompletedAuditOnboarding(user.userId)) {
+                MissionTable.getIncompleteAuditOnboardingMission(user.userId) match {
+                  case Some(incompleteOnboardingMission) => incompleteOnboardingMission
+                  case _ => MissionTable.createAuditOnboardingMission(user.userId, DEFAULT_PAY)
+                }
+              } else {
+                val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
+                // TODO add this check for all audit endpoints
+                incompleteMission match {
+                  case Some(startedMission) => startedMission
+                  case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
+                }
+              }
+            println(mission)
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, Some(user))))
         }
       // For anonymous users.
@@ -111,7 +125,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // Update the currently assigned region for the user
         UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
         val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-        val mission: Mission = MissionTable.selectIncompleteMissionsByAUser(user.userId, regionId).minBy(_.distance)
+        val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, Some(user))))
 
       case None =>
@@ -133,7 +147,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
         // TODO: Should this function be modified?
         val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
-        val mission: Mission = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId).minBy(_.distance)
+        val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, region.get.regionId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId"))

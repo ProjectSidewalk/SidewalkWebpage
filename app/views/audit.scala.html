@@ -548,7 +548,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -794,7 +794,7 @@
             var userParam = {
                 username: '@user.get.username',
                 role: '@user.get.role',
-                completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
+                completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId, includeOnboarding = true).map(_.toJSON))))
             };
             svl.user = new User(userParam, svl.userModel);
 
@@ -931,7 +931,7 @@
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
+                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");
@@ -982,12 +982,6 @@
             }
 
             mainParam.mission = @Html(mission.toJSON.toString);
-            mainParam.mission.missionId = mainParam.mission.mission_id;
-            mainParam.mission.regionId = mainParam.mission.region_id;
-            delete mainParam.mission.mission_id;
-            delete mainParam.mission.region_id;
-            mainParam.mission.distanceFt = mainParam.mission.distance * 3.28084;
-            mainParam.mission.distanceMi = mainParam.mission.distance / 1609.34;
 
             svl.main = new Main(mainParam);
 

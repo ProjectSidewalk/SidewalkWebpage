@@ -38,7 +38,7 @@
                 </tr>
                 <tr>
                     <td id="td-total-distance-audited"></td>
-                    <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId)</td>
+                    <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
                     <td id="td-total-reward-earned"></td>
                 </tr>
             </table>
