@@ -127,14 +127,74 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         if (e.keyCode == 187 || e.keyCode == 189) {
             svl.contextMenu.hide();
             return;
-        }else if (!status.focusOnTextField && !status.disableKeyboard) {
+        } else if (!status.focusOnTextField && !status.disableKeyboard) {
             //only set shift if the event was made after the keyup.
             if (e.timeStamp > lastShiftKeyUpTimestamp) {
                 status.shiftDown = e.shiftKey;
             }
+        }
 
-            if (!svl.contextMenu.isOpen()) {
-                // lock scrolling in response to key pressing
+        if (!status.disableKeyboard && !status.focusOnTextField) {
+            if (contextMenu.isOpen()) {
+                var label;
+                switch (e.keyCode) {
+                    case 49:  // "1"
+                        contextMenu.checkRadioButton(1);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 1);
+                            svl.tracker.push("KeyboardShortcut_Severity_1", {
+                                keyCode: e.keyCode
+                            });
+                            svl.canvas.clear().render2();
+                        }
+                        break;
+                    case 50:  // "2"
+                        contextMenu.checkRadioButton(2);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 2);
+                            svl.tracker.push("KeyboardShortcut_Severity_2", {
+                                keyCode: e.keyCode
+                            });
+                            svl.canvas.clear().render2();
+                        }
+                        break;
+                    case 51:  // "3"
+                        contextMenu.checkRadioButton(3);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 3);
+                            svl.tracker.push("KeyboardShortcut_Severity_3", {
+                                keyCode: e.keyCode
+                            });
+                            svl.canvas.clear().render2();
+                        }
+                        break;
+                    case 52:  // "4"
+                        contextMenu.checkRadioButton(4);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 4);
+                            svl.tracker.push("KeyboardShortcut_Severity_4", {
+                                keyCode: e.keyCode
+                            });
+                            svl.canvas.clear().render2();
+                        }
+                        break;
+                    case 53:  // "5"
+                        contextMenu.checkRadioButton(5);
+                        label = contextMenu.getTargetLabel();
+                        if (label) {
+                            label.setProperty('severity', 5);
+                            svl.tracker.push("KeyboardShortcut_Severity_5", {
+                                keyCode: e.keyCode
+                            });
+                            svl.canvas.clear().render2();
+                        }
+                        break;
+                }
+            } else {
                 switch (e.keyCode) {
                     case 16:  // "Shift"
                         break;
@@ -173,72 +233,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             if (!status.focusOnTextField) {
                 var label;
                 switch (e.keyCode) {
-                    case 49:  // "1"
-                        if (contextMenu.isOpen()) {
-                            contextMenu.checkRadioButton(1);
-                            label = contextMenu.getTargetLabel();
-                            if (label) {
-                                label.setProperty('severity', 1);
-                                svl.tracker.push("KeyboardShortcut_Severity_1", {
-                                    keyCode: e.keyCode
-                                });
-                                svl.canvas.clear().render2();
-                            }
-                        }
 
-                        break;
-                    case 50:  // "2"
-                        if (contextMenu.isOpen()) {
-                            contextMenu.checkRadioButton(2);
-                            label = contextMenu.getTargetLabel();
-                            if (label) {
-                                label.setProperty('severity', 2);
-                                svl.tracker.push("KeyboardShortcut_Severity_2", {
-                                    keyCode: e.keyCode
-                                });
-                                svl.canvas.clear().render2();
-                            }
-                        }
-                        break;
-                    case 51:  // "3"
-                        if (contextMenu.isOpen()) {
-                            contextMenu.checkRadioButton(3);
-                            label = contextMenu.getTargetLabel();
-                            if (label) {
-                                label.setProperty('severity', 3);
-                                svl.tracker.push("KeyboardShortcut_Severity_3", {
-                                    keyCode: e.keyCode
-                                });
-                                svl.canvas.clear().render2();
-                            }
-                        }
-                        break;
-                    case 52:  // "4"
-                        if (contextMenu.isOpen()) {
-                            contextMenu.checkRadioButton(4);
-                            label = contextMenu.getTargetLabel();
-                            if (label) {
-                                label.setProperty('severity', 4);
-                                svl.tracker.push("KeyboardShortcut_Severity_4", {
-                                    keyCode: e.keyCode
-                                });
-                                svl.canvas.clear().render2();
-                            }
-                        }
-                        break;
-                    case 53:  // "5"
-                        if (contextMenu.isOpen()) {
-                            contextMenu.checkRadioButton(5);
-                            label = contextMenu.getTargetLabel();
-                            if (label) {
-                                label.setProperty('severity', 5);
-                                svl.tracker.push("KeyboardShortcut_Severity_5", {
-                                    keyCode: e.keyCode
-                                });
-                                svl.canvas.clear().render2();
-                            }
-                        }
-                        break;
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                         // "b" for a blocked view
                         ribbon.modeSwitch("Occlusion");
