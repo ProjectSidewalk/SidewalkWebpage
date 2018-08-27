@@ -25,22 +25,11 @@ function ContextMenu (uiContextMenu) {
             wasOpen = true;
             if (clicked_out) {
              svl.tracker.push('ContextMenu_CloseClickOut');
-            _handleSeverityPopup();
+            handleSeverityPopup();
             }
         }
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
-    document.onkeypress= function(e){
-        e= e || window.event;
-        var key_pressed = e.which || e.keyCode;
-        if (key_pressed == 13 && isOpen()){
-            hide();
-            svl.tracker.push('ContextMenu_ClosePressEnter');
-            _handleSeverityPopup();
-        }
-    };//handles pressing enter key to exit ContextMenu
-
-
 
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
     $radioButtons.on('change', _handleRadioChange);
@@ -137,18 +126,18 @@ function ContextMenu (uiContextMenu) {
 
         svl.tracker.push('ContextMenu_CloseButtonClick');
         hide();
-        _handleSeverityPopup();
+        handleSeverityPopup();
 
     }
 
     function _handleOKButtonClick () {
         svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
-        _handleSeverityPopup();
+        handleSeverityPopup();
 
     }
 
-    function _handleSeverityPopup () {
+    function handleSeverityPopup () {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
         if (labels.length == 0){
@@ -498,6 +487,7 @@ function ContextMenu (uiContextMenu) {
     self.getContextMenuUI = getContextMenuUI;
     self.checkRadioButton = checkRadioButton;
     self.getTargetLabel = getTargetLabel;
+    self.handleSeverityPopup = handleSeverityPopup;
     self.hide = hide;
     self.unhide = unhide;
     self.isOpen = isOpen;
