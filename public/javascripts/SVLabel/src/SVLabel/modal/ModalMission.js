@@ -199,10 +199,6 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             }
         });
 
-        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
-        $("#mission-badge-holder").html(badge);
-
-
         if (callback) {
             $("#modal-mission-close-button").one("click", function () {
                 self.hide();
