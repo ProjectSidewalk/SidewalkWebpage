@@ -51,10 +51,10 @@
 
                             <p>
                                 If a corner has only one curb ramp and it is clearly facing just one side
-                                of the street (see left image below), then you should place both a curb ramp label and a no
+                                of the street (see left image below), then you should place both a curb ramp label and a missing
                                 curb ramp label on the appropriate sides of the corner. For example, in the left image below,
-                                you should place a <i>Missing Curb Ramp</i> label at the arrow because there is a crosswalk but no
-                                curb ramp and the existing curb ramp at that corner faces the other direction. You should rate
+                                you should place a <i>Missing Curb Ramp</i> label at the arrow because there is a crosswalk without a
+                                curb ramp and the existing curb ramp at this corner faces the other direction. You should rate
                                 this <i>Missing Curb Ramp</i> label as a severity ~3 (rather than, say a 5) because the pedestrian could
                                 use the curb ramp that does exist on the corner. However, it would moderately lead them into
                                 traffic due to its orientation.
@@ -181,12 +181,20 @@
                                 the street.
                             </p>
                         </div>
-                        <div class="col-sm-8">
+                        <div class="col-sm-6">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/curb_ramps/Driveways.png")' href='@routes.Assets.at("images/curb_ramps/Driveways.png")'
+                                <img src='@routes.Assets.at("images/curb_ramps/Driveways1.png")' href='@routes.Assets.at("images/curb_ramps/Driveways1.png")'
                                 alt="A Street View image of a driveway with a curb ramp" class="img-responsive" align=""
                                 title="A driveway with a curb ramp">
                                 <figcaption>A driveway with a curb ramp</figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-sm-6">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/curb_ramps/Driveways2.png")' href='@routes.Assets.at("images/curb_ramps/Driveways2.png")'
+                                alt="A Street View image of a driveway with a curb ramp" class="img-responsive" align=""
+                                title="A driveway that is not level with the sidewalk">
+                                <figcaption>A driveway is not level with the sidewalk</figcaption>
                             </figure>
                         </div>
                     </div>
@@ -304,14 +312,31 @@
                                 far into traffic one would have to go to avoid the island.
                             </p>
                         </div>
-                        <div class="col-sm-6">
+                        <div class="col-sm-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/curb_ramps/Islands.png")' href='@routes.Assets.at("images/curb_ramps/Islands.png")'
+                                <img src='@routes.Assets.at("images/curb_ramps/Islands1.png")' href='@routes.Assets.at("images/curb_ramps/Islands1.png")'
                                 alt="A Street View image of an island that interferes with the crosswalk" class="img-responsive" align=""
                                 title="An island that interferes with the crosswalk">
                                 <figcaption>An island that interferes with the crosswalk</figcaption>
                             </figure>
                         </div>
+                        <div class="col-sm-4">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/curb_ramps/Islands2.png")' href='@routes.Assets.at("images/curb_ramps/Islands2.png")'
+                                alt="A Street View image of an island that interferes with the crosswalk" class="img-responsive" align=""
+                                title="An island with cuts">
+                                <figcaption>An with island with cuts</figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-sm-4">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/curb_ramps/IslandNoInterfere.png")' href='@routes.Assets.at("images/curb_ramps/IslandNoInterfere.png")'
+                                alt="A Street View image of an island that does not interfere with the crosswalk" class="img-responsive" align=""
+                                title="An island that interferes with the crosswalk">
+                                <figcaption>An island that does not interfere with the crosswalk</figcaption>
+                            </figure>
+                        </div>
+
                     </div>
                 </div>
 
@@ -392,7 +417,7 @@
                         </div>
                         <div class="col-sm-4">
                             <figure class="text-center">
-                                <img src='@routes.Assets.at("images/curb_ramps/SurfaceProblemsOnRamp.png")' href='@routes.Assets.at("images/curb_ramps/SurfaceProblemsOnRamp.png")'
+                                <img src='@routes.Assets.at("images/curb_ramps/SurfaceProblemsOnRamp.png1")' href='@routes.Assets.at("images/curb_ramps/SurfaceProblemsOnRamp1.png")'
                                 alt="A Street View image of a curb ramp with grass between the sidewalk blocks" class="img-responsive" align=""
                                 title="A curb ramp with grass between the sidewalk blocks">
                                 <figcaption>A curb ramp with grass between the sidewalk blocks</figcaption>
@@ -439,14 +464,14 @@
                             <p>
                                 If a curb ramp has a large amount of dead leaves or other debris on it, the severity
                                 should be >1 (<a href="https://safety.fhwa.dot.gov/ped_bike/tools_solve/fhwasa13037/chap3.cfm">FHWA Guide for Maintaining Pedestrian Facilities for Enhanced Safety 3.2.2</a>).
-                                This should not result in severity >3 if the debris is the only issue. This could cause
+                                In general, this should not result in severity >3 if the debris is the only issue. Debris could cause
                                 slippery conditions or could slow down wheelchair users in extreme cases. You should not
                                 place a <i>Surface Problem</i> label along with the <i>Curb Ramp</i> label. You should
                                 only place <i>Surface Problem</i> labels on the sidewalk, not on curb ramps.
                             </p>
                         </div>
                         <div class="img-container">
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <figure class="text-center">
                                     <img src='@routes.Assets.at("images/curb_ramps/Debris1.png")' href='@routes.Assets.at("images/curb_ramps/Debris1.png")'
                                     alt="A Street View image of a curb ramp with light debris" class="img-responsive" align=""
@@ -454,12 +479,20 @@
                                     <figcaption>A curb ramp with light debris. This is severity 1.</figcaption>
                                 </figure>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <figure class="text-center">
                                     <img src='@routes.Assets.at("images/curb_ramps/Debris2.png")' href='@routes.Assets.at("images/curb_ramps/Debris2.png")'
                                     alt="A Street View image of a curb ramp with light debris" class="img-responsive" align=""
                                     title="A curb ramp with light debris. This is severity 2.">
                                     <figcaption>A curb ramp with light debris. This is severity 2.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/curb_ramps/Debris3.png")' href='@routes.Assets.at("images/curb_ramps/Debris3.png")'
+                                    alt="A Street View image of a curb ramp with heavy debris" class="img-responsive" align=""
+                                    title="A curb ramp with heavy debris. This is severity 3.">
+                                    <figcaption>A curb ramp with heavy debris. This is severity 3.</figcaption>
                                 </figure>
                             </div>
                         </div>
