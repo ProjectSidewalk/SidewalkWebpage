@@ -42,9 +42,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         tracker.push(
             "MissionComplete",
             {
+                missionId: mission.getProperty("missionId"),
                 missionType: mission.getProperty("missionType"),
-                missionDistance: mission.getProperty("distance"),
-                neighborhoodId: neighborhood.getProperty("regionId")
+                distanceMeters: Math.round(mission.getProperty("distance")),
+                regionId: neighborhood.getProperty("regionId")
             }
         );
         mission.complete();
