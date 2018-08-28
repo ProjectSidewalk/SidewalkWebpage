@@ -60,9 +60,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             else UserCurrentRegionTable.assignRegion(user.userId)
         }
 
-        // Check if a user still has tasks available in this region.
+        // Check if a user still has tasks available in this region. This also should never really happen.
         if (region.isEmpty || !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
           region = UserCurrentRegionTable.assignRegion(user.userId)
+        }
+        // This should _really_ never happen.
+        if (region.isEmpty) {
+          Logger.error("Unable to assign a region to a user.")
         }
 
         nextRegion match {
@@ -92,7 +96,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 }
               }
             println(mission)
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, Some(user))))
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user))))
         }
       // For anonymous users.
       case None =>
@@ -123,10 +127,16 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Update the currently assigned region for the user
-        UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
-        val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-        val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region, Some(user))))
+        region match {
+          case Some(namedRegion) =>
+            UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
+            val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
+            val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user))))
+          case None =>
+            Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
+            Future.successful(Redirect("/audit"))
+        }
 
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/region/$regionId"))
@@ -143,12 +153,18 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
-        val region: Option[NamedRegion] = regions.headOption
 
-        // TODO: Should this function be modified?
-        val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
-        val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, region.get.regionId)
-        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
+        if (regions.isEmpty) {
+          Logger.error(s"Either there is no region associated with street edge $streetEdgeId, or it is not a valid id.")
+          Future.successful(Redirect("/audit"))
+        } else {
+          val region: NamedRegion = regions.head
+
+          // TODO: Should this function be modified?
+          val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
+          val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, region.regionId)
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
+        }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId"))
     }

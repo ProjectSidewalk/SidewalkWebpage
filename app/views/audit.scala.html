@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Option[NamedRegion], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -967,18 +967,12 @@
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
 
-            @if(region) {
-                mainParam.regionId = @region.get.regionId;
-                mainParam.regionName = '@region.get.name';
-                mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
-                if(@RegionTable.difficultRegionIds.contains(region.get.regionId)){
-                       $('#advanced-overlay').show();
-                       mainParam.advancedOverlay = true
-                }
-            } else {
-                mainParam.regionId = 1;
-                mainParam.regionName = "";
-                mainParam.regionLayer = null;
+            mainParam.regionId = @region.regionId;
+            mainParam.regionName = '@region.name';
+            mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
+            if(@RegionTable.difficultRegionIds.contains(region.regionId)){
+                   $('#advanced-overlay').show();
+                   mainParam.advancedOverlay = true
             }
 
             mainParam.mission = @Html(mission.toJSON.toString);

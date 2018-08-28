@@ -35,7 +35,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
 
     /**
      * Finish the mission.
-     * TODO update how we log this with the tracker
      * @param mission
      */
     this._completeTheCurrentMission = function (mission, neighborhood) {
