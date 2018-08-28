@@ -322,26 +322,20 @@
                             <div id="legend" style="display:none;">
                                 <strong>Percent of Neighborhood Complete</strong>
                                 <nav class='legend clearfix'>
-                                    <span style='background:#08306b;'></span>
-                                    <span style='background:#08519c;'></span>
-                                    <span style='background:#08719c;'></span>
-                                    <span style='background:#2171b5;'></span>
-                                    <span style='background:#4292c6;'></span>
-                                    <span style='background:#6baed6;'></span>
-                                    <span style='background:#9ecae1;'></span>
-                                    <span style='background:#c6dbef;'></span>
-                                    <span style='background:#deebf7;'></span>
-                                    <span style='background:#f7fbff;'></span>
-                                    <label>100%</label>
-                                    <label></label>
-                                    <label></label>
-                                    <label></label>
-                                    <label></label>
-                                    <label></label>
-                                    <label></label>
-                                    <label></label>
-                                    <label></label>
-                                    <label>0%</label>
+                                    <span style='background:#03152f;width:9.09%'></span>
+                                    <span style='background:#08306b;width:9.09%'></span>
+                                    <span style='background:#08519c;width:9.09%'></span>
+                                    <span style='background:#08719c;width:9.09%'></span>
+                                    <span style='background:#2171b5;width:9.09%'></span>
+                                    <span style='background:#4292c6;width:9.09%'></span>
+                                    <span style='background:#6baed6;width:9.09%'></span>
+                                    <span style='background:#9ecae1;width:9.09%'></span>
+                                    <span style='background:#c6dbef;width:9.09%'></span>
+                                    <span style='background:#deebf7;width:9.09%'></span>
+                                    <span style='background:#f7fbff;width:9.09%'></span>
+                                    <label style='width:5%'>100%</label>
+                                    <label style='width:92%'></label>                                    
+                                    <label style='width:3%'>0%</label>
                                 </nav>
                             </div>
                             <div id="admin-choropleth"></div>
@@ -523,7 +517,7 @@
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
                                         <td>@label.timestamp</td>
-                                        <td>@label.labelTypeValue</td>
+                                        <td>@label.labelTypeKey</td>
                                         <td>@label.severity</td>
                                         <td>@label.temporary</td>
                                         <td>@label.tags.mkString(", ")</td>
@@ -616,8 +610,10 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>

@@ -127,7 +127,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 1,
+                "severity": 2,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1],
                 "maxLabelCount": 1
@@ -135,9 +135,9 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not ' +
                 'passable for a wheelchair user. ' +
-                '<span class="bold">Let’s rate it as 1, passable.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                '<span class="bold">Let’s rate it as 2, somewhat passable.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -149,24 +149,24 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                return severity == 2 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
             }
         },
         "redo-rate-attribute-1": {
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 1,
+                "severity": 2,
                 "minHeading": headingRanges["stage-1"][0],
                 "maxHeading": headingRanges["stage-1"][1],
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. ' +
+                '<span class="bold">Let\s click "2" to set its quality.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
-                'alt="Rating curb ramp quality as 1, passable">',
+                'alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -175,7 +175,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                return severity === 2 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
             }
         },
         "adjust-heading-angle-1": {
@@ -306,15 +306,15 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "RateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 1,
+                "severity": 2,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
                 "maxLabelCount": 2
             },
             "message": {
                 "message": 'Good, now <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" ' +
-                'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + '" ' +
+                'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -326,24 +326,24 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
+                return severity === 2 ? "select-label-type-3" : "redo-rate-attribute-2"
             }
         },
         "redo-rate-attribute-2": {
             "properties": {
                 "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
-                "severity": 1,
+                "severity": 2,
                 "minHeading": headingRanges["stage-2"][0],
                 "maxHeading": headingRanges["stage-2"][1],
                 "maxLabelCount": 2
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, ' +
-                'passable">',
+                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. ' +
+                '<span class="bold">Let\s click "2" to set its quality.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
+                'somewhat passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -352,7 +352,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 1 ? "select-label-type-3" : "redo-rate-attribute-2"
+                return severity === 2 ? "select-label-type-3" : "redo-rate-attribute-2"
             }
         },
         "select-label-type-3": {
@@ -799,7 +799,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null

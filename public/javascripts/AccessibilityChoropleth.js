@@ -158,7 +158,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                                     '</td><td>Surface Problems<br/>'+
                                     '</td><td>Sidewalk Obstacles<br/>'+
                                     '</td></tr>'+
-                                    '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Other.png"></td>'+
+                                    '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoSidewalk.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoCurbRamp.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_SurfaceProblem.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Obstacle.png"></td>'+

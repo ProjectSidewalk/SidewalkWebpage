@@ -154,16 +154,18 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
      * @returns {string} color in hex
      */
     function getColor(p) {
-        return p > 90 ? '#08306b' :
-            p > 80 ? '#08519c' :
-                p > 70 ? '#08719c' :
-                    p > 60 ? '#2171b5' :
-                        p > 50 ? '#4292c6' :
-                            p > 40 ? '#6baed6' :
-                                p > 30 ? '#9ecae1' :
-                                    p > 20 ? '#c6dbef' :
-                                        p > 10 ? '#deebf7' :
-                                            '#f7fbff';
+        //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
+        return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
+                p > 90 ? '#08306b' :
+                    p > 80 ? '#08519c' :
+                        p > 70 ? '#08719c' :
+                            p > 60 ? '#2171b5' :
+                                p > 50 ? '#4292c6' :
+                                    p > 40 ? '#6baed6' :
+                                        p > 30 ? '#9ecae1' :
+                                            p > 20 ? '#c6dbef' :
+                                                p > 10 ? '#deebf7' :
+                                                    '#f7fbff';
     }
 
     /**
