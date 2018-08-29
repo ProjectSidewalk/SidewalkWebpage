@@ -192,7 +192,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var unit = "miles";
         var regionId = neighborhood.getProperty("regionId");
 
-        var missionDistance = missionContainer.getCompletedMissionDistance(unit);
+        var missionDistance = mission.getProperty("distanceMi");
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
 
@@ -218,7 +218,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
-
     };
 
     uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
