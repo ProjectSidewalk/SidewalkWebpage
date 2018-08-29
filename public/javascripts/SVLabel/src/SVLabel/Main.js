@@ -16,6 +16,7 @@ function Main (params) {
     var loadingMissionsCompleted = false;
     var loadNeighborhoodsCompleted = false;
     var loadDifficultNeighborhoodsCompleted = false;
+    var loadLabelTags = false;
 
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
@@ -134,7 +135,6 @@ function Main (params) {
 
         svl.labelCounter = new LabelCounter(d3);
 
-        svl.actionStack = new ActionStack(svl.tracker, svl.ui.actionStack);
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         svl.pointCloud = new PointCloud();
@@ -187,7 +187,7 @@ function Main (params) {
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
-        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
@@ -263,7 +263,7 @@ function Main (params) {
         });
     }
 
-    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel) {
+    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel, contextMenu) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -292,6 +292,11 @@ function Main (params) {
             loadDifficultNeighborhoodsCompleted = true;
             handleDataLoadComplete();
         });
+
+        contextMenu.fetchLabelTags(function () {
+            loadLabelTags = true;
+            handleDataLoadComplete();
+        })
     }
 
     function hasCompletedOnboarding(completedMissions) {
@@ -316,7 +321,7 @@ function Main (params) {
 
             // Todo. It should pass UserModel instead of User (i.e., svl.user)
 
-            svl.onboarding = new Onboarding(svl, svl.actionStack, svl.audioEffect, svl.compass, svl.form,
+            svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form,
                 onboardingHandAnimation, svl.map,
                 svl.missionContainer, svl.missionModel, svl.modalComment, svl.modalMission, svl.modalSkip,
                 svl.neighborhoodContainer, svl.neighborhoodModel, svl.onboardingModel, onboardingStates, svl.ribbon,
@@ -360,19 +365,12 @@ function Main (params) {
         return nextRegionId;
     }
 
-    function isAnAnonymousUser() {
-        return 'user' in svl && svl.user.getProperty('username') === "anonymous"; // Todo. it should access the user through UserModel
-    }
-
     function startTheMission(mission, neighborhood) {
-        // Check if this an anonymous user or not.
-        // If not, record that that this user has completed the onboarding.
-        if (!isAnAnonymousUser()) {
-            var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
-            onboardingMission.setProperty("isCompleted", true);
-            svl.missionContainer.addToCompletedMissions(onboardingMission);
-            svl.missionModel.submitMissions([onboardingMission]);
-        }
+        // Record that that this user has completed the onboarding.
+        var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
+        onboardingMission.setProperty("isCompleted", true);
+        svl.missionContainer.addToCompletedMissions(onboardingMission);
+        svl.missionModel.submitMissions([onboardingMission]);
 
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
@@ -436,7 +434,7 @@ function Main (params) {
     function handleDataLoadComplete () {
         if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted &&
-            loadDifficultNeighborhoodsCompleted) {
+            loadDifficultNeighborhoodsCompleted && loadLabelTags) {
             // Check if the user has completed the onboarding tutorial..
             var completedMissions = svl.missionContainer.getCompletedMissions();
             var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
@@ -451,6 +449,8 @@ function Main (params) {
             } else {
                 // If the user has completed the onboarding mission but the data is only stored in the browser
                 // because the user completed it as an anonymous user, store the record on the server.
+                // TODO this check shouldn't be necessary anymore. We an delete it once we are positve that no one with
+                //      the username "anonymous" is getting through.
                 var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
                 var hasCompletionRecordStored = onboardingMission.getProperty("isCompleted");
                 if (svl.user.getProperty("username") !== "anonymous" && !hasCompletionRecordStored) {
@@ -542,13 +542,6 @@ function Main (params) {
      */
     function _initUI () {
         svl.ui = {};
-        svl.ui.actionStack = {};
-        svl.ui.actionStack.holder = $("#action-stack-control-holder");
-        svl.ui.actionStack.holder.append('<button id="undo-button" class="button action-stack-button" value="Undo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Undo.png" class="action-stack-icons" alt="Undo" /><br />Undo</button>');
-        svl.ui.actionStack.holder.append('<button id="redo-button" class="button action-stack-button" value="Redo"><img src="' + svl.rootDirectory + 'img/icons/Icon_Redo.png" class="action-stack-icons" alt="Redo" /><br />Redo</button>');
-        svl.ui.actionStack.redo = $("#redo-button");
-        svl.ui.actionStack.undo = $("#undo-button");
-
         svl.ui.counterHolder = $("#counter-holder");
         svl.ui.labelCounter = $("#label-counter");
 
@@ -602,7 +595,7 @@ function Main (params) {
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};
-        svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-button-holder");
+        svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
         svl.ui.ribbonMenu.buttons = $('span.modeSwitch');
         svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
@@ -616,6 +609,7 @@ function Main (params) {
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
         svl.ui.contextMenu.radioButtons = $("input[name='problem-severity']");
         svl.ui.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
+        svl.ui.contextMenu.tags = $("button[name='tag']");
         svl.ui.contextMenu.textBox = $("#context-menu-problem-description-text-box");
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");
 
@@ -730,7 +724,6 @@ function Main (params) {
         _init(params);
     }
 
-    self.isAnAnonymousUser = isAnAnonymousUser;
     self.loadData = loadData;
 
     return self;

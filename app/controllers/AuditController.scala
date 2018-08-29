@@ -1,7 +1,6 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -19,10 +18,7 @@ import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.Logger
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.Play.current
-import play.extras.geojson
 
 import scala.concurrent.Future
 
@@ -32,8 +28,6 @@ import scala.concurrent.Future
 class AuditController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-
-  val anonymousUser: DBUser = UserTable.find("anonymous").get
 
   /**
     * Returns an audit page.
@@ -47,7 +41,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     request.identity match {
       case Some(user) =>
-
         // Get current region if we aren't assigning new one; otherwise assign new region
         var region: Option[NamedRegion] = nextRegion match {
           case Some("easy") => // Assign an easy region if the query string has nextRegion=easy.
@@ -86,14 +79,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case None =>
         nextRegion match {
           case Some(regionType) =>
-            Logger.warn(s"Anon users cannot have region difficulty specified via a parameter, but $regionType was passed")
-            Future.successful(Redirect("/audit"))
+            // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
+            Future.successful(Redirect("/anonSignUp?url=/audit%3FnextRegion=" + regionType))
           case None =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
-
-            val region: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion
-            val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(region.get.regionId)
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, None)))
+            Future.successful(Redirect("/anonSignUp?url=/audit"))
         }
     }
   }
@@ -106,27 +95,21 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    val ipAddress: String = request.remoteAddress
-    val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
     request.identity match {
       case Some(user) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val ipAddress: String = request.remoteAddress
+        val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Update the currently assigned region for the user
         UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
-
         val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
         Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, Some(user))))
+
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Audit", timestamp))
-        val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId)
-        if (task.isDefined) {
-          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, region, None)))
-        } else {
-          Future.successful(Redirect("/audit"))
-        }
+        Future.successful(Redirect(s"/anonSignUp?url=/audit/region/$regionId"))
     }
   }
 
@@ -137,14 +120,16 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
-    val region: Option[NamedRegion] = regions.headOption
-
-    // TODO: Should this function be modified?
-    val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
     request.identity match {
-      case Some(user) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
-      case None => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, None)))
+      case Some(user) =>
+        val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
+        val region: Option[NamedRegion] = regions.headOption
+
+        // TODO: Should this function be modified?
+        val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
+        Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), region, Some(user))))
+      case None =>
+        Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId"))
     }
   }
 
@@ -165,6 +150,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId: String = request.identity match {
           case Some(user) => user.userId.toString
           case None =>
+            Logger.warn("User without a user_id submitted a comment, but every user should have a user_id.")
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
@@ -196,6 +182,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId: String = request.identity match {
           case Some(user) => user.userId.toString
           case None =>
+            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }

@@ -36,7 +36,7 @@
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="dropdown navbarLink" id="navbar-dropdown-list">
-                    @if(user) {
+                    @if(user && user.get.role.getOrElse("") != "Anonymous") {
                         
                         <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
@@ -141,7 +141,7 @@ $(document).ready(function () {
 });
 </script>
 
-@if(!user) {
+@if(!user || user.get.role.getOrElse("") == "Anonymous") {
     <script type="text/javascript">
             $(document).ready(function () {
                 $("#form-open-sign-up").on("mouseup", function () {

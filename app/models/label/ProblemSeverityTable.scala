@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class ProblemSeverity(problemSeverityId: Int, labelId: Int, severity: Int)
 
-class ProblemSeverityTable(tag: Tag) extends Table[ProblemSeverity](tag, Some("sidewalk"), "problem_severity") {
+class ProblemSeverityTable(tag: slick.lifted.Tag) extends Table[ProblemSeverity](tag, Some("sidewalk"), "problem_severity") {
   def problemSeverityId = column[Int]("problem_severity_id", O.PrimaryKey, O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def severity = column[Int]("severity", O.NotNull)

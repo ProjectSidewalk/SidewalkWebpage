@@ -6,7 +6,28 @@
  * @constructor
  */
 function AdminPanorama(svHolder) {
-    var self = { className: "AdminPanorama" };
+    var self = {
+        className: "AdminPanorama",
+        labelMarker: undefined,
+        panoId: undefined,
+        panorama: undefined
+    };
+
+    var icons = {
+        CurbRamp : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png',
+        NoCurbRamp : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
+        Obstacle : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png',
+        SurfaceProblem : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png',
+        Other : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
+        Occlusion : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
+        NoSidewalk : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
+    };
+
+    var zoomLevel = {
+        1: 1.55,
+        2: 2.6,
+        3: 3.6
+    };
 
     /**
      * This function initializes the Panorama
@@ -19,46 +40,29 @@ function AdminPanorama(svHolder) {
         if(self.svHolder.css('position') != "absolute" && self.svHolder.css('position') != "relative")
             self.svHolder.css('position', 'relative');
 
-
-
         // GSV will be added to panoCanvas
         self.panoCanvas = $("<div id='pano'>").css({
             width: self.svHolder.width(),
             height: self.svHolder.height()
         })[0];
 
-        // Where the labels are drawn
-        self.drawingCanvas = $("<canvas>").attr({
-            width: self.svHolder.width(),
-            height: self.svHolder.height()
-        }).css({
-
-            'z-index': 2,
-            'position': 'absolute',
-            'top': 0,
-            'left': 0,
-            'display': 'inline-block',
-            'width': self.svHolder.width(),
-            'height': self.svHolder.height()
-        })[0];
-
-        // Add them to svHolder
-        self.svHolder.append($(self.panoCanvas), $(self.drawingCanvas));
-
-        self.ctx = self.drawingCanvas.getContext("2d");
+        self.svHolder.append($(self.panoCanvas));
 
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
-        self.panoId = null;
-
-        self.panoPov = {
-            heading: null,
-            pitch: null,
-            zoom: null
-        };
+        self.panorama.addListener('pano_changed', function() {
+            if (self.labelMarker) {
+                var currentPano = self.panorama.getPano();
+                if (currentPano === self.panoId) {
+                    self.labelMarker.setVisible(true);
+                } else {
+                    self.labelMarker.setVisible(false);
+                }
+            }
+        });
 
         if (self.panorama) {
             self.panorama.set('addressControl', false);
-            self.panorama.set('clickToGo', false);
+            self.panorama.set('clickToGo', true);
             self.panorama.set('disableDefaultUI', true);
             self.panorama.set('linksControl', false);
             self.panorama.set('navigationControl', false);
@@ -74,62 +78,110 @@ function AdminPanorama(svHolder) {
     }
 
     /**
+     * Sets the initial panorama ID
      * @param newId
      */
     function changePanoId(newId) {
-        if(self.panoId != newId) {
-            self.panorama.setPano(newId);
-            self.panoId = newId;
-            _clearCanvas();
-            self.refreshGSV();
-        }
+        self.panorama.setPano(newId);
+        self.panoId = newId;
+        self.refreshGSV();
+
         return this;
     }
 
     /**
-     * @param options: The options object should have "heading", "pitch" and "zoom" keys
-     */
-    function setPov(newPov) {
-        //Only update the pov if it is different
-        if(newPov.heading != self.panoPov.heading || newPov.pitch != self.panoPov.pitch
-            || newPov.zoom != self.panoPov.zoom) {
-            self.panorama.setPov(newPov);
-            self.panoPov = newPov;
-            _clearCanvas();
-            self.refreshGSV();
-        }
-        return this;
-    }
-
-    /**
-     *
+     * Renders a Panomarker (label) onto Google Streetview Panorama.
      * @param label: instance of AdminPanoramaLabel
      * @returns {renderLabel}
      */
     function renderLabel (label) {
-        var x = (label.canvasX / label.originalCanvasWidth) * self.drawingCanvas.width;
-        var y = (label.canvasY / label.originalCanvasHeight) * self.drawingCanvas.height;
+        var url = icons[label['label_type']];
+        var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
+            label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
-        var colorScheme = util.misc.getLabelColors();
-        var fillColor = (label.label_type in colorScheme) ? colorScheme[label.label_type].fillStyle : "rgb(128, 128, 128)";
-
-
-        self.ctx.save();
-        self.ctx.strokeStyle = 'rgba(255,255,255,1)';
-        self.ctx.lineWidth = 3;
-        self.ctx.beginPath();
-        self.ctx.arc(x, y, 6, 2 * Math.PI, 0, true);
-        self.ctx.closePath();
-        self.ctx.stroke();
-        self.ctx.fillStyle = fillColor;
-        self.ctx.fill();
-        self.ctx.restore();
-
+        self.labelMarker = new PanoMarker ({
+            container: self.panoCanvas,
+            pano: self.panorama,
+            position: {heading: pos.heading, pitch: pos.pitch},
+            icon: url,
+            size: new google.maps.Size(20, 20),
+            anchor: new google.maps.Point(10, 10)
+        });
+        return this;
+    }
+    /**
+     * Sets point of view for the panorama based off heading, pitch, and zoom values collected
+     * at the time of label placement.
+     * @param newPov: The options object should have "heading", "pitch" and "zoom" keys
+     */
+    function setPov(newPov) {
+        self.panorama.set('pov', {heading: newPov['heading'], pitch: newPov['pitch']});
+        self.panorama.set('zoom', zoomLevel[newPov['zoom']]);
         return this;
     }
 
-    function _clearCanvas () {
-        self.ctx.clearRect(0, 0, self.drawingCanvas.width, self.drawingCanvas.height);
+    /**
+     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
+     * From PanoMarker spec
+     * @param canvas_x          X coordinate (pixel) for label
+     * @param canvas_y          Y coordinate (pixel) for label
+     * @param canvas_width      Original canvas width
+     * @param canvas_height     Original canvas height
+     * @param zoom              Original zoom level of label
+     * @param heading           Original heading of label
+     * @param pitch             Original pitch of label
+     * @returns {{heading: number, pitch: number}}
+     */
+    function getPosition(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch) {
+        function sgn(x) {
+            return x >= 0 ? 1 : -1;
+        }
+
+        var PI = Math.PI;
+        var cos = Math.cos;
+        var sin = Math.sin;
+        var tan = Math.tan;
+        var sqrt = Math.sqrt;
+        var atan2 = Math.atan2;
+        var asin = Math.asin;
+        var fov = get3dFov(zoom) * PI / 180.0;
+        var width = canvas_width;
+        var height = canvas_height;
+        var h0 = heading * PI / 180.0;
+        var p0 = pitch * PI / 180.0;
+        var f = 0.5 * width / tan(0.5 * fov);
+        var x0 = f * cos(p0) * sin(h0);
+        var y0 = f * cos(p0) * cos(h0);
+        var z0 = f * sin(p0);
+        var du = (canvas_x) - width / 2;
+        var dv = height / 2 - (canvas_y - 5);
+        var ux = sgn(cos(p0)) * cos(h0);
+        var uy = -sgn(cos(p0)) * sin(h0);
+        var uz = 0;
+        var vx = -sin(p0) * sin(h0);
+        var vy = -sin(p0) * cos(h0);
+        var vz = cos(p0);
+        var x = x0 + du * ux + dv * vx;
+        var y = y0 + du * uy + dv * vy;
+        var z = z0 + du * uz + dv * vz;
+        var R = sqrt(x * x + y * y + z * z);
+        var h = atan2(x, y);
+        var p = asin(z / R);
+        return {
+            heading: h * 180.0 / PI,
+            pitch: p * 180.0 / PI
+        };
+    }
+
+    /**
+     * From panomarker spec
+     * @param zoom
+     * @returns {number}
+     */
+    function get3dFov (zoom) {
+        return zoom <= 2 ?
+            126.5 - zoom * 36.75 :  // linear descent
+            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
     }
 
     /*
