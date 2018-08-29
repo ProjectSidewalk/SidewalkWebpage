@@ -35,7 +35,7 @@ function MissionFactory (missionModel) {
             parameters.distanceMi = parameters.distance / 1609.34;
 
         var mission = self.create(parameters.missionId, parameters.missionType, parameters.regionId,
-            parameters.isCompleted, parameters.pay, parameters.distance, parameters.distanceProgress,
+            parameters.isCompleted, parameters.pay, parameters.paid, parameters.distance, parameters.distanceProgress,
             parameters.distanceFt, parameters.distanceMi);
         _missionModel.addAMission(mission);
     });
@@ -55,13 +55,14 @@ function MissionFactory (missionModel) {
  * @param distanceMi
  * @returns {svl.Mission}
  */
-MissionFactory.prototype.create = function (missionId, missionType, regionId, isCompleted, pay, distance, distanceProgress, distanceFt, distanceMi) {
+MissionFactory.prototype.create = function (missionId, missionType, regionId, isCompleted, pay, paid, distance, distanceProgress, distanceFt, distanceMi) {
     return new Mission({
         missionId: missionId,
         missionType: missionType,
         regionId: regionId,
         isCompleted: isCompleted,
         pay: pay,
+        paid: paid,
         distance: distance,
         distanceProgress: distanceProgress,
         distanceFt: distanceFt,

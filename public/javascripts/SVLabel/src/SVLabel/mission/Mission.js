@@ -14,6 +14,7 @@ function Mission(parameters) {
             regionId: null,
             isCompleted: false,
             pay: null,
+            paid: null,
             distance: null,
             distanceProgress: null,
             distanceFt: null,
@@ -33,6 +34,7 @@ function Mission(parameters) {
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
         if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
         if ("pay" in parameters) setProperty("pay", parameters.pay);
+        if ("paid" in parameters) setProperty("paid", parameters.paid);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("distanceProgress" in parameters) setProperty("distanceProgress", parameters.distanceProgress);
         if ("distanceFt" in parameters) setProperty("distanceFt", parameters.distanceFt);
