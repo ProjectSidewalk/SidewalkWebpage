@@ -80,7 +80,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val regionId: Int = region.get.regionId
 
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-            println(MissionTable.hasCompletedAuditOnboarding(user.userId))
             val mission: Mission =
               if (!MissionTable.hasCompletedAuditOnboarding(user.userId)) {
                 MissionTable.getIncompleteAuditOnboardingMission(user.userId) match {
@@ -95,7 +94,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                   case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
                 }
               }
-            println(mission)
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user))))
         }
       // For anonymous users.
