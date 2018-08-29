@@ -26,11 +26,6 @@ function MissionContainer (statusFieldMission, missionModel) {
     });
 
     _missionModel.on("MissionContainer:addAMission", function (mission) {
-        if (mission.getProperty("missionType") === "audit") {
-            mission.setProperty("auditDistance", mission.getProperty("distance"));
-            mission.setProperty("auditDistanceFt", mission.getProperty("distanceFt"));
-            mission.setProperty("auditDistanceMi", mission.getProperty("distanceMi"));
-        }
         if (mission.getProperty("isCompleted")) {
             self._completedMissions.push(mission);
         } else {

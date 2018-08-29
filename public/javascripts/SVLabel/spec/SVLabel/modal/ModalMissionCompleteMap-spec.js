@@ -79,9 +79,6 @@ describe("ModalMissionCompleteMap", function () {
         mission.properties.distance = 1219.2;
         mission.properties.distanceFt = 4000;
         mission.properties.coverage = 0.07575;
-        mission.properties.auditDistanceFt = 2000;
-        mission.properties.auditDistanceMi = 0.3788;
-        mission.properties.auditDistance = 609;
         mission.properties.label = "distance-mission";
         neighborhood = new NeighborhoodMock();
         neighborhood.properties.name = "Test Neighborhood";

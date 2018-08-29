@@ -8,8 +8,7 @@
 function User (param, userModel) {
     var properties = {
         username: null,
-        role: null,
-        recordedAuditDistance: null  // miles.
+        role: null
     };
 
     this._userModel = userModel;

@@ -133,7 +133,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // TODO probably add back in this check later, after the mission is actually received from back-end
         // Adjust the target distance based on the tasks available
         // var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance();
-        // nextMission.adjustTheTargetDistance(incompleteTaskDistance);
+        // nextMission.adjustTheTargetDistance(incompleteTaskDistance); // I deleted this func cause it modifies a mission's distance! We will ensure this is ok on the back-end
     };
 
     /**

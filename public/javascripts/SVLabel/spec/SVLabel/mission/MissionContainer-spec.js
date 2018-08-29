@@ -249,50 +249,11 @@ describe("MissionContainer module.", function () {
             m3.properties.distanceMi = 10;
             m3.properties.label = 'coverage-mission';
         });
-
-        it("should set the `auditDistance` property for all missions", function () {
-            missionContainer.add(1, m1);
-            missionContainer.add(1, m2);
-            missionContainer.add(1, m3);
-
-            missionContainer._onLoadComplete();
-
-            expect(m1.properties.auditDistance).toBeCloseTo(4023.36, 0.1);
-            expect(m2.properties.auditDistance).toBeCloseTo(4023.36, 0.1);
-            expect(m3.properties.auditDistance).toBeCloseTo(8046.68, 0.1);
-        });
-
-        it("should set the `auditDistanceFt` property for all missions", function () {
-            missionContainer.add(1, m1);
-            missionContainer.add(1, m2);
-            missionContainer.add(1, m3);
-
-            missionContainer._onLoadComplete();
-
-            expect(m1.properties.auditDistanceFt).toBeCloseTo(13200, 0.1);
-            expect(m2.properties.auditDistanceFt).toBeCloseTo(13200, 0.1);
-            expect(m3.properties.auditDistanceFt).toBeCloseTo(26400, 0.1);
-        });
-
-        it("should set the `auditDistanceMi` property for all missions", function () {
-            missionContainer.add(1, m1);
-            missionContainer.add(1, m2);
-            missionContainer.add(1, m3);
-
-            missionContainer._onLoadComplete();
-
-            expect(m1.properties.auditDistanceMi).toBeCloseTo(2.5, 0.1);
-            expect(m2.properties.auditDistanceMi).toBeCloseTo(2.5, 0.1);
-            expect(m3.properties.auditDistanceMi).toBeCloseTo(5, 0.1);
-        });
     });
     */
 
     function MissionMock () {
         this.properties = {
-            auditDistance: null,
-            auditDistanceFt: null,
-            auditDistanceMi: null,
             coverage: null,
             distance: null,
             distanceFt: null,

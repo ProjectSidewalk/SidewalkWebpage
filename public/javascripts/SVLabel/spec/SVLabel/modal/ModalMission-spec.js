@@ -92,9 +92,6 @@ describe("ModalMission", function () {
             mission_4000ft.properties.distance = 1219.2;
             mission_4000ft.properties.distanceFt = 4000;
             mission_4000ft.properties.coverage = 0.07575;
-            mission_4000ft.properties.auditDistanceFt = 2000;
-            mission_4000ft.properties.auditDistanceMi = 0.3788;
-            mission_4000ft.properties.auditDistance = 609;
             mission_4000ft.properties.label = "distance-mission";
 
             mission_1mi = new MissionMock();
@@ -102,9 +99,6 @@ describe("ModalMission", function () {
             mission_1mi.properties.distance = 1600;
             mission_1mi.properties.distanceFt = 5280;
             mission_1mi.properties.coverage = 0.1;
-            mission_1mi.properties.auditDistanceFt = 1280;
-            mission_1mi.properties.auditDistanceMi = 0.2424;
-            mission_1mi.properties.auditDistance = 390;
             mission_1mi.properties.label = "distance-mission";
 
             mission_2mi = new MissionMock();
@@ -112,9 +106,6 @@ describe("ModalMission", function () {
             mission_2mi.properties.distance = 3200;
             mission_2mi.properties.distanceFt = 105600;
             mission_2mi.properties.coverage = 0.2;
-            mission_2mi.properties.auditDistanceFt = 2640;
-            mission_2mi.properties.auditDistanceMi = 0.5;
-            mission_2mi.properties.auditDistance = 804.7;
             mission_2mi.properties.label = "distance-mission";
         });
 
