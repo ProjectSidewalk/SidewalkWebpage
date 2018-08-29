@@ -2,7 +2,7 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
+import java.util.{Calendar, TimeZone, UUID}
 
 import models.street._
 import models.utils.MyPostgresDriver
@@ -257,6 +257,19 @@ object AuditTaskTable {
 
     val availableTasks: Int = streetEdgeIdsNotAuditedByUser(user, regionId).length
     availableTasks > 0
+  }
+
+  /**
+    * Get a set of regions where the user has not completed all the street edges.
+    *
+    * @param user UUID for the user
+    * @return
+    */
+  def selectIncompleteRegions(user: UUID): Set[Int] = db.withSession { implicit session =>
+    nonDeletedStreetEdgeRegions
+      .filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user))
+      .map(_.regionId)
+      .list.toSet
   }
 
   /**

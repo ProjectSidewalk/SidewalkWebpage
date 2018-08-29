@@ -4,8 +4,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-import models.audit.AuditTaskTable
-import models.audit.AuditTaskTable.nonDeletedStreetEdgeRegions
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
@@ -206,21 +204,6 @@ object MissionTable {
     )
 
     regionalMissions.sortBy(rm => (rm.regionId, rm.missionId))
-  }
-
-  /**
-    * Get a set of regions where the user has not completed all the street edges.
-    *
-    * @param user UUID for the user
-    * TODO move this to auditTaskTable.scala
-    * @return
-    */
-  def selectIncompleteRegionsUsingTasks(user: UUID): Set[Int] = db.withSession { implicit session =>
-
-    nonDeletedStreetEdgeRegions
-      .filter(_.streetEdgeId inSet AuditTaskTable.streetEdgeIdsNotAuditedByUser(user))
-      .map(_.regionId)
-      .list.toSet
   }
 
   /**
