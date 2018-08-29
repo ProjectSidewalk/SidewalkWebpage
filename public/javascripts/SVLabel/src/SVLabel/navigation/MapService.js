@@ -796,20 +796,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     }
 
-    // missions greater than 3000 feet are measured in miles
-    function distanceLeftFeetOrMiles(){
-        var remainingRate = 1 - svl.missionContainer.getCurrentMission().getMissionCompletionRate();
-        var missionDistance = svl.missionContainer.getCurrentMission().getDistance("feet");
-        if(missionDistance < 3000){
-            return parseInt(missionDistance * remainingRate) + " feet";
-        }
-        else{
-            missionDistance = svl.missionContainer.getCurrentMission().getDistance("miles");
-            var miles = missionDistance * remainingRate;
-            return miles.toFixed(2) + " miles";
-        }
-    }
-
     function finishNeighborhood() {
         var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
         var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
