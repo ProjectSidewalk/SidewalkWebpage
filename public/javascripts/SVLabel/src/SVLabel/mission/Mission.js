@@ -32,65 +32,6 @@ function Mission(parameters) {
         if ("paid" in parameters) setProperty("paid", parameters.paid);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("distanceProgress" in parameters) setProperty("distanceProgress", parameters.distanceProgress);
-
-        if ("missionType" in parameters) {
-            var instruction, completionMessage;
-
-            // TODO update this to not use the missionType/label property
-            if (parameters.missionType === "initial-mission") {
-                instruction = "Your goal is to <span class='bold'>audit 1000 feet of the streets " +
-                    "in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have completed the first mission. " +
-                    "Keep making the city more accessible!";
-            } else if (parameters.missionType === "audit") {
-                var distance = parameters.distance;
-                var distanceString = imperialDistance();
-
-                instruction = "Your goal is to <span class='bold'>audit " + distanceString +
-                    " of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have successfully made " + distanceString +
-                    " of this neighborhood accessible.";
-
-            } else if (parameters.missionType === "area-coverage-mission") {
-                var coverage = parameters.coverage, coverageString = coverage + "%";
-                instruction = "Your goal is to <span class='bold'>audit " + coverageString +
-                    " of the streets in this neighborhood and find the accessibility attributes!";
-                completionMessage = "Good job! You have successfully made " + coverageString +
-                    " of this neighborhood accessible.";
-            } else if (parameters.missionType === "auditOnboarding") {
-
-            } else {
-                console.error("It shouldn't reach here.");
-            }
-            setProperty("instruction", instruction);
-            setProperty("completionMessage", completionMessage);
-        }
-    }
-
-    /**
-     * Because the imperial metric system is messed up.
-     * @returns {string}
-     */
-    function imperialDistance () {
-        var distance = getDistance();
-        if (distance) {
-            if (distance < 1500) {
-                if (distance == 250) {
-                    return "1000 feet";
-                } else if (distance == 500) {
-                    return "2000 feet";
-                } else if (distance == 1000) {
-                    return "4000 feet";
-                } else {
-                    return distance * 3;
-                }
-            } else {
-                var miles = distance % 1500;
-                return miles + "miles";
-            }
-        } else {
-            console.error("Distance is null");
-        }
     }
 
     /**
