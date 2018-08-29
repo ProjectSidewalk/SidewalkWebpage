@@ -149,6 +149,7 @@ function Mission(parameters) {
                 "NoCurbRamp": svl.labelCounter.countLabel("NoCurbRamp"),
                 "Obstacle": svl.labelCounter.countLabel("Obstacle"),
                 "SurfaceProblem": svl.labelCounter.countLabel("SurfaceProblem"),
+                "NoSidewalk": svl.labelCounter.countLabel("NoSidewalk"),
                 "Other": svl.labelCounter.countLabel("Other")
             };
             svl.labelCounter.reset();
