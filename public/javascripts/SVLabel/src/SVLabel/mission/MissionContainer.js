@@ -38,7 +38,7 @@ function MissionContainer (statusFieldMission, missionModel) {
         var existingMissionIds = self._completedMissions.map(function (m) { return m.getProperty("missionId")});
         var currentMissionId = mission.getProperty("missionId");
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
-            mission.setProperty("distanceProgress", mission.getProperty("distance"));
+            mission.setProperty("distanceProgress", mission.getDistance());
             self._completedMissions.push(mission);
         } else {
             console.log("Oops, we are trying to add to completed missions array multiple times. Plz fix.")
@@ -72,13 +72,8 @@ function MissionContainer (statusFieldMission, missionModel) {
         if (!unit) unit = "meters";
         var completedDistance = 0;
         for (var missionIndex = 0; missionIndex < self._completedMissions.length; missionIndex++)
-            completedDistance += self._completedMissions[missionIndex].getProperty("distance");
-
-        if (unit === "meters") return completedDistance;
-        else if (unit === "kilometers") return completedDistance / 1000;
-        else if (unit === "miles") return completedDistance / 1609.34;
-        else if (unit === "feet") return completedDistance * 3.28084;
-        else console.error("Unit options are only meters, km, miles, and feet; was given " + unit);
+            completedDistance += self._completedMissions[missionIndex].getDistance(unit);
+        return completedDistance;
     }
 
     // TODO the back-end should be sending us this mission.

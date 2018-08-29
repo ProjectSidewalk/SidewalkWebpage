@@ -258,8 +258,6 @@ describe("MissionProgress module", function () {
             missionId: null,
             coverage: null,
             distance: null,
-            distanceFt: null,
-            distanceMi: null,
             label: null,
             regionId: null
         };

@@ -57,27 +57,19 @@ describe("StatusFieldMission module", function () {
         mission1 = new MissionMock();
         mission1.properties.label = "distance-mission";
         mission1.properties.distance = 304.8;
-        mission1.properties.distanceFt = 1000;
-        mission1.properties.distanceMi = 0.189394;
 
         mission2 = new MissionMock();
         mission2.properties.label = "distance-mission";
         mission2.properties.distance = 609.6;
-        mission2.properties.distanceFt = 2000;
-        mission2.properties.distanceMi = 0.378787878787879;
 
 
         mission3 = new MissionMock();
         mission3.properties.label = "distance-mission";
         mission3.properties.distance = 1219.2;
-        mission3.properties.distanceFt = 4000;
-        mission3.properties.distanceMi = 0.757575757575757;
 
         mission4 = new MissionMock();
         mission4.properties.label = "distance-mission";
         mission4.properties.distance = 1609.344;
-        mission4.properties.distanceFt = 5280;
-        mission4.properties.distanceMi = 1;
     });
 
     describe("`setMessage` method", function () {
@@ -116,8 +108,6 @@ describe("StatusFieldMission module", function () {
         this.properties = {
             coverage: null,
             distance: null,
-            distanceFt: null,
-            distanceMi: null,
             isCompleted: false,
             label: null,
             missionId: null

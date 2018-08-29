@@ -116,7 +116,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 templateHTML = initialMissionHTML;
             }
 
-            distanceString = this._distanceToString(mission.getProperty("distanceMi"), "miles");
+            distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
@@ -159,7 +159,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                         url: url,//endpoint that checks above conditions
                         type: 'get',
                         success: function (data) {
-                            var distanceMi = mission.getProperty("distanceMi");
+                            var distanceMi = mission.getDistance("miles");
                             var missionReward = distanceMi * data.rewardPerMile;
                             // Mission Rewards.
                             var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
@@ -174,7 +174,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                                 })
                                 .reduce(function (region_groups, el) {
                                         region_groups[el.getProperty("regionId")] = region_groups[el.getProperty("regionId")] || 0.0;
-                                        region_groups[el.getProperty("regionId")] += el.getProperty("distanceMi");
+                                        region_groups[el.getProperty("regionId")] += el.getDistance("miles");
                                         return region_groups;
                                     }
                                     , {});

@@ -192,7 +192,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var unit = "miles";
         var regionId = neighborhood.getProperty("regionId");
 
-        var missionDistance = mission.getProperty("distanceMi");
+        var missionDistance = mission.getDistance("miles");
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
 

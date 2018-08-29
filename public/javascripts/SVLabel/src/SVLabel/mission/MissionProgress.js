@@ -43,7 +43,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             {
                 missionId: mission.getProperty("missionId"),
                 missionType: mission.getProperty("missionType"),
-                distanceMeters: Math.round(mission.getProperty("distance")),
+                distanceMeters: Math.round(mission.getDistance("meters")),
                 regionId: neighborhood.getProperty("regionId")
             }
         );

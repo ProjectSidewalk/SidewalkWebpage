@@ -227,26 +227,20 @@ describe("MissionContainer module.", function () {
         beforeEach(function () {
             m1 = new MissionMock();
             m1.properties.missionId = 1;
-            m1.properties.coverrage = 0.25;
+            m1.properties.coverage = 0.25;
             m1.properties.distance = 4023.36;
-            m1.properties.distanceFt = 13200;
-            m1.properties.distanceMi = 2.5;
             m1.properties.label = 'distance-mission';
 
             m2 = new MissionMock();
             m2.properties.missionId = 2;
-            m2.properties.coverrage = 0.50;
+            m2.properties.coverage = 0.50;
             m2.properties.distance = 8046.72;
-            m2.properties.distanceFt = 26400;
-            m2.properties.distanceMi = 5;
             m2.properties.label = 'distance-mission';
 
             m3 = new MissionMock();
             m3.properties.missionId = 3;
-            m3.properties.coverrage = 1.0;
+            m3.properties.coverage = 1.0;
             m3.properties.distance = 16093.4;
-            m3.properties.distanceFt = 52800;
-            m3.properties.distanceMi = 10;
             m3.properties.label = 'coverage-mission';
         });
     });
@@ -256,8 +250,6 @@ describe("MissionContainer module.", function () {
         this.properties = {
             coverage: null,
             distance: null,
-            distanceFt: null,
-            distanceMi: null,
             isCompleted: false,
             label: null,
             missionId: null
@@ -277,15 +269,13 @@ describe("MissionContainer module.", function () {
     };
 
     function MissionFactoryMock () {
-        this.create = function (regionId, missionId, label, level, distance, distanceFt, distanceMi, coverage, isCompleted) {
+        this.create = function (regionId, missionId, label, level, distance, coverage, isCompleted) {
             var mission = new MissionMock();
             mission.properties.regionId = regionId;
             mission.properties.missionId = missionId;
             mission.properties.label = label;
             mission.properties.level = level;
             mission.properties.distance = distance;
-            mission.properties.distanceFt = distanceFt;
-            mission.properties.distanceMi = distanceMi;
             mission.properties.coverage = coverage;
             mission.properties.isCompleted = isCompleted;
             return mission;

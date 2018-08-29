@@ -28,15 +28,8 @@ function MissionFactory (missionModel) {
         if (!parameters.hasOwnProperty("distanceProgress") && parameters.hasOwnProperty("distance_progress"))
             parameters.distanceProgress = parameters.distance_progress;
 
-        // TODO these next couple checks should be removed once we get rid of the need for them!!
-        if (!parameters.hasOwnProperty("distanceFt") && parameters.hasOwnProperty("distance"))
-            parameters.distanceFt = parameters.distance * 3.28084;
-        if (!parameters.hasOwnProperty("distanceMi") && parameters.hasOwnProperty("distance"))
-            parameters.distanceMi = parameters.distance / 1609.34;
-
         var mission = self.create(parameters.missionId, parameters.missionType, parameters.regionId,
-            parameters.isCompleted, parameters.pay, parameters.paid, parameters.distance, parameters.distanceProgress,
-            parameters.distanceFt, parameters.distanceMi);
+            parameters.isCompleted, parameters.pay, parameters.paid, parameters.distance, parameters.distanceProgress);
         _missionModel.addAMission(mission);
     });
 }
@@ -51,11 +44,9 @@ function MissionFactory (missionModel) {
  * @param pay
  * @param distance
  * @param distanceProgress
- * @param distanceFt
- * @param distanceMi
  * @returns {svl.Mission}
  */
-MissionFactory.prototype.create = function (missionId, missionType, regionId, isCompleted, pay, paid, distance, distanceProgress, distanceFt, distanceMi) {
+MissionFactory.prototype.create = function (missionId, missionType, regionId, isCompleted, pay, paid, distance, distanceProgress) {
     return new Mission({
         missionId: missionId,
         missionType: missionType,
@@ -64,8 +55,6 @@ MissionFactory.prototype.create = function (missionId, missionType, regionId, is
         pay: pay,
         paid: paid,
         distance: distance,
-        distanceProgress: distanceProgress,
-        distanceFt: distanceFt,
-        distanceMi: distanceMi
+        distanceProgress: distanceProgress
     });
 };

@@ -123,9 +123,7 @@ describe("ModalMissionComplete", function () {
             modalModel, statusModel, onboardingModel);
 
         mission = new MissionMock();
-        mission.properties.distanceMi = 0.7575;
         mission.properties.distance = 1219.2;
-        mission.properties.distanceFt = 4000;
         mission.properties.coverage = 0.07575;
         mission.properties.label = "distance-mission";
         neighborhood = new NeighborhoodMock();
@@ -238,7 +236,6 @@ describe("ModalMissionComplete", function () {
     describe("update method", function (){
         beforeEach( function () {
             modalMissionComplete.show();
-            mission.properties.distanceMi = 0;
             neighborhood.properties.completedLineDistance = 0;
             neighborhood.properties.totalLineDistance = 0;
         });
@@ -248,7 +245,6 @@ describe("ModalMissionComplete", function () {
         });
 
         it("should update mission distance statistics", function () {
-            mission.properties.distanceMi = 0.1;
             neighborhood.properties.completedLineDistance = 0.3;
             neighborhood.properties.totalLineDistance = 0.7;
             modalMissionComplete.update(mission, neighborhood);
@@ -300,8 +296,6 @@ describe("ModalMissionComplete", function () {
             coverage: null,
             label: null,
             distance: null,
-            distanceFt: null,
-            distanceMi: null,
             route: [],
             labelCount: null
         };

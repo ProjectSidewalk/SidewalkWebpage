@@ -15,8 +15,6 @@ describe("MissionFactory module.", function () {
                 label: "test",
                 level: 1,
                 distance: 10,
-                distanceFt: 10,
-                distanceMi: 10,
                 coverage: 0.1,
                 isCompleted: false
             };

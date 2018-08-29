@@ -17,8 +17,6 @@ function Mission(parameters) {
             paid: null,
             distance: null,
             distanceProgress: null,
-            distanceFt: null,
-            distanceMi: null,
             instruction: null,
             completionMessage: null
         },
@@ -34,8 +32,6 @@ function Mission(parameters) {
         if ("paid" in parameters) setProperty("paid", parameters.paid);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("distanceProgress" in parameters) setProperty("distanceProgress", parameters.distanceProgress);
-        if ("distanceFt" in parameters) setProperty("distanceFt", parameters.distanceFt);
-        if ("distanceMi" in parameters) setProperty("distanceMi", parameters.distanceMi);
 
         if ("missionType" in parameters) {
             var instruction, completionMessage;
@@ -76,7 +72,7 @@ function Mission(parameters) {
      * @returns {string}
      */
     function imperialDistance () {
-        var distance = getProperty("distance");
+        var distance = getDistance();
         if (distance) {
             if (distance < 1500) {
                 if (distance == 250) {
@@ -130,17 +126,6 @@ function Mission(parameters) {
     }
 
     /**
-     * Total line distance of the completed tasks in this mission
-     * @param unit
-     */
-    function completedLineDistance (unit) {
-        if (!unit) unit = "kilometers";
-        var completedTasks = _tasksForTheMission.filter(function (t) { return t.isCompleted(); });
-        var distances = completedTasks.map(function (t) { return t.lineDistance(unit); });
-        return distances.length > 0 ? distances.sum() : 0;
-    }
-
-    /**
      * This method returns the label count object
      * @returns {*}
      */
@@ -156,7 +141,7 @@ function Mission(parameters) {
         updateDistanceProgress();
         if ("taskContainer" in svl && getProperty("missionType") !== "auditOnboarding") {
             var distanceProgress = getProperty("distanceProgress");
-            var targetDistance = getProperty("distance");
+            var targetDistance = getDistance();
 
             return Math.min(Math.max(distanceProgress / targetDistance, 0), 1);
         } else {
@@ -174,7 +159,7 @@ function Mission(parameters) {
 
             var currentMissionCompletedDistance;
             if (isCompleted()) {
-                currentMissionCompletedDistance = getProperty("distance");
+                currentMissionCompletedDistance = getDistance("meters");
             } else {
                 var taskDistance = svl.taskContainer.getCompletedTaskDistance("kilometers") * 1000;
                 var offset = svl.missionContainer.getTasksMissionsOffset();
@@ -233,26 +218,29 @@ function Mission(parameters) {
     function toString () {
         return "Mission ID: " + getProperty("missionId") + ", Mission Type: " + getProperty("missionType") +
             ", Region Id: " + getProperty("regionId") + ", Completed: " + getProperty("isCompleted") +
-            ", Distance: " + getProperty("distance") + "\n";
+            ", Distance: " + getDistance("meters") + "\n";
     }
 
     /**
      * Total line distance in this mission.
      * @param unit
      */
-    function totalLineDistance (unit) {
-        if (unit == "miles") {
-            return getProperty("distanceMi");
-        } else if (unit == "feet") {
-            return getProperty("distanceFt");
-        } else {
+    function getDistance(unit) {
+        if (unit === undefined) unit = "meters";
+
+        if (unit === "miles")           return getProperty("distance") / 1609.34;
+        else if (unit === "feet")       return getProperty("distance") * 3.28084;
+        else if (unit === "kilometers") return getProperty("distance") / 1000;
+        else if (unit === "meters")     return getProperty("distance");
+        else {
+            console.error("Unit must be miles, feet, kilometers, or meters. Given: " + unit);
             return getProperty("distance");
         }
     }
+
     _init(parameters);
 
     self.complete = complete;
-    self.completedLineDistance = completedLineDistance;
     self.getLabelCount = getLabelCount;
     self.getProperty = getProperty;
     self.getRoute = getRoute;
@@ -262,5 +250,5 @@ function Mission(parameters) {
     self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.setProperty = setProperty;
     self.toString = toString;
-    self.totalLineDistance = totalLineDistance;
+    self.getDistance = getDistance;
 }

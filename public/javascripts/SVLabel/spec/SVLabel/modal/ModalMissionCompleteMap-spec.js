@@ -10,9 +10,7 @@ describe("ModalMissionCompleteMap", function () {
         this.properties = {
             coverage: null,
             label: null,
-            distance: null,
-            distanceFt: null,
-            distanceMi: null
+            distance: null
         };
     }
     MissionMock.prototype.getProperty = function (key) {
@@ -75,9 +73,7 @@ describe("ModalMissionCompleteMap", function () {
         map = new ModalMissionCompleteMap(uiModalMissionComplete);
         
         mission = new MissionMock();
-        mission.properties.distanceMi = 0.7575;
         mission.properties.distance = 1219.2;
-        mission.properties.distanceFt = 4000;
         mission.properties.coverage = 0.07575;
         mission.properties.label = "distance-mission";
         neighborhood = new NeighborhoodMock();
