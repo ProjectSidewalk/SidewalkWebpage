@@ -195,10 +195,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-<<<<<<< HEAD
-     * Returns labeling guide page
-     * @return
-     */
+    * Returns labeling guide page
+    * @return
+    */
 
   def labelingGuide = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
