@@ -94,7 +94,7 @@ function Mission(parameters) {
     function updateDistanceProgress() {
         if ("taskContainer" in svl
             && getProperty("missionType") !== "auditOnboarding"
-            && svl.missionContainer.getTasksMissionsOffset()) {
+            && svl.missionContainer.getTasksMissionsOffset() !== null) {
 
             var currentMissionCompletedDistance;
             if (isCompleted()) {
