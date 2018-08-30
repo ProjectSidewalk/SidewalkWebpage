@@ -88,7 +88,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 }
               } else {
                 val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
-                // TODO add this check for all audit endpoints
                 incompleteMission match {
                   case Some(startedMission) => startedMission
                   case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
@@ -129,7 +128,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           case Some(namedRegion) =>
             UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-            val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
+            val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
+            val mission: Mission = incompleteMission match {
+              case Some(startedMission) => startedMission
+              case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
+            }
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user))))
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
@@ -160,7 +163,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
           // TODO: Should this function be modified?
           val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
-          val mission: Mission = MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, region.regionId)
+          val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, region.regionId)
+          val mission: Mission = incompleteMission match {
+            case Some(startedMission) => startedMission
+            case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, region.regionId)
+          }
           Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
         }
       case None =>
