@@ -175,8 +175,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         var data = self._prepareSkipData(skipReasonLabel);
 
         if (skipReasonLabel === "GSVNotAvailable") {
-            task.complete();
-            taskContainer.push(task);
+            taskContainer.endTask(task);
             util.misc.reportNoStreetView(task.getStreetEdgeId());
         }
 
