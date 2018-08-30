@@ -193,15 +193,6 @@ describe("ModalMissionComplete", function () {
             });
     });
 
-    describe("_updateTheMissionCompleteMessage", function (){
-        it("should randomly display a message", function (){
-            expect(uiModalMissionComplete.message.html()).toBe('');
-            modalMissionComplete._updateTheMissionCompleteMessage();
-            // cant predict which message since it is random
-            expect(uiModalMissionComplete.message.html()).not.toBe("");
-        });
-    });
-
     describe("_updateMissionLabelStatisitcs method ", function(){
         it("label counts should be empty initially", function(){
             modalMissionComplete.show();
