@@ -8,6 +8,7 @@
 function AdminPanorama(svHolder) {
     var self = {
         className: "AdminPanorama",
+        label: undefined,
         labelMarker: undefined,
         panoId: undefined,
         panorama: undefined
@@ -23,10 +24,11 @@ function AdminPanorama(svHolder) {
         NoSidewalk : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
     };
 
+    // Determined experimentally; varies w/ GSV Panorama size
     var zoomLevel = {
-        1: 1.55,
-        2: 2.6,
-        3: 3.6
+        1: 1,
+        2: 1.95,
+        3: 2.95
     };
 
     /**
@@ -78,15 +80,37 @@ function AdminPanorama(svHolder) {
     }
 
     /**
-     * Sets the initial panorama ID
+     * Sets the panorama ID and POV from label metadata
      * @param newId
      */
-    function changePanoId(newId) {
-        self.panorama.setPano(newId);
-        self.panoId = newId;
-        self.refreshGSV();
+    function setPano(panoId, heading, pitch, zoom) {
+        if (typeof google != "undefined") {
+            self.svHolder.css('visibility', 'hidden');
+            self.panoId = panoId;
 
+            self.panorama.setPano(panoId);
+            self.panorama.set('pov', {heading: heading, pitch: pitch});
+            self.panorama.set('zoom', zoomLevel[zoom]);
+
+            // Based off code from Onboarding.
+            // We write another callback function because of a bug in the Google Maps API that
+            // causes the screen to go black.
+            // This callback gives time for the pano to load for 500ms. Afterwards, we trigger a
+            // resize and reset the POV/Zoom.
+            function callback () {
+                google.maps.event.trigger(self.panorama, 'resize');
+                self.panorama.set('pov', {heading: heading, pitch: pitch});
+                self.panorama.set('zoom', zoomLevel[zoom]);
+                self.svHolder.css('visibility', 'visible');
+                renderLabel(self.label);
+            }
+            setTimeout(callback, 500);
+        }
         return this;
+    }
+
+    function setLabel (label) {
+        self.label = label;
     }
 
     /**
@@ -107,16 +131,6 @@ function AdminPanorama(svHolder) {
             size: new google.maps.Size(20, 20),
             anchor: new google.maps.Point(10, 10)
         });
-        return this;
-    }
-    /**
-     * Sets point of view for the panorama based off heading, pitch, and zoom values collected
-     * at the time of label placement.
-     * @param newPov: The options object should have "heading", "pitch" and "zoom" keys
-     */
-    function setPov(newPov) {
-        self.panorama.set('pov', {heading: newPov['heading'], pitch: newPov['pitch']});
-        self.panorama.set('zoom', zoomLevel[newPov['zoom']]);
         return this;
     }
 
@@ -184,21 +198,11 @@ function AdminPanorama(svHolder) {
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
     }
 
-    /*
-    Sometimes strangely the GSV is not shown, calling this function might fix it
-    related:http://stackoverflow.com/questions/18426083/how-do-i-force-redraw-with-google-maps-api-v3-0
-     */
-    function refreshGSV() {
-        if (typeof google != "undefined")
-            google.maps.event.trigger(self.panorama,'resize');
-    }
-
     //init
     _init();
 
-    self.changePanoId = changePanoId;
-    self.setPov = setPov;
+    self.setPano = setPano;
+    self.setLabel = setLabel;
     self.renderLabel = renderLabel;
-    self.refreshGSV = refreshGSV;
     return self;
 }
