@@ -178,6 +178,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             noCurbRampCount = labelCount ? labelCount["NoCurbRamp"] : 0 ,
             obstacleCount = labelCount ? labelCount["Obstacle"] : 0,
             surfaceProblemCount = labelCount ? labelCount["SurfaceProblem"] : 0,
+            noSidewalkCount = labelCount ? labelCount["NoSidewalk"] : 0,
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
@@ -188,7 +189,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
 
         this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
-        this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
+        this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
 
     };
 
@@ -281,10 +282,11 @@ ModalMissionComplete.prototype._updateTheMissionCompleteMessage = function () {
     this._uiModalMissionComplete.message.html(message);
 };
 
-ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
+ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount) {
     this._uiModalMissionComplete.curbRampCount.html(curbRampCount);
     this._uiModalMissionComplete.noCurbRampCount.html(noCurbRampCount);
     this._uiModalMissionComplete.obstacleCount.html(obstacleCount);
     this._uiModalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
+    this._uiModalMissionComplete.noSidewalk.html(noSidewalkCount);
     this._uiModalMissionComplete.otherCount.html(otherCount);
 };
