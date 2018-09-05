@@ -378,6 +378,18 @@ object AuditTaskTable {
   }
 
   /**
+    * Get the sum of the line distance of all streets in the region that the user has not audited.
+    *
+    * @param userId
+    * @param regionId
+    * @return
+    */
+  def getUnauditedDistance(userId: UUID, regionId: Int): Float = db.withSession { implicit session =>
+    val streetsLeft: List[Int] = streetEdgeIdsNotAuditedByUser(userId, regionId)
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId inSet streetsLeft).map(_.geom.transform(26918).length).list.sum
+  }
+
+  /**
     * Get a new task specified by the street edge id. Used when calling the /audit/street route.
     *
     * @param streetEdgeId Street edge id

@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
+import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
@@ -247,9 +248,12 @@ object MissionTable {
     * @return
     */
   def getNextAuditMissionDistance(userId: UUID, regionId: Int): Float = {
+    val distRemaining: Float = AuditTaskTable.getUnauditedDistance(userId, regionId)
     val completedInRegion: Int = selectCompletedAuditMissionsByAUser(userId, regionId, includeOnboarding = false).length
-    if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
-    else                                                            distancesForFirstAuditMissions(completedInRegion)
+    val naiveMissionDist: Float =
+      if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
+      else                                                            distancesForFirstAuditMissions(completedInRegion)
+    math.min(distRemaining, naiveMissionDist)
   }
 
   /**

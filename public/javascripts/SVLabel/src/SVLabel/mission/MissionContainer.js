@@ -76,18 +76,6 @@ function MissionContainer (statusFieldMission, missionModel) {
         return completedDistance;
     }
 
-    // TODO the back-end should be sending us this mission.
-    this.getNeighborhoodCompleteMission = function (regionId) {
-        // if (typeof regionId == "undefined") throw "MissionContainer.getNeighborhoodCompleteMission: regionId undefined";
-        // var missions = self.getMissionsByRegionId(regionId);
-        // missions = missions.filter(function (mission) {
-        //     return mission.getProperty("label") == "area-coverage-mission" &&
-        //         mission.getProperty("coverage") == 1.0;
-        // });
-        //
-        // return missions.length > 0 ? missions[0] : null;
-    };
-
     /**
      * Checks if this is the first mission or not.
      * @returns {boolean}

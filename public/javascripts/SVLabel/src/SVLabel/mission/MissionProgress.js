@@ -24,7 +24,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // When the user has complete auditing all the streets in the neighborhood,
         // show the 100% coverage mission completion message.
 
-        var mission = missionContainer.getNeighborhoodCompleteMission(parameters.completedRegionId);
+        var mission = missionContainer.getCurrentMission();
         var neighborhood = neighborhoodModel.getNeighborhood(parameters.completedRegionId);
 
         self._completeTheCurrentMission(mission, neighborhood);
