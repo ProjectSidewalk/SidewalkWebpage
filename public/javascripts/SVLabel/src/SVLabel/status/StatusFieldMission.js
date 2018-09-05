@@ -35,7 +35,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
 
         if (missionType === "audit") {
             var distance = mission.getDistance("miles");
-            var distanceString = this._distanceToString(distance, "miles");
+            var distanceString = this._distanceToString(distance.toPrecision(4), "miles");
             missionMessage = missionMessage.replace("__PLACEHOLDER__", distanceString);
 
         } else if (missionType === "area-coverage-mission") {

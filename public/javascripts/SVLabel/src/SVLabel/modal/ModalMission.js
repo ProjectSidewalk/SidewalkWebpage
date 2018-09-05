@@ -116,7 +116,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 templateHTML = initialMissionHTML;
             }
 
-            distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
+            distanceString = this._distanceToString(mission.getDistance("miles").toPrecision(4), "miles");
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));

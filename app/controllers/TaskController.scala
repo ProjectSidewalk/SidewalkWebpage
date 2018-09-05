@@ -104,8 +104,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
         val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.get.userId, regionId.get)
         incompleteMission match {
-          case Some(startedMission) => Some(startedMission)
-          case _ => Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, 152.4F, regionId.get))
+          case Some(startedMission) =>
+            Some(startedMission)
+          case _ =>
+            val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.get.userId, regionId.get)
+            Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, nextMissionDistance, regionId.get))
         }
       } else {
         None
@@ -119,8 +122,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Checking for missions that were already created, since duplicates are being made from multiple requests.
         val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.get.userId, regionId.get)
         incompleteMission match {
-          case Some(startedMission) => Some(startedMission)
-          case _ => Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, 152.4F, regionId.get))
+          case Some(startedMission) =>
+            Some(startedMission)
+          case _ =>
+            val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.get.userId, regionId.get)
+            Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, nextMissionDistance, regionId.get))
         }
       } else {
         None

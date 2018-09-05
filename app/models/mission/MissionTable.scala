@@ -78,6 +78,11 @@ object MissionTable {
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
 
+  // Distances for first few missions: 500ft, 500ft, 1000ft, 1000ft, then 1/4 mile for all remaining. This is just a
+  // temporary setup for that sake of testing the new missions infrastructure.
+  val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 304.8F, 304.8F)
+  val distanceForLaterMissions: Float = 402.336F // 1/4 mile
+
 
   implicit val missionConverter = GetResult[Mission](r => {
     val missionId: Int = r.nextInt
@@ -232,6 +237,19 @@ object MissionTable {
 
     // Count missions per user by grouping by (user_id, role).
     userMissions.groupBy(m => (m._1, m._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
+  }
+
+  /**
+    * Get the suggested distance in meters for the next mission this user does in this region.
+    *
+    * @param userId
+    * @param regionId
+    * @return
+    */
+  def getNextAuditMissionDistance(userId: UUID, regionId: Int): Float = {
+    val completedInRegion: Int = selectCompletedAuditMissionsByAUser(userId, regionId, includeOnboarding = false).length
+    if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
+    else                                                            distancesForFirstAuditMissions(completedInRegion)
   }
 
   /**

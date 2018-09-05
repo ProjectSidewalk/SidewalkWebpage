@@ -89,8 +89,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               } else {
                 val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
                 incompleteMission match {
-                  case Some(startedMission) => startedMission
-                  case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
+                  case Some(startedMission) =>
+                    startedMission
+                  case _ =>
+                    val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, regionId)
+                    MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, nextMissionDistance, regionId)
                 }
               }
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user))))
@@ -130,8 +133,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
             val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
             val mission: Mission = incompleteMission match {
-              case Some(startedMission) => startedMission
-              case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, regionId)
+              case Some(startedMission) =>
+                startedMission
+              case _ =>
+                val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, regionId)
+                MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, nextMissionDistance, regionId)
             }
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user))))
           case None =>
@@ -165,8 +171,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
           val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, region.regionId)
           val mission: Mission = incompleteMission match {
-            case Some(startedMission) => startedMission
-            case _ => MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, DEFAULT_DISTANCE, region.regionId)
+            case Some(startedMission) =>
+              startedMission
+            case _ =>
+              val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, region.regionId)
+              MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, nextMissionDistance, region.regionId)
           }
           Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
         }
