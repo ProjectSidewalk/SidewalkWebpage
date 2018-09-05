@@ -60,7 +60,7 @@ GET     /adminapi/choroplethCounts                           @controllers.AdminC
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
 # Auditing tasks
-GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
+GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority

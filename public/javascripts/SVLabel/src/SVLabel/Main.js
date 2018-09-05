@@ -200,7 +200,7 @@ function Main (params) {
         }
 
         $("#toolbar-onboarding-link").on('click', function () {
-            startOnboarding();
+            window.location.replace('/audit?retakeTutorial=true');
         });
 
         $('#survey-modal-container').on('show.bs.modal', function () {

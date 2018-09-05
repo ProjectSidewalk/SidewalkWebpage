@@ -38,10 +38,12 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     *
     * @return
     */
-  def audit(nextRegion: Option[String]) = UserAwareAction.async { implicit request =>
+  def audit(nextRegion: Option[String], retakeTutorial: Option[Boolean]) = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
+
+    val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
 
     request.identity match {
       case Some(user) =>
@@ -81,10 +83,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
             val mission: Mission =
-              if (!MissionTable.hasCompletedAuditOnboarding(user.userId)) {
+              if (!MissionTable.hasCompletedAuditOnboarding(user.userId) || retakingTutorial) {
                 MissionTable.getIncompleteAuditOnboardingMission(user.userId) match {
-                  case Some(incompleteOnboardingMission) => incompleteOnboardingMission
-                  case _ => MissionTable.createAuditOnboardingMission(user.userId, DEFAULT_PAY)
+                  case Some(incompleteOnboardingMission) =>
+                    incompleteOnboardingMission
+                  case _ =>
+                    val tutorialPay: Double = if (retakingTutorial) 0.0D else DEFAULT_PAY
+                    MissionTable.createAuditOnboardingMission(user.userId, tutorialPay)
                 }
               } else {
                 val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
@@ -100,16 +105,16 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         }
       // For anonymous users.
       case None =>
-        nextRegion match {
-          case Some(regionType) =>
-            // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-            Future.successful(Redirect("/anonSignUp?url=/audit%3FnextRegion=" + regionType))
-          case None =>
-            Future.successful(Redirect("/anonSignUp?url=/audit"))
+        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
+        val redirectString: String = (nextRegion, retakeTutorial) match {
+          case (Some(nextR), Some(retakeT)) => s"/anonSignUp?url=/audit%3FnextRegion=$nextR%26retakeTutorial=$retakeT"
+          case (Some(nextR), None         ) => s"/anonSignUp?url=/audit%3FnextRegion=$nextR"
+          case (None,        Some(retakeT)) => s"/anonSignUp?url=/audit%3FretakeTutorial=$retakeT"
+          case _                            => s"/anonSignUp?url=/audit"
         }
+        Future.successful(Redirect(redirectString))
     }
   }
-
 
   /**
     * Audit a given region
