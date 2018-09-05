@@ -498,16 +498,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _endTheOnboarding() {
         tracker.push('Onboarding_End');
-        var task = taskContainer.getCurrentTask();
-        var data = form.compileSubmissionData(task);
-        form.submit(data, task);
+        missionContainer.getCurrentMission().setProperty("isCompleted", true);
 
-        // TODO maybe get rid of this, all we are doing is submitting the missions data here.
-        var onboardingMission = missionContainer.getCurrentMission();
-        onboardingMission.setProperty("isCompleted", true);
-        missionModel.completeMission(onboardingMission);
-
-        // Reload the page.
+        // Reload the page. This also submits all data through Form.js.
         window.location.replace('/audit');
     }
 

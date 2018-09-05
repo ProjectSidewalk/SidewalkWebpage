@@ -33,12 +33,20 @@ function Mission(parameters) {
     }
 
     /**
-     * Set the property to complete
+     * Set the isCompleted property to true.
      */
-    function complete () {
+    function complete() {
         // Play the animation and audio effect after task completion.
 
         setProperty("isCompleted", true);
+
+        // Set distanceProgress to be at most the distance for the mission, subtract the difference from the offset.
+        if (getProperty("missionType") === "audit") {
+            var distanceOver = getProperty("distanceProgress") - getProperty("distance");
+            var oldOffset = svl.missionContainer.getTasksMissionsOffset();
+            var newOffset = oldOffset - distanceOver;
+            svl.missionContainer.setTasksMissionsOffset(newOffset);
+        }
 
         // Update the neighborhood status
         if ("labelContainer" in svl) {

@@ -37,7 +37,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         mission.updateDistanceProgress();
         data.mission = {
             mission_id: mission.getProperty("missionId"),
-            distance_progress: mission.getProperty("distanceProgress"),
+            distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
             completed: mission.getProperty("isCompleted")
         };
 

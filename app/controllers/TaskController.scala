@@ -116,7 +116,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       MissionTable.updateAuditProgress(missionProgress.missionId, missionProgress.distanceProgress.get)
       if (missionProgress.completed) {
         MissionTable.updateComplete(missionProgress.missionId)
-        Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, 152.4F, regionId.get))
+        // Checking for missions that were already created, since duplicates are being made from multiple requests.
+        val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.get.userId, regionId.get)
+        incompleteMission match {
+          case Some(startedMission) => Some(startedMission)
+          case _ => Some(MissionTable.createNextAuditMission(user.get.userId, 0.0, 152.4F, regionId.get))
+        }
       } else {
         None
       }
