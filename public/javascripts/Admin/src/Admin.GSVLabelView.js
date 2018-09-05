@@ -74,23 +74,17 @@ function AdminGSVLabel() {
         $.getJSON(adminLabelUrl, function (data) {
             _handleData(data);
         });
-        self.panorama.refreshGSV();
     }
 
     function _handleData(labelMetadata) {
-        self.panorama.changePanoId(labelMetadata['gsv_panorama_id']);
-
-        self.panorama.setPov({
-            heading: labelMetadata['heading'],
-            pitch: labelMetadata['pitch'],
-            zoom: labelMetadata['zoom']
-        });
+        self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
+            labelMetadata['pitch'], labelMetadata['zoom']);
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_type_key'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'],
             labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom']);
-        self.panorama.renderLabel(adminPanoramaLabel);
+        self.panorama.setLabel(adminPanoramaLabel);
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
