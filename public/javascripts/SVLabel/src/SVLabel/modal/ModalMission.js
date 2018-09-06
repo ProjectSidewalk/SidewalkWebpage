@@ -34,13 +34,6 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         self.hide();
     });
 
-    // Mission titles. Keys are mission labels.
-    // TODO update to check for region completeness using tasks
-    var missionTitles = {
-        "initial-mission": "Initial Mission",
-        "audit": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
-    };
 
     var initialMissionHTML = '<figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
@@ -54,13 +47,6 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         </figure> \
         <div class="spacer10"></div>\
         <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
-        <div class="spacer10"></div>';
-
-    var areaCoverageMissionHTML = '<figure> \
-        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
-        </figure> \
-        <div class="spacer10"></div>\
-        <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets in this neighborhood</span> and find the accessibility attributes!</p>\
         <div class="spacer10"></div>';
 
 
@@ -102,21 +88,21 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     this.setMissionMessage = function (mission, neighborhood, parameters, callback) {
         // Set the title and the instruction of this mission.
 
-        var missionType = mission.getProperty("missionType"),
-            templateHTML,
-            missionTitle = missionType in missionTitles ? missionTitles[missionType] : "Mission";
+        var missionType = mission.getProperty("missionType");
+        var missionTitle = "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__";
+        var templateHTML;
 
         svl.popUpMessage.disableInteractions();
         if (missionType === "audit") {
             var distanceString;
-                templateHTML = distanceMissionHTML;
+            templateHTML = distanceMissionHTML;
 
             if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
             }
 
-            distanceString = this._distanceToString(mission.getDistance("miles").toPrecision(4), "miles");
+            distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
@@ -128,28 +114,16 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             uiModalMission.instruction.html(templateHTML);
             $("#mission-target-distance").html(distanceString);
             // TODO check for this using tasks
-        } else if (missionType === "area-coverage-mission") {
-            // Set the title
-            var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
-            templateHTML = areaCoverageMissionHTML;
-
-            missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", coverage);
-            missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
-
-            uiModalMission.missionTitle.html(missionTitle);
-            uiModalMission.instruction.html(templateHTML);
-            $("#modal-mission-area-coverage-rate").html(coverage);
         } else {
             templateHTML = initialMissionHTML;
             uiModalMission.instruction.html(templateHTML);
             uiModalMission.missionTitle.html(missionTitle);
         }
 
-        //Check if the user is associated with the "Turker" role and update the reward HTML
-        var url = '/isTurker';
+        // Check if the user is associated with the "Turker" role and update the reward HTML.
         $.ajax({
             async: true,
-            url: url,//endpoint that checks above conditions
+            url: '/isTurker',
             type: 'get',
             success: function (data) {
                 if (data.isTurker) {
@@ -225,29 +199,27 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 ModalMission.prototype._distanceToString = function  (distance, unit) {
     if (!unit) unit = "kilometers";
 
-    if (unit == "miles") {
-        if (distance <= 0.12){
-            return "500ft";
-        }
-        else if (distance <= 0.20) {
-            return "1000ft";
-        } else if (distance <= 0.25) {
-            return "&frac14;mi";
-        } else if (distance <= 0.39) {
-            return "2000ft";
-        } else if (distance <= 0.5) {
-            return "&frac12;mi";
-        } else if (distance <= 0.75) {
-            return "&frac34;mi";
-        } else {
-            return distance.toFixed(0, 10) + "";
-        }
-    } else if (unit == "feet") {
-        // Todo.
-        return distance + "";
+    // Convert to miles and round to 4 decimal places.
+    if (unit === "feet") distance = distance / 5280;
+    else if (unit === "meters") distance = distance / 1609.34;
+    else if (unit === "kilometers") distance = distance / 1.60934;
+
+    distance = distance.toPrecision(4);
+
+    if (distance === "0.0947"){
+        return "500ft";
+    } else if (distance === "0.1894") {
+        return "1001ft";
+    } else if (distance === "0.2500") {
+        return "&frac14;mi";
+    } else if (distance === "0.3788") {
+        return "2000ft";
+    } else if (distance === "0.5000") {
+        return "&frac12;mi";
+    } else if (distance === "0.7500") {
+        return "&frac34;mi";
     } else {
-        // Todo.
-        return distance + "";
+        return (distance * 5280).toFixed(0) + "ft";
     }
 };
 

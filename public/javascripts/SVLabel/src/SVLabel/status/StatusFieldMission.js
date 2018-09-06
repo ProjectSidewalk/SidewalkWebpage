@@ -34,8 +34,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
         var missionMessage = this._getMissionMessage(missionType);
 
         if (missionType === "audit") {
-            var distance = mission.getDistance("miles");
-            var distanceString = this._distanceToString(distance.toPrecision(4), "miles");
+            var distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
             missionMessage = missionMessage.replace("__PLACEHOLDER__", distanceString);
 
         } else if (missionType === "area-coverage-mission") {
@@ -50,24 +49,26 @@ function StatusFieldMission (modalModel, uiStatusField) {
 StatusFieldMission.prototype._distanceToString = function (distance, unit) {
     if (!unit) unit = "kilometers";
 
-    if (unit == "miles") {
-        if(distance <= 0.12){
-            return "500ft";
-        }
-        else if (distance <= 0.20) {
-            return "1000ft";
-        } else if (distance <= 0.25) {
-            return "&frac14;mi";
-        } else if (distance <= 0.5) {
-            return "&frac12;mi"
-        } else if (distance <= 0.75) {
-            return "&frac34;mi";
-        } else {
-            return distance.toFixed(0, 10) + "";
-        }
-    } else if (unit == "feet") {
-        return distance + "";
+    // Convert to miles and round to 4 decimal places.
+    if (unit === "feet") distance = distance / 5280;
+    else if (unit === "meters") distance = distance / 1609.34;
+    else if (unit === "kilometers") distance = distance / 1.60934;
+
+    distance = distance.toPrecision(4);
+
+    if (distance === "0.0947"){
+        return "500ft";
+    } else if (distance === "0.1894") {
+        return "1001ft";
+    } else if (distance === "0.2500") {
+        return "&frac14;mi";
+    } else if (distance === "0.3788") {
+        return "2000ft";
+    } else if (distance === "0.5000") {
+        return "&frac12;mi";
+    } else if (distance === "0.7500") {
+        return "&frac34;mi";
     } else {
-        return distance + "";
+        return (distance * 5280).toFixed(0) + "ft";
     }
 };
