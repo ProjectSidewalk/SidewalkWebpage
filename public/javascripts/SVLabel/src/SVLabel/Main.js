@@ -348,6 +348,7 @@ function Main (params) {
             svl.modalMission.show();
         }
         svl.missionModel.updateMissionProgress(mission, neighborhood);
+        svl.statusFieldMission.setMessage(mission);
 
         // Get the labels collected in the current neighborhood
         svl.labelContainer.fetchLabelsInANeighborhood(neighborhood.getProperty("regionId"), function () {

@@ -188,7 +188,7 @@ object MissionTable {
     val auditMissionTypeIds: List[Int] = missionTypes.filter(_.missionType inSet auditMissionTypes).map(_.missionTypeId).list
     missions.filter(m => m.userId === userId.toString
                       && (m.missionTypeId inSet auditMissionTypeIds)
-                      && m.regionId === regionId
+                      && (m.regionId === regionId || m.regionId.isEmpty)
                       && m.completed === true).list
   }
 
