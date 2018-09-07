@@ -163,7 +163,7 @@ function Stats(arr) {
             sum += theArray[i];
         }
         return sum/length;
-    }
+    };
 
     //http://en.wikipedia.org/wiki/Mean#Geometric_mean_.28GM.29
     self.getGeometricMean = function() {
@@ -172,7 +172,7 @@ function Stats(arr) {
             product = product * theArray[i];
         }
         return Math.pow(product,(1/length));
-    }
+    };
 
     //http://en.wikipedia.org/wiki/Mean#Harmonic_mean_.28HM.29
     self.getHarmonicMean = function() {
@@ -181,7 +181,7 @@ function Stats(arr) {
             sum += (1/theArray[i]);
         }
         return length/sum;
-    }
+    };
 
     //http://en.wikipedia.org/wiki/Standard_deviation
     self.getStandardDeviation = function() {
@@ -191,14 +191,14 @@ function Stats(arr) {
             sum += Math.pow(theArray[i]-arithmeticMean, 2);
         }
         return Math.pow(sum/length, 0.5);
-    }
+    };
 
     // Added by Kotaro
     // http://en.wikipedia.org/wiki/Standard_error
     self.getStandardError = function () {
         var stdev = this.getStandardDeviation();
         var len = theArray.length;
-        var stderr = stdev / Math.sqrt(len)
+        var stderr = stdev / Math.sqrt(len);
         return stderr;
     };
 
@@ -228,11 +228,11 @@ function Stats(arr) {
     self.setArray = function(arr) {
         theArray = arr;
         return self;
-    }
+    };
 
     self.getArray = function() {
         return theArray;
-    }
+    };
 
     return self;
 }
