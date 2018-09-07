@@ -109,7 +109,7 @@ function Mission(parameters) {
             if (isCompleted()) {
                 currentMissionCompletedDistance = getDistance("meters");
             } else {
-                var taskDistance = svl.taskContainer.getCompletedTaskDistance("kilometers") * 1000;
+                var taskDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance("kilometers"));
                 var offset = svl.missionContainer.getTasksMissionsOffset();
                 offset = offset ? offset : 0;
 
@@ -176,9 +176,9 @@ function Mission(parameters) {
     function getDistance(unit) {
         if (unit === undefined) unit = "meters";
 
-        if (unit === "miles")           return getProperty("distance") / 1609.34;
-        else if (unit === "feet")       return getProperty("distance") * 3.28084;
-        else if (unit === "kilometers") return getProperty("distance") / 1000;
+        if (unit === "miles")           return util.math.metersToMiles(getProperty("distance"));
+        else if (unit === "feet")       return util.math.metersToFeet(getProperty("distance"));
+        else if (unit === "kilometers") return util.math.metersToKilometers(getProperty("distance"));
         else if (unit === "meters")     return getProperty("distance");
         else {
             console.error("Unit must be miles, feet, kilometers, or meters. Given: " + unit);

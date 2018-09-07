@@ -151,6 +151,31 @@ function distance3d(a, b) {
 }
 util.math.distance3d = distance3d;
 
+function metersToMiles(dist) { return dist / 1609.34; }
+function metersToKilometers(dist) { return dist / 1000; }
+function metersToFeet(dist) { return dist * 3.28084; }
+function milesToMeters(dist) { return dist * 1609.34; }
+function milesToKilometers(dist) { return dist * 1.60934; }
+function milesToFeet(dist) { return dist * 5280; }
+function kilometersToMeters(dist) { return dist * 1000; }
+function kilometersToMiles(dist) { return dist / 1.60934; }
+function kilometersToFeet(dist) { return dist * 3280.84; }
+function feetToMeters(dist) { return dist / 3.28084; }
+function feetToMiles(dist) { return dist / 5280; }
+function feetToKilometers(dist) { return dist / 3280.84; }
+util.math.metersToMiles = metersToMiles;
+util.math.metersToKilometers = metersToKilometers;
+util.math.metersToFeet = metersToFeet;
+util.math.milesToMeters = milesToMeters;
+util.math.milesToKilometers = milesToKilometers;
+util.math.milesToFeet = milesToFeet;
+util.math.kilometersToMeters = kilometersToMeters;
+util.math.kilometersToMiles = kilometersToMiles;
+util.math.kilometersToFeet = kilometersToFeet;
+util.math.feetToMeters = feetToMeters;
+util.math.feetToMiles = feetToMiles;
+util.math.feetToKilometers = feetToKilometers;
+
 // http://clauswitt.com/simple-statistics-in-javascript.html
 function Stats(arr) {
     var self = this;

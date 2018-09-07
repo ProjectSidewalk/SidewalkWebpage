@@ -35,9 +35,9 @@ StatusFieldMission.prototype._distanceToString = function (distance, unit) {
     if (!unit) unit = "kilometers";
 
     // Convert to miles and round to 4 decimal places.
-    if (unit === "feet") distance = distance / 5280;
-    else if (unit === "meters") distance = distance / 1609.34;
-    else if (unit === "kilometers") distance = distance / 1.60934;
+    if (unit === "feet") distance = util.math.feetToMiles(distance);
+    else if (unit === "meters") distance = util.math.metersToMiles(distance);
+    else if (unit === "kilometers") distance = util.math.kilometersToMiles(distance);
 
     distance = distance.toPrecision(4);
 
@@ -54,6 +54,6 @@ StatusFieldMission.prototype._distanceToString = function (distance, unit) {
     } else if (distance === "0.7500") {
         return "&frac34;mi";
     } else {
-        return (distance * 5280).toFixed(0) + "ft";
+        return (util.math.milesToFeet(distance)).toFixed(0) + "ft";
     }
 };
