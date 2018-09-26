@@ -815,32 +815,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!status.labelBeforeJumpListenerSet) {
 
-            // Get a new task and check if its disconnected from the current task
-            // If yes, then finish the current task after the user has labeling the
-            // the current location before jumping to the new location
+            // Get a new task and check if its disconnected from the current task. If yes, then finish the current task
+            // after the user has labeling the the current location before jumping to the new location.
 
-            //console.log("Current street: " + task.getStreetEdgeId());
-            //console.log("Task ID:" + task.getAuditTaskId());
-
-            // Set mission
             missionJump = mission;
-            //Get a new task
-            // var nextTask = svl.taskContainer.getFinishedAndFindNextTask(task);
             var nextTask = svl.taskContainer.nextTask(task);
 
-            // Check if the interface jumped the user to another discontinuous location.
-            // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
-            // label the location before proceeding.
-
             if (nextTask && !task.isConnectedTo(nextTask)) {
+                // Check if the interface jumped the user to another discontinuous location. If the user has indeed
+                // jumped, [UPDATE] before jumping, let the user know to label the location before proceeding.
 
                 // Set the newTask before jumping
                 svl.taskContainer.setBeforeJumpNewTask(nextTask);
-
                 status.labelBeforeJumpListenerSet = true;
 
-                // Store before jump location for tracking before-jump actions every time the user
-                // moves away from his location
+                // Store before jump location for tracking pre-jump actions when the user leaves their location.
                 setBeforeJumpLocation();
 
                 // Listener activated for tracking before-jump actions
@@ -848,10 +837,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
                         "pano_changed", trackBeforeJumpActions);
                 } catch (err) {}
-
             }
             else {
-                // Finish a task
                 finishCurrentTaskBeforeJumping(missionJump);
 
                 // Move to the new task if the neighborhood has not finished
@@ -869,7 +856,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Callback to track when user moves away from his current location
      */
-
     function trackBeforeJumpActions() {
 
         // This is a callback function that is called each time the user moves
@@ -892,8 +878,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             }
             else if (distance > 0.07) {
-
-                //console.log("You are way off! " + distance)
 
                 // Message versions:
                 // v3: "Don't walk too far");
@@ -1248,8 +1232,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.showLabelTag(label);
         }
         else {
-            // console.log("On nothing");
-            // canvas.hideDeleteLabel();
             _canvas.showLabelTag(undefined);
             _canvas.setCurrentLabel(undefined);
         }

@@ -738,7 +738,7 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This function sets the sub label type of this label. E.g. for a bus stop there are StopSign_OneLeg
+     * This function sets the sub label type of this label. E.g. for a NoCurbRamp there are "Missing Curb Ramp"
      * @param labelType
      * @returns {setSubLabelDescription}
      */

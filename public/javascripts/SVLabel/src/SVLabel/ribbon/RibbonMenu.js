@@ -185,7 +185,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
 
         if (status.disableModeSwitch === false || !modeDisabled) {
             // Change the background color and border color of menu buttons
-            // But if there is no Bus Stop label, then do not change back ground colors.
 
             // If allowedMode is not null/undefined, only accept the specified mode (e.g., 'walk')
             if (status.allowedMode && status.allowedMode !== labelType) {
