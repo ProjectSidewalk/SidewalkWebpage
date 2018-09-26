@@ -6,15 +6,12 @@
  * @memberof svl
  */
 function Neighborhood (parameters) {
-    var self = { className: "Neighborhood"},
-        properties = {
-            layer: null,
-            name: null,
-            regionId: null
-        },
-        status = {
-            layerAdded: false
-        };
+    var self = { className: "Neighborhood"}
+    var properties = {
+        layer: null,
+        name: null,
+        regionId: null
+    };
 
     /**
      * Initialize
@@ -27,19 +24,6 @@ function Neighborhood (parameters) {
         if ("layer" in parameters) setProperty("layer", parameters.layer);
         if ("name" in parameters) {
             setProperty("name", parameters.name);
-        }
-    }
-
-    /**
-     * Add a layer to the map
-     * @param map
-     */
-    function addTo(map, layerStyle) {
-        if (map && properties.layer && !status.layerAdded) {
-            layerStyle = {"color":"rgb(200,200,200)", "fill": false, "weight": 2 } || layerStyle;
-            status.layerAdded = true;
-            properties.layer.addTo(map);
-            properties.layer.setStyle(layerStyle);
         }
     }
 
@@ -92,7 +76,6 @@ function Neighborhood (parameters) {
     }
     _init(parameters);
 
-    self.addTo = addTo;
     self.center = center;
     self.completedLineDistance = completedLineDistance;
     self.getProperty = getProperty;

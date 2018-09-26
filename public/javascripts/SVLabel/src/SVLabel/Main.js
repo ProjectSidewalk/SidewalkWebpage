@@ -140,7 +140,7 @@ function Main (params) {
 
 
         var neighborhood;
-        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel, svl.userModel);
+        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
         svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
 
         svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);

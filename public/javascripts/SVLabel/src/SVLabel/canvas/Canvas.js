@@ -996,11 +996,6 @@ function Canvas(ribbon) {
             svl.zoomControl.updateOpacity();
         }
 
-        // This line of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.goldenInsertion.renderMessage();
-        }
-
         return this;
     }
 

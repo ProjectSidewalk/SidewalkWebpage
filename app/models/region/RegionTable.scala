@@ -84,21 +84,6 @@ object RegionTable {
   }
 
   /**
-    * Picks one of the easy regions with highest average priority.
-    *
-    * @return
-    */
-  def selectAHighPriorityEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] =
-      regionsWithoutDeleted.filterNot(_.regionId inSet difficultRegionIds).map(_.regionId).list
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => selectAHighPriorityRegion // Should only happen if all regions are difficult regions.
-    }
-  }
-
-  /**
     * Picks one of the regions with highest average priority.
     *
     * @return

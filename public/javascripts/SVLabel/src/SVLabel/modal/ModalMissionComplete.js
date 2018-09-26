@@ -153,7 +153,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                 }
             });
 
-            //console.log("Reached modal mission complete");
             var confirmationCodeElement = document.createElement("h3");
             confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
                 "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +

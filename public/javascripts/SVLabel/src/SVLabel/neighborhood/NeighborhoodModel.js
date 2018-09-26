@@ -10,10 +10,10 @@ function NeighborhoodModel () {
         var leafletLayers = geojsonLayer.getLayers();
         var layer, regionId, regionName;
         for (var i = 0, len = leafletLayers.length; i < len; i++) {
-            layer =leafletLayers[i];
+            layer = leafletLayers[i];
             regionId = layer.feature.properties.region_id;
             regionName = layer.feature.properties.region_name;
-            // TODO: Add a isCompleted property
+            // TODO: Add an isCompleted property
             self.create(regionId, layer, regionName);
         }
     };
@@ -56,35 +56,12 @@ NeighborhoodModel.prototype.currentNeighborhood = function () {
     return this._neighborhoodContainer.getCurrentNeighborhood();
 };
 
-/**
- *
- * @param regionId
- */
-NeighborhoodModel.prototype.updateUserRegionInDatabase = function (regionId) {
-    regionId = parseInt(regionId, 10);
-    var url = "/neighborhood/assignment";
-    $.ajax({
-        async: true,
-        contentType: 'application/json; charset=utf-8',
-        url: url,
-        type: 'post',
-        data: JSON.stringify({"region_id": regionId}),
-        dataType: 'json',
-        success: function (result) {
-
-        },
-        error: function (result) {
-            console.error(result);
-        }
-    });
-};
-
-NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function () {
     return this.isNeighborhoodCompletedAcrossAllUsers;
 };
 
 
-NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function () {
     this.isNeighborhoodCompletedAcrossAllUsers = true;
 };
 
@@ -99,10 +76,4 @@ NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoo
         completedRegionId: currentNeighborhoodId
     });
     this.isNeighborhoodCompleted = true;
-};
-
-NeighborhoodModel.prototype.setCurrentNeighborhood = function (neighborhood) {
-    if (this._neighborhoodContainer) {
-        this._neighborhoodContainer.setCurrentNeighborhood(neighborhood);
-    }
 };
