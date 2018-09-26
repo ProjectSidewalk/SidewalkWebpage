@@ -648,7 +648,7 @@ function Canvas(ribbon) {
     /**
      * This method returns system labels; the labels stored in our database (e.g., other users' labels and the user's
      * previous labels) that are not from this auditing session.
-     * If refrence is true, then it returns reference to the labels.
+     * If reference is true, then it returns reference to the labels.
      * Otherwise it returns deepcopy of labels.
      * @method
      */

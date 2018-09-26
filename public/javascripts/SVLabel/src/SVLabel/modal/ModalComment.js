@@ -10,14 +10,13 @@
  * @param onboardingModel
  * @constructor
  */
-function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel, onboardingModel) {
+function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, onboardingModel) {
     var self = this;
     var status = {
         disableClickOK: true
     };
     var blinkInterval;
 
-    var _modalModel = modalModel;
     var _uiModalComment = uiModalComment;
     var _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
 

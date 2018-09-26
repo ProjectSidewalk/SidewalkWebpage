@@ -2,6 +2,7 @@
  * Todo. This module needs to be cleaned up.
  * Todo. Separate the Google Maps component (UI and logic) and Street View component (UI and logic).
  * @param canvas
+ * @param neighborhoodModel
  * @param uiMap
  * @param params
  * @returns {{className: string}}
@@ -373,7 +374,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Blink google maps pane
      */
     function blinkGoogleMaps () {
-        var highlighted = false;
         stopBlinkingGoogleMaps();
         googleMapsPaneBlinkInterval = window.setInterval(function () {
             svl.ui.googleMaps.overlay.toggleClass("highlight-50");
@@ -564,9 +564,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {*}
      */
     function _takeAStep(currentPosition, heading) {
-        var newPosition = google.maps.geometry.spherical.computeOffset(currentPosition,
-            ONE_STEP_DISTANCE_IN_M, heading);
-        return newPosition;
+        return google.maps.geometry.spherical.computeOffset(currentPosition, ONE_STEP_DISTANCE_IN_M, heading);
     }
 
     /**
@@ -1104,7 +1102,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                 });
-                labelType = selectedLabel.getProperty("labelType");
+                var labelType = selectedLabel.getProperty("labelType");
                 if(labelType === "Other"){
                   //no tooltips for other
                   $('#severity-one').tooltip('destroy');
@@ -1192,7 +1190,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param e
      */
     function handlerViewControlLayerMouseLeave (e) {
-        setViewControlLayerCursor('OpenHand')
+        setViewControlLayerCursor('OpenHand');
         mouseStatus.isLeftDown = false;
     }
 
@@ -1621,6 +1619,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Sets the initial location before the pano change happens
      * @param gLatLng
+     * @param panoId
      */
     function setPanoChangeInitialLocation(gLatLng, panoId) {
         panoChange["initialPos"]["pano"] = panoId;
@@ -1730,7 +1729,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function setPov (pov, durationMs, callback) {
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
-            var end = false;
             var interval;
 
             pov.heading = parseInt(pov.heading, 10);
@@ -1770,7 +1768,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Get how much angle you change over timeSegment of time.
                 var cw = (pov.heading - currentPov.heading + 360) % 360;
                 var ccw = 360 - cw;
-                var headingDelta;
                 var headingIncrement;
                 if (cw < ccw) {
                     headingIncrement = cw * (timeSegment / durationMs);
@@ -1844,19 +1841,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Show delete menu
-     */
-    function showDeleteLabelMenu () {
-        var item = canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
-        if (item && item.className === "Point") {
-            var selectedLabel = item.belongsTo().belongsTo();
-            if (selectedLabel === canvas.getCurrentLabel()) {
-                canvas.showDeleteLabel(mouseStatus.currX, mouseStatus.currY);
-            }
-        }
-    }
-
-    /**
      * Unlock disable panning
      * @returns {unlockDisablePanning}
      */
@@ -1891,7 +1875,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // Set a flag that triggers the POV being reset into the route direction upon the postiion changing
     self.preparePovReset = function(){
         initialPositionUpdate = true;
-    }
+    };
     // Set the POV in the same direction as the route
     function setPovToRouteDirection(){
         var pov = svl.panorama.getPov(),

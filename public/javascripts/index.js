@@ -283,8 +283,8 @@ $(document).ready(function () {
         if (key) {
           _update(key)
         } else {
-          for (var key in dotPlots) {
-            _update(key);
+          for (var dpKey in dotPlots) {
+            _update(dpKey);
           }
         }
 

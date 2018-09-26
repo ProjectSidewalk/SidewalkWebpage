@@ -2,9 +2,25 @@
  *
  * @param svl. Todo. Get rid of this dependency eventually.
  * @param missionContainer
+ * @param taskContainer
+ * @param taskContainer
+ * @param modalMissionProgressBar
+ * @param taskContainer
+ * @param modalMissionProgressBar
+ * @param statusModel
+ * @param onboardingModel
+ * @param taskContainer
+ * @param modalMissionProgressBar
+ * @param statusModel
+ * @param onboardingModel
  * @param modalMissionCompleteMap
+ * @param modalMissionProgressBar
+ * @param statusModel
+ * @param onboardingModel
  * @param uiModalMissionComplete
  * @param modalModel
+ * @param statusModel
+ * @param onboardingModel
  * @returns {{className: string}}
  * @constructor
  */
@@ -22,7 +38,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     this._status = {
         isOpen: false
     };
-    this._gotNextMission = false;
     this._closeModalClicked = false;
 
     this._uiModalMissionComplete = uiModalMissionComplete;
@@ -45,24 +60,11 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     });
 
     svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
-        var neighborhood = svl.neighborhoodContainer.get(parameters.completedRegionId);
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
         uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
     });
-
-    /**
-     * Closes the mission complete modal when the close button is click _and_ we got the next mission from back-end.
-     * TODO this was implemented for having a specific endpoint for missions; need to reimplement using Form.js.
-     * @private
-     */
-    // this._handleLoadNextMission = function() {
-    //     if (self._closeModalClicked && this._gotNextMission) {
-    //         self._closeModalClicked = false;
-    //         self._gotNextMission = false;
-    //         self._closeModal();
-    //     }
-    // };
 
     // TODO maybe deal with lost connection causing modal to not close
     this._handleBackgroundClick = function (e) {

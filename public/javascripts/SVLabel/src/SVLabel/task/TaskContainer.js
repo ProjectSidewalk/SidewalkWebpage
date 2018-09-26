@@ -3,10 +3,40 @@
  *
  * TODO This module needs to be cleaned up.
  * TODO Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
- * @param turf
- * @returns {{className: string}}
- * @constructor
- * @memberof svl
+ * @param streetViewService
+ * @param svl
+ * @param taskModel
+ * @param tracker
+ * @param navigationModel
+ * @param neighborhoodModel
+ * @param streetViewService
+ * @param svl
+ * @param taskModel
+ * @param tracker
+ * @param navigationModel
+ * @param neighborhoodModel
+ * @param streetViewService
+ * @param svl
+ * @param taskModel
+ * @param tracker
+ * @param navigationModel
+ * @param neighborhoodModel
+ * @param streetViewService
+ * @param svl
+ * @param taskModel
+ * @param tracker
+ * @param navigationModel
+ * @param neighborhoodModel
+ * @param streetViewService
+ * @param svl
+ * @param taskModel
+ * @param tracker
+ * @param navigationModel
+ * @param neighborhoodModel
+ * @param streetViewService
+ * @param svl
+ * @param taskModel
+ * @param tracker
  */
 function TaskContainer (navigationModel, neighborhoodModel, streetViewService, svl, taskModel, tracker) {
     var self = this;
@@ -263,8 +293,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (currentTask) {
             var currentLatLng = navigationModel.getPosition();
             currentTask.updateTheFurthestPointReached(currentLatLng.lat, currentLatLng.lng);
-            var currentTaskDistance = currentTask.getAuditedDistance(unit);
-            return currentTaskDistance;
+            return currentTask.getAuditedDistance(unit);
         }
         return 0;
     }

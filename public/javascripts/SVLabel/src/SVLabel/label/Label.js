@@ -1,5 +1,6 @@
 /**
  * A Label module.
+ * @param svl
  * @param pathIn
  * @param params
  * @returns {*}
@@ -219,13 +220,12 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This method returns the boudning box of the label's outline.
+     * This method returns the bounding box of the label's outline.
      * @param pov
      * @returns {*}
      */
     function getBoundingBox (pov) {
-        var boundingBox = path.getBoundingBox(pov);
-        return boundingBox;
+        return path.getBoundingBox(pov);
     }
 
     /**
@@ -791,7 +791,7 @@ function Label (svl, pathIn, params) {
     /**
      * Set visibility of labels
      * @param visibility
-     * @param panoId
+     * @param panoramaId
      * @returns {setVisibilityBasedOnLocation}
      */
     function setVisibilityBasedOnLocation (visibility, panoramaId) {

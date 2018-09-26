@@ -2,7 +2,6 @@
  * MissionContainer module
  * @param statusFieldMission.  TODO The module should communicate with the statusFieldMission via StatusModel.
  * @param missionModel. Mission model object.
- * @param parameters
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
@@ -99,7 +98,7 @@ function MissionContainer (statusFieldMission, missionModel) {
         tasksMissionsOffset = value;
     }
 
-    function getTasksMissionsOffset(value) {
+    function getTasksMissionsOffset() {
         // See issue https://github.com/ProjectSidewalk/SidewalkWebpage/issues/297
         // Check pull request for more details
         return tasksMissionsOffset;

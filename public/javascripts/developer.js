@@ -36,7 +36,7 @@ $(document).ready(function () {
         .fitBounds(bounds)
         .setView([38.905, -76.990], 13);
 
-    // Creat 3 white overlay polygons. Add an overlay to each map.
+    // Create 3 white overlay polygons. Add an overlay to each map.
     var overlay = L.geoJson({ "type": "FeatureCollection",
         "features": [ {
             "type": "Feature",

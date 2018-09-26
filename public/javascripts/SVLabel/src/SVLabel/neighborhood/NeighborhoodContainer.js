@@ -1,8 +1,6 @@
 /**
  * NeighborhoodContainer module
  * @param neighborhoodModel NeighborhoodModel object
- * @param statusModel StatusModel object
- * @param userModel UserModel object
  * @constructor
  */
 function NeighborhoodContainer (neighborhoodModel) {

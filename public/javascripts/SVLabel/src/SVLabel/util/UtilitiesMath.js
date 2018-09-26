@@ -223,8 +223,7 @@ function Stats(arr) {
     self.getStandardError = function () {
         var stdev = this.getStandardDeviation();
         var len = theArray.length;
-        var stderr = stdev / Math.sqrt(len);
-        return stderr;
+        return stdev / Math.sqrt(len);
     };
 
 

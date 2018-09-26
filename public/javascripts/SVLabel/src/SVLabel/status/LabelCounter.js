@@ -157,7 +157,7 @@ function LabelCounter (d3) {
      * @param key {string} Label type
      */
     function update(key) {
-        // If a key is given, udpate the dot plot for that specific data.
+        // If a key is given, update the dot plot for that specific data.
         // Otherwise update all.
         if (key) {
           _update(key)
@@ -177,7 +177,7 @@ function LabelCounter (d3) {
               count = fiftyCircles + tenCircles + oneCircles;
 
             /* 
-            the code of these three functions was being used so much I decided to seperately declare them
+            the code of these three functions was being used so much I decided to separately declare them
             the d3 calls look much cleaner now :)
             */
             function setCX(d, i){

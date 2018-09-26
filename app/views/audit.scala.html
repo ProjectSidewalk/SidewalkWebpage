@@ -800,7 +800,7 @@
                 role: '@user.get.role',
                 completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId, includeOnboarding = true).map(_.toJSON))))
             };
-            svl.user = new User(userParam, svl.userModel);
+            svl.user = new User(userParam);
 
             $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
         } else {
@@ -810,7 +810,7 @@
                 username: "anonymous",
                 role: "Anonymous"
             };
-            svl.user = new User(userParam, svl.userModel);
+            svl.user = new User(userParam);
         }
         svl.userModel._user = svl.user;
         @if(task) {

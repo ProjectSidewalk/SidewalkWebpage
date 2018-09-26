@@ -221,7 +221,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             var labelType;
             var labelColors;
             var borderColor;
-            var browser;
             var backgroundColor;
 
             labelColors = util.misc.getLabelColors();

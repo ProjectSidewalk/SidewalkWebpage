@@ -60,14 +60,8 @@ NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function () 
     return this.isNeighborhoodCompletedAcrossAllUsers;
 };
 
-
 NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function () {
     this.isNeighborhoodCompletedAcrossAllUsers = true;
-};
-
-NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {
-    if (!this._neighborhoodContainer) return null;
-    return this._neighborhoodContainer.get(neighborhoodId);
 };
 
 NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {

@@ -42,6 +42,7 @@ function MissionFactory (missionModel) {
  * @param regionId
  * @param isCompleted
  * @param pay
+ * @param paid
  * @param distance
  * @param distanceProgress
  * @returns {svl.Mission}

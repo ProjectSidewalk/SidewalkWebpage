@@ -185,7 +185,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
             initialHeading = mapService.getPov().heading;
-            lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
+            // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
             initialPanoId = mapService.getPanoId();
             lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
         }

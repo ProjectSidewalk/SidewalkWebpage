@@ -25,7 +25,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // show the 100% coverage mission completion message.
 
         var mission = missionContainer.getCurrentMission();
-        var neighborhood = neighborhoodModel.getNeighborhood(parameters.completedRegionId);
+        var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
 
         self._completeTheCurrentMission(mission, neighborhood);
         _modalModel.updateModalMissionComplete(mission, neighborhood);
@@ -36,6 +36,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     /**
      * Finish the mission.
      * @param mission
+     * @param neighborhood
      */
     this._completeTheCurrentMission = function (mission, neighborhood) {
         tracker.push(
@@ -102,8 +103,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         if (mission.getMissionCompletionRate() > 0.999) {
             this._completeTheCurrentMission(mission, neighborhood);
 
-            this._updateTheCurrentMission(mission, neighborhood); // TODO this could go after showModalMissionComplete maybe?
-
             // While the mission complete modal is open, after the **neighborhood** is 100% audited,
             // the user is jumped to the next neighborhood, that causes the modalmodel to be updated
             // and it changes the modal's neighborhood information while it is open.
@@ -113,27 +112,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
             _modalModel.updateModalMissionComplete(mission, neighborhood);
             _modalModel.showModalMissionComplete();
         }
-    };
-
-    this._updateTheCurrentMission = function (currentMission, currentNeighborhood) {
-        // missionContainer.nextMission();
-        // var nextMission = missionContainer.getCurrentMission();
-        //
-        // if (nextMission == null) throw new Error("No missions available");
-
-        // missionContainer.setCurrentMission(nextMission);
-        // var nextMissionNeighborhood = neighborhoodContainer.get(nextMission.getProperty("regionId"));
-
-        // If the current neighborhood is different from the next neighborhood
-        // TODO I removed (commented) code, but it included "taskContainer.endTask(taskContainer.getCurrentTask());, we might need it!
-        // if (currentNeighborhood.getProperty("regionId") != nextMissionNeighborhood.getProperty("regionId")) {
-        //     this._updateTheCurrentNeighborhood(nextMissionNeighborhood);
-        // }
-
-        // TODO probably add back in this check later, after the mission is actually received from back-end
-        // Adjust the target distance based on the tasks available
-        // var incompleteTaskDistance = taskContainer.getIncompleteTaskDistance();
-        // nextMission.adjustTheTargetDistance(incompleteTaskDistance); // I deleted this func cause it modifies a mission's distance! We will ensure this is ok on the back-end
     };
 
     /**

@@ -44,7 +44,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var canvasHeight = 480;
     var blink_timer = 0;
     var blink_function_identifier = [];
-    var properties = {};
     var status = {
         state: 0,
         isOnboarding: true
@@ -184,9 +183,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         ctx.restore();
         return this;
     }
-
-    var myTimer;
-    var isWrong = false;
 
     /**
      * Draw an arrow on the onboarding canvas
@@ -523,8 +519,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function blinkInterface(state) {
         // Blink parts of the interface
         if ("blinks" in state.properties && state.properties.blinks) {
-            len = state.properties.blinks.length;
-            for (i = 0; i < len; i++) {
+            var len = state.properties.blinks.length;
+            for (var i = 0; i < len; i++) {
                 switch (state.properties.blinks[i]) {
                     case "google-maps":
                         mapService.blinkGoogleMaps();
@@ -638,10 +634,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @param state
      */
     function _visit(state) {
-        var i,
-            len,
-            callback,
-            annotationListener;
+        var annotationListener;
 
         currentState = state;
 
@@ -788,7 +781,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
         // take the user to the right panorama. In that case, programmatically move the user.
-        var currentClick, previousClick, canvasX, canvasY, pov, imageCoordinate;
+        var currentClick, previousClick;
         var mouseUpCallback = function (e) {
             currentClick = new Date().getTime();
 
@@ -806,7 +799,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
-    var prevDistance = 0;
     var flag = false;
 
     function _visitAdjustHeadingAngle(state, listener) {
@@ -814,9 +806,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var interval;
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
 
-        // get the original pov heading
-        var originalHeading = mapService.getPov().heading;
-        var tolerance = 20;
         var callback = function () {
             var pov = mapService.getPov();
             if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
@@ -826,66 +815,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 next(state.transition);
             }
         };
-
-        // Currently, the animated arrow for incorrect direction is disabled
-        /*
-        var _checkToHideGrabAndDragAnimation = function (currentHeading) {
-            if ((360 + state.properties.heading - currentHeading) % 360 < state.properties.tolerance) {
-                if (typeof google != "undefined") google.maps.event.removeListener($target);
-                if (listener) google.maps.event.removeListener(listener);
-                handAnimation.hideGrabAndDragAnimation(interval);
-                next(state.transition);
-            }
-        };
-
-        var callback = function () {
-
-            var currentHeading = mapService.getPov().heading;
-            var distanceFromCurrentHeading = currentHeading - originalHeading;
-
-            if (distanceFromCurrentHeading <= 0) {
-                if (prevDistance <= 0) {
-                    clearArrow();
-                    isWrong = false;
-
-                    if (myTimer) {
-                        //console.error("Clearing Timer");
-                        clearInterval(myTimer);
-                        myTimer = null;
-                    }
-                }
-                // normal drag
-                _checkToHideGrabAndDragAnimation(currentHeading)
-            }
-            else {
-                if(prevDistance > 0) {
-                    if(distanceFromCurrentHeading <= prevDistance) {
-                        // normal drag, 0->360
-                        console.log("Normal Drag 0 -> 360");
-                        _checkToHideGrabAndDragAnimation(currentHeading)
-                    }
-                    else {
-                        // Indicates user dragging in the wrong direction
-                        if (currentHeading % 360 >= (tolerance + originalHeading)) {
-                            // Stop panning and show the warning (arrow + labeling)
-
-                            if (!isWrong) {
-                                // set a timer to animate the arrow every 500ms
-                                //console.error("Activating timer");
-                                myTimer = setInterval(drawArrowAnimate, 500);
-                                isWrong = true;
-                            }
-                        }
-                    }
-                }
-                else if (prevDistance <= 0) {
-                    _checkToHideGrabAndDragAnimation(currentHeading)
-                }
-            }
-            prevDistance = distanceFromCurrentHeading;
-
-        };
-        */
 
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
     }
@@ -938,16 +867,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             next.call(this, state.transition);
         };
         $target.on("click", callback);
-    }
-
-    function _countTotalOnboardingLabels() {
-        var onboardingLabels = ["CurbRamp", "NoCurbRamp", "Other"];
-
-        var total = 0;
-        for (var i = 0, len = onboardingLabels.length; i < len; i ++) {
-            total += svl.labelCounter.countLabel(onboardingLabels[i]);
-        }
-        return total;
     }
 
     /**

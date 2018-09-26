@@ -6,7 +6,7 @@
  * @memberof svl
  */
 function Neighborhood (parameters) {
-    var self = { className: "Neighborhood"}
+    var self = { className: "Neighborhood"};
     var properties = {
         layer: null,
         name: null,
