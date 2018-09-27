@@ -49,13 +49,13 @@ describe("MissionContainer module.", function () {
 
         it("should add completed missions to `completedMissions`", function () {
             var missions;
-            m1_n1.setProperty('isCompleted', true);
+            m1_n1.setProperty('isComplete', true);
             missionModel.trigger("MissionContainer:addAMission", m1_n1);
 
             missions = missionContainer.getCompletedMissions();
             expect(missions.length).toBe(1);
 
-            m2_n1.setProperty('isCompleted', true);
+            m2_n1.setProperty('isComplete', true);
             missionModel.trigger("MissionContainer:addAMission", m2_n1);
 
             missions = missionContainer.getCompletedMissions();
@@ -102,8 +102,8 @@ describe("MissionContainer module.", function () {
         beforeEach(function () {
             missionContainer.refresh();
 
-            m1_n1.properties.isCompleted = true;
-            m1_n2.properties.isCompleted = true;
+            m1_n1.properties.isComplete = true;
+            m1_n2.properties.isComplete = true;
             missionContainer.add(1, m1_n1);
             missionContainer.add(1, m2_n1);
             missionContainer.add(2, m1_n2);
@@ -120,8 +120,8 @@ describe("MissionContainer module.", function () {
 
     describe("`getIncompleteMissionsByRegionId` method", function () {
         beforeEach(function () {
-            m1_n1.properties.isCompleted = true;
-            m1_n2.properties.isCompleted = true;
+            m1_n1.properties.isComplete = true;
+            m1_n2.properties.isComplete = true;
             missionContainer.add(1, m1_n1);
             missionContainer.add(1, m2_n1);
             missionContainer.addToCompletedMissions(m1_n1);
@@ -165,7 +165,7 @@ describe("MissionContainer module.", function () {
         });
 
         it("should return the second mission of a neighborhood if the first mission has been completed", function () {
-            m1_n1.properties.isCompleted = true;
+            m1_n1.properties.isComplete = true;
             missionContainer.addToCompletedMissions(m1_n1);
 
             var nextMission = missionContainer.nextMission(1);
@@ -173,8 +173,8 @@ describe("MissionContainer module.", function () {
         });
 
         it("should return the first mission of the next neighborhood if no missions are available in the current neighborhood", function () {
-            m1_n1.properties.isCompleted = true;
-            m2_n1.properties.isCompleted = true;
+            m1_n1.properties.isComplete = true;
+            m2_n1.properties.isComplete = true;
             missionContainer.addToCompletedMissions(m1_n1);
             missionContainer.addToCompletedMissions(m2_n1);
 
@@ -250,7 +250,7 @@ describe("MissionContainer module.", function () {
         this.properties = {
             coverage: null,
             distance: null,
-            isCompleted: false,
+            isComplete: false,
             label: null,
             missionId: null
         };
@@ -264,12 +264,12 @@ describe("MissionContainer module.", function () {
         this.properties[key] = value;
     };
 
-    MissionMock.prototype.isCompleted = function () {
-        return this.properties.isCompleted;
+    MissionMock.prototype.isComplete = function () {
+        return this.properties.isComplete;
     };
 
     function MissionFactoryMock () {
-        this.create = function (regionId, missionId, label, level, distance, coverage, isCompleted) {
+        this.create = function (regionId, missionId, label, level, distance, coverage, isComplete) {
             var mission = new MissionMock();
             mission.properties.regionId = regionId;
             mission.properties.missionId = missionId;
@@ -277,7 +277,7 @@ describe("MissionContainer module.", function () {
             mission.properties.level = level;
             mission.properties.distance = distance;
             mission.properties.coverage = coverage;
-            mission.properties.isCompleted = isCompleted;
+            mission.properties.isComplete = isComplete;
             return mission;
         };
     }

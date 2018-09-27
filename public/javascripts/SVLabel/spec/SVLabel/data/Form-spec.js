@@ -72,7 +72,7 @@ describe("Form module", function () {
 
             it("should mark the task as completed", function () {
                 form.skip(task, "GSVNotAvailable");
-                expect(task.isCompleted()).toBe(true);
+                expect(task.isComplete()).toBe(true);
             });
 
             it("should push the completed task to `TaskContainer`", function () {
@@ -117,11 +117,11 @@ describe("Form module", function () {
 
     function TaskMock () {
         this._properties = { streetEdgeId: 0 };
-        this._status = { isCompleted: false };
-        this.complete = function () { this._status.isCompleted = true; };
+        this._status = { isComplete: false };
+        this.complete = function () { this._status.isComplete = true; };
         this.eraseFromGoogleMaps = function () {};
         this.getStreetEdgeId = function () { return this._properties.streetEdgeId; };
-        this.isCompleted = function () { return this._status.isCompleted; };
+        this.isComplete = function () { return this._status.isComplete; };
     }
 
     function TrackerMock () {}

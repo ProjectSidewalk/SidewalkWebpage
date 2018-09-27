@@ -16,7 +16,7 @@ describe("MissionFactory module.", function () {
                 level: 1,
                 distance: 10,
                 coverage: 0.1,
-                isCompleted: false
+                isComplete: false
             };
 
             spyOn(missionFactory, 'create');

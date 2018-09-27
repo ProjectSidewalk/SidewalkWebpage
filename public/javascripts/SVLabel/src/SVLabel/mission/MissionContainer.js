@@ -25,7 +25,7 @@ function MissionContainer (statusFieldMission, missionModel) {
     });
 
     _missionModel.on("MissionContainer:addAMission", function (mission) {
-        if (mission.getProperty("isCompleted")) {
+        if (mission.getProperty("isComplete")) {
             self._completedMissions.push(mission);
         } else {
             self.setCurrentMission(mission);

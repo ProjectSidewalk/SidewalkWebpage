@@ -113,7 +113,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (tracker) tracker.push("TaskEnd");
 
         task.complete();
-        // Go through the tasks and mark the completed task as isCompleted=true
+        // Go through the tasks and mark the completed task as isComplete=true
         for (var i = 0, len = self._tasks.length;  i < len; i++) {
             if (task.getStreetEdgeId() === self._tasks[i].getStreetEdgeId()) {
                 self._tasks[i].complete();
@@ -239,7 +239,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             if (!threshold) threshold = 0.01;  // 0.01 km.
             if (!unit) unit = "kilometers";
 
-            tasks = tasks.filter(function (t) { return !t.isCompleted(); });
+            tasks = tasks.filter(function (t) { return !t.isComplete(); });
 
             if (taskIn) {
                 tasks = tasks.filter(function (t) { return t.getStreetEdgeId() !== taskIn.getStreetEdgeId(); });
@@ -277,7 +277,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 distance += turf.lineDistance(feature, unit);
             }
         }
-        if (!currentTask.isCompleted()) distance += getCurrentTaskDistance(unit);
+        if (!currentTask.isComplete()) distance += getCurrentTaskDistance(unit);
 
         return distance;
     }
@@ -308,7 +308,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             return null;
         }
         return self._tasks.filter(function (task) {
-            return task.isCompleted();
+            return task.isComplete();
         });
     }
 
@@ -351,7 +351,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             return null;
         }
         return self._tasks.filter(function (task) {
-            return !task.isCompleted();
+            return !task.isComplete();
         });
     };
 
@@ -368,7 +368,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
 
         var incompleteTasksByUser = self._tasks.filter(function (task) {
-            return !task.isCompleted();
+            return !task.isComplete();
         });
 
         var incompleteTasksAcrossAllUsers = [];
@@ -445,7 +445,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         // Find highest priority task not audited by the user
         var tasksNotCompletedByUser = self.getTasks().filter(function (t) {
-            return !t.isCompleted() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
+            return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
         }).sort(function(t1, t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });
@@ -459,7 +459,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         userCandidateTasks = self._findConnectedTasks(finishedTask, false, null, null);
 
         userCandidateTasks = userCandidateTasks.filter(function(t) {
-            return !t.isCompleted() && t.getStreetPriorityDiscretized() === highestPriorityTask.getStreetPriorityDiscretized();
+            return !t.isComplete() && t.getStreetPriorityDiscretized() === highestPriorityTask.getStreetPriorityDiscretized();
         }).sort(function(t1,t2) {
             return t2.getStreetPriority() - t1.getStreetPriority();
         });

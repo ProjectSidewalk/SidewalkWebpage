@@ -38,14 +38,14 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         data.mission = {
             mission_id: mission.getProperty("missionId"),
             distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
-            completed: mission.getProperty("isCompleted")
+            completed: mission.getProperty("isComplete")
         };
 
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
             audit_task_id: task.getAuditTaskId(),
-            completed: task.isCompleted()
+            completed: task.isComplete()
         };
 
         data.environment = {

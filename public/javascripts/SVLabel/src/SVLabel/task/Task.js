@@ -15,7 +15,7 @@ function Task (geojson, currentLat, currentLng) {
     var taskCompletionRate = 0;
     var paths;
     var status = {
-        isCompleted: false
+        isComplete: false
     };
     var properties = {
         auditTaskId: null,
@@ -237,11 +237,11 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     /**
-     * Set the isCompleted status to true and change the color of the street into green.
+     * Set the isComplete status to true and change the color of the street into green.
      * @returns {complete}
      */
     this.complete = function () {
-        status.isCompleted = true;
+        status.isComplete = true;
         return this;
     };
 
@@ -392,8 +392,8 @@ function Task (geojson, currentLat, currentLng) {
      * Returns if the task is completed or not
      * @returns {boolean}
      */
-    this.isCompleted = function () {
-        return status.isCompleted;
+    this.isComplete = function () {
+        return status.isComplete;
     };
 
     /**
@@ -447,7 +447,7 @@ function Task (geojson, currentLat, currentLng) {
     this.render = function () {
         if ('map' in svl && google) {
             self.eraseFromGoogleMaps();
-            if (self.isCompleted()) {
+            if (self.isComplete()) {
                 // If the task has been completed already, set the paths to a green polyline
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
                     return new google.maps.LatLng(coord[1], coord[0]);

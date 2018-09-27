@@ -108,7 +108,7 @@ describe("StatusFieldMission module", function () {
         this.properties = {
             coverage: null,
             distance: null,
-            isCompleted: false,
+            isComplete: false,
             label: null,
             missionId: null
         };
@@ -122,7 +122,7 @@ describe("StatusFieldMission module", function () {
         this.properties[key] = value;
     };
 
-    MissionMock.prototype.isCompleted = function () {
-        return this.properties.isCompleted;
+    MissionMock.prototype.isComplete = function () {
+        return this.properties.isComplete;
     };
 });

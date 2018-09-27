@@ -13,7 +13,7 @@ function NeighborhoodModel () {
             layer = leafletLayers[i];
             regionId = layer.feature.properties.region_id;
             regionName = layer.feature.properties.region_name;
-            // TODO: Add an isCompleted property
+            // TODO: Add an isComplete property
             self.create(regionId, layer, regionName);
         }
     };

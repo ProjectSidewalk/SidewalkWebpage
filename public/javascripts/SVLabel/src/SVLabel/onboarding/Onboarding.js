@@ -494,7 +494,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _endTheOnboarding() {
         tracker.push('Onboarding_End');
-        missionContainer.getCurrentMission().setProperty("isCompleted", true);
+        missionContainer.getCurrentMission().setProperty("isComplete", true);
 
         // Reload the page. This also submits all data through Form.js.
         window.location.replace('/audit');

@@ -12,7 +12,7 @@ function Mission(parameters) {
             missionId: null,
             missionType: null,
             regionId: null,
-            isCompleted: false,
+            isComplete: false,
             pay: null,
             paid: null,
             distance: null,
@@ -25,7 +25,7 @@ function Mission(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("missionType" in parameters) setProperty("missionType", parameters.missionType);
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
-        if ("isCompleted" in parameters) setProperty("isCompleted", parameters.isCompleted);
+        if ("isComplete" in parameters) setProperty("isComplete", parameters.isComplete);
         if ("pay" in parameters) setProperty("pay", parameters.pay);
         if ("paid" in parameters) setProperty("paid", parameters.paid);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
@@ -33,12 +33,12 @@ function Mission(parameters) {
     }
 
     /**
-     * Set the isCompleted property to true.
+     * Set the isComplete property to true.
      */
     function complete() {
         // Play the animation and audio effect after task completion.
 
-        setProperty("isCompleted", true);
+        setProperty("isComplete", true);
 
         // Set distanceProgress to be at most the distance for the mission, subtract the difference from the offset.
         if (getProperty("missionType") === "audit") {
@@ -106,7 +106,7 @@ function Mission(parameters) {
             && svl.missionContainer.getTasksMissionsOffset() !== null) {
 
             var currentMissionCompletedDistance;
-            if (isCompleted()) {
+            if (isComplete()) {
                 currentMissionCompletedDistance = getDistance("meters");
             } else {
                 var taskDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance("kilometers"));
@@ -135,12 +135,11 @@ function Mission(parameters) {
 
     /**
      * Check if the mission is completed or not
-     * Todo. Shouldn't it be isComplete rather than isCompleted??? -- lol yes (says Mikey)
      *
      * @returns {boolean}
      */
-    function isCompleted () {
-        return getProperty("isCompleted");
+    function isComplete () {
+        return getProperty("isComplete");
     }
 
     /**
@@ -165,7 +164,7 @@ function Mission(parameters) {
      */
     function toString () {
         return "Mission ID: " + getProperty("missionId") + ", Mission Type: " + getProperty("missionType") +
-            ", Region Id: " + getProperty("regionId") + ", Completed: " + getProperty("isCompleted") +
+            ", Region Id: " + getProperty("regionId") + ", Complete: " + getProperty("isComplete") +
             ", Distance: " + getDistance("meters") + "\n";
     }
 
@@ -194,7 +193,7 @@ function Mission(parameters) {
     self.getRoute = getRoute;
     self.getMissionCompletionRate = getMissionCompletionRate;
     self.updateDistanceProgress = updateDistanceProgress;
-    self.isCompleted = isCompleted;
+    self.isComplete = isComplete;
     self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.setProperty = setProperty;
     self.toString = toString;

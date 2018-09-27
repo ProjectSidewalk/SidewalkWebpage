@@ -24,8 +24,8 @@ describe("TaskModel module", function () {
         });
 
         it("should return `false` if all tasks are completed in the given region", function () {
-            t1_n1._status.isCompleted = true;
-            t2_n1._status.isCompleted = true;
+            t1_n1._status.isComplete = true;
+            t2_n1._status.isComplete = true;
             expect(taskModel.tasksAreAvailableInARegion(1)).toBe(false);
         });
     });
@@ -38,7 +38,7 @@ describe("TaskModel module", function () {
 
         this.getIncompleteTasks = function (regionId) {
             return this._taskStoreByRegionId[regionId].filter(function (task) {
-                return !task.isCompleted();
+                return !task.isComplete();
             });
         };
 
@@ -49,7 +49,7 @@ describe("TaskModel module", function () {
     }
 
     function TaskMock () {
-        this._status = { isCompleted: false };
-        this.isCompleted = function () { return this._status.isCompleted; };
+        this._status = { isComplete: false };
+        this.isComplete = function () { return this._status.isComplete; };
     }
 });

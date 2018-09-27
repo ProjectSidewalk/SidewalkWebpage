@@ -17,10 +17,10 @@ function MissionFactory (missionModel) {
             parameters.missionType = parameters.mission_type;
         if (!parameters.hasOwnProperty("regionId") && parameters.hasOwnProperty("region_id"))
             parameters.regionId = parameters.region_id;
-        if (!parameters.hasOwnProperty("isCompleted") && parameters.hasOwnProperty("completed"))
-            parameters.isCompleted = parameters.completed;
-        if (!parameters.hasOwnProperty("isCompleted") && parameters.hasOwnProperty("is_completed"))
-            parameters.isCompleted = parameters.is_completed;
+        if (!parameters.hasOwnProperty("isComplete") && parameters.hasOwnProperty("completed"))
+            parameters.isComplete = parameters.completed;
+        if (!parameters.hasOwnProperty("isComplete") && parameters.hasOwnProperty("is_complete"))
+            parameters.isComplete = parameters.is_complete;
         if (!parameters.hasOwnProperty("distance") && parameters.hasOwnProperty("distanceMeters"))
             parameters.distance = parameters.distanceMeters;
         if (!parameters.hasOwnProperty("distance") && parameters.hasOwnProperty("distance_meters"))
@@ -29,7 +29,7 @@ function MissionFactory (missionModel) {
             parameters.distanceProgress = parameters.distance_progress;
 
         var mission = self.create(parameters.missionId, parameters.missionType, parameters.regionId,
-            parameters.isCompleted, parameters.pay, parameters.paid, parameters.distance, parameters.distanceProgress);
+            parameters.isComplete, parameters.pay, parameters.paid, parameters.distance, parameters.distanceProgress);
         _missionModel.addAMission(mission);
     });
 }
@@ -40,19 +40,19 @@ function MissionFactory (missionModel) {
  * @param missionId
  * @param missionType
  * @param regionId
- * @param isCompleted
+ * @param isComplete
  * @param pay
  * @param paid
  * @param distance
  * @param distanceProgress
  * @returns {svl.Mission}
  */
-MissionFactory.prototype.create = function (missionId, missionType, regionId, isCompleted, pay, paid, distance, distanceProgress) {
+MissionFactory.prototype.create = function (missionId, missionType, regionId, isComplete, pay, paid, distance, distanceProgress) {
     return new Mission({
         missionId: missionId,
         missionType: missionType,
         regionId: regionId,
-        isCompleted: isCompleted,
+        isComplete: isComplete,
         pay: pay,
         paid: paid,
         distance: distance,

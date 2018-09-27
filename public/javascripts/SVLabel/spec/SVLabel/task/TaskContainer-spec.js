@@ -52,8 +52,8 @@ describe("TaskContainer module.", function () {
 
         describe("if no more tasks are available in the current neighborhood", function () {
             it("should return null", function () {
-                t1._properties.isCompleted = true;
-                t2._properties.isCompleted = true;
+                t1._properties.isComplete = true;
+                t2._properties.isComplete = true;
 
                 var task = taskContainer.nextTask();
                 expect(task).toBeNull();
@@ -102,8 +102,8 @@ describe("TaskContainer module.", function () {
     }
     function StreetViewServiceMock () {}
     function TaskMock (street_edge_id) {
-        this._properties = { isCompleted: false };
-        this.isCompleted = function () { return this._properties.isCompleted; };
+        this._properties = { isComplete: false };
+        this.isComplete = function () { return this._properties.isComplete; };
         this.street_edge_id = street_edge_id;
     }
     TaskMock.prototype.getStreetEdgeId = function () { return this.street_edge_id; };
