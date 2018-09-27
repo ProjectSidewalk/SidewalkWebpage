@@ -9,6 +9,11 @@ CREATE TABLE mission_type
   PRIMARY KEY (mission_type_id)
 );
 
+INSERT INTO "mission_type" ( "mission_type") VALUES ( 'auditOnboarding' );
+INSERT INTO "mission_type" ( "mission_type") VALUES ( 'audit' );
+INSERT INTO "mission_type" ( "mission_type") VALUES ( 'validationOnboarding' );
+INSERT INTO "mission_type" ( "mission_type") VALUES ( 'validation' );
+
 CREATE TABLE mission
 (
   mission_id SERIAL NOT NULL,
