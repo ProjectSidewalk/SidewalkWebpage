@@ -259,8 +259,6 @@ object MissionTable {
   /**
     * Creates a new audit mission entry in mission table for the specified user/region id.
     *
-    * TODO look at all instances of this to check that payment is being filled correctly for turkers.
-    *
     * @param userId
     * @param regionId
     * @param pay
@@ -276,8 +274,6 @@ object MissionTable {
 
   /**
     * Creates a new auditOnboarding mission entry in the mission table for the specified user.
-    *
-    * TODO look at all instances of this to check that payment is being filled correctly for turkers.
     *
     * @param userId
     * @param pay

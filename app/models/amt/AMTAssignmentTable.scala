@@ -32,6 +32,11 @@ object AMTAssignmentTable {
   val db = play.api.db.slick.DB
   val amtAssignments = TableQuery[AMTAssignmentTable]
 
+  val TURKER_TUTORIAL_PAY: Double = 0.43D
+  val TURKER_PAY_PER_MILE: Double = 4.17D
+  val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
+  val VOLUNTEER_PAY: Double = 0.0D
+
   def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
     val asgId: Int =
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg

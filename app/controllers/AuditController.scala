@@ -9,6 +9,7 @@ import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.IssueFormats._
 import formats.json.CommentSubmissionFormats._
+import models.amt.AMTAssignmentTable
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
@@ -29,9 +30,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
-  // TODO Update this to be based on user role.
-  val DEFAULT_PAY = 0.0D
-  val DEFAULT_DISTANCE = 152.4F
+  val DEFAULT_DISTANCE: Float = 152.4F
 
   /**
     * Returns an audit page.
@@ -82,13 +81,16 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val regionId: Int = region.get.regionId
 
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
+            val role: String = user.role.getOrElse("")
             val mission: Mission =
               if (!MissionTable.hasCompletedAuditOnboarding(user.userId) || retakingTutorial) {
                 MissionTable.getIncompleteAuditOnboardingMission(user.userId) match {
                   case Some(incompleteOnboardingMission) =>
                     incompleteOnboardingMission
                   case _ =>
-                    val tutorialPay: Double = if (retakingTutorial) 0.0D else DEFAULT_PAY
+                    val tutorialPay: Double =
+                      if (retakingTutorial || role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+                      else AMTAssignmentTable.TURKER_TUTORIAL_PAY
                     MissionTable.createAuditOnboardingMission(user.userId, tutorialPay)
                 }
               } else {
@@ -98,7 +100,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                     startedMission
                   case _ =>
                     val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, regionId)
-                    MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, nextMissionDistance, regionId)
+                    val pay: Double =
+                      if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+                      else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
+                    MissionTable.createNextAuditMission(user.userId, pay, nextMissionDistance, regionId)
                 }
               }
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user))))
@@ -142,7 +147,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                 startedMission
               case _ =>
                 val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, regionId)
-                MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, nextMissionDistance, regionId)
+                val role: String = user.role.getOrElse("")
+                val pay: Double =
+                  if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+                  else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
+                MissionTable.createNextAuditMission(user.userId, pay, nextMissionDistance, regionId)
             }
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user))))
           case None =>
@@ -180,7 +189,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               startedMission
             case _ =>
               val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, region.regionId)
-              MissionTable.createNextAuditMission(user.userId, DEFAULT_PAY, nextMissionDistance, region.regionId)
+              val role: String = user.role.getOrElse("")
+              val pay: Double =
+                if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+                else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
+              MissionTable.createNextAuditMission(user.userId, pay, nextMissionDistance, region.regionId)
           }
           Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
         }
