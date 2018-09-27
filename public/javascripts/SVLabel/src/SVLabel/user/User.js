@@ -6,12 +6,9 @@
  */
 function User (param) {
     var properties = {
-        username: null,
-        role: null
+        username: param.username,
+        role: param.role
     };
-
-    properties.username = param.username;
-    properties.role = param.role;
 
     /**
      * Get a property

@@ -94,7 +94,7 @@
     <script>
     $(document).ready(function () {
         var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-        window.progress = Progress(_, $, c3, L, difficultRegionIds);
+        window.progress = Progress(_, $, c3, L, "@user.get.role", difficultRegionIds);
     });
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>

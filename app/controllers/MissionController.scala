@@ -20,8 +20,6 @@ import scala.concurrent.Future
 class MissionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  val payPerMile = 4.17
-
   /**
     * Return the completed missions in the user's current region in a JSON array.
     *
@@ -46,17 +44,14 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   }
 
   /**
-    * Return the completed missions in a JSON array.
+    * Return the total reward earned by the user.
     *
     * @return
     */
-  def getCompletedMissions() = UserAwareAction.async { implicit request =>
+  def getTotalRewardEarned() = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) =>
-        val missions: List[Mission] = MissionTable.selectCompletedMissionsByAUser(user.userId, includeOnboarding = true)
-        Future.successful(Ok(JsArray(missions.map(_.toJSON))))
-      // If the user doesn't already have an anonymous ID, sign them up and rerun.
-      case _ => Future.successful(Redirect(s"/anonSignUp?url=/completedMissions"))
+      case Some(user) => Future.successful(Ok(Json.obj("reward_earned" -> MissionTable.totalRewardEarned(user.userId))))
+      case _ => Future.successful(Redirect(s"/anonSignUp?url=/rewardEarned"))
     }
   }
 
@@ -86,10 +81,5 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
       }
     )
   }
-
-  def getRewardPerMile = Action.async { implicit request =>
-    Future.successful(Ok(Json.obj("rewardPerMile" -> payPerMile)))
-  }
-
 }
 

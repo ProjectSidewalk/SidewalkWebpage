@@ -737,24 +737,13 @@
                 </div>
 
             <script>
-                    var url = '/isTurker';
+                    var role = '@user.get.role';
                     var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
-                    $.ajax({
-                        async: true,
-                        url: url,//endpoint that checks above conditions
-                        type: 'get',
-                        success: function(data){
-                            if(data.isTurker && numMissionsCompleted == 0){
-                                $("#onboarding-skip-option").hide();
-                            }
-                            else{
-                                $("#onboarding-skip-option").show();
-                            }
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                            console.log(thrownError);
-                        }
-                    });
+                    if (role === 'Turker' && numMissionsCompleted === 0) {
+                        $("#onboarding-skip-option").hide();
+                    } else{
+                        $("#onboarding-skip-option").show();
+                    }
             </script>
 
         </div>
@@ -797,8 +786,7 @@
         @if(user) {
             var userParam = {
                 username: '@user.get.username',
-                role: '@user.get.role',
-                completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId, includeOnboarding = true).map(_.toJSON))))
+                role: '@user.get.role'
             };
             svl.user = new User(userParam);
 

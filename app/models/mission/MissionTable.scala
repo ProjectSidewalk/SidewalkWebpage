@@ -241,6 +241,16 @@ object MissionTable {
   }
 
   /**
+    * Counts up total reward earned from completed missions for the user.
+    *
+    * @param userId
+    * @return
+    */
+  def totalRewardEarned(userId: UUID): Double = db.withSession { implicit session =>
+    missions.filter(m => m.userId === userId.toString && m.completed).map(_.pay).sum.run.getOrElse(0.0D)
+  }
+
+  /**
     * Get the suggested distance in meters for the next mission this user does in this region.
     *
     * @param userId

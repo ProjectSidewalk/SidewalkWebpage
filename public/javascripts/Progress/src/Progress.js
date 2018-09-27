@@ -1,11 +1,11 @@
-function Progress (_, $, c3, L, difficultRegionIds) {
+function Progress (_, $, c3, L, role, difficultRegionIds) {
     var self = {};
-    var completedInitializingOverlayPolygon = false,
-        completedInitializingNeighborhoodPolygons = false,
-        completedInitializingAuditedStreets = false,
-        completedInitializingSubmittedLabels = false,
-        completedInitializingAuditCountChart = false,
-        completedInitializingAuditedTasks = false,
+    var completedInitializingOverlayPolygon = false;
+    var completedInitializingNeighborhoodPolygons = false;
+    var completedInitializingAuditedStreets = false;
+    var completedInitializingSubmittedLabels = false;
+    var completedInitializingAuditCountChart = false;
+    var completedInitializingAuditedTasks = false;
 
     var neighborhoodPolygonStyle = {
             color: '#888',
@@ -267,26 +267,6 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         });
     }
 
-    function updateTotalRewardEarned(completedMissionsJson){
-        var totalReward = completedMissionsJson.reduce(function(sum, m) { return sum + m.pay; }, 0);
-
-        //Calculate accumulated reward if the user is a turker
-        var url = '/isTurker';
-        $.ajax({
-            async: true,
-            url: url,//endpoint that checks above conditions
-            type: 'get',
-            success: function(data){
-                if(data.isTurker){
-                    document.getElementById("td-total-reward-earned").innerHTML = "$" + totalReward.toFixed(2);
-                }
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        });
-    }
-
     /**
      * This function queries the streets that the user audited and visualize them as segments on the map.
      */
@@ -328,8 +308,21 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
-            //Calculate the total reward earned by the user in completed missions
-            $.when($.ajax("/completedMissions")).done(updateTotalRewardEarned);
+
+            // Get total reward if a turker
+            if (role === 'Turker') {
+                $.ajax({
+                    async: true,
+                    url: '/rewardEarned',
+                    type: 'get',
+                    success: function(rewardData) {
+                        document.getElementById("td-total-reward-earned").innerHTML = "$" + rewardData.reward_earned.toFixed(2);
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
+                })
+            }
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);

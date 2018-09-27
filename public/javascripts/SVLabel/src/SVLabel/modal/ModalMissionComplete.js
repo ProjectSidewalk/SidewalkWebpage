@@ -19,6 +19,7 @@
  * @param onboardingModel
  * @param uiModalMissionComplete
  * @param modalModel
+ * @param userModel
  * @param statusModel
  * @param onboardingModel
  * @returns {{className: string}}
@@ -26,9 +27,10 @@
  */
 function ModalMissionComplete (svl, missionContainer, taskContainer,
                                modalMissionCompleteMap, modalMissionProgressBar,
-                               uiModalMissionComplete, modalModel, statusModel, onboardingModel) {
+                               uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
     var self = this;
     var _modalModel = modalModel;
+    this._userModel = userModel;
 
     this._properties = {
         boxTop: 180,
@@ -194,6 +196,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var regionId = neighborhood.getProperty("regionId");
 
         var missionDistance = mission.getDistance("miles");
+        var missionPay = mission.getProperty("pay");
         var auditedDistance = neighborhood.completedLineDistance(unit);
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
 
@@ -218,7 +221,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
         modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
+        this._updateMissionProgressStatistics(missionDistance, missionPay, auditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
@@ -245,40 +248,17 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, cumulativeAuditedDistance, remainingDistance, unit) {
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, cumulativeAuditedDistance, remainingDistance, unit) {
     if (!unit) unit = "kilometers";
     remainingDistance = Math.max(remainingDistance, 0);
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit);
     this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
-    //Check if the user is associated with the "Turker" role and update the reward HTML
-    var url = '/isTurker';
-    $.ajax({
-        async: true,
-        url: url,//endpoint that checks above conditions
-        type: 'get',
-        success: function(data){
-            if(data.isTurker){
-                var url = '/rewardPerMile';
-                $.ajax({
-                    async: true,
-                    url: url,//endpoint that checks above conditions
-                    type: 'get',
-                    success: function(data){
-                        var missionReward = missionDistance*data.rewardPerMile;
-                        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
-                    },
-                    error: function (xhr, ajaxOptions, thrownError) {
-                        console.log(thrownError);
-                    }
-                });
-                //console.log('Survey displayed');
-            }
-        },
-        error: function (xhr, ajaxOptions, thrownError) {
-            console.log(thrownError);
-        }
-    });
+
+    // Update the reward HTML if the user is a turker.
+    if (this._userModel.getUser().getProperty("role") === "Turker") {
+        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
+    }
 };
 
 ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount) {
