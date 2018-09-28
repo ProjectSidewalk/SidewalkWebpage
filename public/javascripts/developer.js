@@ -14,7 +14,7 @@ $(document).ready(function () {
         });
 
     // Maps
-    var mapAccessFeatures = L.mapbox.map('developer-access-feature-map', "kotarohara.8e0c6890", {
+    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', "kotarohara.8e0c6890", {
             maxBounds: bounds,
             maxZoom: 19,
             minZoom: 9
@@ -72,14 +72,14 @@ $(document).ready(function () {
             weight: 0
         }
     }); });
-    overlay.addTo(mapAccessFeatures);
+    overlay.addTo(mapAccessAttributes);
     overlays[0].addTo(mapAccesScoreNeighborhoods);
     overlays[1].addTo(mapAccessScoreStreets);
 
     var colorMapping = util.misc.getLabelColors();
 
-    // A map for Access Feature
-    $.getJSON("/v1/access/features?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982", function (data) {
+    // A map for Access Attribute
+    $.getJSON("/v1/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982", function (data) {
         function style(feature) {
             return {
                 weight: 1,
@@ -102,7 +102,7 @@ $(document).ready(function () {
                     fillOpacity: 0.75
                 });
             }
-        }).addTo(mapAccessFeatures);
+        }).addTo(mapAccessAttributes);
     });
 
     // A map for Access Score: Streets
