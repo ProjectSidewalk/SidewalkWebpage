@@ -111,6 +111,7 @@ POST    /userapi/logWebpageActivity                          @controllers.UserCo
 
 # Access Feature and Access Score APIs
 GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributes(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double)

@@ -10,7 +10,7 @@ import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 
 import javax.inject.Inject
-import models.attribute.GlobalAttributeTable
+import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable}
 
 import math._
 import models.region._
@@ -32,6 +32,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
+  case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String)
 
   /**
     * Returns all the global attributes within the bounding box in geoJson.
@@ -153,6 +154,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     def prepareFeatureCollection = {
       val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
       val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
+      val labelsForScore: List[AttributeForAccessScore] = clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(minLat, minLng, maxLat, maxLng)
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(minLat, minLng, maxLat, maxLng)
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(lat1, lng1, lat2, lng2)
@@ -167,7 +169,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
         val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
         if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
-          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
+          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the features
           val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
           val significance = Array(1.0, -1.0, -1.0, -1.0)
           val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
@@ -237,17 +239,54 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @return
     */
   def getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    val streetScoreJson: JsObject =
+      getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1,
+                                   request.remoteAddress, request.identity, request.request.toString)
+    Future.successful(Ok(streetScoreJson))
+  }
+
+  /**
+    * AccessScore:Street V2 (using new clustering methods)
+    *
+    * E.g., /v2/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    val streetScoreJson: JsObject =
+      getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2,
+                                   request.remoteAddress, request.identity, request.request.toString)
+    Future.successful(Ok(streetScoreJson))
+  }
+
+  /**
+    * Generic version of getAccessScoreStreets, makes appropriate changes for v1 vs. v2.
+    * 
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @param version
+    * @param remoteAddress
+    * @param identity
+    * @param requestStr
+    * @return
+    */
+  def getAccessScoreStreetsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, remoteAddress: String, identity: Option[User], requestStr: String): JsObject = {
     // Logging
-    if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
+    if (remoteAddress != "0:0:0:0:0:0:0:1") {
       val now = new DateTime(DateTimeZone.UTC)
       val timestamp: Timestamp = new Timestamp(now.getMillis)
-      val ipAddress: String = request.remoteAddress
-      request.identity match {
+      val ipAddress: String = remoteAddress
+      identity match {
         case Some(user) =>
-          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, request.request.toString, timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, requestStr, timestamp))
         case None =>
           val anonymousUser: DBUser = UserTable.find("anonymous").get
-          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, request.request.toString, timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, requestStr, timestamp))
       }
     }
 
@@ -257,10 +296,17 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLng = max(lng1, lng2)
 
     // Retrieve data and cluster them by location and label type.
-    val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
-    val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
+    val labelsForScore: List[AttributeForAccessScore] = version match {
+      case 1 =>
+        val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
+        val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
+        clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
+      case 2 =>
+        val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat.toFloat, minLng.toFloat, maxLat.toFloat, maxLng.toFloat)
+        globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
+    }
     val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)
-    val streetAccessScores = computeAccessScoresForStreets(streetEdges, clusteredLabelLocations)
+    val streetAccessScores = computeAccessScoresForStreets(streetEdges, labelsForScore)
 
     val streetJson = streetAccessScores.map { streetAccessScore =>
       val latlngs: List[JsonLatLng] = streetAccessScore.streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
@@ -284,11 +330,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
     }
 
-
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> streetJson)
-    Future.successful(Ok(featureCollection))
+    Json.obj("type" -> "FeatureCollection", "features" -> streetJson)
   }
-
 
   // Helper methods
   def clusterLabelLocations(labelLocations: List[LabelLocation]): List[LabelLocation] = {
@@ -340,7 +383,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * References:
     * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
     */
-  def computeAccessScoresForStreets(streets: List[StreetEdge], labelLocations: List[LabelLocation]): List[AccessScoreStreet] = {
+  def computeAccessScoresForStreets(streets: List[StreetEdge], labelLocations: List[AttributeForAccessScore]): List[AccessScoreStreet] = {
     val radius = 3.0E-4  // Approximately 10 meters
     val pm = new PrecisionModel()
     val srid = 4326

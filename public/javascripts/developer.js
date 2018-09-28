@@ -106,7 +106,7 @@ $(document).ready(function () {
     });
 
     // A map for Access Score: Streets
-    $.getJSON("/v1/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971", function (data) {
+    $.getJSON("/v2/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971", function (data) {
         function style(feature) {
             return {
                 weight: 5,
