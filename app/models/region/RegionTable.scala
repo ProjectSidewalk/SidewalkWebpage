@@ -65,6 +65,9 @@ object RegionTable {
     (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
     if _regionProperties.key === "Neighborhood Name"
   } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
+  val namedNeighborhoods = for {
+    (_namedRegion, _neighborhood) <- namedRegions.innerJoin(neighborhoods).on(_._1 === _.regionId)
+  } yield _namedRegion
 
   /**
    * Returns a list of all the neighborhood regions
@@ -81,6 +84,10 @@ object RegionTable {
     */
   def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
     namedRegions.list.map(x => NamedRegion.tupled(x))
+  }
+
+  def regionIdToNeighborhoodName(regionId: Int): String = db.withSession { implicit session =>
+    namedNeighborhoods.filter(_._1 === regionId).map(_._2).list.head.get
   }
 
   /**

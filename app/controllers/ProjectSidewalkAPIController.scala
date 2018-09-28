@@ -8,7 +8,9 @@ import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
+
 import javax.inject.Inject
+import models.attribute.GlobalAttributeTable
 
 import math._
 import models.region._
@@ -31,6 +33,40 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
 
+  /**
+    * Returns all the global attributes within the bounding box in geoJson.
+    *
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def getAccessAttributes(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    // Logging
+    if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
+      val now = new DateTime(DateTimeZone.UTC)
+      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val ipAddress: String = request.remoteAddress
+      request.identity match {
+        case Some(user) =>
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, request.request.toString, timestamp))
+        case None =>
+          val anonymousUser: DBUser = UserTable.find("anonymous").get
+          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, request.request.toString, timestamp))
+      }
+    }
+
+    val minLat:Float = min(lat1, lat2).toFloat
+    val maxLat:Float = max(lat1, lat2).toFloat
+    val minLng:Float = min(lng1, lng2).toFloat
+    val maxLng:Float = max(lng1, lng2).toFloat
+
+    val features: List[JsObject] =
+      GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng).map(_.toJSON)
+
+    Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+  }
 
   def getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging

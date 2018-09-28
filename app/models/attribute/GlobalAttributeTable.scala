@@ -9,6 +9,8 @@ import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
+import play.api.libs.json.{JsObject, Json}
+import play.extras.geojson
 
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.language.postfixOps
@@ -21,6 +23,27 @@ case class GlobalAttribute(globalAttributeId: Int,
                            lat: Float, lng: Float,
                            severity: Option[Int],
                            temporary: Boolean)
+
+case class GlobalAttributeForAPI(globalAttributeId: Int,
+                                 labelType: String,
+                                 lat: Float, lng: Float,
+                                 severity: Option[Int],
+                                 temporary: Boolean,
+                                 neighborhoodName: String) {
+  def toJSON: JsObject = {
+    Json.obj(
+      "type" -> "Feature",
+      "geometry" -> geojson.Point(geojson.LatLng(lat.toDouble, lng.toDouble)),
+      "properties" -> Json.obj(
+        "attribute_id" -> globalAttributeId,
+        "label_type" -> labelType,
+        "neighborhood" -> neighborhoodName,
+        "severity" -> severity,
+        "is_temporary" -> temporary
+      )
+    )
+  }
+}
 
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
@@ -63,6 +86,24 @@ object GlobalAttributeTable {
 
   def getAllGlobalAttributes: List[GlobalAttribute] = db.withTransaction { implicit session =>
     globalAttributes.list
+  }
+
+  /**
+    * Gets global attributes within a bounding box for the public API.
+    *
+    * @param minLat
+    * @param minLng
+    * @param maxLat
+    * @param maxLng
+    * @return
+    */
+  def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+    val attributes = for {
+      _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng
+      _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
+      _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
+    } yield (_att.globalAttributeId, _labType.labelType, _att.lat, _att.lng, _att.severity, _att.temporary, _nbhd._2)
+    attributes.list.map(a => GlobalAttributeForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7.get))
   }
 
   def countGlobalAttributes: Int = db.withTransaction { implicit session =>
