@@ -27,14 +27,14 @@ $(document).ready(function () {
             minZoom: 9
         })
         .fitBounds(bounds)
-        .setView([38.905, -76.990], 13);
+        .setView([38.9195, -77.019], 14);
     var mapAccesScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "kotarohara.8e0c6890", {
             maxBounds: bounds,
             maxZoom: 19,
             minZoom: 9
         })
         .fitBounds(bounds)
-        .setView([38.905, -76.990], 13);
+        .setView([38.9195, -77.019], 14);
 
     // Creat 3 white overlay polygons. Add an overlay to each map.
     var overlay = L.geoJson({ "type": "FeatureCollection",
@@ -59,7 +59,7 @@ $(document).ready(function () {
             "type": "Feature",
             "geometry": {
                 "type": "Polygon",
-                "coordinates": [[[ -77.008, 38.899], [ -77.008, 38.92], [-76.971, 38.92], [-76.971, 38.899], [ -77.008, 38.899]]]
+                "coordinates": [[[ -77.028, 38.910], [ -77.028, 38.929], [-77.009, 38.929], [-77.009, 38.910], [ -77.028, 38.910]]]
                 // "coordinates": [ [ [-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36] ] ]
                 // lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971
             }
@@ -106,7 +106,7 @@ $(document).ready(function () {
     });
 
     // A map for Access Score: Streets
-    $.getJSON("/v2/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971", function (data) {
+    $.getJSON("/v2/access/score/streets?lat1=38.910&lng1=-77.028&lat2=38.929&lng2=-77.009", function (data) {
         function style(feature) {
             return {
                 weight: 5,
@@ -123,7 +123,7 @@ $(document).ready(function () {
 
     // A map for Access Score: Neighborhoods
     // Reference: http://leafletjs.com/examples/choropleth.html
-    $.getJSON("/v1/access/score/neighborhoods?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971", function (data) {
+    $.getJSON("/v2/access/score/neighborhoods?lat1=38.910&lng1=-77.028&lat2=38.929&lng2=-77.009", function (data) {
         function style(feature) {
             return {
                 fillColor: getColor(feature.properties.score),

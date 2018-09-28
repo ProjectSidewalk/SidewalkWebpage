@@ -129,18 +129,41 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    val neighborhoodScoreJson: JsObject = getAccessScoreNeighborhoodsGeneric(
+      lat1, lng1, lat2, lng2, version = 1, request.remoteAddress, request.identity, request.toString
+    )
+    Future.successful(Ok(neighborhoodScoreJson))
+  }
+
+  /**
+    *
+    * E.g. /v2/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    val neighborhoodScoreJson: JsObject = getAccessScoreNeighborhoodsGeneric(
+      lat1, lng1, lat2, lng2, version = 2, request.remoteAddress, request.identity, request.toString
+    )
+    Future.successful(Ok(neighborhoodScoreJson))
+  }
+
+  def getAccessScoreNeighborhoodsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, remoteAddress: String, identity: Option[User], requestStr: String) = {
     // Logging
-    if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
+    if (remoteAddress != "0:0:0:0:0:0:0:1") {
       val now = new DateTime(DateTimeZone.UTC)
       val timestamp: Timestamp = new Timestamp(now.getMillis)
-      val ipAddress: String = request.remoteAddress
-      request.identity match {
+      val ipAddress: String = remoteAddress
+      identity match {
         case Some(user) =>
-          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, request.request.toString, timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, requestStr, timestamp))
         case None =>
           val anonymousUser: DBUser = UserTable.find("anonymous").get
-          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, request.request.toString, timestamp))
+          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, requestStr, timestamp))
       }
     }
 
@@ -152,9 +175,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
     // Retrieve data and cluster them by location and label type.
     def prepareFeatureCollection = {
-      val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
-      val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
-      val labelsForScore: List[AttributeForAccessScore] = clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
+      val labelsForScore: List[AttributeForAccessScore] = version match {
+        case 1 =>
+          val labelLocations: List[LabelLocation] = LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng)
+          val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
+          clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
+        case 2 =>
+          val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat.toFloat, minLng.toFloat, maxLat.toFloat, maxLng.toFloat)
+          globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
+      }
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(minLat, minLng, maxLat, maxLng)
       val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(minLat, minLng, maxLat, maxLng)
       val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(lat1, lng1, lat2, lng2)
@@ -171,8 +200,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
           val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the features
           val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
-          val significance = Array(1.0, -1.0, -1.0, -1.0)
+          val significance = Array(0.75, -1.0, -1.0, -1.0)
           val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
+          println(accessScore)
 
           val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
           val coverage: Double = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
@@ -185,7 +215,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
             "region_name" -> neighborhood.name,
             "score" -> accessScore,
             "significance" -> Json.obj(
-              "CurbRamp" -> 1.0,
+              "CurbRamp" -> 0.75,
               "NoCurbRamp" -> -1.0,
               "Obstacle" -> -1.0,
               "SurfaceProblem" -> -1.0
@@ -204,7 +234,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
             "region_name" -> neighborhood.name,
             "score" -> None.asInstanceOf[Option[Double]],
             "significance" -> Json.obj(
-              "CurbRamp" -> 1.0,
+              "CurbRamp" -> 0.75,
               "NoCurbRamp" -> -1.0,
               "Obstacle" -> -1.0,
               "SurfaceProblem" -> -1.0
@@ -218,14 +248,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     }
 
     // Cache. https://www.playframework.com/documentation/2.3.x/ScalaCache
-    val featureCollection = if (request.toString == "GET /v1/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
-      Cache.getOrElse(request.toString, 1800){
+    val featureCollection = if (requestStr == "GET /v1/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830"
+                                || requestStr == "GET /v2/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
+      Cache.getOrElse(requestStr, 1800){
         prepareFeatureCollection
       }
     } else {
       prepareFeatureCollection
     }
-    Future.successful(Ok(featureCollection))
+    featureCollection
   }
 
   /**
@@ -238,10 +269,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     val streetScoreJson: JsObject =
-      getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1,
-                                   request.remoteAddress, request.identity, request.request.toString)
+      getAccessScoreStreetsGeneric(
+        lat1, lng1, lat2, lng2, version = 1, request.remoteAddress, request.identity, request.toString
+      )
     Future.successful(Ok(streetScoreJson))
   }
 
@@ -257,14 +289,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     */
   def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     val streetScoreJson: JsObject =
-      getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2,
-                                   request.remoteAddress, request.identity, request.request.toString)
+      getAccessScoreStreetsGeneric(
+        lat1, lng1, lat2, lng2, version = 2, request.remoteAddress, request.identity, request.toString
+      )
     Future.successful(Ok(streetScoreJson))
   }
 
   /**
     * Generic version of getAccessScoreStreets, makes appropriate changes for v1 vs. v2.
-    * 
+    *
     * @param lat1
     * @param lng1
     * @param lat2
@@ -409,7 +442,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       // Compute an access score.
       val features = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
-      val significance = Array(1.0, -1.0, -1.0, -1.0)
+      val significance = Array(0.75, -1.0, -1.0, -1.0)
       val accessScore: Double = computeAccessScore(features, significance)
       AccessScoreStreet(edge, accessScore, features, significance)
     }
