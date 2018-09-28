@@ -31,7 +31,7 @@ import scala.concurrent.Future
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
+  case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, attributes: Array[Double], significance: Array[Double])
   case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String)
 
   /**
@@ -43,7 +43,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessAttributes(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
     if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
       val now = new DateTime(DateTimeZone.UTC)
@@ -69,7 +69,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
   }
 
-  def getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
     if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
       val now = new DateTime(DateTimeZone.UTC)
@@ -110,7 +110,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Json.obj("type" -> "FeatureCollection", "features" -> features)
     }
 
-    val featureCollection = if (request.toString == "GET /v1/access/features?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
+    val featureCollection = if (request.toString == "GET /v1/access/attributes?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
       Cache.getOrElse(request.toString, 1800){
         prepareFeatureCollection
       }
@@ -198,11 +198,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
         val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
         if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
-          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the features
-          val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
+          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
+          val averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
           val significance = Array(0.75, -1.0, -1.0, -1.0)
           val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
-          println(accessScore)
 
           val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
           val coverage: Double = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
@@ -354,10 +353,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           "SurfaceProblem" -> streetAccessScore.significance(3)
         ),
         "feature" -> Json.obj(
-          "CurbRamp" -> streetAccessScore.features(0),
-          "NoCurbRamp" -> streetAccessScore.features(1),
-          "Obstacle" -> streetAccessScore.features(2),
-          "SurfaceProblem" -> streetAccessScore.features(3)
+          "CurbRamp" -> streetAccessScore.attributes(0),
+          "NoCurbRamp" -> streetAccessScore.attributes(1),
+          "Obstacle" -> streetAccessScore.attributes(2),
+          "SurfaceProblem" -> streetAccessScore.attributes(3)
         )
       )
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
@@ -423,7 +422,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val factory: GeometryFactory = new GeometryFactory(pm, srid)
 
     val streetAccessScores = streets.map { edge =>
-      // Expand each edge a little bit and count the number of accessibility features.
+      // Expand each edge a little bit and count the number of accessibility attributes.
       val buffer: Geometry = edge.geom.buffer(radius)
 
       //  Increment a value in Map: http://stackoverflow.com/questions/15505048/access-initialize-and-update-values-in-a-mutable-map
@@ -441,16 +440,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
 
       // Compute an access score.
-      val features = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
+      val attributes = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem")).map(_.toDouble)
       val significance = Array(0.75, -1.0, -1.0, -1.0)
-      val accessScore: Double = computeAccessScore(features, significance)
-      AccessScoreStreet(edge, accessScore, features, significance)
+      val accessScore: Double = computeAccessScore(attributes, significance)
+      AccessScoreStreet(edge, accessScore, attributes, significance)
     }
     streetAccessScores
   }
 
-  def computeAccessScore(features: Array[Double], significance: Array[Double]): Double = {
-    val t = (for ( (f, s) <- (features zip significance) ) yield f * s).sum  // dot product
+  def computeAccessScore(attributes: Array[Double], significance: Array[Double]): Double = {
+    val t = (for ( (f, s) <- (attributes zip significance) ) yield f * s).sum  // dot product
     val s = 1 / (1 + math.exp(-t))  // sigmoid function
     s
   }
