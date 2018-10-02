@@ -20,7 +20,6 @@ GET     /labelingGuide/surfaceProblems                       @controllers.Applic
 GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
 GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
-# GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
