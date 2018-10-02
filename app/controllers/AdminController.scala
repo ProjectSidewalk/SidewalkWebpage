@@ -208,10 +208,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
 
     val features: List[JsObject] = neighborhoods.map {neighborhood =>
-      val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
+      val attributeResults = GlobalAttributeTable.selectNegativeAttributeCountsByRegionId(neighborhood.regionId)
       Json.obj(
         "region_id" -> neighborhood.regionId,
-        "labels" -> Json.toJson(labelResults.toMap)
+        "labels" -> Json.toJson(attributeResults.toMap)
       )
     }
 

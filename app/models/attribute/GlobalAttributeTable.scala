@@ -172,6 +172,19 @@ object GlobalAttributeTable {
     )
   }
 
+  /**
+    * Counts the number of NoCurbRamp/SurfaceProb/Obstacle/NoSidewalk attribute counts in the given region.
+    *
+    * @param regionId
+    * @return
+    */
+  def selectNegativeAttributeCountsByRegionId(regionId: Int): List[(String, Int)] = db.withSession { implicit session =>
+    globalAttributes.filter(_.regionId === regionId)
+      .filter(_.labelTypeId inSet List(2, 3, 4, 7))
+      .groupBy(_.labelTypeId).map { case (typeId, group) => (typeId, group.length) }
+      .list.map{ case (typeId, count) => (LabelTypeTable.labelTypeIdToLabelType(typeId), count) }
+  }
+
   def countGlobalAttributes: Int = db.withTransaction { implicit session =>
     globalAttributes.length.run
   }
