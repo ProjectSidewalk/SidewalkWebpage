@@ -178,11 +178,11 @@ object GlobalAttributeTable {
     * @param regionId
     * @return
     */
-  def selectNegativeAttributeCountsByRegionId(regionId: Int): List[(String, Int)] = db.withSession { implicit session =>
-    globalAttributes.filter(_.regionId === regionId)
+  def selectNegativeAttributeCountsByRegion(): List[(Int, String, Int)] = db.withSession { implicit session =>
+    globalAttributes
       .filter(_.labelTypeId inSet List(2, 3, 4, 7))
-      .groupBy(_.labelTypeId).map { case (typeId, group) => (typeId, group.length) }
-      .list.map{ case (typeId, count) => (LabelTypeTable.labelTypeIdToLabelType(typeId), count) }
+      .groupBy(a => (a.regionId, a.labelTypeId)).map { case ((rId, typeId), group) => (rId, typeId, group.length) }
+      .list.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId), count) }
   }
 
   def countGlobalAttributes: Int = db.withTransaction { implicit session =>
