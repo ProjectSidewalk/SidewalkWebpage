@@ -15,11 +15,11 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /faq                                                 @controllers.ApplicationController.faq
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
-GET     /curbRamps                                           @controllers.ApplicationController.curbRamps
-GET     /surfaceProblems                                     @controllers.ApplicationController.surfaceProblems
-GET     /obstacles                                           @controllers.ApplicationController.obstacles
-GET     /noSidewalk                                          @controllers.ApplicationController.noSidewalk
-GET     /occlusion                                           @controllers.ApplicationController.occlusion
+GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
+GET     /labelingGuide/surfaceProblems                       @controllers.ApplicationController.labelingGuideSurfaceProblems
+GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
+GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
+GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
 # GET     /student                                             @controllers.ApplicationController.student
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex

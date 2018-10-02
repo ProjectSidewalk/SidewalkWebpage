@@ -209,8 +209,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
         Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
-        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - Labeling Guide")))
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide"))
     }
   }
 
@@ -224,8 +223,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Curb_Ramps", timestamp))
         Future.successful(Ok(views.html.labelingGuideCurbRamps("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Curb_Ramps", timestamp))
-        Future.successful(Ok(views.html.labelingGuideCurbRamps("Project Sidewalk - Labeling Guide")))
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/curbRamps"))
     }
   }
 
@@ -239,8 +237,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Surface_Problems", timestamp))
         Future.successful(Ok(views.html.labelingGuideSurfaceProblems("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Surface_Problems", timestamp))
-        Future.successful(Ok(views.html.labelingGuideSurfaceProblems("Project Sidewalk - Labeling Guide")))
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/surfaceProblems"))
     }
   }
 
@@ -254,8 +251,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Obstacles", timestamp))
         Future.successful(Ok(views.html.labelingGuideObstacles("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Obstacles", timestamp))
-        Future.successful(Ok(views.html.labelingGuideObstacles("Project Sidewalk - Labeling Guide")))
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/obstacles"))
     }
   }
 
@@ -269,8 +265,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_No_Sidewalk", timestamp))
         Future.successful(Ok(views.html.labelingGuideNoSidewalk("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_No_Sidewalk", timestamp))
-        Future.successful(Ok(views.html.labelingGuideNoSidewalk("Project Sidewalk - Labeling Guide")))
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/noSidewalk"))
     }
   }
 
@@ -284,8 +279,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Occlusion", timestamp))
         Future.successful(Ok(views.html.labelingGuideOcclusion("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Occlusion", timestamp))
-        Future.successful(Ok(views.html.labelingGuideOcclusion("Project Sidewalk - Labeling Guide")))
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/occlusion"))
     }
   }
 
