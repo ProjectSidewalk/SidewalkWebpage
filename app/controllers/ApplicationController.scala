@@ -214,78 +214,78 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
-  def curbRamps = UserAwareAction.async { implicit request =>
+  def labelingGuideCurbRamps = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Curb_Ramps", timestamp))
-        Future.successful(Ok(views.html.curbRamps("Project Sidewalk - Labeling Guide", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Curb_Ramps", timestamp))
+        Future.successful(Ok(views.html.labelingGuideCurbRamps("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Curb_Ramps", timestamp))
-        Future.successful(Ok(views.html.curbRamps("Project Sidewalk - Labeling Guide")))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Curb_Ramps", timestamp))
+        Future.successful(Ok(views.html.labelingGuideCurbRamps("Project Sidewalk - Labeling Guide")))
     }
   }
 
-  def surfaceProblems = UserAwareAction.async { implicit request =>
+  def labelingGuideSurfaceProblems = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Surface_Problems", timestamp))
-        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk - Labeling Guide", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Surface_Problems", timestamp))
+        Future.successful(Ok(views.html.labelingGuideSurfaceProblems("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Surface_Problems", timestamp))
-        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk - Labeling Guide")))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Surface_Problems", timestamp))
+        Future.successful(Ok(views.html.labelingGuideSurfaceProblems("Project Sidewalk - Labeling Guide")))
     }
   }
 
-  def obstacles = UserAwareAction.async { implicit request =>
+  def labelingGuideObstacles = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Obstacles", timestamp))
-        Future.successful(Ok(views.html.obstacles("Project Sidewalk - Labeling Guide", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Obstacles", timestamp))
+        Future.successful(Ok(views.html.labelingGuideObstacles("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Obstacles", timestamp))
-        Future.successful(Ok(views.html.obstacles("Project Sidewalk - Labeling Guide")))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Obstacles", timestamp))
+        Future.successful(Ok(views.html.labelingGuideObstacles("Project Sidewalk - Labeling Guide")))
     }
   }
 
-  def noSidewalk = UserAwareAction.async { implicit request =>
+  def labelingGuideNoSidewalk = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_No_Sidewalk", timestamp))
-        Future.successful(Ok(views.html.noSidewalk("Project Sidewalk - Labeling Guide", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_No_Sidewalk", timestamp))
+        Future.successful(Ok(views.html.labelingGuideNoSidewalk("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_No_Sidewalk", timestamp))
-        Future.successful(Ok(views.html.noSidewalk("Project Sidewalk - Labeling Guide")))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_No_Sidewalk", timestamp))
+        Future.successful(Ok(views.html.labelingGuideNoSidewalk("Project Sidewalk - Labeling Guide")))
     }
   }
 
-  def occlusion = UserAwareAction.async { implicit request =>
+  def labelingGuideOcclusion = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Occlusion", timestamp))
-        Future.successful(Ok(views.html.occlusion("Project Sidewalk - Labeling Guide", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Occlusion", timestamp))
+        Future.successful(Ok(views.html.labelingGuideOcclusion("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Occlusion", timestamp))
-        Future.successful(Ok(views.html.occlusion("Project Sidewalk - Labeling Guide")))
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide_Occlusion", timestamp))
+        Future.successful(Ok(views.html.labelingGuideOcclusion("Project Sidewalk - Labeling Guide")))
     }
   }
 
