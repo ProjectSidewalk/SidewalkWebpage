@@ -1,0 +1,156 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+
+    <div class="spacer20"></div>
+
+    <div class="container faq">
+        <div class="row">
+            <div class="col-md-3">
+                <div id="faq-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Labeling Guide
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                            <!--This list will be automatically filled-->
+                            <li><a href="#introduction">Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideCurbRamps'>Curb Ramps</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideSurfaceProblems'>Surface Problems</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideObstacles'>Obstacles</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideNoSidewalk'>No Sidewalk</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideOcclusion'>Occlusion</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="faq-item">
+                    <h2 id="introduction">Introduction</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <!--Informed by the Project Sidewalk: Labeling Codebook CHI2018: https://docs.google.com/document/d/1rTw7Q0A542lIy-OmDyqq8BgIsIPd624PBCazoGqOt7Y/edit?ts=5a4ac269#-->
+                            <p>
+                                This guide is intended to help you label accessibility features and problems in Project Sidewalk.
+
+                                It is based on specifications from the Americans with Disabilities Act
+                                (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm">ADA</a>) and related documents, and
+                                describes different accessibility problems, where and how to place labels, and how to rate severity
+                                (including ADA citations where appropriate).
+                            </p>
+                            <h3>How to Place a Label</h3>
+                            <p>You should place labels at the center of curb ramps or surface problems, and at the base of obstacles.</p>
+                            <!-- Animated GIF on how to place a label -->
+                            <p>
+                                <strong>How do I know which image to label a problem from? </strong>
+                                Often, an accessibility problem is visible from multiple viewpoints (Google Streetview Images).
+                                You only need to label a problem once and you should do so from the place where it is most visible or
+                                closest <i>(technical aside: being closer to the thing you label makes the label location
+                                more accurate)</i>. You can, of course, label problems multiple times from different
+                                viewpoints (but this takes more time and is unnecessary).
+                            </p>
+
+                            <div>
+                                <div class="col-md-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/Viewpoint1.png")' href='@routes.Assets.at("images/labeling_guide_misc/Viewpoint1.png")'
+                                        alt="A Street View image of a curb ramp from a distance" class="img-responsive" align=""
+                                        title="A Street View image of a curb ramp from a distance">
+                                        <figcaption>A Street View image of a curb ramp from a far distance without a label</figcaption>
+                                    </figure>
+                                </div>
+                                <div class="col-md-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/Viewpoint2.png")' href='@routes.Assets.at("images/labeling_guide_misc/Viewpoint2.png")'
+                                        alt="A Street View image of a labeled curb ramp at a close distance" class="img-responsive" align=""
+                                        title="A Street View image of a labeled curb ramp at a close distance">
+                                        <figcaption>A Street View image of a curb ramp at a close distance with a label</figcaption>
+                                    </figure>
+                                </div>
+                                <div class="col-md-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/Viewpoint3.png")' href='@routes.Assets.at("images/labeling_guide_misc/Viewpoint3.png")'
+                                        alt="A Street View image of a curb ramp from a distance without a label" class="img-responsive" align=""
+                                        title="A Street View image of a curb ramp from a distance without a label">
+                                        <figcaption>A Street View image of a curb ramp from a far distance without a label</figcaption>
+                                    </figure>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="col-sm-12">
+                            <strong>Specifically, where should I place a label on an identified accessibility feature or problem?</strong>
+                            You should place labels at the center of a curb ramp or surface
+                            problem, and at the base of an obstacle. This is both to standardize the placement and, in the case of obstacles,
+                            making sure that the location is accurate. Placing a label higher than the base of an
+                            obstacle can give very inaccurate latitude/longitude values. The left and center images show correct placement, and
+                            the right image shows incorrect placement.
+                        </p>
+
+                        <div id="img-container">
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")'
+                                    alt="A Street View image of a curb ramp with a label" class="img-responsive" align=""
+                                    title="A label correctly placed at the center of a curb ramp">
+                                    <figcaption>A label correctly placed at the center of a curb ramp</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")'
+                                    alt="A Street View image of an obstacle with a label at its base" class="img-responsive" align=""
+                                    title="A label correctly placed at the base of an obstacle">
+                                    <figcaption>A label correctly placed at the base of an obstacle</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")'
+                                    alt="A Street View image of an obstacle with a label at the top of the obstacle" class="img-responsive" align=""
+                                    title="A label incorrectly placed at the top of an obstacle">
+                                    <figcaption>A label incorrectly placed at the top of an obstacle</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+
+                        <p class="col-sm-12">
+                            <strong>What happens if a location has been updated from one viewpoint to the other?</strong>
+                            If you take a step and things change (temporary obstacles like construction are removed, a curb ramp
+                            has been added or improved, etc), then label each panorama appropriately. When doing this, also click
+                            the feedback button and write a message saying what changed between the 2 panos. You do not need to label
+                            the same problem from multiple panoramas if nothing changes.
+                        </p>
+                        <div id="img-container">
+                            <div class="col-md-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro4.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro2.png")'
+                                    alt="A Street View image of a road with construction" class="img-responsive" align=""
+                                    title="An earlier snapshot of a location with construction.">
+                                    <figcaption>An earlier snapshot of a location with construction.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Intro5.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro3.png")'
+                                    alt="A Street View image of a road without construction" class="img-responsive" align=""
+                                    title="A later snapshot of a location without construction.">
+                                    <figcaption>A later snapshot of a location without construction.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

@@ -14,6 +14,12 @@ GET     /terms                                               @controllers.Applic
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
 GET     /faq                                                 @controllers.ApplicationController.faq
+GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
+GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
+GET     /labelingGuide/surfaceProblems                       @controllers.ApplicationController.labelingGuideSurfaceProblems
+GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
+GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
+GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
