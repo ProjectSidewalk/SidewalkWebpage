@@ -39,14 +39,18 @@
                 <table class="table">
                     <tr>
                         <td colspan="2">
-                            This API serves point-level location data on accessibility attributes. The major categories of attributes include:
-                            "Curb Ramp", "Missing Curb Ramp", "Obstacle", and "Surface Problem".
-                            The less common attributes are "No Sidewalk", "Occlusion", and "Other".
+                            This API serves point-level location data on accessibility attributes. The major categories
+                            of attributes include: "Curb Ramp", "Missing Curb Ramp", "Obstacle", and "Surface Problem".
+                            The less common attributes are "No Sidewalk", "Occlusion", and "Other". Optionally, you can
+                            also query for the individual labels that make up the attributes.
                         </td>
                     </tr>
                     <tr>
                         <th>URL</th>
-                        <td><code>/v2/access/attributes</code></td>
+                        <td>
+                            <code>/v2/access/attributes</code><br>
+                            <code>/v2/access/attributesWithLabels</code>
+                        </td>
                     </tr>
                     <tr>
                         <th>Method</th>
@@ -97,6 +101,9 @@
                         <td>
                             <a target="_blank" href='/v2/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982'>
                                 <code>/v2/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982</code>
+                            </a><br>
+                            <a target="_blank" href='/v2/access/attributesWithLabels?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982'>
+                                <code>/v2/access/attributesWithLabels?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982</code>
                             </a>
                         </td>
                     </tr>
@@ -265,8 +272,8 @@
                         neutral connotation than "feature", and is thus more suitable to describe both curb ramps
                         <i>and</i> missing curb ramps. The v1 API can still be accessed using either
                         <code>/v1/access/features</code> or <code>/v1/access/attributes</code>.</li>
-                    <li>TODO: Add new <code>/v2/access/attributesWithLabels</code> endpoint, which gives access to the
-                        labels that are clustered into accessibility attributes.</li>
+                    <li>We've added a new <code>/v2/access/attributesWithLabels</code> endpoint, which gives access to
+                        the individual labels that are clustered into accessibility attributes.</li>
                 </ol>
             </div>
         </div>
