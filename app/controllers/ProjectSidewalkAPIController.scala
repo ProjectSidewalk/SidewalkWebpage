@@ -58,6 +58,29 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
+    * Returns all the global attributes within the bounding box and the labels that make up those attributes in geojson.
+    *
+    * @param lat1
+    * @param lng1
+    * @param lat2
+    * @param lng2
+    * @return
+    */
+  def getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+    apiLogging(request.remoteAddress, request.identity, request.toString)
+
+    val minLat:Float = min(lat1, lat2).toFloat
+    val maxLat:Float = max(lat1, lat2).toFloat
+    val minLng:Float = min(lng1, lng2).toFloat
+    val maxLng:Float = max(lng1, lng2).toFloat
+
+    val features: List[JsObject] =
+      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng).map(_.toJSON)
+
+    Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+  }
+
+  /**
     * Returns all the global attributes within the bounding box in geoJson.
     *
     * @param lat1
