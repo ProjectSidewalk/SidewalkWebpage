@@ -207,10 +207,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
-        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk = About", Some(user))))
+        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
-        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - About")))
+        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - Labeling Guide")))
     }
   }
 
@@ -222,10 +222,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Curb_Ramps", timestamp))
-        Future.successful(Ok(views.html.curbRamps("Project Sidewalk = About", Some(user))))
+        Future.successful(Ok(views.html.curbRamps("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Curb_Ramps", timestamp))
-        Future.successful(Ok(views.html.curbRamps("Project Sidewalk - About")))
+        Future.successful(Ok(views.html.curbRamps("Project Sidewalk - Labeling Guide")))
     }
   }
 
@@ -237,10 +237,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Surface_Problems", timestamp))
-        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk = About", Some(user))))
+        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Surface_Problems", timestamp))
-        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk - About")))
+        Future.successful(Ok(views.html.surfaceProblems("Project Sidewalk - Labeling Guide")))
     }
   }
 
@@ -252,10 +252,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Obstacles", timestamp))
-        Future.successful(Ok(views.html.obstacles("Project Sidewalk = About", Some(user))))
+        Future.successful(Ok(views.html.obstacles("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Obstacles", timestamp))
-        Future.successful(Ok(views.html.obstacles("Project Sidewalk - About")))
+        Future.successful(Ok(views.html.obstacles("Project Sidewalk - Labeling Guide")))
     }
   }
 
@@ -267,10 +267,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_No_Sidewalk", timestamp))
-        Future.successful(Ok(views.html.noSidewalk("Project Sidewalk = About", Some(user))))
+        Future.successful(Ok(views.html.noSidewalk("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_No_Sidewalk", timestamp))
-        Future.successful(Ok(views.html.noSidewalk("Project Sidewalk - About")))
+        Future.successful(Ok(views.html.noSidewalk("Project Sidewalk - Labeling Guide")))
     }
   }
 
@@ -282,10 +282,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Occlusion", timestamp))
-        Future.successful(Ok(views.html.occlusion("Project Sidewalk = About", Some(user))))
+        Future.successful(Ok(views.html.occlusion("Project Sidewalk - Labeling Guide", Some(user))))
       case None =>
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Visit_Occlusion", timestamp))
-        Future.successful(Ok(views.html.occlusion("Project Sidewalk - About")))
+        Future.successful(Ok(views.html.occlusion("Project Sidewalk - Labeling Guide")))
     }
   }
 
