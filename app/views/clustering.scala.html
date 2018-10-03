@@ -1,0 +1,84 @@
+@import models.user.User
+
+@(title: String, user: Option[User] = None)
+@main(title) {
+    @navbar(user)
+    <div id="content">
+        <div class="container">
+            <h1>Clustering labels into attributes</h1>
+            <button id="btnSingleUserClustering">Single User Clustering</button>
+            <button id="btnMultiUserClustering">Multi User Clustering</button>
+            <button id="btnBothClustering">Single AND Multi User Clustering</button>
+            <p id="clustering-status"></p>
+        </div>
+    </div>
+
+    @*Adds onclicks to each button that calls clustering code and extracts results from the response.*@
+    <script>
+        $(document).ready(function () {
+            let singleUserButton = document.getElementById('btnSingleUserClustering');
+            singleUserButton.onclick = function() {
+                $( "#clustering-status" ).html( 'Running...' );
+                $.ajax({
+                    type: "get",
+                    url: "/runClustering?clusteringType=singleUser",
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        $( "#clustering-status" ).html(
+                            "Clustered "
+                                + String(data.user_labels)
+                                + " user labels into "
+                                + String(data.user_attributes)
+                                + " user attributes."
+                        );
+                    },
+                    dataType: "json"
+                });
+            };
+        });
+        $(document).ready(function () {
+            let multiUserButton = document.getElementById('btnMultiUserClustering');
+            multiUserButton.onclick = function() {
+                $( "#clustering-status" ).html( 'Running...' );
+                $.ajax({
+                    type: "get",
+                    url: "/runClustering?clusteringType=multiUser",
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        $( "#clustering-status" ).html(
+                                "Clustered "
+                                + String(data.user_attributes)
+                                + " user attributes into "
+                                + String(data.global_attributes)
+                                + " global attributes."
+                        );
+                    },
+                    dataType: "json"
+                });
+            };
+        });
+        $(document).ready(function () {
+            let bothButton = document.getElementById('btnBothClustering');
+            bothButton.onclick = function() {
+                $( "#clustering-status" ).html( 'Running...' );
+                $.ajax({
+                    type: "get",
+                    url: "/runClustering?clusteringType=both",
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        $( "#clustering-status" ).html(
+                                "Clustered "
+                                + String(data.user_labels)
+                                + " user labels into "
+                                + String(data.user_attributes)
+                                + " user attributes, and clustered those into "
+                                + String(data.global_attributes)
+                                + " global attributes."
+                        );
+                    },
+                    dataType: "json"
+                });
+            };
+        });
+    </script>
+}

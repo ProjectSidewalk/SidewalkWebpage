@@ -359,26 +359,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     }
 
     /**
-     * This function dims landmark labels and also set status.disableLandmarkLabels to true
-     * @returns {disableLandmarkLabels}
-     */
-    function disableLandmarkLabels() {
-        if (uiRibbonMenu) {
-            $.each(uiRibbonMenu.buttons, function (i, v) {
-                var labelType = $(v).attr("val");
-                if (!(labelType === 'Walk' ||
-                    labelType === 'StopSign' ||
-                    labelType === 'Landmark_Shelter')
-                ) {
-                    $(v).css('opacity', 0.5);
-                }
-            });
-        }
-        status.disableLandmarkLabels = true;
-        return this;
-    }
-
-    /**
      * This method enables mode switch.
      * @returns {enableModeSwitch}
      */
@@ -444,20 +424,6 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
             }
         }
 
-    }
-
-    /**
-     * Enable clicking landmark buttons
-     * @returns {enableLandmarkLabels}
-     */
-    function enableLandmarkLabels() {
-        if (uiRibbonMenu) {
-            $.each(uiRibbonMenu.buttons, function (i, v) {
-                $(v).css('opacity', 1);
-            });
-        }
-        status.disableLandmarkLabels = false;
-        return this;
     }
 
     function lockDisableModeSwitch() {
@@ -579,10 +545,8 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
     self.backToWalk = backToWalk;
     self.disableModeSwitch = disableModeSwitch;
     self.disableMode = disableMode;
-    self.disableLandmarkLabels = disableLandmarkLabels;
     self.enableModeSwitch = enableModeSwitch;
     self.enableMode = enableMode;
-    self.enableLandmarkLabels = enableLandmarkLabels;
     self.lockDisableMode = lockDisableMode;
     self.lockDisableModeSwitch = lockDisableModeSwitch;
     self.modeSwitch = modeSwitch;

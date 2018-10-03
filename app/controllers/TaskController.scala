@@ -1,62 +1,43 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.MissionFormats._
-import formats.json.CommentSubmissionFormats._
 import formats.json.TaskSubmissionFormats._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
-import models.mission.{Mission, MissionStatus, MissionTable}
 import models.region._
-import models.street.StreetEdgeAssignmentCountTable
-import models.user.{User, UserCurrentRegionTable}
+import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
+import models.user.User
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.Play.current
 
 import scala.concurrent.Future
 
 /**
- * Street controller
+ * Task controller
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, completedMissions: List[Mission])
-
-  /**
-   * This method returns a task definition in the GeoJSON format.
-   * @return Task definition
-   */
-  def getTask = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val task = AuditTaskTable.selectANewTask(user.userId)
-        Future.successful(Ok(task.toJSON))
-      case None => Future.successful(Ok(AuditTaskTable.selectANewTask.toJSON))
-    }
-  }
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int)
 
   /**
     * This method returns a task definition specified by the streetEdgeId.
     * @return Task definition
     */
-  def getTaskByStreetEdgeId(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId)
+  def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
+    val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
     Future.successful(Ok(task.toJSON))
   }
 
@@ -149,14 +130,40 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case _ => None
           }
 
+          val user = request.identity
+          val streetEdgeId = data.auditTask.streetEdgeId
+
+          if (data.auditTask.auditTaskId.isDefined) {
+            user match {
+              case Some(user) =>
+                // Update the street's priority only if the user has not completed this street previously
+                if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
+                  data.auditTask.completed.map { completed =>
+                    if (completed) {
+                      StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                    }
+                  }
+                }
+              case None =>
+                // Update the street's priority for anonymous user
+                Logger.warn("User without user_id audited a street, but every user should have a user_id.")
+                data.auditTask.completed.map { completed =>
+                  if (completed) {
+                    StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId)
+                  }
+                }
+            }
+          }
+
+
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count
-          val auditTaskId: Int = updateAuditTaskTable(request.identity, data.auditTask, amtAssignmentId)
+          val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, amtAssignmentId)
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count
           if (data.incomplete.isDefined) {
-            val incomplete = data.incomplete.get
+            val incomplete: IncompleteTaskSubmission = data.incomplete.get
             AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
           }
 
@@ -229,6 +236,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 case None => ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
               }
             }
+
+            // Remove any tag entries from database that were removed on the front-end and add any new ones.
+            val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labelId).toSet
+            val tagsToRemove: Set[Int] = existingTagIds -- label.tagIds.toSet
+            val tagsToAdd: Set[Int] = label.tagIds.toSet -- existingTagIds
+            tagsToRemove.map { tagId => LabelTagTable.delete(labelId, tagId) }
+            tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }
           }
 
           // Insert interaction
@@ -261,29 +275,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             }
           }
 
-          // Check if the user has cleared any mission
-          // Note: Deprecated. Delete this. The check for mission completion is done on the front-end side
-          val completed: List[Mission] = request.identity match {
-            case Some(user) =>
-              val region: Option[Region] = RegionTable.selectTheCurrentRegion(user.userId)
-              if (region.isDefined) {
-                val missions: List[Mission] = MissionTable.selectIncompleteMissionsByAUser(user.userId, region.get.regionId)
-                val status = MissionStatus(0.0, 0.0, 0)
-                missions.filter(m => m.completed(status))
-              } else {
-                List()
-              }
-            case _ => List()
-          }
-
-          TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, completed)
+          TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId)
         }
 
-        val jsMissions: List[JsValue] = returnValues.head.completedMissions.map(m => Json.toJson(m))
         Future.successful(Ok(Json.obj(
           "audit_task_id" -> returnValues.head.auditTaskId,
-          "street_edge_id" -> returnValues.head.streetEdgeId,
-          "completed_missions" -> JsArray(jsMissions)
+          "street_edge_id" -> returnValues.head.streetEdgeId
         )))
       }
     )

@@ -111,7 +111,6 @@ function Canvas(ribbon) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
-
         var labelType = ribbon.getStatus('selectedLabelType');
         var labelColor = util.misc.getLabelColors()[labelType],
             labelDescription = util.misc.getLabelDescriptions(labelType),
@@ -200,7 +199,6 @@ function Canvas(ribbon) {
         }, {
             temporaryLabelId: status.currentLabel.getProperty('temporary_label_id')
         });
-        svl.actionStack.push('addLabel', status.currentLabel);
 
         // Sound effect
         if ('audioEffect' in svl) {
@@ -416,7 +414,6 @@ function Canvas(ribbon) {
 
             if (currLabel) {
                 svl.labelContainer.removeLabel(currLabel);
-                svl.actionStack.push('deleteLabel', self.getCurrentLabel());
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
 
                 // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
@@ -721,7 +718,6 @@ function Canvas(ribbon) {
             length = labelPoints.length,
             points = [];
 
-
         for (var i = 0; i < length; i += 1) {
             pointData = labelPoints[i];
             pov = {
@@ -878,9 +874,6 @@ function Canvas(ribbon) {
     function pushLabel(label) {
         status.currentLabel = label;
         svl.labelContainer.push(label);
-        if (svl.actionStack) {
-            svl.actionStack.push('addLabel', label);
-        }
         return this;
     }
 
@@ -906,16 +899,6 @@ function Canvas(ribbon) {
         }
         var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
-        var labelCount = {
-            Landmark_Bench: 0,
-            Landmark_Shelter: 0,
-            Landmark_TrashCan: 0,
-            Landmark_MailboxAndNewsPaperBox: 0,
-            Landmark_OtherPole: 0,
-            StopSign: 0,
-            CurbRamp: 0,
-            NoCurbRamp: 0
-        };
         status.totalLabelCount = 0;
         var pov = svl.map.getPov();
 
@@ -986,7 +969,6 @@ function Canvas(ribbon) {
             label.render(ctx, pov);
 
             if (label.isVisible() && !label.isDeleted()) {
-                labelCount[label.getLabelType()] += 1;
                 status.totalLabelCount += 1;
             }
         }
@@ -1007,16 +989,6 @@ function Canvas(ribbon) {
         // Draw a temporary path from the last point to where a mouse cursor is.
         if (status.drawing) {
             renderTempPath();
-        }
-
-        // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) {
-            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
-        }
-
-        // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) {
-            svl.actionStack.updateOpacity();
         }
 
         // Update the opacity of Zoom In and Zoom Out buttons.

@@ -2,7 +2,6 @@ package models.user
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import java.util.UUID
 import java.sql.Timestamp
 import models.survey._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
