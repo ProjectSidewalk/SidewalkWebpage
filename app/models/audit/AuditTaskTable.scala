@@ -5,20 +5,17 @@ import java.sql.Timestamp
 import java.util.{Calendar, Date, TimeZone, UUID}
 
 import models.street._
-import models.user.{UserCurrentRegionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.street.StreetEdgePriorityTable
-import play.api.Logger
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
 
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.util.Random
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp,
@@ -130,10 +127,13 @@ object AuditTaskTable {
     */
   def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |FROM    generate_series(0, current_date - '11/17/2015') n) AS calendar
-        |LEFT JOIN sidewalk.audit_task
-        |ON audit_task.task_start::date = calendar_date::date
+      """SELECT calendar_date::date, COUNT(audit_task_id)
+        |FROM
+        |(
+        |    SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
+        |    FROM generate_series(0, current_date - '11/17/2015') n
+        |) AS calendar
+        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )
@@ -168,9 +168,9 @@ object AuditTaskTable {
 
     val countTasksQuery = Q.queryNA[Int](
       """SELECT audit_task_id
-         | FROM sidewalk.audit_task
-         | WHERE audit_task.task_end::date = now()::date
-         |  AND audit_task.completed = TRUE""".stripMargin
+        |FROM sidewalk.audit_task
+        |WHERE audit_task.task_end::date = now()::date
+        |    AND audit_task.completed = TRUE""".stripMargin
     )
     countTasksQuery.list.size
   }
@@ -184,9 +184,9 @@ object AuditTaskTable {
   def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
     val countTasksQuery = Q.queryNA[Int](
       """SELECT audit_task_id
-        | FROM sidewalk.audit_task
-        | WHERE audit_task.task_end::date = now()::date - interval '1' day
-        |  AND audit_task.completed = TRUE""".stripMargin
+        |FROM sidewalk.audit_task
+        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |    AND audit_task.completed = TRUE""".stripMargin
     )
     countTasksQuery.list.size
   }
@@ -341,11 +341,14 @@ object AuditTaskTable {
     */
   def selectAuditCountsPerDayByUserId(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.query[String, (String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id) FROM (SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |FROM    generate_series(0, 30) n) AS calendar
-        |LEFT JOIN sidewalk.audit_task
-        |ON audit_task.task_start::date = calendar_date::date
-        |AND audit_task.user_id = ?
+      """SELECT calendar_date::date, COUNT(audit_task_id)
+        |FROM
+        |(
+        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
+        |    FROM generate_series(0, 30) n
+        |) AS calendar
+        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
+        |                              AND audit_task.user_id = ?
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )
@@ -386,32 +389,6 @@ object AuditTaskTable {
     task
   }
 
-
-  /**
-   * Get a task that is in a given region. Used for anon users in all situations, except when using /audit/street.
-    *
-    * @param regionId region id
-   * @return
-   */
-  def selectANewTaskInARegion(regionId: Int): Option[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
-
-    // Join with other queries to get completion count and priority for each of the street edges.
-    val edgesWithCompletionCountAndPriority = for {
-      ser <- nonDeletedStreetEdgeRegions if ser.regionId === regionId
-      se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
-      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-      cc <- streetCompletionCounts if sp.streetEdgeId === cc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)
-
-    // Take the highest priority street.
-    val task: Option[NewTask] = edgesWithCompletionCountAndPriority.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
-
-    // If a task was found, update the street_edge_assignment_count table.
-    task.map(t => StreetEdgeAssignmentCountTable.incrementAssignment(t.edgeId))
-    task
-  }
-
   /**
    * Get a task that is in a given region. Used if a user has already been assigned a region, or from /audit/region.
    *
@@ -441,7 +418,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get tasks in the region. Called when an anonymous user begins auditing a region.
+    * Get tasks in the region. Called when a list of tasks is requested through the API.
     *
     * @param regionId Region id
     * @return
@@ -460,7 +437,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Get tasks in the region. Called when a registered user begins auditing a region.
+    * Get tasks in the region. Called when a user begins auditing a region.
     *
     * @param regionId Region id
     * @param user User id

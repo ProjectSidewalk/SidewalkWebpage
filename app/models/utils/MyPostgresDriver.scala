@@ -1,7 +1,7 @@
 package models.utils
 
 import com.github.tminglei.slickpg._
-import slick.driver.{PostgresDriver, JdbcDriver, JdbcTypesComponent}
+import slick.driver.{PostgresDriver, JdbcDriver}
 
 trait WithMyDriver {
   val driver: MyPostgresDriver

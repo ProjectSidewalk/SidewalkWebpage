@@ -4,7 +4,6 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.User
 import models.street.StreetEdgePriorityTable
