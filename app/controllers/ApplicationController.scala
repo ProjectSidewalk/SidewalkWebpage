@@ -195,6 +195,95 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+    * Returns labeling guide page
+    * @return
+    */
+
+  def labelingGuide = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
+        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - Labeling Guide", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide"))
+    }
+  }
+
+  def labelingGuideCurbRamps = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Curb_Ramps", timestamp))
+        Future.successful(Ok(views.html.labelingGuideCurbRamps("Project Sidewalk - Labeling Guide", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/curbRamps"))
+    }
+  }
+
+  def labelingGuideSurfaceProblems = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Surface_Problems", timestamp))
+        Future.successful(Ok(views.html.labelingGuideSurfaceProblems("Project Sidewalk - Labeling Guide", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/surfaceProblems"))
+    }
+  }
+
+  def labelingGuideObstacles = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Obstacles", timestamp))
+        Future.successful(Ok(views.html.labelingGuideObstacles("Project Sidewalk - Labeling Guide", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/obstacles"))
+    }
+  }
+
+  def labelingGuideNoSidewalk = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_No_Sidewalk", timestamp))
+        Future.successful(Ok(views.html.labelingGuideNoSidewalk("Project Sidewalk - Labeling Guide", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/noSidewalk"))
+    }
+  }
+
+  def labelingGuideOcclusion = UserAwareAction.async { implicit request =>
+    val now = new DateTime(DateTimeZone.UTC)
+    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Occlusion", timestamp))
+        Future.successful(Ok(views.html.labelingGuideOcclusion("Project Sidewalk - Labeling Guide", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/occlusion"))
+    }
+  }
+
+  /**
     * Returns the terms page.
     *
     * @return
