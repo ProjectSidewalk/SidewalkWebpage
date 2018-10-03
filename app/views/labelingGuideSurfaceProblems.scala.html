@@ -1,0 +1,414 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+
+    <div class="spacer20"></div>
+
+    <div class="container faq">
+        <div class="row">
+            <div class="col-md-3">
+                <div id="faq-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Surface Problems
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                            <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideCurbRamps'>Curb Ramps</a></li>
+                            <li class="topic"><a href='@routes.ApplicationController.labelingGuideSurfaceProblems'><strong>Surface Problems</strong></a>
+                                <span class="plusminus">+</span></li>
+                            <div id="subtopics">
+                                    <!--This list will be automatically filled-->
+                            </div>
+                            <li><a href='@routes.ApplicationController.labelingGuideObstacles'>Obstacles</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideNoSidewalk'>No Sidewalk</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideOcclusion'>Occlusion</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+
+                <div class="faq-item">
+                    <h2 id="obstacles">Surface Problems</h2>
+                    <p>
+                        A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience
+                        for someone using a wheelchair or other assistive devices. If something on a surface would make
+                        it hard or impossible to cross, it should be labeled as a <i>Surface Problem</i>.
+                    </p>
+
+                    <h3 class="question" id="sidewalk-cracks">How should I label sidewalk cracks?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should label sidewalk cracks that would result in an uncomfortable experience for
+                                wheelchair or other assistive device users. Small elevation changes, like in the example
+                                on the left below, will typically be of severity 1, since there are no other issues with
+                                the surface. You should label sidewalk cracks that come from weathering in a similar manner.
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-sm-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/SidewalkCracks2.png")' href='@routes.Assets.at("images/surface_problems/SidewalkCracks2.png")'
+                                    alt="A Street View image of a sidewalk with a small elevation change" class="img-responsive" align=""
+                                    title="This sidewalk has a small elevation change and would get a severity rating of 1.">
+                                    <figcaption>This sidewalk has a small elevation change and would get a severity rating of 1.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/SidewalkCracks3.png")' href='@routes.Assets.at("images/surface_problems/SidewalkCracks3.png")'
+                                    alt="A Street View image of a sidewalk with a small elevation change" class="img-responsive" align=""
+                                    title="This sidewalk has a small elevation change and would get a severity rating of 2.">
+                                    <figcaption>This sidewalk has a moderate elevation change and would get a severity rating of 2.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/SidewalkCracks4.png")' href='@routes.Assets.at("images/surface_problems/SidewalkCracks4.png")'
+                                    alt="A Street View image of a driveway with many cracks" class="img-responsive" align=""
+                                    title="This driveway has many cracks and may be difficult to pass. It would get a severity rating of 5.">
+                                    <figcaption>This driveway has many cracks and may be difficult to pass. It would get a severity rating of 5.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="driveways">How should I label driveways?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                If a driveway causes a steep slope in the sidewalk, you should place a <i>Surface Problem</i>
+                                label on each side of the driveway (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#c3">ADA 403.3</a>).
+                                The example below is of severity 4, since it could greatly destabilize a wheelchair user.
+                            </p>
+                        </div>
+                        <div class="col-sm-12">
+                            <figure class="text-center" style="padding-bottom: 20px">
+                                <img src='@routes.Assets.at("images/surface_problems/Driveways7.png")' href='@routes.Assets.at("images/surface_problems/Driveways7.png")'
+                                alt="A Street View image of a driveway which causes a steep slope in the sidewalk" class="img-responsive" align=""
+                                title="A driveway which causes a steep slope in the sidewalk, which would warrant a severity of 4.">
+                                <figcaption>A driveway which causes a steep slope in the sidewalk, which would warrant a severity of 4.</figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-sm-12">
+                            <p>
+                                You should not place any labels if the driveway is level with the sidewalk,
+                                as in the examples below.
+                            </p>
+                        </div>
+                        <div class="img-container-3">
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Driveways2.png")' href='@routes.Assets.at("images/surface_problems/Driveways2.png")'
+                                    alt="A Street View image of a driveway level with the sidewalk" class="img-responsive" align=""
+                                    title="A driveway level with the sidewalk">
+                                    <figcaption>A driveway level with the sidewalk</figcaption>
+
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Driveways5.png")' href='@routes.Assets.at("images/surface_problems/Driveways5.png")'
+                                    alt="A Street View image of a driveway level with the sidewalk" class="img-responsive" align=""
+                                    title="A driveway level with the sidewalk">
+                                    <figcaption>A driveway level with the sidewalk</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Driveways6.png")' href='@routes.Assets.at("images/surface_problems/Driveways6.png")'
+                                    alt="A Street View image of a driveway level with the sidewalk" class="img-responsive" align=""
+                                    title="A driveway level with the sidewalk">
+                                    <figcaption>A driveway level with the sidewalk</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="gravel">How should I label gravel?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should label gravel surfaces, as they are not firm/stable enough for a wheelchair/walker
+                                (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006158">ADA 302.1</a>).
+                                Gravel will typically get a severity of ~5 since they are so hard to traverse
+                                by wheelchair.
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Gravel1.png")' href='@routes.Assets.at("images/surface_problems/Gravel1.png")'
+                                    alt="A Street View image of a gravel sidewalk" class="img-responsive" align=""
+                                    title="A sidewalk made of gravel should be marked as severity 5.">
+                                    <figcaption>A sidewalk made of gravel should be marked as severity 5.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Gravel2.png")' href='@routes.Assets.at("images/surface_problems/Gravel2.png")'
+                                    alt="A Street View image of a gravel sidewalk" class="img-responsive" align=""
+                                    title="A sidewalk made of gravel should be marked as severity 5.">
+                                    <figcaption>A sidewalk made of gravel should be marked as severity 5.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="cobblestone-and-other-rough-surfaces">
+                        How should I label cobblestone and other rough surfaces?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should label cobblestone and other rough surfaces, since they can be difficult and
+                                painful to traverse due to the vibrations and catching of wheelchair casters
+                                (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006158">USAB ADA guidelines
+                                302.1</a>). These surfaces can also make it difficult to control the joystick in electric
+                                chairs.
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Brick.png")' href='@routes.Assets.at("images/surface_problems/Brick.png")'
+                                    alt="A Street View image of a brick sidewalk" class="img-responsive" align=""
+                                    title="This brick sidewalk would get a severity rating of ~3, because some of the bricks aren't level
+                                    with each other, creating an uneven surface.">
+                                    <figcaption>This brick sidewalk would get a severity rating of ~3, because some of the bricks aren't level
+                                        with each other, creating an uneven surface.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Cobblestone.png")' href='@routes.Assets.at("images/surface_problems/Cobblestone.png")'
+                                    alt="A Street View image of a cobblestone road" class="img-responsive" align=""
+                                    title="This cobblestone road would get a severity rating of ~3, though cobblestone with
+                                    wider/narrower gaps may have higher/lower severity.">
+                                    <figcaption>This cobblestone road would get a severity rating of ~3, though cobblestone with
+                                        wider/narrower gaps may have higher/lower severity.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="grates-gaps-and-other-openings">How should I label grates, gaps, and other openings?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should label grates, gaps, and other openings if it appears that a wheelchair
+                                caster could get caught or if the ride would be extremely bumpy
+                                (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006158">ADA 302.3</a>). (The ADA
+                                specifies ½” openings but do your best to estimate). For grates, pay particular
+                                attention to whether the elongated openings are perpendicular to the direction of travel.
+                            </p>
+                            <p>
+                                If the grates are not perpendicular to the direction of travel, the severity should be higher.
+                                The severity should also be higher for wider gaps and for grates that cover most of the sidewalk.
+                                If the grating is easy to avoid, the severity should be lower (see <a href="#avoidable-problems">Avoidable Problems</a>).
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Grates1.png")' href='@routes.Assets.at("images/surface_problems/Grates1.png")'
+                                    alt="A Street View image of a grate on a sidewalk" class="img-responsive" align=""
+                                    title="This would get a severity rating of ~1 because the
+                                    grates are perpendicular to the direction of travel.">
+                                    <figcaption>This would get a severity rating of ~1 because
+                                        the grates are perpendicular to the direction of travel.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Grates2.png")' href='@routes.Assets.at("images/surface_problems/Grates2.png")'
+                                    alt="A Street View image of a multiple grates on a sidewalk" class="img-responsive" align=""
+                                    title="This would get a severity rating of ~3 because there
+                                    are several grates and some  are perpendicular to the direction
+                                    of travel.">
+                                    <figcaption>This would get a severity rating of ~3 because there
+                                        are several grates and some  are perpendicular to the direction
+                                        of travel.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="narrow-sidewalks">How should I label narrow sidewalks?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should use a <i>Surface Problem</i> label if a long stretch of sidewalk is less than
+                                3ft wide (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#Surfaces">ADA 403.5</a>).
+                                There should be a label at the beginning and end of a stretch of narrow sidewalk.
+                                If the narrow sidewalk stretches multiple streets, label at the beginning and end of each street,
+                                with only one label needed at a corner.
+                            </p>
+                            <p>
+                                If the stretch of narrow sidewalk is very short, do not use a <i>Surface Problem</i> label.
+                                This often occurs to get around trees. The only time where you should label this is if the narrow
+                                section is very narrow (less than 2.75ft wide) (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#Surfaces">ADA 403.5.1</a>).
+                            </p>
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="col-sm-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/NarrowSidewalk4.png")' href='@routes.Assets.at("images/surface_problems/NarrowSidewalk4.png")'
+                                    alt="A Street View image of a narrow sidewalk less than 3ft wide" class="img-responsive" align=""
+                                    title="A short stretch of narrow sidewalk less than 3ft wide">
+                                    <figcaption>A short stretch of narrow sidewalk less than 3ft wide</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/NarrowSidewalk2.png")' href='@routes.Assets.at("images/surface_problems/NarrowSidewalk2.png")'
+                                    alt="A Street View image of an extended stretch of narrow sidewalk less than 3ft wide" class="img-responsive" align=""
+                                    title="An extended stretch of narrow sidewalk less than 3ft wide">
+                                    <figcaption>An extended stretch of narrow sidewalk less than 3ft wide</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/NarrowSidewalk3.png")' href='@routes.Assets.at("images/surface_problems/NarrowSidewalk3.png")'
+                                    alt="A Street View image of an extended stretch of narrow sidewalk less than 3ft wide" class="img-responsive" align=""
+                                    title="This sidewalk would get a severity rating of 5 because it would not be passable for a wheelchair user.">
+                                    <figcaption>This sidewalk would get a severity rating of 5 because it would not be passable for a wheelchair user.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="debris-on-sidewalk">How should I label debris on sidewalk?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should use a <i>Surface Problem</i> label if there are a large amount of dead leaves or other debris on the ground
+                                (<a href="https://safety.fhwa.dot.gov/ped_bike/tools_solve/fhwasa13037/chap3.cfm">FHWA Guide for Maintaining Pedestrian Facilities for Enhanced Safety 3.2.2</a>).
+                                This could cause slippery conditions or could slow down wheelchair users in extreme cases, so you should label these instances as temporary.
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Debris2.png")' href='@routes.Assets.at("images/surface_problems/Debris2.png")'
+                                    alt="A Street View image of a large amount of dead leaves on a sidewalk" class="img-responsive" align=""
+                                    title="A sidewalk with a large amount of dead leaves on the ground. It is somewhat avoidable,
+                                        so this would get a severity of ~1.">
+                                    <figcaption>A sidewalk with a large amount of dead leaves on the ground. It is somewhat avoidable,
+                                        so this would get a severity of ~1.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/surface_problems/Debris3.png")' href='@routes.Assets.at("images/surface_problems/Debris3.png")'
+                                    alt="A Street View image of a large amount of dead leaves on a sidewalk" class="img-responsive" align=""
+                                    title="A sidewalk with a large amount of dead leaves on the ground. This would get a severity of ~2.">
+                                    <figcaption>A sidewalk with a large amount of dead leaves on the ground. This would get a severity of ~2.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="grass-on-sidewalk-blocks">How should I label grass on sidewalk blocks?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should label grass on sidewalk blocks with a <i>Surface Problem</i> label unless it
+                                is very minor. These are typically severity 1 or 2, unless very extreme. Though they may
+                                not always directly impact the accessibility of the sidewalk, they are “surface problems”.
+                                Without being monitored, they could deteriorate further and cause accessibility problems in
+                                the future (<a href="https://safety.fhwa.dot.gov/ped_bike/tools_solve/fhwasa13037/chap3.cfm">FHWA
+                                Guide for Maintaining Pedestrian Facilities for Enhanced Safety 3.2.1</a>).
+                            </p>
+                        </div>
+                        <div class="col-sm-6">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/surface_problems/Grass1.png")' href='@routes.Assets.at("images/surface_problems/Grass1.png")'
+                                alt="A Street View image of a sidewalk with grass between sidewalk blocks" class="img-responsive" align=""
+                                title="A sidewalk with grass between sidewalk blocks. This would get a severity of 1 or 2.">
+                                <figcaption>A sidewalk with grass between sidewalk blocks. There should be two <i>Surface Problem</i> labels
+                                    here, which would each get a severity of 1 or 2.</figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-sm-6">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/surface_problems/Grass2.png")' href='@routes.Assets.at("images/surface_problems/Grass2.png")'
+                                alt="A Street View image of a sidewalk with grass between sidewalk blocks" class="img-responsive" align=""
+                                title="A sidewalk with grass between sidewalk blocks. This would get a severity of 1 or 2.">
+                                <figcaption>A sidewalk with grass between sidewalk blocks. This would get two or more <i>Surface Problem</i> labels with a severity of 1 or 2 each.</figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="avoidable-problems">How should I label avoidable problems?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should label avoidable surface problems. In the picture below, you can mark a lower
+                                severity rating, around a 2, since the problem is directly on the pedestrian route but is
+                                also avoidable. If the problem were not on the pedestrian route, the severity would be ~1.
+                            </p>
+                        </div>
+                        <div class="col-sm-12">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/surface_problems/AvoidableProblem.png")' href='@routes.Assets.at("images/surface_problems/AvoidableProblem.png")'
+                                alt="A Street View image of a brick sidewalk with missing bricks" class="img-responsive" align=""
+                                title="This surface problem is avoidable, so this would get a severity of ~2.">
+                                <figcaption>This surface problem is avoidable but on the pedestrian route, so this would get a severity of ~2.</figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="question" id="problems-in-a-crosswalk">How should I label problems in a crosswalk?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Even though problems in a crosswalk are not part of the sidewalk, they are part of the route
+                                that pedestrians are meant to follow, so you should label problems on a crosswalk in the same
+                                manner as other surface problems. The example below is severity 2 because it could still be avoided
+                                while remaining in the wide crosswalk.
+                            </p>
+                        </div>
+                        <div class="col-sm-12">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/surface_problems/CrosswalkProblem2.png")' href='@routes.Assets.at("images/surface_problems/CrosswalkProblem2.png")'
+                                alt="A Street View image of a crosswalk with surface problems" class="img-responsive" align=""
+                                title="This would get a severity of ~2 because it could still be avoided while remaining in the wide crosswalk.">
+                                <figcaption>This would get a severity of ~2 because it could still be avoided while remaining in the wide crosswalk.</figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}

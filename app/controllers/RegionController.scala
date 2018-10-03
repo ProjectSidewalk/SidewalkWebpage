@@ -4,7 +4,6 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom.Coordinate
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.{User, UserCurrentRegionTable}
@@ -14,10 +13,10 @@ import play.api.mvc._
 import models.region._
 import play.api.libs.json.Json
 import play.api.libs.json.Json._
-
 import play.extras.geojson
-import com.vividsolutions.jts.io.{WKBReader, WKBWriter, WKTReader}
-import com.vividsolutions.jts.geom.{LineString, Coordinate, CoordinateSequence, GeometryFactory, PrecisionModel}
+import com.vividsolutions.jts.geom.Coordinate
+import play.api.Logger
+
 import collection.immutable.Seq
 
 
@@ -45,16 +44,15 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
             submission.regionId match {
               case Some(regId) =>
                 // Sets a region based on the request from the user
-                UserCurrentRegionTable.update(user.userId, regId)
+                UserCurrentRegionTable.saveOrUpdate(user.userId, regId)
 
               case None =>
                 // Assigns a region to the user on request from a signed in user
-                UserCurrentRegionTable.assignNextRegion(user.userId)
+                UserCurrentRegionTable.assignRegion(user.userId).get.regionId
             }
           case None =>
-          // Get a region for the anonymous user
-            val region: Option[NamedRegion] = RegionTable.selectALeastAuditedEasyRegion
-            region.get.regionId
+            Logger.warn("User without user_id requesting a new region, but every user should have a user_id.")
+            RegionTable.selectAHighPriorityEasyRegion.get.regionId
         }
 
         Future.successful(Ok(Json.obj(
@@ -68,15 +66,15 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     * This returns the list of difficult neighborhood ids
     * @return
     */
-  def getDifficultNeighborhoods = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(Json.obj("regionIds" -> UserCurrentRegionTable.difficultRegionIds)))
+  def getDifficultNeighborhoods = Action.async { implicit request =>
+    Future.successful(Ok(Json.obj("regionIds" -> RegionTable.difficultRegionIds)))
   }
 
   /**
-    * This returns a list of all the streets stored in the database
+    * This returns a list of all the neighborhoods stored in the database
     * @return
     */
-  def listNeighborhoods = UserAwareAction.async { implicit request =>
+  def listNeighborhoods = Action.async { implicit request =>
     val features: List[JsObject] = RegionTable.selectNamedRegionsOfAType("neighborhood").map { region =>
       val coordinates: Array[Coordinate] = region.geom.getCoordinates
       val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list

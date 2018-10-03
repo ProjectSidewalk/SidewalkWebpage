@@ -46,6 +46,10 @@ describe("ModalMissionComplete", function () {
                         <td id="modal-mission-complete-surface-problem-count" class="col-right"></td> \
                     </tr> \
                     <tr> \
+                        <th>No Sidewalk</th>\
+                        <td id="modal-mission-complete-no-sidewalk-count" class="col-right"></td></th>\
+                    </tr>\
+                    <tr> \
                         <th>Other</th> \
                         <td id="modal-mission-complete-other-count" class="col-right"></td> \
                     </tr> \
@@ -88,6 +92,7 @@ describe("ModalMissionComplete", function () {
         uiModalMissionComplete.noCurbRampCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-no-curb-ramp-count");
         uiModalMissionComplete.obstacleCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-obstacle-count");
         uiModalMissionComplete.surfaceProblemCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-surface-problem-count");
+        uiModalMissionComplete.noSidewalkCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-no-sidewalk-count");
         uiModalMissionComplete.otherCount = $uiModalMissionCompleteFixture.find("#modal-mission-complete-other-count");
         this.uiModalMissionComplete = uiModalMissionComplete;
 

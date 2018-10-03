@@ -9,15 +9,14 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import org.joda.time.{DateTime, DateTimeZone}
 import controllers.headers.ProvidesHeader
 import formats.json.MissionFormats._
-import formats.json.TaskSubmissionFormats.{AMTAssignmentCompletionSubmission}
+import formats.json.TaskSubmissionFormats.AMTAssignmentCompletionSubmission
 import models.mission.{Mission, MissionTable, MissionUserTable}
 import models.street.StreetEdgeTable
-import models.user.{User, UserRoleTable, UserCurrentRegionTable}
-import models.amt.{AMTAssignment, AMTAssignmentTable}
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
+import models.user.{User, UserCurrentRegionTable, UserRoleTable}
+import models.amt.AMTAssignmentTable
+import play.api.Logger
 import play.api.libs.json._
-import play.api.mvc.BodyParsers
+import play.api.mvc.{Action, BodyParsers}
 
 import scala.concurrent.Future
 
@@ -107,31 +106,8 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         val concatenated = completedMissionJsonObjects ++ incompleteMissionJsonObjects
         Future.successful(Ok(JsArray(concatenated)))
 
-
-
-      // For anonymous users
-      case _ =>
-        // Selects all missions except the original 1000-ft mission
-        val missions = MissionTable.selectMissions.filter(m => {
-          val coverage = m.coverage
-          val distanceFt = m.distance_ft.getOrElse(Double.PositiveInfinity)
-          coverage match {
-            case None => !(~=(distanceFt, missionLength1000, precision))
-            case _ => true
-          }
-        })
-        val missionJsonObjects: List[JsObject] = missions.map( m =>
-          Json.obj("is_completed" -> false,
-            "mission_id" -> m.missionId,
-            "region_id" -> m.regionId,
-            "label" -> m.label,
-            "level" -> m.level,
-            "distance" -> m.distance,
-            "distance_ft" -> m.distance_ft,
-            "distance_mi" -> m.distance_mi,
-            "coverage" -> m.coverage)
-        )
-        Future.successful(Ok(JsArray(missionJsonObjects)))
+        // If the user doesn't already have an anonymous ID, sign them up and rerun.
+      case _ => Future.successful(Redirect("/anonSignUp?url=/mission"))
     }
   }
 
@@ -157,7 +133,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
                 }
               }
             }
-          case _ =>
+          case _ => Logger.error("User without a user_id completed a mission, but every user should have a user_id.")
         }
 
         Future.successful(Ok(Json.obj()))
@@ -165,7 +141,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     )
   }
 
-  def postAMTAssignment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def postAMTAssignment = Action.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
 
     val submission = request.body.validate[AMTAssignmentCompletionSubmission]
@@ -252,7 +228,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
-  def getRewardPerMile = UserAwareAction.async { implicit request =>
+  def getRewardPerMile = Action.async { implicit request =>
     Future.successful(Ok(Json.obj("rewardPerMile" -> payPerMile)))
   }
 

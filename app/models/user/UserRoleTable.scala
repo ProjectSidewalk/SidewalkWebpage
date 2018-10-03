@@ -1,5 +1,6 @@
 package models.user
 
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
@@ -21,12 +22,15 @@ object UserRoleTable {
   val db = play.api.db.slick.DB
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
+  val userTable = TableQuery[UserTable]
 
-  val roleMapping = Map("User" -> 1, "Turker" -> 2, "Researcher" -> 3, "Administrator" -> 4, "Owner" -> 5)
+  def roleMapping: Map[String, Int] = db.withSession {
+    implicit session => roles.list.map(r => r.role -> r.roleId).toMap
+  }
 
 
   /**
-    * Gets the users role. If no role is found, the role of "User" is assigned and returned.
+    * Gets the users role. If no role is found, the role of "Registered" is assigned and returned.
     *
     * @param userId
     * @return
@@ -38,10 +42,10 @@ object UserRoleTable {
     try {
       _roles.list.map(_.role).head
     } catch {
-      // no role found, give them User role
+      // no role found, give them Registered role
       case NonFatal(t) =>
-        setRole(userId, "User")
-        "User"
+        setRole(userId, "Registered")
+        "Registered"
     }
   }
 
@@ -55,6 +59,15 @@ object UserRoleTable {
   }
 
   def isResearcher(userId: UUID): Boolean = db.withSession { implicit session =>
-    getRole(userId) == "Researcher"
+    List("Researcher", "Administrator", "Owner").contains(getRole(userId))
+  }
+
+  def getUsersByType(userType: String): Query[UserTable, DBUser, Seq] = {
+    val turkerUsers = for {
+      _roleIds <- userRoles
+      _roles <- roles if _roles.roleId === _roleIds.roleId && _roles.role === userType
+      _users <- userTable if _users.userId === _roleIds.userId
+    } yield _users
+    turkerUsers
   }
 }

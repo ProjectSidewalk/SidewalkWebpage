@@ -1,5 +1,5 @@
 @import models.user.User
-@import models.user.UserCurrentRegionTable
+@import models.region.RegionTable
 @import models.region.NamedRegion
 @import models.mission.MissionTable
 @import models.survey._
@@ -119,6 +119,19 @@
                 </div>
             </div>
         </div>
+        <div id="already-completed-neighborhood-overlay">
+            <div class="overlay-text">
+                <div id="already-completed-neighborhood-text">
+                    <p>
+                        <span class="overlay-header">Neighborhood Already Complete!</span>
+                    </p>
+                    <p>
+                        You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.
+                    </p>
+                    <span class="overlay-option" id="accept-redirect">OK</span>
+                </div>
+            </div>
+        </div>
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -163,11 +176,11 @@
                         </span>
                     </div>
                 </span>
-                <span id="landmark-holder">
-                    <div id="ribbon-menu-landmark-title">
+                <span id="label-type-holder">
+                    <div id="ribbon-menu-label-type-title">
                         Find and label the following
                     </div>
-                    <div id="ribbon-menu-landmark-button-holder">
+                    <div id="ribbon-menu-label-type-button-holder">
                         <span id="ModeSwitchButton_CurbRamp" class="modeSwitch" val="CurbRamp">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
@@ -196,6 +209,13 @@
                             <span class="modeSwitch_Name"><span class="underline">S</span>urface Problem</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="SurfaceProblem"></div>
                         </span>
+                        <span id="ModeSwitchButton_NoSidewalk" class="modeSwitch" val="NoSidewalk">
+                            <span class="modeSwitch_Icon">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
+                            </span>
+                            <span class="modeSwitch_Name"><span class="underline">N</span>o Sidewalk</span>
+                            <div class="ribbon-menu-mode-switch-horizontal-line" val="NoSidewalk"></div>
+                        </span>
                         <span id="ModeSwitchButton_Other" class="modeSwitch" val="Other">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other2.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
@@ -209,12 +229,6 @@
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
                                     Can't see the sidewalk (<span class="underline">B</span>)
                                 </div>
-                                <hr>
-                                <div class="ribbon-menu-other-subcategories" val="NoSidewalk">
-                                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.png")' class="icon-ribbon-menu-medium" alt="No sidewalk icon">
-                                    <span class="underline">N</span>o sidewalk
-                                </div>
-                                <hr>
                                 <div class="ribbon-menu-other-subcategories" val="Other">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
                                     Other
@@ -300,6 +314,7 @@
                             <canvas id="label-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas>
                         </div>
                     </div>
+
                     <div id="delete-icon-holder">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="LabelDeleteIcon" />
                     </div>
@@ -318,9 +333,9 @@
                                     <div class="problem-severity-axis-label">Passable</div>
                                 </div>
                                 <div class="radio-inline" id="severity-one" data-toggle="tooltip" onmouseut="function(){}">
-                                  <label class="radio-button-labels">
-                                    <input type="radio" name="problem-severity" value="1">
-                                        <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
+                                    <label class="radio-button-labels">
+                                        <input type="radio" name="problem-severity" value="1">
+                                            <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             value="1" alt="Smiley face rating 1">
                                         <div>1</div>
@@ -369,24 +384,24 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="spacer10"></div>
                         <div id="problem-property-menu">
                             <div>
-                                <div>
-                                    <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
-                                </div>
+                                <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                             </div>
-                            <div>
-                                <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                    <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
-                                </div>
+                            <div id="context-menu-tag-holder">
+                                <button class="context-menu-tag" name='tag' id="0"></button>
+                                <button class="context-menu-tag" name='tag' id="1"></button>
+                                <button class="context-menu-tag" name='tag' id="2"></button>
+                                <button class="context-menu-tag" name='tag' id="3"></button>
+                                <button class="context-menu-tag" name='tag' id="4"></button>
                             </div>
-                            <div>
+                            <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
+                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
                                 <button id="context-menu-ok-button">OK</button>
                             </div>
                         </div>
-                        <div id="context-menu-vertical-connector"></div>
                     </div>
+                    <div id="context-menu-vertical-connector"></div>
                 </div>
             </div>
             <div id="google-maps-holder">
@@ -502,6 +517,10 @@
                                 <tr>
                                     <th>Surface Problem</th>
                                     <td id="modal-mission-complete-surface-problem-count" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>No Sidewalk</th>
+                                    <td id="modal-mission-complete-no-sidewalk-count" class="col-right"></td>
                                 </tr>
                                 <tr>
                                     <th>Other</th>
@@ -777,7 +796,8 @@
         svl.userModel = new UserModel();
         @if(user) {
             var userParam = {
-                username : '@user.get.username',
+                username: '@user.get.username',
+                role: '@user.get.role',
                 completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
             };
             svl.user = new User(userParam, svl.userModel);
@@ -786,7 +806,10 @@
         } else {
             $('#status-neighborhood-link').hide();
 
-            var userParam = { username : "anonymous" };
+            var userParam = {
+                username: "anonymous",
+                role: "Anonymous"
+            };
             svl.user = new User(userParam, svl.userModel);
         }
         svl.userModel._user = svl.user;
@@ -824,6 +847,9 @@
 
                 }
             });
+        } else {
+            $(".toolUI").css({"visibility": "visible"});
+            $('#already-completed-neighborhood-overlay').show();
         }
 
         $(document).ready(function(){
@@ -850,6 +876,11 @@
 
             $('#redirect-new').on('click', function(){
                 $(location).attr('href', '/audit?nextRegion=regular');
+            });
+
+            // Already Completed Neighborhood Overlay
+            $('#accept-redirect').on('click', function(){
+                $(location).attr('href', '/audit');
             });
         });
 
@@ -926,10 +957,9 @@
 
                             });
                         });
-
-                        $("#current-mission-reward").show();
-                        $("#total-mission-reward").show();
                     }
+                    $("#current-mission-reward").show();
+                    $("#total-mission-reward").show();
                     $("#modal-mission-reward-text").show();
                 } else{
                     $("#left-column-confirmation-code-button").css('visibility', "hidden");
@@ -945,7 +975,7 @@
                 mainParam.regionId = @region.get.regionId;
                 mainParam.regionName = '@region.get.name';
                 mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
-                if(@UserCurrentRegionTable.difficultRegionIds.contains(region.get.regionId)){
+                if(@RegionTable.difficultRegionIds.contains(region.get.regionId)){
                        $('#advanced-overlay').show();
                        mainParam.advancedOverlay = true
                 }
@@ -974,10 +1004,7 @@
                 url: surveyUrl,
                 type: 'post',
                 dataType: 'json',
-                data: JSON.stringify({
-                    "answered_questions": formData,
-                    "is_admin": equals(@user.get.role.getOrElse(""), "Administrator")
-                }),
+                data: JSON.stringify(formData),
                 success: function (data) {
                     //close survey modal here
                     $('#survey-modal-container').modal('hide');
@@ -990,5 +1017,4 @@
         }
 
     </script>
-
 }

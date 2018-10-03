@@ -85,21 +85,24 @@ object StreetEdgeAssignmentCountTable {
 
   /**
     * This method returns how many times streets are audited
+    *
+    * NOTE: Do not use this function; the values in this table are not reliable right now. Instead, use `computeEdgeCompletionCounts`
+    *
     * @return
     */
   def selectCompletionCount: List[CompletionCount] = db.withSession { implicit session =>
     val selectCompletionCountQuery =  Q.queryNA[CompletionCount](
       """SELECT region.region_id, street_edge.street_edge_id, street_edge_assignment_count.completion_count
-        |  FROM sidewalk.region
+        |FROM sidewalk.region
         |INNER JOIN sidewalk.street_edge_region
-        |  ON street_edge_region.region_id = region.region_id
+        |    ON street_edge_region.region_id = region.region_id
         |INNER JOIN sidewalk.street_edge
-        |  ON street_edge.street_edge_id = street_edge_region.street_edge_id
+        |    ON street_edge.street_edge_id = street_edge_region.street_edge_id
         |INNER JOIN street_edge_assignment_count
-        |  ON street_edge_assignment_count.street_edge_id = street_edge.street_edge_id
+        |    ON street_edge_assignment_count.street_edge_id = street_edge.street_edge_id
         |WHERE region.deleted = FALSE
-        |  AND region.region_type_id = 2
-        |  AND street_edge.deleted = FALSE""".stripMargin
+        |    AND region.region_type_id = 2
+        |    AND street_edge.deleted = FALSE""".stripMargin
     )
     selectCompletionCountQuery.list
   }
