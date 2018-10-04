@@ -108,11 +108,15 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             Some(startedMission)
           case _ =>
             val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.get.userId, regionId.get)
-            val role: String = user.get.role.getOrElse("")
-            val pay: Double =
-              if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-              else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
-            Some(MissionTable.createNextAuditMission(user.get.userId, pay, nextMissionDistance, regionId.get))
+            if (nextMissionDistance > 0) {
+              val role: String = user.get.role.getOrElse("")
+              val pay: Double =
+                if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+                else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
+              Some(MissionTable.createNextAuditMission(user.get.userId, pay, nextMissionDistance, regionId.get))
+            } else {
+              None
+            }
         }
       } else {
         None
@@ -130,11 +134,15 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             Some(startedMission)
           case _ =>
             val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.get.userId, regionId.get)
-            val role: String = user.get.role.getOrElse("")
-            val pay: Double =
-              if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-              else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
-            Some(MissionTable.createNextAuditMission(user.get.userId, pay, nextMissionDistance, regionId.get))
+            if (nextMissionDistance > 0) {
+              val role: String = user.get.role.getOrElse("")
+              val pay: Double =
+                if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+                else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
+              Some(MissionTable.createNextAuditMission(user.get.userId, pay, nextMissionDistance, regionId.get))
+            } else {
+              None
+            }
         }
       } else {
         None
