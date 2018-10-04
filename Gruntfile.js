@@ -49,6 +49,12 @@ module.exports = function(grunt) {
                     'public/javascripts/FAQ/src/*.js'
                 ],
                 dest: 'public/javascripts/FAQ/build/FAQ.js'
+            },
+            validation_svl: {
+                src: [
+                    'public/javascripts/SVLabel/src/SVValidate/*.js'
+                ],
+                dest: 'public/javascripts/SVLabel/build/SVValidate.js'
             }
         },
         uglify: {
@@ -139,5 +145,5 @@ module.exports = function(grunt) {
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
     grunt.registerTask('default', ['concat', 'concat_css']);
-    grunt.registerTask('dist', ['concat:dist_svl', 'concat:dist_progress', 'concat:dist_admin']);
+    grunt.registerTask('dist', ['concat:dist_svl', 'concat:dist_progress', 'concat:dist_admin', 'concat:validation_svl']);
 };
