@@ -552,16 +552,16 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @UserDAOImpl.all.map { u =>
+                            @UserDAOImpl.getUserStatsForAdminPage.map { u =>
                             <tr>
                                 <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
                                 <td>@u.userId</td>
                                 <td>@u.email</td>
                                 <td>
-                                    @if(UserRoleTable.getRole(UUID.fromString(u.userId)) != "Owner"){
+                                    @if(u.role != "Owner"){
                                         <div class="dropdown">
                                             <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown" style="cursor: default">
-                                                @UserRoleTable.getRole(UUID.fromString(u.userId))
+                                                @u.role
                                                 <span class="caret"></span>
                                             </button>
                                             <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown@u.userId">
@@ -573,14 +573,14 @@
                                             </ul>
                                         </div>
                                     } else {
-                                        @UserRoleTable.getRole(UUID.fromString(u.userId))
+                                        @u.role
                                     }</td>
-                                <td>@WebpageActivityTable.selectSignUpTimestamp(UUID.fromString(u.userId))</td>
-                                <td>@WebpageActivityTable.selectLastSignInTimestamp(UUID.fromString(u.userId))</td>
-                                <td>@WebpageActivityTable.selectSignInCount(UUID.fromString(u.userId))</td>
-                                <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(u.userId))</td>
-                                <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(u.userId))</td>
-                                <td>@LabelTable.countLabelsByUserId(UUID.fromString(u.userId))</td>
+                                <td>@u.signUpTime</td>
+                                <td>@u.lastSignInTime</td>
+                                <td>@u.signInCount</td>
+                                <td>@u.completedMissions</td>
+                                <td>@u.completedAudits</td>
+                                <td>@u.labels</td>
                             </tr>
                             }
                             </tbody>
