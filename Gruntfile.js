@@ -52,7 +52,8 @@ module.exports = function(grunt) {
             },
             validation_svl: {
                 src: [
-                    'public/javascripts/SVLabel/src/SVValidate/*.js'
+                    'public/javascripts/SVLabel/src/SVValidate/*.js',
+                    'public/javascripts/SVLabel/src/SVValidate/panorama/*.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVValidate.js'
             }
@@ -64,12 +65,18 @@ module.exports = function(grunt) {
             }
         },
         concat_css: {
-            all: {
+            dist_all: {
                 src: [
-                    'public/javascripts/SVLabel/css/svl.css',
-                    'public/javascripts/SVLabel/css/*.css'
+                    'public/javascripts/SVLabel/src/css/svl.css',
+                    'public/javascripts/SVLabel/src/css/*.css'
                     ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.css'
+            },
+            validation_all: {
+                src: [
+                    'public/javascripts/SVLabel/src/SVValidate/css/*.css'
+                ],
+                dest: 'public/javascripts/SVLabel/build/SVValidate.css'
             }
         },
         jasmine: {
@@ -121,7 +128,10 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/css/*.css',
                     'public/javascripts/Progress/src/**/*.js',
                     'public/javascripts/Admin/src/**/*.js',
-                    'public/javascripts/FAQ/src/*.js'
+                    'public/javascripts/FAQ/src/*.js',
+                    'public/javascripts/SVLabel/src/SVValidate/*.js',
+                    'public/javascripts/SVLabel/src/SVValidate/**/*.js',
+                    'public/javascripts/SVLabel/src/SVValidate/**/*.css'
                 ],
                 tasks: [
                     'concat',
