@@ -177,6 +177,11 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         if (skipReasonLabel === "GSVNotAvailable") {
             taskContainer.endTask(task);
             util.misc.reportNoStreetView(task.getStreetEdgeId());
+        } else {
+            // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
+            var currTaskDist = util.math.kilometersToMeters(taskContainer.getCurrentTaskDistance());
+            var oldOffset = missionContainer.getTasksMissionsOffset();
+            missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
         }
 
         task.eraseFromGoogleMaps();

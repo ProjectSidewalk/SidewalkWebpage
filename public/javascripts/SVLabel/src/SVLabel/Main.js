@@ -383,8 +383,6 @@ function Main (params) {
         var unit = "miles";
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
-
-
     }
 
     // This is a callback function that is executed after every loading process is done.

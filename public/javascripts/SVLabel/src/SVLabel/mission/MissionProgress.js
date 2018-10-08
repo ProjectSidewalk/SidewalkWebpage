@@ -108,8 +108,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         var completionRate = currentMission.getMissionCompletionRate();
         statusModel.setMissionCompletionRate(completionRate);
         statusModel.setProgressBar(completionRate);
-        // svl.statusFieldMission.printCompletionRate(completionRate);
-        // svl.statusFieldMission.updateMissionCompletionBar(completionRate);
         this._checkMissionComplete(currentMission, currentRegion);
     };
 }

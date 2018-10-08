@@ -575,9 +575,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     function updateAuditedDistance (unit) {
         if (!unit) unit = "kilometers";
-        var distance = 0,
-            sessionDistance = 0,
-            neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+        var distance = 0;
+        var sessionDistance = 0;
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
 
         if (neighborhood) {
             sessionDistance = getCompletedTaskDistance(unit);
