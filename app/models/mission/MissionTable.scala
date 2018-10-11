@@ -319,17 +319,18 @@ object MissionTable {
     * @return Int number of rows updated (should always be 1).
     */
   def updateAuditProgress(missionId: Int, distanceProgress: Float): Int = db.withSession { implicit session =>
+    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     // TODO maybe deal with empty list and null distanceMeters column.
     val missionDistance: Float = missions.filter(_.missionId === missionId).map(_.distanceMeters).list.head.get
-    val distToUpdate = for { m <- missions if m.missionId === missionId } yield m.distanceProgress
+    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.distanceProgress, m.missionEnd)
 
     if (~=(distanceProgress, missionDistance, precision = 0.00001F)) {
-      distToUpdate.update(Some(missionDistance))
+      missionToUpdate.update((Some(missionDistance), now))
     } else if (distanceProgress < missionDistance) {
-      distToUpdate.update(Some(distanceProgress))
+      missionToUpdate.update((Some(distanceProgress), now))
     } else {
       Logger.error("Trying to update mission progress with distance greater than total mission distance.")
-      distToUpdate.update(Some(missionDistance))
+      missionToUpdate.update((Some(missionDistance), now))
     }
   }
 
