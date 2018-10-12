@@ -53,7 +53,8 @@ module.exports = function(grunt) {
             validation_svl: {
                 src: [
                     'public/javascripts/SVLabel/src/SVValidate/*.js',
-                    'public/javascripts/SVLabel/src/SVValidate/panorama/*.js'
+                    'public/javascripts/SVLabel/src/SVValidate/panorama/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/Panomarker.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVValidate.js'
             }
@@ -67,8 +68,8 @@ module.exports = function(grunt) {
         concat_css: {
             dist_all: {
                 src: [
-                    'public/javascripts/SVLabel/src/css/svl.css',
-                    'public/javascripts/SVLabel/src/css/*.css'
+                    'public/javascripts/SVLabel/css/svl.css',
+                    'public/javascripts/SVLabel/css/*.css'
                     ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.css'
             },

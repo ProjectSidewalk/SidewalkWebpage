@@ -1,6 +1,61 @@
-#svv-panorama-holder {
+#svv-application-holder {
+    background: rgba(255,255,255,1);
+    margin: 0 auto;
+    position: relative;
+    height: 640px;
+    width: 960px;
+}
+
+#upper-menu-holder {
+    position: absolute;
+    top: 0px;
     width: 730px;
-    height: 490px;
-    background: black;
-    <!-- hello!! -->
+    height: 80px;
+    background: rgb(185, 185, 185);
+}
+
+#svv-panorama-holder {
+    position: absolute;
+    top: 85px;
+    width: 730px;
+    height: 420px;
+}
+
+#mission-status-holder {
+    position: absolute;
+    top: 30px;
+    left: 735px;
+    height: 570px; /* temporary */
+    width: 200px;
+    background: rgb(185, 185, 185);
+    /* blah */
+    /* test */
+}
+
+#validation-button-holder {
+    position: absolute;
+    left: 0px;
+    top: 510px;
+    height: 90px;
+    width: 730px;
+    background: rgb(185, 185, 185);
+}
+
+/* Panorama stuff --> split into another file later */
+#svv-panorama-outline {
+    border: 5px solid black;
+    border-radius: 5px;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 420px;
+    width: 730px;
+}
+
+/* Container for the panorama */
+#svv-panorama {
+    left: 0px;
+    top: 0px;
+    height: 410px;
+    width: 720px;
 }

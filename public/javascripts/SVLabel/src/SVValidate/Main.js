@@ -8,8 +8,7 @@ var svv = svv || {};
  * @constructor
  */
 function Main (params) {
-    console.log("Main initialized");
 
+    // TODO later: Add params for map
     svv.panorama = new Panorama();
-
 }

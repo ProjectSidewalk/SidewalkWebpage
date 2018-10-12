@@ -18,20 +18,29 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/JSTest.js")'></script>
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
     <div class="container toolUI" style = "visibility: visible;">
-        <div id="svl-application-holder">
+        <div id="svv-application-holder">
+            <div id="upper-menu-holder">
+                <!-- rename to something better... probably will hold information -->
+            </div>
             <div id="svv-panorama-holder">
-                <div id="svv-panorama">
+                <div id="svv-panorama-outline">
+                    <div id="svv-panorama">
 
+                    </div>
                 </div>
             </div>
-            Hello!
+            <div id="mission-status-holder">
+                <!-- where we'll put all the mission related stuff -->
+            </div>
+            <div id="validation-button-holder">
+                <!-- put agree / disagree buttons here -->
+            </div>
         </div>
     </div>
 
@@ -43,9 +52,6 @@
             var svv = svv || {};
             var param = undefined;
             svv.main = new Main(param);
-
-            console.log("Initializing...");
-            test = new Test();
         }
     </script>
 
