@@ -250,7 +250,25 @@ object MissionTable {
     missions.filter(m => m.userId === userId.toString && m.completed).map(_.pay).sum.run.getOrElse(0.0D)
   }
 
-  def updateResumeOrCreateNewAuditMission(actions: List[String], userId: UUID, regionId: Option[Int], payPerMeter: Option[Double], tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int], distanceProgress: Option[Float]): Option[Mission] = db.withSession { implicit session =>
+  /**
+    * Provides functionality for accessing mission table while a user is auditing while preventing race conditions.
+    *
+    * The mission table functionality that is required while a user is auditing is all wrapped up into this function in
+    * a synchronized block to prevent race conditions that were happening otherwise. Functionality includes retrieving
+    * partially completed missions, updating the progress of a mission, marking a mission as complete, and creating a
+    * new mission. These all work for both "audit" and "auditOnboarding" missions.
+    *
+    * @param actions List containing one or more of "updateProgress", "updateComplete", or "getMission"; required.
+    * @param userId Always required.
+    * @param regionId Only required if actions contains "getMission".
+    * @param payPerMeter Only required if actions contains "getMissions" and retakingTutorial is false.
+    * @param tutorialPay Only required if actions contains "getMissions".
+    * @param retakingTutorial Only required if actions contains "getMissions".
+    * @param missionId Only required if actions contains "updateProgress" or "updateComplete".
+    * @param distanceProgress Only required if actions contains "updateProgress".
+    * @return
+    */
+  def queryMissionTable(actions: List[String], userId: UUID, regionId: Option[Int], payPerMeter: Option[Double], tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int], distanceProgress: Option[Float]): Option[Mission] = db.withSession { implicit session =>
     this.synchronized {
       if (actions.contains("updateProgress")) {
         updateAuditProgress(missionId.get, distanceProgress.get)
@@ -287,25 +305,72 @@ object MissionTable {
     }
   }
 
+  /**
+    * Marks the given mission as complete and gets another mission in the given region if possible.
+    *
+    * @param userId
+    * @param regionId
+    * @param payPerMeter
+    * @param missionId
+    * @return
+    */
   def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int): Option[Mission] = {
     val actions: List[String] = List("updateComplete", "getMission")
-    updateResumeOrCreateNewAuditMission(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), None)
+    queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), None)
   }
+
+  /**
+    * Updates the given mission's progress, marks as complete and gets another mission in the given region if possible.
+    *
+    * @param userId
+    * @param regionId
+    * @param payPerMeter
+    * @param missionId
+    * @param distanceProgress
+    * @return
+    */
   def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float): Option[Mission] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getMission")
-    updateResumeOrCreateNewAuditMission(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress))
+    queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress))
   }
+
+  /**
+    * Updates the distance_progress column of a mission using the helper method to prevent race conditions.
+    *
+    * @param userId
+    * @param missionId
+    * @param distanceProgress
+    * @return
+    */
    def updateAuditProgressOnly(userId: UUID, missionId: Int, distanceProgress: Float): Option[Mission] = {
      val actions: List[String] = List("updateProgress")
-     updateResumeOrCreateNewAuditMission(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress))
+     queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress))
    }
+
+  /**
+    * Gets auditOnboarding mission the user started in the region if one exists, o/w makes a new mission.
+    *
+    * @param userId
+    * @param tutorialPay
+    * @return
+    */
    def resumeOrCreateNewAuditOnboardingMission(userId: UUID, tutorialPay: Double): Option[Mission] = {
      val actions: List[String] = List("getMission")
-     updateResumeOrCreateNewAuditMission(actions, userId, None, None, Some(tutorialPay), Some(true), None, None)
+     queryMissionTable(actions, userId, None, None, Some(tutorialPay), Some(true), None, None)
    }
+
+  /**
+    * Gets mission the user started in the region if one exists, o/w makes a new mission; may create a tutorial mission.
+    *
+    * @param userId
+    * @param regionId
+    * @param payPerMeter
+    * @param tutorialPay
+    * @return
+    */
    def resumeOrCreateNewAuditMission(userId: UUID, regionId: Int, payPerMeter: Double, tutorialPay: Double): Option[Mission] = {
      val actions: List[String] = List("getMission")
-     updateResumeOrCreateNewAuditMission(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None)
+     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None)
    }
 
   /**
