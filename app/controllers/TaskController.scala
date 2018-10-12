@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.util.UUID
 
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -96,56 +97,27 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @return Option[Mission] a new mission if the old one was completed, o/w None.
     */
   def updateMissionTable(user: Option[User], missionProgress: AuditMissionProgress): Option[Mission] = {
-    // TODO check that user current region entry is being updated where appropriate.
-    val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(user.get.userId)
+    val missionId: Int = missionProgress.missionId
+    val userId: UUID = user.get.userId
+    val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(userId)
+    val role: String = user.get.role.getOrElse("")
+    val payPerMeter: Double =
+      if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
+
     if (MissionTable.isOnboardingMission(missionProgress.missionId)) {
       if (missionProgress.completed) {
-        MissionTable.updateComplete(missionProgress.missionId)
-
-        val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.get.userId, regionId.get)
-        incompleteMission match {
-          case Some(startedMission) =>
-            Some(startedMission)
-          case _ =>
-            val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.get.userId, regionId.get)
-            if (nextMissionDistance > 0) {
-              val role: String = user.get.role.getOrElse("")
-              val pay: Double =
-                if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-                else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
-              Some(MissionTable.createNextAuditMission(user.get.userId, pay, nextMissionDistance, regionId.get))
-            } else {
-              None
-            }
-        }
+        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId)
       } else {
         None
       }
     } else {
-      if (missionProgress.distanceProgress.isEmpty) Logger.error("Sent null distance progress for audit mission.")
+      if (missionProgress.distanceProgress.isEmpty) Logger.error("Received null distance progress for audit mission.")
+      val distProgress: Float = missionProgress.distanceProgress.get
 
-      MissionTable.updateAuditProgress(missionProgress.missionId, missionProgress.distanceProgress.get)
       if (missionProgress.completed) {
-        MissionTable.updateComplete(missionProgress.missionId)
-        // Checking for missions that were already created, since duplicates are being made from multiple requests.
-        val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.get.userId, regionId.get)
-        incompleteMission match {
-          case Some(startedMission) =>
-            Some(startedMission)
-          case _ =>
-            val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.get.userId, regionId.get)
-            if (nextMissionDistance > 0) {
-              val role: String = user.get.role.getOrElse("")
-              val pay: Double =
-                if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-                else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
-              Some(MissionTable.createNextAuditMission(user.get.userId, pay, nextMissionDistance, regionId.get))
-            } else {
-              None
-            }
-        }
+        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress)
       } else {
-        None
+        MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
       }
     }
   }

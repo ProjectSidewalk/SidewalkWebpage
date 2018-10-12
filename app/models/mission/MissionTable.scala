@@ -250,6 +250,64 @@ object MissionTable {
     missions.filter(m => m.userId === userId.toString && m.completed).map(_.pay).sum.run.getOrElse(0.0D)
   }
 
+  def updateResumeOrCreateNewAuditMission(actions: List[String], userId: UUID, regionId: Option[Int], payPerMeter: Option[Double], tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int], distanceProgress: Option[Float]): Option[Mission] = db.withSession { implicit session =>
+    this.synchronized {
+      if (actions.contains("updateProgress")) {
+        updateAuditProgress(missionId.get, distanceProgress.get)
+      }
+      if (actions.contains("updateComplete")) {
+        updateComplete(missionId.get)
+      }
+      if (actions.contains("getMission")) {
+        // If they still need to do tutorial or are retaking it.
+        if (!hasCompletedAuditOnboarding(userId) || retakingTutorial.get) {
+          // If there is already an incomplete tutorial mission in the table then grab it, o/w make a new one.
+          getIncompleteAuditOnboardingMission(userId) match {
+            case Some(incompleteOnboardingMission) => Some(incompleteOnboardingMission)
+            case _ => Some(createAuditOnboardingMission(userId, tutorialPay.get))
+          }
+        } else {
+          // Non-tutorial mission: if there is an incomplete one in the table then grab it, o/w make a new one.
+          getCurrentMissionInRegion(userId, regionId.get) match {
+            case Some(incompleteMission) =>
+              Some(incompleteMission)
+            case _ =>
+              val nextMissionDistance: Float = getNextAuditMissionDistance(userId, regionId.get)
+              if (nextMissionDistance > 0) {
+                val pay: Double = nextMissionDistance.toDouble * payPerMeter.get
+                Some(createNextAuditMission(userId, pay, nextMissionDistance, regionId.get))
+              } else {
+                None
+              }
+          }
+        }
+      } else {
+        None // If we are not trying to get a mission, return None
+      }
+    }
+  }
+
+  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int): Option[Mission] = {
+    val actions: List[String] = List("updateComplete", "getMission")
+    updateResumeOrCreateNewAuditMission(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), None)
+  }
+  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float): Option[Mission] = {
+    val actions: List[String] = List("updateProgress", "updateComplete", "getMission")
+    updateResumeOrCreateNewAuditMission(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress))
+  }
+   def updateAuditProgressOnly(userId: UUID, missionId: Int, distanceProgress: Float): Option[Mission] = {
+     val actions: List[String] = List("updateProgress")
+     updateResumeOrCreateNewAuditMission(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress))
+   }
+   def resumeOrCreateNewAuditOnboardingMission(userId: UUID, tutorialPay: Double): Option[Mission] = {
+     val actions: List[String] = List("getMission")
+     updateResumeOrCreateNewAuditMission(actions, userId, None, None, Some(tutorialPay), Some(true), None, None)
+   }
+   def resumeOrCreateNewAuditMission(userId: UUID, regionId: Int, payPerMeter: Double, tutorialPay: Double): Option[Mission] = {
+     val actions: List[String] = List("getMission")
+     updateResumeOrCreateNewAuditMission(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None)
+   }
+
   /**
     * Get the suggested distance in meters for the next mission this user does in this region.
     *

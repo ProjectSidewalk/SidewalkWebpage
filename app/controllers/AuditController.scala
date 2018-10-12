@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.util.UUID
 
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -29,8 +30,6 @@ import scala.concurrent.Future
 class AuditController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-
-  val DEFAULT_DISTANCE: Float = 152.4F
 
   /**
     * Returns an audit page.
@@ -82,30 +81,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
             val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
             val role: String = user.role.getOrElse("")
+            val payPerMeter: Double = if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
+            val tutorialPay: Double =
+              if (retakingTutorial || role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
+              else AMTAssignmentTable.TURKER_TUTORIAL_PAY
+
             val mission: Mission =
-              if (!MissionTable.hasCompletedAuditOnboarding(user.userId) || retakingTutorial) {
-                MissionTable.getIncompleteAuditOnboardingMission(user.userId) match {
-                  case Some(incompleteOnboardingMission) =>
-                    incompleteOnboardingMission
-                  case _ =>
-                    val tutorialPay: Double =
-                      if (retakingTutorial || role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-                      else AMTAssignmentTable.TURKER_TUTORIAL_PAY
-                    MissionTable.createAuditOnboardingMission(user.userId, tutorialPay)
-                }
-              } else {
-                val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
-                incompleteMission match {
-                  case Some(startedMission) =>
-                    startedMission
-                  case _ =>
-                    val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, regionId)
-                    val pay: Double =
-                      if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-                      else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
-                    MissionTable.createNextAuditMission(user.userId, pay, nextMissionDistance, regionId)
-                }
-              }
+              if(retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
+              else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
+
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user))))
         }
       // For anonymous users.
@@ -130,29 +114,25 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
+        val userId: UUID = user.userId
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
         val ipAddress: String = request.remoteAddress
         val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
 
         // Update the currently assigned region for the user
         region match {
           case Some(namedRegion) =>
-            UserCurrentRegionTable.saveOrUpdate(user.userId, regionId)
-            val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
-            val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, regionId)
-            val mission: Mission = incompleteMission match {
-              case Some(startedMission) =>
-                startedMission
-              case _ =>
-                val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, regionId)
-                val role: String = user.role.getOrElse("")
-                val pay: Double =
-                  if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-                  else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
-                MissionTable.createNextAuditMission(user.userId, pay, nextMissionDistance, regionId)
-            }
+            UserCurrentRegionTable.saveOrUpdate(userId, regionId)
+            val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, userId)
+            val role: String = user.role.getOrElse("")
+            val payPerMeter: Double =
+              if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
+            val tutorialPay: Double =
+              if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
+            val mission: Mission =
+              MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
             Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user))))
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
@@ -173,6 +153,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
+        val userId: UUID = user.userId
         val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
 
         if (regions.isEmpty) {
@@ -180,21 +161,17 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           Future.successful(Redirect("/audit"))
         } else {
           val region: NamedRegion = regions.head
+          val regionId: Int = region.regionId
 
           // TODO: Should this function be modified?
-          val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, request.identity.map(_.userId))
-          val incompleteMission: Option[Mission] = MissionTable.getCurrentMissionInRegion(user.userId, region.regionId)
-          val mission: Mission = incompleteMission match {
-            case Some(startedMission) =>
-              startedMission
-            case _ =>
-              val nextMissionDistance: Float = MissionTable.getNextAuditMissionDistance(user.userId, region.regionId)
-              val role: String = user.role.getOrElse("")
-              val pay: Double =
-                if (role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-                else AMTAssignmentTable.TURKER_PAY_PER_METER * nextMissionDistance.toDouble
-              MissionTable.createNextAuditMission(user.userId, pay, nextMissionDistance, region.regionId)
-          }
+          val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
+          val role: String = user.role.getOrElse("")
+          val payPerMeter: Double =
+            if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
+          val tutorialPay: Double =
+            if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
+          val mission: Mission =
+            MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
           Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
         }
       case None =>
