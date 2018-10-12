@@ -87,7 +87,7 @@ object LabelTable {
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
-  val severities = TableQuery[ProblemSeverityTable]
+  val severities = TableQuery[LabelSeverityTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
@@ -289,7 +289,7 @@ object LabelTable {
         |                lab_desc.description
         |					FROM label AS lb
         |				  LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
-        |  				LEFT JOIN sidewalk.problem_severity as sev ON lb.label_id = sev.label_id
+        |  				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
         |				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
         |				  LEFT JOIN sidewalk.problem_temporariness as prob_temp ON lb.label_id = prob_temp.label_id
         |		  ) AS lb_big
@@ -340,7 +340,7 @@ object LabelTable {
         |                lab_desc.description
         |					FROM label AS lb
         |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |			  	LEFT JOIN sidewalk.problem_severity AS sev ON lb.label_id = sev.label_id
+        |			  	LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
         |			  	LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
         |				  LEFT JOIN sidewalk.problem_temporariness AS prob_temp ON lb.label_id = prob_temp.label_id
         |			) AS lb_big
@@ -392,7 +392,7 @@ object LabelTable {
         |                lab_desc.description
         |					FROM label AS lb
         |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |		  		LEFT JOIN sidewalk.problem_severity AS sev ON lb.label_id = sev.label_id
+        |		  		LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
         |				  LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
         |				  LEFT JOIN sidewalk.problem_temporariness AS prob_temp ON lb.label_id = prob_temp.label_id
         |			) AS lb_big

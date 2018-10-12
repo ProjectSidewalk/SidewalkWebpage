@@ -257,9 +257,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
             // If temporariness/severity/description they are set, update/insert them.
             if (label.severity.isDefined) {
-              ProblemSeverityTable.find(labelId) match {
-                case Some(ps) => ProblemSeverityTable.updateSeverity(ps.problemSeverityId, label.severity.get)
-                case None => ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              LabelSeverityTable.find(labelId) match {
+                case Some(ls) => LabelSeverityTable.updateSeverity(ls.labelSeverityId, label.severity.get)
+                case None => LabelSeverityTable.save(LabelSeverity(0, labelId, label.severity.get))
               }
             }
 
