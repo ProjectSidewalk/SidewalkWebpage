@@ -25,11 +25,9 @@
     position: absolute;
     top: 30px;
     left: 735px;
-    height: 570px; /* temporary */
+    height: 570px;
     width: 200px;
     background: rgb(185, 185, 185);
-    /* blah */
-    /* test */
 }
 
 #validation-button-holder {
@@ -39,23 +37,4 @@
     height: 90px;
     width: 730px;
     background: rgb(185, 185, 185);
-}
-
-/* Panorama stuff --> split into another file later */
-#svv-panorama-outline {
-    border: 5px solid black;
-    border-radius: 5px;
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    height: 420px;
-    width: 730px;
-}
-
-/* Container for the panorama */
-#svv-panorama {
-    left: 0px;
-    top: 0px;
-    height: 410px;
-    width: 720px;
 }

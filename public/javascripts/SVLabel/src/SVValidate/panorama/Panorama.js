@@ -4,33 +4,10 @@
  * @constructor
  */
 function Panorama() {
-    var label = {
-        canvasHeight: undefined,
-        canvasWidth: undefined,
-        canvasX: undefined,
-        canvasY: undefined,
-        heading: undefined,
-        labelType: undefined,
-        pitch: undefined,
-        zoom: undefined
-    };
-
-    var icons = {
-        CurbRamp : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png',
-        NoCurbRamp : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
-        Obstacle : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png',
-        SurfaceProblem : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png',
-        Other : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        Occlusion : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        NoSidewalk : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
-    };
-
+    var label = new Label();
     var panoCanvas = document.getElementById("svv-panorama");
 
     function _init() {
-        // Test Label (for now)
-        // Manually getting stats from: http://0.0.0.0:9000/adminapi/label/72980
-
         // Onboarding location (for now)
         var initLoc = {
             pano: "stxXyCKAbd73DmkM2vsIHA",
@@ -63,26 +40,19 @@ function Panorama() {
             console.log("No typeof google");
         }
 
+        // Label ID (for now)
         setLabel(72980);
-        renderLabel();
     }
 
     function _handleData(labelMetadata) {
-        console.log('setLabel Label type: ' + labelMetadata['label_type_key']);
-
-        label = {
-            canvasHeight: labelMetadata['canvas_height'],
-            canvasWidth: labelMetadata['canvas_width'],
-            canvasX: labelMetadata['canvas_x'],
-            canvasY: labelMetadata['canvas_y'],
-            heading: labelMetadata['heading'],
-            labelType: labelMetadata['label_type_key'],
-            pitch: labelMetadata['pitch'],
-            zoom: labelMetadata['zoom']
-        };
-
-        // label.labelType = labelMetadata['label_type_key'];
-        console.log("setLabel Label type (2): " + label.labelType);
+        label.setProperty('canvasHeight', labelMetadata['canvas_height']);
+        label.setProperty('canvasWidth', labelMetadata['canvas_width']);
+        label.setProperty('canvasX', labelMetadata['canvas_x']);
+        label.setProperty('canvasY', labelMetadata['canvas_y']);
+        label.setProperty('heading', labelMetadata['heading']);
+        label.setProperty('labelType', labelMetadata['label_type_key']);
+        label.setProperty('pitch', labelMetadata['pitch']);
+        label.setProperty('zoom', labelMetadata['zoom']);
     }
 
     /**
@@ -108,12 +78,14 @@ function Panorama() {
             }
 
         });
+        renderLabel();
     }
 
     function renderLabel() {
-        var url = icons[label.labelType];
-        var pos = getPosition(label.canvasX, label.canvasY, label.canvasWidth,
-            label.canvasHeight, label.zoom, label.heading, label.pitch);
+        var url = label.getIconUrl();
+        var pos = getPosition(label.getProperty('canvasX'), label.getProperty('canvasY'),
+            label.getProperty('canvasWidth'), label.getProperty('canvasHeight'),
+            label.getProperty('zoom'), label.getProperty('heading'), label.getProperty('pitch'));
 
         self.labelMarker = new PanoMarker ({
             container: panoCanvas,
@@ -191,8 +163,8 @@ function Panorama() {
     }
 
     _init();
-    // hello
-
     self.renderLabel = renderLabel;
     self.setPanoramaID = setPanoramaID;
+
+    return self;
 }
