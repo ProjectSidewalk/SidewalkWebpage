@@ -41,7 +41,7 @@ function Label (svl, pathIn, params) {
         tagY: -1,
         severity: null,
         temporary_label_id: null,
-        temporaryProblem: null,
+        temporaryLabel: null,
         description: null
     };
 

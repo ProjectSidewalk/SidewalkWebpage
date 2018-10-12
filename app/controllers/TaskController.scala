@@ -263,11 +263,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               }
             }
 
-            if (label.temporaryProblem.isDefined) {
-              val tempProblem = label.temporaryProblem.get.value
-              ProblemTemporarinessTable.find(labelId) match {
-                case Some(pt) => ProblemTemporarinessTable.updateTemporariness(pt.problemTemporarinessId, tempProblem)
-                case None => ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, tempProblem))
+            if (label.temporaryLabel.isDefined) {
+              val tempLabel = label.temporaryLabel.get.value
+              LabelTemporarinessTable.find(labelId) match {
+                case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
+                case None => LabelTemporarinessTable.save(LabelTemporariness(0, labelId, tempLabel))
               }
             }
 

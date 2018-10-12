@@ -273,7 +273,7 @@ object LabelTable {
         |       lb_big.label_type,
         |       lb_big.label_type_desc,
         |       lb_big.severity,
-        |       lb_big.temp_problem,
+        |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
@@ -285,13 +285,13 @@ object LabelTable {
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
-        |                COALESCE(prob_temp.temporary_problem,'FALSE') AS temp_problem,
+        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
         |                lab_desc.description
         |					FROM label AS lb
         |				  LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
         |  				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
         |				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
-        |				  LEFT JOIN sidewalk.problem_temporariness as prob_temp ON lb.label_id = prob_temp.label_id
+        |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
         |		  ) AS lb_big
         |WHERE lb1.deleted = FALSE
         |    AND lb1.audit_task_id = at.audit_task_id
@@ -324,7 +324,7 @@ object LabelTable {
         |       lb_big.label_type,
         |       lb_big.label_type_desc,
         |       lb_big.severity,
-        |       lb_big.temp_problem,
+        |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
@@ -336,13 +336,13 @@ object LabelTable {
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
-        |                COALESCE(prob_temp.temporary_problem,'FALSE') AS temp_problem,
+        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
         |                lab_desc.description
         |					FROM label AS lb
         |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
         |			  	LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
         |			  	LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |				  LEFT JOIN sidewalk.problem_temporariness AS prob_temp ON lb.label_id = prob_temp.label_id
+        |				  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
         |			) AS lb_big
         |WHERE u.user_id = ?
         |      AND lb1.deleted = FALSE
@@ -376,7 +376,7 @@ object LabelTable {
         |       lb_big.label_type,
         |       lb_big.label_type_desc,
         |       lb_big.severity,
-        |       lb_big.temp_problem,
+        |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
@@ -388,13 +388,13 @@ object LabelTable {
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
-        |                COALESCE(prob_temp.temporary_problem,'FALSE') AS temp_problem,
+        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
         |                lab_desc.description
         |					FROM label AS lb
         |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
         |		  		LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
         |				  LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |				  LEFT JOIN sidewalk.problem_temporariness AS prob_temp ON lb.label_id = prob_temp.label_id
+        |				  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
         |			) AS lb_big
         |WHERE lb1.label_id = ?
         |      AND lb1.audit_task_id = at.audit_task_id
