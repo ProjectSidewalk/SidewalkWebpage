@@ -1,1 +1,30 @@
 /* Put buttons here */
+.validation-button {
+    height: 70px;
+    background: white;
+    margin-right: 2px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+}
+
+#validation-yes-button {
+    width: 243px;
+}
+
+#validation-no-button {
+    width: 243px;
+}
+
+#validation-unclear-button {
+    width: 232px;
+    margin-right: 0px;
+}
+
+.validation-button:focus {outline:0;}
+
+.validation-button:active {
+    outline: none;
+    border: none;
+    background-color: lightgrey;
+}

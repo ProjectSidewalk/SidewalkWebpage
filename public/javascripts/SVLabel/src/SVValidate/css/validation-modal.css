@@ -10,13 +10,13 @@
     position: absolute;
     top: 0px;
     width: 730px;
-    height: 80px;
+    height: 100px;
     background: rgb(185, 185, 185);
 }
 
 #svv-panorama-holder {
     position: absolute;
-    top: 85px;
+    top: 105px;
     width: 730px;
     height: 420px;
 }
@@ -27,14 +27,19 @@
     left: 735px;
     height: 570px;
     width: 200px;
+    /* background: rgb(185, 185, 185); */
+}
+
+#example-image-holder {
+    height: 170px;
     background: rgb(185, 185, 185);
 }
 
 #validation-button-holder {
     position: absolute;
     left: 0px;
-    top: 510px;
+    top: 530px;
     height: 90px;
     width: 730px;
-    background: rgb(185, 185, 185);
+    /* background: rgb(185, 185, 185); */
 }

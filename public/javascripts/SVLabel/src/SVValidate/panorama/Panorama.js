@@ -9,17 +9,8 @@ function Panorama() {
 
     function _init() {
         // Onboarding location (for now)
-        var initLoc = {
-            pano: "stxXyCKAbd73DmkM2vsIHA",
-            heading: 270,
-            pitch: 0,
-            visible: true,
-            zoom: 1
-        };
-
         if (typeof google != "undefined") {
             svv.panorama = new google.maps.StreetViewPanorama(panoCanvas);
-            svv.panorama.setPano(initLoc.pano);
 
             // Set control options
             svv.panorama.set('addressControl', false);
@@ -33,18 +24,18 @@ function Panorama() {
             svv.panorama.set('motionTracking', false);
             svv.panorama.set('motionTrackingControl', false);
             svv.panorama.set('showRoadLabels', false);
-
-            svv.panorama.set('pov', {heading: initLoc.heading, pitch: initLoc.pitch});
-            svv.panorama.set('zoom', initLoc.zoom);
         } else {
-            console.log("No typeof google");
+            console.error("No typeof google");
         }
 
         // Label ID (for now)
-        setLabel(72980);
+        setLabel(72982);
     }
 
     function _handleData(labelMetadata) {
+        setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
+            labelMetadata['pitch'], labelMetadata['zoom']);
+
         label.setProperty('canvasHeight', labelMetadata['canvas_height']);
         label.setProperty('canvasWidth', labelMetadata['canvas_width']);
         label.setProperty('canvasX', labelMetadata['canvas_x']);
@@ -56,11 +47,18 @@ function Panorama() {
     }
 
     /**
-     * Sets the panorama ID to an ID.
+     * Sets the panorama ID, and heading/pitch/zoom
      * @param panoId    String representation of the Panorama ID
+     * @param heading   Photographer heading
+     * @param pitch     Photographer pitch
+     * @param zoom      Photographer zoom
      */
-    function setPanoramaID(panoId) {
-        svv.panoramaID = panoId;
+    function setPano(panoId, heading, pitch, zoom) {
+        svv.panorama.setPano(panoId);
+        svv.panorama.set('pov', {heading: heading, pitch: pitch});
+
+        /* TODO: See if we need to adjust the zoom level */
+        svv.panorama.set('zoom', zoom);
     }
 
     /**
@@ -81,6 +79,10 @@ function Panorama() {
         renderLabel();
     }
 
+    /**
+     * Renders a label onto the screen using a Panomarker
+     * @returns {renderLabel}
+     */
     function renderLabel() {
         var url = label.getIconUrl();
         var pos = getPosition(label.getProperty('canvasX'), label.getProperty('canvasY'),
@@ -98,6 +100,8 @@ function Panorama() {
         return this;
     }
 
+
+    /* TODO: move this to a util file? */
     /**
      * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
      * From PanoMarker spec
@@ -164,7 +168,7 @@ function Panorama() {
 
     _init();
     self.renderLabel = renderLabel;
-    self.setPanoramaID = setPanoramaID;
+    self.setPano = setPano;
 
     return self;
 }
