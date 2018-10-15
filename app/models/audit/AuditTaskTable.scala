@@ -19,7 +19,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp,
-                   completionCount: Int, // number of times this street edge has been (across all users)
+                   completedByAnyUser: Boolean, // Has any user has audited this street
                    priority: Double,
                    completed: Boolean    // Has the user audited this street before (null if no corresponding user)
                   )  {
@@ -38,7 +38,7 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
       "x2" -> x2,
       "y2" -> y2,
       "task_start" -> taskStart.toString,
-      "completion_count" -> completionCount,
+      "completed_by_any_user" -> completedByAnyUser,
       "priority" -> priority,
       "completed" -> completed
     )
@@ -89,10 +89,10 @@ object AuditTaskTable {
     val x2 = r.nextFloat
     val y2 = r.nextFloat
     val taskStart = r.nextTimestamp
-    val completionCount = r.nextInt
+    val completedByAnyUser = r.nextBoolean
     val priority = r.nextDouble
     val completed = r.nextBooleanOption.getOrElse(false)
-    NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completionCount, priority, completed)
+    NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completedByAnyUser, priority, completed)
   })
 
   val db = play.api.db.slick.DB
@@ -104,7 +104,6 @@ object AuditTaskTable {
   val users = TableQuery[UserTable]
 
   val completedTasks = auditTasks.filter(_.completed)
-  val streetCompletionCounts = StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts
   val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
   val nonDeletedStreetEdgeRegions = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions
 
@@ -118,6 +117,17 @@ object AuditTaskTable {
     */
   def all: List[AuditTask] = db.withSession { implicit session =>
     auditTasks.list
+  }
+
+  // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
+  def streetCompletedByAnyUser: Query[(Column[Int], Column[Boolean]), (Int, Boolean), Seq] = {
+    // Completion count for audited streets.
+    val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
+
+    // Gets completion count of 0 for unaudted streets w/ a left join, then checks if completion count is > 0.
+    streetEdgesWithoutDeleted.leftJoin(completionCnt).on(_.streetEdgeId === _._1).map {
+      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt._2.ifNull(0.asColumnOf[Int]) > 0)
+    }
   }
 
   /**
@@ -404,9 +414,9 @@ object AuditTaskTable {
     // Join with other queries to get completion count and priority for each of the street edges.
     val edges = for {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
-      scc <- streetCompletionCounts if se.streetEdgeId === scc._1
-      sep <- streetEdgePriorities if scc._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, userCompleted)
+      scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
+      sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, userCompleted)
 
     var task: NewTask = NewTask.tupled(edges.first)
 
@@ -431,8 +441,8 @@ object AuditTaskTable {
     val possibleTasks = for {
       sp <- streetEdgePriorities
       se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
-      cc <- streetCompletionCounts if se.streetEdgeId === cc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, cc._2, sp.priority, false)
+      sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, sc._2, sp.priority, false)
 
     // Get the highest priority task.
     val task: Option[NewTask] = possibleTasks.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
@@ -455,8 +465,8 @@ object AuditTaskTable {
       ser <- nonDeletedStreetEdgeRegions if ser.regionId === regionId
       se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-      scc <- streetCompletionCounts if sep.streetEdgeId === scc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, false)
+      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
+    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, false)
 
     tasks.list.map(NewTask.tupled(_))
   }
@@ -479,9 +489,9 @@ object AuditTaskTable {
       (ser, ucs) <- edgesInRegion.leftJoin(userCompletedStreets).on(_.streetEdgeId === _._1)
       se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-      scc <- streetCompletionCounts if sep.streetEdgeId === scc._1
+      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
     } yield (
-      se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scc._2, sep.priority, ucs._2.?.getOrElse(false))
+      se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, ucs._2.?.getOrElse(false))
 
     tasks.list.map(NewTask.tupled(_))
   }
