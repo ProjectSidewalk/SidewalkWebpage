@@ -11,3 +11,6 @@ CREATE TABLE street_edge_assignment_count
   FOREIGN KEY (street_edge_id) REFERENCES street_edge(street_edge_id),
   PRIMARY KEY (street_edge_assignment_count_id)
 );
+
+INSERT INTO street_edge_assignment_count (street_edge_id, assignment_count, completion_count)
+  SELECT street_edge_id, 0, 0 FROM street_edge WHERE deleted = FALSE;
