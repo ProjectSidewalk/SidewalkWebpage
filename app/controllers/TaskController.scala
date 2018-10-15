@@ -123,19 +123,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   def updateAuditTaskCompleteness(auditTaskId: Int, auditTask: TaskSubmission, incomplete: Option[IncompleteTaskSubmission]): Unit = {
-    if (auditTask.completed.isDefined && auditTask.completed.get) {
+    // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion.
+    if ((auditTask.completed.isDefined && auditTask.completed.get)
+      || (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable")) {
       // if this was the first completed audit of this street edge, increase total audited distance of that region.
       if (!AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId)) {
         RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
       }
-      AuditTaskTable.updateCompleted(auditTaskId, completed=true)
-    } else if (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable") {
-      // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion
-      // if this was the first completed audit of this street edge, increase total audited distance of that region.
-      if (!AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId)) {
-        RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
-      }
-      AuditTaskTable.updateCompleted(auditTaskId, completed=true)
+      AuditTaskTable.updateCompleted(auditTaskId, completed = true)
     }
   }
 
