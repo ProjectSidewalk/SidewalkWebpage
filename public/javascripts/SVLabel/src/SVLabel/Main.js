@@ -195,7 +195,7 @@ function Main (params) {
 
         // Mark neighborhood as complete if the initial task's completion count > 0
         // Proxy for knowing if the neighborhood is complete across all users
-        if(task.getStreetCompletionCount() > 0) {
+        if(task.streetCompletedByAnyUser()) {
             svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 

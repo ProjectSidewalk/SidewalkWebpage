@@ -231,7 +231,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var tasks = self.getTasks();
 
         if (acrossAllUsers) {
-            tasks = tasks.filter(function (t) { return t.getStreetCompletionCount() === 0; });
+            tasks = tasks.filter(function (t) { return t.streetCompletedByAnyUser(); });
         }
 
         if (tasks) {
@@ -374,7 +374,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
             incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
-                return t.getStreetCompletionCount() === 0;
+                return t.streetCompletedByAnyUser();
             });
         }
 
