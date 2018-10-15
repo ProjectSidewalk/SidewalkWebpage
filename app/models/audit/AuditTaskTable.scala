@@ -120,6 +120,7 @@ object AuditTaskTable {
   }
 
   // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
+  // TODO it would be better to only consier "good user" audits here, but it would take too long to calculate each time.
   def streetCompletedByAnyUser: Query[(Column[Int], Column[Boolean]), (Int, Boolean), Seq] = {
     // Completion count for audited streets.
     val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
@@ -148,13 +149,6 @@ object AuditTaskTable {
         |ORDER BY calendar_date""".stripMargin
     )
     selectAuditCountQuery.list.map(x => AuditCountPerDay.tupled(x))
-  }
-
-  /**
-    * Return a sub-query of the least-audited streets in a region
-    */
-  def getLeastAuditedStreetsQuery(regionId: Int) = db.withSession {implicit session =>
-    
   }
 
   /**
@@ -329,6 +323,16 @@ object AuditTaskTable {
   }
 
   /**
+    * Returns true if there is a completed audit task for the given street edge, false otherwise.
+    *
+    * @param streetEdgeId
+    * @return
+    */
+  def anyoneHasAuditedStreet(streetEdgeId: Int): Boolean = db.withSession { implicit session =>
+    completedTasks.filter(_.streetEdgeId === streetEdgeId).list.nonEmpty
+  }
+
+  /**
     * Return audited street edges
     *
     * @return
@@ -418,10 +422,7 @@ object AuditTaskTable {
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, userCompleted)
 
-    var task: NewTask = NewTask.tupled(edges.first)
-
-    StreetEdgeAssignmentCountTable.incrementAssignment(task.edgeId)
-    task
+    NewTask.tupled(edges.first)
   }
 
   /**
@@ -445,11 +446,7 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, sc._2, sp.priority, false)
 
     // Get the highest priority task.
-    val task: Option[NewTask] = possibleTasks.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
-
-    // If a task was found, update the street_edge_assignment_count table.
-    task.map(t => StreetEdgeAssignmentCountTable.incrementAssignment(t.edgeId))
-    task
+    possibleTasks.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
   }
 
   /**
