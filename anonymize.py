@@ -15,7 +15,7 @@ def anonymize(sql_filename):
 
 
     terminate_line = "\."
-    copy_user_start_line = """COPY "user" (user_id, username, email) FROM stdin;"""
+    copy_user_start_line = """COPY sidewalk_user (user_id, username, email) FROM stdin;"""
     copy_login_info_start_line = """COPY login_info (login_info_id, provider_id, provider_key) FROM stdin;"""
 
 

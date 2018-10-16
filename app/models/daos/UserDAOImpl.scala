@@ -131,11 +131,11 @@ object UserDAOImpl {
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.user ON sidewalk.user.user_id = audit_task.user_id
-        |INNER JOIN sidewalk.user_role ON sidewalk.user.user_id = sidewalk.user_role.user_id
-        |INNER JOIN sidewalk.role ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
+        |INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
         |WHERE audit_task.task_end::date = now()::date
-        |    AND sidewalk.user.username <> 'anonymous'
+        |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
     )
@@ -177,11 +177,11 @@ object UserDAOImpl {
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.user ON sidewalk.user.user_id = audit_task.user_id
-        |INNER JOIN sidewalk.user_role ON sidewalk.user.user_id = sidewalk.user_role.user_id
-        |INNER JOIN sidewalk.role ON sidewalk.user_role.role_id = sidewalk.role.role_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
+        |INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
         |WHERE audit_task.task_end::date = now()::date - interval '1' day
-        |    AND sidewalk.user.username <> 'anonymous'
+        |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
     )
