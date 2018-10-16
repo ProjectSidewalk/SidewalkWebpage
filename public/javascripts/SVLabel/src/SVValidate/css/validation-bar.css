@@ -8,11 +8,11 @@
     border-color: lightgrey;
 }
 
-#validation-yes-button {
+#validation-agree-button {
     width: 243px;
 }
 
-#validation-no-button {
+#validation-disagree-button {
     width: 243px;
 }
 
