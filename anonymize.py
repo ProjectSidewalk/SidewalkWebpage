@@ -39,7 +39,7 @@ def anonymize(sql_filename):
 
             new_line = line
 
-            # Substitute lines in the user table
+            # Substitute lines in the sidewalk_user table
             if read_user_table:
                 line_list = line.split("\t")
                 if line_list[1] != "anonymous":
