@@ -38,7 +38,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         data.mission = {
             mission_id: mission.getProperty("missionId"),
             distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
-            completed: mission.getProperty("isComplete")
+            completed: mission.getProperty("isComplete"),
+            skipped: mission.getProperty("skipped")
         };
 
         data.audit_task = {

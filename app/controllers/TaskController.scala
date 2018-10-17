@@ -98,6 +98,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     */
   def updateMissionTable(user: Option[User], missionProgress: AuditMissionProgress): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
+    val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
     val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(userId)
     val role: String = user.get.role.getOrElse("")
@@ -106,7 +107,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
     if (MissionTable.isOnboardingMission(missionProgress.missionId)) {
       if (missionProgress.completed) {
-        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId)
+        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, skipped)
       } else {
         None
       }
@@ -115,7 +116,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val distProgress: Float = missionProgress.distanceProgress.get
 
       if (missionProgress.completed) {
-        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress)
+        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, skipped)
       } else {
         MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
       }
