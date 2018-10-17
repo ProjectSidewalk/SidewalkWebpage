@@ -16,7 +16,8 @@ function Mission(parameters) {
             pay: null,
             paid: null,
             distance: null,
-            distanceProgress: null
+            distanceProgress: null,
+            skipped: false
         },
         _tasksForTheMission = [],
         labelCountsAtCompletion;
@@ -30,6 +31,7 @@ function Mission(parameters) {
         if ("paid" in parameters) setProperty("paid", parameters.paid);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("distanceProgress" in parameters) setProperty("distanceProgress", parameters.distanceProgress);
+        if ("skipped" in parameters) setProperty("skipped", parameters.skipped);
     }
 
     /**

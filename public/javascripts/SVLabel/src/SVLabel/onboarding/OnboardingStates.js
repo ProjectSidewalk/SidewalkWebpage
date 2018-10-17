@@ -47,7 +47,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "initialize"});
                 var value = this.getAttribute("value");
-                return value == "OK" ? "select-label-type-1" : null;
+                return value == "OK" ? "select-label-type-1" : "end-onboarding-skip";
+            }
+        },
+        "end-onboarding-skip": {
+            "end-onboarding": {
+                "skip": true
             }
         },
         "select-label-type-1": {
@@ -1594,10 +1599,14 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
-                return null;
+                return "end-onboarding";
+            }
+        },
+        "end-onboarding": {
+            "end-onboarding": {
+                "skip": false
             }
         }
-
     };
 
     this.get = function () { return this.states; };
