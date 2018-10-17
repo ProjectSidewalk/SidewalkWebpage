@@ -29,6 +29,7 @@ CREATE TABLE mission
   region_id INT,
   labels_validated INT,
   labels_progress INT,
+  skipped BOOLEAN NOT NULL,
   PRIMARY KEY (mission_id),
   FOREIGN KEY (mission_type_id) REFERENCES mission_type(mission_type_id),
   FOREIGN KEY (user_id) REFERENCES sidewalk.user(user_id),
