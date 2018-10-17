@@ -22,7 +22,7 @@ case class RegionalMission(missionId: Int, missionType: String, regionId: Option
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
                    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
                    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
-                   labelsProgress: Option[Int]) {
+                   labelsProgress: Option[Int], skipped: Boolean) {
 
   def toJSON: JsObject = {
     Json.obj(
@@ -38,7 +38,8 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
       "distance_progress" -> distanceProgress,
       "region_id" -> regionId,
       "labels_validated" -> labelsValidated,
-      "labels_progress" -> labelsProgress
+      "labels_progress" -> labelsProgress,
+      "skipped" -> skipped
     )
   }
 }
@@ -57,8 +58,9 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
   def regionId: Column[Option[Int]] = column[Option[Int]]("region_id", O.Nullable)
   def labelsValidated: Column[Option[Int]] = column[Option[Int]]("labels_validated", O.Nullable)
   def labelsProgress: Column[Option[Int]] = column[Option[Int]]("labels_progress", O.Nullable)
+  def skipped: Column[Boolean] = column[Boolean]("skipped", O.NotNull)
 
-  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress) <> ((Mission.apply _).tupled, Mission.unapply)
+  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, skipped) <> ((Mission.apply _).tupled, Mission.unapply)
 
   def missionType: ForeignKeyQuery[MissionTypeTable, MissionType] =
     foreignKey("mission_mission_type_id_fkey", missionTypeId, TableQuery[MissionTypeTable])(_.missionTypeId)
@@ -99,8 +101,9 @@ object MissionTable {
     val regionId: Option[Int] = r.nextIntOption
     val labelsValidated: Option[Int] = r.nextIntOption
     val labelsProgress: Option[Int] = r.nextIntOption
+    val skipped: Boolean = r.nextBoolean
     Mission(missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
-            distanceProgress, regionId, labelsValidated, labelsProgress)
+            distanceProgress, regionId, labelsValidated, labelsProgress, skipped)
   })
 
 
@@ -268,13 +271,18 @@ object MissionTable {
     * @param distanceProgress Only required if actions contains "updateProgress".
     * @return
     */
-  def queryMissionTable(actions: List[String], userId: UUID, regionId: Option[Int], payPerMeter: Option[Double], tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int], distanceProgress: Option[Float]): Option[Mission] = db.withSession { implicit session =>
+  def queryMissionTable(actions: List[String], userId: UUID, regionId: Option[Int], payPerMeter: Option[Double],
+                        tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int],
+                        distanceProgress: Option[Float], skipped: Option[Boolean]): Option[Mission] = db.withSession { implicit session =>
     this.synchronized {
       if (actions.contains("updateProgress")) {
         updateAuditProgress(missionId.get, distanceProgress.get)
       }
       if (actions.contains("updateComplete")) {
         updateComplete(missionId.get)
+        if (skipped.getOrElse(false)) {
+          updateSkipped(missionId.get)
+        }
       }
       if (actions.contains("getMission")) {
         // If they still need to do tutorial or are retaking it.
@@ -314,9 +322,9 @@ object MissionTable {
     * @param missionId
     * @return
     */
-  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int): Option[Mission] = {
+  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, skipped: Boolean): Option[Mission] = {
     val actions: List[String] = List("updateComplete", "getMission")
-    queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), None)
+    queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), None, Some(skipped))
   }
 
   /**
@@ -329,9 +337,9 @@ object MissionTable {
     * @param distanceProgress
     * @return
     */
-  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float): Option[Mission] = {
+  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float, skipped: Boolean): Option[Mission] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getMission")
-    queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress))
+    queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), Some(skipped))
   }
 
   /**
@@ -344,7 +352,7 @@ object MissionTable {
     */
    def updateAuditProgressOnly(userId: UUID, missionId: Int, distanceProgress: Float): Option[Mission] = {
      val actions: List[String] = List("updateProgress")
-     queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress))
+     queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress), None)
    }
 
   /**
@@ -356,7 +364,7 @@ object MissionTable {
     */
    def resumeOrCreateNewAuditOnboardingMission(userId: UUID, tutorialPay: Double): Option[Mission] = {
      val actions: List[String] = List("getMission")
-     queryMissionTable(actions, userId, None, None, Some(tutorialPay), Some(true), None, None)
+     queryMissionTable(actions, userId, None, None, Some(tutorialPay), Some(true), None, None, None)
    }
 
   /**
@@ -370,7 +378,7 @@ object MissionTable {
     */
    def resumeOrCreateNewAuditMission(userId: UUID, regionId: Int, payPerMeter: Double, tutorialPay: Double): Option[Mission] = {
      val actions: List[String] = List("getMission")
-     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None)
+     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None)
    }
 
   /**
@@ -400,7 +408,7 @@ object MissionTable {
   def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
-    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None)
+    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
   }
@@ -414,8 +422,8 @@ object MissionTable {
     */
   def createAuditOnboardingMission(userId: UUID, pay: Double): Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
-    val newMiss = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None)
+    val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
+    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMiss
     missions.filter(_.missionId === missionId).list.head
   }
@@ -431,6 +439,19 @@ object MissionTable {
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
     val rowsUpdated: Int = missionToUpdate.update((true, now))
     if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
+    rowsUpdated
+  }
+
+  /**
+    * Marks the specifed mission as skipped.
+    *
+    * @param missionId
+    * @return
+    */
+  def updateSkipped(missionId: Int): Int = db.withSession { implicit session =>
+    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield m.skipped
+    val rowsUpdated: Int = missionToUpdate.update(true)
+    if (rowsUpdated == 0) Logger.error("Tried to mark a mission as skipped, but no mission exists with that ID.")
     rowsUpdated
   }
 
