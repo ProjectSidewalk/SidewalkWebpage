@@ -22,7 +22,7 @@ case class RegionalMission(missionId: Int, missionType: String, regionId: Option
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
                    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
                    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
-                   labelsProgress: Option[Int]) {
+                   labelsProgress: Option[Int], skipped: Boolean) {
 
   def toJSON: JsObject = {
     Json.obj(
@@ -38,7 +38,8 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
       "distance_progress" -> distanceProgress,
       "region_id" -> regionId,
       "labels_validated" -> labelsValidated,
-      "labels_progress" -> labelsProgress
+      "labels_progress" -> labelsProgress,
+      "skipped" -> skipped
     )
   }
 }
@@ -57,8 +58,9 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
   def regionId: Column[Option[Int]] = column[Option[Int]]("region_id", O.Nullable)
   def labelsValidated: Column[Option[Int]] = column[Option[Int]]("labels_validated", O.Nullable)
   def labelsProgress: Column[Option[Int]] = column[Option[Int]]("labels_progress", O.Nullable)
+  def skipped: Column[Boolean] = column[Boolean]("skipped", O.NotNull)
 
-  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress) <> ((Mission.apply _).tupled, Mission.unapply)
+  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, skipped) <> ((Mission.apply _).tupled, Mission.unapply)
 
   def missionType: ForeignKeyQuery[MissionTypeTable, MissionType] =
     foreignKey("mission_mission_type_id_fkey", missionTypeId, TableQuery[MissionTypeTable])(_.missionTypeId)
@@ -99,8 +101,9 @@ object MissionTable {
     val regionId: Option[Int] = r.nextIntOption
     val labelsValidated: Option[Int] = r.nextIntOption
     val labelsProgress: Option[Int] = r.nextIntOption
+    val skipped: Boolean = r.nextBoolean
     Mission(missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
-            distanceProgress, regionId, labelsValidated, labelsProgress)
+            distanceProgress, regionId, labelsValidated, labelsProgress, skipped)
   })
 
 
@@ -400,7 +403,7 @@ object MissionTable {
   def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
-    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None)
+    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
   }
@@ -414,8 +417,8 @@ object MissionTable {
     */
   def createAuditOnboardingMission(userId: UUID, pay: Double): Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
-    val newMiss = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None)
+    val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
+    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMiss
     missions.filter(_.missionId === missionId).list.head
   }
