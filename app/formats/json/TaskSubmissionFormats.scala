@@ -15,7 +15,7 @@ object TaskSubmissionFormats {
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
-  case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean)
+  case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
@@ -113,7 +113,8 @@ object TaskSubmissionFormats {
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "distance_progress").readNullable[Float] and
-      (JsPath \ "completed").read[Boolean]
+      (JsPath \ "completed").read[Boolean] and
+      (JsPath \ "skipped").read[Boolean]
   )(AuditMissionProgress.apply _)
 
   implicit val auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (

@@ -429,6 +429,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function next(nextState) {
         if (typeof nextState == "function") {
+            var nextStateId = nextState.call(this);
             status.state = getState(nextState.call(this));
             _visit(status.state);
         } else if (nextState in states) {
@@ -492,7 +493,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
 
-    function _endTheOnboarding() {
+    function _endTheOnboarding(skip) {
+        if (skip) {
+            tracker.push("Onboarding_Skip");
+            missionContainer.getCurrentMission().setProperty("skipped", true);
+        }
         tracker.push('Onboarding_End');
         missionContainer.getCurrentMission().setProperty("isComplete", true);
 
@@ -646,8 +651,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         }
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
-        if (!state) {
-            _endTheOnboarding();
+        if ("end-onboarding" in state) {
+            _endTheOnboarding(state["end-onboarding"]["skip"]);
             return;
         } else {
             hideMessage();
