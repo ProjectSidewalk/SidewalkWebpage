@@ -22,33 +22,33 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  jdbc,
-  anorm,
-  cache,
-  "com.vividsolutions" % "jts" % "1.13",
-  "com.typesafe.slick" %% "slick" % "2.1.0",
+//  jdbc,
+//  anorm,
+//  cache,
+//  "com.vividsolutions" % "jts" % "1.13",
+//  "com.typesafe.slick" %% "slick" % "2.1.0",
   "com.typesafe.play" %% "play-slick" % "0.8.0",
-  "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
+//  "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
   "com.mohiva" %% "play-silhouette" % "2.0",
-  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
+//  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
   "org.webjars" %% "webjars-play" % "2.3.0",
-  "org.webjars" % "bootstrap" % "3.1.1",
-  "org.webjars" % "jquery" % "1.11.0",
+//  "org.webjars" % "bootstrap" % "3.1.1",
+//  "org.webjars" % "jquery" % "1.11.0",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta5",
-  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
+//  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
   "com.typesafe.play.extras" %% "play-geojson" % "1.2.0",
   "com.github.tminglei" %% "slick-pg" % "0.8.2",
-  "org.slf4j" % "slf4j-api"       % "1.7.7",
-  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
-  "joda-time" % "joda-time" % "2.9.4",
-  "org.geotools" % "gt-coverage" % "14.3",
-  "org.geotools" % "gt-epsg-hsql" % "14.3",
-  "org.geotools" % "gt-geotiff" % "14.3",
-  "org.geotools" % "gt-main" % "14.3",
-  "org.geotools" % "gt-referencing" % "14.3"
+//  "org.slf4j" % "slf4j-api"       % "1.7.7",
+//  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
+//  "joda-time" % "joda-time" % "2.9.4",
+//  "org.geotools" % "gt-coverage" % "14.3",
+//  "org.geotools" % "gt-epsg-hsql" % "14.3",
+//  "org.geotools" % "gt-geotiff" % "14.3",
+  "org.geotools" % "gt-main" % "14.3"
+//  "org.geotools" % "gt-referencing" % "14.3"
 ).map(_.force())
 
-libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
+//libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
