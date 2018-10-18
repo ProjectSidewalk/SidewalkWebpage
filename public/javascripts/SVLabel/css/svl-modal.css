@@ -209,11 +209,6 @@
     float: right;
 }
 
-#mission-badge-holder img {
-    width: 150px;
-    margin-top: 17px;
-}
-
 .modal-background {
     position: absolute;
     left: -55px;

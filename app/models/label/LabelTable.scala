@@ -7,6 +7,7 @@ import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVOnboardingPanoTable
+import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
@@ -18,6 +19,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int,
                  auditTaskId: Int,
+                 missionId: Int,
                  gsvPanoramaId: String,
                  labelTypeId: Int,
                  photographerHeading: Float,
@@ -33,8 +35,7 @@ case class LabelLocation(labelId: Int,
                          gsvPanoramaId: String,
                          labelType: String,
                          lat: Float,
-                         lng: Float
-                         )
+                         lng: Float)
 
 case class LabelLocationWithSeverity(labelId: Int,
                                      auditTaskId: Int,
@@ -42,8 +43,7 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      labelType: String,
                                      severity: Int,
                                      lat: Float,
-                                     lng: Float
-                                    )
+                                     lng: Float)
 
 /**
  *
@@ -51,6 +51,7 @@ case class LabelLocationWithSeverity(labelId: Int,
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
+  def missionId = column[Int]("mission_id", O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
   def photographerHeading = column[Float]("photographer_heading", O.NotNull)
@@ -61,11 +62,14 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
 
-  def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
+  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
     panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+
+  def mission: ForeignKeyQuery[MissionTable, Mission] =
+    foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)

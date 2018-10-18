@@ -28,8 +28,8 @@ function Graph(_) {
     /**
      * Add an edge that connects source and target.
      * @param id
-     * @param sourceId
-     * @param targetId
+     * @param source
+     * @param target
      */
     function addEdge(id, source, target) {
         if (!(id in _edges)) {
@@ -160,7 +160,7 @@ function Vertex (id, lng, lat) {
 
     /**
      * Add an edgeId.
-     * @param id
+     * @param edge
      */
     function addEdge (edge) {
         _edges.push(edge);

@@ -7,8 +7,7 @@ function HandAnimation (rootDirectory, uiOnboarding) {
     var ClosedHandReady = false;
     var ImageObjOpenHand = new Image();
     var ImageObjClosedHand = new Image();
-    var _uiOnboarding = uiOnboarding;
-    var $handGestureHolder = _uiOnboarding.holder.find('#hand-gesture-holder');
+    var $handGestureHolder = uiOnboarding.holder.find('#hand-gesture-holder');
     var onboardingImageDirectory = rootDirectory + "img/onboarding/";
 
     this.initializeHandAnimation = function () {
@@ -110,8 +109,7 @@ function HandAnimation (rootDirectory, uiOnboarding) {
         if (ClosedHandReady && OpenHandReady) {
             uiOnboarding.handGestureHolder.css("visibility", "visible");
             this.animateHand("left-to-right");
-            var handAnimationInterval = setInterval(this.animateHand.bind(null, "left-to-right"), 2000);
-            return handAnimationInterval;
+            return setInterval(this.animateHand.bind(null, "left-to-right"), 2000);
         }
     };
 

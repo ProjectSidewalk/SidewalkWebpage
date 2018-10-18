@@ -14,6 +14,12 @@ GET     /terms                                               @controllers.Applic
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
 GET     /faq                                                 @controllers.ApplicationController.faq
+GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
+GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
+GET     /labelingGuide/surfaceProblems                       @controllers.ApplicationController.labelingGuideSurfaceProblems
+GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
+GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
+GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
 GET     /mobile                                              @controllers.ApplicationController.mobile
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
@@ -34,7 +40,6 @@ GET     /admin                                               @controllers.AdminC
 GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                                  @controllers.AdminController.task(taskId: Int)
 
-GET     /adminapi/missionsCompletedByUsers                   @controllers.AdminController.getMissionsCompletedByUsers
 GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate
 GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
 GET     /adminapi/allSignInCounts                            @controllers.AdminController.getAllUserSignInCounts
@@ -61,7 +66,7 @@ GET     /adminapi/choroplethCounts                           @controllers.AdminC
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
 # Auditing tasks
-GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None)
+GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
@@ -77,9 +82,8 @@ GET     /tasks                                               @controllers.TaskCo
 POST    /task                                                @controllers.TaskController.post
 
 # Missions
-GET     /mission                                             @controllers.MissionController.getMissions
-GET     /rewardPerMile                                       @controllers.MissionController.getRewardPerMile
-POST    /mission                                             @controllers.MissionController.post
+GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
+GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
@@ -88,7 +92,6 @@ GET     /label/tags                                          @controllers.LabelC
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
 GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
-POST    /neighborhood/assignment                             @controllers.RegionController.assignANewRegion
 
 # Map Edit
 GET     /map/edit                                            @controllers.MapController.edit
@@ -103,7 +106,6 @@ GET     /contribution/auditCounts/all                        @controllers.UserPr
 GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                              @controllers.UserProfileController.userProfile(username: String)
-GET     /isTurker                                            @controllers.UserProfileController.isTurker
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts

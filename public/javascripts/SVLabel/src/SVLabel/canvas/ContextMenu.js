@@ -22,7 +22,6 @@ function ContextMenu (uiContextMenu) {
         var clicked_out = !(context_menu_el.contains(event.target));
         if (isOpen()){
             hide();
-            wasOpen = true;
             if (clicked_out) {
              svl.tracker.push('ContextMenu_CloseClickOut');
             handleSeverityPopup();
@@ -69,7 +68,7 @@ function ContextMenu (uiContextMenu) {
             lastKeyPressed = 0;
             lastKeyCmd = false;
         }
-    }//handles both key down and key up events
+    }; //handles both key down and key up events
 
     function checkRadioButton (value) {
         uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click");
@@ -409,7 +408,7 @@ function ContextMenu (uiContextMenu) {
                     left: x,
                     width: '2px',
                     height: '2px',
-                })
+                });
 
                 // Determines coordinates for context menu when displayed below the label.
                 var topCoordinate = y + 20;
@@ -473,7 +472,7 @@ function ContextMenu (uiContextMenu) {
     /**
      * Toggles the color of the tag when selected/deselected.
      * @param labelTags     List of tags that the current label has.
-     * @param tagValue      Text value of tag that has been selected.
+     * @param id
      * @param target        Tag button that is being modified.
      */
     function _toggleTagColor(labelTags, id, target) {

@@ -1,13 +1,13 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.region.NamedRegion
-@import models.mission.MissionTable
+@import models.mission.{MissionTable, Mission}
 @import models.survey._
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -552,7 +552,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -737,24 +737,13 @@
                 </div>
 
             <script>
-                    var url = '/isTurker';
+                    var role = '@user.get.role';
                     var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
-                    $.ajax({
-                        async: true,
-                        url: url,//endpoint that checks above conditions
-                        type: 'get',
-                        success: function(data){
-                            if(data.isTurker && numMissionsCompleted == 0){
-                                $("#onboarding-skip-option").hide();
-                            }
-                            else{
-                                $("#onboarding-skip-option").show();
-                            }
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                            console.log(thrownError);
-                        }
-                    });
+                    if (role === 'Turker' && numMissionsCompleted === 0) {
+                        $("#onboarding-skip-option").hide();
+                    } else{
+                        $("#onboarding-skip-option").show();
+                    }
             </script>
 
         </div>
@@ -797,10 +786,9 @@
         @if(user) {
             var userParam = {
                 username: '@user.get.username',
-                role: '@user.get.role',
-                completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
+                role: '@user.get.role'
             };
-            svl.user = new User(userParam, svl.userModel);
+            svl.user = new User(userParam);
 
             $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
         } else {
@@ -810,7 +798,7 @@
                 username: "anonymous",
                 role: "Anonymous"
             };
-            svl.user = new User(userParam, svl.userModel);
+            svl.user = new User(userParam);
         }
         svl.userModel._user = svl.user;
         @if(task) {
@@ -935,7 +923,7 @@
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
+                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");
@@ -971,19 +959,15 @@
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
 
-            @if(region) {
-                mainParam.regionId = @region.get.regionId;
-                mainParam.regionName = '@region.get.name';
-                mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
-                if(@RegionTable.difficultRegionIds.contains(region.get.regionId)){
-                       $('#advanced-overlay').show();
-                       mainParam.advancedOverlay = true
-                }
-            } else {
-                mainParam.regionId = 1;
-                mainParam.regionName = "";
-                mainParam.regionLayer = null;
+            mainParam.regionId = @region.regionId;
+            mainParam.regionName = '@region.name';
+            mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
+            if(@RegionTable.difficultRegionIds.contains(region.regionId)){
+                   $('#advanced-overlay').show();
+                   mainParam.advancedOverlay = true
             }
+
+            mainParam.mission = @Html(mission.toJSON.toString);
 
             svl.main = new Main(mainParam);
 

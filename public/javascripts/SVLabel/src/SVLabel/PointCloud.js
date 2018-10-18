@@ -61,6 +61,7 @@ function PointCloud (params) {
 
     /**
      * Push a callback function into _callbacks
+     * @param panoId
      * @param func
      */
     function ready(panoId, func) {
@@ -76,8 +77,7 @@ function PointCloud (params) {
      * iy = (idx / 3 - ix) / w
      *
      * @panoId
-     * @param x
-     * @param y
+     * @param panoId
      * @param param An object that could contain z-coordinate and a distance tolerance (r).
      * @return idx
      */

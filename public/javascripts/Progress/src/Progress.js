@@ -1,12 +1,11 @@
-function Progress (_, $, c3, L, difficultRegionIds) {
+function Progress (_, $, c3, L, role, difficultRegionIds) {
     var self = {};
-    var completedInitializingOverlayPolygon = false,
-        completedInitializingNeighborhoodPolygons = false,
-        completedInitializingAuditedStreets = false,
-        completedInitializingSubmittedLabels = false,
-        completedInitializingAuditCountChart = false,
-        completedInitializingAuditedTasks = false,
-        completedInitializingInteractions = false;
+    var completedInitializingOverlayPolygon = false;
+    var completedInitializingNeighborhoodPolygons = false;
+    var completedInitializingAuditedStreets = false;
+    var completedInitializingSubmittedLabels = false;
+    var completedInitializingAuditCountChart = false;
+    var completedInitializingAuditedTasks = false;
 
     var neighborhoodPolygonStyle = {
             color: '#888',
@@ -59,8 +58,7 @@ function Progress (_, $, c3, L, difficultRegionIds) {
             completedInitializingAuditedStreets &&
             completedInitializingSubmittedLabels &&
             completedInitializingAuditCountChart &&
-            completedInitializingAuditedTasks //&&
-            //completedInitializingInteractions
+            completedInitializingAuditedTasks
         ) {
 
             // Search for a region id in the query string. If you find one, focus on that region.
@@ -234,7 +232,7 @@ function Progress (_, $, c3, L, difficultRegionIds) {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
                 return regionId == x.region_id;
-            })
+            });
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";
@@ -269,56 +267,8 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         });
     }
 
-    function updateTotalRewardEarned(missionJson){
-        //console.log(missionJson);
-        var completedMissionJson = missionJson
-            .filter(function(el){return el.is_completed && el.region_id!=null})
-            .reduce(function(region_groups,el){
-            region_groups[el.region_id] = region_groups[el.region_id] || 0.0;
-            if(el.distance_mi>region_groups[el.region_id]){
-                region_groups[el.region_id] = el.distance_mi;
-            }
-            return region_groups;}
-            ,{});
-        //console.log(completedMissionJson);
-        var totalMissionCompleteDistance = Object.values(completedMissionJson).reduce(function(sum, el) {
-            return sum + el;
-        }, 0.0);
-        //console.log(totalMissionCompleteDistance);
-        //Calculate accumulated reward if the user is a turker
-        var url = '/isTurker';
-        $.ajax({
-            async: true,
-            url: url,//endpoint that checks above conditions
-            type: 'get',
-            success: function(data){
-                if(data.isTurker){
-                    var url = '/rewardPerMile';
-                    $.ajax({
-                        async: true,
-                        url: url,//endpoint that checks above conditions
-                        type: 'get',
-                        success: function(data){
-                            var missionReward = totalMissionCompleteDistance*data.rewardPerMile;
-                            // Mission Rewards.
-                            document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toFixed(2);
-                            //console.log("Expected output: "+missionReward);
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                            console.log(thrownError);
-                        }
-                    });
-                    //console.log('Survey displayed');
-                }
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        });
-    }
-
     /**
-     * This function queries the streets that the user audited and visualize them as segmetns on the map.
+     * This function queries the streets that the user audited and visualize them as segments on the map.
      */
     function initializeAuditedStreets(map) {
         var distanceAudited = 0,  // Distance audited in km
@@ -342,7 +292,6 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 pointToLayer: L.mapbox.marker.style,
                 style: function(feature) {
                     var style = $.extend(true, {}, streetLinestringStyle);
-                    var randomInt = Math.floor(Math.random() * 5);
                     style.color = "rgba(128, 128, 128, 1.0)";
                     style["stroke-width"] = 3;
                     style.opacity = 0.75;
@@ -359,8 +308,21 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
-            //Calculate the total reward earned by the user in completed missions
-            $.when($.ajax("/mission")).done(updateTotalRewardEarned);
+
+            // Get total reward if a turker
+            if (role === 'Turker') {
+                $.ajax({
+                    async: true,
+                    url: '/rewardEarned',
+                    type: 'get',
+                    success: function(rewardData) {
+                        document.getElementById("td-total-reward-earned").innerHTML = "$" + rewardData.reward_earned.toFixed(2);
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
+                })
+            }
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);
@@ -526,14 +488,6 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         });
     }
 
-    function initializeInteractions(map) {
-        $.getJSON("/contribution/auditInteractions", function (data) {
-            _data.interactions = data;
-            completedInitializingInteractions = true;
-            handleInitializationComplete(map);
-        });
-    }
-
 
     $.getJSON('/adminapi/neighborhoodCompletionRate', function (neighborhoodCompletionData) {
         initializeOverlayPolygon(map);
@@ -542,7 +496,6 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         initializeSubmittedLabels(map);
         initializeAuditCountChart(c3, map);
         initializeSubmittedTasks(map);
-        //initializeInteractions(map);
     });
 
     self.data = _data;

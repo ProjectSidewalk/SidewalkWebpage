@@ -10,14 +10,13 @@
  * @param onboardingModel
  * @constructor
  */
-function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel, onboardingModel) {
+function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, onboardingModel) {
     var self = this;
     var status = {
         disableClickOK: true
     };
     var blinkInterval;
 
-    var _modalModel = modalModel;
     var _uiModalComment = uiModalComment;
     var _uiLeftColumn = uiLeftColumn;  // This should not be this module's responsibility.
 
@@ -169,6 +168,8 @@ function ModalComment (svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModa
             lng: lng,
             pitch: pov ? pov.pitch : null,
             street_edge_id: streetEdgeId,
+            audit_task_id: task.getAuditTaskId(),
+            mission_id: svl.missionContainer.getCurrentMission().getProperty('missionId'),
             zoom: pov ? pov.zoom : null
         };
     };
