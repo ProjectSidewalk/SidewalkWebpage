@@ -1,8 +1,8 @@
 /**
  * Storage module. This is a wrapper around web browser's Local Storage. It allows you to store data on the user's
- * broser using a set method, and you can retrieve the data using the get method.
+ * browser using a set method, and you can retrieve the data using the get method.
  *
- * Refrernces:
+ * References:
  * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
  * @param JSON
@@ -35,10 +35,6 @@ function TemporaryStorage(JSON, params) {
             set("labels", []);
         }
 
-        if (!get("completedOnboarding")) {
-            set("completedOnboarding", null);
-        }
-
         if (!get("completedFirstMission")){
             set("completedFirstMission", null);
         }
@@ -64,7 +60,6 @@ function TemporaryStorage(JSON, params) {
         set("staged", []);
         set("tracker", []);
         set("labels", []);
-        set("completedOnboarding", null);
         set("completedFirstMission", null);
         set("muted", false);
     }

@@ -153,11 +153,9 @@ function Tracker () {
             panoId = null;
         }
 
-        var now = new Date(),
-            timestamp = new Date().getTime();
-        // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+        var timestamp = new Date().getTime();
 
-        var item = {
+        return {
             action : action,
             gsv_panorama_id: panoId,
             lat: latlng.lat,
@@ -170,7 +168,6 @@ function Tracker () {
             audit_task_id: audit_task_id,
             timestamp: timestamp
         };
-        return item;
     };
 
     /**

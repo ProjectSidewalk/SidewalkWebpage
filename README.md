@@ -9,7 +9,7 @@ Set up the development environment for Scala, JavaScript and Postgres. The detai
 1. Install JDK 7 (or above), Scala, and `activator` on your computer. See detailed [instructions for installing Scala environment here](https://github.com/ProjectSidewalk/Instructions#java--scala).
 2. Install Node.js. See detailed [instructions here](https://github.com/ProjectSidewalk/Instructions#javascript).
 3. On the top directory, run `npm install` to install all the JavaScript dependencies.
-4. Set up the Postgres database by folloing the tutorial. See detailed [instructions on installing the Postgres database here.](https://github.com/ProjectSidewalk/Instructions#postgresql)
+4. Set up the Postgres database by following the tutorial. See detailed [instructions on installing the Postgres database here.](https://github.com/ProjectSidewalk/Instructions#postgresql)
 
 ### Running the Application Locally
 To run the web server locally,

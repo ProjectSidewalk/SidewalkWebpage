@@ -290,7 +290,7 @@ function UtilitiesMisc (JSON) {
      *              5: {message: string, severityImage: string}}}
      */
     function getSeverityDescription() {
-        var severityTagDescription = {
+        return {
             1: {
                 message: 'Passable',
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
@@ -315,8 +315,7 @@ function UtilitiesMisc (JSON) {
                 message: 'Not passable',
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
             }
-        }
-        return severityTagDescription;
+        };
     }
 
     /**

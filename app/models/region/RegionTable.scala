@@ -3,7 +3,7 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
-import models.mission.MissionTable
+import models.audit.AuditTaskTable
 
 import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
@@ -84,21 +84,6 @@ object RegionTable {
   }
 
   /**
-    * Picks one of the easy regions with highest average priority.
-    *
-    * @return
-    */
-  def selectAHighPriorityEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] =
-      regionsWithoutDeleted.filterNot(_.regionId inSet difficultRegionIds).map(_.regionId).list
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => selectAHighPriorityRegion // Should only happen if all regions are difficult regions.
-    }
-  }
-
-  /**
     * Picks one of the regions with highest average priority.
     *
     * @return
@@ -119,7 +104,7 @@ object RegionTable {
     * @return
     */
   def selectAHighPriorityRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] = MissionTable.selectIncompleteRegionsUsingTasks(userId).toList
+    val possibleRegionIds: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
       case Some(region) => Some(region)
@@ -135,7 +120,7 @@ object RegionTable {
     */
   def selectAHighPriorityEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     val possibleRegionIds: List[Int] =
-      MissionTable.selectIncompleteRegionsUsingTasks(userId).filterNot(difficultRegionIds.contains(_)).toList
+      AuditTaskTable.selectIncompleteRegions(userId).filterNot(difficultRegionIds.contains(_)).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
       case Some(region) => Some(region)

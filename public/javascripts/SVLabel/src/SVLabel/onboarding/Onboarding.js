@@ -44,7 +44,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var canvasHeight = 480;
     var blink_timer = 0;
     var blink_function_identifier = [];
-    var properties = {};
     var status = {
         state: 0,
         isOnboarding: true
@@ -184,9 +183,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         ctx.restore();
         return this;
     }
-
-    var myTimer;
-    var isWrong = false;
 
     /**
      * Draw an arrow on the onboarding canvas
@@ -433,6 +429,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function next(nextState) {
         if (typeof nextState == "function") {
+            var nextStateId = nextState.call(this);
             status.state = getState(nextState.call(this));
             _visit(status.state);
         } else if (nextState in states) {
@@ -496,85 +493,16 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         uiOnboarding.messageHolder.html((typeof message == "function" ? message() : message));
     }
 
-    function _endTheOnboarding() {
+    function _endTheOnboarding(skip) {
+        if (skip) {
+            tracker.push("Onboarding_Skip");
+            missionContainer.getCurrentMission().setProperty("skipped", true);
+        }
         tracker.push('Onboarding_End');
-        var task = taskContainer.getCurrentTask();
-        var data = form.compileSubmissionData(task);
-        form.submit(data, task);
-        uiOnboarding.background.css("visibility", "hidden");
+        missionContainer.getCurrentMission().setProperty("isComplete", true);
 
-        //Reset the label counts to zero after onboarding
-        svl.labelCounter.reset();
-
-
-        $("#toolbar-onboarding-link").css("visibility", "visible");
-
-        canvas.unlockDisableLabelDelete();
-        canvas.enableLabelDelete();
-        canvas.lockDisableLabelDelete();
-
-        mapService.unlockDisableWalking();
-        mapService.enableWalking();
-
-        zoomControl.unlockDisableZoomIn();
-        zoomControl.enableZoomIn();
-
-        zoomControl.unlockDisableZoomOut();
-        zoomControl.enableZoomOut();
-
-        ribbon.unlockDisableModeSwitch();
-        ribbon.enableModeSwitch();
-
-        $("#left-column-jump-button").removeClass('disabled');
-
-        setStatus("isOnboarding", false);
-        storage.set("completedOnboarding", true);
-
-        // TODO remove the if statement around this once we have are positive that no one is getting through with the
-        //      username "anonymous"
-        if (user.getProperty("username") !== "anonymous") {
-            var onboardingMission = missionContainer.getMission(null, "onboarding");
-            onboardingMission.setProperty("isCompleted", true);
-            // missionContainer.addToCompletedMissions(onboardingMission);
-            missionModel.completeMission(onboardingMission, null);
-        }
-
-        // Set the next mission
-        var neighborhood = neighborhoodContainer.getStatus("currentNeighborhood");
-        var missions = missionContainer.getMissionsByRegionId(neighborhood.getProperty("regionId"));
-        var mission = missions[0];
-
-        missionContainer.setCurrentMission(mission);
-        if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
-
-            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map,
-                svl.neighborhoodContainer, svl.popUpMessage, svl.taskContainer, svl.labelContainer, svl.tracker);
-            modalMission.setMissionMessage(mission, neighborhood, null, function () {
-                svl.initialMissionInstruction.start(neighborhood);
-            });
-            var url = '/isTurker';
-            $.ajax({
-                async: true,
-                url: url,//endpoint that checks above conditions
-                type: 'get',
-                success: function(data){
-                    if(data.isTurker){
-                        svl.ui.status.currentMissionReward.show();
-                        svl.ui.status.totalMissionReward.show();
-                    }
-                },
-                error: function (xhr, ajaxOptions, thrownError) {
-                    console.log(thrownError);
-                }
-            });
-
-        }else{
-            modalMission.setMissionMessage(mission, neighborhood);
-        }
-        modalMission.show();
-        $("#mini-footer-audit").css("visibility", "visible");
-
-        taskContainer.getFinishedAndInitNextTask();
+        // Reload the page. This also submits all data through Form.js.
+        window.location.replace('/audit');
     }
 
     function _onboardingStateAnnotationExists(state) {
@@ -596,8 +524,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function blinkInterface(state) {
         // Blink parts of the interface
         if ("blinks" in state.properties && state.properties.blinks) {
-            len = state.properties.blinks.length;
-            for (i = 0; i < len; i++) {
+            var len = state.properties.blinks.length;
+            for (var i = 0; i < len; i++) {
                 switch (state.properties.blinks[i]) {
                     case "google-maps":
                         mapService.blinkGoogleMaps();
@@ -711,10 +639,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      * @param state
      */
     function _visit(state) {
-        var i,
-            len,
-            callback,
-            annotationListener;
+        var annotationListener;
 
         currentState = state;
 
@@ -724,12 +649,13 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 window.cancelAnimationFrame(blink_function_identifier.pop());
             }
         }
-        hideMessage();
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
-        if (!state) {
-            _endTheOnboarding();
+        if ("end-onboarding" in state) {
+            _endTheOnboarding(state["end-onboarding"]["skip"]);
             return;
+        } else {
+            hideMessage();
         }
 
         // Show user a message box.
@@ -860,7 +786,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Sometimes Google changes the topology of Street Views and so double clicking/clicking arrows do not
         // take the user to the right panorama. In that case, programmatically move the user.
-        var currentClick, previousClick, canvasX, canvasY, pov, imageCoordinate;
+        var currentClick, previousClick;
         var mouseUpCallback = function (e) {
             currentClick = new Date().getTime();
 
@@ -878,7 +804,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         uiMap.viewControlLayer.on("mouseup", mouseUpCallback);
     }
 
-    var prevDistance = 0;
     var flag = false;
 
     function _visitAdjustHeadingAngle(state, listener) {
@@ -886,9 +811,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         var interval;
         interval = handAnimation.showGrabAndDragAnimation({direction: "left-to-right"});
 
-        // get the original pov heading
-        var originalHeading = mapService.getPov().heading;
-        var tolerance = 20;
         var callback = function () {
             var pov = mapService.getPov();
             if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
@@ -898,66 +820,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 next(state.transition);
             }
         };
-
-        // Currently, the animated arrow for incorrect direction is disabled
-        /*
-        var _checkToHideGrabAndDragAnimation = function (currentHeading) {
-            if ((360 + state.properties.heading - currentHeading) % 360 < state.properties.tolerance) {
-                if (typeof google != "undefined") google.maps.event.removeListener($target);
-                if (listener) google.maps.event.removeListener(listener);
-                handAnimation.hideGrabAndDragAnimation(interval);
-                next(state.transition);
-            }
-        };
-
-        var callback = function () {
-
-            var currentHeading = mapService.getPov().heading;
-            var distanceFromCurrentHeading = currentHeading - originalHeading;
-
-            if (distanceFromCurrentHeading <= 0) {
-                if (prevDistance <= 0) {
-                    clearArrow();
-                    isWrong = false;
-
-                    if (myTimer) {
-                        //console.error("Clearing Timer");
-                        clearInterval(myTimer);
-                        myTimer = null;
-                    }
-                }
-                // normal drag
-                _checkToHideGrabAndDragAnimation(currentHeading)
-            }
-            else {
-                if(prevDistance > 0) {
-                    if(distanceFromCurrentHeading <= prevDistance) {
-                        // normal drag, 0->360
-                        console.log("Normal Drag 0 -> 360");
-                        _checkToHideGrabAndDragAnimation(currentHeading)
-                    }
-                    else {
-                        // Indicates user dragging in the wrong direction
-                        if (currentHeading % 360 >= (tolerance + originalHeading)) {
-                            // Stop panning and show the warning (arrow + labeling)
-
-                            if (!isWrong) {
-                                // set a timer to animate the arrow every 500ms
-                                //console.error("Activating timer");
-                                myTimer = setInterval(drawArrowAnimate, 500);
-                                isWrong = true;
-                            }
-                        }
-                    }
-                }
-                else if (prevDistance <= 0) {
-                    _checkToHideGrabAndDragAnimation(currentHeading)
-                }
-            }
-            prevDistance = distanceFromCurrentHeading;
-
-        };
-        */
 
         if (typeof google != "undefined") $target = google.maps.event.addListener(svl.panorama, "pov_changed", callback);
     }
@@ -977,7 +839,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     function _visitInstruction(state, listener) {
 
-        if (state == getState("outro")){
+        if (state == getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
         }
         renderRoutesOnGoogleMap(state);
@@ -1010,16 +872,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             next.call(this, state.transition);
         };
         $target.on("click", callback);
-    }
-
-    function _countTotalOnboardingLabels() {
-        var onboardingLabels = ["CurbRamp", "NoCurbRamp", "Other"];
-
-        var total = 0;
-        for (var i = 0, len = onboardingLabels.length; i < len; i ++) {
-            total += svl.labelCounter.countLabel(onboardingLabels[i]);
-        }
-        return total;
     }
 
     /**

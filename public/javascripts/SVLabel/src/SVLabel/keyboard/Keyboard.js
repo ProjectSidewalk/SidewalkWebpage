@@ -231,7 +231,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
              */
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
-                var label;
                 switch (e.keyCode) {
 
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:

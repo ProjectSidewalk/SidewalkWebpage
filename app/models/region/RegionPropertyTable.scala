@@ -17,6 +17,8 @@ object RegionPropertyTable {
   val db = play.api.db.slick.DB
   val regionProperties = TableQuery[RegionPropertyTable]
 
+  val neighborhoodNames = regionProperties.filter(_.key === "Neighborhood Name")
+
   /**
     * Returns a list of all the sidewalk edges
     * @return A list of SidewalkEdge objects.

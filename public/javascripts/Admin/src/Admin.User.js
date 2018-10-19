@@ -254,7 +254,6 @@ function AdminUser(params) {
     
     $.getJSON("/adminapi/tasks/" + self.username, function (data) {
         _data.tasks = data;
-        completedInitializingAuditedTasks = true;
 
         // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
         var monthNames = [

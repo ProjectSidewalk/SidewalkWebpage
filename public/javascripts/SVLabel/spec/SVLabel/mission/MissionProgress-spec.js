@@ -258,11 +258,6 @@ describe("MissionProgress module", function () {
             missionId: null,
             coverage: null,
             distance: null,
-            distanceFt: null,
-            distanceMi: null,
-            auditDistance: null,
-            auditDistanceFt: null,
-            auditDistanceMi: null,
             label: null,
             regionId: null
         };
@@ -279,8 +274,8 @@ describe("MissionProgress module", function () {
         this._properties[key] = value;
     };
 
-    MissionMock.prototype.isCompleted = function () {
-        return this.properties.isCompleted;
+    MissionMock.prototype.isComplete = function () {
+        return this.properties.isComplete;
     };
 
     MissionMock.prototype.getMissionCompletionRate = function () {

@@ -47,7 +47,7 @@
                         <td>@user.get.username</td>
                         <td>@user.get.userId</td>
                         <td>@user.get.email</td>
-                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false)</td>
                         <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
                         <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
                     </tr>
@@ -141,20 +141,22 @@
                 <thead>
                     <tr>
                         <th class="col-md-2">Mission Id</th>
-                        <th class="col-md-2">Mission Label</th>
-                        <th class="col-md-2">Region Id</th>
+                        <th class="col-md-2">Mission Type</th>
+                        <th class="col-md-1">Region Id</th>
                         <th class="col-md-2">Region Name</th>
-                        <th class="col-md-4">Distance (m / ft / mi)</th>
+                        <th class="col-md-3">Distance (m / ft / mi)</th>
+                        <th class="col-md-2">Labels Verified</th>
                     </tr>
                 </thead>
                 <tbody>
                 @for(mission <- MissionTable.selectCompletedRegionalMission(UUID.fromString(user.get.userId))) {
                     <tr>
                         <td class="col-md-2">@mission.missionId</td>
-                        <td class="col-md-2">@mission.label</td>
-                        <td class="col-md-2">@mission.regionId</td>
+                        <td class="col-md-2">@mission.missionType</td>
+                        <td class="col-md-1">@mission.regionId</td>
                         <td class="col-md-2">@mission.regionName</td>
-                        <td class="col-md-4">@("%1.1f".format(mission.distance.get)) / @("%1.1f".format(mission.distance_ft.get)) / @("%1.1f".format(mission.distance_mi.get))</td>
+                        <td class="col-md-3">@("%1.1f".format(mission.distanceMeters.getOrElse(0))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
+                        <th class="col-md-2">@mission.labelsValidated.getOrElse(0)</th>
                     </tr>
                 }
                 </tbody>

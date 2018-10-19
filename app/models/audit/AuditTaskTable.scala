@@ -2,7 +2,7 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
+import java.util.{Calendar, TimeZone, UUID}
 
 import models.street._
 import models.utils.MyPostgresDriver
@@ -260,6 +260,19 @@ object AuditTaskTable {
   }
 
   /**
+    * Get a set of regions where the user has not completed all the street edges.
+    *
+    * @param user UUID for the user
+    * @return
+    */
+  def selectIncompleteRegions(user: UUID): Set[Int] = db.withSession { implicit session =>
+    nonDeletedStreetEdgeRegions
+      .filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user))
+      .map(_.regionId)
+      .list.toSet
+  }
+
+  /**
     * Return a list of tasks associated with labels
     *
     * @param userId User id
@@ -362,6 +375,18 @@ object AuditTaskTable {
     */
   def selectCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
     completedTasks.filter(_.userId === userId.toString).list
+  }
+
+  /**
+    * Get the sum of the line distance of all streets in the region that the user has not audited.
+    *
+    * @param userId
+    * @param regionId
+    * @return
+    */
+  def getUnauditedDistance(userId: UUID, regionId: Int): Float = db.withSession { implicit session =>
+    val streetsLeft: List[Int] = streetEdgeIdsNotAuditedByUser(userId, regionId)
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId inSet streetsLeft).map(_.geom.transform(26918).length).list.sum
   }
 
   /**

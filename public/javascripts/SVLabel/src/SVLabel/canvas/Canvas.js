@@ -68,9 +68,6 @@ function Canvas(ribbon) {
 
     var tempPath = [];
 
-    // Right click menu
-    var rightClickMenu = undefined;
-
     // Path elements
     var systemLabels = [];
     var labels = [];
@@ -340,10 +337,6 @@ function Canvas(ribbon) {
         if (labelType) {
             var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
             var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
-
-            if (rightClickMenu && rightClickMenu.isAnyOpen()) {
-                cursorUrl = 'default';
-            }
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }
@@ -529,14 +522,6 @@ function Canvas(ribbon) {
         // If any of menu is visible, disable labeling
         if (!status.lockDisableLabeling) {
             status.disableLabeling = true;
-            /*
-             var menuOpen = rightClickMenu.isAnyOpen();
-             if (menuOpen) {
-             status.disableLabeling = true;
-             } else {
-             status.disableLabeling = false;
-             }
-             */
             return this;
         }
         return false;
@@ -628,13 +613,6 @@ function Canvas(ribbon) {
     }
 
     /**
-     * @method
-     */
-    function getRightClickMenu() {
-        return rightClickMenu;
-    }
-
-    /**
      * Returns a status
      * @method
      */
@@ -648,7 +626,7 @@ function Canvas(ribbon) {
     /**
      * This method returns system labels; the labels stored in our database (e.g., other users' labels and the user's
      * previous labels) that are not from this auditing session.
-     * If refrence is true, then it returns reference to the labels.
+     * If reference is true, then it returns reference to the labels.
      * Otherwise it returns deepcopy of labels.
      * @method
      */
@@ -680,25 +658,6 @@ function Canvas(ribbon) {
             reference = false;
         }
         return reference ? svl.labelContainer.getCanvasLabels() : $.extend(true, [], svl.labelContainer.getCanvasLabels());
-    }
-
-    /**
-     * Hide the delete label
-     * @method
-     */
-    function hideDeleteLabel() {
-        rightClickMenu.hideDeleteLabel();
-        return this;
-    }
-
-    /**
-     * Hide the right click menu
-     * @returns {hideRightClickMenu}
-     */
-    function hideRightClickMenu() {
-        rightClickMenu.hideBusStopType();
-        rightClickMenu.hideBusStopPosition();
-        return this;
     }
 
     /**
@@ -996,11 +955,6 @@ function Canvas(ribbon) {
             svl.zoomControl.updateOpacity();
         }
 
-        // This line of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.goldenInsertion.renderMessage();
-        }
-
         return this;
     }
 
@@ -1135,13 +1089,6 @@ function Canvas(ribbon) {
     /**
      * @method
      */
-    function showDeleteLabel(x, y) {
-        rightClickMenu.showDeleteLabel(x, y);
-    }
-
-    /**
-     * @method
-     */
     function unlockCurrentLabel() {
         status.lockCurrentLabel = false;
         return this;
@@ -1196,13 +1143,10 @@ function Canvas(ribbon) {
     self.getLabels = getLabels;
     self.getLock = getLock;
     self.getNumLabels = getNumLabels;
-    self.getRightClickMenu = getRightClickMenu;
     self.getStatus = getStatus;
     self.getSystemLabels = getSystemLabels;
     self.getUserLabelCount = getUserLabelCount;
     self.getUserLabels = getUserLabels;
-    self.hideDeleteLabel = hideDeleteLabel;
-    self.hideRightClickMenu = hideRightClickMenu;
     self.insertLabel = insertLabel;
     self.isDrawing = isDrawing;
     self.isOn = isOn;
@@ -1224,7 +1168,6 @@ function Canvas(ribbon) {
     self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
     self.setVisibilityBasedOnLabelerId = setVisibilityBasedOnLabelerId;
     self.setVisibilityBasedOnLabelerIdAndLabelTypes = setVisibilityBasedOnLabelerIdAndLabelTypes;
-    self.showDeleteLabel = showDeleteLabel;
     self.unlockCurrentLabel = unlockCurrentLabel;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
     self.unlockDisableLabelEdit = unlockDisableLabelEdit;

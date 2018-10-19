@@ -24,45 +24,6 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
-    * Assign a new neighborhood to audit
-    * @return
-    */
-  def assignANewRegion = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    case class RegionId(regionId:Option[Int])
-    implicit val regionIdReads: Reads[RegionId] = (JsPath \ "region_id").read[Option[Int]].map(RegionId(_))
-    var submission = request.body.validate[RegionId]
-
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-
-        val regionId: Int = request.identity match {
-          case Some(user) =>
-
-            submission.regionId match {
-              case Some(regId) =>
-                // Sets a region based on the request from the user
-                UserCurrentRegionTable.saveOrUpdate(user.userId, regId)
-
-              case None =>
-                // Assigns a region to the user on request from a signed in user
-                UserCurrentRegionTable.assignRegion(user.userId).get.regionId
-            }
-          case None =>
-            Logger.warn("User without user_id requesting a new region, but every user should have a user_id.")
-            RegionTable.selectAHighPriorityEasyRegion.get.regionId
-        }
-
-        Future.successful(Ok(Json.obj(
-          "region_id" -> regionId
-        )))
-      }
-    )
-  }
-
-  /**
     * This returns the list of difficult neighborhood ids
     * @return
     */
