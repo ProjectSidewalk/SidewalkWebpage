@@ -22,6 +22,7 @@ import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
 import play.api.Play.current
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 import scala.util.Random

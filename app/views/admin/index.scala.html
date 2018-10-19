@@ -11,7 +11,7 @@
 @import java.util.UUID
 @import play.api.libs.json.Json
 
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit messages: Messages)
 @main(title) {
 @navbar(user)
 <style>

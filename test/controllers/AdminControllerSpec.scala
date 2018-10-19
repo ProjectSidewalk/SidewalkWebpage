@@ -6,9 +6,9 @@ import scala.concurrent.Future
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticator, SessionAuthenticator}
-import com.mohiva.play.silhouette.test.{FakeEnvironment, FakeRequestWithAuthenticator}
+//import com.mohiva.play.silhouette.test.{FakeEnvironment, FakeRequestWithAuthenticator}
 import play.api.mvc.Result
-import play.api.test.{FakeRequest, PlaySpecification, WithApplication}
+//import play.api.test.{FakeRequest, PlaySpecification, WithApplication}
 import models.user.User
 import org.joda.time.DateTime
 

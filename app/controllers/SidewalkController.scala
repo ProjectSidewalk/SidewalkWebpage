@@ -7,6 +7,8 @@ import play.api.libs.json._
 import play.extras.geojson
 import com.vividsolutions.jts.io.{WKBReader, WKBWriter, WKTReader}
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import formats.json.SidewalkFormats._
 
@@ -83,7 +85,7 @@ object SidewalkController extends Controller {
 //    val featureCollectionResult = request.body.validate[FeatureCollection]
 //    featureCollectionResult.fold(
 //      errors => {
-//        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors)))
+//        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))
 //      },
 //      featureCollection => {
 //        featureCollection.features.foreach { feature =>
@@ -130,7 +132,7 @@ object SidewalkController extends Controller {
     val featureCollectionResult = request.body.validate[FeatureCollection]
     featureCollectionResult.fold(
       errors => {
-        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors)))
+        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))
       },
       featureCollection => {
         featureCollection.features.foreach { feature =>

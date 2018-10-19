@@ -13,6 +13,8 @@ import models.user.{User, UserCurrentRegionTable}
 import models.amt.AMTAssignmentTable
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 
@@ -65,7 +67,7 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
     submission.fold(
       errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       submission => {
         val amtAssignmentId: Option[Int] = Option(submission.assignmentId)

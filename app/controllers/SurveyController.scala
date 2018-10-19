@@ -16,6 +16,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import scala.collection.immutable.Seq
 import scala.concurrent.Future
@@ -33,7 +35,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
 
     submission.fold(
       errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       submission => {
 

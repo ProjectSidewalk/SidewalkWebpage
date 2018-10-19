@@ -12,6 +12,8 @@ import models.label.LabelTable
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.extras.geojson
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 
 import scala.concurrent.Future

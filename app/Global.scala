@@ -15,6 +15,7 @@ import play.api.libs.concurrent.Akka
 
 import scala.concurrent.Future
 import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 import utils.actor.RecalculateStreetPriorityActor
 
 /**
@@ -68,11 +69,11 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
    * @return The instance of the controller class.
    * @throws Exception if the controller couldn't be instantiated.
    */
-  override def getControllerInstance[A](controllerClass: Class[A]) = injector.getInstance(controllerClass)
+//  override def getControllerInstance[A](controllerClass: Class[A]) = injector.getInstance(controllerClass)
 
-  override def onStart(app: Application) = {
-    Akka.system.actorOf(RecalculateStreetPriorityActor.props, RecalculateStreetPriorityActor.Name)
-  }
+//  override def onStart(app: Application) = {
+//    Akka.system.actorOf(RecalculateStreetPriorityActor.props, RecalculateStreetPriorityActor.Name)
+//  }
 
   /**
    * Called when a user is not authenticated.
@@ -96,7 +97,7 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
    * @param lang The currently selected language.
    * @return The result to send to the client.
    */
-  override def onNotAuthorized(request: RequestHeader, lang: Lang): Option[Future[Result]] = {
-    Some(Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("access.denied"))))
-  }
+//  override def onNotAuthorized(request: RequestHeader, lang: Lang): Option[Future[Result]] = {
+//    Some(Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("access.denied"))))
+//  }
 }

@@ -9,7 +9,7 @@
 @import models.user.UserCurrentRegionTable
 @import models.region.RegionPropertyTable
 
-@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))
+@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))(implicit messages: Messages)
 
 @main(title) {
     @navbar(admin)

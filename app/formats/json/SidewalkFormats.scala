@@ -19,10 +19,10 @@ object SidewalkFormats {
     )(LineStringGeometry.apply _)
 
   implicit val lineStringPropertiesReads: Reads[LineStringProperties] = (
-    (JsPath \ "sidewalk_edge_id").read[Option[Int]] and
-      (JsPath \ "source").read[Option[Int]] and
-      (JsPath \ "target").read[Option[Int]] and
-      (JsPath \ "parent_sidewalk_edge_id").read[Option[Int]] and
+    (JsPath \ "sidewalk_edge_id").readNullable[Int] and
+      (JsPath \ "source").readNullable[Int] and
+      (JsPath \ "target").readNullable[Int] and
+      (JsPath \ "parent_sidewalk_edge_id").readNullable[Int] and
       (JsPath \ "way_type").read[String]
     )(LineStringProperties.apply _)
 

@@ -22,6 +22,9 @@ import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
 
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
+
 import scala.concurrent.Future
 
 /**
@@ -189,7 +192,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     submission.fold(
       errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       submission => {
 
@@ -223,7 +226,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     submission.fold(
       errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       submission => {
         val userId: String = request.identity match {

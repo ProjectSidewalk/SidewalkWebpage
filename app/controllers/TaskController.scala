@@ -22,6 +22,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 
@@ -147,7 +149,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
     submission.fold(
       errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       submission => {
         val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {

@@ -1,4 +1,4 @@
-import play.PlayScala
+//import play.PlayScala
 
 import scalariform.formatter.preferences._
 
@@ -12,6 +12,8 @@ sources in (Compile,doc) := Seq.empty
 
 publishArtifact in (Compile, packageDoc) := false
 
+routesGenerator := InjectedRoutesGenerator
+
 resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
 
 resolvers += Resolver.sonatypeRepo("snapshots")
@@ -22,8 +24,9 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-//  jdbc,
-//  anorm,
+  evolutions,
+  jdbc,
+//  anorm, // change to "com.typesafe.play" %% "anorm" % "2.4.0" for Play 2.4
 //  cache,
 //  "com.vividsolutions" % "jts" % "1.13",
 //  "com.typesafe.slick" %% "slick" % "2.1.0",

@@ -7,6 +7,8 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.{User, UserCurrentRegionTable}
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 import play.api.mvc._

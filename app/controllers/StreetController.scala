@@ -6,6 +6,8 @@ import com.vividsolutions.jts.geom.Coordinate
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.mvc._
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import models.street._
 import play.api.libs.json.Json

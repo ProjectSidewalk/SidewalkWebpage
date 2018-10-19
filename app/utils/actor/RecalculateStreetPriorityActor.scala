@@ -55,7 +55,7 @@ class RecalculateStreetPriorityActor extends Actor {
   }
 
   def receive: Receive = {
-    case RecalculateStreetPriorityActor.Tick =>
+    case RecalculateStreetPriorityActor.Tick() =>
       val currentTimeStart: String = Calendar.getInstance.getTime.toString
       Logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
       StreetEdgePriorityTable.recalculateStreetPriority
@@ -67,6 +67,6 @@ class RecalculateStreetPriorityActor extends Actor {
 
 object RecalculateStreetPriorityActor {
   val Name = "recalculate-street-priority-actor"
-  def props = Props(new RecalculateStreetPriorityActor)
-  case object Tick
+  def props = Props[RecalculateStreetPriorityActor]
+  case class Tick()
 }

@@ -1,7 +1,7 @@
 @import models.user.User
 @import models.region.RegionTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit messages: Messages)
 
 @main(title) {
     @navbar(user)

@@ -20,6 +20,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
+import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 

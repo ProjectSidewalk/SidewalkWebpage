@@ -11,6 +11,8 @@ import models.label._
 import models.user.User
 import play.api.libs.json._
 import play.api.mvc.Action
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 

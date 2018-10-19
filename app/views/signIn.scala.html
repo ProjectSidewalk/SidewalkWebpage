@@ -1,5 +1,5 @@
 @import models.user.User
-@(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader)
+@(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, messages: Messages)
 
 @import views.html.bootstrap._
 
@@ -14,7 +14,7 @@
     }
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
         <legend>Sign in with your credentials</legend>
-        @helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
+        @views.html.helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
         @text(signInForm("identifier"), "Email", icon = "at")
         @password(signInForm("password"), "Password", icon = "key")
         <div class="form-group">

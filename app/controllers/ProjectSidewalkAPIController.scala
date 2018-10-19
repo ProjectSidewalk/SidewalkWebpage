@@ -9,6 +9,8 @@ import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import javax.inject.Inject
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
 
 import math._
 import models.region._
@@ -18,7 +20,6 @@ import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.cache.Cache
-import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
 import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}

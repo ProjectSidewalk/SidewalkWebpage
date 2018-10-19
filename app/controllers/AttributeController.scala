@@ -21,6 +21,9 @@ import models.street.StreetEdgePriorityTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 
+import play.api.Play.current
+import play.api.i18n.Messages.Implicits._
+
 import collection.immutable.Seq
 import scala.io.Source
 
@@ -230,7 +233,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
         errors => {
           println("Failed to parse JSON POST request for multi-user clustering results.")
           println(Json.prettyPrint(request.body))
-          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
         },
         submission => {
           // Extract the thresholds, clusters, and labels, and put them into separate variables.
@@ -294,7 +297,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
         errors => {
           println("Failed to parse JSON POST request for multi-user clustering results.")
           println(Json.prettyPrint(request.body))
-          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
         },
         submission => {
           // Extract the thresholds, clusters, and labels, and put them into separate variables.
