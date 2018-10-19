@@ -7,8 +7,8 @@ case class MissionType(missionTypeId: Int, missionType: String)
 
 
 class MissionTypeTable(tag: slick.lifted.Tag) extends Table[MissionType](tag, Some("sidewalk"), "mission_type") {
-  def missionTypeId: Column[Int] = column[Int]("mission_type_id", O.PrimaryKey, O.AutoInc)
-  def missionType: Column[String] = column[String]("mission_type", O.NotNull)
+  def missionTypeId: Rep[Int] = column[Int]("mission_type_id", O.PrimaryKey, O.AutoInc)
+  def missionType: Rep[String] = column[String]("mission_type", O.NotNull)
 
   def * = (missionTypeId, missionType) <> ((MissionType.apply _).tupled, MissionType.unapply)
 }

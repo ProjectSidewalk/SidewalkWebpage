@@ -6,12 +6,14 @@ package models.attribute
 
 import models.label.{LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable}
-import models.utils.MyPostgresDriver.simple._
+//import models.utils.MyPostgresDriver.simple._
+import slick.driver.PostgresDriver.api._
 import play.api.Play.current
 import play.api.db.slick
-
 import slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
+
 import scala.language.postfixOps
+import slick.lifted.Rep
 
 case class GlobalAttribute(globalAttributeId: Int,
                            globalClusteringSessionId: Int,
@@ -24,15 +26,15 @@ case class GlobalAttribute(globalAttributeId: Int,
 
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
-  def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull)
-  def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)
-  def labelTypeId: Column[Int] = column[Int]("label_type_id", O.NotNull)
-  def regionId: Column[Int] = column[Int]("region_id", O.NotNull)
-  def lat: Column[Float] = column[Float]("lat", O.NotNull)
-  def lng: Column[Float] = column[Float]("lng", O.NotNull)
-  def severity: Column[Option[Int]] = column[Option[Int]]("severity")
-  def temporary: Column[Boolean] = column[Boolean]("temporary", O.NotNull)
+  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
+  def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id", O.NotNull)
+  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold", O.NotNull)
+  def labelTypeId: Rep[Int] = column[Int]("label_type_id", O.NotNull)
+  def regionId: Rep[Int] = column[Int]("region_id", O.NotNull)
+  def lat: Rep[Float] = column[Float]("lat", O.NotNull)
+  def lng: Rep[Float] = column[Float]("lng", O.NotNull)
+  def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
+  def temporary: Rep[Boolean] = column[Boolean]("temporary", O.NotNull)
 
   def * : ProvenShape[GlobalAttribute] = (globalAttributeId,
                                           globalClusteringSessionId,

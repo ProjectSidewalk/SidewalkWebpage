@@ -15,9 +15,9 @@ case class GlobalAttributeUserAttribute(globalAttributeUserAttributeId: Int, glo
 
 
 class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeUserAttribute](tag, Some("sidewalk"), "global_attribute_user_attribute") {
-  def globalAttributeUserAttributeId: Column[Int] = column[Int]("global_attribute_user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull)
-  def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull)
+  def globalAttributeUserAttributeId: Rep[Int] = column[Int]("global_attribute_user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
+  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.NotNull)
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.NotNull)
 
   def * : ProvenShape[GlobalAttributeUserAttribute] = (globalAttributeUserAttributeId, globalAttributeId, userAttributeId) <>
     ((GlobalAttributeUserAttribute.apply _).tupled, GlobalAttributeUserAttribute.unapply)

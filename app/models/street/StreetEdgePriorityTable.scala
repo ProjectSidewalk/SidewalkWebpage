@@ -259,7 +259,7 @@ object StreetEdgePriorityTable {
     *
     * @return A query with rows of the form (user_id: String, is_good_user: Boolean)
     */
-  def getQualityOfUsers: Query[(Column[String], Column[Option[Boolean]]), (String, Option[Boolean]), Seq] = db.withSession { implicit session =>
+  def getQualityOfUsers: Query[(Rep[String], Rep[Option[Boolean]]), (String, Option[Boolean]), Seq] = db.withSession { implicit session =>
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
     // Gets all tasks completed by users, groups by user_id, and sums over the distances of the street edges.

@@ -121,7 +121,7 @@ object AuditTaskTable {
 
   // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
   // TODO it would be better to only consier "good user" audits here, but it would take too long to calculate each time.
-  def streetCompletedByAnyUser: Query[(Column[Int], Column[Boolean]), (Int, Boolean), Seq] = {
+  def streetCompletedByAnyUser: Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq] = {
     // Completion count for audited streets.
     val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
 

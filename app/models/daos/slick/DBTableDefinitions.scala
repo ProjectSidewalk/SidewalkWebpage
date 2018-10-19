@@ -1,6 +1,6 @@
 package models.daos.slick
 
-import models.utils.MyPostgresDriver.simple._
+//import models.utils.MyPostgresDriver.api._
 import java.util.UUID
 
 object DBTableDefinitions {

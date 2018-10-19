@@ -25,15 +25,15 @@ case class UserAttribute(userAttributeId: Int,
 
 
 class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidewalk"), "user_attribute") {
-  def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull)
-  def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)
-  def labelTypeId: Column[Int] = column[Int]("label_type_id", O.NotNull)
-  def regionId: Column[Int] = column[Int]("region_id", O.NotNull)
-  def lat: Column[Float] = column[Float]("lat", O.NotNull)
-  def lng: Column[Float] = column[Float]("lng", O.NotNull)
-  def severity: Column[Option[Int]] = column[Option[Int]]("severity")
-  def temporary: Column[Boolean] = column[Boolean]("temporary", O.NotNull)
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
+  def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id", O.NotNull)
+  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold", O.NotNull)
+  def labelTypeId: Rep[Int] = column[Int]("label_type_id", O.NotNull)
+  def regionId: Rep[Int] = column[Int]("region_id", O.NotNull)
+  def lat: Rep[Float] = column[Float]("lat", O.NotNull)
+  def lng: Rep[Float] = column[Float]("lng", O.NotNull)
+  def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
+  def temporary: Rep[Boolean] = column[Boolean]("temporary", O.NotNull)
 
   def * : ProvenShape[UserAttribute] = (userAttributeId,
                                         userClusteringSessionId,

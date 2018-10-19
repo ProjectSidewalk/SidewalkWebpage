@@ -29,7 +29,8 @@ libraryDependencies ++= Seq(
 //  anorm, // change to "com.typesafe.play" %% "anorm" % "2.4.0" for Play 2.4
 //  cache,
 //  "com.vividsolutions" % "jts" % "1.13",
-  "com.typesafe.slick" %% "slick" % "3.0.3",
+  "com.typesafe.slick" %% "slick" % "3.1.1",
+  "org.slf4j" % "slf4j-nop" % "1.6.4",
   "com.typesafe.play" %% "play-slick" % "0.8.0",
 //  "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
   "com.mohiva" %% "play-silhouette" % "2.0",
