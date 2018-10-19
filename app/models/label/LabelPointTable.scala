@@ -5,7 +5,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
 
-import scala.slick.lifted.ForeignKeyQuery
+import slick.lifted.ForeignKeyQuery
 
 case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int,
                       heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int,

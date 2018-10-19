@@ -9,7 +9,7 @@ package models.sidewalk
  * https://yobriefca.se/blog/2014/07/11/working-with-play-apps-in-the-console/
    */
 
-//import scala.slick.driver.PostgresDriver.simple._
+//import slick.driver.PostgresDriver.simple._
 
 import java.sql.Timestamp
 
@@ -84,12 +84,12 @@ object SidewalkEdgeTable {
    * @return
    */
 //  def randomQuery(id: Int) = db.withSession { implicit session =>
-//    import scala.slick.jdbc.meta._
-//    import scala.slick.jdbc.{StaticQuery => Q}
+//    import slick.jdbc.meta._
+//    import slick.jdbc.{StaticQuery => Q}
 //    import Q.interpolation
 //
 //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
-//    val user = sql"""SELECT * FROM sidewalk_user WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
+//    val user = sql"""SELECT * FROM sidewalk_user WHERE "id" = $id""".as[List[String]].headOption.map(columns zip _ toMap)
 //    user
 //  }
 }

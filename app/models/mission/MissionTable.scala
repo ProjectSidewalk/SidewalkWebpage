@@ -13,8 +13,8 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
-import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.GetResult
+import slick.lifted.ForeignKeyQuery
+import slick.jdbc.GetResult
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
                            distanceMeters: Option[Float], labelsValidated: Option[Int])

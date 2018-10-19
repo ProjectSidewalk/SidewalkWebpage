@@ -8,7 +8,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
 
-import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
+import slick.lifted.{ForeignKeyQuery, ProvenShape}
 import scala.language.postfixOps
 
 case class GlobalAttributeUserAttribute(globalAttributeUserAttributeId: Int, globalAttributeId: Int, userAttributeId: Int)

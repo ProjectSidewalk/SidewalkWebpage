@@ -14,8 +14,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
+import slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int,
                  auditTaskId: Int,

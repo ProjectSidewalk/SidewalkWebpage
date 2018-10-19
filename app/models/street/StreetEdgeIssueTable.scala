@@ -5,7 +5,7 @@ import com.vividsolutions.jts.geom.LineString
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
+import slick.jdbc.{StaticQuery => Q, GetResult}
 
 case class StreetEdgeIssue(streetEdgeIssueId: Int, streetEdgeId: Int, issue: String, userId: String, ipAddress: String, timestamp: Timestamp)
 

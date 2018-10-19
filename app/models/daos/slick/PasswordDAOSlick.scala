@@ -6,7 +6,7 @@ import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
 import play.api.db.slick._
 import scala.concurrent.Future
 import models.daos.slick.DBTableDefinitions._
-import scala.slick.driver.PostgresDriver.simple._
+import slick.driver.PostgresDriver.simple._
 
 
 /**
@@ -32,7 +32,7 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
       DB withSession {implicit session =>
         val infoId = slickLoginInfos.filter(
           x => x.providerID === loginInfo.providerID && x.providerKey === loginInfo.providerKey
-        ).first.id.get
+        ).head.id.get
         slickPasswordInfos insert DBPasswordInfo(authInfo.hasher, authInfo.password, authInfo.salt, infoId)
         authInfo
       }
@@ -48,9 +48,9 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
   def find(loginInfo: LoginInfo): Future[Option[PasswordInfo]] = {
     Future.successful {
       DB withSession { implicit session =>
-        slickLoginInfos.filter(info => info.providerID === loginInfo.providerID && info.providerKey === loginInfo.providerKey).firstOption match {
+        slickLoginInfos.filter(info => info.providerID === loginInfo.providerID && info.providerKey === loginInfo.providerKey).headOption match {
           case Some(info) =>
-            val passwordInfo = slickPasswordInfos.filter(_.loginInfoId === info.id).first
+            val passwordInfo = slickPasswordInfos.filter(_.loginInfoId === info.id).head
             Some(PasswordInfo(passwordInfo.hasher, passwordInfo.password, passwordInfo.salt))
           case None => None
         }

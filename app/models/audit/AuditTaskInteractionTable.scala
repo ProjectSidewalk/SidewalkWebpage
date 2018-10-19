@@ -9,8 +9,8 @@ import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
+import slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.lifted.ForeignKeyQuery
 
 case class AuditTaskInteraction(auditTaskInteractionId: Int,
                                 auditTaskId: Int,

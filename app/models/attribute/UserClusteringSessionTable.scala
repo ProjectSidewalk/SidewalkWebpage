@@ -12,8 +12,8 @@ import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
 
-import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
+import slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.language.postfixOps
 
 case class LabelToCluster(userId: String,

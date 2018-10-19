@@ -7,9 +7,9 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json._
 
-import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.{StaticQuery => Q}
-import scala.slick.jdbc.GetResult
+import slick.lifted.ForeignKeyQuery
+import slick.jdbc.{StaticQuery => Q}
+import slick.jdbc.GetResult
 import scala.math.exp
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)

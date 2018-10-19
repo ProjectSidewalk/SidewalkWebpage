@@ -9,8 +9,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
 
-import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
-import scala.slick.jdbc.{StaticQuery => Q}
+import slick.lifted.{ForeignKeyQuery, ProvenShape}
+import slick.jdbc.{StaticQuery => Q}
 import scala.language.postfixOps
 
 case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: java.sql.Timestamp)

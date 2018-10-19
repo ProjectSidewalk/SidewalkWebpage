@@ -3,7 +3,6 @@ package models.daos.slick
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import models.user.{UserRoleTable, User}
 import play.api.db.slick._
-import play.api.db.slick.Config.driver.simple._
 import models.daos.slick.DBTableDefinitions._
 // import com.mohiva.play.silhouette.core.LoginInfo
 import com.mohiva.play.silhouette.api.LoginInfo
@@ -26,11 +25,11 @@ class UserDAOSlick extends UserDAO {
       Future.successful {
         slickLoginInfos.filter(
           x => x.providerID === loginInfo.providerID && x.providerKey === loginInfo.providerKey
-        ).firstOption match {
+        ).headOption match {
           case Some(info) =>
-            slickUserLoginInfos.filter(_.loginInfoId === info.id).firstOption match {
+            slickUserLoginInfos.filter(_.loginInfoId === info.id).headOption match {
               case Some(userLoginInfo) =>
-                slickUsers.filter(_.userId === userLoginInfo.userID).firstOption match {
+                slickUsers.filter(_.userId === userLoginInfo.userID).headOption match {
                   case Some(user) =>
                     val role = UserRoleTable.getRole(UUID.fromString(user.userId))
                     Some(User(UUID.fromString(user.userId), loginInfo, user.username, user.email, Some(role)))
@@ -55,11 +54,11 @@ class UserDAOSlick extends UserDAO {
       Future.successful {
         slickUsers.filter(
           _.userId === userID.toString
-        ).firstOption match {
+        ).headOption match {
           case Some(user) =>
-            slickUserLoginInfos.filter(_.userID === user.userId).firstOption match {
+            slickUserLoginInfos.filter(_.userID === user.userId).headOption match {
               case Some(info) =>
-                slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
+                slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).headOption match {
                   case Some(loginInfo) =>
                     val role = UserRoleTable.getRole(UUID.fromString(user.userId))
                     Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
@@ -76,11 +75,11 @@ class UserDAOSlick extends UserDAO {
   def find(username: String) = {
     DB withSession { implicit session =>
       Future.successful {
-        slickUsers.filter(_.username === username).firstOption match {
+        slickUsers.filter(_.username === username).headOption match {
           case Some(user) =>
-            slickUserLoginInfos.filter(_.userID === user.userId).firstOption match {
+            slickUserLoginInfos.filter(_.userID === user.userId).headOption match {
               case Some(info) =>
-                slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
+                slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).headOption match {
                   case Some(loginInfo) =>
                     val role = UserRoleTable.getRole(UUID.fromString(user.userId))
                     Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
@@ -104,19 +103,19 @@ class UserDAOSlick extends UserDAO {
     DB withSession { implicit session =>
       Future.successful {
         val dbUser = DBUser(user.userId.toString, user.username, user.email)
-        slickUsers.filter(_.userId === dbUser.userId).firstOption match {
+        slickUsers.filter(_.userId === dbUser.userId).headOption match {
           case Some(userFound) => slickUsers.filter(_.userId === dbUser.userId).update(dbUser)
           case None => slickUsers.insert(dbUser)
         }
         var dbLoginInfo = DBLoginInfo(None, user.loginInfo.providerID, user.loginInfo.providerKey)
         // Insert if it does not exist yet
-        slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).firstOption match {
+        slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).headOption match {
           case None => slickLoginInfos.insert(dbLoginInfo)
           case Some(info) => Logger.debug("Nothing to insert since info already exists: " + info)
         }
-        dbLoginInfo = slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).first
+        dbLoginInfo = slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).head
         // Now make sure they are connected
-        slickUserLoginInfos.filter(info => info.userID === dbUser.userId && info.loginInfoId === dbLoginInfo.id).firstOption match {
+        slickUserLoginInfos.filter(info => info.userID === dbUser.userId && info.loginInfoId === dbLoginInfo.id).headOption match {
           case Some(info) =>
           // They are connected already, we could as well omit this case ;)
           case None =>

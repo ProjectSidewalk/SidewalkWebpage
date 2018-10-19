@@ -14,8 +14,8 @@ import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
 
-import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.lifted.ForeignKeyQuery
+import slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp,
@@ -422,7 +422,7 @@ object AuditTaskTable {
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, userCompleted)
 
-    NewTask.tupled(edges.first)
+    NewTask.tupled(edges.head)
   }
 
   /**
@@ -446,7 +446,7 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, sc._2, sp.priority, false)
 
     // Get the highest priority task.
-    possibleTasks.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
+    possibleTasks.sortBy(_._9.desc).headOption.map(NewTask.tupled)
   }
 
   /**

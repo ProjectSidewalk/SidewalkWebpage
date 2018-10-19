@@ -3,7 +3,7 @@ package models.label
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.lifted.ForeignKeyQuery
+import slick.lifted.ForeignKeyQuery
 
 case class Tag(tagId: Int, labelTypeId: Int, tag: String)
 

@@ -4,7 +4,7 @@ import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.lifted.ForeignKeyQuery
+import slick.lifted.ForeignKeyQuery
 
 case class AuditTaskIncomplete(auditTaskIncompletId: Int, auditTaskId: Int, missionId: Int, issueDescription: String, lat: Float, lng: Float)
 

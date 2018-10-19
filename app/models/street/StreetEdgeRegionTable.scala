@@ -5,7 +5,7 @@ import models.region._
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.lifted.ForeignKeyQuery
+import slick.lifted.ForeignKeyQuery
 
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
 

@@ -6,7 +6,7 @@ import java.sql.Timestamp
 import models.survey._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 
-import scala.slick.lifted.ForeignKeyQuery
+import slick.lifted.ForeignKeyQuery
 
 case class UserSurveyTextSubmission(userSurveyTextSubmissionId: Int, userId: String, surveyQuestionId: Int, surveyTextSubmission: Option[String], timeSubmitted: Timestamp, numMissionsCompleted: Int)
 

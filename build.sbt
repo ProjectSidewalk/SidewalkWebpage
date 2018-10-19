@@ -6,7 +6,7 @@ name := """sidewalk-webpage"""
 
 version := "4.5.0"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.10.5"
 
 sources in (Compile,doc) := Seq.empty
 
@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
 //  anorm, // change to "com.typesafe.play" %% "anorm" % "2.4.0" for Play 2.4
 //  cache,
 //  "com.vividsolutions" % "jts" % "1.13",
-//  "com.typesafe.slick" %% "slick" % "2.1.0",
+  "com.typesafe.slick" %% "slick" % "3.0.3",
   "com.typesafe.play" %% "play-slick" % "0.8.0",
 //  "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
   "com.mohiva" %% "play-silhouette" % "2.0",

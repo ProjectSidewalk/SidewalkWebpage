@@ -9,8 +9,8 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
+import slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.lifted.ForeignKeyQuery
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: Option[String], totalDistance: Double, auditedDistance: Double)
@@ -89,7 +89,7 @@ object RegionCompletionTable {
     for (regionId <- regionIds) yield {
       val q = for {regionCompletion <- regionCompletions if regionCompletion.regionId === regionId} yield regionCompletion
 
-      val updatedDist = q.firstOption match {
+      val updatedDist = q.headOption match {
         case Some(rC) =>
           // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
           // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
