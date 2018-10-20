@@ -258,24 +258,24 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
             // If temporariness/severity/description they are set, update/insert them.
             if (label.severity.isDefined) {
-              ProblemSeverityTable.find(labelId) match {
-                case Some(ps) => ProblemSeverityTable.updateSeverity(ps.problemSeverityId, label.severity.get)
-                case None => ProblemSeverityTable.save(ProblemSeverity(0, labelId, label.severity.get))
+              LabelSeverityTable.find(labelId) match {
+                case Some(ls) => LabelSeverityTable.updateSeverity(ls.labelSeverityId, label.severity.get)
+                case None => LabelSeverityTable.save(LabelSeverity(0, labelId, label.severity.get))
               }
             }
 
-            if (label.temporaryProblem.isDefined) {
-              val tempProblem = label.temporaryProblem.get.value
-              ProblemTemporarinessTable.find(labelId) match {
-                case Some(pt) => ProblemTemporarinessTable.updateTemporariness(pt.problemTemporarinessId, tempProblem)
-                case None => ProblemTemporarinessTable.save(ProblemTemporariness(0, labelId, tempProblem))
+            if (label.temporaryLabel.isDefined) {
+              val tempLabel = label.temporaryLabel.get.value
+              LabelTemporarinessTable.find(labelId) match {
+                case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
+                case None => LabelTemporarinessTable.save(LabelTemporariness(0, labelId, tempLabel))
               }
             }
 
             if (label.description.isDefined) {
-              ProblemDescriptionTable.find(labelId) match {
-                case Some(pd) => ProblemDescriptionTable.updateDescription(pd.problemDescriptionId, label.description.get)
-                case None => ProblemDescriptionTable.save(ProblemDescription(0, labelId, label.description.get))
+              LabelDescriptionTable.find(labelId) match {
+                case Some(pd) => LabelDescriptionTable.updateDescription(pd.labelDescriptionId, label.description.get)
+                case None => LabelDescriptionTable.save(LabelDescription(0, labelId, label.description.get))
               }
             }
 
