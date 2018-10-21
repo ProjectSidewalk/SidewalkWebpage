@@ -2,14 +2,17 @@
  * Responsible for Yes/No/Unclear buttons
  * @constructor
  */
-function MenuButton(validationButton) {
-    var agreeButton = validationButton.find('#validation-agree-button');
+function MenuButton(menuUI) {
 
-    validationButton.click(function() {
-        console.log("Button clicked");
+    menuUI.agreeButton.click(function() {
+        console.log("Agree button clicked");
     });
 
-    agreeButton.click(function() {
-        console.log("Agree button clicked");
+    menuUI.disagreeButton.click(function() {
+        console.log("Disagree button clicked");
+    });
+
+    menuUI.unclearButton.click(function() {
+        console.log("Unclear button clicked");
     });
 }

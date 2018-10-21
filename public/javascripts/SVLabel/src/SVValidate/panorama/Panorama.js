@@ -29,7 +29,7 @@ function Panorama() {
         }
 
         // Label ID (for now)
-        setLabel(72982);
+        setLabel(72987);
     }
 
     function _handleData(labelMetadata) {
