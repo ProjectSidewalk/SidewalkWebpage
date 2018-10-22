@@ -15,14 +15,14 @@ import play.api.Play.current
 import slick.jdbc.{GetResult, StaticQuery => Q}
 import slick.lifted.ForeignKeyQuery
 
-case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon, deleted: Boolean)
+case class Region(regionId: Int, regionTypeId: Int, dataSource: Option[String], description: String, geom: Polygon, deleted: Boolean)
 case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
   def regionTypeId = column[Int]("region_type_id", O.NotNull)
-  def dataSource = column[String]("data_source", O.Nullable)
-  def description = column[String]("description", O.Nullable)
+  def dataSource = column[Option[String]]("data_source")
+  def description = column[String]("description")
   def geom = column[Polygon]("geom")
   def deleted = column[Boolean]("deleted")
 

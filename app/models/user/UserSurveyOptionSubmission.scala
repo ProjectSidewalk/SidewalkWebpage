@@ -15,7 +15,7 @@ class UserSurveyOptionSubmissionTable(tag: Tag) extends Table[UserSurveyOptionSu
   def userId = column[String]("user_id", O.NotNull)
   def surveyQuestionId = column[Int]("survey_question_id", O.NotNull)
   def surveyOptionId = column[Option[Int]]("survey_option_id")
-  def timeSubmitted = column[Timestamp]("time_submitted", O.Nullable)
+  def timeSubmitted = column[Timestamp]("time_submitted")
   def numMissionsCompleted = column[Int]("num_missions_completed", O.NotNull)
 
   def * = (userSurveyOptionSubmissionId, userId, surveyQuestionId, surveyOptionId, timeSubmitted, numMissionsCompleted) <> ((UserSurveyOptionSubmission.apply _).tupled, UserSurveyOptionSubmission.unapply)
