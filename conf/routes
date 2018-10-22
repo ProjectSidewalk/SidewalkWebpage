@@ -73,13 +73,15 @@ GET     /audit/recalculateStreetPriority                     @controllers.AuditP
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 
-# Aileen's stuff
+# Label validation tasks
 GET /validate                                                @controllers.ValidationController.validate(nextRegion: Option[String] ?= None)
+
 
 # Task API.
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
+POST    /validationTask                                      @controllers.ValidationTaskController.post
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()

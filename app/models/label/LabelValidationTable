@@ -1,0 +1,19 @@
+package models.label
+
+import java.sql.Timestamp
+import java.util.UUID
+import models.utils.MyPostgresDriver.simple._
+import play.api.Play.current
+import play.api.libs.json.{JsObject, Json}
+
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import scala.slick.lifted.ForeignKeyQuery
+
+case class LabelValidation(validationTaskId: Int,
+                           labelId: Int,
+                           labelValidationId: Int,
+                           userId: String,
+                           missionId: Int,
+                           startTimestamp: Option[TimeStamp],
+                           endTimestamp: Option[Timestamp])
+
