@@ -9,7 +9,7 @@ import play.api.test._
 import play.api.test.Helpers._
 import play.api.db.slick.DB
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import models.audit._
 
 

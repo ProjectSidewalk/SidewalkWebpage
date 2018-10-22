@@ -1,6 +1,6 @@
 package models.gsv
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 case class GSVModel(gsvPanoramaId: String, depthMap: String, panoMap: String)

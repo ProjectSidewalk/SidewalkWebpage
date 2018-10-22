@@ -2,7 +2,7 @@ package models.street
 
 import models.audit.AuditTaskTable
 import models.region._
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 import slick.lifted.ForeignKeyQuery

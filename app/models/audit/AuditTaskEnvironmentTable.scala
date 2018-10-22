@@ -1,7 +1,7 @@
 package models.audit
 
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 import slick.lifted.ForeignKeyQuery
@@ -18,16 +18,16 @@ class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](ta
   def auditTaskEnvironmentId = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
-  def browser = column[Option[String]]("browser", O.Nullable)
-  def browserVersion = column[Option[String]]("browser_version", O.Nullable)
-  def browserWidth = column[Option[Int]]("browser_width", O.Nullable)
-  def browserHeight = column[Option[Int]]("browser_height", O.Nullable)
-  def availWidth = column[Option[Int]]("avail_width", O.Nullable)
-  def availHeight = column[Option[Int]]("avail_height", O.Nullable)
-  def screenWidth = column[Option[Int]]("screen_width", O.Nullable)
-  def screenHeight = column[Option[Int]]("screen_height", O.Nullable)
-  def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
-  def ipAddress = column[Option[String]]("ip_address", O.Nullable)
+  def browser = column[Option[String]]("browser")
+  def browserVersion = column[Option[String]]("browser_version")
+  def browserWidth = column[Option[Int]]("browser_width")
+  def browserHeight = column[Option[Int]]("browser_height")
+  def availWidth = column[Option[Int]]("avail_width")
+  def availHeight = column[Option[Int]]("avail_height")
+  def screenWidth = column[Option[Int]]("screen_width")
+  def screenHeight = column[Option[Int]]("screen_height")
+  def operatingSystem = column[Option[String]]("operating_system")
+  def ipAddress = column[Option[String]]("ip_address")
 
   def * = (auditTaskEnvironmentId, auditTaskId, missionId, browser, browserVersion, browserWidth, browserHeight,
     availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)

@@ -6,7 +6,7 @@ name := """sidewalk-webpage"""
 
 version := "4.5.0"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.10.6"
 
 sources in (Compile,doc) := Seq.empty
 
@@ -41,7 +41,16 @@ libraryDependencies ++= Seq(
   "net.codingwell" %% "scala-guice" % "4.0.0-beta5",
 //  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
   "com.typesafe.play.extras" %% "play-geojson" % "1.2.0",
-  "com.github.tminglei" %% "slick-pg" % "0.8.2",
+  "com.github.tminglei" %% "slick-pg" % "0.14.9",
+//  "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.9",
+  "com.github.tminglei" %% "slick-pg_jts" % "0.14.9",
+  "com.github.tminglei" %% "slick-pg_date2" % "0.14.9",
+//  "com.github.tminglei" %% "slick-pg_threeten" % "0.14.9",
+//  "com.github.tminglei" %% "slick-pg_json4s" % "0.14.9",
+  "com.github.tminglei" %% "slick-pg_play-json" % "0.14.9",
+//  "com.github.tminglei" %% "slick-pg_spray-json" % "0.14.9",
+//  "com.github.tminglei" %% "slick-pg_argonaut" % "0.14.9",
+//  "com.github.tminglei" %% "slick-pg_circe-json" % "0.14.9",
 //  "org.slf4j" % "slf4j-api"       % "1.7.7",
 //  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
 //  "joda-time" % "joda-time" % "2.9.4",

@@ -1,7 +1,7 @@
 package models.label
 
 import models.audit.{AuditTask, AuditTaskTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
 
@@ -28,9 +28,9 @@ class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some
   def canvasWidth = column[Int]("canvas_width", O.NotNull)
   def alphaX = column[Float]("alpha_x", O.NotNull)
   def alphaY = column[Float]("alpha_y", O.NotNull)
-  def lat = column[Option[Float]]("lat", O.Nullable)
-  def lng = column[Option[Float]]("lng", O.Nullable)
-  def geom = column[Option[Point]]("geom", O.Nullable)
+  def lat = column[Option[Float]]("lat")
+  def lng = column[Option[Float]]("lng")
+  def geom = column[Option[Point]]("geom")
 
   def * = (labelPointId, labelId, svImageX, svImageY, canvasX, canvasY, heading, pitch, zoom,
     canvasHeight, canvasWidth, alphaX, alphaY, lat, lng, geom) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)

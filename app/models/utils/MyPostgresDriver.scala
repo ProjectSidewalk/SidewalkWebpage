@@ -1,50 +1,42 @@
 package models.utils
 
 import com.github.tminglei.slickpg._
-import slick.driver.{PostgresDriver, JdbcDriver}
+import play.api.libs.json.{JsValue, Json}
 
-trait WithMyDriver {
-  val driver: MyPostgresDriver
+trait MyPostgresDriver extends ExPostgresDriver
+  with PgArraySupport
+  with PgDate2Support
+  with PgRangeSupport
+  with PgHStoreSupport
+  with PgPlayJsonSupport
+  with PgSearchSupport
+  with PgPostGISSupport
+  with PgNetSupport
+  with PgLTreeSupport {
+  def pgjson = "jsonb" // jsonb support is in postgres 9.4.0 onward; for 9.3.x use "json"
+
+  // Add back `capabilities.insertOrUpdate` to enable native `upsert` support; for postgres 9.5+
+  override protected def computeCapabilities: Set[Capability] =
+    super.computeCapabilities + JdbcProfile.capabilities.insertOrUpdate
+
+  override val api = MyAPI
+
+  object MyAPI extends API with ArrayImplicits
+    with DateTimeImplicits
+    with JsonImplicits
+    with NetImplicits
+    with LTreeImplicits
+    with RangeImplicits
+    with HStoreImplicits
+    with SearchImplicits
+    with SearchAssistants {
+    implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
+    implicit val playJsonArrayTypeMapper =
+      new AdvancedArrayJdbcType[JsValue](pgjson,
+        (s) => utils.SimpleArrayUtils.fromString[JsValue](Json.parse(_))(s).orNull,
+        (v) => utils.SimpleArrayUtils.mkString[JsValue](_.toString())(v)
+      ).to(_.toList)
+  }
 }
 
-////////////////////////////////////////////////////////////
-trait MyPostgresDriver extends JdbcDriver with PostgresDriver
-with PgArraySupport
-with PgDateSupportJoda
-with PgRangeSupport
-with PgHStoreSupport
-with PgPlayJsonSupport
-with PgSearchSupport
-with PgPostGISSupport {
-
-  override lazy val Implicit = new ImplicitsPlus {}
-  override val simple = new SimpleQLPlus {}
-
-  //////
-  trait ImplicitsPlus extends Implicits
-  with ArrayImplicits
-  with DateTimeImplicits
-  with RangeImplicits
-  with HStoreImplicits
-  with JsonImplicits
-  with SearchImplicits
-  with PostGISImplicits
-
-  trait SimpleQLPlus extends SimpleQL
-  with ImplicitsPlus
-  with SearchAssistants
-  with PostGISAssistants
-
-
-}
-
-object MyPostgresDriver extends MyPostgresDriver with PgPostGISSupport {
-
-  // For plain query
-  // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
-  override lazy val Implicit = new ImplicitsPlus with PostGISImplicits
-  override val simple = new Implicits with SimpleQLPlus with PostGISImplicits with PostGISAssistants
-
-  val plainImplicits = new Implicits with PostGISPlainImplicits
-
-}
+object MyPostgresDriver extends MyPostgresDriver

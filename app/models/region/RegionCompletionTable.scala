@@ -6,7 +6,7 @@ import math._
 import models.street.{StreetEdgeRegionTable, StreetEdgeTable, StreetEdge}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 import slick.jdbc.{GetResult, StaticQuery => Q}
@@ -27,7 +27,7 @@ class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, Some(
   * Data access object for the sidewalk_edge table
   */
 object RegionCompletionTable {
-  import MyPostgresDriver.plainImplicits._
+  import MyPostgresDriver.api._
 
   implicit val regionCompletionConverter = GetResult[RegionCompletion](r => {
     RegionCompletion(r.nextInt, r.nextDouble, r.nextDouble)

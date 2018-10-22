@@ -1,6 +1,6 @@
 package models.street
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 case class StreetEdgeStreetNode(streetEdgeStreetNodeId: Int, streetEdgeId: Int, streetNodeId: Int)

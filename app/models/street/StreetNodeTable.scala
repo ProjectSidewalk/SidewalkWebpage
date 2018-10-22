@@ -1,7 +1,7 @@
 package models.street
 
 import com.vividsolutions.jts.geom.Point
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 case class StreetNode(streetNodeId: Int, geom: Point, lat: Double, lng: Double)

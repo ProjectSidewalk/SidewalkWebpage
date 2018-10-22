@@ -1,6 +1,6 @@
 package models.label
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 case class LabelDescription(labelDescriptionId: Int, labelId: Int, description: String)

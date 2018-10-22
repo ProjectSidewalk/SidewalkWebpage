@@ -1,6 +1,6 @@
 package models.gsv
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 case class GSVLocation(gsvPanoramaId: String, lat: Double, lng: Double, originalLat: Double, originalLng: Double,
@@ -17,7 +17,7 @@ class GSVLocationTable(tag: Tag) extends Table[GSVLocation](tag, Some("sidewalk"
   def country = column[String]("country", O.NotNull)
   def description = column[String]("description", O.NotNull)
   def zoomLevels = column[Int]("zoom_levels", O.NotNull)
-  def streetRange = column[Option[Int]]("street_range", O.Nullable)
+  def streetRange = column[Option[Int]]("street_range")
   def elevationWgs84M = column[Double]("elevation_wgs84_m", O.NotNull)
   def elevationEgm96M = column[Double]("elevation_egm96_m", O.NotNull)
 

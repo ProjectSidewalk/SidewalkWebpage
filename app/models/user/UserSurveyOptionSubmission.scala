@@ -1,6 +1,6 @@
 package models.user
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import java.sql.Timestamp
 import models.survey._
@@ -14,7 +14,7 @@ class UserSurveyOptionSubmissionTable(tag: Tag) extends Table[UserSurveyOptionSu
   def userSurveyOptionSubmissionId = column[Int]("user_survey_option_submission_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def surveyQuestionId = column[Int]("survey_question_id", O.NotNull)
-  def surveyOptionId = column[Option[Int]]("survey_option_id", O.Nullable)
+  def surveyOptionId = column[Option[Int]]("survey_option_id")
   def timeSubmitted = column[Timestamp]("time_submitted", O.Nullable)
   def numMissionsCompleted = column[Int]("num_missions_completed", O.NotNull)
 

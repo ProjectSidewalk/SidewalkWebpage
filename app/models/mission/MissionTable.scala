@@ -6,7 +6,7 @@ import java.util.UUID
 
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import models.region._
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Logger
@@ -53,11 +53,11 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
   def completed: Rep[Boolean] = column[Boolean]("completed", O.NotNull)
   def pay: Rep[Double] = column[Double]("pay", O.NotNull)
   def paid: Rep[Boolean] = column[Boolean]("paid", O.NotNull)
-  def distanceMeters: Rep[Option[Float]] = column[Option[Float]]("distance_meters", O.Nullable)
-  def distanceProgress: Rep[Option[Float]] = column[Option[Float]]("distance_progress", O.Nullable)
-  def regionId: Rep[Option[Int]] = column[Option[Int]]("region_id", O.Nullable)
-  def labelsValidated: Rep[Option[Int]] = column[Option[Int]]("labels_validated", O.Nullable)
-  def labelsProgress: Rep[Option[Int]] = column[Option[Int]]("labels_progress", O.Nullable)
+  def distanceMeters: Rep[Option[Float]] = column[Option[Float]]("distance_meters")
+  def distanceProgress: Rep[Option[Float]] = column[Option[Float]]("distance_progress")
+  def regionId: Rep[Option[Int]] = column[Option[Int]]("region_id")
+  def labelsValidated: Rep[Option[Int]] = column[Option[Int]]("labels_validated")
+  def labelsProgress: Rep[Option[Int]] = column[Option[Int]]("labels_progress")
   def skipped: Rep[Boolean] = column[Boolean]("skipped", O.NotNull)
 
   def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, skipped) <> ((Mission.apply _).tupled, Mission.unapply)

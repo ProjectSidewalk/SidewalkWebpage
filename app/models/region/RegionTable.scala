@@ -9,7 +9,7 @@ import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 import slick.jdbc.{GetResult, StaticQuery => Q}
@@ -36,7 +36,7 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
  * Data access object for the sidewalk_edge table
  */
 object RegionTable {
-  import MyPostgresDriver.plainImplicits._
+  import MyPostgresDriver.api._
 
   implicit val regionConverter = GetResult[Region](r => {
     Region(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)

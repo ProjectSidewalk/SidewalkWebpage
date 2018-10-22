@@ -10,7 +10,7 @@ import models.gsv.GSVOnboardingPanoTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -59,8 +59,8 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def panoramaLat = column[Float]("panorama_lat", O.NotNull)
   def panoramaLng = column[Float]("panorama_lng", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
-  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
-  def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id")
+  def timeCreated = column[Option[Timestamp]]("time_created")
 
   def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
     panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated) <> ((Label.apply _).tupled, Label.unapply)

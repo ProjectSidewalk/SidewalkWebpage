@@ -4,7 +4,7 @@ import java.sql.Timestamp
 
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 import slick.lifted.ForeignKeyQuery
@@ -21,12 +21,12 @@ class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some(
   def edgeId = column[Int]("edge_id", O.NotNull)
   def userId = column[String]("user_id", O.NotNull)
   def ipAddress = column[String]("ip_address", O.NotNull)
-  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.Nullable)
-  def heading = column[Option[Double]]("heading", O.Nullable)
-  def pitch = column[Option[Double]]("pitch", O.Nullable)
-  def zoom = column[Option[Int]]("zoom", O.Nullable)
-  def lat = column[Option[Double]]("lat", O.Nullable)
-  def lng = column[Option[Double]]("lng", O.Nullable)
+  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id")
+  def heading = column[Option[Double]]("heading")
+  def pitch = column[Option[Double]]("pitch")
+  def zoom = column[Option[Int]]("zoom")
+  def lat = column[Option[Double]]("lat")
+  def lng = column[Option[Double]]("lng")
   def timestamp = column[Timestamp]("timestamp", O.NotNull)
   def comment = column[String]("comment", O.NotNull)
 

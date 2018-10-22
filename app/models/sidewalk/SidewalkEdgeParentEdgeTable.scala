@@ -1,6 +1,6 @@
 package models.sidewalk
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 

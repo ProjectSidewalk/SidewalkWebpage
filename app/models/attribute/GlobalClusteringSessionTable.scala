@@ -5,7 +5,7 @@ package models.attribute
   */
 
 import models.region.{Region, RegionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.db.slick
 

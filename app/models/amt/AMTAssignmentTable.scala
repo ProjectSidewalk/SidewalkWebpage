@@ -2,7 +2,7 @@ package models.amt
 
 import java.sql.Timestamp
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,

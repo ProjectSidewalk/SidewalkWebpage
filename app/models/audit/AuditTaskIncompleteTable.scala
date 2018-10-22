@@ -1,7 +1,7 @@
 package models.audit
 
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 import slick.lifted.ForeignKeyQuery

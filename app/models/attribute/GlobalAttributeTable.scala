@@ -6,7 +6,7 @@ package models.attribute
 
 import models.label.{LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable}
-//import models.utils.MyPostgresDriver.simple._
+//import models.utils.MyPostgresDriver.api._
 import slick.driver.PostgresDriver.api._
 import play.api.Play.current
 import play.api.db.slick

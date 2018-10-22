@@ -1,6 +1,6 @@
 package models.survey
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
 import slick.lifted.ForeignKeyQuery
@@ -11,7 +11,7 @@ class SurveyOptionTable(tag: Tag) extends Table[SurveyOption](tag, Some("sidewal
   def surveyOptionId = column[Int]("survey_option_id", O.PrimaryKey)
   def surveyCategoryOptionId = column[Int]("survey_category_option_id", O.NotNull)
   def surveyOptionText = column[String]("survey_option_text", O.NotNull)
-  def surveyDisplayRank = column[Option[Int]]("survey_display_rank", O.Nullable)
+  def surveyDisplayRank = column[Option[Int]]("survey_display_rank")
 
   def * = (surveyOptionId, surveyCategoryOptionId, surveyOptionText, surveyDisplayRank) <> ((SurveyOption.apply _).tupled, SurveyOption.unapply)
   def survey_category_option: ForeignKeyQuery[SurveyCategoryOptionTable, SurveyCategoryOption] =

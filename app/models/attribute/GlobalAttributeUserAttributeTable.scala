@@ -4,7 +4,7 @@ package models.attribute
   * Created by misaugstad on 4/27/17.
   */
 
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.db.slick
 

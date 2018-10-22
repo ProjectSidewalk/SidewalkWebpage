@@ -2,7 +2,7 @@ package models.user
 
 import models.region.{NamedRegion, RegionTable}
 import models.street.StreetEdgeTable
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import java.util.UUID
 

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import models.label._
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
@@ -41,14 +41,14 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
   def action = column[String]("action", O.NotNull)
-  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.Nullable)
-  def lat = column[Option[Float]]("lat", O.Nullable)
-  def lng = column[Option[Float]]("lng", O.Nullable)
-  def heading = column[Option[Float]]("heading", O.Nullable)
-  def pitch = column[Option[Float]]("pitch", O.Nullable)
-  def zoom = column[Option[Int]]("zoom", O.Nullable)
-  def note = column[Option[String]]("note", O.Nullable)
-  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
+  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id")
+  def lat = column[Option[Float]]("lat")
+  def lng = column[Option[Float]]("lng")
+  def heading = column[Option[Float]]("heading")
+  def pitch = column[Option[Float]]("pitch")
+  def zoom = column[Option[Int]]("zoom")
+  def note = column[Option[String]]("note")
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id")
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,

@@ -12,7 +12,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.user.UserRoleTable
 import models.user.RoleTable
 import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 import org.postgresql.util.PSQLException
 import play.api.Play.current
 
@@ -46,7 +46,7 @@ class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"),
 object StreetEdgeTable {
   // For plain query
   // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
-  import MyPostgresDriver.plainImplicits._
+  import MyPostgresDriver.api._
 
   implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
     val streetEdgeId = r.nextInt
