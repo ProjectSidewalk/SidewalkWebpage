@@ -11,8 +11,8 @@ case class UserRole(userRoleId: Int, userId: String, roleId: Int)
 
 class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk"), "user_role") {
   def userRoleId = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
-  def userId = column[String]("user_id", O.NotNull)
-  def roleId = column[Int]("role_id", O.NotNull)
+  def userId = column[String]("user_id")
+  def roleId = column[Int]("role_id")
 
 
   def * = (userRoleId, userId, roleId) <> ((UserRole.apply _).tupled, UserRole.unapply)

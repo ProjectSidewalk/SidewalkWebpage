@@ -7,7 +7,7 @@ case class SurveyCategoryOption(surveyCategoryOptionId: Int, surveyCategoryOptio
 
 class SurveyCategoryOptionTable(tag: Tag) extends Table[SurveyCategoryOption](tag, Some("sidewalk"), "survey_category_option") {
   def surveyCategoryOptionId = column[Int]("survey_question_id", O.PrimaryKey, O.AutoInc)
-  def surveyCategoryOptionText = column[String]("survey_question_text", O.NotNull)
+  def surveyCategoryOptionText = column[String]("survey_question_text")
 
   def * = (surveyCategoryOptionId, surveyCategoryOptionText) <> ((SurveyCategoryOption.apply _).tupled, SurveyCategoryOption.unapply)
 }

@@ -9,10 +9,10 @@ case class GSVProjection(gsvPanoramaId: String, projectionType: String, panoYawD
 
 class GSVProjectionTable(tag: Tag) extends Table[GSVProjection](tag, Some("sidewalk"), "gsv_projection") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
-  def projectionType = column[String]("projection_type", O.NotNull)
-  def panoYawDeg = column[Double]("pano_yaw_deg", O.NotNull)
-  def tiltYawDeg = column[Double]("tilt_yaw_deg", O.NotNull)
-  def tiltPitchDeg = column[Double]("tilt_pitch_deg", O.NotNull)
+  def projectionType = column[String]("projection_type")
+  def panoYawDeg = column[Double]("pano_yaw_deg")
+  def tiltYawDeg = column[Double]("tilt_yaw_deg")
+  def tiltPitchDeg = column[Double]("tilt_pitch_deg")
 
   def * = (gsvPanoramaId, projectionType, panoYawDeg, tiltYawDeg, tiltPitchDeg) <> ((GSVProjection.apply _).tupled, GSVProjection.unapply)
 }

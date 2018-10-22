@@ -6,9 +6,9 @@ case class RegionProperty(regionPropertyId: Int, regionId: Int, key: String, val
 
 class RegionPropertyTable(tag: Tag) extends Table[RegionProperty](tag, Some("sidewalk"), "region_property") {
   def regionPropertyId = column[Int]("region_property_id", O.PrimaryKey)
-  def regionId = column[Int]("region_id", O.NotNull)
-  def key = column[String]("key", O.NotNull)
-  def value = column[String]("value", O.NotNull)
+  def regionId = column[Int]("region_id")
+  def key = column[String]("key")
+  def value = column[String]("value")
 
   def * = (regionPropertyId, regionId, key, value) <> ((RegionProperty.apply _).tupled, RegionProperty.unapply)
 }

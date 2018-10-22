@@ -7,8 +7,8 @@ case class LabelSeverity(labelSeverityId: Int, labelId: Int, severity: Int)
 
 class LabelSeverityTable(tag: slick.lifted.Tag) extends Table[LabelSeverity](tag, Some("sidewalk"), "label_severity") {
   def labelSeverityId = column[Int]("label_severity_id", O.PrimaryKey, O.AutoInc)
-  def labelId = column[Int]("label_id", O.NotNull)
-  def severity = column[Int]("severity", O.NotNull)
+  def labelId = column[Int]("label_id")
+  def severity = column[Int]("severity")
 
   def * = (labelSeverityId, labelId, severity) <> ((LabelSeverity.apply _).tupled, LabelSeverity.unapply)
 }

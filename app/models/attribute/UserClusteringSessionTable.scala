@@ -45,9 +45,9 @@ case class UserClusteringSession(userClusteringSessionId: Int, userId: String, t
 
 
 class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](tag, Some("sidewalk"), "user_clustering_session") {
-  def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String] = column[String]("user_id", O.NotNull)
-  def timeCreated: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("time_created", O.NotNull)
+  def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String] = column[String]("user_id")
+  def timeCreated: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("time_created")
 
   def * : ProvenShape[UserClusteringSession] = (userClusteringSessionId, userId, timeCreated) <>
     ((UserClusteringSession.apply _).tupled, UserClusteringSession.unapply)

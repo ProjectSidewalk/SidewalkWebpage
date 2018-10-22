@@ -26,15 +26,15 @@ case class GlobalAttribute(globalAttributeId: Int,
 
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
-  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id", O.NotNull)
-  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold", O.NotNull)
-  def labelTypeId: Rep[Int] = column[Int]("label_type_id", O.NotNull)
-  def regionId: Rep[Int] = column[Int]("region_id", O.NotNull)
-  def lat: Rep[Float] = column[Float]("lat", O.NotNull)
-  def lng: Rep[Float] = column[Float]("lng", O.NotNull)
+  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.PrimaryKey, O.AutoInc)
+  def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id")
+  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold")
+  def labelTypeId: Rep[Int] = column[Int]("label_type_id")
+  def regionId: Rep[Int] = column[Int]("region_id")
+  def lat: Rep[Float] = column[Float]("lat")
+  def lng: Rep[Float] = column[Float]("lng")
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
-  def temporary: Rep[Boolean] = column[Boolean]("temporary", O.NotNull)
+  def temporary: Rep[Boolean] = column[Boolean]("temporary")
 
   def * : ProvenShape[GlobalAttribute] = (globalAttributeId,
                                           globalClusteringSessionId,

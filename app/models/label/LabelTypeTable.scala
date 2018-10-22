@@ -10,7 +10,7 @@ case class LabelType(labelTypeId: Int, labelType: String, description: String)
  */
 class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
-  def labelType = column[String]("label_type", O.NotNull)
+  def labelType = column[String]("label_type")
   def description = column[String]("description")
 
   def * = (labelTypeId, labelType, description) <> ((LabelType.apply _).tupled, LabelType.unapply)

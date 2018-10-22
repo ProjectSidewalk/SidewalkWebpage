@@ -7,7 +7,7 @@ case class Role(roleId: Int, role: String)
 
 class RoleTable(tag: Tag) extends Table[Role](tag, Some("sidewalk"), "role") {
   def roleId = column[Int]("role_id", O.PrimaryKey, O.AutoInc)
-  def role = column[String]("role", O.NotNull)
+  def role = column[String]("role")
 
   def * = (roleId, role) <> ((Role.apply _).tupled, Role.unapply)
 }

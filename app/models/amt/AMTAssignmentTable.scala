@@ -14,13 +14,13 @@ case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: Stri
  */
 class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidewalk"), "amt_assignment") {
   def amtAssignmentId = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
-  def hitId = column[String]("hit_id", O.NotNull)
-  def assignmentId = column[String]("assignment_id", O.NotNull)
-  def assignmentStart = column[Timestamp]("assignment_start", O.NotNull)
+  def hitId = column[String]("hit_id")
+  def assignmentId = column[String]("assignment_id")
+  def assignmentStart = column[Timestamp]("assignment_start")
   def assignmentEnd = column[Option[Timestamp]]("assignment_end")
-  def workerId = column[String]("turker_id", O.NotNull)
+  def workerId = column[String]("turker_id")
   def confirmationCode = column[Option[String]]("confirmation_code")
-  def completed = column[Boolean]("completed", O.NotNull)
+  def completed = column[Boolean]("completed")
 
   def * = (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed) <> ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
 }

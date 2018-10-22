@@ -10,7 +10,7 @@ case class GSVOnboardingPano(gsvPanoramaId: String, hasLabels: Boolean)
 //       to just include a boolean `tutorial` column in the label table instead. This could still be done in the future.
 class GSVOnboardingPanoTable(tag: Tag) extends Table[GSVOnboardingPano](tag, Some("sidewalk"), "gsv_onboarding_pano") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
-  def hasLabels = column[Boolean]("has_labels", O.NotNull)
+  def hasLabels = column[Boolean]("has_labels")
 
   def * = (gsvPanoramaId, hasLabels) <> ((GSVOnboardingPano.apply _).tupled, GSVOnboardingPano.unapply)
 }

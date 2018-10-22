@@ -20,7 +20,7 @@ case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
-  def regionTypeId = column[Int]("region_type_id", O.NotNull)
+  def regionTypeId = column[Int]("region_type_id")
   def dataSource = column[Option[String]]("data_source")
   def description = column[String]("description")
   def geom = column[Polygon]("geom")

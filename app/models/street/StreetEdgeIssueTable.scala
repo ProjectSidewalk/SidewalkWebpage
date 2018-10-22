@@ -11,7 +11,7 @@ case class StreetEdgeIssue(streetEdgeIssueId: Int, streetEdgeId: Int, issue: Str
 
 class StreetEdgeIssueTable(tag: Tag) extends Table[StreetEdgeIssue](tag, Some("sidewalk"), "street_edge_issue") {
   def streetEdgeIssueId = column[Int]("street_edge_issue_id", O.PrimaryKey, O.AutoInc)
-  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
+  def streetEdgeId = column[Int]("street_edge_id")
   def issue = column[String]("issue")
   def userId = column[String]("user_id")
   def ipAddress = column[String]("ip_address")

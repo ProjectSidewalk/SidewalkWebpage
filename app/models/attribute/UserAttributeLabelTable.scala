@@ -16,9 +16,9 @@ case class UserAttributeLabel(userAttributeLabelId: Int, userAttributeId: Int, l
 
 
 class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, Some("sidewalk"), "user_attribute_label") {
-  def userAttributeLabelId: Rep[Int] = column[Int]("user_attribute_label_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.NotNull)
-  def labelId: Rep[Int] = column[Int]("label_id", O.NotNull)
+  def userAttributeLabelId: Rep[Int] = column[Int]("user_attribute_label_id", O.PrimaryKey, O.AutoInc)
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id")
+  def labelId: Rep[Int] = column[Int]("label_id")
 
   def * : ProvenShape[UserAttributeLabel] = (userAttributeLabelId, userAttributeId, labelId) <>
     ((UserAttributeLabel.apply _).tupled, UserAttributeLabel.unapply)

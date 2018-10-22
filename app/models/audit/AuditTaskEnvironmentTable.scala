@@ -16,8 +16,8 @@ case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, m
  */
 class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, Some("sidewalk"), "audit_task_environment") {
   def auditTaskEnvironmentId = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId = column[Int]("audit_task_id", O.NotNull)
-  def missionId = column[Int]("mission_id", O.NotNull)
+  def auditTaskId = column[Int]("audit_task_id")
+  def missionId = column[Int]("mission_id")
   def browser = column[Option[String]]("browser")
   def browserVersion = column[Option[String]]("browser_version")
   def browserWidth = column[Option[Int]]("browser_width")

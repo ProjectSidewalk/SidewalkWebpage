@@ -12,11 +12,11 @@ case class UserSurveyOptionSubmission(userSurveyOptionSubmissionId: Int, userId:
 
 class UserSurveyOptionSubmissionTable(tag: Tag) extends Table[UserSurveyOptionSubmission](tag, Some("sidewalk"), "user_survey_option_submission") {
   def userSurveyOptionSubmissionId = column[Int]("user_survey_option_submission_id", O.PrimaryKey, O.AutoInc)
-  def userId = column[String]("user_id", O.NotNull)
-  def surveyQuestionId = column[Int]("survey_question_id", O.NotNull)
+  def userId = column[String]("user_id")
+  def surveyQuestionId = column[Int]("survey_question_id")
   def surveyOptionId = column[Option[Int]]("survey_option_id")
   def timeSubmitted = column[Timestamp]("time_submitted")
-  def numMissionsCompleted = column[Int]("num_missions_completed", O.NotNull)
+  def numMissionsCompleted = column[Int]("num_missions_completed")
 
   def * = (userSurveyOptionSubmissionId, userId, surveyQuestionId, surveyOptionId, timeSubmitted, numMissionsCompleted) <> ((UserSurveyOptionSubmission.apply _).tupled, UserSurveyOptionSubmission.unapply)
 

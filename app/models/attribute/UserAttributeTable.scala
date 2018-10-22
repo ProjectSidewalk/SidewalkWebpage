@@ -25,15 +25,15 @@ case class UserAttribute(userAttributeId: Int,
 
 
 class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidewalk"), "user_attribute") {
-  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id", O.NotNull)
-  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold", O.NotNull)
-  def labelTypeId: Rep[Int] = column[Int]("label_type_id", O.NotNull)
-  def regionId: Rep[Int] = column[Int]("region_id", O.NotNull)
-  def lat: Rep[Float] = column[Float]("lat", O.NotNull)
-  def lng: Rep[Float] = column[Float]("lng", O.NotNull)
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.PrimaryKey, O.AutoInc)
+  def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id")
+  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold")
+  def labelTypeId: Rep[Int] = column[Int]("label_type_id")
+  def regionId: Rep[Int] = column[Int]("region_id")
+  def lat: Rep[Float] = column[Float]("lat")
+  def lng: Rep[Float] = column[Float]("lng")
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
-  def temporary: Rep[Boolean] = column[Boolean]("temporary", O.NotNull)
+  def temporary: Rep[Boolean] = column[Boolean]("temporary")
 
   def * : ProvenShape[UserAttribute] = (userAttributeId,
                                         userClusteringSessionId,

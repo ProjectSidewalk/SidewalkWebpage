@@ -46,19 +46,19 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
 
 class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "mission") {
   def missionId: Rep[Int] = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
-  def missionTypeId: Rep[Int] = column[Int]("mission_type_id", O.NotNull)
-  def userId: Rep[String] = column[String]("user_id", O.NotNull)
-  def missionStart: Rep[Timestamp] = column[Timestamp]("mission_start", O.NotNull)
-  def missionEnd: Rep[Timestamp] = column[Timestamp]("mission_end", O.NotNull)
-  def completed: Rep[Boolean] = column[Boolean]("completed", O.NotNull)
-  def pay: Rep[Double] = column[Double]("pay", O.NotNull)
-  def paid: Rep[Boolean] = column[Boolean]("paid", O.NotNull)
+  def missionTypeId: Rep[Int] = column[Int]("mission_type_id")
+  def userId: Rep[String] = column[String]("user_id")
+  def missionStart: Rep[Timestamp] = column[Timestamp]("mission_start")
+  def missionEnd: Rep[Timestamp] = column[Timestamp]("mission_end")
+  def completed: Rep[Boolean] = column[Boolean]("completed")
+  def pay: Rep[Double] = column[Double]("pay")
+  def paid: Rep[Boolean] = column[Boolean]("paid")
   def distanceMeters: Rep[Option[Float]] = column[Option[Float]]("distance_meters")
   def distanceProgress: Rep[Option[Float]] = column[Option[Float]]("distance_progress")
   def regionId: Rep[Option[Int]] = column[Option[Int]]("region_id")
   def labelsValidated: Rep[Option[Int]] = column[Option[Int]]("labels_validated")
   def labelsProgress: Rep[Option[Int]] = column[Option[Int]]("labels_progress")
-  def skipped: Rep[Boolean] = column[Boolean]("skipped", O.NotNull)
+  def skipped: Rep[Boolean] = column[Boolean]("skipped")
 
   def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, skipped) <> ((Mission.apply _).tupled, Mission.unapply)
 

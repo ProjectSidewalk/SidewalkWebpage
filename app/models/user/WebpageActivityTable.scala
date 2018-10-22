@@ -10,10 +10,10 @@ case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: St
 
 class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, Some("sidewalk"), "webpage_activity") {
   def webpageActivityId = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
-  def userId = column[String]("user_id", O.NotNull)
-  def ipAddress = column[String]("ip_address", O.NotNull)
-  def activity = column[String]("activity", O.NotNull)
-  def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
+  def userId = column[String]("user_id")
+  def ipAddress = column[String]("ip_address")
+  def activity = column[String]("activity")
+  def timestamp = column[java.sql.Timestamp]("timestamp")
 
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> ((WebpageActivity.apply _).tupled, WebpageActivity.unapply)
 }

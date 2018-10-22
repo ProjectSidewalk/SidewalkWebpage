@@ -16,19 +16,19 @@ case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId
 
 class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some("sidewalk"), "audit_task_comment") {
   def auditTaskCommentId = column[Int]("audit_task_comment_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId = column[Int]("audit_task_id", O.NotNull)
-  def missionId = column[Int]("mission_id", O.NotNull)
-  def edgeId = column[Int]("edge_id", O.NotNull)
-  def userId = column[String]("user_id", O.NotNull)
-  def ipAddress = column[String]("ip_address", O.NotNull)
+  def auditTaskId = column[Int]("audit_task_id")
+  def missionId = column[Int]("mission_id")
+  def edgeId = column[Int]("edge_id")
+  def userId = column[String]("user_id")
+  def ipAddress = column[String]("ip_address")
   def gsvPanoramaId = column[Option[String]]("gsv_panorama_id")
   def heading = column[Option[Double]]("heading")
   def pitch = column[Option[Double]]("pitch")
   def zoom = column[Option[Int]]("zoom")
   def lat = column[Option[Double]]("lat")
   def lng = column[Option[Double]]("lng")
-  def timestamp = column[Timestamp]("timestamp", O.NotNull)
-  def comment = column[String]("comment", O.NotNull)
+  def timestamp = column[Timestamp]("timestamp")
+  def comment = column[String]("comment")
 
   def * = (auditTaskCommentId, auditTaskId, missionId, edgeId, userId, ipAddress, gsvPanoramaId, heading, pitch, zoom, lat, lng, timestamp, comment) <>
     ((AuditTaskComment.apply _).tupled, AuditTaskComment.unapply)

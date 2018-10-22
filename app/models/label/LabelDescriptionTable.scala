@@ -7,8 +7,8 @@ case class LabelDescription(labelDescriptionId: Int, labelId: Int, description: 
 
 class LabelDescriptionTable(tag: slick.lifted.Tag) extends Table[LabelDescription](tag, Some("sidewalk"), "label_description") {
   def labelDescriptionId = column[Int]("label_description_id", O.PrimaryKey, O.AutoInc)
-  def labelId = column[Int]("label_id", O.NotNull)
-  def description = column[String]("description", O.NotNull)
+  def labelId = column[Int]("label_id")
+  def description = column[String]("description")
 
   def * = (labelDescriptionId, labelId, description) <> ((LabelDescription.apply _).tupled, LabelDescription.unapply)
 }

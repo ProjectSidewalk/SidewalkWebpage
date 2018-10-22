@@ -7,8 +7,8 @@ case class LabelTemporariness(labelTemporarinessId: Int, labelId: Int, temporary
 
 class LabelTemporarinessTable(tag: slick.lifted.Tag) extends Table[LabelTemporariness](tag, Some("sidewalk"), "label_temporariness") {
   def labelTemporarinessId = column[Int]("label_temporariness_id", O.PrimaryKey, O.AutoInc)
-  def labelId = column[Int]("label_id", O.NotNull)
-  def temporary = column[Boolean]("temporary", O.NotNull)
+  def labelId = column[Int]("label_id")
+  def temporary = column[Boolean]("temporary")
 
   def * = (labelTemporarinessId, labelId, temporary) <> ((LabelTemporariness.apply _).tupled, LabelTemporariness.unapply)
 }

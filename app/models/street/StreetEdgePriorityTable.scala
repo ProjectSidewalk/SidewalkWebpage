@@ -25,9 +25,9 @@ case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, prio
 }
 
 class StreetEdgePriorityTable(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag, Some("sidewalk"),  "street_edge_priority") {
-  def streetEdgePriorityId = column[Int]("street_edge_priority_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
-  def priority = column[Double]("priority", O.NotNull)
+  def streetEdgePriorityId = column[Int]("street_edge_priority_id", O.PrimaryKey, O.AutoInc)
+  def streetEdgeId = column[Int]("street_edge_id")
+  def priority = column[Double]("priority")
 
   def * = (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
 

@@ -10,11 +10,11 @@ case class AuditTaskIncomplete(auditTaskIncompletId: Int, auditTaskId: Int, miss
 
 class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag, Some("sidewalk"), "audit_task_incomplete") {
   def auditTaskIncompleteId = column[Int]("audit_task_incomplete_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId = column[Int]("audit_task_id", O.NotNull)
-  def missionId = column[Int]("mission_id", O.NotNull)
-  def issueDescription = column[String]("issue_description", O.NotNull)
-  def lat = column[Float]("lat", O.NotNull)
-  def lng = column[Float]("lng", O.NotNull)
+  def auditTaskId = column[Int]("audit_task_id")
+  def missionId = column[Int]("mission_id")
+  def issueDescription = column[String]("issue_description")
+  def lat = column[Float]("lat")
+  def lng = column[Float]("lng")
 
   def * = (auditTaskIncompleteId, auditTaskId, missionId, issueDescription, lat, lng) <> ((AuditTaskIncomplete.apply _).tupled, AuditTaskIncomplete.unapply)
 

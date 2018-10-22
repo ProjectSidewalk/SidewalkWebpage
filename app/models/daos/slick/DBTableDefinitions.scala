@@ -26,8 +26,8 @@ object DBTableDefinitions {
   case class DBUserLoginInfo (userID: String, loginInfoId: Long)
 
   class UserLoginInfoTable(tag: Tag) extends Table[DBUserLoginInfo](tag, Some("sidewalk"), "user_login_info") {
-    def userID = column[String]("user_id", O.NotNull)
-    def loginInfoId = column[Long]("login_info_id", O.NotNull)
+    def userID = column[String]("user_id")
+    def loginInfoId = column[Long]("login_info_id")
     def * = (userID, loginInfoId) <> (DBUserLoginInfo.tupled, DBUserLoginInfo.unapply)
   }
 

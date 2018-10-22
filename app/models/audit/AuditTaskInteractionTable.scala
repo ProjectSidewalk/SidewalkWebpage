@@ -38,9 +38,9 @@ case class UserAuditTime(userId: String, role: String, duration: Option[Float])
 
 class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
   def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId = column[Int]("audit_task_id", O.NotNull)
-  def missionId = column[Int]("mission_id", O.NotNull)
-  def action = column[String]("action", O.NotNull)
+  def auditTaskId = column[Int]("audit_task_id")
+  def missionId = column[Int]("mission_id")
+  def action = column[String]("action")
   def gsvPanoramaId = column[Option[String]]("gsv_panorama_id")
   def lat = column[Option[Float]]("lat")
   def lng = column[Option[Float]]("lng")
@@ -49,7 +49,7 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
   def zoom = column[Option[Int]]("zoom")
   def note = column[Option[String]]("note")
   def temporaryLabelId = column[Option[Int]]("temporary_label_id")
-  def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
+  def timestamp = column[java.sql.Timestamp]("timestamp")
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)

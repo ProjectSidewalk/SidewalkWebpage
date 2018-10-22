@@ -53,11 +53,11 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
 class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
   def amtAssignmentId = column[Option[Int]]("amt_assignment_id")
-  def userId = column[String]("user_id", O.NotNull)
-  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
-  def taskStart = column[Timestamp]("task_start", O.NotNull)
+  def userId = column[String]("user_id")
+  def streetEdgeId = column[Int]("street_edge_id")
+  def taskStart = column[Timestamp]("task_start")
   def taskEnd = column[Option[Timestamp]]("task_end")
-  def completed = column[Boolean]("completed", O.NotNull)
+  def completed = column[Boolean]("completed")
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
