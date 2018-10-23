@@ -11,9 +11,10 @@ import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-
 import slick.jdbc.{GetResult, StaticQuery => Q}
 import slick.lifted.ForeignKeyQuery
+
+import slick.driver.JdbcProfile
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: Option[String], description: String, geom: Polygon, deleted: Boolean)
 case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
@@ -39,7 +40,7 @@ object RegionTable {
   import MyPostgresDriver.api._
 
   implicit val regionConverter = GetResult[Region](r => {
-    Region(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)
+    Region(r.nextInt, r.nextInt, r.nextStringOption, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)
   })
 
   implicit val namedRegionConverter = GetResult[NamedRegion](r => {
@@ -51,7 +52,8 @@ object RegionTable {
     StreetCompletion(r.nextInt, r.nextString, r.nextInt, r.nextInt, r.nextDouble)
   })
 
-  val db = play.api.db.slick.DB
+//  val db = play.api.db.slick.DB
+  val db = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val regions = TableQuery[RegionTable]
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
@@ -62,7 +64,7 @@ object RegionTable {
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
   val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
   val namedRegions = for {
-    (_neighborhoods, _regionProperties) <- neighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
+    (_neighborhoods, _regionProperties) <- neighborhoods.joinLeft(regionProperties).on(_.regionId === _.regionId)
     if _regionProperties.key === "Neighborhood Name"
   } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
 
@@ -139,7 +141,7 @@ object RegionTable {
     val highestPriorityRegions: List[Int] =
       StreetEdgeRegionTable.streetEdgeRegionTable
       .filter(_.regionId inSet possibleRegionIds)
-      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
+      .join(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
       .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
       .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
       .sortBy(_._2.desc).take(5).map(_._1).list // take the 5 with highest average priority, select region_id
@@ -166,7 +168,7 @@ object RegionTable {
   def selectANamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
     val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
     val _regions = for {
-      (_neighborhoods, _properties) <- filteredNeighborhoods.leftJoin(regionProperties).on(_.regionId === _.regionId)
+      (_neighborhoods, _properties) <- filteredNeighborhoods.joinLeft(regionProperties).on(_.regionId === _.regionId)
       if _properties.key === "Neighborhood Name"
     } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
     _regions.list.headOption.map(x => NamedRegion.tupled(x))
@@ -180,7 +182,7 @@ object RegionTable {
     */
   def selectTheCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
     val currentRegions = for {
-      (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).join(userCurrentRegions).on(_.regionId === _.regionId)
       if ucr.userId === userId.toString
     } yield r
     currentRegions.list.headOption
@@ -194,12 +196,12 @@ object RegionTable {
     */
   def selectTheCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
       val currentRegions = for {
-        (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+        (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).join(userCurrentRegions).on(_.regionId === _.regionId)
         if ucr.userId === userId.toString
       } yield r
 
       val _regions = for {
-        (_regions, _properties) <- currentRegions.leftJoin(regionProperties).on(_.regionId === _.regionId)
+        (_regions, _properties) <- currentRegions.joinLeft(regionProperties).on(_.regionId === _.regionId)
         if _properties.key === "Neighborhood Name"
       } yield (_regions.regionId, _properties.value.?, _regions.geom)
       _regions.list.headOption.map(x => NamedRegion.tupled(x))
@@ -280,13 +282,13 @@ object RegionTable {
   def selectNamedRegionsOfAType(regionType: String): List[NamedRegion] = db.withSession { implicit session =>
 
     val _regions = for {
-      (_regions, _regionTypes) <- regionsWithoutDeleted.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId)
+      (_regions, _regionTypes) <- regionsWithoutDeleted.join(regionTypes).on(_.regionTypeId === _.regionTypeId)
       if _regionTypes.regionType === regionType
     } yield _regions
 
 
     val _namedRegions = for {
-      (_regions, _regionProperties) <- _regions.leftJoin(regionProperties).on(_.regionId === _.regionId)
+      (_regions, _regionProperties) <- _regions.joinLeft(regionProperties).on(_.regionId === _.regionId)
       if _regionProperties.key === "Neighborhood Name"
     } yield (_regions.regionId, _regionProperties.value.?, _regions.geom)
 

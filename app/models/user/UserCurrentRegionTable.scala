@@ -80,7 +80,7 @@ object UserCurrentRegionTable {
   def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
     // Get rid of deleted regions
     val ucr = for {
-      (ucr, r) <- userCurrentRegions.innerJoin(neighborhoods).on(_.regionId === _.regionId)
+      (ucr, r) <- userCurrentRegions.join(neighborhoods).on(_.regionId === _.regionId)
     } yield ucr
 
     ucr.filter(_.userId === userId.toString).list.map(_.regionId).headOption
@@ -94,7 +94,7 @@ object UserCurrentRegionTable {
     */
   def isAssigned(userId: UUID): Boolean = db.withSession { implicit session =>
     val _userCurrentRegions = for {
-      (_regions, _userCurrentRegions) <- neighborhoods.innerJoin(userCurrentRegions).on(_.regionId === _.regionId)
+      (_regions, _userCurrentRegions) <- neighborhoods.join(userCurrentRegions).on(_.regionId === _.regionId)
       if _userCurrentRegions.userId === userId.toString
     } yield _userCurrentRegions
 

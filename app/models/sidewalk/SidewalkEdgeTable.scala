@@ -88,7 +88,7 @@ object SidewalkEdgeTable {
 //    import slick.jdbc.{StaticQuery => Q}
 //    import Q.interpolation
 //
-//    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
+//    val columns = MTable.defautTables(None, None, None, None).list.filter(_.name.name == "USER")
 //    val user = sql"""SELECT * FROM sidewalk_user WHERE "id" = $id""".as[List[String]].headOption.map(columns zip _ toMap)
 //    user
 //  }

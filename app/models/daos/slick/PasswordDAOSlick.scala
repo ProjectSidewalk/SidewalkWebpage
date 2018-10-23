@@ -6,7 +6,7 @@ import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
 import play.api.db.slick._
 import scala.concurrent.Future
 import models.daos.slick.DBTableDefinitions._
-import slick.driver.PostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
 
 
 /**

@@ -104,7 +104,7 @@ object StreetEdgeTable {
   } yield _tasks
 
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
-  val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.innerJoin(neighborhoods).on(_.regionId === _.regionId) } yield se
+  val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.join(neighborhoods).on(_.regionId === _.regionId) } yield se
 
 
   /**
@@ -210,10 +210,10 @@ object StreetEdgeTable {
     // join the street edges and audit tasks
     // TODO figure out how to do this w/out doing the join twice
     val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.join(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
     val audits = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.join(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _auditTasks
 
     // get distances of street edges associated with their edgeId
@@ -276,7 +276,7 @@ object StreetEdgeTable {
     }
 
     val edges = for {
-      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
+      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.join(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
     val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
@@ -366,7 +366,7 @@ object StreetEdgeTable {
   def selectAllStreetsAuditedByAUserQuery(userId: UUID) = db.withSession { implicit session =>
 
     val auditedStreets = for {
-      (_edges, _tasks) <- streetEdgesWithoutDeleted.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      (_edges, _tasks) <- streetEdgesWithoutDeleted.join(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
       if _tasks.userId === userId.toString
     } yield _edges
     auditedStreets.groupBy(x => x).map(_._1) // does a select distinct
@@ -400,7 +400,7 @@ object StreetEdgeTable {
     } yield _edges
 
     val auditedStreetsInARegion = for {
-      (_edges, _tasks) <- streetsInRegion.innerJoin(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
+      (_edges, _tasks) <- streetsInRegion.join(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
     } yield _edges
 
     // select distinct and sum the lengths of the streets

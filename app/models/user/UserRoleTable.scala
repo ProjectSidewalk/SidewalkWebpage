@@ -37,7 +37,7 @@ object UserRoleTable {
     */
   def getRole(userId: UUID): String = db.withSession { implicit session =>
     val _roles = for {
-      (_userRoles, _roles) <- userRoles.innerJoin(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
+      (_userRoles, _roles) <- userRoles.join(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
     } yield _roles
     try {
       _roles.list.map(_.role).head

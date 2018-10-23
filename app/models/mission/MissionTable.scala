@@ -205,7 +205,7 @@ object MissionTable {
     val userMissions = missions.filter(_.userId === userId.toString)
 
     val missionsWithRegionName = for {
-      (_m, _rp) <- userMissions.leftJoin(RegionPropertyTable.neighborhoodNames).on(_.regionId === _.regionId)
+      (_m, _rp) <- userMissions.joinLeft(RegionPropertyTable.neighborhoodNames).on(_.regionId === _.regionId)
     } yield (_m.missionId, _m.missionTypeId, _m.regionId, _rp.value.?, _m.distanceMeters, _m.labelsValidated)
 
     val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>

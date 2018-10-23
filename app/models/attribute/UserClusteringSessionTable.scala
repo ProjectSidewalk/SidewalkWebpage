@@ -89,12 +89,12 @@ object UserClusteringSessionTable {
 
     // Left joins to get severity for any labels that have them.
     val labelsWithSeverity = for {
-      (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
+      (_lab, _severity) <- labels.joinLeft(LabelTable.severities).on(_._2 === _.labelId)
     } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
 
     // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
     val labelsWithTemporariness = for {
-      (_lab, _temp) <- labelsWithSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._2 === _.labelId)
+      (_lab, _temp) <- labelsWithSeverity.joinLeft(LabelTemporarinessTable.labelTemporarinesses).on(_._2 === _.labelId)
     } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporary.?.getOrElse(false))
 
     labelsWithTemporariness.list.map(LabelToCluster.tupled)

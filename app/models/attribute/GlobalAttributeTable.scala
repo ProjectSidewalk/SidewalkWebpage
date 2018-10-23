@@ -7,10 +7,12 @@ package models.attribute
 import models.label.{LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable}
 //import models.utils.MyPostgresDriver.api._
-import slick.driver.PostgresDriver.api._
+//import slick.driver.PostgresDriver.api._
 import play.api.Play.current
 import play.api.db.slick
 import slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
+import slick.driver.JdbcProfile
+import play.api.db.slick.DatabaseConfigProvider
 
 import scala.language.postfixOps
 import slick.lifted.Rep
@@ -60,7 +62,8 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
   * Data access object for the GlobalAttributeTable table
   */
 object GlobalAttributeTable {
-  val db: slick.Database = play.api.db.slick.DB
+//  val db: slick.Database = play.api.db.slick.DB
+  val db = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val globalAttributes: TableQuery[GlobalAttributeTable] = TableQuery[GlobalAttributeTable]
 
   def getAllGlobalAttributes: List[GlobalAttribute] = db.withTransaction { implicit session =>

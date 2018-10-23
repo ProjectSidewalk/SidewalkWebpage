@@ -219,7 +219,7 @@ object StreetEdgePriorityTable {
     // NOTE We are calling the getQualityOfUsers function below, which does the heavy lifting.
     val completions = AuditTaskTable.completedTasks
       .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
-      .innerJoin(getQualityOfUsers).on(_._2 === _._1)  // join on user_id
+      .join(getQualityOfUsers).on(_._2 === _._1)  // join on user_id
       .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
 
     /********** Compute Audit Counts **********/
@@ -231,9 +231,9 @@ object StreetEdgePriorityTable {
     // Join the good and bad user audit counts with street_edge table, filling in any counts not present as 0. We now
     // have a table with three columns: street_edge_id, good_user_audit_count, bad_user_audit_count.
     val allAuditCounts =
-      StreetEdgeTable.streetEdgesWithoutDeleted.leftJoin(goodUserAuditCounts).on(_.streetEdgeId === _._1).map {
+      StreetEdgeTable.streetEdgesWithoutDeleted.joinLeft(goodUserAuditCounts).on(_.streetEdgeId === _._1).map {
         case (_edge, _goodCount) => (_edge.streetEdgeId, _goodCount._2.ifNull(0.asColumnOf[Int]))
-      }.leftJoin(badUserAuditCounts).on(_._1 === _._1).map {
+      }.joinLeft(badUserAuditCounts).on(_._1 === _._1).map {
         case (_goodCount, _badCount) => (_goodCount._1, _goodCount._2, _badCount._2.ifNull(0.asColumnOf[Int]))
       }
 
@@ -279,7 +279,7 @@ object StreetEdgePriorityTable {
     // Finally, determine whether each user is above or below the label per meter threshold.
     // SELECT user_id, is_good_user (where is_good_user = label_count/distance_audited > threshold)
     auditedDists
-      .leftJoin(labelCounts).on(_._1 === _._1)
+      .joinLeft(labelCounts).on(_._1 === _._1)
       .map { case (d,c) => (d._1, c._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / d._2 > LABEL_PER_METER_THRESHOLD) }
   }
 

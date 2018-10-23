@@ -126,7 +126,7 @@ object AuditTaskTable {
     val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
 
     // Gets completion count of 0 for unaudted streets w/ a left join, then checks if completion count is > 0.
-    streetEdgesWithoutDeleted.leftJoin(completionCnt).on(_.streetEdgeId === _._1).map {
+    streetEdgesWithoutDeleted.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map {
       case (_edge, _cnt) => (_edge.streetEdgeId, _cnt._2.ifNull(0.asColumnOf[Int]) > 0)
     }
   }
@@ -284,17 +284,17 @@ object AuditTaskTable {
     */
   def selectTasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
     val userTasks = for {
-      (_users, _tasks) <- users.innerJoin(auditTasks).on(_.userId === _.userId)
+      (_users, _tasks) <- users.join(auditTasks).on(_.userId === _.userId)
       if _users.userId === userId.toString
     } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
 
     val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.leftJoin(labels).on(_._3 === _.auditTaskId)
+      (_userTasks, _labels) <- userTasks.joinLeft(labels).on(_._3 === _.auditTaskId)
       if _labels.deleted === false
     } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val tasksWithLabels = for {
-      (_labelTypes, _userTaskLabels) <- labelTypes.innerJoin(userTaskLabels).on(_.labelTypeId === _._9)
+      (_labelTypes, _userTaskLabels) <- labelTypes.join(userTaskLabels).on(_.labelTypeId === _._9)
     } yield (_userTaskLabels._1, _userTaskLabels._2, _userTaskLabels._3, _userTaskLabels._4, _userTaskLabels._5, _userTaskLabels._6, _userTaskLabels._7, _userTaskLabels._8, _labelTypes.labelType.?)
 
     tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
@@ -339,7 +339,7 @@ object AuditTaskTable {
     */
   def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
     val _streetEdges = for {
-      (_tasks, _edges) <- completedTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
+      (_tasks, _edges) <- completedTasks.join(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
     } yield _edges
 
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edge
@@ -353,7 +353,7 @@ object AuditTaskTable {
    */
   def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
     val _streetEdges = for {
-      (_tasks, _edges) <- completedTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
+      (_tasks, _edges) <- completedTasks.join(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
       if _tasks.userId === userId.toString
     } yield _edges
 
@@ -483,7 +483,7 @@ object AuditTaskTable {
     val userCompletedStreets = completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map{ x => (x._1, true) }
 
     val tasks = for {
-      (ser, ucs) <- edgesInRegion.leftJoin(userCompletedStreets).on(_.streetEdgeId === _._1)
+      (ser, ucs) <- edgesInRegion.joinLeft(userCompletedStreets).on(_.streetEdgeId === _._1)
       se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
