@@ -26,6 +26,7 @@ trait MyPostgresDriver extends ExPostgresDriver
     with JsonImplicits
     with NetImplicits
     with LTreeImplicits
+    with PostGISPlainImplicits
     with RangeImplicits
     with HStoreImplicits
     with SearchImplicits
