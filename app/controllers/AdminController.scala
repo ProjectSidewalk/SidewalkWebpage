@@ -1,6 +1,7 @@
 package controllers
 
 import java.util.UUID
+
 import javax.inject.Inject
 import java.net.URLDecoder
 
@@ -14,7 +15,7 @@ import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel, UserAuditTime}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
-import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
+import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
@@ -27,8 +28,8 @@ import play.extras.geojson
 import play.api.mvc.BodyParsers
 import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
@@ -85,20 +86,21 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
-      val features: List[JsObject] = labels.map { label =>
-        val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-        val properties = Json.obj(
-          "audit_task_id" -> label.auditTaskId,
-          "label_id" -> label.labelId,
-          "gsv_panorama_id" -> label.gsvPanoramaId,
-          "label_type" -> label.labelType,
-          "severity" -> label.severity
-        )
-        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+      val labelFutures: Future[Seq[LabelLocationWithSeverity]] = LabelTable.selectLocationsAndSeveritiesOfLabels
+      val features: Future[Seq[JsObject]] = labelFutures.map { labels =>
+        labels.map { label =>
+          val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+          val properties = Json.obj(
+            "audit_task_id" -> label.auditTaskId,
+            "label_id" -> label.labelId,
+            "gsv_panorama_id" -> label.gsvPanoramaId,
+            "label_type" -> label.labelType,
+            "severity" -> label.severity
+          )
+          Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+        }
       }
-      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Future.successful(Ok(featureCollection))
+      features.map { fs => Ok(Json.obj("type" -> "FeatureCollection", "features" -> fs))}
     } else {
       Future.successful(Redirect("/"))
     }
