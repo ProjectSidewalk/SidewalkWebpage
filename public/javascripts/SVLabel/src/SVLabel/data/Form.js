@@ -94,7 +94,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
-                temporary_problem: label.getProperty('temporaryProblem'),
+                temporary_label: label.getProperty('temporaryLabel'),
                 tag_ids: label.getProperty('tagIds'),
                 description: label.getProperty('description'),
                 time_created: timeCreated

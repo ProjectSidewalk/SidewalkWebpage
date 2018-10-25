@@ -6,7 +6,7 @@ package models.attribute
 
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTypeTable, ProblemTemporarinessTable}
+import models.label.{LabelTable, LabelTypeTable, LabelTemporarinessTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -94,8 +94,8 @@ object UserClusteringSessionTable {
 
     // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
     val labelsWithTemporariness = for {
-      (_lab, _temp) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
+      (_lab, _temp) <- labelsWithSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._2 === _.labelId)
+    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporary.?.getOrElse(false))
 
     labelsWithTemporariness.list.map(LabelToCluster.tupled)
   }
