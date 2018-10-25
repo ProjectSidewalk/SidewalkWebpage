@@ -13,6 +13,11 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import slick.lifted.ForeignKeyQuery
 import slick.jdbc.GetResult
 

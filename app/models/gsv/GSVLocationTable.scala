@@ -3,6 +3,11 @@ package models.gsv
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class GSVLocation(gsvPanoramaId: String, lat: Double, lng: Double, originalLat: Double, originalLng: Double,
                        region: String, country: String, description: String,
                        zoomLevels: Int, streetRange: Option[Int], elevationWgs84M: Double, elevationEgm96M: Double)

@@ -6,6 +6,11 @@ import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: java.sql.Timestamp)
 
 class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, Some("sidewalk"), "webpage_activity") {

@@ -16,6 +16,11 @@ import models.utils.MyPostgresDriver.api._
 import org.postgresql.util.PSQLException
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])

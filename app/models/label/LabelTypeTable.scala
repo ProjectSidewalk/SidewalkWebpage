@@ -3,6 +3,11 @@ package models.label
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
 /**

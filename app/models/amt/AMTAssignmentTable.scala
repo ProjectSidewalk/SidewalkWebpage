@@ -5,6 +5,11 @@ import java.sql.Timestamp
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
                          assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
                          workerId: String, confirmationCode: Option[String], completed: Boolean)

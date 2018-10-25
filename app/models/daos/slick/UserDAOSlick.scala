@@ -11,6 +11,10 @@ import java.util.UUID
 import play.Logger
 import models.daos.UserDAO
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+
 class UserDAOSlick extends UserDAO {
   import play.api.Play.current
 

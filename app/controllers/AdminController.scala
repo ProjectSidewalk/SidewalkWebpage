@@ -27,6 +27,7 @@ import play.extras.geojson
 import play.api.mvc.BodyParsers
 import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
@@ -110,18 +111,19 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAllAttributes = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
-      val features: List[JsObject] = attributes.map { attribute =>
-        val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
-        val properties = Json.obj(
-          "attribute_id" -> attribute.globalAttributeId,
-          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId),
-          "severity" -> attribute.severity
-        )
-        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+      val attributesFuture: Future[Seq[GlobalAttribute]] = GlobalAttributeTable.getAllGlobalAttributes
+      val features: Future[Seq[JsObject]] = attributesFuture.map { attributes =>
+        attributes.map { attribute =>
+          val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
+          val properties = Json.obj(
+            "attribute_id" -> attribute.globalAttributeId,
+            "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId),
+            "severity" -> attribute.severity
+          )
+          Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+        }
       }
-      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Future.successful(Ok(featureCollection))
+      features.map { f => Ok(Json.obj("type" -> "FeatureCollection", "features" -> f)) }
     } else {
       Future.successful(Redirect("/"))
     }

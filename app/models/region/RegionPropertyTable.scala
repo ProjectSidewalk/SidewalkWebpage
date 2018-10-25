@@ -2,6 +2,11 @@ package models.region
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class RegionProperty(regionPropertyId: Int, regionId: Int, key: String, value: String)
 
 class RegionPropertyTable(tag: Tag) extends Table[RegionProperty](tag, Some("sidewalk"), "region_property") {

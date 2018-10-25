@@ -3,6 +3,11 @@ package models.survey
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class SurveyCategoryOption(surveyCategoryOptionId: Int, surveyCategoryOptionText: String)
 
 class SurveyCategoryOptionTable(tag: Tag) extends Table[SurveyCategoryOption](tag, Some("sidewalk"), "survey_category_option") {

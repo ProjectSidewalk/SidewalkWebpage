@@ -5,6 +5,11 @@ import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import slick.lifted.ForeignKeyQuery
 
 case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int,

@@ -9,6 +9,10 @@ import models.user.{RoleTable, User, UserRoleTable}
 import models.audit._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+
 import scala.collection.mutable
 import scala.concurrent.Future
 import models.utils.MyPostgresDriver.api._

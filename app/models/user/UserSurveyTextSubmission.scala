@@ -6,6 +6,11 @@ import java.sql.Timestamp
 import models.survey._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import slick.lifted.ForeignKeyQuery
 
 case class UserSurveyTextSubmission(userSurveyTextSubmissionId: Int, userId: String, surveyQuestionId: Int, surveyTextSubmission: Option[String], timeSubmitted: Timestamp, numMissionsCompleted: Int)

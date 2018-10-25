@@ -12,8 +12,13 @@ import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
-import slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.jdbc.{GetResult}
 import scala.language.postfixOps
 
 case class LabelToCluster(userId: String,

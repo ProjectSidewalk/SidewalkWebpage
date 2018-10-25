@@ -7,6 +7,11 @@ import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.libs.json._
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import slick.lifted.ForeignKeyQuery
 import slick.jdbc.{StaticQuery => Q}
 import slick.jdbc.GetResult

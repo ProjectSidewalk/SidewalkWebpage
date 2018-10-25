@@ -9,6 +9,11 @@ import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import slick.jdbc.{GetResult, StaticQuery => Q}
 import slick.lifted.ForeignKeyQuery
 

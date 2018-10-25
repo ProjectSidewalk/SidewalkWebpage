@@ -3,6 +3,11 @@ package models.label
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class LabelTemporariness(labelTemporarinessId: Int, labelId: Int, temporary: Boolean)
 
 class LabelTemporarinessTable(tag: slick.lifted.Tag) extends Table[LabelTemporariness](tag, Some("sidewalk"), "label_temporariness") {

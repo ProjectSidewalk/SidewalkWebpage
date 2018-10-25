@@ -3,13 +3,17 @@ package models.region
 import java.util.UUID
 
 import math._
-import models.street.{StreetEdgeRegionTable, StreetEdgeTable, StreetEdge}
+import models.street.{StreetEdge, StreetEdgeRegionTable, StreetEdgeTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
 
-import slick.jdbc.{GetResult, StaticQuery => Q}
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
+import slick.jdbc.GetResult
 import slick.lifted.ForeignKeyQuery
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
@@ -42,7 +46,8 @@ object RegionCompletionTable {
     StreetCompletion(r.nextInt, r.nextString, r.nextInt, r.nextInt, r.nextDouble)
   })
 
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val regionCompletions = TableQuery[RegionCompletionTable]
   val regions = TableQuery[RegionTable]
   val regionTypes = TableQuery[RegionTypeTable]
@@ -61,7 +66,7 @@ object RegionCompletionTable {
     * Returns a list of all neighborhoods with names
     * @return
     */
-  def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = db.withSession { implicit session =>
+  def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = {
     val namedRegionCompletions = for {
       (_neighborhoodCompletions, _regionProperties) <- regionCompletions.joinLeft(regionProperties).on(_.regionId === _.regionId)
       if _regionProperties.key === "Neighborhood Name"
@@ -81,8 +86,8 @@ object RegionCompletionTable {
     * @param streetEdgeId street edge id
     * @return
     */
-  def updateAuditedDistance(streetEdgeId: Int) = db.withTransaction { implicit session =>
-
+  def updateAuditedDistance(streetEdgeId: Int) = {
+// TODO TRANSACTIONNNNNNNNNNNNNN
     val distToAdd: Float = StreetEdgeTable.getStreetEdgeDistance(streetEdgeId)
     val regionIds: List[Int] = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list
 
@@ -109,24 +114,29 @@ object RegionCompletionTable {
     }
   }
 
-  def initializeRegionCompletionTable() = db.withTransaction { implicit session =>
+  def initializeRegionCompletionTable() = {
+    // TODO TRANSACTIONNNNNNNNNNNNNN
 
-    if (regionCompletions.length.run == 0) {
+    val nRegionCompletionsFuture: Future[Int] = db.run(regionCompletions.length.result)
+    nRegionCompletionsFuture.map { nRegionCompletions => // TODO flatmap???
 
-      val neighborhoods = RegionTable.selectAllNamedNeighborhoods
-      for (neighborhood <- neighborhoods) yield {
+      if (nRegionCompletions == 0) {
 
-        // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
-        // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
-        if (StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId)) {
-          val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
+        val neighborhoods = RegionTable.selectAllNamedNeighborhoods
+        for (neighborhood <- neighborhoods) yield {
 
-          regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
-        } else {
-          val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
-          val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
+          // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+          // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
+          if (StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId)) {
+            val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
 
-          regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
+            regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
+          } else {
+            val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
+            val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
+
+            regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
+          }
         }
       }
     }

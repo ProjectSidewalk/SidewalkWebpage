@@ -5,6 +5,11 @@ import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import java.util.UUID
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 import scala.util.control.NonFatal
 
 case class UserRole(userRoleId: Int, userId: String, roleId: Int)

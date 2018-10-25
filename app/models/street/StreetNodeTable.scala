@@ -4,6 +4,11 @@ import com.vividsolutions.jts.geom.Point
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
+
 case class StreetNode(streetNodeId: Int, geom: Point, lat: Double, lng: Double)
 
 class StreetNodeTable(tag: Tag) extends Table[StreetNode](tag, Some("sidewalk"),  "street_node") {

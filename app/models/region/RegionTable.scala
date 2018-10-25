@@ -3,17 +3,16 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
+import models.attribute.GlobalAttributeTable.dbConfig
 import models.audit.AuditTaskTable
 
 import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
-import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-import slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.jdbc.GetResult
 import slick.lifted.ForeignKeyQuery
-
 import slick.driver.JdbcProfile
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: Option[String], description: String, geom: Polygon, deleted: Boolean)
@@ -37,7 +36,7 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
  * Data access object for the sidewalk_edge table
  */
 object RegionTable {
-  import MyPostgresDriver.api._
+  import models.utils.MyPostgresDriver.api._
 
   implicit val regionConverter = GetResult[Region](r => {
     Region(r.nextInt, r.nextInt, r.nextStringOption, r.nextString, r.nextGeometry[Polygon], r.nextBoolean)
@@ -53,7 +52,8 @@ object RegionTable {
   })
 
 //  val db = play.api.db.slick.DB
-  val db = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val regions = TableQuery[RegionTable]
   val regionTypes = TableQuery[RegionTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
