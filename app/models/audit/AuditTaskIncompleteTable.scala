@@ -9,8 +9,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
-
 case class AuditTaskIncomplete(auditTaskIncompletId: Int, auditTaskId: Int, missionId: Int, issueDescription: String, lat: Float, lng: Float)
 
 class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag, Some("sidewalk"), "audit_task_incomplete") {
@@ -23,11 +21,9 @@ class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag,
 
   def * = (auditTaskIncompleteId, auditTaskId, missionId, issueDescription, lat, lng) <> ((AuditTaskIncomplete.apply _).tupled, AuditTaskIncomplete.unapply)
 
-  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-    foreignKey("audit_task_incomplete_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+  def auditTask = foreignKey("audit_task_incomplete_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("audit_task_incomplete_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+  def mission = foreignKey("audit_task_incomplete_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 /**

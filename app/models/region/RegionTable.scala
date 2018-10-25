@@ -12,7 +12,6 @@ import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import slick.jdbc.GetResult
-import slick.lifted.ForeignKeyQuery
 import slick.driver.JdbcProfile
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: Option[String], description: String, geom: Polygon, deleted: Boolean)
@@ -28,8 +27,7 @@ class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region
 
   def * = (regionId, regionTypeId, dataSource, description, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
 
-  def regionType: ForeignKeyQuery[RegionTypeTable, RegionType] =
-    foreignKey("region_region_type_id_fkey", regionTypeId, TableQuery[RegionTypeTable])(_.regionTypeId)
+  def regionType = foreignKey("region_region_type_id_fkey", regionTypeId, TableQuery[RegionTypeTable])(_.regionTypeId)
 }
 
 /**

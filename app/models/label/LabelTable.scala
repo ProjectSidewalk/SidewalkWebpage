@@ -20,7 +20,6 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
 import slick.jdbc.{GetResult, StaticQuery => Q}
-import slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int,
                  auditTaskId: Int,
@@ -70,14 +69,11 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
     panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated) <> ((Label.apply _).tupled, Label.unapply)
 
-  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-    foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+  def auditTask = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+  def mission = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 
-  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-    foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
+  def labelType = foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
 }
 
 /**

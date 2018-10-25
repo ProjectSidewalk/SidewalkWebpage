@@ -10,8 +10,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
-
 case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int,
                       heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int,
                       alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], geom: Option[Point])
@@ -40,8 +38,7 @@ class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some
   def * = (labelPointId, labelId, svImageX, svImageY, canvasX, canvasY, heading, pitch, zoom,
     canvasHeight, canvasWidth, alphaX, alphaY, lat, lng, geom) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
 
-  def label: ForeignKeyQuery[LabelTable, Label] =
-    foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+  def label = foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
 
 }
 

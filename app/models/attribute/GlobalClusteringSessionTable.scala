@@ -14,7 +14,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.{ForeignKeyQuery, ProvenShape}
+import slick.lifted.ProvenShape
 import scala.language.postfixOps
 
 case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: java.sql.Timestamp)
@@ -28,8 +28,7 @@ class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSessi
   def * : ProvenShape[GlobalClusteringSession] = (globalClusteringSessionId, regionId, timeCreated) <>
     ((GlobalClusteringSession.apply _).tupled, GlobalClusteringSession.unapply)
 
-  def region: ForeignKeyQuery[RegionTable, Region] =
-    foreignKey("global_clustering_session_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
+  def region = foreignKey("global_clustering_session_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
 }
 
 /**

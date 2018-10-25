@@ -13,7 +13,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.{ForeignKeyQuery, ProvenShape}
+import slick.lifted.ProvenShape
 import scala.language.postfixOps
 
 case class GlobalAttributeUserAttribute(globalAttributeUserAttributeId: Int, globalAttributeId: Int, userAttributeId: Int)
@@ -27,11 +27,9 @@ class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeU
   def * : ProvenShape[GlobalAttributeUserAttribute] = (globalAttributeUserAttributeId, globalAttributeId, userAttributeId) <>
     ((GlobalAttributeUserAttribute.apply _).tupled, GlobalAttributeUserAttribute.unapply)
 
-  def globalAttribute: ForeignKeyQuery[GlobalAttributeTable, GlobalAttribute] =
-    foreignKey("global_attribute_user_attribute_global_attribute_id_fkey", globalAttributeId, TableQuery[GlobalAttributeTable])(_.globalAttributeId)
+  def globalAttribute = foreignKey("global_attribute_user_attribute_global_attribute_id_fkey", globalAttributeId, TableQuery[GlobalAttributeTable])(_.globalAttributeId)
 
-  def userAttribute: ForeignKeyQuery[UserAttributeTable, UserAttribute] =
-    foreignKey("global_attribute_user_attribute_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTable])(_.userAttributeId)
+  def userAttribute = foreignKey("global_attribute_user_attribute_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTable])(_.userAttributeId)
 }
 
 /**

@@ -17,7 +17,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
+import slick.lifted.{ProvenShape, Tag}
 import slick.jdbc.{GetResult}
 import scala.language.postfixOps
 
@@ -57,8 +57,7 @@ class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](
   def * : ProvenShape[UserClusteringSession] = (userClusteringSessionId, userId, timeCreated) <>
     ((UserClusteringSession.apply _).tupled, UserClusteringSession.unapply)
 
-  def user: ForeignKeyQuery[UserTable, DBUser] =
-    foreignKey("user_clustering_session_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+  def user = foreignKey("user_clustering_session_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
 /**

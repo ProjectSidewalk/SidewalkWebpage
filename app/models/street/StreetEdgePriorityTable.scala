@@ -12,7 +12,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
 import slick.jdbc.{StaticQuery => Q}
 import slick.jdbc.GetResult
 import scala.math.exp
@@ -36,8 +35,7 @@ class StreetEdgePriorityTable(tag: slick.lifted.Tag) extends Table[StreetEdgePri
 
   def * = (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
 
-  def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
-    foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
+  def streetEdge = foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
 }
 
 object StreetEdgePriorityTable {

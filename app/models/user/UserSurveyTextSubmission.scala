@@ -11,8 +11,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
-
 case class UserSurveyTextSubmission(userSurveyTextSubmissionId: Int, userId: String, surveyQuestionId: Int, surveyTextSubmission: Option[String], timeSubmitted: Timestamp, numMissionsCompleted: Int)
 
 class UserSurveyTextSubmissionTable(tag: Tag) extends Table[UserSurveyTextSubmission](tag, Some("sidewalk"), "user_survey_text_submission") {
@@ -25,10 +23,8 @@ class UserSurveyTextSubmissionTable(tag: Tag) extends Table[UserSurveyTextSubmis
 
   def * = (userSurveyTextSubmissionId, userId, surveyQuestionId, surveyTextSubmission, timeSubmitted, numMissionsCompleted) <> ((UserSurveyTextSubmission.apply _).tupled, UserSurveyTextSubmission.unapply)
 
-  def user: ForeignKeyQuery[UserTable, DBUser] =
-    foreignKey("user_survey_text_submission_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
-  def survey_question: ForeignKeyQuery[SurveyQuestionTable, SurveyQuestion] =
-    foreignKey("user_survey_text_submission_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTable])(_.surveyQuestionId)
+  def user = foreignKey("user_survey_text_submission_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+  def survey_question = foreignKey("user_survey_text_submission_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTable])(_.surveyQuestionId)
 }
 
 object UserSurveyTextSubmissionTable{

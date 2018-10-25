@@ -19,7 +19,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
 import slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
@@ -66,11 +65,9 @@ class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
-  def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
-    foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
+  def streetEdge = foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
 
-  def user: ForeignKeyQuery[UserTable, DBUser] =
-    foreignKey("audit_task_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+  def user = foreignKey("audit_task_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
 

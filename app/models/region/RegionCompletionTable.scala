@@ -14,7 +14,6 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
 import slick.jdbc.GetResult
-import slick.lifted.ForeignKeyQuery
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: Option[String], totalDistance: Double, auditedDistance: Double)

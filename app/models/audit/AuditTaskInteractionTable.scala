@@ -15,7 +15,6 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
 import slick.jdbc.{GetResult, StaticQuery => Q}
-import slick.lifted.ForeignKeyQuery
 
 case class AuditTaskInteraction(auditTaskInteractionId: Int,
                                 auditTaskId: Int,
@@ -59,8 +58,7 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
 
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+  def mission = foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 /**

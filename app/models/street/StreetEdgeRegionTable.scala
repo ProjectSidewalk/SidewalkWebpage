@@ -10,8 +10,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
-
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
 
 class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag, Some("sidewalk"),  "street_edge_region") {
@@ -20,11 +18,9 @@ class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag, Some(
 
   def * = (streetEdgeId, regionId) <> ((StreetEdgeRegion.apply _).tupled, StreetEdgeRegion.unapply)
 
-  def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
-    foreignKey("street_edge_region_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
+  def streetEdge = foreignKey("street_edge_region_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
 
-  def region: ForeignKeyQuery[RegionTable, Region] =
-    foreignKey("street_edge_region_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
+  def region = foreignKey("street_edge_region_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
 }
 
 object StreetEdgeRegionTable {

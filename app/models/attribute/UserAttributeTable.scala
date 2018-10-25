@@ -15,7 +15,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
+import slick.lifted.{ProvenShape, Tag}
 import scala.language.postfixOps
 
 case class UserAttribute(userAttributeId: Int,
@@ -50,14 +50,11 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
                                         temporary) <>
     ((UserAttribute.apply _).tupled, UserAttribute.unapply)
 
-  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-    foreignKey("user_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
+  def labelType = foreignKey("user_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
 
-  def region: ForeignKeyQuery[RegionTable, Region] =
-    foreignKey("user_attribute_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
+  def region = foreignKey("user_attribute_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
 
-  def userClusteringSession: ForeignKeyQuery[UserClusteringSessionTable, UserClusteringSession] =
-    foreignKey("user_attribute_user_clustering_session_id_fkey", userClusteringSessionId, TableQuery[UserClusteringSessionTable])(_.userClusteringSessionId)
+  def userClusteringSession = foreignKey("user_attribute_user_clustering_session_id_fkey", userClusteringSessionId, TableQuery[UserClusteringSessionTable])(_.userClusteringSessionId)
 }
 
 /**

@@ -8,8 +8,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
-
 case class Tag(tagId: Int, labelTypeId: Int, tag: String)
 
 class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, Some("sidewalk"), "tag") {
@@ -19,8 +17,7 @@ class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, Some("si
 
   def * = (tagId, labelTypeId, tag) <> ((Tag.apply _).tupled, Tag.unapply)
 
-  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-    foreignKey("tag_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
+  def labelType = foreignKey("tag_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
 }
 
 object TagTable {

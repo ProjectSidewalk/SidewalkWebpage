@@ -8,8 +8,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
-
 case class GSVProjection(gsvPanoramaId: String, projectionType: String, panoYawDeg: Double, tiltYawDeg: Double, tiltPitchDeg: Double)
 
 class GSVProjectionTable(tag: Tag) extends Table[GSVProjection](tag, Some("sidewalk"), "gsv_projection") {

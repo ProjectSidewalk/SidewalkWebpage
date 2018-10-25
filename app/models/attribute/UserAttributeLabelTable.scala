@@ -14,7 +14,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
+import slick.lifted.{ProvenShape, Tag}
 import scala.language.postfixOps
 
 case class UserAttributeLabel(userAttributeLabelId: Int, userAttributeId: Int, labelId: Int)
@@ -28,11 +28,9 @@ class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, S
   def * : ProvenShape[UserAttributeLabel] = (userAttributeLabelId, userAttributeId, labelId) <>
     ((UserAttributeLabel.apply _).tupled, UserAttributeLabel.unapply)
 
-  def userAttribute: ForeignKeyQuery[UserAttributeTable, UserAttribute] =
-    foreignKey("user_attribute_label_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTable])(_.userAttributeId)
+  def userAttribute = foreignKey("user_attribute_label_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTable])(_.userAttributeId)
 
-  def label: ForeignKeyQuery[LabelTable, Label] =
-    foreignKey("user_attribute_label_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+  def label = foreignKey("user_attribute_label_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
 }
 
 /**

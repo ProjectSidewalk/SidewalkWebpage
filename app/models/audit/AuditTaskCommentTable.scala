@@ -12,8 +12,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.ForeignKeyQuery
-
 case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, userId: String,
                             ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
                             pitch: Option[Double],  zoom: Option[Int], lat: Option[Double], lng: Option[Double],
@@ -38,11 +36,9 @@ class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some(
   def * = (auditTaskCommentId, auditTaskId, missionId, edgeId, userId, ipAddress, gsvPanoramaId, heading, pitch, zoom, lat, lng, timestamp, comment) <>
     ((AuditTaskComment.apply _).tupled, AuditTaskComment.unapply)
 
-  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-    foreignKey("audit_task_comment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+  def auditTask = foreignKey("audit_task_comment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("audit_task_comment_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+  def mission = foreignKey("audit_task_comment_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 object AuditTaskCommentTable {
