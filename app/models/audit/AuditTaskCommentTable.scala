@@ -42,7 +42,8 @@ class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some(
 }
 
 object AuditTaskCommentTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val auditTaskComments = TableQuery[AuditTaskCommentTable]
   val users = TableQuery[UserTable]
 

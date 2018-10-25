@@ -3,6 +3,8 @@ package models.daos.slick
 //import models.utils.MyPostgresDriver.api._
 import java.util.UUID
 
+import play.api.Play
+
 object DBTableDefinitions {
 
   case class DBUser (userId: String, username: String, email: String )
@@ -50,7 +52,8 @@ object DBTableDefinitions {
   object UserTable {
     import play.api.Play.current
 
-    val db = play.api.db.slick.DB
+    val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+    val db = dbConfig.db
     def find(username: String): Option[DBUser] = db.withTransaction { implicit session =>
       slickUsers.filter(_.username === username).headOption match {
         case Some(user) => Some(user)

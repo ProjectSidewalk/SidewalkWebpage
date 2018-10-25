@@ -21,7 +21,8 @@ class GSVOnboardingPanoTable(tag: Tag) extends Table[GSVOnboardingPano](tag, Som
 }
 
 object GSVOnboardingPanoTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val onboardingPanos = TableQuery[GSVOnboardingPanoTable]
 
   def selectGSVOnboardingPanos(): List[GSVOnboardingPano] = db.withTransaction { implicit session =>

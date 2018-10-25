@@ -46,7 +46,8 @@ class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some
  * Data access object for the label table
  */
 object LabelPointTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labelPoints = TableQuery[LabelPointTable]
 
   /**

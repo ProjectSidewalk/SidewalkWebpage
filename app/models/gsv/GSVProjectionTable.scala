@@ -21,6 +21,7 @@ class GSVProjectionTable(tag: Tag) extends Table[GSVProjection](tag, Some("sidew
 }
 
 object GSVProjectionTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val gsvProjections = TableQuery[GSVProjectionTable]
 }

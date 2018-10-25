@@ -19,7 +19,8 @@ class LabelTemporarinessTable(tag: slick.lifted.Tag) extends Table[LabelTemporar
 }
 
 object LabelTemporarinessTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labelTemporarinesses = TableQuery[LabelTemporarinessTable]
 
   /**

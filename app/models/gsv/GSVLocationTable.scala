@@ -31,6 +31,7 @@ class GSVLocationTable(tag: Tag) extends Table[GSVLocation](tag, Some("sidewalk"
 }
 
 object GSVLocationTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val gsvLocations = TableQuery[GSVLocationTable]
 }

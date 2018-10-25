@@ -51,7 +51,8 @@ class SidewalkEdgeTable(tag: Tag) extends Table[SidewalkEdge](tag, Some("sidewal
  * Data access object for the sidewalk_edge table
  */
 object SidewalkEdgeTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val sidewalkEdges = TableQuery[SidewalkEdgeTable]
 
   /**

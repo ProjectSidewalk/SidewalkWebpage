@@ -21,7 +21,8 @@ class GSVLinkTable(tag: Tag) extends Table[GSVLink](tag, Some("sidewalk"), "gsv_
 }
 
 object GSVLinkTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val gsvLinks = TableQuery[GSVLinkTable]
 
   /**

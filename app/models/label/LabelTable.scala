@@ -80,7 +80,8 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
  * Data access object for the label table
  */
 object LabelTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labels = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
   val completedAudits = auditTasks.filter(_.completed === true)
@@ -550,7 +551,7 @@ object LabelTable {
     *
     * @return
     */
-  def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels: Future[Seq[LabelLocationWithSeverity]] = {
     val _labels = for {
       (_labels, _labelTypes) <- labelsWithoutDeleted.join(labelTypes).on(_.labelTypeId === _.labelTypeId)
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
@@ -563,8 +564,9 @@ object LabelTable {
       (l, p) <- _slabels.join(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
-    val labelLocationList: List[LabelLocationWithSeverity] = _points.list.map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7))
-    labelLocationList
+    val res: Future[Seq[LabelLocationWithSeverity]] = db.run(_points.result)
+    res
+//    res.map { points => points.map { pt => LabelLocationWithSeverity.tupled(pt) } }
   }
 
   /**

@@ -21,7 +21,8 @@ class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, Some("si
 }
 
 object TagTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val tagTable = TableQuery[TagTable]
 
   /**

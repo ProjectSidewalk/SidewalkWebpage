@@ -30,7 +30,8 @@ class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag,
  * Data access object for the audit_task_environment table
  */
 object AuditTaskIncompleteTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val incompletes = TableQuery[AuditTaskIncompleteTable]
 
   def list: List[AuditTaskIncomplete] = db.withTransaction { implicit session =>

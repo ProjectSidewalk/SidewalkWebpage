@@ -22,7 +22,8 @@ case class SidewalkEdgeParentEdgeTable(tag: Tag) extends Table[SidewalkEdgeParen
  *
  */
 object SidewalkEdgeParentEdgeTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val sidewalkEdgeParentEdgeTable = TableQuery[SidewalkEdgeParentEdgeTable]
 
   /**

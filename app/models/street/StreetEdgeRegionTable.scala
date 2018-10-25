@@ -24,7 +24,8 @@ class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag, Some(
 }
 
 object StreetEdgeRegionTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTable]
   val nonDeletedStreetEdgeRegions = for {
     _ser <- streetEdgeRegionTable

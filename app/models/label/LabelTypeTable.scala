@@ -25,7 +25,8 @@ class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("
  * Data access object for the label_type table
  */
 object LabelTypeTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labelTypes = TableQuery[LabelTypeTable]
 
   /**

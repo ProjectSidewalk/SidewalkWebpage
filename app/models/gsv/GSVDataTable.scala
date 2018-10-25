@@ -26,7 +26,8 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_
 }
 
 object GSVDataTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val gsvDataRecords = TableQuery[GSVDataTable]
 
   /**

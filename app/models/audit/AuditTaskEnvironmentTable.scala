@@ -44,7 +44,8 @@ class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](ta
  * Data access object for the audit_task_environment table
  */
 object AuditTaskEnvironmentTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
 
   /**

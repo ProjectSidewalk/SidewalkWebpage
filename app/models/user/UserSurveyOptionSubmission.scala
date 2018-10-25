@@ -28,7 +28,8 @@ class UserSurveyOptionSubmissionTable(tag: Tag) extends Table[UserSurveyOptionSu
 }
 
 object UserSurveyOptionSubmissionTable{
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val userSurveyOptionSubmissions = TableQuery[UserSurveyOptionSubmissionTable]
 
   def save(userSurveyOptionSubmission: UserSurveyOptionSubmission): Int = db.withTransaction { implicit session =>

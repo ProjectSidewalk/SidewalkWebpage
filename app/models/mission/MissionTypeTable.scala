@@ -22,7 +22,8 @@ class MissionTypeTable(tag: slick.lifted.Tag) extends Table[MissionType](tag, So
   * Data access object for the mission_type table
   */
 object MissionTypeTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val missionTypes = TableQuery[MissionTypeTable]
 
   val onboardingTypes: List[String] = List("auditOnboarding", "validationOnboarding")

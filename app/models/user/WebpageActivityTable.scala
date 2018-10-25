@@ -24,7 +24,8 @@ class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, Some("s
 }
 
 object WebpageActivityTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val activities = TableQuery[WebpageActivityTable]
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]

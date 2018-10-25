@@ -23,7 +23,8 @@ class LabelTagTable(tagParam: slick.lifted.Tag) extends Table[LabelTag](tagParam
 }
 
 object LabelTagTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labelTagTable = TableQuery[LabelTagTable]
 
   /**

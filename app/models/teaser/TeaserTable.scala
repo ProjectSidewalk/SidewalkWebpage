@@ -18,7 +18,8 @@ class TeaserTable(tag: Tag) extends Table[Teaser](tag, Some("sidewalk"),  "tease
 }
 
 object TeaserTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val teaserRecords = TableQuery[TeaserTable]
 
   def save(email: String) = db.withTransaction { implicit session =>

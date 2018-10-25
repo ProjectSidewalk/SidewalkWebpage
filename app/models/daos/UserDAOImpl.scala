@@ -59,7 +59,8 @@ class UserDAOImpl extends UserDAO {
  * The companion object.
  */
 object UserDAOImpl {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val userTable = TableQuery[UserTable]
   val userRoleTable = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]

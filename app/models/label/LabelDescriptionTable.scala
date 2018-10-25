@@ -19,7 +19,8 @@ class LabelDescriptionTable(tag: slick.lifted.Tag) extends Table[LabelDescriptio
 }
 
 object LabelDescriptionTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labelDescriptions = TableQuery[LabelDescriptionTable]
 
   /**

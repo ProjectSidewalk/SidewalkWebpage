@@ -27,7 +27,8 @@ class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, Some("sid
 }
 
 object SurveyQuestionTable{
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val surveyQuestions = TableQuery[SurveyQuestionTable]
   val surveyOptions = TableQuery[SurveyOptionTable]
 

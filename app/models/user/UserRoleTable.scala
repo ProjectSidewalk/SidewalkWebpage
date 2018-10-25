@@ -24,7 +24,8 @@ class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk"), "us
 }
 
 object UserRoleTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
   val userTable = TableQuery[UserTable]

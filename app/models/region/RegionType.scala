@@ -17,7 +17,8 @@ class RegionTypeTable(tag: Tag) extends Table[RegionType](tag, Some("sidewalk"),
 }
 
 object RegionTypeTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val regionTypes = TableQuery[RegionTypeTable]
 
   /**

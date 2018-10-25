@@ -21,7 +21,8 @@ class SurveyOptionTable(tag: Tag) extends Table[SurveyOption](tag, Some("sidewal
 }
 
 object SurveyOptionTable{
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val surveyOptions = TableQuery[SurveyOptionTable]
 
   def save(surveyOption: SurveyOption): Int = db.withTransaction { implicit session =>

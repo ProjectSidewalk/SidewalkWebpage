@@ -39,7 +39,8 @@ class StreetEdgePriorityTable(tag: slick.lifted.Tag) extends Table[StreetEdgePri
 }
 
 object StreetEdgePriorityTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val userTable = TableQuery[UserTable]
 

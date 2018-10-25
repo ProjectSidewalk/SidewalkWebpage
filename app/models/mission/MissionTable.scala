@@ -74,7 +74,8 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 }
 
 object MissionTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val missions = TableQuery[MissionTable]
   val missionTypes = TableQuery[MissionTypeTable]
 

@@ -34,7 +34,8 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
  * Data access object for the amt_assignment table
  */
 object AMTAssignmentTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val amtAssignments = TableQuery[AMTAssignmentTable]
 
   val TURKER_TUTORIAL_PAY: Double = 0.43D

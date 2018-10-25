@@ -19,7 +19,8 @@ class RegionPropertyTable(tag: Tag) extends Table[RegionProperty](tag, Some("sid
 }
 
 object RegionPropertyTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val regionProperties = TableQuery[RegionPropertyTable]
 
   val neighborhoodNames = regionProperties.filter(_.key === "Neighborhood Name")

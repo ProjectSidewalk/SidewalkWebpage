@@ -18,7 +18,8 @@ class SurveyCategoryOptionTable(tag: Tag) extends Table[SurveyCategoryOption](ta
 }
 
 object SurveyCategoryOptionTable{
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val surveyQuestions = TableQuery[SurveyQuestionTable]
   val surveyCategoryOptions = TableQuery[SurveyCategoryOptionTable]
   val surveyOptions = TableQuery[SurveyOptionTable]

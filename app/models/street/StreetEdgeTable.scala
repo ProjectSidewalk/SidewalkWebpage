@@ -68,7 +68,8 @@ object StreetEdgeTable {
     StreetEdge(streetEdgeId, geometry, source, target, x1, y1, x2, y2, wayType, deleted, timestamp)
   })
 
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val auditTasks = TableQuery[AuditTaskTable]
   val regions = TableQuery[RegionTable]
   val streetEdges = TableQuery[StreetEdgeTable]

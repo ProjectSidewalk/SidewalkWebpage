@@ -26,7 +26,8 @@ class StreetEdgeIssueTable(tag: Tag) extends Table[StreetEdgeIssue](tag, Some("s
 }
 
 object StreetEdgeIssueTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTable]
 
   /**

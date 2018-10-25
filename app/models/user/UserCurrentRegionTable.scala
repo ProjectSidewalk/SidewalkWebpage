@@ -23,7 +23,8 @@ class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, Som
 }
 
 object UserCurrentRegionTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
   val regions = TableQuery[RegionTable]
 

@@ -18,7 +18,8 @@ class StreetEdgeParentEdgeTable(tag: Tag) extends Table[StreetEdgeParentEdge](ta
 }
 
 object StreetEdgeParentEdgeTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val streetEdgeParentEdgeTable = TableQuery[StreetEdgeParentEdgeTable]
 
   /**

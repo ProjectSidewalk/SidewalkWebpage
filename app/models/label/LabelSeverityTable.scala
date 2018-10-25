@@ -19,7 +19,8 @@ class LabelSeverityTable(tag: slick.lifted.Tag) extends Table[LabelSeverity](tag
 }
 
 object LabelSeverityTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labelSeverities = TableQuery[LabelSeverityTable]
 
   /**

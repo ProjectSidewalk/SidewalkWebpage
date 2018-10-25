@@ -18,7 +18,8 @@ class RoleTable(tag: Tag) extends Table[Role](tag, Some("sidewalk"), "role") {
 }
 
 object RoleTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val roles = TableQuery[RoleTable]
 
   def getRoleNames: List[String] = db.withTransaction { implicit session =>
