@@ -36,7 +36,8 @@ class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, S
   * Data access object for the UserAttributeLabelTable table
   */
 object UserAttributeLabelTable {
-  val db: slick.Database = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val userAttributeLabels: TableQuery[UserAttributeLabelTable] = TableQuery[UserAttributeLabelTable]
 
   def getAllUserAttributeLabels: List[UserAttributeLabel] = db.withTransaction { implicit session =>

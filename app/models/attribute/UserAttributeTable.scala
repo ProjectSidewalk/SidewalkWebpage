@@ -60,7 +60,8 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
   * Data access object for the UserAttributeTable table
   */
 object UserAttributeTable {
-  val db: slick.Database = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val userAttributes: TableQuery[UserAttributeTable] = TableQuery[UserAttributeTable]
 
   def getAllUserAttributes: List[UserAttribute] = db.withTransaction { implicit session =>

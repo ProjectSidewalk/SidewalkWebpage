@@ -34,7 +34,8 @@ class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSessi
   * Data access object for the GlobalClusteringSessionTable table
   */
 object GlobalClusteringSessionTable {
-  val db: slick.Database = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val globalClusteringSessions: TableQuery[GlobalClusteringSessionTable] = TableQuery[GlobalClusteringSessionTable]
 
   def getAllGlobalClusteringSessions: List[GlobalClusteringSession] = db.withTransaction { implicit session =>

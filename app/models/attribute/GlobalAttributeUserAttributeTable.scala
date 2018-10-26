@@ -35,7 +35,8 @@ class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeU
   * Data access object for the GlobalAttributeUserAttributeTable table
   */
 object GlobalAttributeUserAttributeTable {
-  val db: slick.Database = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val globalAttributeUserAttributes: TableQuery[GlobalAttributeUserAttributeTable] = TableQuery[GlobalAttributeUserAttributeTable]
 
   def getAllGlobalAttributeUserAttributes: List[GlobalAttributeUserAttribute] = db.withTransaction { implicit session =>

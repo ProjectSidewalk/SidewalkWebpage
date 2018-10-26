@@ -63,7 +63,8 @@ class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](
   * Data access object for the UserClusteringSessionTable table
   */
 object UserClusteringSessionTable {
-  val db: slick.Database = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val userClusteringSessions: TableQuery[UserClusteringSessionTable] = TableQuery[UserClusteringSessionTable]
 
   implicit val labelToClusterConverter = GetResult[LabelToCluster](r => {
