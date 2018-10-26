@@ -400,11 +400,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
 
   def getAllUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerUser
-    val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "role" -> x._2, "count" -> x._3
-    )))
-    Future.successful(Ok(json))
+    LabelTable.getLabelCountsPerUser.map { labelCounts =>
+      Ok(Json.arr(labelCounts.map(x => Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3))))
+    }
   }
 
   /**

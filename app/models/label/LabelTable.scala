@@ -712,8 +712,7 @@ object LabelTable {
     *
     * @return list of tuples of (user_id, role, label_count)
     */
-  def getLabelCountsPerUser: List[(String, String, Int)] = db.withSession { implicit session =>
-
+  def getLabelCountsPerUser: Future[Seq[(String, String, Int)]] = {
     val audits = for {
       _user <- users if _user.username =!= "anonymous"
       _userRole <- userRoles if _user.userId === _userRole.userId
@@ -723,6 +722,6 @@ object LabelTable {
     } yield (_user.userId, _role.role, _label.labelId)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => (l._1, l._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
+    db.run(audits.groupBy(l => (l._1, l._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.result)
   }
 }
