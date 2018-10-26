@@ -244,9 +244,8 @@ object LabelTable {
     _labels.list.size
   }
 
-  def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>
-    val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
-    labs.update(deleted)
+  def updateDeleted(labelId: Int, deleted: Boolean): Future[Int] = {
+    db.run(labels.filter(_.labelId === labelId).map(lab => lab.deleted).update(deleted))
   }
 
   /**
