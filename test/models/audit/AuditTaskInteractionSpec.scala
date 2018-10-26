@@ -18,7 +18,7 @@ import play.api.Play.current
 import play.api.db.BoneCPPlugin
 
 import scala.slick.driver.JdbcDriver.backend.Database
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import scala.slick.jdbc.GetResult
 
 class AuditTaskInteractionSpec extends Specification  {
 

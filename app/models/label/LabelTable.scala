@@ -19,7 +19,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.jdbc.{GetResult, StaticQuery => Q}
+import slick.jdbc.GetResult
 
 case class Label(labelId: Int,
                  auditTaskId: Int,

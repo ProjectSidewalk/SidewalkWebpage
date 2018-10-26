@@ -12,7 +12,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.jdbc.{StaticQuery => Q}
 import slick.jdbc.GetResult
 import scala.math.exp
 

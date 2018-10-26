@@ -16,7 +16,6 @@ import slick.driver.JdbcProfile
 import scala.collection.mutable
 import scala.concurrent.Future
 import models.utils.MyPostgresDriver.api._
-import slick.jdbc.{StaticQuery => Q}
 
 class UserDAOImpl extends UserDAO {
 

@@ -18,7 +18,7 @@ import play.api.Logger._
 import play.api.test._
 import play.api.test.Helpers._
 
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import scala.slick.jdbc.GetResult
 
 
 class LabelTableSpec extends Specification  {

@@ -91,7 +91,6 @@ object SidewalkEdgeTable {
    */
 //  def randomQuery(id: Int) = db.withSession { implicit session =>
 //    import slick.jdbc.meta._
-//    import slick.jdbc.{StaticQuery => Q}
 //    import Q.interpolation
 //
 //    val columns = MTable.defautTables(None, None, None, None).list.filter(_.name.name == "USER")
