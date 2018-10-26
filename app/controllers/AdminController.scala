@@ -300,9 +300,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAuditTimes() = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "role" -> auditTime.role, "time" -> auditTime.duration))
-      Future.successful(Ok(JsArray(auditTimes)))
+      val auditTimesFuture: Future[Seq[UserAuditTime]] = AuditTaskInteractionTable.selectAllAuditTimes()
+      auditTimesFuture.map { auditTimes =>
+        Ok(JsArray(
+          auditTimes.map { auditTime =>
+            Json.obj("user_id" -> auditTime.userId, "role" -> auditTime.role, "time" -> auditTime.duration)
+          }
+        ))
+      }
     } else {
       Future.successful(Redirect("/"))
     }
