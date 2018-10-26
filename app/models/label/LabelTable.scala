@@ -639,28 +639,26 @@ object LabelTable {
     db.run(selectQuery)
   }
 
-  def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int) = db.withSession { implicit session =>
-    val selectQuery = Q.query[(String, Int), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng,
-        |       region.region_id
-        |FROM sidewalk.label
-        |INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
-        |INNER JOIN sidewalk.audit_task ON audit_task.audit_task_id = label.audit_task_id
-        |INNER JOIN sidewalk.region ON ST_Intersects(region.geom, label_point.geom)
-        |WHERE label.deleted = FALSE
-        |    AND label_point.lat IS NOT NULL
-        |    AND region.deleted = FALSE
-        |    AND region.region_type_id = 2
-        |    AND audit_task.user_id = ?
-        |    AND region_id = ?""".stripMargin
-    )
-    selectQuery((userId.toString, regionId)).list
+  def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int): Future[Seq[LabelLocation]] = {
+    val selectQuery = sql"""SELECT label.label_id,
+                label.audit_task_id,
+                label.gsv_panorama_id,
+                label_type.label_type,
+                label_point.lat,
+                label_point.lng,
+                region.region_id
+         FROM sidewalk.label
+         INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
+         INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
+         INNER JOIN sidewalk.audit_task ON audit_task.audit_task_id = label.audit_task_id
+         INNER JOIN sidewalk.region ON ST_Intersects(region.geom, label_point.geom)
+         WHERE label.deleted = FALSE
+             AND label_point.lat IS NOT NULL
+             AND region.deleted = FALSE
+             AND region.region_type_id = 2
+             AND audit_task.user_id = ${userId}
+             AND region_id = ${regionId}""".as[LabelLocation]
+    db.run(selectQuery)
 
 //    val _labels = for {
 //      ((_auditTasks, _labels), _labelTypes) <- auditTasks joinLeft labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) joinLeft labelTypes on (_._2.labelTypeId === _.labelTypeId)
