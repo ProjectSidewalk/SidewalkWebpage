@@ -56,9 +56,8 @@ object LabelPointTable {
     * @param labelId
     * @return
     */
-  def find(labelId: Int): Option[LabelPoint] = db.withSession { implicit session =>
-    val labelList = labelPoints.filter(_.labelId === labelId).list
-    labelList.headOption
+  def find(labelId: Int): Future[Option[LabelPoint]] = {
+    db.run(labelPoints.filter(_.labelId === labelId).result.headOption)
   }
 
   /**

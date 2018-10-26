@@ -15,7 +15,7 @@ import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel, UserAuditTime}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
-import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable}
+import models.label._
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
@@ -369,11 +369,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      LabelPointTable.find(labelId) match {
+      val labelPointFuture: Future[Option[LabelPoint]] = LabelPointTable.find(labelId)
+      labelPointFuture flatMap {
         case Some(labelPointObj) =>
-          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
-          val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
-          Future.successful(Ok(labelMetadataJson))
+          LabelTable.retrieveSingleLabelMetadata(labelId).map { label => Ok(LabelTable.labelMetadataToJson(label)) }
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
       }
     } else {

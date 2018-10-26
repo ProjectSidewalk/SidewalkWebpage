@@ -103,6 +103,13 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
+  case class LabelMetadataWithoutTags(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
+                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
+                                      auditTaskId: Int,
+                                      userId: String, username: String,
+                                      timestamp: Option[java.sql.Timestamp],
+                                      labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
+                                      temporary: Boolean, description: Option[String])
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                            canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                            auditTaskId: Int,
@@ -358,54 +365,56 @@ object LabelTable {
     selectQuery((userId, takeN)).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
   }
 
-  def retrieveSingleLabelMetadata(labelId: Int): LabelMetadata = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int,(Int, String, Float, Float, Int, Int, Int, Int, Int,
-      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String])](
-      """SELECT lb1.label_id,
-        |       lb1.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height,
-        |       lb1.audit_task_id,
-        |       u.user_id,
-        |       u.username,
-        |       lb1.time_created,
-        |       lb_big.label_type,
-        |       lb_big.label_type_desc,
-        |       lb_big.severity,
-        |       lb_big.temp,
-        |       lb_big.description
-        |FROM sidewalk.label AS lb1,
-        |     sidewalk.audit_task AS at,
-        |     sidewalk_user AS u,
-        |     sidewalk.label_point AS lp,
-        |		  (
-        |         SELECT lb.label_id,
-        |                lb.gsv_panorama_id,
-        |                lbt.label_type,
-        |                lbt.description AS label_type_desc,
-        |                sev.severity,
-        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
-        |                lab_desc.description
-        |					FROM label AS lb
-        |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |		  		LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
-        |				  LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |				  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
-        |			) AS lb_big
-        |WHERE lb1.label_id = ?
-        |      AND lb1.audit_task_id = at.audit_task_id
-        |      AND lb1.label_id = lb_big.label_id
-        |      AND at.user_id = u.user_id
-        |      AND lb1.label_id = lp.label_id
-        |ORDER BY lb1.label_id DESC""".stripMargin
-    )
-    selectQuery(labelId).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
+  def retrieveSingleLabelMetadata(labelId: Int): Future[LabelMetadata] = {
+    val selectQuery =
+      sql"""SELECT lb1.label_id,
+                lb1.gsv_panorama_id,
+                lp.heading,
+                lp.pitch,
+                lp.zoom,
+                lp.canvas_x,
+                lp.canvas_y,
+                lp.canvas_width,
+                lp.canvas_height,
+                lb1.audit_task_id,
+                u.user_id,
+                u.username,
+                lb1.time_created,
+                lb_big.label_type,
+                lb_big.label_type_desc,
+                lb_big.severity,
+                lb_big.temp,
+                lb_big.description
+         FROM sidewalk.label AS lb1,
+              sidewalk.audit_task AS at,
+              sidewalk_user AS u,
+              sidewalk.label_point AS lp,
+              (
+                  SELECT lb.label_id,
+                         lb.gsv_panorama_id,
+                         lbt.label_type,
+                         lbt.description AS label_type_desc,
+                         sev.severity,
+                         COALESCE(lab_temp.temporary, 'FALSE') AS temp,
+                         lab_desc.description
+                  FROM label AS lb
+                  LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
+                  LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
+                  LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+                  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
+              ) AS lb_big
+         WHERE lb1.label_id = ${labelId}
+               AND lb1.audit_task_id = at.audit_task_id
+               AND lb1.label_id = lb_big.label_id
+               AND at.user_id = u.user_id
+               AND lb1.label_id = lp.label_id
+         ORDER BY lb1.label_id DESC""".as[LabelMetadataWithoutTags]
+    for {
+      labelMetadata <- db.run(selectQuery)
+      labelTags <- getTagsFromLabelId(labelId)
+    } yield {
+      labelAndTagsToLabelMetadata(labelMetadata.head, labelTags)
+    }
   }
 
   /**
@@ -415,19 +424,13 @@ object LabelTable {
     * @param tags list of tags as strings
     * @return LabelMetadata object
     */
-  def labelAndTagsToLabelMetadata(label: (Int, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String]), tags: List[String]): LabelMetadata = {
-      LabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
-                    label._9,label._10,label._11,label._12,label._13,label._14,label._15,label._16,
-                    label._17, label._18, tags)
+  def labelAndTagsToLabelMetadata(label: LabelMetadataWithoutTags, tags: List[String]): LabelMetadata = {
+      LabelMetadata(
+        label.labelId, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
+        label.canvasWidth, label.canvasHeight ,label.auditTaskId ,label.userId ,label.username, label.timestamp,
+        label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary, label.description, tags)
   }
 
-//  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-//                           canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
-//                           auditTaskId: Int,
-//                           userId: String, username: String,
-//                           timestamp: java.sql.Timestamp,
-//                           labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-//                           temporary: Boolean, description: Option[String])
   def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
@@ -458,26 +461,17 @@ object LabelTable {
     * @param userId Label id
     * @return A list of strings with all the tags asscociated with a label
     */
-  def getTagsFromLabelId(labelId: Int): List[String] = db.withSession { implicit session =>
-      val getTagsQuery = Q.query[Int, (String)](
-        """SELECT tag
-          |FROM sidewalk.tag
-          |WHERE tag.tag_id IN
-          |(
-          |    SELECT tag_id
-          |    FROM sidewalk.label_tag
-          |    WHERE label_tag.label_id = ?
-          |)""".stripMargin
-      )
-      getTagsQuery(labelId).list
-  }
-
-  /*
-   * Retrieve label metadata for a labelId
-   * @param labelId
-   */
-  def getLabelMetadata(labelId: Int): LabelMetadata= db.withSession { implicit session =>
-    retrieveSingleLabelMetadata(labelId)
+  def getTagsFromLabelId(labelId: Int): Future[Seq[String]] = {
+      val getTagsQuery = sql"""
+           SELECT tag
+           FROM sidewalk.tag
+           WHERE tag.tag_id IN
+           (
+               SELECT tag_id
+               FROM sidewalk.label_tag
+               WHERE label_tag.label_id = ${labelId}
+           )""".as[String]
+      db.run(getTagsQuery)
   }
 
   /**
