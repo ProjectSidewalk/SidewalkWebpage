@@ -8,7 +8,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.SurveySubmissionFormats._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.survey._
 import models.user._
 import models.mission.MissionTable

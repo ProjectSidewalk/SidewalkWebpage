@@ -11,7 +11,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}

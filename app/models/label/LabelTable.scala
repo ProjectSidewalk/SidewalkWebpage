@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.gsv.GSVOnboardingPanoTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable

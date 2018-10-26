@@ -13,7 +13,7 @@ import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel, UserAuditTime}
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label._
 import models.mission.MissionTable

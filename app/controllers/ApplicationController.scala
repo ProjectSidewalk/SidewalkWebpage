@@ -8,7 +8,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.mvc._
 import play.api.Play.current

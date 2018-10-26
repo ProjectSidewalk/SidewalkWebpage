@@ -9,7 +9,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms._
 import models.user._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import play.api.mvc.BodyParsers
 import play.api.libs.json._
 import org.joda.time.{DateTime, DateTimeZone}

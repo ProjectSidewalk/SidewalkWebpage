@@ -4,10 +4,9 @@ import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.user.{RoleTable, User, UserRoleTable}
 import models.audit._
-import play.api.Play.current
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider

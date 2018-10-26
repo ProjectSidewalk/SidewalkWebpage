@@ -7,7 +7,7 @@ import java.util.{Calendar, Date, UUID}
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory}
 import controllers.helper.LabelControllerHelper
 import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{Label, LabelTable, LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable, RegionType, RegionTypeTable}
 import models.street.{StreetEdge, StreetEdgeTable}

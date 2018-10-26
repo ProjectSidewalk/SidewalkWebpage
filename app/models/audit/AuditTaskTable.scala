@@ -7,7 +7,7 @@ import java.util.{Calendar, TimeZone, UUID}
 import models.street._
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.api._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.street.StreetEdgePriorityTable
 import play.api.libs.json._

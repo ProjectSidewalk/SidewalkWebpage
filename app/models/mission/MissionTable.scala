@@ -5,7 +5,7 @@ import java.time.Instant
 import java.util.UUID
 
 import models.audit.AuditTaskTable
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.api._
 import models.region._
 import models.user.{RoleTable, UserRoleTable}

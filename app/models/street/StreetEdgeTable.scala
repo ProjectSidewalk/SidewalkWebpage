@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
 import models.region.RegionTable
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.user.UserRoleTable
 import models.user.RoleTable
 import models.utils.MyPostgresDriver

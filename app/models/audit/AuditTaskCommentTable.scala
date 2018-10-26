@@ -2,7 +2,7 @@ package models.audit
 
 import java.sql.Timestamp
 
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current

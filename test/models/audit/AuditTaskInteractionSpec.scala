@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.util.{Calendar, Date, UUID}
 
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, LineString, Polygon}
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{Label, LabelTable, LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable, RegionType, RegionTypeTable}
 import models.street.{StreetEdge, StreetEdgeTable}

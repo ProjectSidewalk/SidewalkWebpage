@@ -14,7 +14,7 @@ import play.api.i18n.Messages.Implicits._
 
 import math._
 import models.region._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}

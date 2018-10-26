@@ -1,9 +1,9 @@
-package models.daos.slick
+package models.daos.slickdaos
 
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import models.user.{UserRoleTable, User}
 import play.api.db.slick._
-import models.daos.slick.DBTableDefinitions._
+import models.daos.slickdaos.DBTableDefinitions._
 // import com.mohiva.play.silhouette.core.LoginInfo
 import com.mohiva.play.silhouette.api.LoginInfo
 import scala.concurrent.Future

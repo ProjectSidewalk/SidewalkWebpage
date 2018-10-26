@@ -4,7 +4,7 @@ import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import java.sql.Timestamp
 import models.survey._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider

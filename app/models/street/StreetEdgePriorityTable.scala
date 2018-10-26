@@ -1,7 +1,7 @@
 package models.street
 
 import models.audit.{AuditTaskEnvironmentTable, AuditTaskTable}
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.label.LabelTable
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current

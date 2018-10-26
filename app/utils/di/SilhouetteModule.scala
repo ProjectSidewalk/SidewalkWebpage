@@ -14,7 +14,7 @@ import com.mohiva.play.silhouette.impl.providers.oauth2.state.{ DummyStateProvid
 import com.mohiva.play.silhouette.impl.services._
 import com.mohiva.play.silhouette.impl.util._
 import models.daos._
-import models.daos.slick._
+import models.daos.slickdaos._
 import models.services.{ UserService, UserServiceImpl }
 import models.user.User
 import net.codingwell.scalaguice.ScalaModule

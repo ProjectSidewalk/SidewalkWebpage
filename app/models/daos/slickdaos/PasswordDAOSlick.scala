@@ -1,11 +1,11 @@
-package models.daos.slick
+package models.daos.slickdaos
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import com.mohiva.play.silhouette.api.util.PasswordInfo
 import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
 import play.api.db.slick._
 import scala.concurrent.Future
-import models.daos.slick.DBTableDefinitions._
+import models.daos.slickdaos.DBTableDefinitions._
 import models.utils.MyPostgresDriver.api._
 
 

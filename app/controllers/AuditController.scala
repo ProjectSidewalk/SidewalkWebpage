@@ -12,7 +12,7 @@ import formats.json.IssueFormats._
 import formats.json.CommentSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}

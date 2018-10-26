@@ -1,4 +1,4 @@
-package models.daos.slick
+package models.daos.slickdaos
 
 //import models.utils.MyPostgresDriver.api._
 import java.util.UUID
