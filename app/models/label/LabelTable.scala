@@ -527,7 +527,7 @@ object LabelTable {
     *
     * @return
     */
-  def selectLocationsOfLabels: List[LabelLocation] = db.withSession { implicit session =>
+  def selectLocationsOfLabels: Future[Seq[LabelLocation]] = {
     val _labels = for {
       (_labels, _labelTypes) <- labelsWithoutDeleted.join(labelTypes).on(_.labelTypeId === _.labelTypeId)
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)

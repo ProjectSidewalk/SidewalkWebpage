@@ -14,7 +14,6 @@ import models.street.{StreetEdge, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
 import org.specs2.mutable._
-import play.api.db.slick.DB
 import play.api.Logger._
 import play.api.test._
 import play.api.test.Helpers._

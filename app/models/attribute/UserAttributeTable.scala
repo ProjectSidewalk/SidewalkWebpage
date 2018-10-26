@@ -8,7 +8,6 @@ import models.label.{LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-import play.api.db.slick
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider

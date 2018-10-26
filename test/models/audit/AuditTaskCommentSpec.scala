@@ -5,7 +5,6 @@ import java.util.{Calendar, Date}
 
 import models.utils.MyPostgresDriver.simple._
 import org.specs2.mutable._
-import play.api.db.slick.DB
 import play.api.test._
 
 //class AuditTaskCommentSpec extends Specification  {

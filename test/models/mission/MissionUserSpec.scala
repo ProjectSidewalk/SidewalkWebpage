@@ -2,7 +2,6 @@ package models.mission
 
 import models.utils.MyPostgresDriver.simple._
 import org.specs2.mutable._
-import play.api.db.slick.DB
 import play.api.test._
 
 

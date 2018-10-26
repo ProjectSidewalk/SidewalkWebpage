@@ -9,7 +9,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable, LabelTemporarinessTable}
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
 
 import play.api.Play
