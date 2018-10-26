@@ -81,7 +81,7 @@ GET /validate                                                @controllers.Valida
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
-POST    /validationTask                                      @controllers.ValidationTaskController.post
+# POST    /validationTask                                      @controllers.ValidationTaskController.post
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()

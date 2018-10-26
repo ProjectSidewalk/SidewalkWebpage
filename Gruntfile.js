@@ -52,13 +52,13 @@ module.exports = function(grunt) {
             },
             validation_svl: {
                 src: [
-                    'public/javascripts/SVLabel/src/SVValidate/*.js',
-                    'public/javascripts/SVLabel/src/SVValidate/label/*.js',
-                    'public/javascripts/SVLabel/src/SVValidate/menu/*.js',
-                    'public/javascripts/SVLabel/src/SVValidate/panorama/*.js',
+                    'public/javascripts/SVValidate/*.js',
+                    'public/javascripts/SVValidate/src/label/*.js',
+                    'public/javascripts/SVValidate/src/menu/*.js',
+                    'public/javascripts/SVValidate/src/panorama/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/Panomarker.js'
                 ],
-                dest: 'public/javascripts/SVLabel/build/SVValidate.js'
+                dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             }
         },
         uglify: {
@@ -77,9 +77,9 @@ module.exports = function(grunt) {
             },
             validation_all: {
                 src: [
-                    'public/javascripts/SVLabel/src/SVValidate/css/*.css'
+                    'public/javascripts/SVValidate/css/*.css'
                 ],
-                dest: 'public/javascripts/SVLabel/build/SVValidate.css'
+                dest: 'public/javascripts/SVValidate/build/SVValidate.css'
             }
         },
         jasmine: {
@@ -132,9 +132,9 @@ module.exports = function(grunt) {
                     'public/javascripts/Progress/src/**/*.js',
                     'public/javascripts/Admin/src/**/*.js',
                     'public/javascripts/FAQ/src/*.js',
-                    'public/javascripts/SVLabel/src/SVValidate/*.js',
-                    'public/javascripts/SVLabel/src/SVValidate/**/*.js',
-                    'public/javascripts/SVLabel/src/SVValidate/**/*.css'
+                    'public/javascripts/SVValidate/src/*.js',
+                    'public/javascripts/SVValidate/src/**/*.js',
+                    'public/javascripts/SVValidate/**/*.css'
                 ],
                 tasks: [
                     'concat',
