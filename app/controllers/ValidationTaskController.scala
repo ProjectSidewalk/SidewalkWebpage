@@ -14,6 +14,7 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
+import models.label.LabelTable.LabelValidationMetadata
 import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
@@ -54,4 +55,27 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     )
   }
 
+  /**
+    * This function gets the metadata for a specific label in the database.
+    * @param labelId  label_id for this label
+    * @return GSV metadata and label type
+    */
+  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(Json.obj("status" -> "Ok")))
+
+    LabelTable.find(labelId) match {
+      case Some(labelPointObj) =>
+        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleLabelforValidation(labelId)
+        val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
+        Future.successful(Ok(labelMetadataJson))
+      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+    }
+  }
+
+  /*
+   * Want: function to get a random label from the database
+  def getRandomLabel = UserAwareAction.async { implicit request =>
+
+  }
+  */
 }

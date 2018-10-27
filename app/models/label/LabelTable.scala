@@ -109,6 +109,10 @@ object LabelTable {
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
                            temporary: Boolean, description: Option[String], tags: List[String])
 
+  case class LabelValidationMetadata(labelId: Int, labelTypeId: Int, gsvPanoramaId: String,
+                                     heading: Float, pitch: Float, zoom: Float, canvasX: Int,
+                                     canvasY: Int, canvasWidth: Int, canvasHeight: Int)
+
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
@@ -404,6 +408,52 @@ object LabelTable {
         |ORDER BY lb1.label_id DESC""".stripMargin
     )
     selectQuery(labelId).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
+  }
+
+  /**
+    * This method returns a LabelMetadata object for the validation interface.
+    * Sends relevant information for rendering onto a GSV panorama.
+    * @param labelId  Label from query.
+    * @return         LabelMetadata object.
+    */
+  def retrieveSingleLabelforValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
+    val selectQuery = Q.query[Int, (Int, Int, String, Float, Float, Float, Int, Int, Int, Int)](
+      """SELECT lb.label_id,
+        |       lb.label_type_id,
+        |       lb.gsv_panorama_id,
+        |       lp.heading,
+        |       lp.pitch,
+        |       lp.zoom,
+        |       lp.canvas_x,
+        |       lp.canvas_y,
+        |       lp.canvas_width,
+        |       lp.canvas_height
+        |FROM sidewalk.label AS lb,
+        |     sidewalk.label_point AS lp
+        |WHERE lb.label_id = ?
+        |ORDER BY lb.label_id DESC""".stripMargin
+    )
+    selectQuery(labelId).list.map(label => validationLabelsToLabelMetadata(label)).head
+  }
+
+  def validationLabelsToLabelMetadata(label: (Int, Int, String, Float, Float, Float, Int, Int, Int, Int)): LabelValidationMetadata = {
+    LabelValidationMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7,
+      label._8, label._9, label._10)
+  }
+
+  def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
+    Json.obj(
+      "label_id" -> labelMetadata.labelId,
+      "label_type_id" -> labelMetadata.labelTypeId,
+      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
+      "heading" -> labelMetadata.heading,
+      "pitch" -> labelMetadata.pitch,
+      "zoom" -> labelMetadata.zoom,
+      "canvas_x" -> labelMetadata.canvasX,
+      "canvas_y" -> labelMetadata.canvasY,
+      "canvas_width" -> labelMetadata.canvasWidth,
+      "canvas_height" -> labelMetadata.canvasHeight
+    )
   }
 
   /**

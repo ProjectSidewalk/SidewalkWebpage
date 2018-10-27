@@ -26,15 +26,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
-  /*
-  def validate() = Action {implicit request =>
-    request.identity match {
-        Ok(views.html.validation())
-    }
-    // Ok("Got request [" + request + "]")
-  }
-  */
-
   // Returns validation endpoint
   def validate = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
