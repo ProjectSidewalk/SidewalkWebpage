@@ -52,10 +52,11 @@ module.exports = function(grunt) {
             },
             validation_svl: {
                 src: [
-                    'public/javascripts/SVValidate/*.js',
+                    'public/javascripts/SVValidate/src/data/*.js',
                     'public/javascripts/SVValidate/src/label/*.js',
                     'public/javascripts/SVValidate/src/menu/*.js',
                     'public/javascripts/SVValidate/src/panorama/*.js',
+                    'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/Panomarker.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'

@@ -81,7 +81,8 @@
 
         function init() {
             var svv = svv || {};
-            var param = undefined;
+            var param = {};
+            param.dataStoreUrl = '@routes.ValidationTaskController.post';
             svv.main = new Main(param);
         }
     </script>

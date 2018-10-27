@@ -63,6 +63,7 @@ function Panorama() {
 
     /**
      * Retrieves a label from the database
+     * TODO: figure out how to query labels without using the adminapi
      * @param labelId   label_id
      */
     function setLabel(labelId) {
@@ -88,7 +89,7 @@ function Panorama() {
         var pos = getPosition(label.getProperty('canvasX'), label.getProperty('canvasY'),
             label.getProperty('canvasWidth'), label.getProperty('canvasHeight'),
             label.getProperty('zoom'), label.getProperty('heading'), label.getProperty('pitch'));
-
+        
         self.labelMarker = new PanoMarker ({
             container: panoCanvas,
             pano: svv.panorama,

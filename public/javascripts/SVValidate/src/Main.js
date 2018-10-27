@@ -7,7 +7,7 @@ var svv = svv || {};
  * @returns {{className: string}}
  * @constructor
  */
-function Main (params) {
+function Main (param) {
     function _initUI() {
         svv.ui = {};
 
@@ -19,9 +19,12 @@ function Main (params) {
     }
 
     function _init() {
+
+        console.log("Main: " + param.dataStoreUrl);
         // TODO later: Add params for map
+        svv.form = new Form(param.dataStoreUrl);
         svv.panorama = new Panorama();
-        svv.menuButtons = new MenuButton(svv.ui.validation);
+        svv.menuButtons = new MenuButton(svv.ui.validation, svv.form);
     }
 
     _initUI();

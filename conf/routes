@@ -74,14 +74,13 @@ POST    /audit/comment                                       @controllers.AuditC
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 
 # Label validation tasks
-GET /validate                                                @controllers.ValidationController.validate(nextRegion: Option[String] ?= None)
-
+GET     /validate                                            @controllers.ValidationController.validate
 
 # Task API.
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
-# POST    /validationTask                                      @controllers.ValidationTaskController.post
+POST    /validationTask                                      @controllers.ValidationTaskController.post
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()

@@ -35,8 +35,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   }
   */
 
-  // Returns validation endpoint... nextRegion is probably not used, but oh well!
-  def validate(nextRegion: Option[String]) = UserAwareAction.async { implicit request =>
+  // Returns validation endpoint
+  def validate = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
@@ -48,5 +48,4 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         Future.successful(Redirect("/"))
     }
   }
-
 }
