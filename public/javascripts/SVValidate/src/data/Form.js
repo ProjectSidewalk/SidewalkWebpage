@@ -3,8 +3,6 @@ function Form(url) {
         dataStoreUrl : url
     };
 
-    console.log("Form: " + properties.dataStoreUrl);
-
     function compileSubmissionData() {
         var data = {};
 

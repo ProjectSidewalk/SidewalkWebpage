@@ -41,7 +41,7 @@ function Panorama() {
         label.setProperty('canvasX', labelMetadata['canvas_x']);
         label.setProperty('canvasY', labelMetadata['canvas_y']);
         label.setProperty('heading', labelMetadata['heading']);
-        label.setProperty('labelType', labelMetadata['label_type_key']);
+        label.setProperty('labelType', labelMetadata['label_type']);
         label.setProperty('pitch', labelMetadata['pitch']);
         label.setProperty('zoom', labelMetadata['zoom']);
     }
@@ -67,7 +67,7 @@ function Panorama() {
      * @param labelId   label_id
      */
     function setLabel(labelId) {
-        var labelUrl = "/adminapi/label/" + labelId;
+        var labelUrl = "/label/geo/" + labelId;
         $.ajax({
             url: labelUrl,
             async: false,
@@ -75,7 +75,6 @@ function Panorama() {
             success: function (labelMetadata) {
                 _handleData(labelMetadata);
             }
-
         });
         renderLabel();
     }
@@ -89,7 +88,7 @@ function Panorama() {
         var pos = getPosition(label.getProperty('canvasX'), label.getProperty('canvasY'),
             label.getProperty('canvasWidth'), label.getProperty('canvasHeight'),
             label.getProperty('zoom'), label.getProperty('heading'), label.getProperty('pitch'));
-        
+
         self.labelMarker = new PanoMarker ({
             container: panoCanvas,
             pano: svv.panorama,

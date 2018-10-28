@@ -19,8 +19,6 @@ function Main (param) {
     }
 
     function _init() {
-
-        console.log("Main: " + param.dataStoreUrl);
         // TODO later: Add params for map
         svv.form = new Form(param.dataStoreUrl);
         svv.panorama = new Panorama();

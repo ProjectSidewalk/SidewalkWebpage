@@ -109,7 +109,7 @@ object LabelTable {
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
                            temporary: Boolean, description: Option[String], tags: List[String])
 
-  case class LabelValidationMetadata(labelId: Int, labelTypeId: Int, gsvPanoramaId: String,
+  case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
                                      heading: Float, pitch: Float, zoom: Float, canvasX: Int,
                                      canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
@@ -417,9 +417,9 @@ object LabelTable {
     * @return         LabelMetadata object.
     */
   def retrieveSingleLabelforValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int, (Int, Int, String, Float, Float, Float, Int, Int, Int, Int)](
+    val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
       """SELECT lb.label_id,
-        |       lb.label_type_id,
+        |       lt.label_type,
         |       lb.gsv_panorama_id,
         |       lp.heading,
         |       lp.pitch,
@@ -429,14 +429,17 @@ object LabelTable {
         |       lp.canvas_width,
         |       lp.canvas_height
         |FROM sidewalk.label AS lb,
+        |     sidewalk.label_type AS lt,
         |     sidewalk.label_point AS lp
         |WHERE lb.label_id = ?
+        |      AND lp.label_id = lb.label_id
+        |      AND lt.label_type_id = lb.label_type_id
         |ORDER BY lb.label_id DESC""".stripMargin
     )
     selectQuery(labelId).list.map(label => validationLabelsToLabelMetadata(label)).head
   }
 
-  def validationLabelsToLabelMetadata(label: (Int, Int, String, Float, Float, Float, Int, Int, Int, Int)): LabelValidationMetadata = {
+  def validationLabelsToLabelMetadata(label: (Int, String, String, Float, Float, Float, Int, Int, Int, Int)): LabelValidationMetadata = {
     LabelValidationMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7,
       label._8, label._9, label._10)
   }
@@ -444,7 +447,7 @@ object LabelTable {
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
-      "label_type_id" -> labelMetadata.labelTypeId,
+      "label_type" -> labelMetadata.labelType,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
