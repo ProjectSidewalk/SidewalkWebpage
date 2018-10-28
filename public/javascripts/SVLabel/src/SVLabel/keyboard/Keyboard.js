@@ -232,7 +232,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
                 switch (e.keyCode) {
-
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                         // "b" for a blocked view
                         ribbon.modeSwitch("Occlusion");
@@ -242,10 +241,18 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         break;
                     case util.misc.getLabelDescriptions('CurbRamp')['shortcut']['keyNumber']:
                         // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
-                        ribbon.modeSwitch("CurbRamp");
-                        svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
-                            keyCode: e.keyCode
-                        });
+                        if (!contextMenu.isOpen()) {
+                            ribbon.modeSwitch("CurbRamp");
+                            svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
+                                keyCode: e.keyCode
+                            });
+                        } else {
+                            contextMenu.hide();
+                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
+                                keyCode: e.keyCode
+                            });
+                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        }
                         break;
                     case util.misc.getLabelDescriptions('Walk')['shortcut']['keyNumber']:
                         // "e" for Explore. Switch the mode to Walk (camera) mode.
@@ -256,10 +263,18 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         break;
                     case util.misc.getLabelDescriptions('NoCurbRamp')['shortcut']['keyNumber']:
                         // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
-                        ribbon.modeSwitch("NoCurbRamp");
-                        svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
-                            keyCode: e.keyCode
-                        });
+                        if (!contextMenu.isOpen()) {
+                            ribbon.modeSwitch("NoCurbRamp");
+                            svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
+                                keyCode: e.keyCode
+                            });
+                        } else {
+                            contextMenu.hide();
+                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
+                                keyCode: e.keyCode
+                            });
+                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        }
                         break;
                     case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
                         ribbon.modeSwitch("NoSidewalk");
@@ -269,16 +284,32 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         break;
                     case util.misc.getLabelDescriptions('Obstacle')['shortcut']['keyNumber']:
                         // "o" for Obstacle
-                        ribbon.modeSwitch("Obstacle");
-                        svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
-                            keyCode: e.keyCode
-                        });
+                        if (!contextMenu.isOpen()) {
+                            ribbon.modeSwitch("Obstacle");
+                            svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
+                                keyCode: e.keyCode
+                            });
+                        } else {
+                            contextMenu.hide();
+                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
+                                keyCode: e.keyCode
+                            });
+                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        }
                         break;
                     case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
-                        ribbon.modeSwitch("SurfaceProblem");
-                        svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
-                            keyCode: e.keyCode
-                        });
+                        if (!contextMenu.isOpen()) {
+                            ribbon.modeSwitch("SurfaceProblem");
+                            svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
+                                keyCode: e.keyCode
+                            });
+                        } else {
+                            contextMenu.hide();
+                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
+                                keyCode: e.keyCode
+                            });
+                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        }
                         break;
                     case 16: //shift
                         // store the timestamp here so that we can check if the z-up event is in the buffer range
@@ -324,7 +355,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
                 case 27:
                     // "Escape"
-
                     if (contextMenu.isOpen()) {
                         contextMenu.hide();
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
