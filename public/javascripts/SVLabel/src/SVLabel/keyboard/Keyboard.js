@@ -231,6 +231,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
              */
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
+                var label = contextMenu.isOpen() ? contextMenu.getTargetLabel() : undefined;
                 switch (e.keyCode) {
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                         // "b" for a blocked view
@@ -246,7 +247,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
                                 keyCode: e.keyCode
                             });
-                        } else {
+                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'CurbRamp') {
                             contextMenu.hide();
                             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                                 keyCode: e.keyCode
@@ -268,7 +269,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
                                 keyCode: e.keyCode
                             });
-                        } else {
+                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'NoCurbRamp') {
                             contextMenu.hide();
                             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                                 keyCode: e.keyCode
@@ -289,7 +290,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
                                 keyCode: e.keyCode
                             });
-                        } else {
+                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'Obstacle') {
                             contextMenu.hide();
                             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                                 keyCode: e.keyCode
@@ -303,7 +304,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
                                 keyCode: e.keyCode
                             });
-                        } else {
+                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'SurfaceProblem') {
                             contextMenu.hide();
                             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                                 keyCode: e.keyCode
