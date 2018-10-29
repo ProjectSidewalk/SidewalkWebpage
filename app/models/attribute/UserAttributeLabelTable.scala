@@ -48,8 +48,8 @@ object UserAttributeLabelTable {
     userAttributeLabels.length.run
   }
 
-  def save(newSess: UserAttributeLabel): Int = db.withTransaction { implicit session =>
-    val newId: Int = (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
+  def save(newAttribute: UserAttributeLabel): Int = db.withTransaction { implicit session =>
+    val newId: Int = (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newAttribute
     newId
   }
 }

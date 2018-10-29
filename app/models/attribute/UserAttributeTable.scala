@@ -64,16 +64,15 @@ object UserAttributeTable {
   val db = dbConfig.db
   val userAttributes: TableQuery[UserAttributeTable] = TableQuery[UserAttributeTable]
 
-  def getAllUserAttributes: List[UserAttribute] = db.withTransaction { implicit session =>
-    userAttributes.list
+  def getAllUserAttributes: Future[Seq[UserAttribute]] = {
+    db.run(userAttributes.result)
   }
 
-  def countUserAttributes: Int = db.withTransaction { implicit session =>
-    userAttributes.length.run
+  def countUserAttributes: Future[Int] = {
+    db.run(userAttributes.length.result)
   }
 
-  def save(newSess: UserAttribute): Int = db.withTransaction { implicit session =>
-    val newId: Int = (userAttributes returning userAttributes.map(_.userAttributeId)) += newSess
-    newId
+  def save(newAttribute: UserAttribute): Future[Int] = {
+    db.run((userAttributes returning userAttributes.map(_.userAttributeId)) += newAttribute)
   }
 }

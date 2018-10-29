@@ -43,7 +43,7 @@ object GlobalAttributeUserAttributeTable {
     db.run(globalAttributeUserAttributes.result)
   }
 
-  def save(newSess: GlobalAttributeUserAttribute): Future[Int] = db.run {
-    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
+  def save(newAttribute: GlobalAttributeUserAttribute): Future[Int] = db.run {
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newAttribute
   }
 }
