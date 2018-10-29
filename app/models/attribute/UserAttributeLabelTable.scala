@@ -40,16 +40,15 @@ object UserAttributeLabelTable {
   val db = dbConfig.db
   val userAttributeLabels: TableQuery[UserAttributeLabelTable] = TableQuery[UserAttributeLabelTable]
 
-  def getAllUserAttributeLabels: List[UserAttributeLabel] = db.withTransaction { implicit session =>
-    userAttributeLabels.list
+  def getAllUserAttributeLabels: Future[Seq[UserAttributeLabel]] = db.run {
+    userAttributeLabels.result
   }
 
-  def countUserAttributeLabels: Int = db.withTransaction { implicit session =>
-    userAttributeLabels.length.run
+  def countUserAttributeLabels: Future[Int] = db.run {
+    userAttributeLabels.length.result
   }
 
-  def save(newAttribute: UserAttributeLabel): Int = db.withTransaction { implicit session =>
-    val newId: Int = (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newAttribute
-    newId
+  def save(newAttribute: UserAttributeLabel): Future[Int] = db.run {
+    (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newAttribute
   }
 }
