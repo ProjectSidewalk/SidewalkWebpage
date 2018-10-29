@@ -29,9 +29,8 @@ object LabelSeverityTable {
     * @param labelId
     * @return
     */
-  def find(labelId: Int): Option[LabelSeverity] = db.withSession { implicit session =>
-    val labelList = labelSeverities.filter(_.labelId === labelId).list
-    labelList.headOption
+  def find(labelId: Int): Future[Option[LabelSeverity]] = {
+    db.run(labelSeverities.filter(_.labelId === labelId).result.headOption)
   }
 
   /**
@@ -40,10 +39,8 @@ object LabelSeverityTable {
     * @param labelSev
     * @return
     */
-  def save(labelSev: LabelSeverity): Int = db.withTransaction { implicit session =>
-    val labelSeverityId: Int =
-      (labelSeverities returning labelSeverities.map(_.labelSeverityId)) += labelSev
-    labelSeverityId
+  def save(labelSev: LabelSeverity): Future[Int] = {
+    db.run((labelSeverities returning labelSeverities.map(_.labelSeverityId)) += labelSev)
   }
 
   /**
@@ -53,9 +50,8 @@ object LabelSeverityTable {
     * @param newSeverity
     * @return
     */
-  def updateSeverity(severityId: Int, newSeverity: Int) = db.withTransaction { implicit session =>
-    val severities = labelSeverities.filter(_.labelSeverityId === severityId).map(x => x.severity)
-    severities.update(newSeverity)
+  def updateSeverity(severityId: Int, newSeverity: Int): Future[Int] = {
+    db.run(labelSeverities.filter(_.labelSeverityId === severityId).map(sev => sev.severity).update(newSeverity))
   }
 }
 
