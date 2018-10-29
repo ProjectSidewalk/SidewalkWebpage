@@ -34,21 +34,17 @@ object AuditTaskIncompleteTable {
   val db = dbConfig.db
   val incompletes = TableQuery[AuditTaskIncompleteTable]
 
-  def list: List[AuditTaskIncomplete] = db.withTransaction { implicit session =>
-    incompletes.list
+  def list: Future[Seq[AuditTaskIncomplete]] = db.run {
+    incompletes.result
   }
 
   /**
    * Saves a new audit task environment
    *
-   * Reference for getting the item that has been inserted right now.
-   * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
    * @param incomplete
    * @return
    */
-  def save(incomplete: AuditTaskIncomplete): Int = db.withTransaction { implicit session =>
-    val auditTaskIncompleteId: Int =
-      (incompletes returning incompletes.map(_.auditTaskIncompleteId)) += incomplete
-    auditTaskIncompleteId
+  def save(incomplete: AuditTaskIncomplete): Future[Int] = db.run {
+    (incompletes returning incompletes.map(_.auditTaskIncompleteId)) += incomplete
   }
 }
