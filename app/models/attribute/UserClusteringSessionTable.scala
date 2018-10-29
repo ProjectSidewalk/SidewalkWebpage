@@ -15,6 +15,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import slick.lifted.{ProvenShape, Tag}
 import slick.jdbc.{GetResult}
@@ -71,8 +72,8 @@ object UserClusteringSessionTable {
     LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
   })
 
-  def getAllUserClusteringSessions: List[UserClusteringSession] = db.withTransaction { implicit session =>
-    userClusteringSessions.list
+  def getAllUserClusteringSessions: Future[Seq[UserClusteringSession]] = db.run {
+    userClusteringSessions.result
   }
 
   /**
@@ -81,7 +82,7 @@ object UserClusteringSessionTable {
     * @param userId
     * @return
     */
-  def getUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
+  def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]] = {
 
     // Gets all non-deleted, non-tutorial labels placed by the specified user.
     val labels = for {
@@ -94,14 +95,14 @@ object UserClusteringSessionTable {
     // Left joins to get severity for any labels that have them.
     val labelsWithSeverity = for {
       (_lab, _severity) <- labels.joinLeft(LabelTable.severities).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
+    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.map(_.severity))
 
     // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
     val labelsWithTemporariness = for {
       (_lab, _temp) <- labelsWithSeverity.joinLeft(LabelTemporarinessTable.labelTemporarinesses).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporary.?.getOrElse(false))
+    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.map(_.temporary).getOrElse(false.asColumnOf[Boolean]))
 
-    labelsWithTemporariness.list.map(LabelToCluster.tupled)
+    db.run(labelsWithTemporariness.result).map(labelList => labelList.map(LabelToCluster.tupled))
   }
 
   /**
@@ -110,7 +111,7 @@ object UserClusteringSessionTable {
     * @param regionId
     * @return
     */
-  def getClusteredLabelsInRegion(regionId: Int): List[LabelToCluster] = db.withTransaction { implicit session =>
+  def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]] = {
     val labelsInRegion = for {
       _sess <- userClusteringSessions
       _att <- UserAttributeTable.userAttributes if _sess.userClusteringSessionId === _att.userClusteringSessionId
@@ -125,19 +126,17 @@ object UserClusteringSessionTable {
       _att.severity,
       _att.temporary
     )
-
-    labelsInRegion.list.map(LabelToCluster.tupled)
+    db.run(labelsInRegion.result).map(labelList => labelList.map(LabelToCluster.tupled))
   }
 
   /**
     * Truncates user_clustering_session, user_attribute, user_attribute_label, and global_attribute_user_attribute.
     */
-  def truncateTables(): Unit = db.withTransaction { implicit session =>
-    Q.updateNA("TRUNCATE TABLE user_clustering_session CASCADE").execute
+  def truncateTables(): Future[Int] = db.run {
+    sqlu"""TRUNCATE TABLE user_clustering_session CASCADE"""
   }
 
-  def save(newSess: UserClusteringSession): Int = db.withTransaction { implicit session =>
-    val newId: Int = (userClusteringSessions returning userClusteringSessions.map(_.userClusteringSessionId)) += newSess
-    newId
+  def save(newSess: UserClusteringSession): Future[Int] = db.run {
+    (userClusteringSessions returning userClusteringSessions.map(_.userClusteringSessionId)) += newSess
   }
 }
