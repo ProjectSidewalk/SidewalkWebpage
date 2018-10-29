@@ -52,13 +52,13 @@ object AuditTaskCommentTable {
     * @param username Username
     * @return
     */
-  def all(username: String): Option[List[AuditTaskComment]] = db.withTransaction { implicit session =>
-    val comments = (for {
+  def all(username: String): Future[Seq[AuditTaskComment]] = {
+    val commentsQuery = for {
       (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
     } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
-      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
+      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)
 
-    Some(comments)
+    db.run(commentsQuery.result).map(commentList => commentList.map(AuditTaskComment.tupled))
   }
 
   /**
@@ -67,10 +67,8 @@ object AuditTaskCommentTable {
     * @param comment AuditTaskComment object
     * @return
     */
-  def save(comment: AuditTaskComment): Int = db.withTransaction { implicit session =>
-    val auditTaskCommentId: Int =
-      (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
-    auditTaskCommentId
+  def save(comment: AuditTaskComment): Future[Int] = db.run {
+    (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
   }
 
   /**
@@ -79,12 +77,12 @@ object AuditTaskCommentTable {
     * @param n
     * @return
     */
-  def takeRight(n: Integer): List[AuditTaskComment] = db.withTransaction { implicit session =>
+  def takeRight(n: Integer): Future[Seq[AuditTaskComment]] = {
     val comments = (for {
       (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
     } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
-      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
+      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).take(n)
 
-    comments.take(n)
+    db.run(comments.result)
   }
 }
