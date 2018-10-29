@@ -59,7 +59,7 @@ object SidewalkEdgeTable {
    * Returns a list of all the sidewalk edges
    * @return A list of SidewalkEdge objects.
    */
-  def all: Future[List[SidewalkEdge]] = {
+  def all: Future[Seq[SidewalkEdge]] = {
     db.run(sidewalkEdges.filter(edge => edge.deleted === false).result)
   }
 

@@ -32,7 +32,7 @@ object LabelTagTable {
     *
     * @return
     */
-  def selectAllLabelTags(): Future[List[LabelTag]] = {
+  def selectAllLabelTags(): Future[Seq[LabelTag]] = {
     db.run(labelTagTable.result)
   }
 
@@ -42,7 +42,7 @@ object LabelTagTable {
     * @param labelId
     * @return
     */
-  def selectTagIdsForLabelId(labelId: Int): Future[List[Int]] = {
+  def selectTagIdsForLabelId(labelId: Int): Future[Seq[Int]] = {
     db.run(labelTagTable.filter(_.labelId === labelId).map(_.tagId).result)
   }
 

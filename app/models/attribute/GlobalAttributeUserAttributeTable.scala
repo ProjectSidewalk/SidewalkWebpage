@@ -39,12 +39,11 @@ object GlobalAttributeUserAttributeTable {
   val db = dbConfig.db
   val globalAttributeUserAttributes: TableQuery[GlobalAttributeUserAttributeTable] = TableQuery[GlobalAttributeUserAttributeTable]
 
-  def getAllGlobalAttributeUserAttributes: List[GlobalAttributeUserAttribute] = db.withTransaction { implicit session =>
-    globalAttributeUserAttributes.list
+  def getAllGlobalAttributeUserAttributes: Future[Seq[GlobalAttributeUserAttribute]] = {
+    db.run(globalAttributeUserAttributes.result)
   }
 
-  def save(newSess: GlobalAttributeUserAttribute): Int = db.withTransaction { implicit session =>
-    val newId: Int = (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
-    newId
+  def save(newSess: GlobalAttributeUserAttribute): Future[Int] = db.run {
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
   }
 }
