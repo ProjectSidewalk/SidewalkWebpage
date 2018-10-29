@@ -59,42 +59,23 @@ object SidewalkEdgeTable {
    * Returns a list of all the sidewalk edges
    * @return A list of SidewalkEdge objects.
    */
-  def all: List[SidewalkEdge] = db.withSession { implicit session =>
-    sidewalkEdges.filter(edge => edge.deleted === false).list
+  def all: Future[List[SidewalkEdge]] = {
+    db.run(sidewalkEdges.filter(edge => edge.deleted === false).result)
   }
 
   /**
    * Set a record's deleted column to true
    */
-  def delete(id: Int) = db.withSession { implicit session =>
-    // sidewalkEdges.filter(_.sidewalkEdgeId == id)
-    sidewalkEdges.filter(edge => edge.sidewalkEdgeId === id).map(_.deleted).update(true)
+  def delete(id: Int): Future[Int] = {
+    db.run(sidewalkEdges.filter(edge => edge.sidewalkEdgeId === id).map(_.deleted).update(true))
   }
 
   /**
    * Save a SidewalkEdge into the sidewalk_edge table
-   * @param edge A SidewalkEdge object
+   * @param newEdge A SidewalkEdge object
    * @return
    */
-  def save(edge: SidewalkEdge): Int = db.withTransaction { implicit session =>
-    sidewalkEdges += edge
-    edge.sidewalkEdgeId.get // return the edge id.
+  def save(newEdge: SidewalkEdge): Future[Int] = {
+    db.run((sidewalkEdges returning sidewalkEdges.map(_.sidewalkEdgeId)) += newEdge)
   }
-
-  /**
-   * http://stackoverflow.com/questions/19891881/scala-slick-plain-sql-retrieve-result-as-a-map
-   * http://stackoverflow.com/questions/25578793/how-to-return-a-listuser-when-using-sql-with-slick
-   * https://websketchbook.wordpress.com/2015/03/23/make-plain-sql-queries-work-with-slick-play-framework/
-   *
-   * @param id
-   * @return
-   */
-//  def randomQuery(id: Int) = db.withSession { implicit session =>
-//    import slick.jdbc.meta._
-//    import Q.interpolation
-//
-//    val columns = MTable.defautTables(None, None, None, None).list.filter(_.name.name == "USER")
-//    val user = sql"""SELECT * FROM sidewalk_user WHERE "id" = $id""".as[List[String]].headOption.map(columns zip _ toMap)
-//    user
-//  }
 }
