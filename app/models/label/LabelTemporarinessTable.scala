@@ -29,9 +29,8 @@ object LabelTemporarinessTable {
     * @param labelId
     * @return
     */
-  def find(labelId: Int): Option[LabelTemporariness] = db.withSession { implicit session =>
-    val labelList = labelTemporarinesses.filter(_.labelId === labelId).list
-    labelList.headOption
+  def find(labelId: Int): Future[Option[LabelTemporariness]] = {
+    db.run(labelTemporarinesses.filter(_.labelId === labelId).result.headOption)
   }
 
   /**
@@ -40,10 +39,8 @@ object LabelTemporarinessTable {
     * @param labelTemp
     * @return
     */
-  def save(labelTemp: LabelTemporariness): Int = db.withTransaction { implicit session =>
-    val labelTemporarinessId: Int =
-      (labelTemporarinesses returning labelTemporarinesses.map(_.labelTemporarinessId)) += labelTemp
-    labelTemporarinessId
+  def save(labelTemp: LabelTemporariness): Future[Int] = {
+    db.run((labelTemporarinesses returning labelTemporarinesses.map(_.labelTemporarinessId)) += labelTemp)
   }
 
   /**
@@ -51,11 +48,10 @@ object LabelTemporarinessTable {
     *
     * @param tempId
     * @param newTemp
-    * @return
+    * @return Number of rows updated
     */
-  def updateTemporariness(tempId: Int, newTemp: Boolean) = db.withTransaction { implicit session =>
-    val temporaryLabelRecords = labelTemporarinesses.filter(_.labelTemporarinessId === tempId).map(x => x.temporary)
-    temporaryLabelRecords.update(newTemp)
+  def updateTemporariness(tempId: Int, newTemp: Boolean): Future[Int] = {
+    db.run(labelTemporarinesses.filter(_.labelTemporarinessId === tempId).map(x => x.temporary).update(newTemp))
   }
 }
 
