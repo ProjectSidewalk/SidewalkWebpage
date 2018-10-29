@@ -51,14 +51,10 @@ object AuditTaskEnvironmentTable {
   /**
    * Saves a new audit task environment
    *
-   * Reference for getting the item that has been inserted right now.
-   * http://stackoverflow.com/questions/21894377/returning-autoinc-id-after-insert-in-slick-2-0
    * @param env
    * @return
    */
-  def save(env: AuditTaskEnvironment): Int = db.withTransaction { implicit session =>
-    val auditTaskEnvironmentId: Int =
-      (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
-    auditTaskEnvironmentId
+  def save(env: AuditTaskEnvironment): Future[Int] = db.run {
+    (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
   }
 }
