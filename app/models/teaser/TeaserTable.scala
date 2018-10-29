@@ -7,6 +7,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 case class Teaser(email: String)
@@ -22,10 +23,10 @@ object TeaserTable {
   val db = dbConfig.db
   val teaserRecords = TableQuery[TeaserTable]
 
-  def save(email: String) = db.withTransaction { implicit session =>
-    if (teaserRecords.filter(_.email === email).list.isEmpty) {
-      teaserRecords += Teaser(email)
+  def save(email: String): Future[Int] = {
+    val existingRecord: Future[List[Teaser]] = db.run(teaserRecords.filter(_.email === email).result)
+    existingRecord.flatMap { teaserList =>
+      if (teaserList.isEmpty) db.run(teaserRecords += Teaser(email)) else 0
     }
-
   }
 }
