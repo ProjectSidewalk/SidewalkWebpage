@@ -38,19 +38,18 @@ object GlobalClusteringSessionTable {
   val db = dbConfig.db
   val globalClusteringSessions: TableQuery[GlobalClusteringSessionTable] = TableQuery[GlobalClusteringSessionTable]
 
-  def getAllGlobalClusteringSessions: List[GlobalClusteringSession] = db.withTransaction { implicit session =>
-    globalClusteringSessions.list
+  def getAllGlobalClusteringSessions: Future[Seq[GlobalClusteringSession]] = {
+    db.run(globalClusteringSessions.result)
   }
 
   /**
     * Truncates global_clustering_session, global_attribute, and global_attribute_user_attribute.
     */
-  def truncateTables(): Unit = db.withTransaction { implicit session =>
-    Q.updateNA("TRUNCATE TABLE global_clustering_session CASCADE").execute
+  def truncateTables(): Future[Int] = db.run {
+    sqlu"""TRUNCATE TABLE global_clustering_session CASCADE"""
   }
 
-  def save(newSess: GlobalClusteringSession): Int = db.withTransaction { implicit session =>
-    val newId: Int = (globalClusteringSessions returning globalClusteringSessions.map(_.globalClusteringSessionId)) += newSess
-    newId
+  def save(newAttribute: GlobalClusteringSession): Future[Int] = db.run {
+    (globalClusteringSessions returning globalClusteringSessions.map(_.globalClusteringSessionId)) += newAttribute
   }
 }
