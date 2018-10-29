@@ -73,7 +73,6 @@ object GlobalAttributeTable {
   }
 
   def save(newSess: GlobalAttribute): Future[Int] = {
-    val newId: Future[Int] = db.run((globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess)
-    newId
+    db.run((globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess)
   }
 }

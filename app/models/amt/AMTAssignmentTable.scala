@@ -9,6 +9,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
                          assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
@@ -43,22 +44,24 @@ object AMTAssignmentTable {
   val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
   val VOLUNTEER_PAY: Double = 0.0D
 
-  def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
-    val asgId: Int =
-      (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
-    asgId
+  def save(asg: AMTAssignment): Future[Int] = {
+    db.run((amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg)
   }
 
-  def getConfirmationCode(workerId: String, assignmentId: String): String = db.withTransaction { implicit session =>
-    amtAssignments.filter( x => x.workerId === workerId && x.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).list.head.getOrElse("")
+  def getConfirmationCode(workerId: String, assignmentId: String): Future[String] = {
+    val confCodeQuery = amtAssignments
+      .filter(x => x.workerId === workerId && x.assignmentId === assignmentId)
+      .sortBy(_.assignmentStart.desc)
+      .map(_.confirmationCode)
+    db.run(confCodeQuery.result.head).map(_.getOrElse(""))
   }
 
-  def getMostRecentAssignmentId(workerId: String): String = db.withTransaction { implicit session =>
-    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).list.head
+  def getMostRecentAssignmentId(workerId: String): Future[String] = db.run {
+    amtAssignments.filter(x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).result.head
   }
 
-  def getMostRecentAMTAssignmentId(workerId: String): Int = db.withTransaction { implicit session =>
-    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).list.head
+  def getMostRecentAMTAssignmentId(workerId: String): Future[Int] = db.run {
+    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).result.head
   }
 
   /**
@@ -68,9 +71,8 @@ object AMTAssignmentTable {
     * @param timestamp
     * @return
     */
-  def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
-    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.assignmentEnd
-    q.update(Some(timestamp))
+  def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp): Future[Int] = {
+    db.run(amtAssignments.filter(_.amtAssignmentId === amtAssignmentId).map(a => a.assignmentEnd).update(Some(timestamp)))
   }
 
   /**
@@ -80,9 +82,7 @@ object AMTAssignmentTable {
     * @param completed
     * @return
     */
-  def updateCompleted(amtAssignmentId: Int, completed: Boolean) = db.withTransaction { implicit session =>
-    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
-    q.update(completed)
+  def updateCompleted(amtAssignmentId: Int, completed: Boolean): Future[Int] = {
+    db.run(amtAssignments.filter(_.amtAssignmentId === amtAssignmentId).map(a => a.completed).update(completed))
   }
 }
-
