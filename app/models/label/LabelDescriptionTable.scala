@@ -29,20 +29,17 @@ object LabelDescriptionTable {
     * @param labelId
     * @return
     */
-  def find(labelId: Int): Option[LabelDescription] = db.withSession { implicit session =>
-    val descriptions = labelDescriptions.filter(_.labelId === labelId).list
-    descriptions.headOption
+  def find(labelId: Int): Future[Option[LabelDescription]] = {
+    db.run(labelDescriptions.filter(_.labelId === labelId).result.headOption)
   }
 
   /**
     * Saves a new label description to the table
     * @param pd
-    * @return
+    * @return Number of rows updated (should be 1)
     */
-  def save(pd: LabelDescription): Int = db.withTransaction { implicit session =>
-    val labelDescriptionId: Int =
-      (labelDescriptions returning labelDescriptions.map(_.labelDescriptionId)) += pd
-    labelDescriptionId
+  def save(pd: LabelDescription): Future[Int] = {
+    db.run((labelDescriptions returning labelDescriptions.map(_.labelDescriptionId)) += pd)
   }
 
   /**
@@ -50,11 +47,10 @@ object LabelDescriptionTable {
     *
     * @param descriptionId
     * @param newDescription
-    * @return
+    * @return Number of rows updated (should be 1)
     */
-  def updateDescription(descriptionId: Int, newDescription: String) = db.withTransaction { implicit session =>
-    val description = labelDescriptions.filter(_.labelDescriptionId === descriptionId).map(x => x.description)
-    description.update(newDescription)
+  def updateDescription(descriptionId: Int, newDescription: String): Future[Int] = db.run {
+    labelDescriptions.filter(_.labelDescriptionId === descriptionId).map(x => x.description).update(newDescription)
   }
 }
 
