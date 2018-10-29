@@ -32,8 +32,8 @@ object LabelTagTable {
     *
     * @return
     */
-  def selectAllLabelTags(): List[LabelTag] = db.withSession { implicit session =>
-    labelTagTable.list
+  def selectAllLabelTags(): Future[List[LabelTag]] = {
+    db.run(labelTagTable.result)
   }
 
   /**
@@ -42,8 +42,8 @@ object LabelTagTable {
     * @param labelId
     * @return
     */
-  def selectTagIdsForLabelId(labelId: Int): List[Int] = db.withTransaction { implicit session =>
-    labelTagTable.filter(_.labelId === labelId).map(_.tagId).list
+  def selectTagIdsForLabelId(labelId: Int): Future[List[Int]] = {
+    db.run(labelTagTable.filter(_.labelId === labelId).map(_.tagId).result)
   }
 
   /**
@@ -53,17 +53,17 @@ object LabelTagTable {
     * @param tagId
     * @return Number of deleted rows.
     */
-  def delete(labelId: Int, tagId: Int): Int = db.withTransaction { implicit session =>
-    labelTagTable.filter(labelTag => labelTag.labelId === labelId && labelTag.tagId === tagId).delete
+  def delete(labelId: Int, tagId: Int): Future[Int] = {
+    db.run(labelTagTable.filter(labelTag => labelTag.labelId === labelId && labelTag.tagId === tagId).delete)
   }
 
   /**
     * Save a record.
     *
     * @param labelTag
-    * @return
+    * @return Number of added rows (should be 1)
     */
-  def save(labelTag: LabelTag) = db.withSession { implicit session =>
-    labelTagTable += labelTag
+  def save(labelTag: LabelTag): Future[Int] = {
+    db.run(labelTagTable += labelTag)
   }
 }
