@@ -125,10 +125,8 @@ object AuditTaskInteractionTable {
 
 
 
-  def save(interaction: AuditTaskInteraction): Int = db.withTransaction { implicit session =>
-    val interactionId: Int =
-      (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)).insert(interaction)
-    interactionId
+  def save(interaction: AuditTaskInteraction): Future[Int] = db.run {
+    (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) += interaction
   }
 
   /**
@@ -136,8 +134,8 @@ object AuditTaskInteractionTable {
     * @param actionType
     * @return
     */
-  def selectAuditTaskInteractionsOfAnActionType(actionType: String): List[AuditTaskInteraction] = db.withTransaction { implicit session =>
-    auditTaskInteractions.filter(_.action === actionType).list
+  def selectAuditTaskInteractionsOfAnActionType(actionType: String): Future[Seq[AuditTaskInteraction]] = db.run {
+    auditTaskInteractions.filter(_.action === actionType).result
   }
 
   /**
@@ -145,12 +143,10 @@ object AuditTaskInteractionTable {
     * @param userId User id
     * @return
     */
-  def selectAuditTaskInteractionsOfAUser(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    val _auditTaskInteractions = for {
-      (_auditTasks, _auditTaskInteractions) <- auditTasks.join(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
-      if _auditTasks.userId === userId.toString
-    } yield _auditTaskInteractions
-    _auditTaskInteractions.list
+  def selectAuditTaskInteractionsOfAUser(userId: UUID): Future[Seq[AuditTaskInteraction]] = db.run {
+    auditTasks.filter(_.userId === userId.toString)
+      .join(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
+      .map(_._2).result
   }
 
   /**
@@ -188,43 +184,37 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
   db.run(selectAuditTimesQuery)
 }
 
-
-  def selectAuditTaskInteractionsOfAUser(regionId: Int, userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    val selectInteractionQuery = Q.query[(Int, String), AuditTaskInteraction](
-      """SELECT audit_task_interaction.audit_task_interaction_id,
-        |       audit_task_interaction.audit_task_id,
-        |       audit_task_interaction.mission_id,
-        |       audit_task_interaction.action,
-        |       audit_task_interaction.gsv_panorama_id,
-        |       audit_task_interaction.lat,
-        |       audit_task_interaction.lng,
-        |       audit_task_interaction.heading,
-        |       audit_task_interaction.pitch,
-        |       audit_task_interaction.zoom,
-        |       audit_task_interaction.note,
-        |       audit_task_interaction.temporary_label_id,
-        |       audit_task_interaction.timestamp
-        |FROM "sidewalk"."audit_task"
-        |INNER JOIN "sidewalk"."street_edge"
-        |    ON street_edge.street_edge_id = audit_task.street_edge_id
-        |INNER JOIN "sidewalk"."region"
-        |    ON region.region_id = ?
-        |    AND ST_Intersects(region.geom, street_edge.geom)
-        |INNER JOIN "sidewalk"."audit_task_interaction"
-        |    ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
-        |WHERE "audit_task".user_id = ?
-        |    AND (
-        |        audit_task_interaction.action = 'MissionComplete'
-        |        OR (
-        |            audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
-        |            AND audit_task.completed = TRUE
-        |        )
-        |    )
-        |ORDER BY audit_task_interaction.audit_task_interaction_id""".stripMargin
-    )
-
-    val result: List[AuditTaskInteraction] = selectInteractionQuery((regionId, userId.toString)).list
-    result
+  def selectAuditTaskInteractionsOfAUser(regionId: Int, userId: UUID): Future[Seq[AuditTaskInteraction]] = db.run {
+    sql"""SELECT audit_task_interaction.audit_task_interaction_id,
+                 audit_task_interaction.audit_task_id,
+                 audit_task_interaction.mission_id,
+                 audit_task_interaction.action,
+                 audit_task_interaction.gsv_panorama_id,
+                 audit_task_interaction.lat,
+                 audit_task_interaction.lng,
+                 audit_task_interaction.heading,
+                 audit_task_interaction.pitch,
+                 audit_task_interaction.zoom,
+                 audit_task_interaction.note,
+                 audit_task_interaction.temporary_label_id,
+                 audit_task_interaction.timestamp
+         FROM "sidewalk"."audit_task"
+         INNER JOIN "sidewalk"."street_edge"
+             ON street_edge.street_edge_id = audit_task.street_edge_id
+         INNER JOIN "sidewalk"."region"
+             ON region.region_id = ${regionId}
+             AND ST_Intersects(region.geom, street_edge.geom)
+         INNER JOIN "sidewalk"."audit_task_interaction"
+             ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
+         WHERE "audit_task".user_id = ${userId.toString}
+             AND (
+                 audit_task_interaction.action = 'MissionComplete'
+                 OR (
+                     audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
+                     AND audit_task.completed = TRUE
+                 )
+             )
+         ORDER BY audit_task_interaction.audit_task_interaction_id""".as[AuditTaskInteraction]
   }
 
   /**
@@ -234,37 +224,33 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
     * @param auditTaskId
     * @return
     */
-  def selectAuditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
-    val selectInteractionWithLabelQuery = Q.query[Int, InteractionWithLabel](
-      """SELECT interaction.audit_task_interaction_id,
-        |       interaction.audit_task_id,
-        |       interaction.mission_id,
-        |       interaction.action,
-        |       interaction.gsv_panorama_id,
-        |       interaction.lat,
-        |       interaction.lng,
-        |       interaction.heading,
-        |       interaction.pitch,
-        |       interaction.zoom,
-        |       interaction.note,
-        |       interaction.timestamp,
-        |       label_type.label_type,
-        |       label_point.lat AS label_lat,
-        |       label_point.lng AS label_lng,
-        |       label_point.canvas_x AS canvas_x,
-        |       label_point.canvas_y AS canvas_y,
-        |       label_point.canvas_width AS canvas_width,
-        |       label_point.canvas_height AS canvas_height
-        |FROM sidewalk.audit_task_interaction AS interaction
-        |LEFT JOIN sidewalk.label ON interaction.temporary_label_id = label.temporary_label_id
-        |                         AND interaction.audit_task_id = label.audit_task_id
-        |LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
-        |WHERE interaction.audit_task_id = ?
-        |ORDER BY interaction.timestamp""".stripMargin
-    )
-    val interactions: List[InteractionWithLabel] = selectInteractionWithLabelQuery(auditTaskId).list
-    interactions
+  def selectAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]] = db.run {
+    sql"""SELECT interaction.audit_task_interaction_id,
+                 interaction.audit_task_id,
+                 interaction.mission_id,
+                 interaction.action,
+                 interaction.gsv_panorama_id,
+                 interaction.lat,
+                 interaction.lng,
+                 interaction.heading,
+                 interaction.pitch,
+                 interaction.zoom,
+                 interaction.note,
+                 interaction.timestamp,
+                 label_type.label_type,
+                 label_point.lat AS label_lat,
+                 label_point.lng AS label_lng,
+                 label_point.canvas_x AS canvas_x,
+                 label_point.canvas_y AS canvas_y,
+                 label_point.canvas_width AS canvas_width,
+                 label_point.canvas_height AS canvas_height
+         FROM sidewalk.audit_task_interaction AS interaction
+         LEFT JOIN sidewalk.label ON interaction.temporary_label_id = label.temporary_label_id
+                                  AND interaction.audit_task_id = label.audit_task_id
+         LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
+         LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
+         WHERE interaction.audit_task_id = ${auditTaskId}
+         ORDER BY interaction.timestamp""".as[InteractionWithLabel]
   }
 
 
@@ -275,8 +261,8 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
     * returns a GeoJSON feature collection
     * @param interactions
     */
-  def auditTaskInteractionsToGeoJSON(interactions: List[InteractionWithLabel]): JsObject = {
-    val features: List[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
+  def auditTaskInteractionsToGeoJSON(interactions: Seq[InteractionWithLabel]): JsObject = {
+    val features: Seq[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
       val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
       val properties = if (interaction.labelType.isEmpty) {
         Json.obj(
