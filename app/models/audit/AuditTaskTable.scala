@@ -18,10 +18,13 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import slick.jdbc.GetResult
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
+case class AuditCountPerDay(date: String, count: Int)
+case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
 case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp,
                    completedByAnyUser: Boolean, // Has any user has audited this street
                    priority: Double,
@@ -81,6 +84,10 @@ object AuditTaskTable {
     AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean)
   })
 
+  implicit val auditCountPerDayConverter = GetResult[AuditCountPerDay](r => {
+    AuditCountPerDay(r.nextString, r.nextInt)
+  })
+
 //  case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)
 
   implicit val newTaskConverter = GetResult[NewTask](r => {
@@ -110,27 +117,27 @@ object AuditTaskTable {
   val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
   val nonDeletedStreetEdgeRegions = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions
 
-  case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
-
   /**
     * This method returns all the tasks
     *
     * @return
     */
-  def all: List[AuditTask] = db.withSession { implicit session =>
-    auditTasks.list
+  def all: Future[Seq[AuditTask]] = db.run {
+    auditTasks.result
   }
 
   // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
   // TODO it would be better to only consier "good user" audits here, but it would take too long to calculate each time.
-  def streetCompletedByAnyUser: Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq] = {
+  // : Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq]
+  def streetCompletedByAnyUser = {
     // Completion count for audited streets.
     val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
 
     // Gets completion count of 0 for unaudted streets w/ a left join, then checks if completion count is > 0.
     streetEdgesWithoutDeleted.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map {
-      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt._2.ifNull(0.asColumnOf[Int]) > 0)
+//      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt._2.ifNull(0.asColumnOf[Int]) > 0)
+//      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt.map(_._2).ifNull(0.asColumnOf[Int]) > 0)
+      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt.map(_._2 > 0).getOrElse(false))
     }
   }
 
@@ -139,27 +146,24 @@ object AuditTaskTable {
     *
     * @return
     */
-  def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
-    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id)
-        |FROM
-        |(
-        |    SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '11/17/2015') n
-        |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
-    )
-    selectAuditCountQuery.list.map(x => AuditCountPerDay.tupled(x))
+  def auditCounts: Future[Seq[AuditCountPerDay]] = db.run {
+    sql"""SELECT calendar_date::date, COUNT(audit_task_id)
+          FROM
+          (
+              SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
+              FROM generate_series(0, current_date - '11/17/2015') n
+          ) AS calendar
+          LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
+          GROUP BY calendar_date
+          ORDER BY calendar_date""".as[AuditCountPerDay]
   }
 
   /**
     * Returns the number of tasks completed
     * @return
     */
-  def countCompletedAudits: Int = db.withSession { implicit session =>
-    completedTasks.list.size
+  def countCompletedAudits: Future[Int] = db.run {
+    completedTasks.length.result
   }
 
   /**
@@ -168,18 +172,15 @@ object AuditTaskTable {
     * Author: Manaswi Saha
     * Date: Aug 30, 2016
     */
-  def countCompletedAuditsToday: Int = db.withSession { implicit session =>
+  def countCompletedAuditsToday: Future[Int] = db.run {
 //    val dateFormat = new SimpleDateFormat("Y-mm-dd")
 //    val today = dateFormat.format(Calendar.getInstance().getTime())
 //    auditTasks.filter(_.taskEnd.toString() == today).filter(_.completed).list.size
 
-    val countTasksQuery = Q.queryNA[Int](
-      """SELECT audit_task_id
-        |FROM sidewalk.audit_task
-        |WHERE audit_task.task_end::date = now()::date
-        |    AND audit_task.completed = TRUE""".stripMargin
-    )
-    countTasksQuery.list.size
+    sql"""SELECT COUNT(audit_task_id)
+          FROM sidewalk.audit_task
+          WHERE audit_task.task_end::date = now()::date
+              AND audit_task.completed = TRUE""".as[Int].head
   }
 
   /**
@@ -188,14 +189,11 @@ object AuditTaskTable {
     * Author: Manaswi Saha
     * Date: Aug 30, 2016
     */
-  def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
-    val countTasksQuery = Q.queryNA[Int](
-      """SELECT audit_task_id
-        |FROM sidewalk.audit_task
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
-        |    AND audit_task.completed = TRUE""".stripMargin
-    )
-    countTasksQuery.list.size
+  def countCompletedAuditsYesterday: Future[Int] = db.run {
+    sql"""SELECT COUNT(audit_task_id)
+          FROM sidewalk.audit_task
+          WHERE audit_task.task_end::date = now()::date - interval '1' day
+              AND audit_task.completed = TRUE""".as[Int].head
   }
 
   /**
@@ -204,8 +202,8 @@ object AuditTaskTable {
     * @param userId
     * @return
     */
-  def countCompletedAuditsByUserId(userId: UUID): Int = db.withSession { implicit session =>
-    completedTasks.filter(_.userId === userId.toString).list.size
+  def countCompletedAuditsByUserId(userId: UUID): Future[Int] = db.run {
+    completedTasks.filter(_.userId === userId.toString).length.result
   }
 
 
@@ -215,9 +213,15 @@ object AuditTaskTable {
     * @param auditTaskId
     * @return
     */
-  def find(auditTaskId: Int): Option[AuditTask] = db.withSession { implicit session =>
-    val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
-    auditTaskList.headOption
+  def find(auditTaskId: Int): Future[Option[AuditTask]] = db.run {
+    auditTasks.filter(_.auditTaskId === auditTaskId).result.headOption
+  }
+
+  def streetEdgeIdsNotAuditedByUserQuery(user: UUID): Query[Rep[Int], Int, Seq] = {
+    val edgesAuditedByUser = completedTasks.filter(_.userId === user.toString)
+
+    streetEdgesWithoutDeleted.joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _.streetEdgeId)
+      .filter(_._2.isEmpty).map(_._1.streetEdgeId)
   }
 
   /**
@@ -226,12 +230,8 @@ object AuditTaskTable {
     * @param user
     * @return
     */
-  def streetEdgeIdsNotAuditedByUser(user: UUID): List[Int] = db.withSession { implicit session =>
-
-    val edgesAuditedByUser: List[Int] =
-      completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
-
-    streetEdgesWithoutDeleted.filterNot(_.streetEdgeId inSet edgesAuditedByUser).map(_.streetEdgeId).list
+  def streetEdgeIdsNotAuditedByUser(user: UUID): Future[Seq[Int]] = db.run {
+    streetEdgeIdsNotAuditedByUserQuery(user).result
   }
 
   /**
@@ -241,29 +241,21 @@ object AuditTaskTable {
     * @param regionId
     * @return
     */
-  def streetEdgeIdsNotAuditedByUser(user: UUID, regionId: Int): List[Int] = db.withSession { implicit session =>
+  def streetEdgeIdsNotAuditedByUser(user: UUID, regionId: Int): Future[Seq[Int]] = db.run {
+    val edgesAuditedByUser = completedTasks.filter(_.userId === user.toString)
 
-    val edgesAuditedByUser: List[Int] =
-      completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
-
-    val unAuditedEdges = for {
-      _ser <- nonDeletedStreetEdgeRegions if _ser.regionId === regionId
-      _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
-      if !(_edges.streetEdgeId inSet edgesAuditedByUser)
-    } yield _edges
-
-    unAuditedEdges.map(_.streetEdgeId).list
+    nonDeletedStreetEdgeRegions.joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _.streetEdgeId)
+      .filter(_._2.isEmpty).map(_._1.streetEdgeId).result
   }
 
   /**
     * Verify if there are tasks available for the user in the given region
     *
     * @param user user id
+    * @param regionId
     */
-  def isTaskAvailable(user: UUID, regionId: Int): Boolean = db.withSession { implicit session =>
-
-    val availableTasks: Int = streetEdgeIdsNotAuditedByUser(user, regionId).length
-    availableTasks > 0
+  def isTaskAvailable(user: UUID, regionId: Int): Future[Boolean] = {
+    streetEdgeIdsNotAuditedByUser(user, regionId).map(_.nonEmpty)
   }
 
   /**
@@ -272,11 +264,13 @@ object AuditTaskTable {
     * @param user UUID for the user
     * @return
     */
-  def selectIncompleteRegions(user: UUID): Set[Int] = db.withSession { implicit session =>
-    nonDeletedStreetEdgeRegions
-      .filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user))
-      .map(_.regionId)
-      .list.toSet
+  def selectIncompleteRegions(user: UUID): Future[Set[Int]] = {
+    db.run {
+      nonDeletedStreetEdgeRegions
+          .joinLeft(streetEdgeIdsNotAuditedByUserQuery(user)).on(_.streetEdgeId === _)
+        .filter(_._2.nonEmpty)
+        .groupBy(_._1.regionId).map { case (rId, group) => rId }.result
+    }.map(_.toSet)
   }
 
   /**
@@ -522,11 +516,10 @@ object AuditTaskTable {
     *
     * @param auditTaskId Audit task id
     * @param completed A completed flag
-    * @return
+    * @return Number of rows updated
     */
-  def updateCompleted(auditTaskId: Int, completed: Boolean) = db.withTransaction { implicit session =>
-    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.completed
-    q.update(completed)
+  def updateCompleted(auditTaskId: Int, completed: Boolean): Future[Int] = db.run {
+    auditTasks.filter(_.auditTaskId === auditTaskId).map(task => task.completed).update(completed)
   }
 
   /**
@@ -534,10 +527,9 @@ object AuditTaskTable {
     *
     * @param auditTaskId
     * @param timestamp
-    * @return
+    * @return Number of rows updated
     */
-  def updateTaskEnd(auditTaskId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
-    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.taskEnd
-    q.update(Some(timestamp))
+  def updateTaskEnd(auditTaskId: Int, timestamp: Timestamp): Future[Int] = db.run {
+    auditTasks.filter(_.auditTaskId === auditTaskId).map(task => task.taskEnd).update(Some(timestamp))
   }
 }
