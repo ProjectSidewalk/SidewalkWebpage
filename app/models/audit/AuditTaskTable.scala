@@ -279,7 +279,7 @@ object AuditTaskTable {
     * @param userId User id
     * @return
     */
-  def selectTasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
+  def selectTasksWithLabels(userId: UUID): Future[Seq[AuditTaskWithALabel]] = {
     val userTasks = for {
       (_users, _tasks) <- users.join(auditTasks).on(_.userId === _.userId)
       if _users.userId === userId.toString
@@ -288,13 +288,13 @@ object AuditTaskTable {
     val userTaskLabels = for {
       (_userTasks, _labels) <- userTasks.joinLeft(labels).on(_._3 === _.auditTaskId)
       if _labels.deleted === false
-    } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
+    } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.map(_.labelId), _labels.map(_.temporaryLabelId), _labels.map(_.labelTypeId))
 
     val tasksWithLabels = for {
       (_labelTypes, _userTaskLabels) <- labelTypes.join(userTaskLabels).on(_.labelTypeId === _._9)
     } yield (_userTaskLabels._1, _userTaskLabels._2, _userTaskLabels._3, _userTaskLabels._4, _userTaskLabels._5, _userTaskLabels._6, _userTaskLabels._7, _userTaskLabels._8, _labelTypes.labelType.?)
 
-    tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
+    db.run(tasksWithLabels.result).map(tasks => tasks.map(AuditTaskWithALabel.tupled))
   }
 
 
@@ -304,8 +304,8 @@ object AuditTaskTable {
    * @param userId User id
    * @return
    */
-  def lastAuditTask(userId: UUID): Option[AuditTask] = db.withSession { implicit session =>
-    auditTasks.filter(_.userId === userId.toString).list.lastOption
+  def lastAuditTask(userId: UUID): Future[Option[AuditTask]] = db.run {
+    auditTasks.filter(_.userId === userId.toString).sortBy(_.auditTaskId.desc).result.headOption
   }
 
   /**
@@ -315,8 +315,9 @@ object AuditTaskTable {
     * @param user
     * @return
     */
-  def userHasAuditedStreet(streetEdgeId: Int, user: UUID): Boolean = db.withSession { implicit session =>
-    completedTasks.filter(task => task.streetEdgeId === streetEdgeId && task.userId === user.toString).list.nonEmpty
+  def userHasAuditedStreet(streetEdgeId: Int, user: UUID): Future[Boolean] = {
+    db.run(completedTasks.filter(t => t.streetEdgeId === streetEdgeId && t.userId === user.toString).result)
+      .map(_.nonEmpty)
   }
 
   /**
@@ -325,8 +326,8 @@ object AuditTaskTable {
     * @param streetEdgeId
     * @return
     */
-  def anyoneHasAuditedStreet(streetEdgeId: Int): Boolean = db.withSession { implicit session =>
-    completedTasks.filter(_.streetEdgeId === streetEdgeId).list.nonEmpty
+  def anyoneHasAuditedStreet(streetEdgeId: Int): Future[Boolean] = {
+    db.run(completedTasks.filter(_.streetEdgeId === streetEdgeId).result).map(_.nonEmpty)
   }
 
   /**
@@ -334,12 +335,13 @@ object AuditTaskTable {
     *
     * @return
     */
-  def selectStreetsAudited: List[StreetEdge] = db.withSession { implicit session =>
+  def selectStreetsAudited: Future[Seq[StreetEdge]] = db.run {
     val _streetEdges = for {
       (_tasks, _edges) <- completedTasks.join(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
     } yield _edges
 
-    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList  // Filter out the duplicated street edge
+    val _edgeIds = _streetEdges.groupBy(_.streetEdgeId).map(_._1)
+    streetEdgesWithoutDeleted.join(_edgeIds).on(_.streetEdgeId === _).map(_._1).result
   }
 
   /**
