@@ -183,13 +183,6 @@ function LabelContainer($) {
         var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
         neighborhoodLabels[regionId].pop(label);
 
-        // Review label correctness if this is a ground truth insertion task.
-        if (("goldenInsertion" in svl) &&
-            svl.goldenInsertion &&
-            svl.goldenInsertion.isRevisingLabels()) {
-            svl.goldenInsertion.reviewLabels();
-        }
-
         svl.canvas.clear();
         svl.canvas.render();
         return this;

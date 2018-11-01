@@ -3,8 +3,11 @@
  * @param label_type
  * @param canvasX
  * @param canvasY
- * @param originalCanvasX
- * @param originalCanvasY
+ * @param originalCanvasWidth
+ * @param originalCanvasHeight
+ * @param heading
+ * @param pitch
+ * @param zoom
  * @returns {{className: string}}
  * @constructor
  */

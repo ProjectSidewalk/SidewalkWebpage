@@ -85,7 +85,6 @@ function Main (params) {
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
-
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
         if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
@@ -103,12 +102,10 @@ function Main (params) {
         svl.panoramaContainer = new PanoramaContainer(svl.streetViewService);
 
 
-
         svl.overlayMessageBox = new OverlayMessageBox(svl.modalModel, svl.ui.overlayMessage);
         svl.ribbon = new RibbonMenu(svl.overlayMessageBox, svl.tracker, svl.ui.ribbonMenu);
         svl.canvas = new Canvas(svl.ribbon);
         svl.advancedOverlay = params.advancedOverlay;
-
 
 
         // Set map parameters and instantiate it.
@@ -125,9 +122,6 @@ function Main (params) {
         svl.jumpAlert = new JumpAlert(svl.alert, svl.jumpModel);
         svl.navigationModel._mapService = svl.map;
 
-        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.navigationModel, svl.neighborhoodModel,
-            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
-        svl.tracker.initTaskId();
         svl.statusField = new StatusField(svl.ui.status);
         svl.statusFieldNeighborhood = new StatusFieldNeighborhood(svl.neighborhoodModel, svl.statusModel, svl.userModel, svl.ui.status);
         svl.statusFieldMissionProgressBar = new StatusFieldMissionProgressBar(svl.modalModel, svl.statusModel, svl.ui.status);
@@ -135,7 +129,6 @@ function Main (params) {
 
         svl.labelCounter = new LabelCounter(d3);
 
-        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         svl.pointCloud = new PointCloud();
         svl.labelFactory = new LabelFactory(svl);
@@ -147,7 +140,7 @@ function Main (params) {
 
 
         var neighborhood;
-        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel, svl.statusModel, svl.userModel);
+        svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
         svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
 
         svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
@@ -163,22 +156,29 @@ function Main (params) {
         svl.taskModel._taskContainer = svl.taskContainer;
 
         // Mission.
-        svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel, svl.taskModel);
+        svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
             svl.tracker);
         svl.missionFactory = new MissionFactory (svl.missionModel);
+
+        svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
+        svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel, svl.neighborhoodModel,
+            svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
+        svl.tracker.initTaskId();
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
+
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
         svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.taskContainer,
             modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel,
-            svl.statusModel, svl.onboardingModel);
+            svl.statusModel, svl.onboardingModel, svl.userModel);
         svl.modalMissionComplete.hide();
 
-        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.modalModel, svl.onboardingModel);
-        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel);
+        svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
+        svl.modalMission = new ModalMission(svl.missionContainer, svl.neighborhoodContainer, svl.ui.modalMission, svl.modalModel, svl.onboardingModel, svl.userModel);
         svl.modalSkip = new ModalSkip(svl.form, svl.modalModel, svl.navigationModel, svl.onboardingModel, svl.ribbon, svl.taskContainer, svl.tracker, svl.ui.leftColumn, svl.ui.modalSkip);
         svl.modalExample = new ModalExample(svl.modalModel, svl.onboardingModel, svl.ui.modalExample);
 
@@ -187,7 +187,7 @@ function Main (params) {
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
-        loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
+        loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
@@ -195,12 +195,12 @@ function Main (params) {
 
         // Mark neighborhood as complete if the initial task's completion count > 0
         // Proxy for knowing if the neighborhood is complete across all users
-        if(task.getStreetCompletionCount() > 0) {
+        if(task.streetCompletedByAnyUser()) {
             svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
         $("#toolbar-onboarding-link").on('click', function () {
-            startOnboarding();
+            window.location.replace('/audit?retakeTutorial=true');
         });
 
         $('#survey-modal-container').on('show.bs.modal', function () {
@@ -263,7 +263,7 @@ function Main (params) {
         });
     }
 
-    function loadData (neighborhood, taskContainer, missionModel, neighborhoodModel, contextMenu) {
+    function loadData (taskContainer, missionModel, neighborhoodModel, contextMenu) {
         // Fetch an onboarding task.
 
         taskContainer.fetchATask("onboarding", 15250, function () {
@@ -272,13 +272,13 @@ function Main (params) {
         });
 
         // Fetch tasks in the onboarding region.
-        taskContainer.fetchTasksInARegion(neighborhood.getProperty("regionId"), function () {
+        taskContainer.fetchTasks(function () {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
         });
 
         // Fetch all the missions
-        missionModel.fetchMissions(function () {
+        missionModel.fetchCompletedMissionsInNeighborhood(function () {
             loadingMissionsCompleted = true;
             handleDataLoadComplete();
         });
@@ -299,14 +299,10 @@ function Main (params) {
         })
     }
 
-    function hasCompletedOnboarding(completedMissions) {
-        var missionLabels = completedMissions.map(function (m) { return m.label; });
-        return missionLabels.indexOf("onboarding") >= 0 || svl.storage.get("completedOnboarding");
-    }
-
     var onboardingHandAnimation = null;
     var onboardingStates = null;
     function startOnboarding () {
+        // TODO probably have a GET endpoint to get onboarding mission..?
         //hide any alerts
         svl.alert.hideAlert();
         //hide footer
@@ -319,7 +315,7 @@ function Main (params) {
 
         if (!("onboarding" in svl && svl.onboarding)) {
 
-            // Todo. It should pass UserModel instead of User (i.e., svl.user)
+            // TODO It should pass UserModel instead of User (i.e., svl.user)
 
             svl.onboarding = new Onboarding(svl, svl.audioEffect, svl.compass, svl.form,
                 onboardingHandAnimation, svl.map,
@@ -329,49 +325,9 @@ function Main (params) {
                 svl.contextMenu, svl.ui.map, svl.ui.onboarding, svl.ui.ribbonMenu, svl.user, svl.zoomControl);
         }
         svl.onboarding.start();
-
-        var onboardingMission = svl.missionContainer.getMission("noRegionId", "onboarding", 1);
-        if (!onboardingMission) {
-            // Add the onboarding mission into the MissionContainer if it is not yet added.
-            onboardingMission = svl.missionFactory.createOnboardingMission(1, false);
-            svl.missionContainer.add(null, onboardingMission);
-        }
-        svl.missionContainer.setCurrentMission(onboardingMission);
-    }
-
-    // Query the server for the next least unaudited region (across users)
-    // and that hasn't been done by the user
-    // TODO test if this is used, we suspect it is never called and can be deleted.
-    function findTheNextRegionWithMissions () {
-        svl.neighborhoodModel.fetchNextHighPriorityRegion(false);
-    }
-
-    function findTheNextRegionWithMissionsOld (currentNeighborhood) {
-        var currentRegionId = currentNeighborhood.getProperty("regionId");
-        var allRegionIds = svl.neighborhoodContainer.getRegionIds();
-        var nextRegionId = svl.neighborhoodContainer.getNextRegionId(currentRegionId, allRegionIds);
-        var availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
-        availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-
-        while(availableMissions.length === 0) {
-            nextRegionId = svl.neighborhoodContainer.getNextRegionId(nextRegionId, allRegionIds);
-            availableMissions = svl.missionContainer.getMissionsByRegionId(nextRegionId);
-            availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            if (nextRegionId === currentRegionId) {
-                console.error("No more available regions to audit");
-                return null;
-            }
-        }
-        return nextRegionId;
     }
 
     function startTheMission(mission, neighborhood) {
-        // Record that that this user has completed the onboarding.
-        var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
-        onboardingMission.setProperty("isCompleted", true);
-        svl.missionContainer.addToCompletedMissions(onboardingMission);
-        svl.missionModel.submitMissions([onboardingMission]);
-
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
             if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
@@ -387,6 +343,7 @@ function Main (params) {
             svl.modalMission.show();
         }
         svl.missionModel.updateMissionProgress(mission, neighborhood);
+        svl.statusFieldMission.setMessage(mission);
 
         // Get the labels collected in the current neighborhood
         svl.labelContainer.fetchLabelsInANeighborhood(neighborhood.getProperty("regionId"), function () {
@@ -424,10 +381,8 @@ function Main (params) {
             });
 
         var unit = "miles";
-        var distance = svl.taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), unit);
+        var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
-
-
     }
 
     // This is a callback function that is executed after every loading process is done.
@@ -436,31 +391,17 @@ function Main (params) {
             loadingMissionsCompleted && loadNeighborhoodsCompleted &&
             loadDifficultNeighborhoodsCompleted && loadLabelTags) {
             // Check if the user has completed the onboarding tutorial..
-            var completedMissions = svl.missionContainer.getCompletedMissions();
-            var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
-            var mission;
+            var mission = svl.missionContainer.getCurrentMission();
             $("#page-loading").css({"visibility": "hidden"});
             $(".toolUI").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
 
-            if (!hasCompletedOnboarding(completedMissions)) {
+            if (mission.getProperty("missionType") === "auditOnboarding") {
                 $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
-                // If the user has completed the onboarding mission but the data is only stored in the browser
-                // because the user completed it as an anonymous user, store the record on the server.
-                // TODO this check shouldn't be necessary anymore. We an delete it once we are positve that no one with
-                //      the username "anonymous" is getting through.
-                var onboardingMission = svl.missionContainer.getMission(null, "onboarding");
-                var hasCompletionRecordStored = onboardingMission.getProperty("isCompleted");
-                if (svl.user.getProperty("username") !== "anonymous" && !hasCompletionRecordStored) {
-                    onboardingMission.setProperty("isCompleted", true);
-                    svl.missionModel.completeMission(onboardingMission, null);
-                }
-                mission = selectTheMission(currentNeighborhood); // Neighborhood changing side-effect in selectTheMission
                 _calculateAndSetTasksMissionsOffset();
-                currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
-                svl.missionContainer.setCurrentMission(mission);
+                var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
 
                 var regionId = currentNeighborhood.getProperty("regionId");
@@ -474,70 +415,17 @@ function Main (params) {
     }
 
     function _calculateAndSetTasksMissionsOffset() {
-        var neighborhoodId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+        var completedTasksDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance());
+        var completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
+        var curMission = svl.missionContainer.getCurrentMission();
+        var missProgress = curMission.getProperty("distanceProgress") ? curMission.getProperty("distanceProgress") : 0;
 
-        var completedTasksDistance = svl.taskContainer.getCompletedTaskDistance(neighborhoodId);
-
-        var missions = svl.missionContainer.getMissionsByRegionId(neighborhoodId);
-        var completedMissions = missions.filter(function (m) { return m.isCompleted(); });
-
-        var completedMissionsDistance = 0;
-
-        if(completedMissions.length > 0)
-            completedMissionsDistance = completedMissions[completedMissions.length - 1].getProperty("distance") / 1000;
-
-        if(completedMissionsDistance > completedTasksDistance) {
-            /*
-            In this case the user has audited part of a street to complete a mission, then refreshed the browser
-            and the audited street is not saved.
-             */
-            svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance);
-        } else {
-            /*
-            In this case we don't need to store any offset
-             */
-            svl.missionContainer.setTasksMissionsOffset(0);
-        }
-    }
-
-    function selectTheMission(currentNeighborhood) {
-        var regionId = currentNeighborhood.getProperty("regionId");
-        var availableMissions = svl.missionContainer.getIncompleteMissionsByRegionId(regionId);
-        var incompleteTasks = svl.taskContainer.getIncompleteTasks(regionId);
-
-
-        // TODO test if this is used, we suspect it is never true and can be deleted. This check is done on back-end now
-        if (!(incompleteMissionExists(availableMissions) && incompleteTaskExists(incompleteTasks))) {
-            findTheNextRegionWithMissions();
-            currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-            if (currentNeighborhood)
-                regionId = currentNeighborhood.getProperty("regionId");
-            else
-                regionId = null;
-
-            // TODO: This case will execute when the entire city is audited by the user. Should handle properly!
-            if (regionId === null) return;  // No missions available.
-
-            availableMissions = svl.missionContainer.getMissionsByRegionId(regionId);
-            availableMissions = availableMissions.filter(function (m) { return !m.isCompleted(); });
-            svl.taskContainer.getFinishedAndInitNextTask();
-        }
-        return availableMissions[0];
-    }
-
-    function incompleteMissionExists(missions) {
-        var _missions = missions.filter(function (m) { return !m.isCompleted(); });
-        return _missions.length > 0;
-    }
-
-    function incompleteTaskExists(tasks) {
-        var _tasks = tasks.filter(function (t) { return !t.isCompleted(); });
-        return _tasks.length > 0;
+        svl.missionContainer.setTasksMissionsOffset(completedMissionsDistance - completedTasksDistance + missProgress);
     }
 
     /**
      * Store jQuery DOM elements under svl.ui
-     * Todo. Once we update all the modules to take ui elements as injected argumentss, get rid of the svl.ui namespace and everything in it.
+     * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace and everything in it.
      * @private
      */
     function _initUI () {
@@ -607,8 +495,8 @@ function Main (params) {
         svl.ui.contextMenu = {};
         svl.ui.contextMenu.holder = $("#context-menu-holder");
         svl.ui.contextMenu.connector = $("#context-menu-vertical-connector");
-        svl.ui.contextMenu.radioButtons = $("input[name='problem-severity']");
-        svl.ui.contextMenu.temporaryProblemCheckbox = $("#context-menu-temporary-problem-checkbox");
+        svl.ui.contextMenu.radioButtons = $("input[name='label-severity']");
+        svl.ui.contextMenu.temporaryLabelCheckbox = $("#context-menu-temporary-problem-checkbox");
         svl.ui.contextMenu.tags = $("button[name='tag']");
         svl.ui.contextMenu.textBox = $("#context-menu-problem-description-text-box");
         svl.ui.contextMenu.closeButton = $("#context-menu-close-button");

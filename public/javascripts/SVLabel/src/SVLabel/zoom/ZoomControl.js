@@ -1,5 +1,9 @@
 /**
  * Todo. Separate the UI component and the logic component
+ * @param canvas
+ * @param mapService
+ * @param canvas
+ * @param mapService
  * @param tracker
  * @param uiZoomControl
  * @returns {{className: string}}
@@ -263,7 +267,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
     /**
      * This method takes a (x, y) canvas point and zoom in to that point.
-     * @param x canvaz x coordinate
+     * @param x canvas x coordinate
      * @param y canvas y coordinate
      * @returns {*}
      */

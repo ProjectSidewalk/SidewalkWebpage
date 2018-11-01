@@ -18,8 +18,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
     this._instructToCheckSidewalks = function () {
         if (!svl.isOnboarding()) {
             // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
-            var neighborhood = neighborhoodContainer.getCurrentNeighborhood();
-            var distance = taskContainer.getCompletedTaskDistance(neighborhood.getProperty("regionId"), "kilometers");
+            var distance = taskContainer.getCompletedTaskDistance("kilometers");
             if (distance >= 0.025) {
                 var title = "Please check both sides of the street";
                 var message = "Remember, we would like you to check both sides of the street. " +
@@ -186,7 +185,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
             initialHeading = mapService.getPov().heading;
-            lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
+            // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
             initialPanoId = mapService.getPanoId();
             lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
         }

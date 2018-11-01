@@ -139,7 +139,7 @@ function logWebpageActivity(activity){
 
 $( document ).ready(function() {
 
-    switchToVideo(1)
+    switchToVideo(1);
     function autoAdvanceLaptopVideos(){
         if (autoAdvanceLaptop) switchToVideo(1);
         setTimeout(function () {
