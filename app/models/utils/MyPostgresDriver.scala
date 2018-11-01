@@ -2,6 +2,8 @@ package models.utils
 
 import com.github.tminglei.slickpg._
 import play.api.libs.json.{JsValue, Json}
+import slick.driver.JdbcProfile
+import slick.profile.Capability
 
 trait MyPostgresDriver extends ExPostgresDriver
   with PgArraySupport

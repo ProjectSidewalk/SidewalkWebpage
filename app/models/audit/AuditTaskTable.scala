@@ -245,7 +245,7 @@ object AuditTaskTable {
     val edgesAuditedByUser = completedTasks.filter(_.userId === user.toString)
 
     nonDeletedStreetEdgeRegions.joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _.streetEdgeId)
-      .filter(_._2.isEmpty).map(_._1.streetEdgeId).result
+      .filter(x => x._2.isEmpty && x._1.regionId === regionId).map(_._1.streetEdgeId).result
   }
 
   /**
@@ -350,13 +350,14 @@ object AuditTaskTable {
    * @param userId User Id
    * @return
    */
-  def selectStreetsAuditedByAUser(userId: UUID): List[StreetEdge] =  db.withSession { implicit session =>
+  def selectStreetsAuditedByAUser(userId: UUID): Future[Seq[StreetEdge]] =  db.run {
     val _streetEdges = for {
       (_tasks, _edges) <- completedTasks.join(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
       if _tasks.userId === userId.toString
     } yield _edges
 
-    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
+    val _edgeIds = _streetEdges.groupBy(_.streetEdgeId).map(_._1)
+    streetEdgesWithoutDeleted.join(_edgeIds).on(_.streetEdgeId === _).map(_._1).result
   }
 
 
@@ -365,20 +366,17 @@ object AuditTaskTable {
     *
     * @param userId User id
     */
-  def selectAuditCountsPerDayByUserId(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
-    val selectAuditCountQuery =  Q.query[String, (String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id)
-        |FROM
-        |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, 30) n
-        |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |                              AND audit_task.user_id = ?
-        |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
-    )
-    selectAuditCountQuery(userId.toString).list.map(x => AuditCountPerDay.tupled(x))
+  def selectAuditCountsPerDayByUserId(userId: UUID): Future[Seq[AuditCountPerDay]] = db.run {
+    sql"""SELECT calendar_date::date, COUNT(audit_task_id)
+          FROM
+          (
+              SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
+              FROM generate_series(0, 30) n
+          ) AS calendar
+          LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
+                                        AND audit_task.user_id = ${userId.toString}
+          GROUP BY calendar_date
+          ORDER BY calendar_date""".as[AuditCountPerDay]
   }
 
   /**
@@ -386,20 +384,34 @@ object AuditTaskTable {
     * @param userId
     * @return
     */
-  def selectCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
-    completedTasks.filter(_.userId === userId.toString).list
+  def selectCompletedTasks(userId: UUID): Future[Seq[AuditTask]] = db.run {
+    completedTasks.filter(_.userId === userId.toString).result
   }
 
   /**
     * Get the sum of the line distance of all streets in the region that the user has not audited.
+    * TODO not compiling, waiting on stackoverflow question I asked:
+    * https://stackoverflow.com/questions/53094473/changes-to-slick-pg-length-function-for-replinestring
     *
     * @param userId
     * @param regionId
     * @return
     */
-  def getUnauditedDistance(userId: UUID, regionId: Int): Float = db.withSession { implicit session =>
-    val streetsLeft: List[Int] = streetEdgeIdsNotAuditedByUser(userId, regionId)
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId inSet streetsLeft).map(_.geom.transform(26918).length).list.sum
+  def getUnauditedDistance(userId: UUID, regionId: Int): Future[Seq[Float]] = { // TODO NOT A SEQ, SUM THEM
+    val edgesAuditedByUser = completedTasks.filter(_.userId === userId.toString)
+
+    val unAuditedEdges = nonDeletedStreetEdgeRegions.joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _.streetEdgeId)
+      .filter(x => x._2.isEmpty && x._1.regionId === regionId).map(_._1.streetEdgeId)
+
+//    db.run {
+//      streetEdgesWithoutDeleted.join(unAuditedEdges).on(_.streetEdgeId === _)
+//        .map(_._1.streetEdgeId).sum.result
+//    }.map(_.getOrElse(0))
+//    db.run(streetEdgesWithoutDeleted.map(_.streetEdgeId).sum.result).map(_.getOrElse(0))
+    db.run(streetEdgesWithoutDeleted.map(_.geom.transform(26918).length).result)//.map(_.getOrElse(0F))
+
+//    val streetsLeft: List[Int] = streetEdgeIdsNotAuditedByUser(userId, regionId)
+//    streetEdgesWithoutDeleted.filter(_.streetEdgeId inSet streetsLeft).map(_.geom.transform(26918).length).list.sum
   }
 
   /**
@@ -408,11 +420,12 @@ object AuditTaskTable {
     * @param streetEdgeId Street edge id
     * @return
     */
-  def selectANewTask(streetEdgeId: Int, user: Option[UUID]): NewTask = db.withSession { implicit session =>
+  def selectANewTask(streetEdgeId: Int, user: Option[UUID]): Future[NewTask] = db.withSession { implicit session =>
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     // Set completed to true if the user has already audited this street.
-    val userCompleted: Boolean = if (user.isDefined) userHasAuditedStreet(streetEdgeId, user.get) else false
+    val userCompleted: Future[Boolean] =
+      if (user.isDefined) userHasAuditedStreet(streetEdgeId, user.get) else Future { false }
 
     // Join with other queries to get completion count and priority for each of the street edges.
     val edges = for {
