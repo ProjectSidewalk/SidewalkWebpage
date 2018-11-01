@@ -231,7 +231,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
              */
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
-                var label = contextMenu.isOpen() ? contextMenu.getTargetLabel() : undefined;
                 switch (e.keyCode) {
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                         // "b" for a blocked view
@@ -247,12 +246,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
                                 keyCode: e.keyCode
                             });
-                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'CurbRamp') {
-                            contextMenu.hide();
-                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
-                                keyCode: e.keyCode
-                            });
-                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        } else {
+                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case util.misc.getLabelDescriptions('Walk')['shortcut']['keyNumber']:
@@ -269,12 +264,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
                                 keyCode: e.keyCode
                             });
-                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'NoCurbRamp') {
-                            contextMenu.hide();
-                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
-                                keyCode: e.keyCode
-                            });
-                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        } else {
+                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
@@ -290,12 +281,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
                                 keyCode: e.keyCode
                             });
-                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'Obstacle') {
-                            contextMenu.hide();
-                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
-                                keyCode: e.keyCode
-                            });
-                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        } else {
+                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
@@ -304,12 +291,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
                                 keyCode: e.keyCode
                             });
-                        } else if (contextMenu.isOpen() && label.getProperty('labelType') === 'SurfaceProblem') {
-                            contextMenu.hide();
-                            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
-                                keyCode: e.keyCode
-                            });
-                            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        } else {
+                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case 16: //shift
@@ -374,6 +357,14 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             contextMenu.updateRadioButtonImages();
         }
     };
+
+    function _closeContextMenu(key) {
+        contextMenu.hide();
+        svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
+            keyCode: key
+        });
+        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+    }
 
     
     /**
