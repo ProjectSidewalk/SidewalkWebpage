@@ -128,17 +128,10 @@ object AuditTaskTable {
 
   // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
   // TODO it would be better to only consier "good user" audits here, but it would take too long to calculate each time.
-  // : Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq]
-  def streetCompletedByAnyUser = {
-    // Completion count for audited streets.
-    val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
-
-    // Gets completion count of 0 for unaudted streets w/ a left join, then checks if completion count is > 0.
-    streetEdgesWithoutDeleted.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map {
-//      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt._2.ifNull(0.asColumnOf[Int]) > 0)
-//      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt.map(_._2).ifNull(0.asColumnOf[Int]) > 0)
-      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt.map(_._2 > 0).getOrElse(false))
-    }
+  def streetCompletedByAnyUser: Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq] = {
+    streetEdgesWithoutDeleted.joinLeft(completedTasks).on(_.streetEdgeId === _.streetEdgeId)
+      .map{ case (_street, _audit) => (_street.streetEdgeId, _audit.map(_.auditTaskId)) }
+      .groupBy(_._1).map { case (_street, group) => (_street, group.map(_._2).countDefined > 0) }
   }
 
   /**
