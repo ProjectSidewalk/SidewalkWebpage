@@ -86,6 +86,9 @@ object MissionTable {
   val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 304.8F, 304.8F)
   val distanceForLaterMissions: Float = 402.336F // 1/4 mile
 
+  // Distances for validation mission
+  val validationMissionLabelCount: Int = 10
+
 
   implicit val missionConverter = GetResult[Mission](r => {
     val missionId: Int = r.nextInt
@@ -166,6 +169,10 @@ object MissionTable {
     */
   def getCurrentMissionInRegion(userId: UUID, regionId: Int): Option[Mission] = db.withSession { implicit session =>
     missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).list.headOption
+  }
+
+  def getCurrentValidationMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
+    missions.filter(m => m.userId === userId.toString).list.headOption
   }
 
   /**
@@ -314,6 +321,32 @@ object MissionTable {
   }
 
   /**
+    * Accesses mission table for validation missions
+    * @param actions List containing "getValidationMission" or "getValidationOnboarding"
+    * @param userId Always required
+    * @param payPerLabel
+    * @param tutorialPay
+    * @return
+    */
+  def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double], tutorialPay: Option[Double]): Option[Mission] = db.withSession { implicit session =>
+      if (actions.contains("getValidationMission")) {
+        println("got validation mission")
+        getCurrentValidationMission(userId) match {
+          case Some(incompleteMission) =>
+            println("have an incomplete validation mission available")
+            Some(incompleteMission)
+          case _ =>
+            val validationLabels: Int = getNextValidationMissionLabelCount (userId)
+            println ("Getting " + validationLabels + " labels")
+            val pay: Double = validationLabels.toDouble * payPerLabel.get
+            Some (createNextValidationMission (userId, pay, validationLabels))
+        }
+      } else {
+        None // If we are not trying to get a mission, return None
+      }
+  }
+
+  /**
     * Marks the given mission as complete and gets another mission in the given region if possible.
     *
     * @param userId
@@ -381,6 +414,11 @@ object MissionTable {
      queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None)
    }
 
+  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double): Option[Mission] = {
+    val actions: List[String] = List("getValidationMission")
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay))
+  }
+
   /**
     * Get the suggested distance in meters for the next mission this user does in this region.
     *
@@ -397,6 +435,10 @@ object MissionTable {
     math.min(distRemaining, naiveMissionDist)
   }
 
+  def getNextValidationMissionLabelCount(userId: UUID): Int = {
+    validationMissionLabelCount
+  }
+
   /**
     * Creates a new audit mission entry in mission table for the specified user/region id.
     *
@@ -409,6 +451,25 @@ object MissionTable {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
     val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false)
+    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
+    missions.filter(_.missionId === missionId).list.head
+  }
+
+  /* missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
+    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
+    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
+    labelsProgress: Option[Int], skipped: Boolean)
+    */
+
+  /**
+    *
+    * @param userId
+    * @return
+    */
+  def createNextValidationMission(userId: UUID, pay: Double, validate: Int) : Mission = db.withSession { implicit session =>
+    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val missionTypeId: Int = MissionTypeTable.missionTypeToId("validation")
+    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, Some(validate), Some(0.0.toInt), false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
   }

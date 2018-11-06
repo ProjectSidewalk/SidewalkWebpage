@@ -63,7 +63,6 @@ function Panorama() {
 
     /**
      * Retrieves a label from the database
-     * TODO: figure out how to query labels without using the adminapi
      * @param labelId   label_id
      */
     function setLabel(labelId) {
@@ -85,7 +84,7 @@ function Panorama() {
      */
     function renderLabel() {
         var url = label.getIconUrl();
-        var pos = getPosition(label.getProperty('canvasX'), label.getProperty('canvasY'),
+        var pos = _getPosition(label.getProperty('canvasX'), label.getProperty('canvasY'),
             label.getProperty('canvasWidth'), label.getProperty('canvasHeight'),
             label.getProperty('zoom'), label.getProperty('heading'), label.getProperty('pitch'));
 
@@ -114,7 +113,7 @@ function Panorama() {
      * @param pitch             Original pitch of label
      * @returns {{heading: number, pitch: number}}
      */
-    function getPosition(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch) {
+    function _getPosition(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch) {
         function sgn(x) {
             return x >= 0 ? 1 : -1;
         }
@@ -126,7 +125,7 @@ function Panorama() {
         var sqrt = Math.sqrt;
         var atan2 = Math.atan2;
         var asin = Math.asin;
-        var fov = get3dFov(zoom) * PI / 180.0;
+        var fov = _get3dFov(zoom) * PI / 180.0;
         var width = canvas_width;
         var height = canvas_height;
         var h0 = heading * PI / 180.0;
@@ -160,7 +159,7 @@ function Panorama() {
      * @param zoom
      * @returns {number}
      */
-    function get3dFov (zoom) {
+    function _get3dFov (zoom) {
         return zoom <= 2 ?
             126.5 - zoom * 36.75 :  // linear descent
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally

@@ -7,13 +7,10 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.IssueFormats._
-import formats.json.CommentSubmissionFormats._
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.mission.Mission
 import models.mission.MissionTable
-import models.region._
-import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
@@ -34,6 +31,9 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
+        println(user)
+        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
+
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user))))
       case None =>
         Future.successful(Redirect("/"))
