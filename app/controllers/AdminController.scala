@@ -381,18 +381,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   def getAllPanoIds() = UserAwareAction.async { implicit request =>
-
-    val labels = LabelTable.selectLocationsOfLabels
-    val features: List[JsObject] = labels.map { label =>
-
-      val properties = Json.obj(
-        "gsv_panorama_id" -> label.gsvPanoramaId
-      )
-      Json.obj("properties" -> properties)
+    LabelTable.selectLocationsOfLabels map { labels =>
+      Ok(Json.obj(
+        "type" -> "FeatureCollection",
+        "features" -> labels.map { label =>
+          Json.obj("properties" -> Json.obj("gsv_panorama_id" -> label.gsvPanoramaId))
+        }
+      ))
     }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
-
   }
 
   /**
