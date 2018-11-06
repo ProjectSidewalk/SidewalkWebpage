@@ -12,7 +12,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel, UserAuditTime}
+import models.audit._
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label._
@@ -323,8 +323,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
-          Future.successful(Ok(JsArray(tasksWithLabels)))
+          val tasksWithLabelsFuture = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId))
+          tasksWithLabelsFuture map { tasksWithLabels => Ok(JsArray(tasksWithLabels.map(x => Json.toJson(x)))) }
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
@@ -342,8 +342,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username) match {
         case Some(user) =>
-          val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(UUID.fromString(user.userId)).map(interaction => Json.toJson(interaction))
-          Future.successful(Ok(JsArray(interactions)))
+          val interactionsFuture = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(UUID.fromString(user.userId))
+          interactionsFuture map { interactions => Ok(JsArray(interactions.map(x => Json.toJson(x)))) }
         case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
       }
     } else {
@@ -353,12 +353,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      AuditTaskTable.find(taskId) match {
+      val auditTaskFuture: Future[Option[AuditTask]] = AuditTaskTable.find(taskId)
+      auditTaskFuture flatMap {
         case Some(task) =>
           // Select interactions and format it into a geojson
-          val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.selectAuditInteractionsWithLabels(task.auditTaskId)
-          val featureCollection: JsObject = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
-          Future.successful(Ok(featureCollection))
+          AuditTaskInteractionTable.selectAuditInteractionsWithLabels(task.auditTaskId) map { interactions =>
+            Ok(AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactions))
+          }
         case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
       }
     } else {
