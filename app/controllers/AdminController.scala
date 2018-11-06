@@ -285,10 +285,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val onboardingTransitions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")
-      val jsonObjectList = onboardingTransitions.map(x => Json.toJson(x))
-
-      Future.successful(Ok(JsArray(jsonObjectList)))
+      val transitionsFuture = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")
+      transitionsFuture map { transitions => Ok(JsArray(transitions.map(x => Json.toJson(x)))) }
     } else {
       Future.successful(Redirect("/"))
     }
