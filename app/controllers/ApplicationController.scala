@@ -57,12 +57,12 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             request.identity match {
               case Some(user) =>
                 // Have different cases when the user.username is the same as the workerId and when it isn't.
-                user.username match{
+                user.username match {
                   case `workerId` =>
                     val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
                     activityLogText = activityLogText + "_reattempt=true"
                     val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
-                    val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                    val asgId: Future[Int] = AMTAssignmentTable.save(asg)
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
                     Future.successful(Redirect("/audit"))
                   case _ =>
@@ -73,7 +73,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 // Add an entry into the amt_assignment table.
                 val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
                 val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
-                val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                val asgId: Future[Int] = AMTAssignmentTable.save(asg)
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
                 val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
                 Future.successful(Redirect(redirectTo))
