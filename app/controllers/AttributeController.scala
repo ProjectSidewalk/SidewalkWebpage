@@ -256,16 +256,15 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
             // Add the clusters to user_attribute table, and the associated user_attribute_labels after each cluster.
             for (cluster <- clusters) yield {
               UserAttributeTable.save(
-                  UserAttribute(0,
-                    userSessionId,
-                    thresholds(cluster.labelType),
-                    LabelTypeTable.labelTypeToId(cluster.labelType),
-                    RegionTable.selectRegionIdOfClosestNeighborhood(cluster.lng, cluster.lat),
-                    cluster.lat,
-                    cluster.lng,
-                    cluster.severity,
-                    cluster.temporary
-                  )
+                UserAttribute(0,
+                  userSessionId,
+                  thresholds(cluster.labelType),
+                  LabelTypeTable.labelTypeToId(cluster.labelType),
+                  RegionTable.selectRegionIdOfClosestNeighborhood(cluster.lng, cluster.lat),
+                  cluster.lat,
+                  cluster.lng,
+                  cluster.severity,
+                  cluster.temporary)
                 ).foreach { attributeId =>
                 // Add all the labels associated with that user_attribute to the user_attribute_label table
                 groupedLabels get cluster.clusterNum match {
@@ -317,11 +316,10 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
           val timestamp: Timestamp = new Timestamp(now.getMillis)
 
           // Add corresponding entry to the global_clustering_session table
-          val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))
+          GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp)) map { globalSessionId =>
 
-          // Add the clusters to global_attribute table, and the associated user_attributes after each cluster.
-          for (cluster <- clusters) yield {
-            val attributeId: Int =
+            // Add the clusters to global_attribute table, and the associated user_attributes after each cluster.
+            for (cluster <- clusters) yield {
               GlobalAttributeTable.save(
                 GlobalAttribute(0,
                   globalSessionId,
@@ -332,18 +330,20 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
                   cluster.lng,
                   cluster.severity,
                   cluster.temporary)
-              )
-            // Add all the associated labels to the global_attribute_user_attribute table
-            groupedLabels get cluster.clusterNum match {
-              case Some(group) =>
-                for (label <- group) yield {
-                  GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
+                ).foreach { attributeId =>
+                // Add all the associated labels to the global_attribute_user_attribute table
+                groupedLabels get cluster.clusterNum match {
+                  case Some(group) =>
+                    for (label <- group) yield {
+                      GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
+                    }
+                  case None =>
+                    Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
                 }
-              case None =>
-                Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+              }
             }
+            Ok(Json.obj("session" -> globalSessionId))
           }
-          Future.successful(Ok(Json.obj("session" -> globalSessionId)))
         }
       )
     } else {
