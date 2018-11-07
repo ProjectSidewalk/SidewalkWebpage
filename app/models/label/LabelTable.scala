@@ -133,9 +133,8 @@ object LabelTable {
     * @param labelId
     * @return
     */
-  def find(labelId: Int): Option[Label] = db.withSession { implicit session =>
-    val labelList = labels.filter(_.labelId === labelId).list
-    labelList.headOption
+  def find(labelId: Int): Future[Option[Label]] = db.run {
+    labels.filter(_.labelId === labelId).result.headOption
   }
 
   /**
@@ -145,16 +144,16 @@ object LabelTable {
     * @param auditTaskId
     * @return
     */
-  def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
-    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
+  def find(tempLabelId: Int, auditTaskId: Int): Future[Option[Int]] = db.run {
+    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map {
       label => label.labelId
     }
-    labelIds.list.headOption
+    labelIds.result.headOption
   }
 
-  def countLabels: Int = db.withTransaction(implicit session =>
-    labels.filter(_.deleted === false).list.size
-  )
+  def countLabels: Future[Int] = db.run {
+    labels.filter(_.deleted === false).length.result
+  }
 
   def countLabelsBasedOnType(labelTypeString: String): Int = db.withTransaction(implicit session =>
     labels.filter(_.deleted === false).filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelTypeString)).list.size
