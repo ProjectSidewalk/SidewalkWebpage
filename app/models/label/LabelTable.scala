@@ -576,22 +576,19 @@ object LabelTable {
     * @param maxLng
     * @return
     */
-  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
-    val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng
-        |FROM sidewalk.label
-        |INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
-        |WHERE label.deleted = false
-        |    AND label_point.lat IS NOT NULL
-        |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
-    )
-    selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
+  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): Future[Seq[LabelLocation]] = db.run {
+    sql"""SELECT label.label_id,
+                 label.audit_task_id,
+                 label.gsv_panorama_id,
+                 label_type.label_type,
+                 label_point.lat,
+                 label_point.lng
+          FROM sidewalk.label
+          INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
+          INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
+          WHERE label.deleted = false
+              AND label_point.lat IS NOT NULL
+              AND ST_Intersects(label_point.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))""".as[LabelLocation]
   }
 
   /**
@@ -600,7 +597,7 @@ object LabelTable {
     * @param userId
    * @return
    */
-  def selectLocationsOfLabelsByUserId(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+  def selectLocationsOfLabelsByUserId(userId: UUID): Future[Seq[LabelLocation]] = {
     val _labels = for {
       ((_auditTasks, _labels), _labelTypes) <- auditTasks joinLeft labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) joinLeft labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString
@@ -610,8 +607,7 @@ object LabelTable {
       (l, p) <- _labels.join(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
-    val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
-    labelLocationList
+    db.run(_points.result) map { labels => labels.map(LabelLocation.tupled) }
   }
 
   /**
