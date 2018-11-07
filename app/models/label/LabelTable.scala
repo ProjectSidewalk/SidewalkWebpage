@@ -18,6 +18,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import slick.jdbc.GetResult
 
@@ -155,9 +156,11 @@ object LabelTable {
     labels.filter(_.deleted === false).length.result
   }
 
-  def countLabelsBasedOnType(labelTypeString: String): Int = db.withTransaction(implicit session =>
-    labels.filter(_.deleted === false).filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelTypeString)).list.size
-  )
+  def countLabelsBasedOnType(labelTypeString: String): Future[Int] = {
+    LabelTypeTable.labelTypeToId(labelTypeString) flatMap { typeId =>
+      db.run(labels.filter(lab => lab.deleted === false && lab.labelTypeId === typeId).length.result)
+    }
+  }
 
   /*
   * Counts the number of labels added today.
@@ -165,16 +168,12 @@ object LabelTable {
   * will be added for the task end date
   * Date: Aug 28, 2016
   */
-  def countTodayLabels: Int = db.withSession { implicit session =>
-
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT label.label_id
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE audit_task.task_end::date = now()::date
-        |    AND label.deleted = false""".stripMargin
-    )
-    countQuery.list.size
+  def countTodayLabels: Future[Int] = db.run {
+    sql"""SELECT COUNT(label.label_id)
+          FROM sidewalk.audit_task
+          INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+          WHERE audit_task.task_end::date = now()::date
+              AND label.deleted = false""".as[Int].head
   }
 
   /*
@@ -183,19 +182,17 @@ object LabelTable {
   * will be added for the task end date
   * Date: Aug 28, 2016
   */
-  def countTodayLabelsBasedOnType(labelType: String): Int = db.withSession { implicit session =>
-
-    val countQuery = s"""SELECT label.label_id
-                         |  FROM sidewalk.audit_task
-                         |INNER JOIN sidewalk.label
-                         |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE audit_task.task_end::date = now()::date
-                         |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
-                         |														FROM sidewalk.label_type as lt
-                         |														WHERE lt.label_type='$labelType')""".stripMargin
-    val countQueryResult = Q.queryNA[(Int)](countQuery)
-
-    countQueryResult.list.size
+  def countTodayLabelsBasedOnType(labelType: String): Future[Int] = db.run {
+    sql"""SELECT label.label_id
+          FROM sidewalk.audit_task
+          INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+          WHERE audit_task.task_end::date = now()::date
+              AND label.deleted = false
+              AND label.label_type_id = (
+                  SELECT label_type_id
+                  FROM sidewalk.label_type as lt
+                  WHERE lt.label_type='$labelType'
+              )""".as[Int].head
   }
 
   /*
@@ -688,17 +685,16 @@ object LabelTable {
     * @return
     */
   def selectLabelCountsPerDay: Future[Seq[LabelCountPerDay]] = db.run {
-    val selectLabelCountQuery =
-      sql"""SELECT calendar_date::date, COUNT(label_id)
-            FROM
-            (
-                SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-                FROM generate_series(0, current_date - '11/17/2015') n
-            ) AS calendar
-            LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-            LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-            GROUP BY calendar_date
-            ORDER BY calendar_date""".as[LabelCountPerDay]
+    sql"""SELECT calendar_date::date, COUNT(label_id)
+          FROM
+          (
+              SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
+              FROM generate_series(0, current_date - '11/17/2015') n
+          ) AS calendar
+          LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
+          LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+          GROUP BY calendar_date
+          ORDER BY calendar_date""".as[LabelCountPerDay]
   }
 
 
