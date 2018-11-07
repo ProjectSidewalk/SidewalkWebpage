@@ -117,7 +117,7 @@ object LabelTable {
                            userId: String, username: String,
                            timestamp: Option[java.sql.Timestamp],
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                           temporary: Boolean, description: Option[String], tags: List[String])
+                           temporary: Boolean, description: Option[String], tags: Seq[String])
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -127,6 +127,11 @@ object LabelTable {
 
   implicit val labelCountPerDayConverter = GetResult[LabelCountPerDay](r =>
     LabelCountPerDay(r.nextString, r.nextInt))
+
+  implicit val labelMetadataWithoutTagsConverter = GetResult[LabelMetadataWithoutTags](r =>
+    LabelMetadataWithoutTags(r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt,
+      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestampOption, r.nextString, r.nextString,
+      r.nextIntOption, r.nextBoolean, r.nextStringOption))
 
   /**
     * Find a label
@@ -183,7 +188,7 @@ object LabelTable {
   * Date: Aug 28, 2016
   */
   def countTodayLabelsBasedOnType(labelType: String): Future[Int] = db.run {
-    sql"""SELECT label.label_id
+    sql"""SELECT COUNT(label.label_id)
           FROM sidewalk.audit_task
           INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
           WHERE audit_task.task_end::date = now()::date
@@ -199,33 +204,29 @@ object LabelTable {
   * Counts the number of labels added yesterday
   * Date: Aug 28, 2016
   */
-  def countYesterdayLabels: Int = db.withTransaction { implicit session =>
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT label.label_id
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
-        |    AND label.deleted = false""".stripMargin
-    )
-    countQuery.list.size
+  def countYesterdayLabels: Future[Int] = db.run {
+    sql"""SELECT COUNT(label.label_id)
+          FROM sidewalk.audit_task
+          INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+          WHERE audit_task.task_end::date = now()::date - interval '1' day
+              AND label.deleted = false""".as[Int].head
   }
 
   /*
   * Counts the number of specific label types added yesterday
   * Date: Aug 28, 2016
   */
-  def countYesterdayLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
-    val countQuery = s"""SELECT label.label_id
-                         |  FROM sidewalk.audit_task
-                         |INNER JOIN sidewalk.label
-                         |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE audit_task.task_end::date = now()::date - interval '1' day
-                         |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
-                         |														FROM sidewalk.label_type as lt
-                         |														WHERE lt.label_type='$labelType')""".stripMargin
-    val countQueryResult = Q.queryNA[(Int)](countQuery)
-
-    countQueryResult.list.size
+  def countYesterdayLabelsBasedOnType(labelType: String): Future[Int] = db.run {
+    sql"""SELECT COUNT(label.label_id)
+          FROM sidewalk.audit_task
+          INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+          WHERE audit_task.task_end::date = now()::date - interval '1' day
+              AND label.deleted = false
+              AND label.label_type_id = (
+                  SELECT label_type_id
+                  FROM sidewalk.label_type as lt
+                  WHERE lt.label_type='$labelType'
+              )""".as[Int].head
   }
 
 
@@ -235,12 +236,12 @@ object LabelTable {
     * @param userId User id
     * @return A number of labels submitted by the user
     */
-  def countLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
+  def countLabelsByUserId(userId: UUID): Future[Int] = db.run {
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val _labels = for {
       (_tasks, _labels) <- tasks.join(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
     } yield _labels
-    _labels.list.size
+    _labels.length.result
   }
 
   def updateDeleted(labelId: Int, deleted: Boolean): Future[Int] = {
@@ -253,62 +254,65 @@ object LabelTable {
     * @param label
    * @return
    */
-  def save(label: Label): Int = db.withTransaction { implicit session =>
-    val labelId: Int =
-      (labels returning labels.map(_.labelId)) += label
-    labelId
+  def save(label: Label): Future[Int] = db.run {
+    (labels returning labels.map(_.labelId)) += label
   }
 
   // TODO translate the following three queries to Slick
-  def retrieveLabelMetadata(takeN: Int): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int, (Int, String, Float, Float, Int, Int, Int, Int, Int,
-      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String])](
-      """SELECT lb1.label_id,
-        |       lb1.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height,
-        |       lb1.audit_task_id,
-        |       u.user_id,
-        |       u.username,
-        |       lb1.time_created,
-        |       lb_big.label_type,
-        |       lb_big.label_type_desc,
-        |       lb_big.severity,
-        |       lb_big.temp,
-        |       lb_big.description
-        |FROM sidewalk.label AS lb1,
-        |     sidewalk.audit_task AS at,
-        |     sidewalk_user AS u,
-        |     sidewalk.label_point AS lp,
-        |			(
-        |         SELECT lb.label_id,
-        |                lb.gsv_panorama_id,
-        |                lbt.label_type,
-        |                lbt.description AS label_type_desc,
-        |                sev.severity,
-        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
-        |                lab_desc.description
-        |					FROM label AS lb
-        |				  LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
-        |  				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
-        |				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
-        |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
-        |		  ) AS lb_big
-        |WHERE lb1.deleted = FALSE
-        |    AND lb1.audit_task_id = at.audit_task_id
-        |    AND lb1.label_id = lb_big.label_id
-        |    AND at.user_id = u.user_id
-        |    AND lb1.label_id = lp.label_id
-        |ORDER BY lb1.label_id DESC
-        |LIMIT ?""".stripMargin
-    )
-    selectQuery(takeN).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
+  def retrieveLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]] = {
+    val selectQuery =
+      sql"""SELECT lb1.label_id,
+                   lb1.gsv_panorama_id,
+                   lp.heading,
+                   lp.pitch,
+                   lp.zoom,
+                   lp.canvas_x,
+                   lp.canvas_y,
+                   lp.canvas_width,
+                   lp.canvas_height,
+                   lb1.audit_task_id,
+                   u.user_id,
+                   u.username,
+                   lb1.time_created,
+                   lb_big.label_type,
+                   lb_big.label_type_desc,
+                   lb_big.severity,
+                   lb_big.temp,
+                   lb_big.description
+            FROM sidewalk.label AS lb1,
+                 sidewalk.audit_task AS at,
+                 sidewalk_user AS u,
+                 sidewalk.label_point AS lp,
+            			(
+                     SELECT lb.label_id,
+                            lb.gsv_panorama_id,
+                            lbt.label_type,
+                            lbt.description AS label_type_desc,
+                            sev.severity,
+                            COALESCE(lab_temp.temporary, 'FALSE') AS temp,
+                            lab_desc.description
+            					FROM label AS lb
+            				  LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
+              				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
+            				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
+            				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
+            		  ) AS lb_big
+            WHERE lb1.deleted = FALSE
+                AND lb1.audit_task_id = at.audit_task_id
+                AND lb1.label_id = lb_big.label_id
+                AND at.user_id = u.user_id
+                AND lb1.label_id = lp.label_id
+            ORDER BY lb1.label_id DESC
+            LIMIT $takeN""".as[LabelMetadataWithoutTags]
+    db.run(selectQuery) flatMap { metadataWithoutTagsList =>
+      Future.sequence(
+        metadataWithoutTagsList.map { metadataWithoutTags =>
+          getTagsFromLabelId(metadataWithoutTags.labelId).map { tags =>
+            labelAndTagsToLabelMetadata(metadataWithoutTags, tags)
+          }
+        }
+      )
+    }
   }
 
   def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
@@ -422,7 +426,7 @@ object LabelTable {
     * @param tags list of tags as strings
     * @return LabelMetadata object
     */
-  def labelAndTagsToLabelMetadata(label: LabelMetadataWithoutTags, tags: List[String]): LabelMetadata = {
+  def labelAndTagsToLabelMetadata(label: LabelMetadataWithoutTags, tags: Seq[String]): LabelMetadata = {
       LabelMetadata(
         label.labelId, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
         label.canvasWidth, label.canvasHeight ,label.auditTaskId ,label.userId ,label.username, label.timestamp,
