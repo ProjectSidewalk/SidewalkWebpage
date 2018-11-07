@@ -27,6 +27,9 @@ import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
 /**
  * Task controller
  */
@@ -42,8 +45,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
-    val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
-    Future.successful(Ok(task.toJSON))
+    AuditTaskTable.selectANewTask(streetEdgeId, None) map { task => Ok(task.toJSON) }
   }
 
   /**
@@ -130,8 +132,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     if ((auditTask.completed.isDefined && auditTask.completed.get)
       || (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable")) {
       // if this was the first completed audit of this street edge, increase total audited distance of that region.
-      if (!AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId)) {
-        RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
+      AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId) foreach { anyoneHasAudited =>
+        if (!anyoneHasAudited) RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
       }
       AuditTaskTable.updateCompleted(auditTaskId, completed = true)
     }
