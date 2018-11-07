@@ -15,7 +15,7 @@ import play.extras.geojson
 import play.api.Play.current
 import play.api.i18n.Messages.Implicits._
 
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
@@ -53,21 +53,22 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val streets = AuditTaskTable.selectStreetsAuditedByAUser(user.userId)
-        val features: List[JsObject] = streets.map { edge =>
-          val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-          val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+        AuditTaskTable.selectStreetsAuditedByAUser(user.userId) map { streets =>
+          val features: Seq[JsObject] = streets.map { edge =>
+            val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+            val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
           val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-          val properties = Json.obj(
-            "street_edge_id" -> edge.streetEdgeId,
-            "source" -> edge.source,
-            "target" -> edge.target,
-            "way_type" -> edge.wayType
-          )
-          Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+            val properties = Json.obj(
+              "street_edge_id" -> edge.streetEdgeId,
+              "source" -> edge.source,
+              "target" -> edge.target,
+              "way_type" -> edge.wayType
+            )
+            Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+          }
+          val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+          Ok(featureCollection)
         }
-        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-        Future.successful(Ok(featureCollection))
       case None => Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "We could not find your username in our system :("
@@ -76,21 +77,22 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def getAllAuditedStreets = UserAwareAction.async { implicit request =>
-    val streets = AuditTaskTable.selectStreetsAudited
-    val features: List[JsObject] = streets.map { edge =>
-      val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-      val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+    AuditTaskTable.selectStreetsAudited map { streets =>
+      val features: Seq[JsObject] = streets.map { edge =>
+        val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+        val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
       val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-      val properties = Json.obj(
-        "street_edge_id" -> edge.streetEdgeId,
-        "source" -> edge.source,
-        "target" -> edge.target,
-        "way_type" -> edge.wayType
-      )
-      Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+        val properties = Json.obj(
+          "street_edge_id" -> edge.streetEdgeId,
+          "source" -> edge.source,
+          "target" -> edge.target,
+          "way_type" -> edge.wayType
+        )
+        Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+      }
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Ok(featureCollection)
     }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
   }
 
   /**
@@ -100,8 +102,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedTasks = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasks = AuditTaskTable.selectCompletedTasks(user.userId).map(t => Json.toJson(t))
-        Future.successful(Ok(JsArray(tasks)))
+        AuditTaskTable.selectCompletedTasks(user.userId) map { tasks => Ok(JsArray(tasks.map(t => Json.toJson(t)))) }
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "Your user id could not be found."
@@ -116,8 +117,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedTasksWithLabels = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(user.userId).map(x => Json.toJson(x))
-        Future.successful(Ok(JsArray(tasksWithLabels)))
+        AuditTaskTable.selectTasksWithLabels(user.userId) map { tasks => Ok(JsArray(tasks.map(x => Json.toJson(x)))) }
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "Your user id could not be found."
@@ -184,8 +184,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getInteractions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(user.userId).map(x => Json.toJson(x))
-        Future.successful(Ok(JsArray(interactions)))
+        AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(user.userId) map { interactions =>
+          Ok(JsArray(interactions.map(x => Json.toJson(x))))
+        }
       case None =>
         Future.successful(Ok(Json.obj(
           "error" -> "0",
@@ -202,11 +203,11 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAuditTaskInteractions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        AuditTaskTable.lastAuditTask(user.userId) match {
+        AuditTaskTable.lastAuditTask(user.userId) flatMap {
           case Some(auditTask) =>
-            val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.selectAuditInteractionsWithLabels(auditTask.auditTaskId)
-            val featureCollection = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
-            Future.successful(Ok(featureCollection))
+            AuditTaskInteractionTable.selectAuditInteractionsWithLabels(auditTask.auditTaskId).map { interactions =>
+              Ok(AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactions))
+            }
           case None => Future.successful(Ok(Json.obj(
             "error" -> "0",
             "message" -> "There are no existing audit records."
@@ -226,11 +227,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAuditCounts = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val auditCounts = AuditTaskTable.selectAuditCountsPerDayByUserId(user.userId)
-        val json = Json.arr(auditCounts.map(x => Json.obj(
-          "date" -> x.date, "count" -> x.count
-        )))
-        Future.successful(Ok(json))
+        AuditTaskTable.selectAuditCountsPerDayByUserId(user.userId) map { auditCounts =>
+          Ok(Json.arr(auditCounts.map(x => Json.obj("date" -> x.date, "count" -> x.count))))
+        }
       case None => Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "We could not find your username."
@@ -239,18 +238,14 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def getAllAuditCounts = UserAwareAction.async { implicit request =>
-    val auditCounts = AuditTaskTable.auditCounts
-    val json = Json.arr(auditCounts.map(x => Json.obj(
-      "date" -> x.date, "count" -> x.count
-    )))
-    Future.successful(Ok(json))
+    AuditTaskTable.auditCounts map { auditCounts =>
+      Ok(Json.arr(auditCounts.map(x => Json.obj("date" -> x.date, "count" -> x.count))))
+    }
   }
 
   def getAllLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.selectLabelCountsPerDay
-    val json = Json.arr(labelCounts.map(x => Json.obj(
-      "date" -> x.date, "count" -> x.count
-    )))
-    Future.successful(Ok(json))
+    LabelTable.selectLabelCountsPerDay map { labelCounts =>
+      Ok(Json.arr(labelCounts.map(x => Json.obj("date" -> x.date, "count" -> x.count))))
+    }
   }
 }

@@ -124,6 +124,9 @@ object LabelTable {
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
 
+  implicit val labelCountPerDayConverter = GetResult[LabelCountPerDay](r =>
+    LabelCountPerDay(r.nextString, r.nextInt))
+
   /**
     * Find a label
     *
@@ -685,20 +688,18 @@ object LabelTable {
     *
     * @return
     */
-  def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>
-    val selectLabelCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(label_id)
-        |FROM
-        |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '11/17/2015') n
-        |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
-    )
-    selectLabelCountQuery.list.map(x => LabelCountPerDay.tupled(x))
+  def selectLabelCountsPerDay: Future[Seq[LabelCountPerDay]] = db.run {
+    val selectLabelCountQuery =
+      sql"""SELECT calendar_date::date, COUNT(label_id)
+            FROM
+            (
+                SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
+                FROM generate_series(0, current_date - '11/17/2015') n
+            ) AS calendar
+            LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
+            LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+            GROUP BY calendar_date
+            ORDER BY calendar_date""".as[LabelCountPerDay]
   }
 
 
