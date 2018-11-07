@@ -1,9 +1,12 @@
 package models.daos.slickdaos
 
-//import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresDriver.api._
 import java.util.UUID
 
 import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
+import scala.concurrent.Future
 
 object DBTableDefinitions {
 
@@ -50,32 +53,21 @@ object DBTableDefinitions {
   val slickPasswordInfos = TableQuery[PasswordInfoTable]
 
   object UserTable {
-    import play.api.Play.current
-
     val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
     val db = dbConfig.db
-    def find(username: String): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.username === username).headOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+
+    def find(username: String): Future[Option[DBUser]] = db.run {
+      slickUsers.filter(_.username === username).result.headOption
     }
-    def findEmail(email: String): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.email === email).headOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def findEmail(email: String): Future[Option[DBUser]] = db.run {
+      slickUsers.filter(_.email === email).result.headOption
     }
-    def findById(userId: UUID): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.userId === userId.toString).headOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def findById(userId: UUID): Future[Option[DBUser]] = db.run {
+      slickUsers.filter(_.userId === userId.toString).result.headOption
     }
 
-    def count: Int = db.withTransaction { implicit session =>
-      val users = slickUsers.list
-      users.length
+    def count: Future[Int] = db.run {
+      slickUsers.length.result
     }
   }
 }
