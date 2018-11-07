@@ -60,8 +60,8 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
 class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
   def amtAssignmentId = column[Option[Int]]("amt_assignment_id")
-  def userId = column[String]("user_id")
-  def streetEdgeId = column[Int]("street_edge_id")
+  def userId: Rep[String] = column[String]("user_id")
+  def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
   def taskStart = column[Timestamp]("task_start")
   def taskEnd = column[Option[Timestamp]]("task_end")
   def completed = column[Boolean]("completed")
@@ -413,10 +413,11 @@ object AuditTaskTable {
     * @param streetEdgeId Street edge id
     * @return
     */
-  def selectANewTask(streetEdgeId: Int, user: Option[UUID]): Future[NewTask] = db.withSession { implicit session =>
+  def selectANewTask(streetEdgeId: Int, user: Option[UUID]): Future[NewTask] = {
     val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
 
     // Set completed to true if the user has already audited this street.
+    // TODO I use this future in a few lines, maybe need to put the query after it in an onComplete?
     val userCompleted: Future[Boolean] =
       if (user.isDefined) userHasAuditedStreet(streetEdgeId, user.get) else Future { false }
 
@@ -427,7 +428,7 @@ object AuditTaskTable {
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, userCompleted)
 
-    NewTask.tupled(edges.head)
+    db.run(edges.result.head).map(NewTask.tupled)
   }
 
   /**

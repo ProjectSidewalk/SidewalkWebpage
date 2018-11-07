@@ -11,6 +11,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, userId: String,
                             ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
@@ -78,11 +79,11 @@ object AuditTaskCommentTable {
     * @return
     */
   def takeRight(n: Integer): Future[Seq[AuditTaskComment]] = {
-    val comments = (for {
+    val commentsQuery = (for {
       (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
     } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
       c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).take(n)
 
-    db.run(comments.result)
+    db.run(commentsQuery.result) map { comments => comments.map(AuditTaskComment.tupled) }
   }
 }
