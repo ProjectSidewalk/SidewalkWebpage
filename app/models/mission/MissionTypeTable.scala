@@ -27,9 +27,7 @@ object MissionTypeTable {
   val missionTypes = TableQuery[MissionTypeTable]
 
   val onboardingTypes: List[String] = List("auditOnboarding", "validationOnboarding")
-  val onboardingTypeIds: List[Int] = db.withSession { implicit session =>
-    missionTypes.filter(_.missionType inSet onboardingTypes).map(_.missionTypeId).list
-  }
+  val onboardingTypeIds: List[Int] = List(1, 3)
 
   /**
     * Gets the mission type id from the mission type name

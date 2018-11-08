@@ -390,7 +390,7 @@ object AuditTaskTable {
     * @param regionId
     * @return
     */
-  def getUnauditedDistance(userId: UUID, regionId: Int): Future[Seq[Float]] = { // TODO NOT A SEQ, SUM THEM
+  def getUnauditedDistance(userId: UUID, regionId: Int): Future[Float] = {
     val edgesAuditedByUser = completedTasks.filter(_.userId === userId.toString)
 
     val unAuditedEdges = nonDeletedStreetEdgeRegions.joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _.streetEdgeId)
@@ -401,7 +401,7 @@ object AuditTaskTable {
 //        .map(_._1.streetEdgeId).sum.result
 //    }.map(_.getOrElse(0))
 //    db.run(streetEdgesWithoutDeleted.map(_.streetEdgeId).sum.result).map(_.getOrElse(0))
-    db.run(streetEdgesWithoutDeleted.map(_.geom.transform(26918).length).result)//.map(_.getOrElse(0F))
+    db.run(streetEdgesWithoutDeleted.map(_.geom.transform(26918).sum.length).result)//.map(_.getOrElse(0F))
 
 //    val streetsLeft: List[Int] = streetEdgeIdsNotAuditedByUser(userId, regionId)
 //    streetEdgesWithoutDeleted.filter(_.streetEdgeId inSet streetsLeft).map(_.geom.transform(26918).length).list.sum
