@@ -9,6 +9,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.util.control.NonFatal
 
@@ -30,8 +31,8 @@ object UserRoleTable {
   val roles = TableQuery[RoleTable]
   val userTable = TableQuery[UserTable]
 
-  def roleMapping: Map[String, Int] = db.withSession {
-    implicit session => roles.list.map(r => r.role -> r.roleId).toMap
+  def roleMapping: Future[Map[String, Int]] = db.run(roles.result).map {
+    rolesList => rolesList.map(r => r.role -> r.roleId).toMap
   }
 
 
@@ -41,39 +42,44 @@ object UserRoleTable {
     * @param userId
     * @return
     */
-  def getRole(userId: UUID): String = db.withSession { implicit session =>
-    val _roles = for {
+  def getRole(userId: UUID): Future[String] = {
+    val _rolesQuery = for {
       (_userRoles, _roles) <- userRoles.join(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
     } yield _roles
-    try {
-      _roles.list.map(_.role).head
-    } catch {
-      // no role found, give them Registered role
-      case NonFatal(t) =>
-        setRole(userId, "Registered")
-        "Registered"
+    db.run(_rolesQuery.result) map { _roles =>
+      try {
+        _roles.map(_.role).head
+      } catch {
+        // no role found, give them Registered role
+        case NonFatal(t) =>
+          setRole(userId, "Registered")
+          "Registered"
+      }
     }
   }
 
-  def setRole(userId: UUID, newRole: String): Int = db.withTransaction { implicit session =>
-    setRole(userId, roleMapping(newRole))
+  def setRole(userId: UUID, newRole: String): Future[Int] = {
+    for {
+      newRoleId <- roleMapping(newRole)
+      rowsUpdated <- setRole(userId, newRoleId)
+    } yield rowsUpdated
   }
 
-  def setRole(userId: UUID, newRole: Int): Int = db.withTransaction { implicit session =>
-    val userRoleId: Option[Int] = userRoles.filter(_.userId === userId.toString).map(_.userRoleId).list.headOption
-    userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole))
+  def setRole(userId: UUID, newRole: Int): Future[Int] = {
+    db.run(userRoles.filter(_.userId === userId.toString).map(_.userRoleId).result.headOption) flatMap { userRoleId =>
+      userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole))
+    }
   }
 
-  def isResearcher(userId: UUID): Boolean = db.withSession { implicit session =>
-    List("Researcher", "Administrator", "Owner").contains(getRole(userId))
+  def isResearcher(userId: UUID): Future[Boolean] = {
+    getRole(userId) map { _role => List("Researcher", "Administrator", "Owner").contains(_role) }
   }
 
   def getUsersByType(userType: String): Query[UserTable, DBUser, Seq] = {
-    val turkerUsers = for {
+    for {
       _roleIds <- userRoles
       _roles <- roles if _roles.roleId === _roleIds.roleId && _roles.role === userType
       _users <- userTable if _users.userId === _roleIds.userId
     } yield _users
-    turkerUsers
   }
 }
