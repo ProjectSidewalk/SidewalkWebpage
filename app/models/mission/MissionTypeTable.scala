@@ -28,6 +28,8 @@ object MissionTypeTable {
 
   val onboardingTypes: List[String] = List("auditOnboarding", "validationOnboarding")
   val onboardingTypeIds: List[Int] = List(1, 3)
+  val missionTypeMap: Map[Int, String] =
+    Map(1 -> "auditOnboarding", 2 -> "audit", 3 -> "validationOnboarding", 4 -> "validation")
 
   /**
     * Gets the mission type id from the mission type name

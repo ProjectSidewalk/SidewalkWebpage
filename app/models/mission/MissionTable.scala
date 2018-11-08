@@ -32,7 +32,7 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
   def toJSON: JsObject = {
     Json.obj(
       "mission_id" -> missionId,
-      "mission_type" -> MissionTypeTable.missionTypeIdToMissionType(missionTypeId),
+      "mission_type" -> MissionTypeTable.missionTypeMap.get(missionTypeId).get,
       "user_id" -> userId,
       "mission_start" -> missionStart,
       "mission_end" -> missionEnd,
@@ -423,11 +423,12 @@ object MissionTable {
     */
   def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Future[Mission] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
-    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false)
-    db.run((missions returning missions.map(_.missionId)) += newMission) flatMap { missionId =>
-      db.run(missions.filter(_.missionId === missionId).result.head)
-    }
+    for {
+      missionTypeId <- MissionTypeTable.missionTypeToId("audit")
+      missionId <- db.run((missions returning missions.map(_.missionId))
+        += Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false))
+      newMission <- db.run(missions.filter(_.missionId === missionId).result.head)
+    } yield newMission
   }
 
   /**
@@ -439,11 +440,12 @@ object MissionTable {
     */
   def createAuditOnboardingMission(userId: UUID, pay: Double): Future[Mission] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
-    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, false)
-    db.run((missions returning missions.map(_.missionId)) += newMiss) flatMap { missionId =>
-      db.run(missions.filter(_.missionId === missionId).result.head)
-    }
+    for {
+      mTypeId <- MissionTypeTable.missionTypeToId("auditOnboarding")
+      missionId <- db.run((missions returning missions.map(_.missionId))
+        += Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, false))
+      newMission <- db.run(missions.filter(_.missionId === missionId).result.head)
+    } yield newMission
   }
 
   /**
