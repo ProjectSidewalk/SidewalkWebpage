@@ -27,8 +27,8 @@ object StreetEdgeParentEdgeTable {
    * @param id
    * @return
    */
-  def selectByChildId(id: Int): List[StreetEdgeParentEdge] = db.withSession { implicit session =>
-    streetEdgeParentEdgeTable.filter(item => item.streetEdgeId === id).list
+  def selectByChildId(id: Int): Future[Seq[StreetEdgeParentEdge]] = db.run {
+    streetEdgeParentEdgeTable.filter(item => item.streetEdgeId === id).result
   }
 
   /**
@@ -36,8 +36,8 @@ object StreetEdgeParentEdgeTable {
    * @param id
    * @return
    */
-  def selectByParentId(id: Int): List[StreetEdgeParentEdge] = db.withSession { implicit session =>
-    streetEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).list
+  def selectByParentId(id: Int): Future[Seq[StreetEdgeParentEdge]] = db.run {
+    streetEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).result
   }
 
   /**
@@ -46,7 +46,7 @@ object StreetEdgeParentEdgeTable {
    * @param parentId
    * @return
    */
-  def save(childId: Int, parentId: Int) = db.withSession { implicit session =>
-    streetEdgeParentEdgeTable += new StreetEdgeParentEdge(childId, parentId)
+  def save(childId: Int, parentId: Int): Future[Int] = db.run {
+    streetEdgeParentEdgeTable += StreetEdgeParentEdge(childId, parentId)
   }
 }
