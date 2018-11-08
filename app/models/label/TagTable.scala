@@ -30,7 +30,7 @@ object TagTable {
     *
     * @return
     */
-  def selectAllTags(): List[Tag] = db.withSession { implicit session =>
-    tagTable.list
+  def selectAllTags(): Future[Seq[Tag]] = db.run {
+    tagTable.result
   }
 }
