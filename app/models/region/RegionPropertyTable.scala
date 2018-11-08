@@ -6,6 +6,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class RegionProperty(regionPropertyId: Int, regionId: Int, key: String, value: String)
 
@@ -29,8 +30,8 @@ object RegionPropertyTable {
     * Returns a list of all the sidewalk edges
     * @return A list of SidewalkEdge objects.
     */
-  def all: List[RegionProperty] = db.withSession { implicit session =>
-    regionProperties.list
+  def all: Future[Seq[RegionProperty]] = db.run {
+    regionProperties.result
   }
 
   /**
@@ -38,11 +39,8 @@ object RegionPropertyTable {
     * @param regionId Region id
     * @return
     */
-  def neighborhoodName(regionId: Int): Option[String] = db.withSession { implicit session =>
-    val regionProperty = regionProperties.filter(_.regionId === regionId).filter(_.key === "Neighborhood Name").list.headOption
-    regionProperty match {
-      case Some(rp) => Some(rp.value)
-      case _ => None
-    }
+  def neighborhoodName(regionId: Int): Future[Option[String]] = {
+    db.run(regionProperties.filter(_.regionId === regionId).filter(_.key === "Neighborhood Name").result.headOption)
+        .map { rp => rp.map(_.value) }
   }
 }
