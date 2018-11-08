@@ -2,11 +2,12 @@ package models.gsv
 
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
+
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class GSVData(gsvPanoramaId: String, imageWidth: Int, imageHeight: Int, tileWidth: Int, tileHeight: Int,
                    imageDate: String, imageryType: Int, copyright: String)
@@ -35,13 +36,12 @@ object GSVDataTable {
     * @param panoramaId Google Street View panorama Id
     * @return
     */
-  def panoramaExists(panoramaId: String): Boolean = db.withTransaction { implicit session =>
-    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).list.nonEmpty
+  def panoramaExists(panoramaId: String): Future[Boolean] = {
+    db.run(gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).length.result) map { len => len > 0 }
   }
 
-  def save(data: GSVData): String = db.withTransaction { implicit session =>
-    gsvDataRecords += data
-    data.gsvPanoramaId
+  def save(data: GSVData): Future[String] = db.run {
+    (gsvDataRecords returning gsvDataRecords.map(_.gsvPanoramaId)) += data
   }
 
 }
