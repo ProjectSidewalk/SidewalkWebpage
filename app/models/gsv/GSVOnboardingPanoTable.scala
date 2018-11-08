@@ -25,16 +25,15 @@ object GSVOnboardingPanoTable {
   val db = dbConfig.db
   val onboardingPanos = TableQuery[GSVOnboardingPanoTable]
 
-  def selectGSVOnboardingPanos(): List[GSVOnboardingPano] = db.withTransaction { implicit session =>
-    onboardingPanos.list
+  def selectGSVOnboardingPanos(): Future[Seq[GSVOnboardingPano]] = db.run {
+    onboardingPanos.result
   }
 
-  def getOnboardingPanoIds(): List[String] = db.withTransaction { implicit session =>
-    onboardingPanos.map(_.gsvPanoramaId).list
+  def getOnboardingPanoIds(): Future[Seq[String]] = db.run {
+    onboardingPanos.map(_.gsvPanoramaId).result
   }
 
-  def save(newOnboardingPano: GSVOnboardingPano): String = db.withTransaction { implicit session =>
-    onboardingPanos += newOnboardingPano
-    newOnboardingPano.gsvPanoramaId
+  def save(newOnboardingPano: GSVOnboardingPano): Future[String] = db.run {
+    (onboardingPanos returning onboardingPanos.map(_.gsvPanoramaId)) += newOnboardingPano
   }
 }
