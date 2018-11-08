@@ -10,6 +10,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: java.sql.Timestamp)
 
@@ -30,14 +31,13 @@ object WebpageActivityTable {
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
 
-  def save(activity: WebpageActivity): Int = db.withTransaction { implicit session =>
+  def save(activity: WebpageActivity): Future[Int] = {
     if (activity.ipAddress == "128.8.132.187") {
       // Don't save data if the activity is from the remote proxy.
       // TODO The IP address of the remote proxy server should be stored somewhere
-      0
+      Future(0)
     } else {
-      val webpageActivityId: Int = (activities returning activities.map(_.webpageActivityId)) += activity
-      webpageActivityId
+      db.run((activities returning activities.map(_.webpageActivityId)) += activity)
     }
   }
 
@@ -47,15 +47,19 @@ object WebpageActivityTable {
     * @param userId User id
     * @return
     */
-  def selectLastSignInTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
-    val signInString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignIn"
-    val signInActivities: List[WebpageActivity] =
-      activities.filter(_.userId === userId.toString).filter(_.activity === signInString).sortBy(_.timestamp.desc).list
-
-    if (signInActivities.nonEmpty) {
-      Some(signInActivities.head.timestamp)
-    } else {
-      None
+  def selectLastSignInTimestamp(userId: UUID): Future[Option[java.sql.Timestamp]] = {
+    UserRoleTable.getRole(userId) flatMap { _userRole =>
+      val signInString: String = if (_userRole == "Anonymous") "AnonAutoSignUp" else "SignIn"
+      val signInActivitiesFuture: Future[Seq[WebpageActivity]] = db.run {
+        activities.filter(_.userId === userId.toString).filter(_.activity === signInString).sortBy(_.timestamp.desc).result
+      }
+      signInActivitiesFuture.map { signInActivities =>
+        if (signInActivities.nonEmpty) {
+          Some(signInActivities.head.timestamp)
+        } else {
+          None
+        }
+      }
     }
   }
 
@@ -65,15 +69,19 @@ object WebpageActivityTable {
     * @param userId User id
     * @return
     */
-  def selectSignUpTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
-    val signUpString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignUp"
-    val signUpActivities: List[WebpageActivity] =
-      activities.filter(_.userId === userId.toString).filter(_.activity === signUpString).sortBy(_.timestamp.desc).list
-
-    if (signUpActivities.nonEmpty) {
-      Some(signUpActivities.head.timestamp)
-    } else {
-      None
+  def selectSignUpTimestamp(userId: UUID): Future[Option[java.sql.Timestamp]] = {
+    UserRoleTable.getRole(userId) flatMap { _userRole =>
+      val signUpString: String = if (_userRole == "Anonymous") "AnonAutoSignUp" else "SignUp"
+      val signUpActivitiesFuture: Future[Seq[WebpageActivity]] = db.run {
+        activities.filter(_.userId === userId.toString).filter(_.activity === signUpString).sortBy(_.timestamp.desc).result
+      }
+      signUpActivitiesFuture.map { signUpActivities =>
+        if (signUpActivities.nonEmpty) {
+          Some(signUpActivities.head.timestamp)
+        } else {
+          None
+        }
+      }
     }
   }
 
@@ -82,9 +90,8 @@ object WebpageActivityTable {
     * @param userId User id
     * @return
     */
-  def selectSignInCount(userId: UUID): Option[Integer] = db.withTransaction { implicit session =>
-    val signInActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").list
-    Some(signInActivities.length)
+  def selectSignInCount(userId: UUID): Future[Int] = db.run {
+    activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").length.result
   }
 
   /**
@@ -92,7 +99,7 @@ object WebpageActivityTable {
     *
     * @return List[(userId: String, role: String, count: Int)]
     */
-  def selectAllSignInCounts: List[(String, String, Int)] = db.withTransaction { implicit session =>
+  def selectAllSignInCounts: Future[Seq[(String, String, Int)]] = db.run {
     val signIns = for {
       _activity <- activities if _activity.activity === "SignIn"
       _userRole <- userRoles if _activity.userId === _userRole.userId
@@ -101,14 +108,14 @@ object WebpageActivityTable {
     } yield (_userRole.userId, _role.role, _activity.webpageActivityId)
 
     // Count sign in counts by grouping by (user_id, role).
-    signIns.groupBy(x => (x._1, x._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
+    signIns.groupBy(x => (x._1, x._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.result
   }
 
   /**
     * Returns all WebpageActivities that contain the given string in their 'activity' field
     */
-  def find(activity: String): List[WebpageActivity] = db.withSession { implicit session =>
-    activities.filter(_.activity.like("%"++activity++"%")).list
+  def find(activity: String): Future[Seq[WebpageActivity]] = db.run {
+    activities.filter(_.activity.like("%"++activity++"%")).result
   }
 
   /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
@@ -120,21 +127,21 @@ object WebpageActivityTable {
     * @param keyVals
     * @return
     */
-  def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = db.withSession { implicit session =>
-    var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
+  def findKeyVal(activity: String, keyVals: Array[String]): Future[Seq[WebpageActivity]] = db.run {
+    var filteredActivities = activities.filter(x => x.activity.startsWith(activity++"_") || x.activity === activity)
     for(keyVal <- keyVals) yield {
       filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_"++keyVal++"_") >= 0) || x.activity.endsWith("_"+keyVal))
     }
-    filteredActivities.list
+    filteredActivities.result
   }
 
   // Returns all webpage activities
-  def getAllActivities: List[WebpageActivity] = db.withSession{implicit session =>
-    activities.list
+  def getAllActivities: Future[Seq[WebpageActivity]] = db.run {
+    activities.result
   }
 
-  def webpageActivityListToJson(webpageActivities: List[WebpageActivity]): List[JsObject] = {
-    webpageActivities.map(webpageActivity => webpageActivityToJson(webpageActivity)).toList
+  def webpageActivityListToJson(webpageActivities: Seq[WebpageActivity]): Seq[JsObject] = {
+    webpageActivities.map(webpageActivity => webpageActivityToJson(webpageActivity))
   }
 
   def webpageActivityToJson(webpageActivity: WebpageActivity): JsObject = {
