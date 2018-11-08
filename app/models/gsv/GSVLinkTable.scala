@@ -7,6 +7,7 @@ import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class GSVLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, roadArgb: String, description: String)
 
@@ -30,8 +31,10 @@ object GSVLinkTable {
     * @param panoramaId Google Street View panorama id
     * @return
     */
-  def linkExists(panoramaId: String, targetPanoramaId: String): Boolean = db.withTransaction { implicit session =>
-    gsvLinks.list.filter(x => x.gsvPanoramaId == panoramaId && x.targetGsvPanoramaId == targetPanoramaId).nonEmpty
+  def linkExists(panoramaId: String, targetPanoramaId: String): Future[Boolean] = {
+    db.run(
+      gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).length.result
+    ) map { len => len > 0 }
   }
 
   /**
@@ -39,8 +42,7 @@ object GSVLinkTable {
     * @param link GSVLink object
     * @return
     */
-  def save(link: GSVLink): String = db.withTransaction { implicit session =>
-    gsvLinks += link
-    link.gsvPanoramaId
+  def save(link: GSVLink): Future[String] = db.run {
+    (gsvLinks returning gsvLinks.map(_.gsvPanoramaId)) += link
   }
 }
