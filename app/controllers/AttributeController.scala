@@ -116,7 +116,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
         } yield {
           Ok(Json.obj("user_labels" -> userLabs, "user_attributes" -> userAtts, "global_attributes" -> globalAtts))
         }
-        case _ => Future(Ok(Json.obj("error_msg" -> "Invalid clusteringType")))
+        case _ => Future.successful(Ok(Json.obj("error_msg" -> "Invalid clusteringType")))
       }
     } else {
       Future.successful(Redirect("/"))

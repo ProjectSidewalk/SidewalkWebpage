@@ -35,7 +35,7 @@ object WebpageActivityTable {
     if (activity.ipAddress == "128.8.132.187") {
       // Don't save data if the activity is from the remote proxy.
       // TODO The IP address of the remote proxy server should be stored somewhere
-      Future(0)
+      Future.successful(0)
     } else {
       db.run((activities returning activities.map(_.webpageActivityId)) += activity)
     }

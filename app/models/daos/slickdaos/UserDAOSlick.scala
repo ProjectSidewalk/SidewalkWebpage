@@ -2,7 +2,7 @@ package models.daos.slickdaos
 
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import models.user.{UserRoleTable, User}
-import play.api.db.slick._
+import models.utils.MyPostgresDriver.api._
 import models.daos.slickdaos.DBTableDefinitions._
 // import com.mohiva.play.silhouette.core.LoginInfo
 import com.mohiva.play.silhouette.api.LoginInfo
@@ -14,9 +14,14 @@ import models.daos.UserDAO
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class UserDAOSlick extends UserDAO {
   import play.api.Play.current
+
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
 
   /**
    * Finds a user by its login info.
@@ -24,26 +29,23 @@ class UserDAOSlick extends UserDAO {
    * @param loginInfo The login info of the user to find.
    * @return The found user or None if no user for the given login info could be found.
    */
-  def find(loginInfo: LoginInfo) = {
-    DB withSession { implicit session =>
-      Future.successful {
-        slickLoginInfos.filter(
-          x => x.providerID === loginInfo.providerID && x.providerKey === loginInfo.providerKey
-        ).headOption match {
-          case Some(info) =>
-            slickUserLoginInfos.filter(_.loginInfoId === info.id).headOption match {
-              case Some(userLoginInfo) =>
-                slickUsers.filter(_.userId === userLoginInfo.userID).headOption match {
-                  case Some(user) =>
-                    val role = UserRoleTable.getRole(UUID.fromString(user.userId))
-                    Some(User(UUID.fromString(user.userId), loginInfo, user.username, user.email, Some(role)))
-                  case None => None
+  def find(loginInfo: LoginInfo): Future[Option[User]] = {
+    db.run(slickLoginInfos.filter(
+      x => x.providerID === loginInfo.providerID && x.providerKey === loginInfo.providerKey
+    ).result.headOption).flatMap {
+      case Some(info) =>
+        db.run(slickUserLoginInfos.filter(_.loginInfoId === info.id).result.headOption).flatMap {
+          case Some(userLoginInfo) =>
+            db.run(slickUsers.filter(_.userId === userLoginInfo.userID).result.headOption).flatMap {
+              case Some(user) =>
+                UserRoleTable.getRole(UUID.fromString(user.userId)).map { role =>
+                  Some(User(UUID.fromString(user.userId), loginInfo, user.username, user.email, Some(role)))
                 }
-              case None => None
+              case None => Future.successful(None)
             }
-          case None => None
+          case None => Future.successful(None)
         }
-      }
+      case None => Future.successful(None)
     }
   }
 
@@ -53,47 +55,39 @@ class UserDAOSlick extends UserDAO {
    * @param userID The ID of the user to find.
    * @return The found user or None if no user for the given ID could be found.
    */
-  def find(userID: UUID) = {
-    DB withSession { implicit session =>
-      Future.successful {
-        slickUsers.filter(
-          _.userId === userID.toString
-        ).headOption match {
-          case Some(user) =>
-            slickUserLoginInfos.filter(_.userID === user.userId).headOption match {
-              case Some(info) =>
-                slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).headOption match {
-                  case Some(loginInfo) =>
-                    val role = UserRoleTable.getRole(UUID.fromString(user.userId))
-                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
-                  case None => None
+  def find(userID: UUID): Future[Option[User]] = {
+    db.run(slickUsers.filter(_.userId === userID.toString).result.headOption).flatMap {
+      case Some(user) =>
+        db.run(slickUserLoginInfos.filter(_.userID === user.userId).result.headOption).flatMap {
+          case Some(info) =>
+            db.run(slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).result.headOption).flatMap {
+              case Some(loginInfo) =>
+                UserRoleTable.getRole(UUID.fromString(user.userId)).map { role =>
+                  Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
                 }
-              case None => None
+              case None => Future.successful(None)
             }
-          case None => None
+          case None => Future.successful(None)
         }
-      }
+      case None => Future.successful(None)
     }
   }
 
-  def find(username: String) = {
-    DB withSession { implicit session =>
-      Future.successful {
-        slickUsers.filter(_.username === username).headOption match {
-          case Some(user) =>
-            slickUserLoginInfos.filter(_.userID === user.userId).headOption match {
-              case Some(info) =>
-                slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).headOption match {
-                  case Some(loginInfo) =>
-                    val role = UserRoleTable.getRole(UUID.fromString(user.userId))
-                    Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
-                  case None => None
+  def find(username: String): Future[Option[User]] = {
+    db.run(slickUsers.filter(_.username === username).result.headOption).flatMap {
+      case Some(user) =>
+        db.run(slickUserLoginInfos.filter(_.userID === user.userId).result.headOption) flatMap {
+          case Some(info) =>
+            db.run(slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).result.headOption) flatMap {
+              case Some(loginInfo) =>
+                UserRoleTable.getRole(UUID.fromString(user.userId)).map { role =>
+                  Some(User(UUID.fromString(user.userId), LoginInfo(loginInfo.providerID, loginInfo.providerKey), user.username, user.email, Some(role)))
                 }
-              case None => None
+              case None => Future.successful(None)
             }
-          case None => None
+          case None => Future.successful(None)
         }
-      }
+      case None => Future.successful(None)
     }
   }
 
@@ -104,29 +98,37 @@ class UserDAOSlick extends UserDAO {
    * @return The saved user.
    */
   def save(user: User) = {
-    DB withSession { implicit session =>
-      Future.successful {
-        val dbUser = DBUser(user.userId.toString, user.username, user.email)
-        slickUsers.filter(_.userId === dbUser.userId).headOption match {
-          case Some(userFound) => slickUsers.filter(_.userId === dbUser.userId).update(dbUser)
-          case None => slickUsers.insert(dbUser)
-        }
-        var dbLoginInfo = DBLoginInfo(None, user.loginInfo.providerID, user.loginInfo.providerKey)
-        // Insert if it does not exist yet
-        slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).headOption match {
-          case None => slickLoginInfos.insert(dbLoginInfo)
-          case Some(info) => Logger.debug("Nothing to insert since info already exists: " + info)
-        }
-        dbLoginInfo = slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).head
-        // Now make sure they are connected
-        slickUserLoginInfos.filter(info => info.userID === dbUser.userId && info.loginInfoId === dbLoginInfo.id).headOption match {
-          case Some(info) =>
-          // They are connected already, we could as well omit this case ;)
-          case None =>
-            slickUserLoginInfos += DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get)
-        }
-        user // We do not change the user => return it
+    val dbUser = DBUser(user.userId.toString, user.username, user.email)
+    def userFuture = db.run(slickUsers.filter(_.userId === dbUser.userId).result.headOption) flatMap {
+      case Some(userFound) => db.run(slickUsers.filter(_.userId === dbUser.userId).update(dbUser))
+      case None => db.run(slickUsers += dbUser)
+    }
+
+    // Insert if it does not exist yet
+    var dbLoginInfo = DBLoginInfo(None, user.loginInfo.providerID, user.loginInfo.providerKey)
+    def loginInfoFuture = db.run(slickLoginInfos.filter(
+      info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey
+    ).result.headOption) flatMap {
+      case Some(info) =>
+        Logger.debug("Nothing to insert since info already exists: " + info)
+        Future.successful(0)
+      case None =>
+        db.run(slickLoginInfos += dbLoginInfo)
+    }
+
+    def connectionFuture = db.run(slickLoginInfos.filter(
+      info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).result.head).flatMap { dbLoginInfo =>
+      db.run(slickUserLoginInfos.filter(info => info.userID === dbUser.userId && info.loginInfoId === dbLoginInfo.id).result.headOption).flatMap {
+        case Some(info) => Future.successful(0)
+        case None => db.run(slickUserLoginInfos += DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get))
       }
     }
+
+    // Execute the futures sequentially, and wrap unchanged User in the future to finish off.
+    for {
+      _user <- userFuture
+      _loginInfo <- loginInfoFuture
+      _connection <- connectionFuture
+    } yield user // We do not change the user => return it
   }
 }
