@@ -240,14 +240,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         });
                         break;
                     case util.misc.getLabelDescriptions('CurbRamp')['shortcut']['keyNumber']:
+                        if (contextMenu.isOpen()) {
+                            _closeContextMenu(e.keyCode);
+                        }
+
                         // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("CurbRamp");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
                                 keyCode: e.keyCode
                             });
-                        } else {
-                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case util.misc.getLabelDescriptions('Walk')['shortcut']['keyNumber']:
@@ -258,14 +260,15 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         });
                         break;
                     case util.misc.getLabelDescriptions('NoCurbRamp')['shortcut']['keyNumber']:
+                        if (contextMenu.isOpen()) {
+                            _closeContextMenu(e.keyCode);
+                        }
                         // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("NoCurbRamp");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
                                 keyCode: e.keyCode
                             });
-                        } else {
-                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
@@ -275,24 +278,28 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         });
                         break;
                     case util.misc.getLabelDescriptions('Obstacle')['shortcut']['keyNumber']:
+                        if (contextMenu.isOpen()) {
+                            _closeContextMenu(e.keyCode);
+                        }
+
                         // "o" for Obstacle
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("Obstacle");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
                                 keyCode: e.keyCode
                             });
-                        } else {
-                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
+                        if (contextMenu.isOpen()) {
+                            _closeContextMenu(e.keyCode);
+                        }
+
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("SurfaceProblem");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
                                 keyCode: e.keyCode
                             });
-                        } else {
-                            _closeContextMenu(e.keyCode);
                         }
                         break;
                     case 16: //shift
