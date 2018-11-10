@@ -29,10 +29,12 @@ function Panorama() {
         }
 
         // Label ID (for now)
-        setLabel(72980);
+        setLabel();
     }
 
     function _handleData(labelMetadata) {
+        console.log("Label ID: " + labelMetadata['label_id']);
+        console.log("LabeMetadata: " + labelMetadata);
         setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom']);
 
@@ -67,6 +69,23 @@ function Panorama() {
      */
     function setLabel(labelId) {
         var labelUrl = "/label/geo/" + labelId;
+        $.ajax({
+            url: labelUrl,
+            async: false,
+            dataType: 'json',
+            success: function (labelMetadata) {
+                _handleData(labelMetadata);
+            }
+        });
+        renderLabel();
+    }
+
+    /**
+     * Retrieves a label from the database
+     * @param labelId   label_id
+     */
+    function setLabel() {
+        var labelUrl = "/label/geo/random";
         $.ajax({
             url: labelUrl,
             async: false,

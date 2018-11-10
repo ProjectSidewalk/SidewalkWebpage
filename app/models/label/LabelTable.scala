@@ -416,7 +416,7 @@ object LabelTable {
     * @param labelId  Label from query.
     * @return         LabelMetadata object.
     */
-  def retrieveSingleLabelforValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleLabelForValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
     val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
       """SELECT lb.label_id,
         |       lt.label_type,
@@ -437,6 +437,30 @@ object LabelTable {
         |ORDER BY lb.label_id DESC""".stripMargin
     )
     selectQuery(labelId).list.map(label => validationLabelsToLabelMetadata(label)).head
+  }
+
+  def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
+    val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
+      """SELECT lb.label_id,
+        |       lt.label_type,
+        |       lb.gsv_panorama_id,
+        |       lp.heading,
+        |       lp.pitch,
+        |       lp.zoom,
+        |       lp.canvas_x,
+        |       lp.canvas_y,
+        |       lp.canvas_width,
+        |       lp.canvas_height
+        |FROM sidewalk.label AS lb,
+        |     sidewalk.label_type AS lt,
+        |     sidewalk.label_point AS lp
+        |WHERE lp.label_id = lb.label_id
+        |      AND lt.label_type_id = lb.label_type_id
+        |OFFSET floor(random() * (SELECT COUNT(*) FROM sidewalk.label))
+        |LIMIT ?""".stripMargin.stripMargin
+    )
+    
+    selectQuery(1).list.map(label => validationLabelsToLabelMetadata(label)).head
   }
 
   def validationLabelsToLabelMetadata(label: (Int, String, String, Float, Float, Float, Int, Int, Int, Int)): LabelValidationMetadata = {

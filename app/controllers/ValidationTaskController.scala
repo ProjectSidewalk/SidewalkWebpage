@@ -65,17 +65,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
     LabelTable.find(labelId) match {
       case Some(labelPointObj) =>
-        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleLabelforValidation(labelId)
+        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleLabelForValidation(labelId)
         val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }
   }
 
-  /*
-   * Want: function to get a random label from the database
-  def getRandomLabel = UserAwareAction.async { implicit request =>
-
+  def getRandomLabelData = UserAwareAction.async { implicit request =>
+    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelForValidation()
+    val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
+    Future.successful(Ok(labelMetadataJson))
   }
-  */
 }
