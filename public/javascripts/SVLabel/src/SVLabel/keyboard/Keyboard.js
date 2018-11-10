@@ -233,18 +233,17 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             if (!status.focusOnTextField) {
                 switch (e.keyCode) {
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
-                        // "b" for a blocked view
+                        // "b" for a blocked view.
+                        // Context menu may be open for a different label.
+                        _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch("Occlusion");
                         svl.tracker.push("KeyboardShortcut_ModeSwitch_Occlusion", {
                             keyCode: e.keyCode
                         });
                         break;
                     case util.misc.getLabelDescriptions('CurbRamp')['shortcut']['keyNumber']:
-                        if (contextMenu.isOpen()) {
-                            _closeContextMenu(e.keyCode);
-                        }
-
                         // "c" for CurbRamp. Switch the mode to the CurbRamp labeling mode.
+                        _closeContextMenu(e.keyCode);
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("CurbRamp");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_CurbRamp", {
@@ -260,10 +259,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         });
                         break;
                     case util.misc.getLabelDescriptions('NoCurbRamp')['shortcut']['keyNumber']:
-                        if (contextMenu.isOpen()) {
-                            _closeContextMenu(e.keyCode);
-                        }
                         // "m" for MissingCurbRamp. Switch the mode to the MissingCurbRamp labeling mode.
+                        _closeContextMenu(e.keyCode);
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("NoCurbRamp");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_NoCurbRamp", {
@@ -272,17 +269,15 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                         break;
                     case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
+                        _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch("NoSidewalk");
                         svl.tracker.push("KeyboardShortcut_ModeSwitch_NoSidewalk", {
                             keyCode: e.keyCode
                         });
                         break;
                     case util.misc.getLabelDescriptions('Obstacle')['shortcut']['keyNumber']:
-                        if (contextMenu.isOpen()) {
-                            _closeContextMenu(e.keyCode);
-                        }
-
                         // "o" for Obstacle
+                        _closeContextMenu(e.keyCode);
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("Obstacle");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_Obstacle", {
@@ -291,10 +286,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                         break;
                     case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
-                        if (contextMenu.isOpen()) {
-                            _closeContextMenu(e.keyCode);
-                        }
-
+                        _closeContextMenu(e.keyCode);
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("SurfaceProblem");
                             svl.tracker.push("KeyboardShortcut_ModeSwitch_SurfaceProblem", {
@@ -366,11 +358,13 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     };
 
     function _closeContextMenu(key) {
-        contextMenu.hide();
-        svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
-            keyCode: key
-        });
-        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+        if (contextMenu.isOpen()) {
+            contextMenu.hide();
+            svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
+                keyCode: key
+            });
+            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+        }
     }
 
     
