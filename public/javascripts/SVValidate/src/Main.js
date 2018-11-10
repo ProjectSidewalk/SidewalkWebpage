@@ -23,6 +23,10 @@ function Main (param) {
         svv.form = new Form(param.dataStoreUrl);
         svv.panorama = new Panorama();
         svv.menuButtons = new MenuButton(svv.ui.validation, svv.form);
+
+        // mission stuff
+        svv.missionModel = new MissionModel();
+        svv.missionModel.trigger("MissionModel:createAMission", param.mission);
     }
 
     _initUI();

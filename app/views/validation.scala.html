@@ -1,13 +1,9 @@
 @import models.user.User
-@import models.region.RegionTable
-@import models.region.NamedRegion
-@import models.mission.MissionTable
-@import models.survey._
-@import models.amt.AMTAssignmentTable
+@import models.mission.{MissionTable, Mission}
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None, mission: Mission)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -83,6 +79,8 @@
             var svv = svv || {};
             var param = {};
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            param.mission = @Html(mission.toJSON.toString);
+
             svv.main = new Main(param);
         }
     </script>
