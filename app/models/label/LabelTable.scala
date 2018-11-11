@@ -459,7 +459,7 @@ object LabelTable {
         |OFFSET floor(random() * (SELECT COUNT(*) FROM sidewalk.label))
         |LIMIT ?""".stripMargin.stripMargin
     )
-    
+
     selectQuery(1).list.map(label => validationLabelsToLabelMetadata(label)).head
   }
 

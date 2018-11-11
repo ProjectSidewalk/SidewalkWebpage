@@ -172,7 +172,8 @@ object MissionTable {
   }
 
   def getCurrentValidationMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
-    missions.filter(m => m.userId === userId.toString).list.headOption
+    val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
+    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId).list.headOption
   }
 
   /**
@@ -330,14 +331,14 @@ object MissionTable {
     */
   def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double], tutorialPay: Option[Double]): Option[Mission] = db.withSession { implicit session =>
       if (actions.contains("getValidationMission")) {
-        println("got validation mission")
+        println("[MissionTable] Getting validation mission")
         getCurrentValidationMission(userId) match {
           case Some(incompleteMission) =>
-            println("have an incomplete validation mission available")
+            println("[MissionTable] Incomplete validation mission available")
             Some(incompleteMission)
           case _ =>
             val validationLabels: Int = getNextValidationMissionLabelCount (userId)
-            println ("Getting " + validationLabels + " labels")
+            println ("[MissionTable] Getting " + validationLabels + " labels")
             val pay: Double = validationLabels.toDouble * payPerLabel.get
             Some (createNextValidationMission (userId, pay, validationLabels))
         }

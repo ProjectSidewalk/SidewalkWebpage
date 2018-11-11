@@ -4,7 +4,6 @@ var svv = svv || {};
 /**
  * Main module of SVValidate
  * @param params
- * @returns {{className: string}}
  * @constructor
  */
 function Main (param) {
@@ -21,6 +20,8 @@ function Main (param) {
     function _init() {
         // TODO later: Add params for map
         svv.form = new Form(param.dataStoreUrl);
+        svv.tracker = new Tracker();
+
         svv.panorama = new Panorama();
         svv.menuButtons = new MenuButton(svv.ui.validation, svv.form);
 
@@ -31,4 +32,5 @@ function Main (param) {
 
     _initUI();
     _init();
+    return this;
 }

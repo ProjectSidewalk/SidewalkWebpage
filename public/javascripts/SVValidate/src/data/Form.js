@@ -5,13 +5,18 @@ function Form(url) {
 
     function compileSubmissionData() {
         var data = {};
+        var label = undefined;
+    }
 
-    };
+    function _isValidationButtonClick(action) {
+        return action.indexOf("ValidationButtonClick") >= 0;
+    }
 
     function submit(data, async) {
         if (typeof async === "undefined") {
             async = true;
         }
+
 
         if (data.constructor !== Array) {
             console.log("Converting data...");
@@ -30,12 +35,6 @@ function Form(url) {
             success: function (result) {
                 if (result) {
                     console.log('Success');
-                    /*
-                    var taskId = result.audit_task_id;
-                    task.setProperty("auditTaskId", taskId);
-                    svl.tracker.setAuditTaskID(taskId);
-                    if (result.mission) missionModel.createAMission(result.mission);
-                    */
                 }
             },
             error: function (result) {

@@ -5,6 +5,7 @@ function Label() {
         canvasX: undefined,
         canvasY: undefined,
         heading: undefined,
+        labelId: undefined,
         labelType: undefined,
         pitch: undefined,
         zoom: undefined
@@ -19,8 +20,6 @@ function Label() {
         Occlusion : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
         NoSidewalk : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
     };
-
-    console.log("New Label");
 
     function getIconUrl() {
         return icons[properties.labelType];

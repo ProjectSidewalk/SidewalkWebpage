@@ -3,43 +3,37 @@
  * @constructor
  */
 function MenuButton(menuUI, form) {
+    var currentLabel = undefined;
 
     menuUI.agreeButton.click(function() {
+        currentLabel = svv.panorama.getCurrentLabel();
         console.log("Agree button clicked");
-        // bogus values
-        var data = {
-            "label_id" : 1,
-            "validation_task_id" : 39,
-            "label_validation_id" : 1,
-            "user_id" : "testing-agree",
-            "mission_id" : 0
-        };
-        form.submit(data, true);
+        logValidationAction(1);
+        svv.panorama.setLabel();
     });
 
     menuUI.disagreeButton.click(function() {
         console.log("Disagree button clicked");
-        // bogus values
-        var data = {
-            "label_id" : 2,
-            "validation_task_id" : 42,
-            "label_validation_id" : 2,
-            "user_id" : "testing-disagree",
-            "mission_id" : 0
-        };
-        form.submit(data, true);
+        logValidationAction(2);
+        svv.panorama.setLabel();
     });
 
     menuUI.unclearButton.click(function() {
         console.log("Unclear button clicked");
-        // bogus values
-        var data = {
-            "label_id" : 3,
-            "validation_task_id": 53,
-            "label_validation_id": 3,
-            "user_id" : "testing-unclear",
-            "mission_id" : 0
-        };
-        form.submit(data, true);
+        svv.panorama.setLabel();
     });
+
+    /**
+     *
+     * @param validationResult  Result ID {1: agree, 2: disagree, 3: unclear}
+     */
+    function logValidationAction(validationResult) {
+        var data = {
+            "label_id" : currentLabel.getProperty('labelId'),
+            "validation_result": validationResult
+        };
+
+        svv.tracker.push("ValidationButtonClick", data);
+        // form.submit(data, true);
+    }
 }

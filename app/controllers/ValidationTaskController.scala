@@ -37,9 +37,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     */
 
   def post = UserAwareAction.async(BodyParsers.parse.json) {implicit request =>
-    println("[request] " + request.body)
+    println("[Incoming Request] " + request.body)
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
-
+    Future.successful(Ok(Json.obj("status" -> "Ok")))
+    /*
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
@@ -53,6 +54,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         Future.successful(Ok(Json.obj("status" -> "Ok")))
       }
     )
+    */
   }
 
   /**
