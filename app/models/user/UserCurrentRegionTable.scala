@@ -33,11 +33,9 @@ object UserCurrentRegionTable {
 
   val experiencedUserMileageThreshold = 2.0
 
-  def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
+  def save(userId: UUID, regionId: Int): Future[Int] = db.run {
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
-    val userCurrentRegionId: Int =
-      (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += userCurrentRegion
-    userCurrentRegionId
+    (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += userCurrentRegion
   }
 
   /**
@@ -46,8 +44,8 @@ object UserCurrentRegionTable {
     * @param userId
     * @return
     */
-  def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
-    StreetEdgeTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
+  def isUserExperienced(userId: UUID): Future[Boolean] = {
+    StreetEdgeTable.getDistanceAudited(userId) map { dist => dist > experiencedUserMileageThreshold }
   }
 
   /**

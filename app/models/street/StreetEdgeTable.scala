@@ -11,7 +11,7 @@ import models.region.RegionTable
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.user.UserRoleTable
 import models.user.RoleTable
-import models.utils.MyPostgresDriver
+//import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.api._
 import org.postgresql.util.PSQLException
 import play.api.Play.current
@@ -30,7 +30,7 @@ case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: 
  */
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
-  def geom = column[LineString]("geom")
+  def geom: Rep[LineString] = column[LineString]("geom")
   def source = column[Int]("source")
   def target = column[Int]("target")
   def x1 = column[Float]("x1")
@@ -51,7 +51,7 @@ class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"),
 object StreetEdgeTable {
   // For plain query
   // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
-  import MyPostgresDriver.api._
+//  import MyPostgresDriver.api._
 
   implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
     val streetEdgeId = r.nextInt
@@ -369,7 +369,7 @@ object StreetEdgeTable {
   }
 
   /** Gets the query for a list of all street edges that the user has audited */
-  def selectAllStreetsAuditedByAUserQuery(userId: UUID) = db.withSession { implicit session =>
+  def selectAllStreetsAuditedByAUserQuery(userId: UUID) = {
 
     val auditedStreets = for {
       (_edges, _tasks) <- streetEdgesWithoutDeleted.join(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
@@ -379,10 +379,11 @@ object StreetEdgeTable {
   }
 
   /** Returns the total distance that the specified user has audited in miles */
-  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
+  def getDistanceAudited(userId: UUID): Future[Float] = {
 
-    val dist = selectAllStreetsAuditedByAUserQuery(userId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-    (dist * 0.000621371).toFloat // converts to miles
+    db.run(selectAllStreetsAuditedByAUserQuery(userId).groupBy(x => x).map(_._1.geom.transform(26918).length).sum.result) map {
+      dist => (dist * 0.000621371).toFloat // converts to miles
+    }
   }
 
   /** Returns the total distance audited by the specified user within the specified region, in miles */

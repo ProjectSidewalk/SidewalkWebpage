@@ -1,9 +1,8 @@
 package models.label
 
-import models.audit.{AuditTask, AuditTaskTable}
+import com.vividsolutions.jts.geom.Point
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-import com.vividsolutions.jts.geom.Point
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -14,9 +13,6 @@ case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: 
                       heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int,
                       alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], geom: Option[Point])
 
-/**
- *
- */
 class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some("sidewalk"), "label_point") {
   def labelPointId = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
   def labelId = column[Int]("label_id")
@@ -33,7 +29,7 @@ class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some
   def alphaY = column[Float]("alpha_y")
   def lat = column[Option[Float]]("lat")
   def lng = column[Option[Float]]("lng")
-  def geom = column[Option[Point]]("geom")
+  def geom: Rep[Option[Point]] = column[Option[Point]]("geom")
 
   def * = (labelPointId, labelId, svImageX, svImageY, canvasX, canvasY, heading, pitch, zoom,
     canvasHeight, canvasWidth, alphaX, alphaY, lat, lng, geom) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
@@ -65,10 +61,8 @@ object LabelPointTable {
    * @param point
    * @return
    */
-  def save(point: LabelPoint): Int = db.withTransaction { implicit session =>
-    val labelPointId: Int =
-      (labelPoints returning labelPoints.map(_.labelPointId)) += point
-    labelPointId
+  def save(point: LabelPoint): Future[Int] = db.run {
+    (labelPoints returning labelPoints.map(_.labelPointId)) += point
   }
 
   /**

@@ -3,7 +3,6 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
-import models.attribute.GlobalAttributeTable.dbConfig
 import models.audit.AuditTaskTable
 
 import math._
@@ -12,7 +11,10 @@ import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import slick.jdbc.GetResult
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
+import scala.concurrent.Future
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: Option[String], description: String, geom: Polygon, deleted: Boolean)
 case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
