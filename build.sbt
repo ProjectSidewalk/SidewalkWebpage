@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-nop" % "1.6.4",
   "com.typesafe.play" %% "play-slick" % "1.1.1",
   "com.typesafe.play" %% "play-slick-evolutions" % "1.1.1",
-  "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
+  "org.postgresql" % "postgresql" % "9.4-1201-jdbc41",
   "com.mohiva" %% "play-silhouette" % "2.0",
 //  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
   "org.webjars" %% "webjars-play" % "2.3.0",
