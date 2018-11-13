@@ -1,7 +1,7 @@
 package app
 
 import com.google.inject.Guice
-import com.mohiva.play.silhouette.api.{ Logger, SecuredSettings }
+import com.mohiva.play.silhouette.api.{ Logger, SecuredErrorHandler }
 import controllers.routes
 import play.api._
 import play.api.GlobalSettings
@@ -54,7 +54,7 @@ object Global extends Global {
 /**
  * The global configuration.
  */
-trait Global extends GlobalSettings with SecuredSettings with Logger {
+trait Global extends GlobalSettings with Logger {
 
   /**
    * The Guice dependencies injector.
