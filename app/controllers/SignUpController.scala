@@ -2,10 +2,11 @@ package controllers
 
 import java.sql.Timestamp
 import java.util.UUID
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api._
-import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService}
+import com.mohiva.play.silhouette.api.services.AvatarService
+import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.providers._
@@ -33,13 +34,13 @@ import scala.util.Random
  *
  * @param env The Silhouette environment.
  * @param userService The user service implementation.
- * @param authInfoService The auth info service implementation.
+ * @param authInfoRepository The auth info service implementation.
  * @param avatarService The avatar service implementation.
  * @param passwordHasher The password hasher implementation.
  */
 class SignUpController @Inject() (implicit val env: Environment[User, SessionAuthenticator],
                                   val userService: UserService,
-                                  val authInfoService: AuthInfoService,
+                                  val authInfoRepository: AuthInfoRepository,
                                   val avatarService: AvatarService,
                                   val passwordHasher: PasswordHasher,
                                   val messagesApi: MessagesApi)
@@ -86,7 +87,7 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
 
                 for {
                   user <- userService.save(user)
-                  authInfo <- authInfoService.save(user.loginInfo, authInfo)
+                  authInfo <- authInfoRepository.save(user.loginInfo, authInfo)
                   authenticator <- env.authenticatorService.create(user.loginInfo)
                   value <- env.authenticatorService.init(authenticator)
                   result <- env.authenticatorService.embed(value, Future.successful(
@@ -148,7 +149,7 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
 
                 for {
                   user <- userService.save(user)
-                  authInfo <- authInfoService.save(loginInfo, authInfo)
+                  authInfo <- authInfoRepository.save(loginInfo, authInfo)
                   authenticator <- env.authenticatorService.create(user.loginInfo)
                   value <- env.authenticatorService.init(authenticator)
                   result <- env.authenticatorService.embed(value, Future.successful(
@@ -208,7 +209,7 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
 
         for {
           user <- userService.save(user)
-          authInfo <- authInfoService.save(loginInfo, authInfo)
+          authInfo <- authInfoRepository.save(loginInfo, authInfo)
           authenticator <- env.authenticatorService.create(user.loginInfo)
           value <- env.authenticatorService.init(authenticator)
           result <- env.authenticatorService.embed(value, Future.successful(
@@ -275,7 +276,7 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
 
         for {
           user <- userService.save(user)
-          authInfo <- authInfoService.save(loginInfo, authInfo)
+          authInfo <- authInfoRepository.save(loginInfo, authInfo)
           authenticator <- env.authenticatorService.create(user.loginInfo)
           value <- env.authenticatorService.init(authenticator)
           result <- env.authenticatorService.embed(value, Future.successful(
