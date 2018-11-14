@@ -14,7 +14,7 @@ import forms.SignInForm
 import models.services.UserService
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
-//import play.api.Play.current
+import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
