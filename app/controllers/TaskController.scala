@@ -22,8 +22,9 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.Future
 
@@ -33,8 +34,8 @@ import scala.concurrent.Future
 /**
  * Task controller
  */
-class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-    extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+    extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission])

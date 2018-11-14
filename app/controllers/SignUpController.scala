@@ -20,9 +20,10 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
-import play.api.Play.current
+//import play.api.Play.current
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import play.api.i18n.Messages.Implicits._
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.Future
 import scala.util.Random
@@ -36,13 +37,13 @@ import scala.util.Random
  * @param avatarService The avatar service implementation.
  * @param passwordHasher The password hasher implementation.
  */
-class SignUpController @Inject() (
-                                   implicit val env: Environment[User, SessionAuthenticator],
-                                   val userService: UserService,
-                                   val authInfoService: AuthInfoService,
-                                   val avatarService: AvatarService,
-                                   val passwordHasher: PasswordHasher)
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
+class SignUpController @Inject() (implicit val env: Environment[User, SessionAuthenticator],
+                                  val userService: UserService,
+                                  val authInfoService: AuthInfoService,
+                                  val avatarService: AvatarService,
+                                  val passwordHasher: PasswordHasher,
+                                  val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
 
   /**
@@ -322,7 +323,7 @@ class SignUpController @Inject() (
     // Logger.info(updatedAuthenticator.toString)
     // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
     // There is currently nothing subscribed to the event bus (at least in the application level)
-    env.eventBus.publish(LoginEvent(user, request, request2lang))
+    env.eventBus.publish(LoginEvent(user, request))
     env.authenticatorService.init(updatedAuthenticator)
   }
 }

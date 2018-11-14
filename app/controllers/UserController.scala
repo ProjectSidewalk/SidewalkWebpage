@@ -14,16 +14,17 @@ import play.api.mvc.BodyParsers
 import play.api.libs.json._
 import org.joda.time.{DateTime, DateTimeZone}
 import scala.concurrent.Future
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 /**
  * The basic application controller.
  *
  * @param env The Silhouette environment.
  */
-class UserController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
+class UserController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport{
 
   /**
    * Handles the Sign In action.

@@ -12,8 +12,9 @@ import models.label.LabelTable
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.extras.geojson
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -24,8 +25,8 @@ import scala.concurrent.Future
  *
  * @param env The Silhouette environment.
  */
-class UserProfileController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
+class UserProfileController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     request.identity match {

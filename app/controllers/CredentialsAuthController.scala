@@ -14,13 +14,14 @@ import forms.SignInForm
 import models.services.UserService
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Play.current
+//import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
-import play.api.i18n.Messages.Implicits._
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.Future
 
@@ -31,10 +32,10 @@ import scala.concurrent.Future
   *
   * @param env The Silhouette environment.
   */
-class CredentialsAuthController @Inject() (
-                                            implicit val env: Environment[User, SessionAuthenticator],
-                                            val userService: UserService)
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
+class CredentialsAuthController @Inject() (implicit val env: Environment[User, SessionAuthenticator],
+                                           val userService: UserService,
+                                           val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   /**
     * Authenticates a user against the credentials provider.

@@ -7,14 +7,15 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user.User
 import models.street.StreetEdgePriorityTable
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.Future
 
 
-class AuditPriorityController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+class AuditPriorityController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {

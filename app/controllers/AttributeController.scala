@@ -21,8 +21,9 @@ import models.street.StreetEdgePriorityTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import collection.immutable.Seq
 import scala.io.Source
@@ -31,8 +32,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class AttributeController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+class AttributeController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   /**
     * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.

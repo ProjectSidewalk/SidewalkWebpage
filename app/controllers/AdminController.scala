@@ -26,8 +26,9 @@ import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -36,8 +37,8 @@ import scala.concurrent.Future
   * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
   * @param env
   */
-class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {

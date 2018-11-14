@@ -11,15 +11,16 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.mvc._
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 
 import scala.concurrent.Future
 import scala.util.Random
 
-class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   val anonymousUser: DBUser = UserTable.find("anonymous").get
 
