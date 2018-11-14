@@ -102,7 +102,7 @@ class CredentialsAuthController @Inject() (implicit val env: Environment[User, S
     // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
     val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
     val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
-    val expirationDate = authenticator.expirationDate.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
+    val expirationDate = authenticator.expirationDateTime.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
     val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
