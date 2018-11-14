@@ -45,7 +45,7 @@ class CredentialsAuthController @Inject() (implicit val env: Environment[User, S
   def authenticate(url: String) = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
-      credentials => (env.providers.get(CredentialsProvider.ID) match {
+      credentials => (env.requestProviders.find(_.id == CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
@@ -74,7 +74,7 @@ class CredentialsAuthController @Inject() (implicit val env: Environment[User, S
   def postAuthenticate = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
-      credentials => (env.providers.get(CredentialsProvider.ID) match {
+      credentials => (env.requestProviders.find(_.id == CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
