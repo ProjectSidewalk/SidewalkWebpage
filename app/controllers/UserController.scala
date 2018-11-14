@@ -61,7 +61,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 //    val result = Future.successful(Redirect(routes.UserController.index()))
 
     val result = Future.successful(Redirect(url))
-    env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
+    env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
     request.authenticator.discard(result)
   }
 

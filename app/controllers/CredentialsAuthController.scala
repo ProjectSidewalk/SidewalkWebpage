@@ -117,7 +117,7 @@ class CredentialsAuthController @Inject() (implicit val env: Environment[User, S
     // Logger.info(updatedAuthenticator.toString)
     // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
     // There is currently nothing subscribed to the event bus (at least in the application level)
-    env.eventBus.publish(LoginEvent(user, request, request2lang))
+    env.eventBus.publish(LoginEvent(user, request, request2Messages))
     env.authenticatorService.init(updatedAuthenticator)
   }
 }

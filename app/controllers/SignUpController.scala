@@ -103,8 +103,8 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-                  env.eventBus.publish(SignUpEvent(user, request, request2lang))
-                  env.eventBus.publish(LoginEvent(user, request, request2lang))
+                  env.eventBus.publish(SignUpEvent(user, request, request2Messages))
+                  env.eventBus.publish(LoginEvent(user, request, request2Messages))
                   result
                 }
             }
@@ -165,8 +165,8 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-                  env.eventBus.publish(SignUpEvent(user, request, request2lang))
-                  env.eventBus.publish(LoginEvent(user, request, request2lang))
+                  env.eventBus.publish(SignUpEvent(user, request, request2Messages))
+                  env.eventBus.publish(LoginEvent(user, request, request2Messages))
 
                   result
                 }
@@ -223,8 +223,8 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
           val timestamp: Timestamp = new Timestamp(now.getMillis)
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "AnonAutoSignUp", timestamp))
 
-          env.eventBus.publish(SignUpEvent(user, request, request2lang))
-          env.eventBus.publish(LoginEvent(user, request, request2lang))
+          env.eventBus.publish(SignUpEvent(user, request, request2Messages))
+          env.eventBus.publish(LoginEvent(user, request, request2Messages))
 
           result
         }
@@ -293,8 +293,8 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-          env.eventBus.publish(SignUpEvent(user, request, request2lang))
-          env.eventBus.publish(LoginEvent(user, request, request2lang))
+          env.eventBus.publish(SignUpEvent(user, request, request2Messages))
+          env.eventBus.publish(LoginEvent(user, request, request2Messages))
 
           result
         }
@@ -323,7 +323,7 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
     // Logger.info(updatedAuthenticator.toString)
     // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
     // There is currently nothing subscribed to the event bus (at least in the application level)
-    env.eventBus.publish(LoginEvent(user, request))
+    env.eventBus.publish(LoginEvent(user, request, request2Messages))
     env.authenticatorService.init(updatedAuthenticator)
   }
 }
