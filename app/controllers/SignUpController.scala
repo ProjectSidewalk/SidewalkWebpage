@@ -21,7 +21,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
-//import play.api.Play.current
+import play.api.Play.current
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 //import play.api.i18n.Messages.Implicits._
 import play.api.i18n.{I18nSupport, MessagesApi}
