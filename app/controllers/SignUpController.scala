@@ -23,6 +23,8 @@ import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
 import play.api.Play.current
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+
+import scala.concurrent.duration.FiniteDuration
 //import play.api.i18n.Messages.Implicits._
 import play.api.i18n.{I18nSupport, MessagesApi}
 
@@ -310,7 +312,8 @@ class SignUpController @Inject() (implicit val env: Environment[User, SessionAut
     val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
     val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
     val expirationDate = authenticator.expirationDateTime.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
-    val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
+    val updatedAuthenticator =
+      authenticator.copy(expirationDateTime=expirationDate, idleTimeout = Some(FiniteDuration(30L, "minute")))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
       UserCurrentRegionTable.assignEasyRegion(user.userId)

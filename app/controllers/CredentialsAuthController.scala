@@ -1,8 +1,8 @@
 package controllers
 
 import java.sql.Timestamp
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.exceptions.{ConfigurationException, ProviderException}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -20,6 +20,8 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
+
+import scala.concurrent.duration.FiniteDuration
 //import play.api.i18n.Messages.Implicits._
 import play.api.i18n.{I18nSupport, MessagesApi}
 
@@ -103,7 +105,8 @@ class CredentialsAuthController @Inject() (implicit val env: Environment[User, S
     val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
     val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
     val expirationDate = authenticator.expirationDateTime.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
-    val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
+    val updatedAuthenticator =
+      authenticator.copy(expirationDateTime=expirationDate, idleTimeout = Some(FiniteDuration(30L, "minute")))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
       UserCurrentRegionTable.assignRegion(user.userId)
