@@ -62,7 +62,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 
     val result = Future.successful(Redirect(url))
     env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
-    request.authenticator.discard(result)
+    env.authenticatorService.discard(request.authenticator, result)
   }
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
