@@ -160,12 +160,12 @@ object GlobalAttributeTable {
     } yield (_att.globalAttributeId, _labType.labelType, _att.lat, _att.lng, _att.severity, _att.temporary, _nbhd._2, _lab.labelId, _labPnt.lat, _labPnt.lng, _lab.gsvPanoramaId)
 
     val withSeverity = for {
-      (_l, _s) <- attributesWithLabels.leftJoin(ProblemSeverityTable.problemSeverities).on(_._8 === _.labelId)
+      (_l, _s) <- attributesWithLabels.leftJoin(LabelSeverityTable.labelSeverities).on(_._8 === _.labelId)
     } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _s.severity.?)
 
     val withTemporary = for {
-      (_l, _t) <- withSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._8 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _t.temporaryProblem.?)
+      (_l, _t) <- withSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._8 === _.labelId)
+    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _t.temporary.?)
 
     withTemporary.list.map(a =>
       GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7.get, a._8, a._9.get, a._10.get, a._11, a._12, a._13.getOrElse(false))
