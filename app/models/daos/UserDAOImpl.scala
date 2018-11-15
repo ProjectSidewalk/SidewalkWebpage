@@ -132,8 +132,8 @@ object UserDAOImpl {
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-        |INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
-        |INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
         |WHERE audit_task.task_end::date = now()::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
@@ -178,8 +178,8 @@ object UserDAOImpl {
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-        |INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
-        |INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
         |WHERE audit_task.task_end::date = now()::date - interval '1' day
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
