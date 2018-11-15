@@ -115,8 +115,8 @@ describe("Onboarding module", function () {
     }
 
     function MissionMock () {
-        this._isCompleted = false;
-        this.isCompleted = function () { return this._isCompleted; }
+        this._isComplete = false;
+        this.isComplete = function () { return this._isComplete; }
     }
 
     function ModalMissionMock () {

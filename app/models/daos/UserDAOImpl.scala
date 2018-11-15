@@ -248,9 +248,8 @@ object UserDAOImpl {
 
     // Map(user_id: String -> mission_count: Int)
     val missionCounts =
-      MissionTable.missionsWithoutDeleted.innerJoin(MissionTable.missionUsers).on(_.missionId === _.missionId)
-        .groupBy(x => (x._1.missionId, x._2.userId)).map(_._1)
-        .groupBy(_._2).map{ case (_userId, group) => (_userId, group.length) }.list.toMap
+      MissionTable.missions.filter(_.completed)
+        .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> audit_count: Int)
     val auditCounts =

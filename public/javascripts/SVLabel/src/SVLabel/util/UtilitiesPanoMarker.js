@@ -151,11 +151,9 @@ util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateF
 /**
  * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
  *
- * @param ix
- * @param iy
- * @param pov
- * @param zoomFactor
- * @returns {{x: number, y: number}}
+ * @param imageX
+ * @param imageY
+ * @param currentPov
  */
 function imageCoordinateToCanvasCoordinate(imageX, imageY, currentPov) {
 
@@ -309,6 +307,10 @@ function povToPixel3DOffset(targetPov, currentPov, zoom, viewport) {
  * This function takes current pov of the Street View as a parameter and returns a canvas coordinate of a point
  * when the pov is changed.
  * If the pov is not changed, then the passed canvas Coordinate is returned
+ * @param canvasCoord
+ * @param origPov
+ * @param canvasCoord
+ * @param origPov
  * @param pov
  * @returns {{x, y}}
  */

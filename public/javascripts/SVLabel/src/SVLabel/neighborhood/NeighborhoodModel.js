@@ -10,10 +10,10 @@ function NeighborhoodModel () {
         var leafletLayers = geojsonLayer.getLayers();
         var layer, regionId, regionName;
         for (var i = 0, len = leafletLayers.length; i < len; i++) {
-            layer =leafletLayers[i];
+            layer = leafletLayers[i];
             regionId = layer.feature.properties.region_id;
             regionName = layer.feature.properties.region_name;
-            // TODO: Add a isCompleted property
+            // TODO: Add an isComplete property
             self.create(regionId, layer, regionName);
         }
     };
@@ -39,33 +39,6 @@ function NeighborhoodModel () {
             }
         })).done(callback);
     };
-
-    // TODO test if this is used, we suspect it is never called and can be deleted.
-    this.fetchNextHighPriorityRegion = function (async) {
-        if (typeof async === "undefined") async = true;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: "/neighborhood/assignment",
-            type: 'post',
-            data: JSON.stringify({"region_id": null}),
-            dataType: 'json',
-            success: function (json) {
-                var regionId = json.region_id;
-                if (regionId) {
-                    var neighborhood = svl.neighborhoodContainer.get(json.region_id);
-                    self.setCurrentNeighborhood(neighborhood);
-                } else {
-                    // When no region is left to assign to the user
-                    self.setCurrentNeighborhood(null);
-                    console.error("No regions to assign to the user!");
-                }
-            },
-            error: function (result) {
-                throw result;
-            }
-        });
-    }
 }
 _.extend(NeighborhoodModel.prototype, Backbone.Events);
 
@@ -83,41 +56,12 @@ NeighborhoodModel.prototype.currentNeighborhood = function () {
     return this._neighborhoodContainer.getCurrentNeighborhood();
 };
 
-/**
- *
- * @param regionId
- */
-NeighborhoodModel.prototype.updateUserRegionInDatabase = function (regionId) {
-    regionId = parseInt(regionId, 10);
-    var url = "/neighborhood/assignment";
-    $.ajax({
-        async: true,
-        contentType: 'application/json; charset=utf-8',
-        url: url,
-        type: 'post',
-        data: JSON.stringify({"region_id": regionId}),
-        dataType: 'json',
-        success: function (result) {
-
-        },
-        error: function (result) {
-            console.error(result);
-        }
-    });
-};
-
-NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+NeighborhoodModel.prototype.getNeighborhoodCompleteAcrossAllUsers = function () {
     return this.isNeighborhoodCompletedAcrossAllUsers;
 };
 
-
-NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function (neighborhoodId) {
+NeighborhoodModel.prototype.setNeighborhoodCompleteAcrossAllUsers = function () {
     this.isNeighborhoodCompletedAcrossAllUsers = true;
-};
-
-NeighborhoodModel.prototype.getNeighborhood = function (neighborhoodId) {
-    if (!this._neighborhoodContainer) return null;
-    return this._neighborhoodContainer.get(neighborhoodId);
 };
 
 NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoodId) {
@@ -126,10 +70,4 @@ NeighborhoodModel.prototype.neighborhoodCompleted = function (currentNeighborhoo
         completedRegionId: currentNeighborhoodId
     });
     this.isNeighborhoodCompleted = true;
-};
-
-NeighborhoodModel.prototype.setCurrentNeighborhood = function (neighborhood) {
-    if (this._neighborhoodContainer) {
-        this._neighborhoodContainer.setCurrentNeighborhood(neighborhood);
-    }
 };

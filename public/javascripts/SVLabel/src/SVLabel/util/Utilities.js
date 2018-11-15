@@ -73,7 +73,7 @@ function getURLParameter(argName) {
         }
     }
     r = (r.length > 0  ? unescape(r).split(',') : '');
-    r = (r.length == 1 ? r[0] : '')
+    r = (r.length == 1 ? r[0] : '');
     return r;
 }
 util.getURLParameter = getURLParameter;
@@ -178,7 +178,7 @@ util.getOperatingSystem = getOperatingSystem;
 
 /**
  * Given an image coordinate (x, y), return a scaled coordinate. For example, to
- * get the cooresponding coordinate in a smaller 512x256 image, use r = 1/26.
+ * get the corresponding coordinate in a smaller 512x256 image, use r = 1/26.
  * @param x
  * @param y
  * @param r

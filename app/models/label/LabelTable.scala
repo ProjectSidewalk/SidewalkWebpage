@@ -7,6 +7,7 @@ import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVOnboardingPanoTable
+import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
@@ -18,6 +19,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int,
                  auditTaskId: Int,
+                 missionId: Int,
                  gsvPanoramaId: String,
                  labelTypeId: Int,
                  photographerHeading: Float,
@@ -33,8 +35,7 @@ case class LabelLocation(labelId: Int,
                          gsvPanoramaId: String,
                          labelType: String,
                          lat: Float,
-                         lng: Float
-                         )
+                         lng: Float)
 
 case class LabelLocationWithSeverity(labelId: Int,
                                      auditTaskId: Int,
@@ -42,8 +43,7 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      labelType: String,
                                      severity: Int,
                                      lat: Float,
-                                     lng: Float
-                                    )
+                                     lng: Float)
 
 /**
  *
@@ -51,6 +51,7 @@ case class LabelLocationWithSeverity(labelId: Int,
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
+  def missionId = column[Int]("mission_id", O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
   def photographerHeading = column[Float]("photographer_heading", O.NotNull)
@@ -61,11 +62,14 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
 
-  def * = (labelId, auditTaskId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
+  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
     panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+
+  def mission: ForeignKeyQuery[MissionTable, Mission] =
+    foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
@@ -83,7 +87,7 @@ object LabelTable {
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
   val regions = TableQuery[RegionTable]
-  val severities = TableQuery[ProblemSeverityTable]
+  val severities = TableQuery[LabelSeverityTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
@@ -269,7 +273,7 @@ object LabelTable {
         |       lb_big.label_type,
         |       lb_big.label_type_desc,
         |       lb_big.severity,
-        |       lb_big.temp_problem,
+        |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
@@ -281,13 +285,13 @@ object LabelTable {
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
-        |                COALESCE(prob_temp.temporary_problem,'FALSE') AS temp_problem,
-        |                prob_desc.description
+        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
+        |                lab_desc.description
         |					FROM label AS lb
         |				  LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
-        |  				LEFT JOIN sidewalk.problem_severity as sev ON lb.label_id = sev.label_id
-        |				  LEFT JOIN sidewalk.problem_description as prob_desc ON lb.label_id = prob_desc.label_id
-        |				  LEFT JOIN sidewalk.problem_temporariness as prob_temp ON lb.label_id = prob_temp.label_id
+        |  				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
+        |				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
+        |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
         |		  ) AS lb_big
         |WHERE lb1.deleted = FALSE
         |    AND lb1.audit_task_id = at.audit_task_id
@@ -320,7 +324,7 @@ object LabelTable {
         |       lb_big.label_type,
         |       lb_big.label_type_desc,
         |       lb_big.severity,
-        |       lb_big.temp_problem,
+        |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
@@ -332,13 +336,13 @@ object LabelTable {
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
-        |                COALESCE(prob_temp.temporary_problem,'FALSE') AS temp_problem,
-        |                prob_desc.description
+        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
+        |                lab_desc.description
         |					FROM label AS lb
         |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |			  	LEFT JOIN sidewalk.problem_severity AS sev ON lb.label_id = sev.label_id
-        |			  	LEFT JOIN sidewalk.problem_description AS prob_desc ON lb.label_id = prob_desc.label_id
-        |				  LEFT JOIN sidewalk.problem_temporariness AS prob_temp ON lb.label_id = prob_temp.label_id
+        |			  	LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
+        |			  	LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+        |				  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
         |			) AS lb_big
         |WHERE u.user_id = ?
         |      AND lb1.deleted = FALSE
@@ -372,7 +376,7 @@ object LabelTable {
         |       lb_big.label_type,
         |       lb_big.label_type_desc,
         |       lb_big.severity,
-        |       lb_big.temp_problem,
+        |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
@@ -384,13 +388,13 @@ object LabelTable {
         |                lbt.label_type,
         |                lbt.description AS label_type_desc,
         |                sev.severity,
-        |                COALESCE(prob_temp.temporary_problem,'FALSE') AS temp_problem,
-        |                prob_desc.description
+        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
+        |                lab_desc.description
         |					FROM label AS lb
         |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |		  		LEFT JOIN sidewalk.problem_severity AS sev ON lb.label_id = sev.label_id
-        |				  LEFT JOIN sidewalk.problem_description AS prob_desc ON lb.label_id = prob_desc.label_id
-        |				  LEFT JOIN sidewalk.problem_temporariness AS prob_temp ON lb.label_id = prob_temp.label_id
+        |		  		LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
+        |				  LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+        |				  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
         |			) AS lb_big
         |WHERE lb1.label_id = ?
         |      AND lb1.audit_task_id = at.audit_task_id

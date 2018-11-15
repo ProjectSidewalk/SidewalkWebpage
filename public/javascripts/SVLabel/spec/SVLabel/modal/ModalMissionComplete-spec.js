@@ -128,13 +128,8 @@ describe("ModalMissionComplete", function () {
             modalModel, statusModel, onboardingModel);
 
         mission = new MissionMock();
-        mission.properties.distanceMi = 0.7575;
         mission.properties.distance = 1219.2;
-        mission.properties.distanceFt = 4000;
         mission.properties.coverage = 0.07575;
-        mission.properties.auditDistanceFt = 2000;
-        mission.properties.auditDistanceMi = 0.3788;
-        mission.properties.auditDistance = 609;
         mission.properties.label = "distance-mission";
         neighborhood = new NeighborhoodMock();
         neighborhood.properties.name = "Test Neighborhood";
@@ -203,15 +198,6 @@ describe("ModalMissionComplete", function () {
             });
     });
 
-    describe("_updateTheMissionCompleteMessage", function (){
-        it("should randomly display a message", function (){
-            expect(uiModalMissionComplete.message.html()).toBe('');
-            modalMissionComplete._updateTheMissionCompleteMessage();
-            // cant predict which message since it is random
-            expect(uiModalMissionComplete.message.html()).not.toBe("");
-        });
-    });
-
     describe("_updateMissionLabelStatisitcs method ", function(){
         it("label counts should be empty initially", function(){
             modalMissionComplete.show();
@@ -246,7 +232,6 @@ describe("ModalMissionComplete", function () {
     describe("update method", function (){
         beforeEach( function () {
             modalMissionComplete.show();
-            mission.properties.distanceMi = 0;
             neighborhood.properties.completedLineDistance = 0;
             neighborhood.properties.totalLineDistance = 0;
         });
@@ -256,7 +241,6 @@ describe("ModalMissionComplete", function () {
         });
 
         it("should update mission distance statistics", function () {
-            mission.properties.distanceMi = 0.1;
             neighborhood.properties.completedLineDistance = 0.3;
             neighborhood.properties.totalLineDistance = 0.7;
             modalMissionComplete.update(mission, neighborhood);
@@ -308,8 +292,6 @@ describe("ModalMissionComplete", function () {
             coverage: null,
             label: null,
             distance: null,
-            distanceFt: null,
-            distanceMi: null,
             route: [],
             labelCount: null
         };

@@ -81,7 +81,10 @@ function AdminPanorama(svHolder) {
 
     /**
      * Sets the panorama ID and POV from label metadata
-     * @param newId
+     * @param panoId
+     * @param heading
+     * @param pitch
+     * @param zoom
      */
     function setPano(panoId, heading, pitch, zoom) {
         if (typeof google != "undefined") {

@@ -1,6 +1,5 @@
 function Admin(_, $, c3, turf, difficultRegionIds) {
     var self = {};
-    var severityList = [1, 2, 3, 4, 5];
     self.markerLayer = null;
     self.curbRampLayers = [];
     self.missingCurbRampLayers = [];
@@ -14,7 +13,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     var neighborhoodPolygonLayer;
 
-    for (i = 0; i < 5; i++) {
+    for (var i = 0; i < 5; i++) {
         self.curbRampLayers[i] = [];
         self.missingCurbRampLayers[i] = [];
         self.obstacleLayers[i] = [];
@@ -74,8 +73,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     choropleth.scrollWheelZoom.disable();
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
-
-    var popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
     // Initialize the map
     /**
@@ -300,7 +297,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 pointToLayer: L.mapbox.marker.style,
                 style: function (feature) {
                     var style = $.extend(true, {}, streetLinestringStyle);
-                    var randomInt = Math.floor(Math.random() * 5);
                     style.color = "#000";
                     style["stroke-width"] = 3;
                     style.opacity = 0.75;
@@ -394,8 +390,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAllLayers(data) {
-        var count = 1;
-        for (i = 0; i < data.features.length; i++) {
+        for (var i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
             if(labelType === "Occlusion" || labelType === "NoSidewalk"){
                 // console.log(data.features[i]);
@@ -414,7 +409,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         }
 
         Object.keys(self.allLayers).forEach(function (key) {
-            for (i = 0; i < self.allLayers[key].length; i++) {
+            for (var i = 0; i < self.allLayers[key].length; i++) {
                 self.allLayers[key][i] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key][i]});
                 self.allLayers[key][i].addTo(map);
             }
@@ -440,14 +435,14 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function toggleLayers(label, checkboxId, sliderId) {
         if (document.getElementById(checkboxId).checked) {
             if(checkboxId == "occlusion" || checkboxId == "nosidewalk"){
-                for (i = 0; i < self.allLayers[label].length; i++) {
+                for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])) {
                         map.addLayer(self.allLayers[label][i]);
                     }
                 }
             }
             else {
-                for (i = 0; i < self.allLayers[label].length; i++) {
+                for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])
                         && ($(sliderId).slider("option", "value") == i ||
                         $(sliderId).slider("option", "value") == 5 )) {
@@ -459,7 +454,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 }
             }
         } else {
-            for (i = 0; i < self.allLayers[label].length; i++) {
+            for (var i = 0; i < self.allLayers[label].length; i++) {
                 if (map.hasLayer(self.allLayers[label][i])) {
                     map.removeLayer(self.allLayers[label][i]);
                 }

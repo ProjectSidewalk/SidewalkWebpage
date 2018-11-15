@@ -1,21 +1,14 @@
 /**
  * User module
  * @param param
- * @param userModel
  * @returns {{className: string}}
  * @constructor
  */
-function User (param, userModel) {
+function User (param) {
     var properties = {
-        username: null,
-        role: null,
-        recordedAuditDistance: null  // miles.
+        username: param.username,
+        role: param.role
     };
-
-    this._userModel = userModel;
-
-    properties.username = param.username;
-    properties.role = param.role;
 
     /**
      * Get a property
