@@ -1,8 +1,8 @@
-.faq p {
+.help p {
     font-size: 14px;
 }
 
-.faq .maincontent {
+.help .maincontent {
     padding-left: 40px;
 }
 
@@ -10,46 +10,46 @@ figure figcaption {
     padding-top: 10px;
 }
 
-.faq video, .faq img, .faq iframe {
+.help video, .help img, .help iframe {
     box-shadow: 0 1px 1px rgba(0,0,0,.05);
     border-radius:4px;
 }
 
-.faq video, .faq iframe {
+.help video, .help iframe {
     border: 1px solid #ddd;
 
 }
 
-.faq .faq-item {
+.help .help-item {
     margin-bottom: 100px;
 }
 /* Found recommended fix here: https://github.com/twbs/bootstrap/issues/1768 */
-.faq .faq-item h2 {
+.help .help-item h2 {
     margin-top: -70px;
     margin-bottom: 20px;
     padding-top: 75px;
 }
 
-#faq-panel .panel-body{
+#help-panel .panel-body{
     padding: 0;
 }
 
-.faq ul#questions-list {
+.help ul#questions-list {
     padding: 0;
     list-style-type: none;
     margin: 0;
 }
 
-.faq ul#questions-list li {
+.help ul#questions-list li {
     padding: 10px;
     border-bottom: 1px solid #ddd;
 }
 
-.faq ul#questions-list li:hover {
+.help ul#questions-list li:hover {
     /*background-color: #eee;*/
 }
 
-.faq table {
+.help table {
     font-size: 14px;
 }
 
