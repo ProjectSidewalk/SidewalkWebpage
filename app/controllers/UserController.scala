@@ -6,7 +6,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import formats.json.UserFormats._
 import forms._
 import models.user._
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
@@ -59,10 +58,9 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   def signOut(url: String) = SecuredAction.async { implicit request =>
 //    val result = Future.successful(Redirect(routes.UserController.index()))
 
-    val result = Future.successful(Redirect(url))
+    val result = Redirect(url)
     env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
-//    request.authenticator.discard(result) //FIXME
-    result
+    env.authenticatorService.discard(request.authenticator, result)
   }
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
