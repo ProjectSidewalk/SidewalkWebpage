@@ -16,9 +16,9 @@ import models.audit._
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.label._
 import models.mission.MissionTable
-import models.region.RegionCompletionTable
+import models.region.{RegionCompletionTable, RegionPropertyTable}
 import models.street.StreetEdgeTable
-import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
+import models.user._
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
@@ -51,9 +51,23 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      UserTable.find(username).map {
-        case Some(user) => Ok(views.html.admin.user("Project Sidewalk", request.identity, Some(user)))
-        case _ => Ok(views.html.admin.user("Project Sidewalk", request.identity))
+      UserTable.find(username).flatMap {
+        case Some(user) =>
+          for {
+            mCount <- MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.userId), includeOnboarding = false)
+            aCount <- AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.userId))
+            lCount <- LabelTable.countLabelsByUserId(UUID.fromString(user.userId))
+            rId <- UserCurrentRegionTable.currentRegion(UUID.fromString(user.userId))
+            rName <- RegionPropertyTable.neighborhoodName(rId.getOrElse(-1))
+            labels <- LabelTable.selectTopLabelsAndMetadataByUser(1000, UUID.fromString(user.userId))
+            missions <- MissionTable.selectCompletedRegionalMissions(UUID.fromString(user.userId))
+            comments <- AuditTaskCommentTable.all(user.username)
+          } yield {
+            Ok(views.html.admin.user(
+              "Project Sidewalk", request.identity.get, user, mCount, aCount, lCount, rId, rName, labels, missions, comments)
+            )
+          }
+        case _ => Future.successful(BadRequest("No user found with that username."))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -245,7 +259,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
             Ok(featureCollection)
           }
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new Exception("No user found with that username."))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -272,7 +286,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             }
           }
           features map { f => Ok(Json.obj("type" -> "FeatureCollection", "features" -> f)) }
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new Exception("No user found with that username."))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -326,7 +340,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case Some(user) =>
           val tasksWithLabelsFuture = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId))
           tasksWithLabelsFuture map { tasksWithLabels => Ok(JsArray(tasksWithLabels.map(x => Json.toJson(x)))) }
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
+        case _ => Future.failed(new Exception("No user found with that username."))
       }
     } else {
       Future.successful(Redirect("/"))

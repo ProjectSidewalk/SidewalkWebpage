@@ -100,7 +100,7 @@ object LabelTable {
   // Filters out the labels placed during onboarding (aka panoramas that are used during onboarding
   // Onboarding labels have to be filtered out before a user's labeling frequency is computed
   val labelsWithoutDeletedOrOnboarding = {
-    val onboardingPanoIds = Await.result(GSVOnboardingPanoTable.getOnboardingPanoIds, Duration.Inf) //FIXME
+    val onboardingPanoIds: Seq[String] = Await.result(GSVOnboardingPanoTable.getOnboardingPanoIds, Duration.Inf) //FIXME
     for {
       label <- labelsWithoutDeleted if !onboardingPanoIds.contains(label.gsvPanoramaId)
     } yield label

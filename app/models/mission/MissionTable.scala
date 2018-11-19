@@ -221,7 +221,7 @@ object MissionTable {
     * @param userId
     * @return
     */
-  def selectCompletedRegionalMission(userId: UUID): Future[List[RegionalMission]] = {
+  def selectCompletedRegionalMissions(userId: UUID): Future[List[RegionalMission]] = {
     db.run({
       val userMissions = missions.filter(_.userId === userId.toString)
 
