@@ -5,13 +5,14 @@ import play.api.data._
 import play.api.data.Forms._
 import play.api.mvc.{Action, Controller}
 import models.teaser._
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 case class EmailAddress(email: String)
 
 
-class TeaserController @Inject() extends Controller {
+class TeaserController @Inject() (val messagesApi: MessagesApi) extends Controller with I18nSupport {
 
   val emailForm = Form(
     mapping(

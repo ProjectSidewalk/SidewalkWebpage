@@ -7,8 +7,9 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.{User, UserCurrentRegionTable}
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.Future
 import play.api.mvc._
@@ -23,8 +24,8 @@ import collection.immutable.Seq
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   /**
     * This returns the list of difficult neighborhood ids

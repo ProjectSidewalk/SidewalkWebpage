@@ -9,8 +9,9 @@ import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import javax.inject.Inject
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+//import play.api.Play.current
+//import play.api.i18n.Messages.Implicits._
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import math._
 import models.region._
@@ -28,8 +29,8 @@ import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
 
