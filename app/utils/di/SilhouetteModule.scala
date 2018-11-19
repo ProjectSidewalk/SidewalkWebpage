@@ -1,27 +1,31 @@
 package utils.di
 
-import com.google.inject.{ AbstractModule, Provides }
+import com.google.inject.{AbstractModule, Provides}
+import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.api.services._
 import com.mohiva.play.silhouette.api.util._
-import com.mohiva.play.silhouette.api.{ Environment, EventBus }
+import com.mohiva.play.silhouette.api.{Environment, EventBus, RequestProvider}
 import com.mohiva.play.silhouette.impl.authenticators._
 import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
 import com.mohiva.play.silhouette.impl.providers._
-import com.mohiva.play.silhouette.impl.providers.oauth1.secrets.{ CookieSecretSettings, CookieSecretProvider }
+import com.mohiva.play.silhouette.impl.providers.oauth1.secrets.{CookieSecretProvider, CookieSecretSettings}
 import com.mohiva.play.silhouette.impl.providers.oauth1.services.PlayOAuth1Service
 import com.mohiva.play.silhouette.impl.providers.oauth2._
-import com.mohiva.play.silhouette.impl.providers.oauth2.state.{ DummyStateProvider, CookieStateProvider, CookieStateSettings }
+import com.mohiva.play.silhouette.impl.providers.oauth2.state.{CookieStateProvider, CookieStateSettings, DummyStateProvider}
 import com.mohiva.play.silhouette.impl.services._
 import com.mohiva.play.silhouette.impl.util._
 import models.daos._
 import models.daos.slickdaos._
-import models.services.{ UserService, UserServiceImpl }
+import models.services.{UserService, UserServiceImpl}
 import models.user.User
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Play
 import play.api.Play.current
 
+import scala.concurrent.duration._
 import scala.collection.immutable.ListMap
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 /**
  * The Guice module which wires all Silhouette dependencies.
@@ -63,9 +67,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     Environment[User, SessionAuthenticator](
       userService,
       authenticatorService,
-      ListMap(
-        credentialsProvider.id -> credentialsProvider
-      ),
+      List(credentialsProvider.asInstanceOf[RequestProvider]), //FIXME
       eventBus
     )
   }
@@ -82,8 +84,8 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       sessionKey = Play.configuration.getString("silhouette.authenticator.sessionKey").get,
       encryptAuthenticator = Play.configuration.getBoolean("silhouette.authenticator.encryptAuthenticator").get,
       useFingerprinting = Play.configuration.getBoolean("silhouette.authenticator.useFingerprinting").get,
-      authenticatorIdleTimeout = Play.configuration.getInt("silhouette.authenticator.authenticatorIdleTimeout"),
-      authenticatorExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
+      authenticatorIdleTimeout = Play.configuration.getInt("silhouette.authenticator.authenticatorIdleTimeout").map(_.millis), //FIXME
+      authenticatorExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").map(_.millis).get //FIXME
     ), fingerprintGenerator, Clock())
   }
 
@@ -93,12 +95,14 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    * @param passwordInfoDAO The implementation of the delegable password auth info DAO.
    * @return The auth info service instance.
    */
+  //FIXME
   @Provides
   def provideAuthInfoService(
                               passwordInfoDAO: DelegableAuthInfoDAO[PasswordInfo]
-                              ): AuthInfoService = {
+                              ): AuthInfoRepository = {
 
-    new DelegableAuthInfoService(passwordInfoDAO)
+//    new DelegableAuthInfoService(passwordInfoDAO)
+    ???
   }
   /**
    * Provides the avatar service.
@@ -122,7 +126,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       cookieDomain = Play.configuration.getString("silhouette.oauth1TokenSecretProvider.cookieDomain"),
       secureCookie = Play.configuration.getBoolean("silhouette.oauth1TokenSecretProvider.secureCookie").get,
       httpOnlyCookie = Play.configuration.getBoolean("silhouette.oauth1TokenSecretProvider.httpOnlyCookie").get,
-      expirationTime = Play.configuration.getInt("silhouette.oauth1TokenSecretProvider.expirationTime").get
+      expirationTime = Play.configuration.getInt("silhouette.oauth1TokenSecretProvider.expirationTime").map(_.millis).get //FIXME
     ), Clock())
   }
 
@@ -140,7 +144,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       cookieDomain = Play.configuration.getString("silhouette.oauth2StateProvider.cookieDomain"),
       secureCookie = Play.configuration.getBoolean("silhouette.oauth2StateProvider.secureCookie").get,
       httpOnlyCookie = Play.configuration.getBoolean("silhouette.oauth2StateProvider.httpOnlyCookie").get,
-      expirationTime = Play.configuration.getInt("silhouette.oauth2StateProvider.expirationTime").get
+      expirationTime = Play.configuration.getInt("silhouette.oauth2StateProvider.expirationTime").map(_.millis).get //FIXME
     ), idGenerator, Clock())
   }
 
@@ -153,7 +157,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides
   def provideCredentialsProvider(
-                                  authInfoService: AuthInfoService,
+                                  authInfoService: AuthInfoRepository,
                                   passwordHasher: PasswordHasher): CredentialsProvider = {
 
     new CredentialsProvider(authInfoService, passwordHasher, Seq(passwordHasher))

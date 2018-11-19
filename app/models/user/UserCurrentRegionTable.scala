@@ -3,13 +3,14 @@ package models.user
 import models.region.{NamedRegion, RegionTable}
 import models.street.StreetEdgeTable
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
 import java.util.UUID
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
@@ -33,11 +34,11 @@ object UserCurrentRegionTable {
 
   val experiencedUserMileageThreshold = 2.0
 
-  def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
+  def save(userId: UUID, regionId: Int): Future[Int] = {
     val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
-    val userCurrentRegionId: Int =
+    db.run(
       (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += userCurrentRegion
-    userCurrentRegionId
+    )
   }
 
   /**
@@ -46,19 +47,21 @@ object UserCurrentRegionTable {
     * @param userId
     * @return
     */
-  def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
-    StreetEdgeTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
-  }
+  def isUserExperienced(userId: UUID): Future[Boolean] =
+    StreetEdgeTable.getDistanceAudited(userId).map(_ > experiencedUserMileageThreshold)
 
   /**
     * Select an easy region w/ high avg street priority where the user hasn't completed all missions; assign it to them.
     * @param userId
     * @return
     */
-  def assignEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    val newRegion: Option[NamedRegion] = RegionTable.selectAHighPriorityEasyRegion(userId)
-    newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
-    newRegion
+  def assignEasyRegion(userId: UUID): Future[Option[NamedRegion]] = {
+    RegionTable.selectAHighPriorityEasyRegion(userId).flatMap {
+      case Some(region) =>
+        saveOrUpdate(userId, region.regionId) // If region successfully selected, assign it to them.
+          .map(_ => Some(region))
+      case None => Future.successful(None)
+    }
   }
 
   /**
@@ -67,13 +70,19 @@ object UserCurrentRegionTable {
     * @param userId
     * @return
     */
-  def assignRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def assignRegion(userId: UUID): Future[Option[NamedRegion]] = {
     // If user is inexperienced, restrict them to only easy regions when selecting a high priority region.
-    val newRegion: Option[NamedRegion] =
-      if(isUserExperienced(userId)) RegionTable.selectAHighPriorityRegion(userId)
-      else RegionTable.selectAHighPriorityEasyRegion(userId)
-    newRegion.map(r => saveOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
-    newRegion
+    val regionFuture = isUserExperienced(userId).flatMap {
+      case true   => RegionTable.selectAHighPriorityRegion(userId)
+      case false  => RegionTable.selectAHighPriorityEasyRegion(userId)
+    }
+
+    regionFuture.flatMap {
+      case Some(region) =>
+        saveOrUpdate(userId, region.regionId) // If region successfully selected, assign it to them.
+          .map(_ => Some(region))
+      case None => Future.successful(None)
+    }
   }
 
   /**
@@ -82,13 +91,15 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return
     */
-  def currentRegion(userId: UUID): Option[Int] = db.withSession { implicit session =>
+  def currentRegion(userId: UUID): Future[Option[Int]] = {
     // Get rid of deleted regions
     val ucr = for {
       (ucr, r) <- userCurrentRegions.join(neighborhoods).on(_.regionId === _.regionId)
     } yield ucr
 
-    ucr.filter(_.userId === userId.toString).list.map(_.regionId).headOption
+    db.run(
+      ucr.filter(_.userId === userId.toString).map(_.regionId).result.headOption
+    )
   }
 
   /**
@@ -97,13 +108,14 @@ object UserCurrentRegionTable {
     * @param userId user id
     * @return
     */
-  def isAssigned(userId: UUID): Boolean = db.withSession { implicit session =>
+  def isAssigned(userId: UUID): Future[Boolean] = {
     val _userCurrentRegions = for {
-      (_regions, _userCurrentRegions) <- neighborhoods.join(userCurrentRegions).on(_.regionId === _.regionId)
+      (_, _userCurrentRegions) <- neighborhoods.join(userCurrentRegions).on(_.regionId === _.regionId)
       if _userCurrentRegions.userId === userId.toString
     } yield _userCurrentRegions
 
-    _userCurrentRegions.list.nonEmpty
+    db.run(_userCurrentRegions.length.result)
+      .map(_ > 0)
   }
 
   /**
@@ -116,10 +128,10 @@ object UserCurrentRegionTable {
     * @param regionId region id
     * @return the number of rows updated
     */
-  def update(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
+  def update(userId: UUID, regionId: Int): Future[Int] = db.run({
     val q = for { ucr <- userCurrentRegions if ucr.userId === userId.toString } yield ucr.regionId
-    q.update(regionId)
-  }
+    q.update(regionId).transactionally
+  })
 
   /**
     * Update the current region, or save a new entry if the user does not have one.
@@ -131,12 +143,10 @@ object UserCurrentRegionTable {
     * @param regionId region id
     * @return region id
     */
-  def saveOrUpdate(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
-    val rowsUpdated: Int = update(userId, regionId)
-    // If no rows are updated, a new record needs to be created
-    if (rowsUpdated == 0) {
-      save(userId, regionId)
-    }
-    regionId
+  def saveOrUpdate(userId: UUID, regionId: Int): Future[Int] = {
+    update(userId, regionId).flatMap {
+      case 0 => save(userId, regionId) // If no rows are updated, a new record needs to be created
+      case n => Future.successful(n)
+    }.map(_ => regionId)
   }
 }

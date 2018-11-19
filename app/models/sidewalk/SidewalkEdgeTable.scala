@@ -22,6 +22,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class SidewalkEdge(sidewalkEdgeId: Option[Int], geom: LineString, source: Int, target: Int,
                         x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
@@ -75,7 +76,7 @@ object SidewalkEdgeTable {
    * @param newEdge A SidewalkEdge object
    * @return
    */
-  def save(newEdge: SidewalkEdge): Future[Int] = {
-    db.run((sidewalkEdges returning sidewalkEdges.map(_.sidewalkEdgeId)) += newEdge)
-  }
+  def save(newEdge: SidewalkEdge): Future[Int] = db.run(
+    ((sidewalkEdges returning sidewalkEdges.map(_.sidewalkEdgeId)) += newEdge).transactionally
+  ).map(_.get)
 }

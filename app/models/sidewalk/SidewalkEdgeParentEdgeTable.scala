@@ -31,18 +31,18 @@ object SidewalkEdgeParentEdgeTable {
    * @param id
    * @return
    */
-  def selectByChildId(id: Int): List[SidewalkEdgeParentEdge] = db.withSession { implicit session =>
-    sidewalkEdgeParentEdgeTable.filter(item => item.sidewalkEdgeId === id).list
-  }
+  def selectByChildId(id: Int): Future[List[SidewalkEdgeParentEdge]] = db.run(
+    sidewalkEdgeParentEdgeTable.filter(item => item.sidewalkEdgeId === id).to[List].result
+  )
 
   /**
    * Get records based on the parent id.
    * @param id
    * @return
    */
-  def selectByParentId(id: Int): List[SidewalkEdgeParentEdge] = db.withSession { implicit session =>
-    sidewalkEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).list
-  }
+  def selectByParentId(id: Int): Future[List[SidewalkEdgeParentEdge]] = db.run(
+    sidewalkEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).to[List].result
+  )
 
   /**
    * Save a record.
@@ -50,7 +50,7 @@ object SidewalkEdgeParentEdgeTable {
    * @param parentId
    * @return
    */
-  def save(childId: Int, parentId: Int) = db.withSession { implicit session =>
-    sidewalkEdgeParentEdgeTable += new SidewalkEdgeParentEdge(childId, parentId)
-  }
+  def save(childId: Int, parentId: Int): Future[Int] = db.run(
+    (sidewalkEdgeParentEdgeTable += new SidewalkEdgeParentEdge(childId, parentId)).transactionally
+  )
 }

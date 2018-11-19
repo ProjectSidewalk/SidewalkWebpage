@@ -5,20 +5,21 @@ import java.time.Instant
 import java.util.UUID
 
 import models.audit.AuditTaskTable
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.utils.MyPostgresDriver.api._
 import models.region._
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Logger
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
-
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
-import scala.concurrent.Future
 
+import scala.concurrent.{Await, Future}
 import slick.jdbc.GetResult
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
                            distanceMeters: Option[Float], labelsValidated: Option[Int])
@@ -29,9 +30,10 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
                    labelsProgress: Option[Int], skipped: Boolean) {
 
   def toJSON: JsObject = {
+    val missionType = Await.result(MissionTypeTable.missionTypeIdToMissionType(missionTypeId), Duration.Inf) //FIXME
     Json.obj(
       "mission_id" -> missionId,
-      "mission_type" -> MissionTypeTable.missionTypeIdToMissionType(missionTypeId),
+      "mission_type" -> missionType,
       "user_id" -> userId,
       "mission_start" -> missionStart,
       "mission_end" -> missionEnd,
@@ -116,9 +118,8 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included in this count
     * @return
     */
-  def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean): Int = db.withTransaction { implicit session =>
-    selectCompletedMissionsByAUser(userId, includeOnboarding).size
-  }
+  def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean): Future[Int] =
+    selectCompletedMissionsByAUser(userId, includeOnboarding).map(_.size)
 
   /**
     * Check if the user has completed onboarding.
@@ -126,10 +127,10 @@ object MissionTable {
     * @param userId
     * @return
     */
-  def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
+  def hasCompletedAuditOnboarding(userId: UUID): Future[Boolean] =
     selectCompletedMissionsByAUser(userId, includeOnboarding = true)
-      .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
-  }
+    .map(_.exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding")))
+
 
   /**
     * Checks if the specified mission is an onboarding mission.
@@ -137,8 +138,12 @@ object MissionTable {
     * @param missionId
     * @return
     */
-  def isOnboardingMission(missionId: Int): Boolean = db.withSession { implicit session =>
-    MissionTypeTable.onboardingTypeIds.contains(missions.filter(_.missionId === missionId).map(_.missionTypeId).list.head)
+  def isOnboardingMission(missionId: Int): Future[Boolean] = {
+    db.run(
+      missions.filter(_.missionId === missionId).map(_.missionTypeId).result.head
+    ).flatMap { missionTypeId =>
+      MissionTypeTable.onboardingTypeIds.map(_.contains(missionTypeId))
+    }
   }
 
   /**
@@ -148,15 +153,18 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included
     * @return
     */
-  def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
-    val _missions = if (includeOnboarding) {
-      missions.filter(m => m.userId === userId.toString && m.completed)
-    } else {
-      missions.filter(m => m.userId === userId.toString && m.completed)
-        .filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
+  def selectCompletedMissionsByAUser(userId: UUID, includeOnboarding: Boolean): Future[List[Mission]] = {
+    MissionTypeTable.onboardingTypeIds.flatMap { onboardingTypeIds =>
+      val _missions = if (includeOnboarding) {
+        missions.filter(m => m.userId === userId.toString && m.completed)
+      } else {
+        missions.filter(m => m.userId === userId.toString && m.completed)
+          .filterNot(_.missionTypeId inSet onboardingTypeIds)
+      }
+      db.run(
+        _missions/*.groupBy(_.missionId).map(_._2.head)*/.to[List].result
+      )
     }
-
-    _missions.list.groupBy(_.missionId).map(_._2.head).toList
   }
 
   /**
@@ -166,18 +174,23 @@ object MissionTable {
     * @param regionId
     * @return
     */
-  def getCurrentMissionInRegion(userId: UUID, regionId: Int): Option[Mission] = db.withSession { implicit session =>
-    missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).list.headOption
-  }
+  def getCurrentMissionInRegion(userId: UUID, regionId: Int): Future[Option[Mission]] = db.run(
+    missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).result.headOption
+  )
 
   /**
     * Get the user's incomplete auditOnboarding mission if there is one.
     * @param userId
     * @return
     */
-  def getIncompleteAuditOnboardingMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
-    val tutorialId: Int = missionTypes.filter(_.missionType === "auditOnboarding").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === tutorialId && !m.completed).list.headOption
+  def getIncompleteAuditOnboardingMission(userId: UUID): Future[Option[Mission]] = {
+    db.run(
+      missionTypes.filter(_.missionType === "auditOnboarding").map(_.missionTypeId).result.head
+    ).flatMap { tutorialId =>
+      db.run(
+        missions.filter(m => m.userId === userId.toString && m.missionTypeId === tutorialId && !m.completed).result.headOption
+      )
+    }
   }
 
   /**
@@ -188,13 +201,18 @@ object MissionTable {
     * @param includeOnboarding should region-less onboarding mission be included if complete
     * @return
     */
-  def selectCompletedAuditMissionsByAUser(userId: UUID, regionId: Int, includeOnboarding: Boolean): List[Mission] = db.withSession { implicit session =>
+  def selectCompletedAuditMissionsByAUser(userId: UUID, regionId: Int, includeOnboarding: Boolean): Future[List[Mission]] = {
     val auditMissionTypes: List[String] = if (includeOnboarding) List("audit", "auditOnboarding") else List("audit")
-    val auditMissionTypeIds: List[Int] = missionTypes.filter(_.missionType inSet auditMissionTypes).map(_.missionTypeId).list
-    missions.filter(m => m.userId === userId.toString
-                      && (m.missionTypeId inSet auditMissionTypeIds)
-                      && (m.regionId === regionId || m.regionId.isEmpty)
-                      && m.completed === true).list
+    db.run(
+      missionTypes.filter(_.missionType inSet auditMissionTypes).map(_.missionTypeId).result
+    ).flatMap { auditMissionTypeIds =>
+      db.run(
+        missions.filter(m => m.userId === userId.toString
+          && (m.missionTypeId inSet auditMissionTypeIds)
+          && (m.regionId === regionId || m.regionId.isEmpty)
+          && m.completed === true).to[List].result
+      )
+    }
   }
 
   /**
@@ -203,18 +221,24 @@ object MissionTable {
     * @param userId
     * @return
     */
-  def selectCompletedRegionalMission(userId: UUID): List[RegionalMission] = db.withSession { implicit session =>
-    val userMissions = missions.filter(_.userId === userId.toString)
+  def selectCompletedRegionalMission(userId: UUID): Future[List[RegionalMission]] = {
+    db.run({
+      val userMissions = missions.filter(_.userId === userId.toString)
 
-    val missionsWithRegionName = for {
-      (_m, _rp) <- userMissions.joinLeft(RegionPropertyTable.neighborhoodNames).on(_.regionId === _.regionId)
-    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _rp.value.?, _m.distanceMeters, _m.labelsValidated)
+      val missionsWithRegionName = for {
+        (_m, _rp) <- userMissions.joinLeft(RegionPropertyTable.neighborhoodNames).on(_.regionId === _.regionId)
+      } yield (_m.missionId, _m.missionTypeId, _m.regionId, _rp.map(_.value), _m.distanceMeters, _m.labelsValidated)
 
-    val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>
-      RegionalMission(m._1, MissionTypeTable.missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6)
-    )
-
-    regionalMissions.sortBy(rm => (rm.regionId, rm.missionId))
+      missionsWithRegionName.to[List].result
+    }).flatMap { missions =>
+      val regionalMission = missions.map(m =>
+        MissionTypeTable.missionTypeIdToMissionType(m._2).map { missionType =>
+          RegionalMission(m._1, missionType, m._3, m._4, m._5, m._6)
+        }
+      )
+      Future.sequence(regionalMission)
+        .map(_.sortBy(rm => (rm.regionId, rm.missionId)))
+    }
   }
 
   /**
@@ -222,16 +246,14 @@ object MissionTable {
     *
     * @return A list of Mission objects.
     */
-  def selectMissions: List[Mission] = db.withSession { implicit session =>
-    missions.list
-  }
+  def selectMissions: Future[List[Mission]] = db.run(missions.to[List].result)
 
   /**
     * Select mission counts by user.
     *
     * @return List[(user_id, role, count)]
     */
-  def selectMissionCountsPerUser: List[(String, String, Int)] = db.withSession { implicit session =>
+  def selectMissionCountsPerUser: Future[List[(String, String, Int)]] = {
     val userMissions = for {
       _user <- users if _user.username =!= "anonymous"
       _userRole <- userRoles if _user.userId === _userRole.userId
@@ -241,8 +263,10 @@ object MissionTable {
       if _missionType.missionType =!= "auditOnboarding"
     } yield (_user.userId, _role.role, _mission.missionId)
 
-    // Count missions per user by grouping by (user_id, role).
-    userMissions.groupBy(m => (m._1, m._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
+    db.run(
+      // Count missions per user by grouping by (user_id, role).
+      userMissions.groupBy(m => (m._1, m._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.to[List].result
+    )
   }
 
   /**
@@ -251,9 +275,9 @@ object MissionTable {
     * @param userId
     * @return
     */
-  def totalRewardEarned(userId: UUID): Double = db.withSession { implicit session =>
-    missions.filter(m => m.userId === userId.toString && m.completed).map(_.pay).sum.run.getOrElse(0.0D)
-  }
+  def totalRewardEarned(userId: UUID): Future[Double] = db.run(
+    missions.filter(m => m.userId === userId.toString && m.completed).map(_.pay).sum.result
+  ).map(_.getOrElse(0.0D))
 
   /**
     * Provides functionality for accessing mission table while a user is auditing while preventing race conditions.
@@ -275,42 +299,57 @@ object MissionTable {
     */
   def queryMissionTable(actions: List[String], userId: UUID, regionId: Option[Int], payPerMeter: Option[Double],
                         tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int],
-                        distanceProgress: Option[Float], skipped: Option[Boolean]): Option[Mission] = db.withSession { implicit session =>
+                        distanceProgress: Option[Float], skipped: Option[Boolean]): Future[Option[Mission]] = {
     this.synchronized {
+      var updateAuditProgressFuture: Future[Int] = Future.successful(0)
+      var updateCompleteFuture: Future[Int] = Future.successful(0)
+      var updateSkippedFuture:  Future[Int] = Future.successful(0)
+
       if (actions.contains("updateProgress")) {
-        updateAuditProgress(missionId.get, distanceProgress.get)
+        updateAuditProgressFuture = updateAuditProgress(missionId.get, distanceProgress.get)
       }
       if (actions.contains("updateComplete")) {
-        updateComplete(missionId.get)
+        updateCompleteFuture = updateComplete(missionId.get)
         if (skipped.getOrElse(false)) {
-          updateSkipped(missionId.get)
+          updateSkippedFuture = updateSkipped(missionId.get)
         }
       }
-      if (actions.contains("getMission")) {
-        // If they still need to do tutorial or are retaking it.
-        if (!hasCompletedAuditOnboarding(userId) || retakingTutorial.get) {
-          // If there is already an incomplete tutorial mission in the table then grab it, o/w make a new one.
-          getIncompleteAuditOnboardingMission(userId) match {
-            case Some(incompleteOnboardingMission) => Some(incompleteOnboardingMission)
-            case _ => Some(createAuditOnboardingMission(userId, tutorialPay.get))
+
+      (for {
+        _ <- updateAuditProgressFuture
+        _ <- updateCompleteFuture
+        _ <- updateSkippedFuture
+      } yield 1).flatMap { _ =>
+        if (actions.contains("getMission")) {
+          hasCompletedAuditOnboarding(userId).flatMap { hasCompletedAuditOnboarding =>
+            // If they still need to do tutorial or are retaking it.
+            if (!hasCompletedAuditOnboarding || retakingTutorial.get) {
+              // If there is already an incomplete tutorial mission in the table then grab it, o/w make a new one.
+              getIncompleteAuditOnboardingMission(userId).flatMap {
+                case Some(incompleteOnboardingMission) =>
+                  Future.successful(Some(incompleteOnboardingMission))
+                case _ => createAuditOnboardingMission(userId, tutorialPay.get)
+                  .map(Some(_))
+              }
+            } else {
+              // Non-tutorial mission: if there is an incomplete one in the table then grab it, o/w make a new one.
+              getCurrentMissionInRegion(userId, regionId.get).flatMap {
+                case Some(incompleteMission) => Future.successful(Some(incompleteMission))
+                case _ =>
+                  getNextAuditMissionDistance(userId, regionId.get).flatMap { nextMissionDistance =>
+                    if (nextMissionDistance > 0) {
+                      val pay: Double = nextMissionDistance.toDouble * payPerMeter.get
+                      createNextAuditMission(userId, pay, nextMissionDistance, regionId.get).map(Some(_))
+                    } else {
+                      Future.successful(None)
+                    }
+                  }
+              }
+            }
           }
         } else {
-          // Non-tutorial mission: if there is an incomplete one in the table then grab it, o/w make a new one.
-          getCurrentMissionInRegion(userId, regionId.get) match {
-            case Some(incompleteMission) =>
-              Some(incompleteMission)
-            case _ =>
-              val nextMissionDistance: Float = getNextAuditMissionDistance(userId, regionId.get)
-              if (nextMissionDistance > 0) {
-                val pay: Double = nextMissionDistance.toDouble * payPerMeter.get
-                Some(createNextAuditMission(userId, pay, nextMissionDistance, regionId.get))
-              } else {
-                None
-              }
-          }
+          Future.successful(None) // If we are not trying to get a mission, return None
         }
-      } else {
-        None // If we are not trying to get a mission, return None
       }
     }
   }
@@ -324,7 +363,7 @@ object MissionTable {
     * @param missionId
     * @return
     */
-  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, skipped: Boolean): Option[Mission] = {
+  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, skipped: Boolean): Future[Option[Mission]] = {
     val actions: List[String] = List("updateComplete", "getMission")
     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), None, Some(skipped))
   }
@@ -339,7 +378,7 @@ object MissionTable {
     * @param distanceProgress
     * @return
     */
-  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float, skipped: Boolean): Option[Mission] = {
+  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float, skipped: Boolean): Future[Option[Mission]] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getMission")
     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), Some(skipped))
   }
@@ -352,7 +391,7 @@ object MissionTable {
     * @param distanceProgress
     * @return
     */
-   def updateAuditProgressOnly(userId: UUID, missionId: Int, distanceProgress: Float): Option[Mission] = {
+   def updateAuditProgressOnly(userId: UUID, missionId: Int, distanceProgress: Float): Future[Option[Mission]] = {
      val actions: List[String] = List("updateProgress")
      queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress), None)
    }
@@ -364,7 +403,7 @@ object MissionTable {
     * @param tutorialPay
     * @return
     */
-   def resumeOrCreateNewAuditOnboardingMission(userId: UUID, tutorialPay: Double): Option[Mission] = {
+   def resumeOrCreateNewAuditOnboardingMission(userId: UUID, tutorialPay: Double): Future[Option[Mission]] = {
      val actions: List[String] = List("getMission")
      queryMissionTable(actions, userId, None, None, Some(tutorialPay), Some(true), None, None, None)
    }
@@ -378,7 +417,7 @@ object MissionTable {
     * @param tutorialPay
     * @return
     */
-   def resumeOrCreateNewAuditMission(userId: UUID, regionId: Int, payPerMeter: Double, tutorialPay: Double): Option[Mission] = {
+   def resumeOrCreateNewAuditMission(userId: UUID, regionId: Int, payPerMeter: Double, tutorialPay: Double): Future[Option[Mission]] = {
      val actions: List[String] = List("getMission")
      queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None)
    }
@@ -390,13 +429,16 @@ object MissionTable {
     * @param regionId
     * @return
     */
-  def getNextAuditMissionDistance(userId: UUID, regionId: Int): Float = {
-    val distRemaining: Float = AuditTaskTable.getUnauditedDistance(userId, regionId)
-    val completedInRegion: Int = selectCompletedAuditMissionsByAUser(userId, regionId, includeOnboarding = false).length
-    val naiveMissionDist: Float =
-      if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
-      else                                                            distancesForFirstAuditMissions(completedInRegion)
-    math.min(distRemaining, naiveMissionDist)
+  def getNextAuditMissionDistance(userId: UUID, regionId: Int): Future[Float] = {
+    for {
+      distRemaining <- AuditTaskTable.getUnauditedDistance(userId, regionId)
+      completedInRegion <- selectCompletedAuditMissionsByAUser(userId, regionId, includeOnboarding = false)
+    } yield {
+      val naiveMissionDist: Float =
+        if (completedInRegion.length >= distancesForFirstAuditMissions.length) distanceForLaterMissions
+        else distancesForFirstAuditMissions(completedInRegion.length)
+      math.min(distRemaining.head/*FIXME*/, naiveMissionDist)
+    }
   }
 
   /**
@@ -407,12 +449,18 @@ object MissionTable {
     * @param pay
     * @return
     */
-  def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Mission = db.withSession { implicit session =>
+  def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Future[Mission] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
-    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false)
-    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
-    missions.filter(_.missionId === missionId).list.head
+    MissionTypeTable.missionTypeToId("audit").flatMap { missionTypeId =>
+      val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false)
+      db.run(
+        ((missions returning missions.map(_.missionId)) += newMission).transactionally
+      )
+    }.flatMap { missionId =>
+      db.run(
+        missions.filter(_.missionId === missionId).result.head
+      )
+    }
   }
 
   /**
@@ -422,12 +470,19 @@ object MissionTable {
     * @param pay
     * @return
     */
-  def createAuditOnboardingMission(userId: UUID, pay: Double): Mission = db.withSession { implicit session =>
+  def createAuditOnboardingMission(userId: UUID, pay: Double): Future[Mission] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
-    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, false)
-    val missionId: Int = (missions returning missions.map(_.missionId)) += newMiss
-    missions.filter(_.missionId === missionId).list.head
+    MissionTypeTable.missionTypeToId("auditOnboarding")
+      .flatMap { mTypeId =>
+        val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, false)
+        db.run(
+          ((missions returning missions.map(_.missionId)) += newMiss).transactionally
+        )
+      }.flatMap { missionId =>
+      db.run(
+        missions.filter(_.missionId === missionId).result.head
+      )
+    }
   }
 
   /**
@@ -436,12 +491,16 @@ object MissionTable {
     * @param missionId
     * @return Int number of rows updated (should always be 1).
     */
-  def updateComplete(missionId: Int): Int = db.withSession { implicit session =>
+  def updateComplete(missionId: Int): Future[Int] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
-    val rowsUpdated: Int = missionToUpdate.update((true, now))
-    if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
-    rowsUpdated
+    db.run({
+      val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
+      missionToUpdate.update((true, now)).transactionally
+    }).map { rowsUpdated =>
+      if (rowsUpdated == 0)
+        Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
+      rowsUpdated
+    }
   }
 
   /**
@@ -450,11 +509,15 @@ object MissionTable {
     * @param missionId
     * @return
     */
-  def updateSkipped(missionId: Int): Int = db.withSession { implicit session =>
-    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield m.skipped
-    val rowsUpdated: Int = missionToUpdate.update(true)
-    if (rowsUpdated == 0) Logger.error("Tried to mark a mission as skipped, but no mission exists with that ID.")
-    rowsUpdated
+  def updateSkipped(missionId: Int): Future[Int] = {
+    db.run({
+      val missionToUpdate = for { m <- missions if m.missionId === missionId } yield m.skipped
+      missionToUpdate.update(true).transactionally
+    }).map { rowsUpdated =>
+      if (rowsUpdated == 0)
+        Logger.error("Tried to mark a mission as skipped, but no mission exists with that ID.")
+      rowsUpdated
+    }
   }
 
   /**
@@ -464,19 +527,25 @@ object MissionTable {
     * @param distanceProgress
     * @return Int number of rows updated (should always be 1).
     */
-  def updateAuditProgress(missionId: Int, distanceProgress: Float): Int = db.withSession { implicit session =>
+  def updateAuditProgress(missionId: Int, distanceProgress: Float): Future[Int] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    // TODO maybe deal with empty list and null distanceMeters column.
-    val missionDistance: Float = missions.filter(_.missionId === missionId).map(_.distanceMeters).list.head.get
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.distanceProgress, m.missionEnd)
 
-    if (~=(distanceProgress, missionDistance, precision = 0.00001F)) {
-      missionToUpdate.update((Some(missionDistance), now))
-    } else if (distanceProgress < missionDistance) {
-      missionToUpdate.update((Some(distanceProgress), now))
-    } else {
-      Logger.error("Trying to update mission progress with distance greater than total mission distance.")
-      missionToUpdate.update((Some(missionDistance), now))
+    // TODO maybe deal with empty list and null distanceMeters column.
+    db.run(
+      missions.filter(_.missionId === missionId).map(_.distanceMeters).result.head
+    ).flatMap { missionDistanceOpt =>
+      val missionDistance = missionDistanceOpt.get
+      db.run({
+        if (~=(distanceProgress, missionDistance, precision = 0.00001F)) {
+          missionToUpdate.update((Some(missionDistance), now))
+        } else if (distanceProgress < missionDistance) {
+          missionToUpdate.update((Some(distanceProgress), now))
+        } else {
+          Logger.error("Trying to update mission progress with distance greater than total mission distance.")
+          missionToUpdate.update((Some(missionDistance), now))
+        }
+      }.transactionally)
     }
   }
 

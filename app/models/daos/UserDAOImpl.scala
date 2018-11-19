@@ -16,6 +16,8 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import models.utils.MyPostgresDriver.api._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class UserDAOImpl extends UserDAO {
 
 
@@ -68,13 +70,13 @@ object UserDAOImpl {
 
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
-  def all: List[DBUser] = db.withTransaction { implicit session =>
-    userTable.list
-  }
+  def all: Future[List[DBUser]] = db.run(
+    userTable.to[List].result
+  )
 
-  def size: Int = db.withTransaction { implicit session =>
-    userTable.list.size
-  }
+  def size: Future[Int] = db.run(
+    userTable.length.result
+  )
 
   /**
     * Count the number of users of the given role who have ever started (or completed) an audit task.
@@ -83,7 +85,7 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
+  def countUsersContributed(roles: List[String], taskCompleted: Boolean): Future[Int] = db.run({
 
     val tasks = if (taskCompleted) auditTaskTable.filter(_.completed) else auditTaskTable
 
@@ -97,8 +99,8 @@ object UserDAOImpl {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).list.length
-  }
+    users.groupBy(x => x).map(_._1).length.result
+  })
 
   /**
     * Count the number of researchers who have ever started (or completed) an audit task.
@@ -108,9 +110,8 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countResearchersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+  def countResearchersContributed(taskCompleted: Boolean): Future[Int] =
     countUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
-  }
 
   /**
     * Count the number of users who have ever started (or completed) an audit task (across all roles).
@@ -118,8 +119,10 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countAllUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-    countUsersContributed(roleTable.map(_.role).list, taskCompleted)
+  def countAllUsersContributed(taskCompleted: Boolean): Future[Int] = db.run(
+    (roleTable.map(_.role).to[List].result)
+  ).flatMap { l =>
+    countUsersContributed(l, taskCompleted)
   }
 
   /**
@@ -130,19 +133,20 @@ object UserDAOImpl {
     * @param role
     * @return
     */
-  def countUsersContributedToday(role: String): Int = db.withSession { implicit session =>
-    val countQuery = Q.query[String, Int](
-      """SELECT COUNT(DISTINCT(audit_task.user_id))
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-        |INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
-        |INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
-        |WHERE audit_task.task_end::date = now()::date
-        |    AND sidewalk_user.username <> 'anonymous'
-        |    AND role.role = ?
-        |    AND audit_task.completed = true""".stripMargin
-    )
-    countQuery(role).list.head
+  def countUsersContributedToday(role: String): Future[Int] = {
+    def countQuery(role: String) =
+      sql"""SELECT COUNT(DISTINCT(audit_task.user_id))
+             FROM sidewalk.audit_task
+                INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+                INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
+                INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
+             WHERE audit_task.task_end::date = now()::date
+                AND sidewalk_user.username <> 'anonymous'
+                AND role.role = #$role
+                AND audit_task.completed = true
+        """.as[Int]
+
+    db.run(countQuery(role).head)
   }
 
   /**
@@ -150,10 +154,12 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countResearchersContributedToday: Int = db.withSession { implicit session =>
-    countUsersContributedToday("Researcher") +
-      countUsersContributedToday("Administrator") +
-      countUsersContributedToday("Owner")
+  def countResearchersContributedToday: Future[Int] = {
+    for {
+      researchers <- countUsersContributedToday("Researcher")
+      administrators <- countUsersContributedToday("Administrator")
+      owners <- countUsersContributedToday("Owner")
+    } yield (researchers + administrators + owners)
   }
 
   /**
@@ -161,11 +167,13 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countAllUsersContributedToday: Int = db.withSession { implicit session =>
-    countUsersContributedToday("Registered") +
-      countUsersContributedToday("Anonymous") +
-      countUsersContributedToday("Turker") +
-      countResearchersContributedToday
+  def countAllUsersContributedToday: Future[Int] = {
+    for {
+      registered <- countUsersContributedToday("Registered")
+      anonymous <- countUsersContributedToday("Anonymous")
+      turkers <- countUsersContributedToday("Turker")
+      researchers <- countResearchersContributedToday
+    } yield (registered + anonymous + turkers + researchers)
   }
 
   /**
@@ -176,19 +184,20 @@ object UserDAOImpl {
     * @param role
     * @return
     */
-  def countUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
-    val countQuery = Q.query[String, Int](
-      """SELECT COUNT(DISTINCT(audit_task.user_id))
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-        |INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
-        |INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
-        |    AND sidewalk_user.username <> 'anonymous'
-        |    AND role.role = ?
-        |    AND audit_task.completed = true""".stripMargin
-    )
-    countQuery(role).list.head
+  def countUsersContributedYesterday(role: String): Future[Int] = {
+    def countQuery(role: String) =
+      sql"""SELECT COUNT(DISTINCT(audit_task.user_id))
+             FROM sidewalk.audit_task
+                INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+                INNER JOIN sidewalk_user_role ON sidewalk_user.user_id = sidewalk_user_role.user_id
+                INNER JOIN sidewalk.role ON sidewalk_user_role.role_id = sidewalk.role.role_id
+             WHERE audit_task.task_end::date = now()::date - interval '1' day
+                AND sidewalk_user.username <> 'anonymous'
+                AND role.role = #$role
+                AND audit_task.completed = true
+        """.as[Int]
+
+    db.run(countQuery(role).head)
   }
 
   /**
@@ -196,10 +205,12 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countResearchersContributedYesterday: Int = db.withSession { implicit session =>
-    countUsersContributedYesterday("Researcher") +
-      countUsersContributedYesterday("Administrator") +
-      countUsersContributedYesterday("Owner")
+  def countResearchersContributedYesterday: Future[Int] = {
+    for {
+      researchers <- countUsersContributedYesterday("Researcher")
+      administrators <- countUsersContributedYesterday("Administrator")
+      owners <- countUsersContributedYesterday("Owner")
+    } yield (researchers + administrators + owners)
   }
 
   /**
@@ -207,10 +218,12 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countAllUsersContributedYesterday: Int = db.withSession { implicit session =>
-    countUsersContributedYesterday("Registered") +
-      countUsersContributedYesterday("Anonymous") +
-      countUsersContributedYesterday("Turker") +
-      countResearchersContributedYesterday
+  def countAllUsersContributedYesterday: Future[Int] = {
+    for {
+      registered <- countUsersContributedYesterday("Registered")
+      anonymous <- countUsersContributedYesterday("Anonymous")
+      turkers <- countUsersContributedYesterday("Turker")
+      researchers <- countResearchersContributedYesterday
+    } yield (registered + anonymous + turkers + researchers)
   }
 }

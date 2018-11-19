@@ -27,9 +27,9 @@ object MissionTypeTable {
   val missionTypes = TableQuery[MissionTypeTable]
 
   val onboardingTypes: List[String] = List("auditOnboarding", "validationOnboarding")
-  val onboardingTypeIds: List[Int] = db.withSession { implicit session =>
-    missionTypes.filter(_.missionType inSet onboardingTypes).map(_.missionTypeId).list
-  }
+  val onboardingTypeIds: Future[List[Int]] = db.run(
+    missionTypes.filter(_.missionType inSet onboardingTypes).map(_.missionTypeId).to[List].result
+  )
 
   /**
     * Gets the mission type id from the mission type name
@@ -37,9 +37,9 @@ object MissionTypeTable {
     * @param missionType
     * @return
     */
-  def missionTypeToId(missionType: String): Int = db.withTransaction { implicit session =>
-    missionTypes.filter(_.missionType === missionType).map(_.missionTypeId).list.head
-  }
+  def missionTypeToId(missionType: String): Future[Int] = db.run(
+    missionTypes.filter(_.missionType === missionType).map(_.missionTypeId).result.head
+  )
 
   /**
     * Gets the mission type name from the mission type id
@@ -47,17 +47,16 @@ object MissionTypeTable {
     * @param missionTypeId
     * @return
     */
-  def missionTypeIdToMissionType(missionTypeId: Int): String = db.withTransaction { implicit session =>
-    missionTypes.filter(_.missionTypeId === missionTypeId).map(_.missionType).list.head
-  }
+  def missionTypeIdToMissionType(missionTypeId: Int): Future[String] = db.run(
+    missionTypes.filter(_.missionTypeId === missionTypeId).map(_.missionType).result.head
+  )
 
   /**
     * Saves a new mission type in the table
     * @param missionType
     * @return
     */
-  def save(missionType: MissionType): Int = db.withTransaction { implicit session =>
-    val missionTypeId: Int = (missionTypes returning missionTypes.map(_.missionTypeId)) += missionType
-    missionTypeId
-  }
+  def save(missionType: MissionType): Future[Int] = db.run(
+    ((missionTypes returning missionTypes.map(_.missionTypeId)) += missionType).transactionally
+  )
 }

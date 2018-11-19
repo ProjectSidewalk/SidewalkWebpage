@@ -3,16 +3,19 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
-import models.attribute.GlobalAttributeTable.dbConfig
 import models.audit.AuditTaskTable
 
 import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
 import slick.jdbc.GetResult
 import slick.driver.JdbcProfile
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: Option[String], description: String, geom: Polygon, deleted: Boolean)
 case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
@@ -62,37 +65,36 @@ object RegionTable {
   val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
   val namedRegions = for {
     (_neighborhoods, _regionProperties) <- neighborhoods.joinLeft(regionProperties).on(_.regionId === _.regionId)
-    if _regionProperties.key === "Neighborhood Name"
-  } yield (_neighborhoods.regionId, _regionProperties.value.?, _neighborhoods.geom)
+    if _regionProperties.map(_.key === "Neighborhood Name").isDefined
+  } yield (_neighborhoods.regionId, _regionProperties.map(_.value), _neighborhoods.geom)
 
   /**
    * Returns a list of all the neighborhood regions
     *
     * @return A list of Region objects.
    */
-  def selectAllNeighborhoods: List[Region] = db.withSession { implicit session =>
-    regionsWithoutDeleted.filter(_.regionTypeId === 2).list
-  }
+  def selectAllNeighborhoods: Future[List[Region]] = db.run(
+    regionsWithoutDeleted.filter(_.regionTypeId === 2).to[List].result
+  )
 
   /**
     * Returns a list of all neighborhoods with names
     * @return
     */
-  def selectAllNamedNeighborhoods: List[NamedRegion] = db.withSession { implicit session =>
-    namedRegions.list.map(x => NamedRegion.tupled(x))
-  }
+  def selectAllNamedNeighborhoods: Future[List[NamedRegion]] = db.run(
+    namedRegions.to[List].result.map(_.map(NamedRegion.tupled))
+  )
 
   /**
     * Picks one of the regions with highest average priority.
     *
     * @return
     */
-  def selectAHighPriorityRegion: Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] = regionsWithoutDeleted.map(_.regionId).list
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => None // Should never happen.
+  def selectAHighPriorityRegion: Future[Option[NamedRegion]] = {
+    db.run(
+      regionsWithoutDeleted.map(_.regionId).to[List].result
+    ).flatMap { possibleRegionIds =>
+      selectAHighPriorityRegionGeneric(possibleRegionIds)
     }
   }
 
@@ -102,12 +104,12 @@ object RegionTable {
     * @param userId
     * @return
     */
-  def selectAHighPriorityRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => selectAHighPriorityRegion // Should only happen if user has completed all regions.
+  def selectAHighPriorityRegion(userId: UUID): Future[Option[NamedRegion]] = {
+    AuditTaskTable.selectIncompleteRegions(userId).flatMap { possibleRegionIds =>
+      selectAHighPriorityRegionGeneric(possibleRegionIds.toList).flatMap {
+        case Some(region) => Future.successful(Some(region))
+        case _ => selectAHighPriorityRegion // Should only happen if user has completed all regions.
+      }
     }
   }
 
@@ -117,13 +119,13 @@ object RegionTable {
     * @param userId
     * @return
     */
-  def selectAHighPriorityEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] =
-      AuditTaskTable.selectIncompleteRegions(userId).filterNot(difficultRegionIds.contains(_)).toList
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => selectAHighPriorityRegion(userId) // Should only happen if user has completed all easy regions.
+  def selectAHighPriorityEasyRegion(userId: UUID): Future[Option[NamedRegion]] = {
+    AuditTaskTable.selectIncompleteRegions(userId).flatMap { incompleteRegions =>
+      val possibleRegionIds = incompleteRegions.filterNot(difficultRegionIds.contains(_)).toList
+      selectAHighPriorityRegionGeneric(possibleRegionIds).flatMap {
+        case Some(region) => Future.successful(Some(region))
+        case _ => selectAHighPriorityRegion(userId) // Should only happen if user has completed all easy regions.
+      }
     }
   }
 
@@ -133,17 +135,21 @@ object RegionTable {
     * @param possibleRegionIds
     * @return
     */
-  def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[NamedRegion] = db.withSession { implicit session =>
-
-    val highestPriorityRegions: List[Int] =
+  def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Future[Option[NamedRegion]] = {
+    db.run(
       StreetEdgeRegionTable.streetEdgeRegionTable
-      .filter(_.regionId inSet possibleRegionIds)
-      .join(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
-      .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
-      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
-      .sortBy(_._2.desc).take(5).map(_._1).list // take the 5 with highest average priority, select region_id
-
-    scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(selectANamedRegion)
+        .filter(_.regionId inSet possibleRegionIds)
+        .join(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
+        .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
+        .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
+        .sortBy(_._2.desc).take(5).map(_._1) // take the 5 with highest average priority, select region_id
+        .to[List].result
+    ).flatMap { highestPriorityRegions =>
+      scala.util.Random.shuffle(highestPriorityRegions).headOption match {
+        case Some(regionId) => selectANamedRegion(regionId)
+        case _ => Future.successful(None)
+      }
+    }
   }
 
   /**
@@ -152,9 +158,9 @@ object RegionTable {
     * @param regionId region id
     * @return
     */
-  def selectANeighborhood(regionId: Int): Option[Region] = db.withSession { implicit session =>
-      neighborhoods.filter(_.regionId === regionId).list.headOption
-  }
+  def selectANeighborhood(regionId: Int): Future[Option[Region]] = db.run(
+      neighborhoods.filter(_.regionId === regionId).result.headOption
+  )
 
   /**
     * Get the region specified by the region id
@@ -162,13 +168,15 @@ object RegionTable {
     * @param regionId region id
     * @return
     */
-  def selectANamedRegion(regionId: Int): Option[NamedRegion] = db.withSession { implicit session =>
-    val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
-    val _regions = for {
-      (_neighborhoods, _properties) <- filteredNeighborhoods.joinLeft(regionProperties).on(_.regionId === _.regionId)
-      if _properties.key === "Neighborhood Name"
-    } yield (_neighborhoods.regionId, _properties.value.?, _neighborhoods.geom)
-    _regions.list.headOption.map(x => NamedRegion.tupled(x))
+  def selectANamedRegion(regionId: Int): Future[Option[NamedRegion]] = {
+    db.run({
+      val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
+      val _regions = for {
+        (_neighborhoods, _properties) <- filteredNeighborhoods.joinLeft(regionProperties).on(_.regionId === _.regionId)
+        if _properties.map(_.key === "Neighborhood Name").isDefined
+      } yield (_neighborhoods.regionId, _properties.map(_.value), _neighborhoods.geom)
+      _regions.result.headOption
+    }).map(x => x.map(NamedRegion.tupled))
   }
 
   /**
@@ -177,12 +185,14 @@ object RegionTable {
     * @param userId user id
     * @return
     */
-  def selectTheCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    val currentRegions = for {
-      (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).join(userCurrentRegions).on(_.regionId === _.regionId)
-      if ucr.userId === userId.toString
-    } yield r
-    currentRegions.list.headOption
+  def selectTheCurrentRegion(userId: UUID): Future[Option[Region]] = {
+    db.run({
+      val currentRegions = for {
+        (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).join(userCurrentRegions).on(_.regionId === _.regionId)
+        if ucr.userId === userId.toString
+      } yield r
+      currentRegions.result.headOption
+    })
   }
 
   /**
@@ -191,7 +201,8 @@ object RegionTable {
     * @param userId user id
     * @return
     */
-  def selectTheCurrentNamedRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
+  def selectTheCurrentNamedRegion(userId: UUID): Future[Option[NamedRegion]] = {
+    db.run({
       val currentRegions = for {
         (r, ucr) <- regionsWithoutDeleted.filter(_.regionTypeId === 2).join(userCurrentRegions).on(_.regionId === _.regionId)
         if ucr.userId === userId.toString
@@ -199,23 +210,28 @@ object RegionTable {
 
       val _regions = for {
         (_regions, _properties) <- currentRegions.joinLeft(regionProperties).on(_.regionId === _.regionId)
-        if _properties.key === "Neighborhood Name"
-      } yield (_regions.regionId, _properties.value.?, _regions.geom)
-      _regions.list.headOption.map(x => NamedRegion.tupled(x))
+        if _properties.map(_.key === "Neighborhood Name").isDefined
+      } yield (_regions.regionId, _properties.map(_.value), _regions.geom)
+      _regions.result.headOption
+    }).map(x => x.map(NamedRegion.tupled))
   }
 
-  def selectNamedRegionsIntersectingAStreet(streetEdgeId: Int): List[NamedRegion] = db.withSession { implicit session =>
-    val selectRegionQuery = Q.query[Int, NamedRegion](
-      """SELECT region.region_id, region_property.value, region.geom
-        |FROM sidewalk.region
-        |INNER JOIN sidewalk.street_edge ON ST_Intersects(region.geom, street_edge.geom)
-        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
-        |WHERE street_edge.street_edge_id = ?
-        |    AND region_property.key = 'Neighborhood Name'
-        |    AND region.deleted = FALSE
-      """.stripMargin
-    )
-    selectRegionQuery(streetEdgeId).list
+  def selectNamedRegionsIntersectingAStreet(streetEdgeId: Int): Future[List[NamedRegion]] = {
+    def selectRegionQuery(streetEdgeId: Int) =
+      sql"""SELECT region.region_id, region_property.value, region.geom
+             FROM sidewalk.region
+             INNER JOIN sidewalk.street_edge ON ST_Intersects(region.geom, street_edge.geom)
+             LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
+             WHERE street_edge.street_edge_id = #$streetEdgeId
+                AND region_property.key = 'Neighborhood Name'
+                AND region.deleted = FALSE
+        """.as[(Int, String, Polygon)]
+
+    db.run(selectRegionQuery(streetEdgeId))
+      .map(_.toList.map {
+        case (regionId: Int, name: String, regionGeom: Polygon) =>
+          NamedRegion(regionId, Option(name), regionGeom)
+      })
   }
 
   /**
@@ -226,22 +242,25 @@ object RegionTable {
     * @param lng2
     * @return
     */
-  def selectNamedNeighborhoodsIntersecting(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[NamedRegion] = db.withTransaction { implicit session =>
-    // http://postgis.net/docs/ST_MakeEnvelope.html
-    // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
-    val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
-      """SELECT region.region_id, region_property.value, region.geom
-        |FROM sidewalk.region
-        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
-        |WHERE region.deleted = FALSE
-        |    AND region.region_type_id = 2
-        |    AND ST_Intersects(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
-    )
+  def selectNamedNeighborhoodsIntersecting(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Future[List[NamedRegion]] = {
+    def selectNamedNeighborhoodQuery(lat1: Double, lng1: Double, lat2: Double, lng2: Double) =
+      sql"""SELECT region.region_id, region_property.value, region.geom
+             FROM sidewalk.region
+             LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
+             WHERE region.deleted = FALSE
+                 AND region.region_type_id = 2
+                 AND ST_Intersects(region.geom, ST_MakeEnvelope(#$lat1, #$lng1, #$lat2, #$lng2, 4326))
+        """.as[(Int, String, Polygon)]
+
     val minLat = min(lat1, lat2)
     val minLng = min(lng1, lng2)
     val maxLat = max(lat1, lat2)
     val maxLng = max(lng1, lng2)
-    selectNamedNeighborhoodQuery((minLng, minLat, maxLng, maxLat)).list
+    db.run(selectNamedNeighborhoodQuery(minLng, minLat, maxLng, maxLat))
+      .map(_.toList.map {
+        case (regionId: Int, name: String, regionGeom: Polygon) =>
+          NamedRegion(regionId, Option(name), regionGeom)
+      })
   }
 
   /**
@@ -252,22 +271,25 @@ object RegionTable {
     * @param lng2
     * @return
     */
-  def selectNamedNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[NamedRegion] = db.withTransaction { implicit session =>
-    // http://postgis.net/docs/ST_MakeEnvelope.html
-    // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
-    val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
-      """SELECT region.region_id, region_property.value, region.geom
-        |FROM sidewalk.region
-        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
-        |WHERE region.deleted = FALSE
-        |    AND region.region_type_id = 2
-        |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
-    )
+  def selectNamedNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Future[List[NamedRegion]] = {
+    def selectNamedNeighborhoodQuery(lat1: Double, lng1: Double, lat2: Double, lng2: Double) =
+      sql"""SELECT region.region_id, region_property.value, region.geom
+             FROM sidewalk.region
+             LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
+             WHERE region.deleted = FALSE
+                AND region.region_type_id = 2
+                AND ST_Within(region.geom, ST_MakeEnvelope(#$lat1, #$lng1, #$lat2, #$lng2,4326))
+        """.as[(Int, String, Polygon)]
+
     val minLat = min(lat1, lat2)
     val minLng = min(lng1, lng2)
     val maxLat = max(lat1, lat2)
     val maxLng = max(lng1, lng2)
-    selectNamedNeighborhoodQuery((minLng, minLat, maxLng, maxLat)).list
+    db.run(selectNamedNeighborhoodQuery(minLng, minLat, maxLng, maxLat))
+      .map(_.toList.map {
+        case (regionId: Int, name: String, regionGeom: Polygon) =>
+          NamedRegion(regionId, Option(name), regionGeom)
+      })
   }
 
   /**
@@ -276,20 +298,21 @@ object RegionTable {
     * @param regionType
     * @return
     */
-  def selectNamedRegionsOfAType(regionType: String): List[NamedRegion] = db.withSession { implicit session =>
+  def selectNamedRegionsOfAType(regionType: String): Future[List[NamedRegion]] = {
+    db.run({
+      val _regions = for {
+        (_regions, _regionTypes) <- regionsWithoutDeleted.join(regionTypes).on(_.regionTypeId === _.regionTypeId)
+        if _regionTypes.regionType === regionType
+      } yield _regions
 
-    val _regions = for {
-      (_regions, _regionTypes) <- regionsWithoutDeleted.join(regionTypes).on(_.regionTypeId === _.regionTypeId)
-      if _regionTypes.regionType === regionType
-    } yield _regions
 
+      val _namedRegions = for {
+        (_regions, _regionProperties) <- _regions.joinLeft(regionProperties).on(_.regionId === _.regionId)
+        if _regionProperties.map(_.key === "Neighborhood Name").isDefined
+      } yield (_regions.regionId, _regionProperties.map(_.value), _regions.geom)
 
-    val _namedRegions = for {
-      (_regions, _regionProperties) <- _regions.joinLeft(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_regions.regionId, _regionProperties.value.?, _regions.geom)
-
-    _namedRegions.list.map(x => NamedRegion.tupled(x))
+      _namedRegions.to[List].result
+    }).map(x => x.map(NamedRegion.tupled))
   }
 
   /**
@@ -299,21 +322,21 @@ object RegionTable {
     * @param lat
     * @return
     */
-  def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Int = db.withSession { implicit session =>
-    val closestNeighborhoodQuery = Q.query[(Float, Float, Float, Float), Int](
-      """SELECT region_id
-        |FROM region,
-        |     (
-        |         SELECT MIN(st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326))) AS min_dist
-        |         FROM region
-        |         WHERE region.deleted = FALSE
-        |             AND region.region_type_id = 2
-        |     ) region_dists
-        |WHERE st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326)) = min_dist
-        |    AND deleted = FALSE
-        |    AND region_type_id = 2;
-      """.stripMargin
-    )
-    closestNeighborhoodQuery((lng, lat, lng, lat)).list.head
+  def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Future[Int] = {
+    def closestNeighborhoodQuery(lng: Float, lat: Float) =
+      sql"""SELECT region_id
+             FROM region,
+                 (
+                     SELECT MIN(st_distance(geom, st_setsrid(st_makepoint(#$lng, #$lat), 4326))) AS min_dist
+                     FROM region
+                     WHERE region.deleted = FALSE
+                         AND region.region_type_id = 2
+                 ) region_dists
+             WHERE st_distance(geom, st_setsrid(st_makepoint(#$lng, #$lat), 4326)) = min_dist
+                 AND deleted = FALSE
+                 AND region_type_id = 2;
+        """.as[Int]
+
+    db.run(closestNeighborhoodQuery(lng, lat).head)
   }
 }

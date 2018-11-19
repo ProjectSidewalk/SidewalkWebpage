@@ -39,7 +39,7 @@ object LabelDescriptionTable {
     * @return Number of rows updated (should be 1)
     */
   def save(pd: LabelDescription): Future[Int] = {
-    db.run((labelDescriptions returning labelDescriptions.map(_.labelDescriptionId)) += pd)
+    db.run(((labelDescriptions returning labelDescriptions.map(_.labelDescriptionId)) += pd).transactionally)
   }
 
   /**
@@ -50,7 +50,7 @@ object LabelDescriptionTable {
     * @return Number of rows updated (should be 1)
     */
   def updateDescription(descriptionId: Int, newDescription: String): Future[Int] = db.run {
-    labelDescriptions.filter(_.labelDescriptionId === descriptionId).map(x => x.description).update(newDescription)
+    labelDescriptions.filter(_.labelDescriptionId === descriptionId).map(x => x.description).update(newDescription).transactionally
   }
 }
 

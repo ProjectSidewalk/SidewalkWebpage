@@ -1,7 +1,6 @@
 package models.gsv
 
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -25,16 +24,15 @@ object GSVOnboardingPanoTable {
   val db = dbConfig.db
   val onboardingPanos = TableQuery[GSVOnboardingPanoTable]
 
-  def selectGSVOnboardingPanos(): List[GSVOnboardingPano] = db.withTransaction { implicit session =>
-    onboardingPanos.list
-  }
+  def selectGSVOnboardingPanos(): Future[List[GSVOnboardingPano]] = db.run(
+    onboardingPanos.to[List].result
+  )
 
-  def getOnboardingPanoIds(): List[String] = db.withTransaction { implicit session =>
-    onboardingPanos.map(_.gsvPanoramaId).list
-  }
+  def getOnboardingPanoIds(): Future[List[String]] = db.run(
+    onboardingPanos.map(_.gsvPanoramaId).to[List].result
+  )
 
-  def save(newOnboardingPano: GSVOnboardingPano): String = db.withTransaction { implicit session =>
-    onboardingPanos += newOnboardingPano
-    newOnboardingPano.gsvPanoramaId
-  }
+  def save(newOnboardingPano: GSVOnboardingPano): Future[String] = db.run(
+    ((onboardingPanos returning onboardingPanos.map(_.gsvPanoramaId)) += newOnboardingPano).transactionally
+  )
 }

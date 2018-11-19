@@ -51,7 +51,7 @@ object LabelSeverityTable {
     * @return
     */
   def updateSeverity(severityId: Int, newSeverity: Int): Future[Int] = {
-    db.run(labelSeverities.filter(_.labelSeverityId === severityId).map(sev => sev.severity).update(newSeverity))
+    db.run(labelSeverities.filter(_.labelSeverityId === severityId).map(sev => sev.severity).update(newSeverity).transactionally)
   }
 }
 

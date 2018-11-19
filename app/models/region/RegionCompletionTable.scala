@@ -1,9 +1,6 @@
 package models.region
 
-import java.util.UUID
-
-import math._
-import models.street.{StreetEdge, StreetEdgeRegionTable, StreetEdgeTable}
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.api._
@@ -15,6 +12,8 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import slick.jdbc.GetResult
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: Option[String], totalDistance: Double, auditedDistance: Double)
@@ -66,13 +65,14 @@ object RegionCompletionTable {
     * Returns a list of all neighborhoods with names
     * @return
     */
-  def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = {
+  def selectAllNamedNeighborhoodCompletions: Future[List[NamedRegionCompletion]] = {
     val namedRegionCompletions = for {
       (_neighborhoodCompletions, _regionProperties) <- regionCompletions.joinLeft(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_neighborhoodCompletions.regionId, _regionProperties.value.?, _neighborhoodCompletions.totalDistance, _neighborhoodCompletions.auditedDistance)
+      if _regionProperties.map(_.key === "Neighborhood Name").isDefined
+    } yield (_neighborhoodCompletions.regionId, _regionProperties.map(_.value), _neighborhoodCompletions.totalDistance, _neighborhoodCompletions.auditedDistance)
 
-    namedRegionCompletions.list.map(x => NamedRegionCompletion.tupled(x))
+    db.run(namedRegionCompletions.to[List].result)
+      .map(_.map(NamedRegionCompletion.tupled))
   }
   /**
     *
@@ -86,59 +86,87 @@ object RegionCompletionTable {
     * @param streetEdgeId street edge id
     * @return
     */
-  def updateAuditedDistance(streetEdgeId: Int) = {
+  def updateAuditedDistance(streetEdgeId: Int): Future[List[Int]] = {
 // TODO TRANSACTIONNNNNNNNNNNNNN
-    val distToAdd: Float = StreetEdgeTable.getStreetEdgeDistance(streetEdgeId)
-    val regionIds: List[Int] = streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).list
+    StreetEdgeTable.getStreetEdgeDistance(streetEdgeId).flatMap { distToAdd =>
+      db.run(
+        streetEdgeNeighborhood.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.regionId).to[List].result
+      ).flatMap { regionIds =>
+        val opFutures =
+          for (regionId <- regionIds) yield {
+            val q = for {regionCompletion <- regionCompletions if regionCompletion.regionId === regionId} yield regionCompletion
 
-    for (regionId <- regionIds) yield {
-      val q = for {regionCompletion <- regionCompletions if regionCompletion.regionId === regionId} yield regionCompletion
-
-      val updatedDist = q.headOption match {
-        case Some(rC) =>
-          // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
-          // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
-          // Also doing a check to see if the completion is erroneously over 100%, when the streets have not all been
-          // audited in that neighborhood; this has never been observed, but it could theoretically be an issue if there
-          // is a sizable error, while there is a single (very very short) street segment left to be audited. That case
-          // shouldn't happen, but we are just being safe, and setting audited_distance to be less than total_distance.
-          if (StreetEdgeRegionTable.allStreetsInARegionAudited(regionId)) {
-            q.map(_.auditedDistance).update(rC.totalDistance)
-          } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
-            q.map(_.auditedDistance).update(rC.totalDistance * 0.995)
-          } else {
-            q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
+            db.run(
+              q.result.headOption
+            ).flatMap {
+              case Some(rC) =>
+                // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+                // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
+                // Also doing a check to see if the completion is erroneously over 100%, when the streets have not all been
+                // audited in that neighborhood; this has never been observed, but it could theoretically be an issue if there
+                // is a sizable error, while there is a single (very very short) street segment left to be audited. That case
+                // shouldn't happen, but we are just being safe, and setting audited_distance to be less than total_distance.
+                StreetEdgeRegionTable.allStreetsInARegionAudited(regionId).flatMap {
+                  case true   =>
+                    db.run(
+                      q.map(_.auditedDistance).update(rC.totalDistance).transactionally
+                    )
+                  case false  =>
+                    if (rC.auditedDistance + distToAdd > rC.totalDistance) {
+                      db.run(
+                        q.map(_.auditedDistance).update(rC.totalDistance * 0.995).transactionally
+                      )
+                    } else {
+                      db.run(
+                        q.map(_.auditedDistance).update(rC.auditedDistance + distToAdd).transactionally
+                      )
+                    }
+                }
+              case None => Future.successful(-1)
+            }
           }
-        case None => -1
+
+        Future.sequence(opFutures)
       }
     }
   }
 
-  def initializeRegionCompletionTable() = {
+  def initializeRegionCompletionTable(): Future[Any] = {
     // TODO TRANSACTIONNNNNNNNNNNNNN
 
     val nRegionCompletionsFuture: Future[Int] = db.run(regionCompletions.length.result)
-    nRegionCompletionsFuture.map { nRegionCompletions => // TODO flatmap???
+    nRegionCompletionsFuture.flatMap { nRegionCompletions =>
 
       if (nRegionCompletions == 0) {
 
-        val neighborhoods = RegionTable.selectAllNamedNeighborhoods
-        for (neighborhood <- neighborhoods) yield {
+        RegionTable.selectAllNamedNeighborhoods.flatMap { neighborhoods =>
 
-          // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
-          // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
-          if (StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId)) {
-            val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
+          val neighborhoodsOps = for (neighborhood <- neighborhoods) yield {
 
-            regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, totalDistance)
-          } else {
-            val auditedDistance: Double = StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId).toDouble
-            val totalDistance: Double = StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).toDouble
-
-            regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)
+            // Check if the neighborhood is fully audited, and set audited_distance equal to total_distance if so. We are
+            // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete.
+            StreetEdgeRegionTable.allStreetsInARegionAudited(neighborhood.regionId).flatMap {
+              case true =>
+                StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId).flatMap { totalDistance =>
+                  db.run(
+                    (regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance.toDouble, totalDistance.toDouble)).transactionally
+                  )
+                }
+              case false =>
+                (for {
+                  auditedDistance <- StreetEdgeTable.getDistanceAuditedInARegion(neighborhood.regionId)
+                  totalDistance <- StreetEdgeTable.getTotalDistanceOfARegion(neighborhood.regionId)
+                } yield (auditedDistance.toDouble, totalDistance.toDouble)).flatMap {
+                  case (auditedDistance: Double, totalDistance: Double) =>
+                    db.run(
+                      (regionCompletions += RegionCompletion(neighborhood.regionId, totalDistance, auditedDistance)).transactionally
+                    )
+                }
+            }
           }
+          Future.sequence(neighborhoodsOps)
         }
-      }
+      } else Future.successful(Nil)
     }
   }
 }

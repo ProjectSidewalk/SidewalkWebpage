@@ -32,9 +32,7 @@ object UserSurveyTextSubmissionTable{
   val db = dbConfig.db
   val userSurveyTextSubmissions = TableQuery[UserSurveyTextSubmissionTable]
 
-  def save(userSurveyTextSubmission: UserSurveyTextSubmission): Int = db.withTransaction { implicit session =>
-    val userSurveyTextSubmissionId: Int =
-      (userSurveyTextSubmissions returning userSurveyTextSubmissions.map(_.userSurveyTextSubmissionId)) += userSurveyTextSubmission
-    userSurveyTextSubmissionId
-  }
+  def save(userSurveyTextSubmission: UserSurveyTextSubmission): Future[Int] = db.run(
+    ((userSurveyTextSubmissions returning userSurveyTextSubmissions.map(_.userSurveyTextSubmissionId)) += userSurveyTextSubmission).transactionally
+  )
 }

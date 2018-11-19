@@ -25,7 +25,7 @@ object RegionTypeTable {
    * Returns a list of all the sidewalk edges
    * @return A list of SidewalkEdge objects.
    */
-  def all: List[RegionType] = db.withSession { implicit session =>
-    regionTypes.list
-  }
+  def all: Future[List[RegionType]] = db.run(
+    regionTypes.to[List].result
+  )
 }

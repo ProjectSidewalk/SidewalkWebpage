@@ -2,7 +2,6 @@ package models.user
 
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
 import java.util.UUID
 
 import play.api.Play
@@ -10,7 +9,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import scala.util.control.NonFatal
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class UserRole(userRoleId: Int, userId: String, roleId: Int)
 
@@ -30,9 +29,9 @@ object UserRoleTable {
   val roles = TableQuery[RoleTable]
   val userTable = TableQuery[UserTable]
 
-  def roleMapping: Map[String, Int] = db.withSession {
-    implicit session => roles.list.map(r => r.role -> r.roleId).toMap
-  }
+  def roleMapping: Future[Map[String, Int]] = db.run(
+    roles.map(r => (r.role, r.roleId)).result
+  ).map(_.toMap)
 
 
   /**
@@ -41,31 +40,36 @@ object UserRoleTable {
     * @param userId
     * @return
     */
-  def getRole(userId: UUID): String = db.withSession { implicit session =>
-    val _roles = for {
-      (_userRoles, _roles) <- userRoles.join(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
-    } yield _roles
-    try {
-      _roles.list.map(_.role).head
-    } catch {
-      // no role found, give them Registered role
-      case NonFatal(t) =>
-        setRole(userId, "Registered")
-        "Registered"
+  def getRole(userId: UUID): Future[String] = {
+    db.run(
+      (for {
+        (_userRoles, _roles) <- userRoles.join(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
+      } yield _roles.role).result.headOption
+    ).flatMap {
+      case Some(role) => Future.successful(role)
+      case None => setRole(userId, "Registered")
+        .map(_ => "Registered")
     }
   }
 
-  def setRole(userId: UUID, newRole: String): Int = db.withTransaction { implicit session =>
-    setRole(userId, roleMapping(newRole))
+  def setRole(userId: UUID, newRole: String): Future[Int] = {
+    roleMapping.flatMap { roleToIds =>
+      setRole(userId, roleToIds(newRole))
+    }
   }
 
-  def setRole(userId: UUID, newRole: Int): Int = db.withTransaction { implicit session =>
-    val userRoleId: Option[Int] = userRoles.filter(_.userId === userId.toString).map(_.userRoleId).list.headOption
-    userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole))
+  def setRole(userId: UUID, newRole: Int): Future[Int] = {
+    db.run(
+      userRoles.filter(_.userId === userId.toString).map(_.userRoleId).result.headOption
+    ).flatMap { userRoleId =>
+      db.run(
+        userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole)).transactionally
+      )
+    }
   }
 
-  def isResearcher(userId: UUID): Boolean = db.withSession { implicit session =>
-    List("Researcher", "Administrator", "Owner").contains(getRole(userId))
+  def isResearcher(userId: UUID): Future[Boolean] = {
+    getRole(userId).map(List("Researcher", "Administrator", "Owner").contains)
   }
 
   def getUsersByType(userType: String): Query[UserTable, DBUser, Seq] = {

@@ -11,8 +11,6 @@ import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.mvc._
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
 
 
 import scala.concurrent.Future
@@ -21,7 +19,7 @@ import scala.util.Random
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  val anonymousUser: DBUser = UserTable.find("anonymous").get
+//  val anonymousUser: DBUser = UserTable.find("anonymous").get //FIXME
 
   /**
     * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.

@@ -5,28 +5,32 @@ import java.util.UUID
 import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable}
 import models.label.{Label, LabelTable}
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object LabelControllerHelper {
-  def _helpGetLabelsFromCurrentMission(regionId: Int, userId: UUID): List[Label] = {
+  def _helpGetLabelsFromCurrentMission(regionId: Int, userId: UUID): Future[List[Label]] = {
 
-    val interactions: List[AuditTaskInteraction] = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(regionId, userId)
+    AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(regionId, userId).flatMap { interactions =>
+      val lastIdx = interactions.map(_.action).reverse.indexOf("MissionComplete")
 
-    val lastIdx = interactions.map(_.action).reverse.indexOf("MissionComplete")
+      val currentMissionInteractions = if (lastIdx == -1) {
+        // No mission has been completed. Return all the interactions.
+        interactions
+      } else {
+        // At least one mission has been completed. Return the labels after the last MissionComplete
+        val idx = interactions.length - lastIdx - 1
+        interactions.zipWithIndex.filter(_._2 > idx).map(_._1)
+      }
 
-    val currentMissionInteractions = if (lastIdx == -1) {
-      // No mission has been completed. Return all the interactions.
-      interactions
-    } else {
-      // At least one mission has been completed. Return the labels after the last MissionComplete
-      val idx = interactions.length - lastIdx - 1
-      interactions.zipWithIndex.filter(_._2 > idx).map(_._1)
+      // Filter out all the interaction without temporary_label_id
+      val filteredInteractions = currentMissionInteractions.filter(_.temporaryLabelId.isDefined).toList
+
+      val labels = LabelTable.selectLabelsByInteractions(userId, filteredInteractions)
+
+      labels
     }
 
-    // Filter out all the interaction without temporary_label_id
-    val filteredInteractions = currentMissionInteractions.filter(_.temporaryLabelId.isDefined)
-
-    val labels = LabelTable.selectLabelsByInteractions(userId, filteredInteractions)
-
-    labels
     // TODO if the old code below is ever used, replace using JTS.transform to find dist /w doing it within query, see MissionController.updateUnmarkedCompletedMissionsAsCompleted
     //    val CRSEpsg4326 = CRS.decode("epsg:4326")
     //    val CRSEpsg26918 = CRS.decode("epsg:26918")

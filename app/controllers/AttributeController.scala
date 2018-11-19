@@ -9,7 +9,6 @@ import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import models.user.User
 
-import scala.concurrent.Future
 import scala.sys.process._
 import play.api.mvc._
 import play.api.libs.json.Json
@@ -20,9 +19,6 @@ import models.region.RegionTable
 import models.street.StreetEdgePriorityTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
-
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
 
 import collection.immutable.Seq
 import scala.io.Source
@@ -92,31 +88,40 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def runClustering(clusteringType: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
+      // pre-operations
+      var runSingleUserClusteringAllUsersFuture : Future[Any] = Future.successful(0)
+      var runMultiUserClusteringAllRegionsFuture: Future[Any] = Future.successful(0)
+
       if (clusteringType == "singleUser" || clusteringType == "both") {
-        runSingleUserClusteringAllUsers()
+        runSingleUserClusteringAllUsersFuture = runSingleUserClusteringAllUsers()
       }
       if (clusteringType == "multiUser" || clusteringType == "both") {
-        runMultiUserClusteringAllRegions()
+        runMultiUserClusteringAllRegionsFuture = runMultiUserClusteringAllRegions()
       }
 
-      // Gets the counts of labels/attributes from the affected tables to show how many clusters were created.
-      clusteringType match {
-        case "singleUser" => for {
-          userLabs <- UserAttributeLabelTable.countUserAttributeLabels
-          userAtts <- UserAttributeTable.countUserAttributes
-        } yield { Ok(Json.obj("user_labels" -> userLabs, "user_attributes" -> userAtts)) }
-        case "multiUser" => for {
-          userAtts <- UserAttributeTable.countUserAttributes
-          globalAtts <- GlobalAttributeTable.countGlobalAttributes
-        } yield { Ok(Json.obj("user_attributes" -> userAtts, "global_attributes" -> globalAtts)) }
-        case "both" => for {
-          userLabs <- UserAttributeLabelTable.countUserAttributeLabels
-          userAtts <- UserAttributeTable.countUserAttributes
-          globalAtts <- GlobalAttributeTable.countGlobalAttributes
-        } yield {
-          Ok(Json.obj("user_labels" -> userLabs, "user_attributes" -> userAtts, "global_attributes" -> globalAtts))
+      (for {
+        _ <- runSingleUserClusteringAllUsersFuture
+        _ <- runMultiUserClusteringAllRegionsFuture
+      } yield 1).flatMap { _ =>
+        // Gets the counts of labels/attributes from the affected tables to show how many clusters were created.
+        clusteringType match {
+          case "singleUser" => for {
+            userLabs <- UserAttributeLabelTable.countUserAttributeLabels
+            userAtts <- UserAttributeTable.countUserAttributes
+          } yield { Ok(Json.obj("user_labels" -> userLabs, "user_attributes" -> userAtts)) }
+          case "multiUser" => for {
+            userAtts <- UserAttributeTable.countUserAttributes
+            globalAtts <- GlobalAttributeTable.countGlobalAttributes
+          } yield { Ok(Json.obj("user_attributes" -> userAtts, "global_attributes" -> globalAtts)) }
+          case "both" => for {
+            userLabs <- UserAttributeLabelTable.countUserAttributeLabels
+            userAtts <- UserAttributeTable.countUserAttributes
+            globalAtts <- GlobalAttributeTable.countGlobalAttributes
+          } yield {
+            Ok(Json.obj("user_labels" -> userLabs, "user_attributes" -> userAtts, "global_attributes" -> globalAtts))
+          }
+          case _ => Future(Ok(Json.obj("error_msg" -> "Invalid clusteringType")))
         }
-        case _ => Future(Ok(Json.obj("error_msg" -> "Invalid clusteringType")))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -128,32 +133,35 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @return
     */
-  def runSingleUserClusteringAllUsers() = {
+  def runSingleUserClusteringAllUsers(): Future[Any] = {
 
     // First truncate the user_clustering_session, user_attribute, and user_attribute_label tables
-    UserClusteringSessionTable.truncateTables()
+    UserClusteringSessionTable.truncateTables().flatMap { _ =>
+      // Read key from keyfile. If we aren't able to read it, we can't do anything :(
+      val maybeKey: Option[String] = readKeyFile()
 
-    // Read key from keyfile. If we aren't able to read it, we can't do anything :(
-    val maybeKey: Option[String] = readKeyFile()
+      if (maybeKey.isDefined) {
+        StreetEdgePriorityTable.getIdsOfGoodUsers.map { goodUsers =>
+          val key: String = maybeKey.get
+        //      val goodUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863") // Test users with a lot of labels
+        //      val goodUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5") // Test users with fewer labels
+        val nUsers = goodUsers.length
+          println("N users = " + nUsers)
 
-    if (maybeKey.isDefined) {
-      val key: String = maybeKey.get
-      val goodUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodUsers // All users
-//      val goodUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863") // Test users with a lot of labels
-//      val goodUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5") // Test users with fewer labels
-      val nUsers = goodUsers.length
-      println("N users = " + nUsers)
-
-      // Runs clustering for each good user.
-      for ((userId, i) <- goodUsers.view.zipWithIndex) {
-        println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
-        val clusteringOutput =
-          Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
-        //      println(clusteringOutput)
+          // Runs clustering for each good user.
+          for ((userId, i) <- goodUsers.view.zipWithIndex) {
+            println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
+            val clusteringOutput =
+              Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
+            //      println(clusteringOutput)
+          }
+          println("\nFinshed 100% of users!!\n")
+          Future.successful(0)
+        }
+      } else {
+        println("Could not read keyfile, so nothing happened :(")
+        Future.successful(0)
       }
-      println("\nFinshed 100% of users!!\n")
-    } else {
-      println("Could not read keyfile, so nothing happened :(")
     }
   }
 
@@ -162,28 +170,32 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @return
     */
-  def runMultiUserClusteringAllRegions() = {
+  def runMultiUserClusteringAllRegions(): Future[Any] = {
 
     // First truncate the global_clustering_session, global_attribute, and global_attribute_user_attribute tables.
-    GlobalClusteringSessionTable.truncateTables()
+    GlobalClusteringSessionTable.truncateTables().flatMap { _ =>
+      // Read key from keyfile. If we aren't able to read it, we can't do anything :(
+      val maybeKey: Option[String] = readKeyFile()
 
-    // Read key from keyfile. If we aren't able to read it, we can't do anything :(
-    val maybeKey: Option[String] = readKeyFile()
+      if (maybeKey.isDefined) {
+        RegionTable.selectAllNeighborhoods.flatMap { neighborhoods =>
+          val key: String = maybeKey.get
+          val regionIds: List[Int] = neighborhoods.map(_.regionId).sortBy(x => x)
+          //    val regionIds = List(199, 200, 203, 211, 261) // Small test set.
+          val nRegions: Int = regionIds.length
 
-    if (maybeKey.isDefined) {
-      val key: String = maybeKey.get
-      val regionIds: List[Int] = RegionTable.selectAllNeighborhoods.map(_.regionId).sortBy(x => x)
-      //    val regionIds = List(199, 200, 203, 211, 261) // Small test set.
-      val nRegions: Int = regionIds.length
-
-      // Runs multi-user clustering within each region.
-      for ((regionId, i) <- regionIds.view.zipWithIndex) {
-        println(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
-        val clusteringOutput = Seq("python", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+          // Runs multi-user clustering within each region.
+          for ((regionId, i) <- regionIds.view.zipWithIndex) {
+            println(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
+            val clusteringOutput = Seq("python", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+          }
+          println("\nFinshed 100% of regions!!\n\n")
+          Future.successful(0)
+        }
+      } else {
+        println("Could not read keyfile, so nothing happened :(")
+        Future.successful(0)
       }
-      println("\nFinshed 100% of regions!!\n\n")
-    } else {
-      println("Could not read keyfile, so nothing happened :(")
     }
   }
 
@@ -252,33 +264,45 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
           val timestamp: Timestamp = new Timestamp(now.getMillis)
 
           // Add corresponding entry to the user_clustering_session table
-          UserClusteringSessionTable.save(UserClusteringSession(0, userId, timestamp)) map { userSessionId =>
+          UserClusteringSessionTable.save(UserClusteringSession(0, userId, timestamp)) flatMap { userSessionId =>
             // Add the clusters to user_attribute table, and the associated user_attribute_labels after each cluster.
-            for (cluster <- clusters) yield {
-              UserAttributeTable.save(
-                  UserAttribute(0,
-                    userSessionId,
-                    thresholds(cluster.labelType),
-                    LabelTypeTable.labelTypeToId(cluster.labelType),
-                    RegionTable.selectRegionIdOfClosestNeighborhood(cluster.lng, cluster.lat),
-                    cluster.lat,
-                    cluster.lng,
-                    cluster.severity,
-                    cluster.temporary
-                  )
-                ).foreach { attributeId =>
-                // Add all the labels associated with that user_attribute to the user_attribute_label table
-                groupedLabels get cluster.clusterNum match {
-                  case Some(group) =>
-                    for (label <- group) yield {
-                      UserAttributeLabelTable.save(UserAttributeLabel(0, attributeId, label.labelId))
+            val userAttributeSaves =
+              for (cluster <- clusters) yield {
+                (for {
+                  labelTypeId <- LabelTypeTable.labelTypeToId(cluster.labelType)
+                  regionId <- RegionTable.selectRegionIdOfClosestNeighborhood(cluster.lng, cluster.lat)
+                } yield (labelTypeId, regionId)).flatMap {
+                  case (labelTypeId, regionId) =>
+                    UserAttributeTable.save(
+                      UserAttribute(0,
+                        userSessionId,
+                        thresholds(cluster.labelType),
+                        labelTypeId,
+                        regionId,
+                        cluster.lat,
+                        cluster.lng,
+                        cluster.severity,
+                        cluster.temporary
+                      )
+                    ).flatMap { attributeId =>
+                      // Add all the labels associated with that user_attribute to the user_attribute_label table
+                      groupedLabels get cluster.clusterNum match {
+                        case Some(group) =>
+                          val userAttributeLabelSaves = for (label <- group) yield {
+                            UserAttributeLabelTable.save(UserAttributeLabel(0, attributeId, label.labelId))
+                          }
+                          Future.sequence(userAttributeLabelSaves)
+                        case None =>
+                          Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+                          Future.successful(Nil)
+                      }
                     }
-                  case None =>
-                    Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
                 }
               }
-            }
-            Ok(Json.obj("session" -> userSessionId))
+
+            Future.sequence(userAttributeSaves).map(_ =>
+              Ok(Json.obj("session" -> userSessionId))
+            )
           }
         }
       )
@@ -317,33 +341,46 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
           val timestamp: Timestamp = new Timestamp(now.getMillis)
 
           // Add corresponding entry to the global_clustering_session table
-          val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))
-
-          // Add the clusters to global_attribute table, and the associated user_attributes after each cluster.
-          for (cluster <- clusters) yield {
-            val attributeId: Int =
-              GlobalAttributeTable.save(
-                GlobalAttribute(0,
-                  globalSessionId,
-                  thresholds(cluster.labelType),
-                  LabelTypeTable.labelTypeToId(cluster.labelType),
-                  RegionTable.selectRegionIdOfClosestNeighborhood(cluster.lng, cluster.lat),
-                  cluster.lat,
-                  cluster.lng,
-                  cluster.severity,
-                  cluster.temporary)
-              )
-            // Add all the associated labels to the global_attribute_user_attribute table
-            groupedLabels get cluster.clusterNum match {
-              case Some(group) =>
-                for (label <- group) yield {
-                  GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
+          GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp)).flatMap {
+            globalSessionId =>
+              // Add the clusters to global_attribute table, and the associated user_attributes after each cluster.
+              val userAttributeSaves =
+                for (cluster <- clusters) yield {
+                  (for {
+                    labelTypeId <- LabelTypeTable.labelTypeToId(cluster.labelType)
+                    regionId <- RegionTable.selectRegionIdOfClosestNeighborhood(cluster.lng, cluster.lat)
+                  } yield (labelTypeId,regionId)).flatMap {
+                    case (labelTypeId,regionId) =>
+                      GlobalAttributeTable.save(
+                        GlobalAttribute(0,
+                          globalSessionId,
+                          thresholds(cluster.labelType),
+                          labelTypeId,
+                          regionId,
+                          cluster.lat,
+                          cluster.lng,
+                          cluster.severity,
+                          cluster.temporary)
+                      ).flatMap { attributeId =>
+                        // Add all the associated labels to the global_attribute_user_attribute table
+                        groupedLabels get cluster.clusterNum match {
+                          case Some(group) =>
+                            val userAttributeLabelSaves = for (label <- group) yield {
+                              GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
+                            }
+                            Future.sequence(userAttributeLabelSaves)
+                          case None =>
+                            Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
+                            Future.successful(Nil)
+                        }
+                      }
+                  }
                 }
-              case None =>
-                Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
-            }
+
+              Future.sequence(userAttributeSaves).map(_ =>
+                Ok(Json.obj("session" -> globalSessionId))
+              )
           }
-          Future.successful(Ok(Json.obj("session" -> globalSessionId)))
         }
       )
     } else {

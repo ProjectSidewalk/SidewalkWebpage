@@ -6,8 +6,6 @@ import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user.User
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 

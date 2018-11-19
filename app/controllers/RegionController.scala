@@ -21,6 +21,7 @@ import play.api.Logger
 
 import collection.immutable.Seq
 
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -38,17 +39,20 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
     * @return
     */
   def listNeighborhoods = Action.async { implicit request =>
-    val features: List[JsObject] = RegionTable.selectNamedRegionsOfAType("neighborhood").map { region =>
-      val coordinates: Array[Coordinate] = region.geom.getCoordinates
-      val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
-    val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))
-      val properties = Json.obj(
-        "region_id" -> region.regionId,
-        "region_name" -> region.name
-      )
-      Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+    RegionTable.selectNamedRegionsOfAType("neighborhood").map { regions =>
+      regions.map { region =>
+        val coordinates: Array[Coordinate] = region.geom.getCoordinates
+        val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+        val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))
+        val properties = Json.obj(
+          "region_id" -> region.regionId,
+          "region_name" -> region.name
+        )
+        Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+      }
+    }.map { features =>
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Ok(featureCollection)
     }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
   }
 }

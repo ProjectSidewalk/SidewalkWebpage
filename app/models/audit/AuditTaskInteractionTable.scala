@@ -249,7 +249,7 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
                                   AND interaction.audit_task_id = label.audit_task_id
          LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
          LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
-         WHERE interaction.audit_task_id = ${auditTaskId}
+         WHERE interaction.audit_task_id =#${auditTaskId}
          ORDER BY interaction.timestamp""".as[InteractionWithLabel]
   }
 

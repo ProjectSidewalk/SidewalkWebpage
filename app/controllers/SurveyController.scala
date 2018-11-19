@@ -16,11 +16,11 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
 
 import scala.collection.immutable.Seq
 import scala.concurrent.Future
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Survey controller
@@ -28,7 +28,7 @@ import scala.concurrent.Future
 class SurveyController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  val anonymousUser: DBUser = UserTable.find("anonymous").get
+//  val anonymousUser: DBUser = UserTable.find("anonymous").get //FIXME
 
   def postSurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[SurveySingleSubmission]]
@@ -39,61 +39,68 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
       },
       submission => {
 
-        val userId: String = request.identity match {
-          case Some(user) => user.userId.toString
+        (request.identity match {
+          case Some(user) => Future.successful(user.userId.toString)
           case None =>
             Logger.warn("User without a user_id completed a survey, but every user should have a user_id.")
-            val user: Option[DBUser] = UserTable.find("anonymous")
-            user.get.userId.toString
-        }
+            UserTable.find("anonymous")
+              .map(_.get.userId.toString)
+        }).flatMap { userId =>
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
 
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
-        val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
+          val allSurveyQuestions = SurveyQuestionTable.listAll
+          val allSurveyQuestionIds = allSurveyQuestions.map(_.map(_.surveyQuestionId))
+          val answeredQuestionIds = submission.map(_.surveyQuestionId.toInt)
+          val unansweredQuestionIds = allSurveyQuestionIds.map(_ diff answeredQuestionIds)
+          // Iterate over all the questions and check if there is a submission attribute matching question id.
+          // Add the associated submission to the user_submission tables for that question
 
-        val allSurveyQuestions = SurveyQuestionTable.listAll
-        val allSurveyQuestionIds = allSurveyQuestions.map(_.surveyQuestionId)
-        val answeredQuestionIds = submission.map(_.surveyQuestionId.toInt)
-        val unansweredQuestionIds = allSurveyQuestionIds diff answeredQuestionIds
-        // Iterate over all the questions and check if there is a submission attribute matching question id.
-        // Add the associated submission to the user_submission tables for that question
-
-
-        submission.foreach{ q =>
-          val questionId = q.surveyQuestionId.toInt
-          val temp_question = SurveyQuestionTable.getQuestionById(questionId)
-          temp_question match{
-            case Some(question) =>
-              if (question.surveyInputType != "free-text-feedback") {
-                val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, Some(q.answerText.toInt), timestamp, numMissionsCompleted)
-                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
+          MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false).flatMap {
+            numMissionsCompleted =>
+              val submissionSaves = submission.map { q =>
+                val questionId = q.surveyQuestionId.toInt
+                val temp_question = SurveyQuestionTable.getQuestionById(questionId)
+                temp_question.flatMap {
+                  case Some(question) =>
+                    if (question.surveyInputType != "free-text-feedback") {
+                      val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, Some(q.answerText.toInt), timestamp, numMissionsCompleted)
+                      UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
+                    }
+                    else {
+                      val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, Some(q.answerText), timestamp, numMissionsCompleted)
+                      UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
+                    }
+                  case None => Future.successful(0)
+                }
               }
-              else {
-                val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, Some(q.answerText), timestamp, numMissionsCompleted)
-                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
+              val unansweredQuestionSaves = unansweredQuestionIds.flatMap { questionIds =>
+                val userSurveySaves = questionIds.map { questionId =>
+                  val temp_question = SurveyQuestionTable.getQuestionById(questionId)
+                  temp_question.flatMap {
+                    case Some(question)=>
+                      if(question.surveyInputType != "free-text-feedback"){
+                        val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
+                        UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
+                      }
+                      else {
+                        val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
+                        UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
+                      }
+                    case None => Future.successful(0)
+                  }
+                }
+                Future.sequence(userSurveySaves)
               }
-            case None =>
-              None
+
+              for {
+                _ <- Future.sequence(submissionSaves)
+                _ <- unansweredQuestionSaves
+              } yield {
+                Ok(Json.obj("survey_success" -> "True"))
+              }
           }
         }
-        unansweredQuestionIds.foreach{ questionId =>
-          val temp_question = SurveyQuestionTable.getQuestionById(questionId)
-          temp_question match{
-            case Some(question)=>
-              if(question.surveyInputType != "free-text-feedback"){
-                val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
-                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
-              }
-              else{
-                val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
-                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
-              }
-            case None =>
-              None
-          }
-        }
-
-        Future.successful(Ok(Json.obj("survey_success" -> "True")))
       }
     )
 
@@ -103,16 +110,17 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val userRole: String = UserRoleTable.getRole(userId)
+        UserRoleTable.getRole(userId).flatMap { userRole =>
+          // NOTE the number of missions before survey is actually 3, but this check is done before the next mission is
+          // updated on the back-end.
+          val numMissionsBeforeSurvey = 1
+          val userRoleForSurvey = "Turker"
 
-        // NOTE the number of missions before survey is actually 3, but this check is done before the next mission is
-        // updated on the back-end.
-        val numMissionsBeforeSurvey = 1
-        val userRoleForSurvey = "Turker"
-
-        val displaySurvey = userRole == userRoleForSurvey && MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey
-        Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
-
+          MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false).map { numCompletedMissions =>
+            val displaySurvey = userRole == userRoleForSurvey && numCompletedMissions == numMissionsBeforeSurvey
+            Ok(Json.obj("displayModal" -> displaySurvey))
+          }
+        }
       case None => Future.successful(Redirect(s"/anonSignUp?url=/survey/display"))
     }
   }

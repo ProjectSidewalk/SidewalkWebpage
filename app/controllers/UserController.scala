@@ -14,8 +14,8 @@ import play.api.mvc.BodyParsers
 import play.api.libs.json._
 import org.joda.time.{DateTime, DateTimeZone}
 import scala.concurrent.Future
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * The basic application controller.
@@ -60,8 +60,9 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
 //    val result = Future.successful(Redirect(routes.UserController.index()))
 
     val result = Future.successful(Redirect(url))
-    env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
-    request.authenticator.discard(result)
+    env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
+//    request.authenticator.discard(result) //FIXME
+    result
   }
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
@@ -76,25 +77,26 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
     val submission = request.body.validate[String]
-    val anonymousUser: DBUser = UserTable.find("anonymous").get
 
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
-      submission => {
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
-        val ipAddress: String = request.remoteAddress
-        request.identity match {
-          case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, submission, timestamp))
-          case None =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, submission, timestamp))
+    UserTable.find("anonymous").flatMap { anonymousUser =>
+      submission.fold(
+        errors => {
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+        },
+        submission => {
+          val now = new DateTime(DateTimeZone.UTC)
+          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val ipAddress: String = request.remoteAddress
+          request.identity match {
+            case Some(user) =>
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, submission, timestamp))
+            case None =>
+              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.get.userId.toString, ipAddress, submission, timestamp))
+          }
+
+          Future.successful(Ok(Json.obj()))
         }
-
-        Future.successful(Ok(Json.obj()))
-      }
-    )
+      )
+    }
   }
 }

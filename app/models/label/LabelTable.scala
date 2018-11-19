@@ -3,23 +3,23 @@ package models.label
 import java.sql.Timestamp
 import java.util.UUID
 
-import com.vividsolutions.jts.geom.LineString
-import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
+import models.audit.{AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.gsv.GSVOnboardingPanoTable
-import models.mission.{Mission, MissionTable}
+import models.mission.MissionTable
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
-
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
-import scala.concurrent.Future
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 import slick.jdbc.GetResult
+
+import scala.concurrent.duration.Duration
 
 case class Label(labelId: Int,
                  auditTaskId: Int,
@@ -99,7 +99,12 @@ object LabelTable {
 
   // Filters out the labels placed during onboarding (aka panoramas that are used during onboarding
   // Onboarding labels have to be filtered out before a user's labeling frequency is computed
-  val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filterNot(_.gsvPanoramaId inSet GSVOnboardingPanoTable.getOnboardingPanoIds)
+  val labelsWithoutDeletedOrOnboarding = {
+    val onboardingPanoIds = Await.result(GSVOnboardingPanoTable.getOnboardingPanoIds, Duration.Inf) //FIXME
+    for {
+      label <- labelsWithoutDeleted if !onboardingPanoIds.contains(label.gsvPanoramaId)
+    } yield label
+  }
 
   case class LabelCountPerDay(date: String, count: Int)
 
@@ -130,10 +135,9 @@ object LabelTable {
     * @param labelId
     * @return
     */
-  def find(labelId: Int): Option[Label] = db.withSession { implicit session =>
-    val labelList = labels.filter(_.labelId === labelId).list
-    labelList.headOption
-  }
+  def find(labelId: Int): Future[Option[Label]] = db.run(
+    labels.filter(_.labelId === labelId).result.headOption
+  )
 
   /**
     * Find a label based on temp_label_id and audit_task_id.
@@ -142,20 +146,25 @@ object LabelTable {
     * @param auditTaskId
     * @return
     */
-  def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
-    val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
-      label => label.labelId
+  def find(tempLabelId: Int, auditTaskId: Int): Future[Option[Int]] = db.run(
+    labels.filter(
+      x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId
+    ).map(_.labelId).result.headOption
+  )
+
+  def countLabels: Future[Int] = db.run(
+    labels.filter(_.deleted === false).length.result
+  )
+
+  def countLabelsBasedOnType(labelTypeString: String): Future[Int] = {
+    LabelTypeTable.labelTypeToId(labelTypeString).flatMap { labelTypeId =>
+      db.run(
+        labels.filter(_.deleted === false).filter(
+          _.labelTypeId === labelTypeId
+        ).length.result
+      )
     }
-    labelIds.list.headOption
   }
-
-  def countLabels: Int = db.withTransaction(implicit session =>
-    labels.filter(_.deleted === false).list.size
-  )
-
-  def countLabelsBasedOnType(labelTypeString: String): Int = db.withTransaction(implicit session =>
-    labels.filter(_.deleted === false).filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelTypeString)).list.size
-  )
 
   /*
   * Counts the number of labels added today.
@@ -163,16 +172,16 @@ object LabelTable {
   * will be added for the task end date
   * Date: Aug 28, 2016
   */
-  def countTodayLabels: Int = db.withSession { implicit session =>
+  def countTodayLabels: Future[Int] = {
+    val sql = sql"""
+        SELECT count(label.label_id)
+        FROM sidewalk.audit_task
+        INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+        WHERE audit_task.task_end::date = now()::date
+            AND label.deleted = false
+      """.as[Int]
 
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT label.label_id
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE audit_task.task_end::date = now()::date
-        |    AND label.deleted = false""".stripMargin
-    )
-    countQuery.list.size
+    db.run(sql.head)
   }
 
   /*
@@ -181,52 +190,54 @@ object LabelTable {
   * will be added for the task end date
   * Date: Aug 28, 2016
   */
-  def countTodayLabelsBasedOnType(labelType: String): Int = db.withSession { implicit session =>
+  def countTodayLabelsBasedOnType(labelType: String): Future[Int] = {
+    def countQuery(labelType: String) =
+      sql"""SELECT count(label.label_id)
+             FROM sidewalk.audit_task
+                INNER JOIN sidewalk.label
+                  ON label.audit_task_id = audit_task.audit_task_id
+             WHERE audit_task.task_end::date = now()::date
+                AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
+                    FROM sidewalk.label_type as lt
+         						WHERE lt.label_type='#$labelType')
+        """.as[Int]
 
-    val countQuery = s"""SELECT label.label_id
-                         |  FROM sidewalk.audit_task
-                         |INNER JOIN sidewalk.label
-                         |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE audit_task.task_end::date = now()::date
-                         |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
-                         |														FROM sidewalk.label_type as lt
-                         |														WHERE lt.label_type='$labelType')""".stripMargin
-    val countQueryResult = Q.queryNA[(Int)](countQuery)
-
-    countQueryResult.list.size
+    db.run(countQuery(labelType).head)
   }
 
   /*
   * Counts the number of labels added yesterday
   * Date: Aug 28, 2016
   */
-  def countYesterdayLabels: Int = db.withTransaction { implicit session =>
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT label.label_id
-        |FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
-        |    AND label.deleted = false""".stripMargin
-    )
-    countQuery.list.size
+  def countYesterdayLabels: Future[Int] = {
+    val sql =
+      sql"""SELECT count(label.label_id)
+             FROM sidewalk.audit_task
+                INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+             WHERE audit_task.task_end::date = now()::date - interval '1' day
+              AND label.deleted = false
+        """.as[Int]
+
+    db.run(sql.head)
   }
 
   /*
   * Counts the number of specific label types added yesterday
   * Date: Aug 28, 2016
   */
-  def countYesterdayLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
-    val countQuery = s"""SELECT label.label_id
-                         |  FROM sidewalk.audit_task
-                         |INNER JOIN sidewalk.label
-                         |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE audit_task.task_end::date = now()::date - interval '1' day
-                         |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
-                         |														FROM sidewalk.label_type as lt
-                         |														WHERE lt.label_type='$labelType')""".stripMargin
-    val countQueryResult = Q.queryNA[(Int)](countQuery)
+  def countYesterdayLabelsBasedOnType(labelType: String): Future[Int] = {
+    def countQuery(labelType: String) =
+      sql"""SELECT count(label.label_id)
+              FROM sidewalk.audit_task
+                INNER JOIN sidewalk.label
+                  ON label.audit_task_id = audit_task.audit_task_id
+              WHERE audit_task.task_end::date = now()::date - interval '1' day
+                AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
+            														FROM sidewalk.label_type as lt
+            														WHERE lt.label_type='#$labelType')
+        """.as[Int]
 
-    countQueryResult.list.size
+    db.run(countQuery(labelType).head)
   }
 
 
@@ -236,16 +247,18 @@ object LabelTable {
     * @param userId User id
     * @return A number of labels submitted by the user
     */
-  def countLabelsByUserId(userId: UUID): Int = db.withSession { implicit session =>
+  def countLabelsByUserId(userId: UUID): Future[Int] = db.run({
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val _labels = for {
-      (_tasks, _labels) <- tasks.join(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+      (_, _labels) <- tasks.join(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
     } yield _labels
-    _labels.list.size
-  }
+    _labels.length.result
+  })
 
   def updateDeleted(labelId: Int, deleted: Boolean): Future[Int] = {
-    db.run(labels.filter(_.labelId === labelId).map(lab => lab.deleted).update(deleted))
+    db.run(
+      labels.filter(_.labelId === labelId).map(lab => lab.deleted).update(deleted).transactionally
+    )
   }
 
   /**
@@ -254,117 +267,153 @@ object LabelTable {
     * @param label
    * @return
    */
-  def save(label: Label): Int = db.withTransaction { implicit session =>
-    val labelId: Int =
-      (labels returning labels.map(_.labelId)) += label
-    labelId
-  }
+  def save(label: Label): Future[Int] = db.run(
+    ((labels returning labels.map(_.labelId)) += label).transactionally
+  )
 
   // TODO translate the following three queries to Slick
-  def retrieveLabelMetadata(takeN: Int): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int, (Int, String, Float, Float, Int, Int, Int, Int, Int,
-      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String])](
-      """SELECT lb1.label_id,
-        |       lb1.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height,
-        |       lb1.audit_task_id,
-        |       u.user_id,
-        |       u.username,
-        |       lb1.time_created,
-        |       lb_big.label_type,
-        |       lb_big.label_type_desc,
-        |       lb_big.severity,
-        |       lb_big.temp,
-        |       lb_big.description
-        |FROM sidewalk.label AS lb1,
-        |     sidewalk.audit_task AS at,
-        |     sidewalk_user AS u,
-        |     sidewalk.label_point AS lp,
-        |			(
-        |         SELECT lb.label_id,
-        |                lb.gsv_panorama_id,
-        |                lbt.label_type,
-        |                lbt.description AS label_type_desc,
-        |                sev.severity,
-        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
-        |                lab_desc.description
-        |					FROM label AS lb
-        |				  LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
-        |  				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
-        |				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
-        |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
-        |		  ) AS lb_big
-        |WHERE lb1.deleted = FALSE
-        |    AND lb1.audit_task_id = at.audit_task_id
-        |    AND lb1.label_id = lb_big.label_id
-        |    AND at.user_id = u.user_id
-        |    AND lb1.label_id = lp.label_id
-        |ORDER BY lb1.label_id DESC
-        |LIMIT ?""".stripMargin
-    )
-    selectQuery(takeN).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
+  def retrieveLabelMetadata(takeN: Int): Future[List[LabelMetadata]] = {
+    def selectQuery(takeN: Int) =
+      sql"""SELECT lb1.label_id,
+            |       lb1.gsv_panorama_id,
+            |       lp.heading,
+            |       lp.pitch,
+            |       lp.zoom,
+            |       lp.canvas_x,
+            |       lp.canvas_y,
+            |       lp.canvas_width,
+            |       lp.canvas_height,
+            |       lb1.audit_task_id,
+            |       u.user_id,
+            |       u.username,
+            |       lb1.time_created,
+            |       lb_big.label_type,
+            |       lb_big.label_type_desc,
+            |       lb_big.severity,
+            |       lb_big.temp,
+            |       lb_big.description
+            |FROM sidewalk.label AS lb1,
+            |     sidewalk.audit_task AS at,
+            |     sidewalk_user AS u,
+            |     sidewalk.label_point AS lp,
+            |			(
+            |         SELECT lb.label_id,
+            |                lb.gsv_panorama_id,
+            |                lbt.label_type,
+            |                lbt.description AS label_type_desc,
+            |                sev.severity,
+            |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
+            |                lab_desc.description
+            |					FROM label AS lb
+            |				  LEFT JOIN sidewalk.label_type as lbt ON lb.label_type_id = lbt.label_type_id
+            |  				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
+            |				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
+            |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
+            |		  ) AS lb_big
+            |WHERE lb1.deleted = FALSE
+            |    AND lb1.audit_task_id = at.audit_task_id
+            |    AND lb1.label_id = lb_big.label_id
+            |    AND at.user_id = u.user_id
+            |    AND lb1.label_id = lp.label_id
+            |ORDER BY lb1.label_id DESC
+            |LIMIT #$takeN
+        """.as[(Int, String, Float, Float, Int, Int, Int, Int, Int,
+        Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
+        Option[String])]
+
+    db.run(selectQuery(takeN)).flatMap { ret =>
+      val futures = ret.toList.map(LabelMetadataWithoutTags.tupled).map { label =>
+        getTagsFromLabelId(label.labelId).map { tags =>
+          labelAndTagsToLabelMetadata(label, tags.toList)
+        }
+      }
+      Future.sequence(futures)
+    }
   }
 
-  def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.query[(String, Int),(Int, String, Float, Float, Int, Int, Int, Int, Int,
-      Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String])](
-      """SELECT lb1.label_id,
-        |       lb1.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height,
-        |       lb1.audit_task_id,
-        |       u.user_id,
-        |       u.username,
-        |       lb1.time_created,
-        |       lb_big.label_type,
-        |       lb_big.label_type_desc,
-        |       lb_big.severity,
-        |       lb_big.temp,
-        |       lb_big.description
-        |FROM sidewalk.label AS lb1,
-        |     sidewalk.audit_task AS at,
-        |     sidewalk_user AS u,
-        |     sidewalk.label_point AS lp,
-        |			(
-        |         SELECT lb.label_id,
-        |                lb.gsv_panorama_id,
-        |                lbt.label_type,
-        |                lbt.description AS label_type_desc,
-        |                sev.severity,
-        |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
-        |                lab_desc.description
-        |					FROM label AS lb
-        |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
-        |			  	LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
-        |			  	LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
-        |				  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
-        |			) AS lb_big
-        |WHERE u.user_id = ?
-        |      AND lb1.deleted = FALSE
-        |      AND lb1.audit_task_id = at.audit_task_id
-        |      AND lb1.label_id = lb_big.label_id
-        |      AND at.user_id = u.user_id
-        |      AND lb1.label_id = lp.label_id
-        |ORDER BY lb1.label_id DESC
-        |LIMIT ?""".stripMargin
-    )
-    selectQuery((userId, takeN)).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
+  def retrieveLabelMetadata(takeN: Int, userId: String): Future[List[LabelMetadata]] = {
+    def selectQuery(takeN: Int, userId: String) =
+      sql"""SELECT lb1.label_id,
+            |       lb1.gsv_panorama_id,
+            |       lp.heading,
+            |       lp.pitch,
+            |       lp.zoom,
+            |       lp.canvas_x,
+            |       lp.canvas_y,
+            |       lp.canvas_width,
+            |       lp.canvas_height,
+            |       lb1.audit_task_id,
+            |       u.user_id,
+            |       u.username,
+            |       lb1.time_created,
+            |       lb_big.label_type,
+            |       lb_big.label_type_desc,
+            |       lb_big.severity,
+            |       lb_big.temp,
+            |       lb_big.description
+            |FROM sidewalk.label AS lb1,
+            |     sidewalk.audit_task AS at,
+            |     sidewalk_user AS u,
+            |     sidewalk.label_point AS lp,
+            |			(
+            |         SELECT lb.label_id,
+            |                lb.gsv_panorama_id,
+            |                lbt.label_type,
+            |                lbt.description AS label_type_desc,
+            |                sev.severity,
+            |                COALESCE(lab_temp.temporary, 'FALSE') AS temp,
+            |                lab_desc.description
+            |					FROM label AS lb
+            |		  		LEFT JOIN sidewalk.label_type AS lbt ON lb.label_type_id = lbt.label_type_id
+            |			  	LEFT JOIN sidewalk.label_severity AS sev ON lb.label_id = sev.label_id
+            |			  	LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
+            |				  LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
+            |			) AS lb_big
+            |WHERE u.user_id = $userId
+            |      AND lb1.deleted = FALSE
+            |      AND lb1.audit_task_id = at.audit_task_id
+            |      AND lb1.label_id = lb_big.label_id
+            |      AND at.user_id = u.user_id
+            |      AND lb1.label_id = lp.label_id
+            |ORDER BY lb1.label_id DESC
+            |LIMIT #$takeN
+            |""".as[(Int, String, Float, Float, Int, Int, Int, Int, Int,
+                    Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
+                    Option[String])]
+
+    db.run(selectQuery(takeN, userId)).flatMap { ret =>
+      val futures = ret.toList.map(LabelMetadataWithoutTags.tupled).map { label =>
+        getTagsFromLabelId(label.labelId).map { tags =>
+          labelAndTagsToLabelMetadata(label, tags.toList)
+        }
+      }
+      Future.sequence(futures)
+    }
   }
 
   def retrieveSingleLabelMetadata(labelId: Int): Future[LabelMetadata] = {
+    implicit val mkLabelMetadataWithoutTags = GetResult[LabelMetadataWithoutTags](r =>
+      LabelMetadataWithoutTags(
+        r.nextInt(), // labelId
+        r.nextString(),
+        r.nextFloat(),
+        r.nextFloat(),
+        r.nextInt(),
+        r.nextInt(),  //canvasX
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),  //auditTaskId
+        r.nextString(),
+        r.nextString(), //userId
+        r.nextTimestampOption(),
+        r.nextString(), //labelTypeKey
+        r.nextString(),
+        r.nextIntOption(),
+        r.nextBoolean(),  //temporary
+        r.nextStringOption()
+      ))
+
     val selectQuery =
       sql"""SELECT lb1.label_id,
                 lb1.gsv_panorama_id,
@@ -402,17 +451,18 @@ object LabelTable {
                   LEFT JOIN sidewalk.label_description AS lab_desc ON lb.label_id = lab_desc.label_id
                   LEFT JOIN sidewalk.label_temporariness AS lab_temp ON lb.label_id = lab_temp.label_id
               ) AS lb_big
-         WHERE lb1.label_id = ${labelId}
+         WHERE lb1.label_id = #${labelId}
                AND lb1.audit_task_id = at.audit_task_id
                AND lb1.label_id = lb_big.label_id
                AND at.user_id = u.user_id
                AND lb1.label_id = lp.label_id
          ORDER BY lb1.label_id DESC""".as[LabelMetadataWithoutTags]
+
     for {
       labelMetadata <- db.run(selectQuery)
       labelTags <- getTagsFromLabelId(labelId)
     } yield {
-      labelAndTagsToLabelMetadata(labelMetadata.head, labelTags)
+      labelAndTagsToLabelMetadata(labelMetadata.head, labelTags.toList)
     }
   }
 
@@ -468,7 +518,7 @@ object LabelTable {
            (
                SELECT tag_id
                FROM sidewalk.label_tag
-               WHERE label_tag.label_id = ${labelId}
+               WHERE label_tag.label_id = #${labelId}
            )""".as[String]
       db.run(getTagsQuery)
   }
@@ -478,13 +528,12 @@ object LabelTable {
     * @param userId
     * @return
     */
-  def selectLabelsByUserId(userId: UUID): List[Label] = db.withSession { implicit session =>
-    val _labels = for {
+  def selectLabelsByUserId(userId: UUID): Future[List[Label]] = db.run(
+    (for {
       (_labels, _auditTasks) <- labelsWithoutDeleted.join(auditTasks).on(_.auditTaskId === _.auditTaskId)
       if _auditTasks.userId === userId.toString
-    } yield _labels
-    _labels.list
-  }
+    } yield _labels).to[List].result
+  )
 
   /**
     * Returns all the labels of the given user that are associated with the given interactions
@@ -492,34 +541,28 @@ object LabelTable {
     * @param interactions
     * @return
     */
-  def selectLabelsByInteractions(userId: UUID, interactions: List[AuditTaskInteraction]) = {
-    val labels = selectLabelsByUserId(userId).filter(_.temporaryLabelId.isDefined)
-
-    // Yield labels that share the same audit task id and temporary label id.
-    val filteredLabels = for {
-      l <- labels
-      i <- interactions
-      if l.auditTaskId == i.auditTaskId && l.temporaryLabelId == i.temporaryLabelId
-    } yield l
-    filteredLabels
+  def selectLabelsByInteractions(userId: UUID, interactions: List[AuditTaskInteraction]): Future[List[Label]] = {
+    selectLabelsByUserId(userId).map { labels =>
+      for {
+        l <- labels.filter(_.temporaryLabelId.isDefined)
+        i <- interactions
+        if l.auditTaskId == i.auditTaskId && l.temporaryLabelId == i.temporaryLabelId
+      } yield l
+    }
   }
 
   /*
    * Retrieves label and its metadata
    * Date: Sep 1, 2016
    */
-  def selectTopLabelsAndMetadata(n: Int): List[LabelMetadata] = db.withSession { implicit session =>
-    retrieveLabelMetadata(n)
-  }
+  def selectTopLabelsAndMetadata(n: Int): Future[List[LabelMetadata]] = retrieveLabelMetadata(n)
 
   /*
    * Retrieves label by user and its metadata
    * Date: Sep 2, 2016
    */
-  def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
-
+  def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): Future[List[LabelMetadata]] =
     retrieveLabelMetadata(n, userId.toString)
-  }
 
   /**
     * This method returns all the submitted labels
@@ -535,8 +578,7 @@ object LabelTable {
       (l, p) <- _labels.join(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
-    val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
-    labelLocationList
+    db.run(_points.result).map(_.map(LabelLocation.tupled))
   }
 
   /**
@@ -557,9 +599,7 @@ object LabelTable {
       (l, p) <- _slabels.join(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
-    val res: Future[Seq[LabelLocationWithSeverity]] = db.run(_points.result)
-    res
-//    res.map { points => points.map { pt => LabelLocationWithSeverity.tupled(pt) } }
+    db.run(_points.result).map(_.map(LabelLocationWithSeverity.tupled))
   }
 
   /**
@@ -571,22 +611,25 @@ object LabelTable {
     * @param maxLng
     * @return
     */
-  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
-    val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng
-        |FROM sidewalk.label
-        |INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
-        |WHERE label.deleted = false
-        |    AND label_point.lat IS NOT NULL
-        |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
-    )
-    selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
+  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): Future[List[LabelLocation]] = {
+    def selectLabelLocationQuery(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) =
+      sql"""
+            |SELECT label.label_id,
+            |       label.audit_task_id,
+            |       label.gsv_panorama_id,
+            |       label_type.label_type,
+            |       label_point.lat,
+            |       label_point.lng
+            |FROM sidewalk.label
+            |INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
+            |INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
+            |WHERE label.deleted = false
+            |    AND label_point.lat IS NOT NULL
+            |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))
+        """.as[(Int, Int, String, String, Float, Float)]
+
+    db.run(selectLabelLocationQuery(minLng, minLat, maxLng, maxLat))
+        .map(_.toList.map(LabelLocation.tupled))
   }
 
   /**
@@ -595,9 +638,9 @@ object LabelTable {
     * @param userId
    * @return
    */
-  def selectLocationsOfLabelsByUserId(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
+  def selectLocationsOfLabelsByUserId(userId: UUID): Future[List[LabelLocation]] = {
     val _labels = for {
-      ((_auditTasks, _labels), _labelTypes) <- auditTasks joinLeft labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) joinLeft labelTypes on (_._2.labelTypeId === _.labelTypeId)
+      ((_auditTasks, _labels), _labelTypes) <- auditTasks join labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) join labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
@@ -605,8 +648,7 @@ object LabelTable {
       (l, p) <- _labels.join(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
-    val labelLocationList: List[LabelLocation] = _points.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
-    labelLocationList
+    db.run(_points.to[List].result).map(_.map(LabelLocation.tupled))
   }
 
   /**
@@ -633,9 +675,11 @@ object LabelTable {
                  (
                      SELECT gsv_panorama_id FROM gsv_onboarding_pano WHERE has_labels = TRUE
                  )
-                 AND region_id = ${regionId}
+                 AND region_id = #${regionId}
          ) AS labels
-         GROUP BY (labels.label_type)""".as[(String, Int)]
+         GROUP BY (labels.label_type)
+      """.as[(String, Int)]
+
     db.run(selectQuery)
   }
 
@@ -656,28 +700,10 @@ object LabelTable {
              AND label_point.lat IS NOT NULL
              AND region.deleted = FALSE
              AND region.region_type_id = 2
-             AND audit_task.user_id = ${userId}
-             AND region_id = ${regionId}""".as[LabelLocation]
-    db.run(selectQuery)
+             AND audit_task.user_id = #${userId.toString}
+             AND region_id = #${regionId}""".as[LabelLocation]
 
-//    val _labels = for {
-//      ((_auditTasks, _labels), _labelTypes) <- auditTasks joinLeft labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) joinLeft labelTypes on (_._2.labelTypeId === _.labelTypeId)
-//      if _auditTasks.userId === userId.toString
-//    } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
-//
-//    val _points = for {
-//      (l, p) <- _labels.join(labelPoints).on(_._1 === _.labelId)
-//      if p.geom.isDefined
-//    } yield (l._1, l._2, l._3, l._4, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat), p.geom.get)
-//
-//    // Take the labels that are in the target region
-//    val neighborhood = neighborhoods.filter(_.regionId === regionId)
-//    val _pointsInRegion = for {
-//      (p, n) <- _points.join(neighborhood).on((_p, _n) => _p._7.within(_n.geom))
-//    } yield (p._1, p._2, p._3, p._4, p._5, p._6)
-//
-//    val labelLocationList: List[LabelLocation] = _pointsInRegion.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
-//    labelLocationList
+    db.run(selectQuery)
   }
 
   /**
@@ -685,20 +711,22 @@ object LabelTable {
     *
     * @return
     */
-  def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>
-    val selectLabelCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(label_id)
-        |FROM
-        |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '11/17/2015') n
-        |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
-    )
-    selectLabelCountQuery.list.map(x => LabelCountPerDay.tupled(x))
+  def selectLabelCountsPerDay: Future[List[LabelCountPerDay]] = {
+    val selectLabelCountQuery =
+      sql"""SELECT calendar_date::date, COUNT(label_id)
+            FROM
+            (
+            SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
+            FROM generate_series(0, current_date - '11/17/2015') n
+            ) AS calendar
+              LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
+              LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
+            GROUP BY calendar_date
+            ORDER BY calendar_date
+        """.as[(String, Int)]
+
+    db.run(selectLabelCountQuery)
+      .map(_.toList.map(LabelCountPerDay.tupled))
   }
 
 

@@ -10,6 +10,8 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
 
 class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag, Some("sidewalk"),  "street_edge_region") {
@@ -38,36 +40,36 @@ object StreetEdgeRegionTable {
     * @param streetEdgeId
     * @return
     */
-  def selectByStreetEdgeId(streetEdgeId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    streetEdgeRegionTable.filter(item => item.streetEdgeId === streetEdgeId).list
-  }
+  def selectByStreetEdgeId(streetEdgeId: Int): Future[List[StreetEdgeRegion]] = db.run(
+    streetEdgeRegionTable.filter(item => item.streetEdgeId === streetEdgeId).to[List].result
+  )
 
   /**
     * Get records based on the street edge id.
     * @param streetEdgeId
     * @return
     */
-  def selectNonDeletedByStreetEdgeId(streetEdgeId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    nonDeletedStreetEdgeRegions.filter(item => item.streetEdgeId === streetEdgeId).list
-  }
+  def selectNonDeletedByStreetEdgeId(streetEdgeId: Int): Future[List[StreetEdgeRegion]] = db.run(
+    nonDeletedStreetEdgeRegions.filter(item => item.streetEdgeId === streetEdgeId).to[List].result
+  )
 
   /**
     * Get records based on the region id.
     * @param regionId
     * @return
     */
-  def selectByRegionId(regionId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    streetEdgeRegionTable.filter(item => item.regionId === regionId).list
-  }
+  def selectByRegionId(regionId: Int): Future[List[StreetEdgeRegion]] = db.run(
+    streetEdgeRegionTable.filter(item => item.regionId === regionId).to[List].result
+  )
 
   /**
     * Get records based on the region id.
     * @param regionId
     * @return
     */
-  def selectNonDeletedByRegionId(regionId: Int): List[StreetEdgeRegion] = db.withSession { implicit session =>
-    nonDeletedStreetEdgeRegions.filter(item => item.regionId === regionId).list
-  }
+  def selectNonDeletedByRegionId(regionId: Int): Future[List[StreetEdgeRegion]] = db.run(
+    nonDeletedStreetEdgeRegions.filter(item => item.regionId === regionId).to[List].result
+  )
 
   /**
     * Checks if every street in the region has an associated completed audit task.
@@ -75,14 +77,15 @@ object StreetEdgeRegionTable {
     * @param regionId
     * @return
     */
-  def allStreetsInARegionAudited(regionId: Int): Boolean = db.withSession { implicit session =>
-    val edgesInRegion: Int = selectNonDeletedByRegionId(regionId).length
-    val edgesAuditedInRegion: Int = (for {
-      _edgeRegions <- nonDeletedStreetEdgeRegions if _edgeRegions.regionId === regionId
-      _audits <- AuditTaskTable.completedTasks if _audits.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _audits.streetEdgeId).groupBy(x => x).map(_._1).list.length
-
-    edgesAuditedInRegion == edgesInRegion
+  def allStreetsInARegionAudited(regionId: Int): Future[Boolean] = {
+    selectNonDeletedByRegionId(regionId).flatMap { edgesInRegion =>
+      db.run({
+        (for {
+          _edgeRegions <- nonDeletedStreetEdgeRegions if _edgeRegions.regionId === regionId
+          _audits <- AuditTaskTable.completedTasks if _audits.streetEdgeId === _edgeRegions.streetEdgeId
+        } yield _audits.streetEdgeId).groupBy(x => x).map(_._1).length.result
+      }).map(_ == edgesInRegion)
+    }
   }
 
   /**
@@ -91,7 +94,7 @@ object StreetEdgeRegionTable {
    * @param regionId
    * @return
    */
-  def save(streetEdgeId: Int, regionId: Int) = db.withSession { implicit session =>
-    streetEdgeRegionTable += StreetEdgeRegion(streetEdgeId, regionId)
-  }
+  def save(streetEdgeId: Int, regionId: Int): Future[Int] = db.run(
+    (streetEdgeRegionTable += StreetEdgeRegion(streetEdgeId, regionId)).transactionally
+  )
 }

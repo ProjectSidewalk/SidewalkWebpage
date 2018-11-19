@@ -22,13 +22,11 @@ object RoleTable {
   val db = dbConfig.db
   val roles = TableQuery[RoleTable]
 
-  def getRoleNames: List[String] = db.withTransaction { implicit session =>
-    roles.map(_.role).list
-  }
+  def getRoleNames: Future[List[String]] = db.run(
+    roles.map(_.role).to[List].result
+  )
 
-  def save(role: Role): Int = db.withTransaction { implicit session =>
-    val roleId: Int =
-      (roles returning roles.map(_.roleId)) += role
-    roleId
-  }
+  def save(role: Role): Future[Int] = db.run(
+    ((roles returning roles.map(_.roleId)) += role).transactionally
+  )
 }

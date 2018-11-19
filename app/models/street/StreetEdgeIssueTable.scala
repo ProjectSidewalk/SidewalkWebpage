@@ -36,10 +36,9 @@ object StreetEdgeIssueTable {
     * @param issue A StreetEdge object
     * @return
     */
-  def save(issue: StreetEdgeIssue): Int = db.withTransaction { implicit session =>
-    streetEdgeIssues += issue
-    0
-  }
+  def save(issue: StreetEdgeIssue): Future[Int] = db.run(
+    (streetEdgeIssues += issue).transactionally
+  )
 
 }
 

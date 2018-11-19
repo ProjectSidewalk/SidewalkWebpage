@@ -6,14 +6,14 @@ import models.label.LabelTable
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.libs.json._
-
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
-import scala.concurrent.Future
-
 import slick.jdbc.GetResult
+
 import scala.math.exp
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
 case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double){
@@ -32,7 +32,7 @@ class StreetEdgePriorityTable(tag: slick.lifted.Tag) extends Table[StreetEdgePri
   def streetEdgeId = column[Int]("street_edge_id")
   def priority = column[Double]("priority")
 
-  def * = (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
+  def * = (streetEdgePriorityId, streetEdgeId, priority) <> (StreetEdgePriority.tupled, StreetEdgePriority.unapply)
 
   def streetEdge = foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
 }
@@ -55,11 +55,9 @@ object StreetEdgePriorityTable {
     * @param streetEdgePriority
     * @return
     */
-  def save(streetEdgePriority: StreetEdgePriority) = db.withTransaction { implicit session =>
-    val streetEdgePriorityId: Int =
-      (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
-    streetEdgePriorityId
-  }
+  def save(streetEdgePriority: StreetEdgePriority): Future[Int] = db.run(
+    ((streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority).transactionally
+  )
 
   /**
     * Update the priority attribute of a single streetEdge.
@@ -69,18 +67,18 @@ object StreetEdgePriorityTable {
     * @return
     */
 
-  def updateSingleStreetEdgePriority(streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
+  def updateSingleStreetEdgePriority(streetEdgeId: Int, priority: Double): Future[Int] = db.run({
     val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId} yield edg.priority
-    q.update(priority)
-  }
+    q.update(priority).transactionally
+  })
 
-  def getSingleStreetEdgePriority(streetEdgeId: Int): Double = db.withTransaction { implicit session =>
-    streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId}.map(_.priority).list.head
-  }
+  def getSingleStreetEdgePriority(streetEdgeId: Int): Future[Double] = db.run(
+    streetEdgePriorities.filter{ edg => edg.streetEdgeId === streetEdgeId}.map(_.priority).result.head
+  )
 
-  def resetAllStreetEdge(priority: Double) = db.withTransaction { implicit session =>
-    streetEdgePriorities.map(_.priority).update(priority)
-  }
+  def resetAllStreetEdge(priority: Double): Future[Int] = db.run(
+    streetEdgePriorities.map(_.priority).update(priority).transactionally
+  )
 
   /**
     * Helper logistic function to convert a double float to a number between 0 and 1.
@@ -89,9 +87,7 @@ object StreetEdgePriorityTable {
     * @return
     */
 
-  def logisticFunction(z: Double): Double = db.withTransaction { implicit session =>
-    return exp(-z) / (1 + exp(-z))
-  }
+  def logisticFunction(z: Double): Double = exp(-z) / (1 + exp(-z))
 
   /**
     * Helper function to normalize the priorityParameter of a list of StreetEdgePriorityParameter objects to between 0
@@ -102,7 +98,7 @@ object StreetEdgePriorityTable {
     * @return
     */
 
-  def normalizePriorityParamMinMax(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
+  def normalizePriorityParamMinMax(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = {
     val maxParam: Double = priorityParamTable.map(_.priorityParameter).max
     val minParam: Double = priorityParamTable.map(_.priorityParameter).min
     val numParam: Double = priorityParamTable.length.toDouble
@@ -128,7 +124,7 @@ object StreetEdgePriorityTable {
     * @return
     */
 
-  def normalizePriorityReciprocal(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
+  def normalizePriorityReciprocal(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = {
     val prior = 1
     priorityParamTable.map{x => x.copy(priorityParameter = 1 / (x.priorityParameter + prior))}
   }
@@ -136,15 +132,14 @@ object StreetEdgePriorityTable {
   /**
     * Recalculates street edge priority for all streets.
     */
-  def recalculateStreetPriority() = {
+  def recalculateStreetPriority(): Future[Any] = {
     // Function pointer to the function that returns priority based on audit counts of good/bad users
     // The functions being pointed to should always have the signature ()=>List[StreetEdgePriorityParameter]
     // (Takes no input arguments and returns a List[StreetEdgePriorityParameter])
     val completionCountPriority = () => { StreetEdgePriorityTable.selectGoodBadUserCompletionCountPriority }
 
     // List of function pointers that will generate priority parameters.
-    val rankParameterGeneratorList: List[() => List[StreetEdgePriorityParameter]] =
-      List(completionCountPriority)
+    val rankParameterGeneratorList = List(completionCountPriority)
     // List(completionCountPriority1,completionCountPriority2) // how it would look with two priority param funcs
 
     // Final Priority for each street edge is calculated by some transformation (paramScalingFunction)
@@ -167,29 +162,38 @@ object StreetEdgePriorityTable {
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
     * @return
     */
-  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]],
-                                    weightVector: List[Double]) = db.withTransaction { implicit session =>
+  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>Future[List[StreetEdgePriorityParameter]]],
+                                    weightVector: List[Double]): Future[Any] = {
 
-    // Create a map from each street edge to a default priority value of 0.
-    val edgePriorityMap = collection.mutable.Map[Int, Double]().withDefaultValue(0.0)
-    for (id <- streetEdgePriorities.map(_.streetEdgeId).list) { edgePriorityMap += (id -> 0.0) }
-
-    // Compute weighted sum of priority based on the rankParameter generators.
-    for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)) {
-      val priorityParamTable: List[StreetEdgePriorityParameter] = f_i()
-      priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter*w_i) }
-    }
-
-    // Set priority values in the table.
-    for ((edgeId, newPriority) <- edgePriorityMap) {
-      val q = for { edge <- streetEdgePriorities if edge.streetEdgeId === edgeId } yield edge.priority
-      val rowsUpdated: Int = q.update(newPriority)
+    db.run(
+      // Create a map from each street edge to a default priority value of 0.
+      streetEdgePriorities.map(_.streetEdgeId).to[List].result
+    ).map { ids =>
+      val edgePriorityMap = collection.mutable.Map[Int, Double]().withDefaultValue(0.0)
+      ids.map(id => edgePriorityMap += (id -> 0.0))
+      edgePriorityMap
+    }.flatMap { edgePriorityMap =>
+      // Compute weighted sum of priority based on the rankParameter generators.
+      val opFutures = for( (f_i,w_i) <- rankParameterGeneratorList.zip(weightVector)) yield {
+        f_i().map { priorityParamTable =>
+          priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter*w_i) }
+          priorityParamTable.size
+        }
+      }
+      Future.sequence(opFutures).map(_ => edgePriorityMap)
+    }.flatMap { edgePriorityMap =>
+      // Set priority values in the table.
+      val opFutures = for ((edgeId, newPriority) <- edgePriorityMap) yield {
+        val q = for { edge <- streetEdgePriorities if edge.streetEdgeId === edgeId } yield edge.priority
+        db.run(q.update(newPriority).transactionally)
+      }
+      Future.sequence(opFutures)
     }
   }
 
-  def listAll: List[StreetEdgePriority] = db.withTransaction { implicit session =>
-    streetEdgePriorities.list
-  }
+  def listAll: Future[List[StreetEdgePriority]] = db.run(
+    streetEdgePriorities.to[List].result
+  )
 
 
   /**
@@ -209,7 +213,7 @@ object StreetEdgePriorityTable {
     *
     * @return
     */
-  def selectGoodBadUserCompletionCountPriority: List[StreetEdgePriorityParameter] = db.withSession { implicit session =>
+  def selectGoodBadUserCompletionCountPriority: Future[List[StreetEdgePriorityParameter]] = {
 
     // Compute distance of each street edge
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
@@ -235,26 +239,26 @@ object StreetEdgePriorityTable {
     // have a table with three columns: street_edge_id, good_user_audit_count, bad_user_audit_count.
     val allAuditCounts =
       StreetEdgeTable.streetEdgesWithoutDeleted.joinLeft(goodUserAuditCounts).on(_.streetEdgeId === _._1).map {
-        case (_edge, _goodCount) => (_edge.streetEdgeId, _goodCount._2.ifNull(0.asColumnOf[Int]))
+        case (_edge, _goodCount) => (_edge.streetEdgeId, _goodCount.map(_._2.ifNull(0.asColumnOf[Int])))
       }.joinLeft(badUserAuditCounts).on(_._1 === _._1).map {
-        case (_goodCount, _badCount) => (_goodCount._1, _goodCount._2, _badCount._2.ifNull(0.asColumnOf[Int]))
+        case (_goodCount, _badCount) => (_goodCount._1, _goodCount._2.get, _badCount.map(_._2.ifNull(0.asColumnOf[Int])).get)
       }
 
     /********** Compute Priority **********/
     // If good_user_audit_count > 0, priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
     // Else priority = 1 -- i.e., 1 / (1 + 0)
-    val priorityParamTable: List[StreetEdgePriorityParameter] =
-      allAuditCounts.list.map {
-        streetCount =>
-          if (streetCount._2 > 0) {
-            StreetEdgePriorityParameter.tupled((streetCount._1, streetCount._2 + 0.25 * streetCount._3))
-          }
-          else {
-            StreetEdgePriorityParameter.tupled((streetCount._1, 0.0))
-          }
+    db.run(allAuditCounts.to[List].result).map { streetCounts =>
+      streetCounts.map { streetCount =>
+        if (streetCount._2 > 0) {
+          StreetEdgePriorityParameter.tupled(streetCount._1, 0.25 * streetCount._3 + streetCount._2)
+        }
+        else {
+          StreetEdgePriorityParameter.tupled((streetCount._1, 0.0))
+        }
       }
-
-    normalizePriorityReciprocal(priorityParamTable)
+    }.map { priorityParamTable =>
+      normalizePriorityReciprocal(priorityParamTable)
+    }
   }
 
   /**
@@ -262,7 +266,7 @@ object StreetEdgePriorityTable {
     *
     * @return A query with rows of the form (user_id: String, is_good_user: Boolean)
     */
-  def getQualityOfUsers: Query[(Rep[String], Rep[Option[Boolean]]), (String, Option[Boolean]), Seq] = db.withSession { implicit session =>
+  def getQualityOfUsers: Query[(Rep[String], Rep[Option[Boolean]]), (String, Option[Boolean]), Seq] = {
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
     // Gets all tasks completed by users, groups by user_id, and sums over the distances of the street edges.
@@ -283,12 +287,12 @@ object StreetEdgePriorityTable {
     // SELECT user_id, is_good_user (where is_good_user = label_count/distance_audited > threshold)
     auditedDists
       .joinLeft(labelCounts).on(_._1 === _._1)
-      .map { case (d,c) => (d._1, c._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / d._2 > LABEL_PER_METER_THRESHOLD) }
+      .map { case (d,c) => (d._1, c.map(v => v._2.ifNull(0).asColumnOf[Float] / d._2.get > LABEL_PER_METER_THRESHOLD)) }
   }
 
-  def getIdsOfGoodUsers: List[String] = db.withSession { implicit session =>
-    getQualityOfUsers.filter(_._2).map(_._1).list
-  }
+  def getIdsOfGoodUsers: Future[List[String]] = db.run(
+    getQualityOfUsers.filter(_._2).map(_._1).to[List].result
+  )
 
   /**
     * Partially updates priority of a street edge based on current priority (used after an audit of the street is done).
@@ -301,14 +305,15 @@ object StreetEdgePriorityTable {
     * @param streetEdgeId
     * @return success boolean
     */
-  def partiallyUpdatePriority(streetEdgeId: Int): Boolean = db.withTransaction { implicit session =>
+  def partiallyUpdatePriority(streetEdgeId: Int): Future[Boolean] = {
     val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
-    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map {
-      currPriority =>
+    db.run(priorityQuery.result.headOption).flatMap {
+      case Some(currPriority) =>
         val newPriority: Double = 1 / (1 + (1 / currPriority))
-        val rowsUpdated: Int = priorityQuery.update(newPriority)
-        rowsUpdated > 0
+        db.run(
+          priorityQuery.update(newPriority).transactionally
+        ).map(_ > 0)
+      case None => Future.successful(false)
     }
-    rowsWereUpdated.getOrElse(false)
   }
 }

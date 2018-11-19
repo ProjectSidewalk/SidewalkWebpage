@@ -30,7 +30,5 @@ object TagTable {
     *
     * @return
     */
-  def selectAllTags(): List[Tag] = db.withSession { implicit session =>
-    tagTable.list
-  }
+  def selectAllTags(): Future[List[Tag]] = db.run(tagTable.to[List].result)
 }

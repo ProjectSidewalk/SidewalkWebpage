@@ -1,8 +1,6 @@
 package models.label
 
-import models.audit.{AuditTask, AuditTaskTable}
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
 
 import play.api.Play
@@ -65,11 +63,9 @@ object LabelPointTable {
    * @param point
    * @return
    */
-  def save(point: LabelPoint): Int = db.withTransaction { implicit session =>
-    val labelPointId: Int =
-      (labelPoints returning labelPoints.map(_.labelPointId)) += point
-    labelPointId
-  }
+  def save(point: LabelPoint): Future[Int] = db.run(
+    ((labelPoints returning labelPoints.map(_.labelPointId)) += point).transactionally
+  )
 
   /**
    * Todo. I need to

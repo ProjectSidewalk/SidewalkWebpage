@@ -40,7 +40,7 @@ object LabelTemporarinessTable {
     * @return
     */
   def save(labelTemp: LabelTemporariness): Future[Int] = {
-    db.run((labelTemporarinesses returning labelTemporarinesses.map(_.labelTemporarinessId)) += labelTemp)
+    db.run(((labelTemporarinesses returning labelTemporarinesses.map(_.labelTemporarinessId)) += labelTemp).transactionally)
   }
 
   /**
@@ -51,7 +51,7 @@ object LabelTemporarinessTable {
     * @return Number of rows updated
     */
   def updateTemporariness(tempId: Int, newTemp: Boolean): Future[Int] = {
-    db.run(labelTemporarinesses.filter(_.labelTemporarinessId === tempId).map(x => x.temporary).update(newTemp))
+    db.run(labelTemporarinesses.filter(_.labelTemporarinessId === tempId).map(x => x.temporary).update(newTemp).transactionally)
   }
 }
 

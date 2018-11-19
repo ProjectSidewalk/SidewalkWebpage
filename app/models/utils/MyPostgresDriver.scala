@@ -1,6 +1,8 @@
 package models.utils
 
 import com.github.tminglei.slickpg._
+import com.github.tminglei.slickpg.utils.PlainSQLUtils.mkGetResult
+import com.vividsolutions.jts.geom.{Geometry, Polygon}
 import play.api.libs.json.{JsValue, Json}
 import slick.driver.JdbcProfile
 import slick.profile.Capability
@@ -21,13 +23,14 @@ trait MyPostgresDriver extends ExPostgresDriver
   override protected def computeCapabilities: Set[Capability] =
     super.computeCapabilities + JdbcProfile.capabilities.insertOrUpdate
 
-  override val api = MyAPI
+  override val api = new MyAPI {}
 
-  object MyAPI extends API with ArrayImplicits
+  trait MyAPI extends API with ArrayImplicits
     with DateTimeImplicits
     with JsonImplicits
     with NetImplicits
     with LTreeImplicits
+    with PostGISImplicits
     with PostGISPlainImplicits
     with RangeImplicits
     with HStoreImplicits
@@ -39,6 +42,9 @@ trait MyPostgresDriver extends ExPostgresDriver
         (s) => utils.SimpleArrayUtils.fromString[JsValue](Json.parse(_))(s).orNull,
         (v) => utils.SimpleArrayUtils.mkString[JsValue](_.toString())(v)
       ).to(_.toList)
+
+    implicit val getPolygon = mkGetResult(_.nextGeometry[Polygon]())
+    implicit val getPolygonOption = mkGetResult(_.nextGeometryOption[Polygon]())
   }
 }
 

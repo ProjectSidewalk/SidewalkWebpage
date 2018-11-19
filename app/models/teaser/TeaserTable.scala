@@ -26,7 +26,7 @@ object TeaserTable {
   def save(email: String): Future[Int] = {
     val existingRecord: Future[Seq[Teaser]] = db.run(teaserRecords.filter(_.email === email).result)
     existingRecord.flatMap { teaserList =>
-      if (teaserList.isEmpty) db.run(teaserRecords += Teaser(email)) else 0
+      if (teaserList.isEmpty) db.run(teaserRecords += Teaser(email)) else Future.successful(0)
     }
   }
 }

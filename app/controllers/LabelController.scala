@@ -16,6 +16,7 @@ import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class LabelController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -28,9 +29,10 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels = LabelControllerHelper._helpGetLabelsFromCurrentMission(regionId, user.userId)
-        val jsLabels = JsArray(labels.map(l => Json.toJson(l)))
-        Future.successful(Ok(jsLabels))
+        LabelControllerHelper._helpGetLabelsFromCurrentMission(regionId, user.userId).flatMap { labels =>
+          val jsLabels = JsArray(labels.map(l => Json.toJson(l)))
+          Future.successful(Ok(jsLabels))
+        }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
     }
@@ -42,10 +44,18 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def getLabelTags() = Action.async { implicit request =>
-    Future.successful(Ok(JsArray(TagTable.selectAllTags().map { tag => Json.obj(
-      "tag_id" -> tag.tagId,
-      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
-      "tag" -> tag.tag
-    )})))
+    var tagList: List[Tag] = Nil
+    TagTable.selectAllTags().flatMap { tags =>
+      tagList = tags
+      LabelTypeTable.labelTypeByIds(tags.map(_.labelTypeId).toSet.toList)
+    }.map { tagTypes =>
+      val tagTypeMap = tagTypes.toMap
+      Ok(JsArray(tagList.map { tag =>
+        Json.obj(
+          "tag_id" -> tag.tagId,
+          "label_type" -> tagTypeMap(tag.labelTypeId),
+          "tag" -> tag.tag
+        )}))
+    }
   }
 }

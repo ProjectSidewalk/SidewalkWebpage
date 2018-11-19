@@ -8,6 +8,8 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 case class SurveyCategoryOption(surveyCategoryOptionId: Int, surveyCategoryOptionText: String)
 
 class SurveyCategoryOptionTable(tag: Tag) extends Table[SurveyCategoryOption](tag, Some("sidewalk"), "survey_category_option") {
@@ -24,18 +26,17 @@ object SurveyCategoryOptionTable{
   val surveyCategoryOptions = TableQuery[SurveyCategoryOptionTable]
   val surveyOptions = TableQuery[SurveyOptionTable]
 
-  def listOptionsByCategory(surveyCategoryOptionId: Option[Int]): Option[List[SurveyOption]] = db.withTransaction { implicit session =>
+  def listOptionsByCategory(surveyCategoryOptionId: Option[Int]): Future[Option[List[SurveyOption]]] = {
     surveyCategoryOptionId match{
       case Some(scId) =>
-        Some(surveyOptions.filter(_.surveyCategoryOptionId === scId).list)
-      case None =>
-        None
+        db.run(
+          surveyOptions.filter(_.surveyCategoryOptionId === scId).to[List].result
+        ).map(Some(_))
+      case None => Future.successful(None)
     }
   }
 
-  def save(surveyCategoryOption: SurveyCategoryOption): Int = db.withTransaction { implicit session =>
-    val surveyCategoryOptionId: Int =
-      (surveyCategoryOptions returning surveyCategoryOptions.map(_.surveyCategoryOptionId)) += surveyCategoryOption
-    surveyCategoryOptionId
-  }
+  def save(surveyCategoryOption: SurveyCategoryOption): Future[Int] = db.run(
+    ((surveyCategoryOptions returning surveyCategoryOptions.map(_.surveyCategoryOptionId)) += surveyCategoryOption).transactionally
+  )
 }

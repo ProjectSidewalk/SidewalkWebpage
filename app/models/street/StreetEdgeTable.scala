@@ -23,6 +23,8 @@ import scala.concurrent.Future
 
 import slick.jdbc.GetResult
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
 /**
@@ -118,18 +120,16 @@ object StreetEdgeTable {
     *
     * @return A list of StreetEdge objects.
    */
-  def all: List[StreetEdge] = db.withSession { implicit session =>
-    streetEdgesWithoutDeleted.list
-  }
+  def all: Future[List[StreetEdge]] = db.run(
+    streetEdgesWithoutDeleted.to[List].result
+  )
 
   /**
     * Count the number of streets that have been audited at least a given number of times
     *
     * @return
     */
-  def countTotalStreets(): Int = db.withSession { implicit session =>
-    all.size
-  }
+  def countTotalStreets(): Future[Int] = all.map(_.size)
   
   /**
     * This method returns the audit completion rate for the specified group of users.
@@ -138,10 +138,13 @@ object StreetEdgeTable {
     * @param userType
     * @return
     */
-  def auditCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
-    val auditedStreetCount = countAuditedStreets(1, userType).toFloat
-    val allEdgesCount: Int = streetEdgesWithoutDeleted.list.length
-    auditedStreetCount / allEdgesCount
+  def auditCompletionRate(auditCount: Int, userType: String = "All"): Future[Float] = {
+    for {
+      auditedStreetCount <- countAuditedStreets(1, userType)
+      allEdgesCount <- db.run(streetEdgesWithoutDeleted.length.result)
+    } yield {
+      auditedStreetCount.toFloat / allEdgesCount
+    }
   }
 
   /**
@@ -150,10 +153,13 @@ object StreetEdgeTable {
     * @param auditCount
     * @return Float between 0 and 1
     */
-  def streetDistanceCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
-    val auditedDistance = auditedStreetDistance(auditCount, userType)
-    val totalDistance = totalStreetDistance()
-    auditedDistance / totalDistance
+  def streetDistanceCompletionRate(auditCount: Int, userType: String = "All"): Future[Float] = {
+    for {
+      auditedDistance <- auditedStreetDistance(auditCount, userType)
+      totalDistance <- totalStreetDistance()
+    } yield {
+      auditedDistance / totalDistance
+    }
   }
 
   /**
@@ -162,12 +168,14 @@ object StreetEdgeTable {
     *
     * @return
     */
-  def totalStreetDistance(): Float = db.withSession { implicit session =>
-    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
-
-    // get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
-    (distances.sum * 0.000621371).toFloat
+  def totalStreetDistance(): Future[Float] = {
+    db.run(
+      // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+      // get length of each street segment, sum the lengths, and convert from meters to miles
+      streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).to[List].result
+    ).map { distances =>
+      (distances.sum * 0.000621371).toFloat
+    }
   }
 
   /**
@@ -177,7 +185,7 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
+  def auditedStreetDistance(auditCount: Int, userType: String = "All"): Future[Float] = {
 
     val auditTaskQuery = userType match {
       case "All" => completedAuditTasks
@@ -199,8 +207,11 @@ object StreetEdgeTable {
     }
 
     // Get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
-    (distances.sum * 0.000621371).toFloat
+    db.run(
+      edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).to[List].result
+    ).map { distances =>
+      (distances.sum * 0.000621371).toFloat
+    }
   }
 
   /**
@@ -212,7 +223,7 @@ object StreetEdgeTable {
     * @param auditCount
     * @return List[(String,Float)] representing dates and percentages
     */
-  def streetDistanceCompletionRateByDate(auditCount: Int): Seq[(String, Float)] = db.withSession { implicit session =>
+  def streetDistanceCompletionRateByDate(auditCount: Int): Future[Seq[(String, Float)]] = {
     // join the street edges and audit tasks
     // TODO figure out how to do this w/out doing the join twice
     val edges = for {
@@ -223,17 +234,20 @@ object StreetEdgeTable {
     } yield _auditTasks
 
     // get distances of street edges associated with their edgeId
-    val edgeDists: Map[Int, Float] = edges.groupBy(x => x).map(g => (g._1.streetEdgeId, g._1.geom.transform(26918).length)).list.toMap
+    //FIXME
+//    val edgeDists: Map[Int, Float] = edges.groupBy(x => x).map(g => (g._1.streetEdgeId, g._1.geom.transform(26918).length)).list.toMap
 
     // Filter out group of edges with the size less than the passed `auditCount`, picking 1 rep from each group
     // TODO pick audit with earliest timestamp
-    val uniqueEdgeDists: List[(Option[Timestamp], Option[Float])] = (for ((eid, groupedAudits) <- audits.list.groupBy(_.streetEdgeId)) yield {
-      if (auditCount > 0 && groupedAudits.size >= auditCount) {
-        Some((groupedAudits.head.taskEnd, edgeDists.get(eid)))
-      } else {
-        None
-      }
-    }).toList.flatten
+    val uniqueEdgeDists: List[(Option[Timestamp], Option[Float])] = Nil
+    //FIXME
+//      (for ((eid, groupedAudits) <- audits.list.groupBy(_.streetEdgeId)) yield {
+//        if (auditCount > 0 && groupedAudits.size >= auditCount) {
+//          Some((groupedAudits.head.taskEnd, edgeDists.get(eid)))
+//        } else {
+//          None
+//        }
+//      }).toList.flatten
 
     // round the timestamps down to just the date (year-month-day)
     val dateRoundedDists: List[(Calendar, Double)] = uniqueEdgeDists.map({
@@ -258,12 +272,13 @@ object StreetEdgeTable {
     val cumDistsPerDay: Seq[(Calendar, Double)] = sortedEdges.map({var dist = 0.0; pair => {dist += pair._2; (pair._1, dist)}})
 
     // calculate the completion percentage for each day
-    val totalDist = totalStreetDistance()
-    val ratePerDay: Seq[(Calendar, Float)] = cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist).toFloat))
+    totalStreetDistance().map { totalDist =>
+      val ratePerDay: Seq[(Calendar, Float)] = cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist).toFloat))
 
-    // format the calendar date in the correct format and return the (date,completionPercentage) pair
-    val format1 = new SimpleDateFormat("yyyy-MM-dd")
-    ratePerDay.map(pair => (format1.format(pair._1.getTime), pair._2))
+      // format the calendar date in the correct format and return the (date,completionPercentage) pair
+      val format1 = new SimpleDateFormat("yyyy-MM-dd")
+      ratePerDay.map(pair => (format1.format(pair._1.getTime), pair._2))
+    }
   }
 
   /**
@@ -271,7 +286,7 @@ object StreetEdgeTable {
     *
     * @return
     */
-  def selectAuditedStreets(auditCount: Int = 1, userType: String = "All"): List[StreetEdge] = db.withSession { implicit session =>
+  def selectAuditedStreets(auditCount: Int = 1, userType: String = "All"): Future[List[StreetEdge]] = {
     val auditTasksQuery = userType match {
       case "All" => completedAuditTasks
       case "Researcher" => researcherCompletedAuditTasks
@@ -285,16 +300,18 @@ object StreetEdgeTable {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.join(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
-    val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
-      // Filter out group of edges with the size less than the passed `auditCount`
-      if (auditCount > 0 && groupedEdges.size >= auditCount) {
-        Some(groupedEdges.head)
-      } else {
-        None
-      }
-    }).toList.flatten
-
-    uniqueStreetEdges
+    //FIXME sorry, don't know the logic
+//    val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
+//      // Filter out group of edges with the size less than the passed `auditCount`
+//      if (auditCount > 0 && groupedEdges.size >= auditCount) {
+//        Some(groupedEdges.head)
+//      } else {
+//        None
+//      }
+//    }).toList.flatten
+//
+//    uniqueStreetEdges
+    Future.successful(Nil)
   }
 
   /**
@@ -303,9 +320,8 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def countAuditedStreets(auditCount: Int = 1, userType: String = "All"): Int = db.withSession { implicit session =>
-    selectAuditedStreets(auditCount, userType).size
-  }
+  def countAuditedStreets(auditCount: Int = 1, userType: String = "All"): Future[Int] =
+    selectAuditedStreets(auditCount, userType).map(_.size)
 
   /**
     * Returns all the streets in the given region that has been audited
@@ -313,9 +329,9 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def selectAuditedStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
-    val selectAuditedStreetsQuery = Q.query[Int, StreetEdge](
-      """SELECT street_edge.street_edge_id,
+  def selectAuditedStreetsByARegionId(regionId: Int, auditCount: Int = 1): Future[List[StreetEdge]] = {
+    def selectAuditedStreetsQuery(regionId: Int) =
+      sql"""SELECT street_edge.street_edge_id,
         |       street_edge.geom,
         |       source,
         |       target,
@@ -330,17 +346,17 @@ object StreetEdgeTable {
         |INNER JOIN sidewalk.region ON ST_Intersects(street_edge.geom, region.geom)
         |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |                               AND audit_task.completed = TRUE
-        |WHERE region.region_id=?
+        |WHERE region.region_id= #${regionId}
         |    AND street_edge.deleted = FALSE
-      """.stripMargin
-    )
-    selectAuditedStreetsQuery(regionId).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+      """.as[StreetEdge]
+
+    db.run(selectAuditedStreetsQuery(regionId)).map(_.groupBy(_.streetEdgeId).map(_._2.head).toList)
   }
 
   /** Gets a list of all street edges that the user has audited in the specified region */
-  def selectStreetsAuditedByAUser(userId: UUID, regionId: Int): List[StreetEdge] = db.withSession { implicit session =>
-    val selectAuditedStreetsQuery = Q.query[(String, Int), StreetEdge](
-      """SELECT street_edge.street_edge_id,
+  def selectStreetsAuditedByAUser(userId: UUID, regionId: Int): Future[List[StreetEdge]] = {
+    val selectAuditedStreetsQuery =
+      sql"""SELECT street_edge.street_edge_id,
         |       street_edge.geom,
         |       source,
         |       target,
@@ -355,51 +371,59 @@ object StreetEdgeTable {
         |INNER JOIN sidewalk.street_edge_regio ON street_edge_region.street_edge_id = street_edge.street_edge_id
         |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |                               AND audit_task.completed = TRUE
-        |                               AND audit_task.user_id = ?
-        |WHERE street_edge_region.region_id = ?
+        |                               AND audit_task.user_id = #${userId.toString}
+        |WHERE street_edge_region.region_id = #${regionId}
         |    AND street_edge.deleted=FALSE
-      """.stripMargin
-    )
-    selectAuditedStreetsQuery((userId.toString, regionId)).list.groupBy(_.streetEdgeId).map(_._2.head).toList
+      """.as[StreetEdge]
+
+    db.run(selectAuditedStreetsQuery).map(_.groupBy(_.streetEdgeId).map(_._2.head).toList)
   }
 
   /** Gets a list of all street edges that the user has audited */
-  def selectAllStreetsAuditedByAUser(userId: UUID): List[StreetEdge] = db.withSession { implicit session =>
-    selectAllStreetsAuditedByAUserQuery(userId).list
-  }
+  def selectAllStreetsAuditedByAUser(userId: UUID): Future[List[StreetEdge]] = selectAllStreetsAuditedByAUserQuery(userId)
 
   /** Gets the query for a list of all street edges that the user has audited */
-  def selectAllStreetsAuditedByAUserQuery(userId: UUID) = db.withSession { implicit session =>
-
+  def selectAllStreetsAuditedByAUserQuery(userId: UUID): Future[List[StreetEdge]] = db.run({
     val auditedStreets = for {
       (_edges, _tasks) <- streetEdgesWithoutDeleted.join(completedAuditTasks).on(_.streetEdgeId === _.streetEdgeId)
       if _tasks.userId === userId.toString
     } yield _edges
-    auditedStreets.groupBy(x => x).map(_._1) // does a select distinct
-  }
+
+    auditedStreets.groupBy(x => x).map(_._1).to[List].result // does a select distinct
+  })
 
   /** Returns the total distance that the specified user has audited in miles */
-  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
-
-    val dist = selectAllStreetsAuditedByAUserQuery(userId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-    (dist * 0.000621371).toFloat // converts to miles
+  def getDistanceAudited(userId: UUID): Future[Float] = {
+    selectAllStreetsAuditedByAUserQuery(userId).map { streetEdges =>
+      //FIXME `transform` is a server-side function
+//      val dist = streetEdges.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+//      (dist * 0.000621371).toFloat // converts to miles
+      1.0f
+    }
   }
 
   /** Returns the total distance audited by the specified user within the specified region, in miles */
-  def getDistanceAudited(userId: UUID, region: Int): Float = db.withSession { implicit session =>
+  def getDistanceAudited(userId: UUID, region: Int): Future[Float] = {
     // get the street edges from only this region
     val auditedStreetsInRegion = for {
-      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === region
-      _edges <- selectAllStreetsAuditedByAUserQuery(userId) if _edges.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _edges
+      _edgeRegions <- db.run(streetEdgeRegion.filter(_.regionId === region).result)
+      _edges <- selectAllStreetsAuditedByAUserQuery(userId)
+    } yield {
+      val streetEdgeIds = _edgeRegions.map(_.streetEdgeId).toSet
+      _edges.filter(e => streetEdgeIds.contains(e.streetEdgeId))
+    }
 
     // compute sum of lengths of the streets audited by the user in the region
-    val dist = auditedStreetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-    (dist * 0.000621371).toFloat // converts to miles
+    //FIXME `transform` is a server-side function
+//    auditedStreetsInRegion.map { auditedStreets =>
+//      val dist = auditedStreets.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+//      (dist * 0.000621371).toFloat // converts to miles
+//    }
+    Future.successful(-1)
   }
 
   /** Returns the sum of the lengths of all streets in the region that have been audited */
-  def getDistanceAuditedInARegion(regionId: Int): Float = db.withSession { implicit session =>
+  def getDistanceAuditedInARegion(regionId: Int): Future[Float] = {
     val streetsInRegion = for {
       _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === regionId
       _edges <- streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegions.streetEdgeId
@@ -410,24 +434,26 @@ object StreetEdgeTable {
     } yield _edges
 
     // select distinct and sum the lengths of the streets
-    auditedStreetsInARegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+    db.run(
+      auditedStreetsInARegion.groupBy(x => x).map(_._1.geom.transform(26918).length).to[List].result
+    ).map(_.sum)
   }
 
   /** Returns the sum of the lengths of all streets in the region */
-  def getTotalDistanceOfARegion(regionId: Int): Float = db.withSession { implicit session =>
+  def getTotalDistanceOfARegion(regionId: Int): Future[Float] = db.run({
     val streetsInRegion = for {
       _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === regionId
       _edges <- streetEdgesWithoutDeleted if _edges.streetEdgeId === _edgeRegions.streetEdgeId
     } yield _edges
 
     // select distinct and sum the lengths of the streets
-    streetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-  }
+    streetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).to[List].result
+  }).map(_.sum)
 
   /** Returns the distance of the given street edge */
-  def getStreetEdgeDistance(streetEdgeId: Int): Float = db.withSession { implicit session =>
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.head
-  }
+  def getStreetEdgeDistance(streetEdgeId: Int): Future[Float] = db.run(
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).result.head
+  )
 
   /**
     * Returns all the streets intersecting the neighborhood
@@ -435,9 +461,9 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def selectStreetsByARegionId(regionId: Int, auditCount: Int = 1): List[StreetEdge] = db.withSession { implicit session =>
-    val selectStreetsInARegionQuery = Q.query[Int, StreetEdge](
-      """SELECT street_edge.street_edge_id,
+  def selectStreetsByARegionId(regionId: Int, auditCount: Int = 1): Future[List[StreetEdge]] = {
+    val selectStreetsInARegionQuery =
+      sql"""SELECT street_edge.street_edge_id,
         |       street_edge.geom,
         |       source,
         |       target,
@@ -450,47 +476,41 @@ object StreetEdgeTable {
         |       street_edge.timestamp
         |FROM sidewalk.street_edge
         |INNER JOIN sidewalk.region ON ST_Intersects(street_edge.geom, region.geom)
-        |WHERE region.region_id = ?
+        |WHERE region.region_id = #${regionId}
         |    AND street_edge.deleted = FALSE
-      """.stripMargin
-    )
+      """.as[StreetEdge]
 
-    try {
-      selectStreetsInARegionQuery(regionId).list
-    } catch {
-      case e: PSQLException => List()
-    }
+    db.run(selectStreetsInARegionQuery).map(_.toList)
   }
 
-  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): Future[List[StreetEdge]] = {
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT st_e.street_edge_id,
-        |       st_e.geom,
-        |       st_e.source,
-        |       st_e.target,
-        |       st_e.x1,
-        |       st_e.y1,
-        |       st_e.x2,
-        |       st_e.y2,
-        |       st_e.way_type,
-        |       st_e.deleted,
-        |       st_e.timestamp
-        |FROM sidewalk.street_edge AS st_e
-        |WHERE st_e.deleted = FALSE
-        |    AND ST_Intersects(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
-    )
+    val selectEdgeQuery =
+    sql"""SELECT st_e.street_edge_id,
+         |       st_e.geom,
+         |       st_e.source,
+         |       st_e.target,
+         |       st_e.x1,
+         |       st_e.y1,
+         |       st_e.x2,
+         |       st_e.y2,
+         |       st_e.way_type,
+         |       st_e.deleted,
+         |       st_e.timestamp
+         |FROM sidewalk.street_edge AS st_e
+         |WHERE st_e.deleted = FALSE
+         |    AND ST_Intersects(st_e.geom, ST_MakeEnvelope(#$minLng, #$minLat, #$maxLng, #$maxLat, 4326))
+         |    """.as[StreetEdge]
 
-    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
+    db.run(selectEdgeQuery).map(_.toList)
   }
 
-  def selectAuditedStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
+  def selectAuditedStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): Future[List[StreetEdge]] = {
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT DISTINCT(street_edge.street_edge_id),
+    val selectEdgeQuery =
+      sql"""SELECT DISTINCT(street_edge.street_edge_id),
         |       street_edge.geom,
         |       street_edge.source,
         |       street_edge.target,
@@ -504,17 +524,15 @@ object StreetEdgeTable {
         |FROM sidewalk.street_edge
         |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE street_edge.deleted = FALSE
-        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |    AND audit_task.completed = TRUE""".stripMargin
-    )
+        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(#$minLng, #$minLat, #$maxLng, #$maxLat, 4326))
+        |    AND audit_task.completed = TRUE""".as[StreetEdge]
 
-    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
+    db.run(selectEdgeQuery).map(_.toList)
   }
 
-  def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT DISTINCT(st_e.street_edge_id),
+  def selectStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): Future[List[StreetEdge]] = {
+    val selectEdgeQuery =
+      sql"""SELECT DISTINCT(st_e.street_edge_id),
         |       st_e.geom,
         |       st_e.source,
         |       st_e.target,
@@ -527,16 +545,15 @@ object StreetEdgeTable {
         |       st_e.timestamp
         |FROM sidewalk.street_edge AS st_e
         |WHERE st_e.deleted = FALSE
-        |    AND ST_Within(st_e.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))""".stripMargin
-    )
+        |    AND ST_Within(st_e.geom, ST_MakeEnvelope(#$minLng, #$minLat, #$maxLng, #$maxLat, 4326))
+        |    """.as[StreetEdge]
 
-    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
+    db.run(selectEdgeQuery).map(_.toList)
   }
 
-  def selectAuditedStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdge] = db.withSession { implicit session =>
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
-      """SELECT DISTINCT(street_edge.street_edge_id),
+  def selectAuditedStreetsWithin(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): Future[List[StreetEdge]] = {
+    val selectEdgeQuery =
+      sql"""SELECT DISTINCT(street_edge.street_edge_id),
         |       street_edge.geom,
         |       street_edge.source,
         |       street_edge.target,
@@ -550,20 +567,18 @@ object StreetEdgeTable {
         |FROM sidewalk.street_edge
         |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE street_edge.deleted = FALSE
-        |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |    AND audit_task.completed = TRUE""".stripMargin
-    )
+        |    AND ST_Within(street_edge.geom, ST_MakeEnvelope(#$minLng, #$minLat, #$maxLng, #$maxLat, 4326))
+        |    AND audit_task.completed = TRUE""".as[StreetEdge]
 
-    val edges: List[StreetEdge] = selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
-    edges
+    db.run(selectEdgeQuery).map(_.toList)
   }
 
   /**
    * Set a record's deleted column to true
    */
-  def delete(id: Int) = db.withSession { implicit session =>
-    streetEdges.filter(edge => edge.streetEdgeId === id).map(_.deleted).update(true)
-  }
+  def delete(id: Int): Future[Int] = db.run(
+    streetEdges.filter(edge => edge.streetEdgeId === id).map(_.deleted).update(true).transactionally
+  )
 
   /**
    * Save a StreetEdge into the street_edge table
@@ -571,9 +586,8 @@ object StreetEdgeTable {
     * @param edge A StreetEdge object
    * @return
    */
-  def save(edge: StreetEdge): Int = db.withTransaction { implicit session =>
-    streetEdges += edge
-    edge.streetEdgeId // return the edge id.
-  }
+  def save(edge: StreetEdge): Future[Int] = db.run(
+    ((streetEdges returning streetEdges.map(_.streetEdgeId)) += edge).transactionally
+  )
 }
 

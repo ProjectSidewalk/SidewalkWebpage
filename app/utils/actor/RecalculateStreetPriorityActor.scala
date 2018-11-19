@@ -4,8 +4,9 @@ import java.util.Calendar
 
 import akka.actor.{Actor, Cancellable, Props}
 import models.street.StreetEdgePriorityTable
-
 import play.api.Logger
+
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
@@ -58,7 +59,7 @@ class RecalculateStreetPriorityActor extends Actor {
     case RecalculateStreetPriorityActor.Tick() =>
       val currentTimeStart: String = Calendar.getInstance.getTime.toString
       Logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
-      StreetEdgePriorityTable.recalculateStreetPriority
+      Await.ready(StreetEdgePriorityTable.recalculateStreetPriority, Duration.Inf/*FIXME*/)
       val currentEndTime: String = Calendar.getInstance.getTime.toString
       Logger.info(s"Street priority recalculation completed at: $currentEndTime")
   }

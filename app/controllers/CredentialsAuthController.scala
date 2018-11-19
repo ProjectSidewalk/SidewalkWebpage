@@ -20,9 +20,9 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
-import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 
 
@@ -44,18 +44,18 @@ class CredentialsAuthController @Inject() (
   def authenticate(url: String) = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
-      credentials => (env.providers.get(CredentialsProvider.ID) match {
+      credentials => (env.requestProviders.find(_.id == CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
-            val session: Future[SessionAuthenticator#Value] = signIn(user, authenticator)
-
-            // Get the Future[Result] (i.e., the page to redirect), then embed the encoded session authenticator
-            // into HTTP header as a cookie.
-            val result = Future.successful(Redirect(url))
-            session.flatMap(s => env.authenticatorService.embed(s, result))
+            signIn(user, authenticator).flatMap { session =>
+              // Get the Future[Result] (i.e., the page to redirect), then embed the encoded session authenticator
+              // into HTTP header as a cookie.
+              val result = Redirect(url)
+              env.authenticatorService.embed(session, result)
+            }
           }
           case None => Future.failed(new IdentityNotFoundException("Couldn't find the user"))
         }
@@ -73,17 +73,17 @@ class CredentialsAuthController @Inject() (
   def postAuthenticate = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
-      credentials => (env.providers.get(CredentialsProvider.ID) match {
+      credentials => (env.requestProviders.find(_.id == CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
-            val session: Future[SessionAuthenticator#Value] = signIn(user, authenticator)
-
-            // Embed the encoded session authenticator into the JSON response's HTTP header as a cookie.
-            val result = Future.successful(Ok(Json.toJson(user)))
-            session.flatMap(s => env.authenticatorService.embed(s, result))
+            signIn(user, authenticator).flatMap { session =>
+              // Embed the encoded session authenticator into the JSON response's HTTP header as a cookie.
+              val result = Ok(Json.toJson(user))
+              env.authenticatorService.embed(session, result)
+            }
           }
           case None => Future.failed(new IdentityNotFoundException("Couldn't find the user"))
         }
@@ -101,22 +101,23 @@ class CredentialsAuthController @Inject() (
     // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
     val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
     val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
-    val expirationDate = authenticator.expirationDate.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
-    val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
+    val expirationDate = authenticator.expirationDateTime.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
+    val updatedAuthenticator = authenticator.copy(expirationDateTime = expirationDate, idleTimeout = Some(2592000.millis))
 
-    if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-      UserCurrentRegionTable.assignRegion(user.userId)
+    UserCurrentRegionTable.isAssigned(user.userId).flatMap {
+      case true  => Future.successful(None)
+      case false => UserCurrentRegionTable.assignRegion(user.userId)
+    }.flatMap { _ =>
+      // Add Timestamp
+      val now = new DateTime(DateTimeZone.UTC)
+      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+    }.flatMap { _ =>
+      // Logger.info(updatedAuthenticator.toString)
+      // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
+      // There is currently nothing subscribed to the event bus (at least in the application level)
+      env.eventBus.publish(LoginEvent(user, request, request2Messages))
+      env.authenticatorService.init(updatedAuthenticator)
     }
-
-    // Add Timestamp
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
-
-    // Logger.info(updatedAuthenticator.toString)
-    // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
-    // There is currently nothing subscribed to the event bus (at least in the application level)
-    env.eventBus.publish(LoginEvent(user, request, request2lang))
-    env.authenticatorService.init(updatedAuthenticator)
   }
 }

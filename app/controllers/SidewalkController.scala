@@ -1,16 +1,15 @@
 package controllers
 
-import models.sidewalk.{SidewalkEdgeTable, SidewalkEdge}
-
+import models.sidewalk.{SidewalkEdge, SidewalkEdgeTable}
 import play.api.mvc._
 import play.api.libs.json._
 import play.extras.geojson
 import com.vividsolutions.jts.io.{WKBReader, WKBWriter, WKTReader}
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
-import play.api.Play.current
-import play.api.i18n.Messages.Implicits._
-
 import formats.json.SidewalkFormats._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
  * References:
@@ -33,9 +32,10 @@ object SidewalkController extends Controller {
    *
    * @return
    */
-  def index = Action {
-    val sidewalks = SidewalkEdgeTable.all
-    Ok(views.html.sidewalks.list(sidewalks))
+  def index = Action.async { implicit request =>
+    SidewalkEdgeTable.all.map { sidewalks =>
+      Ok(views.html.sidewalks.list(sidewalks.toList))
+    }
   }
 
   /**
@@ -44,24 +44,25 @@ object SidewalkController extends Controller {
    *
    * @return A FeatureCollection of LineStrings in Geojson
    */
-  def listSidewalks = Action {
-
-    val features: List[JsObject] = SidewalkEdgeTable.all.map { edge =>
-      val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-      val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+  def listSidewalks = Action.async { implicit request =>
+    SidewalkEdgeTable.all.map { edges =>
+      edges.map { edge =>
+        val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+        val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
       val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-      val properties = Json.obj(
-        "sidewalk_edge_id" -> edge.sidewalkEdgeId,
-        "source" -> edge.source,
-        "target" -> edge.target,
-        "way_type" -> edge.wayType,
-        "parent_sidewalk_edge_id" -> JsNull
-      )
-      Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)  // I'm being explicit about geojson.LineString because it collides with a class in JTS.
+        val properties = Json.obj(
+          "sidewalk_edge_id" -> edge.sidewalkEdgeId,
+          "source" -> edge.source,
+          "target" -> edge.target,
+          "way_type" -> edge.wayType,
+          "parent_sidewalk_edge_id" -> JsNull
+        )
+        Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)  // I'm being explicit about geojson.LineString because it collides with a class in JTS.
+      }
+    }.map { features =>
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Ok(featureCollection)
     }
-
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Ok(featureCollection)
   }
 
   /**
@@ -80,40 +81,41 @@ object SidewalkController extends Controller {
    *
    * @return
    */
-  def editSidewalks = TODO
-//  def editSidewalks = Action(BodyParsers.parse.json) { request =>
-//    val featureCollectionResult = request.body.validate[FeatureCollection]
-//    featureCollectionResult.fold(
-//      errors => {
-//        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))
-//      },
-//      featureCollection => {
-//        featureCollection.features.foreach { feature =>
-//
-//          val coordinates = feature.geometry.coordinates
-//          val properties = feature.properties
-//          val coord: Array[Coordinate] = coordinates.map(coord => new Coordinate(coord.head.toDouble, coord(1).toDouble)).toArray
-//          val newLineString = fact.createLineString(coord)
-//
-//          val sourceId = properties.source.getOrElse(-1) // Todo. Create a new node if id is not specified
-//          val targetId = properties.target.getOrElse(-1) // Todo. Create a new ndoe if id is not speficied
-//
-//          properties.parentSidewalkEdgeId match {
-//            case None => None
-//            case _ =>
-//              val edge: SidewalkEdge = new SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
-//                coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, properties.parentSidewalkEdgeId, false, None)
-//
-//              SidewalkEdgeTable.delete(properties.parentSidewalkEdgeId.get) // Delete the parent
-//
-//              val id = SidewalkEdgeTable.save(edge)
-//          }
-//        }
-//
-//        Ok(Json.obj("status" -> "OK", "message" -> "FeatureCollection created."))  // Todo. Return a mapping from parentSidewalkEdgeId to the new
-//      }
-//    )
-//  }
+//  def editSidewalks = TODO
+  def editSidewalks = Action.async(BodyParsers.parse.json) { request =>
+    val featureCollectionResult = request.body.validate[FeatureCollection]
+    featureCollectionResult.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+      },
+      featureCollection => {
+        val sidewarkSaves = featureCollection.features.map { feature =>
+
+          val coordinates = feature.geometry.coordinates
+          val properties = feature.properties
+          val coord: Array[Coordinate] = coordinates.map(coord => new Coordinate(coord.head.toDouble, coord(1).toDouble)).toArray
+          val newLineString = fact.createLineString(coord)
+
+          val sourceId = properties.source.getOrElse(-1) // Todo. Create a new node if id is not specified
+          val targetId = properties.target.getOrElse(-1) // Todo. Create a new ndoe if id is not speficied
+
+          properties.parentSidewalkEdgeId match {
+            case None => Future.successful(-1)
+            case _ =>
+              val edge: SidewalkEdge = new SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
+                coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, /*FIXME properties.parentSidewalkEdgeId,*/ false, None)
+
+              SidewalkEdgeTable.delete(properties.parentSidewalkEdgeId.get) // Delete the parent
+                .flatMap(_ => SidewalkEdgeTable.save(edge))
+          }
+        }
+
+        Future.sequence(sidewarkSaves).map { _ =>
+          Ok(Json.obj("status" -> "OK", "message" -> "FeatureCollection created."))  // Todo. Return a mapping from parentSidewalkEdgeId to the new
+        }
+      }
+    )
+  }
 
 
   /**
@@ -128,14 +130,14 @@ object SidewalkController extends Controller {
    *
    * @return
    */
-  def createSidewalks = Action(BodyParsers.parse.json) { request =>
+  def createSidewalks = Action.async(BodyParsers.parse.json) { request =>
     val featureCollectionResult = request.body.validate[FeatureCollection]
     featureCollectionResult.fold(
       errors => {
-        BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       featureCollection => {
-        featureCollection.features.foreach { feature =>
+        val sidewalkSaves = featureCollection.features.map { feature =>
           val coordinates = feature.geometry.coordinates
           val properties = feature.properties
           val coord: Array[Coordinate] = coordinates.map(coord => new Coordinate(coord.head.toDouble, coord(1).toDouble)).toArray
@@ -146,11 +148,13 @@ object SidewalkController extends Controller {
 
           val edge: SidewalkEdge = SidewalkEdge(Some(rand.nextInt(Integer.MAX_VALUE)), newLineString, sourceId, targetId,
             coord.head.x.toFloat, coord.head.y.toFloat, coord.last.x.toFloat, coord.last.y.toFloat, properties.wayType, false, None)
-          SidewalkEdgeTable.save(edge)
           println(edge.toString)
+          SidewalkEdgeTable.save(edge)
         }
 
-        Ok(Json.obj("status" -> "OK", "message" -> "FeatureCollection created."))
+        Future.sequence(sidewalkSaves).map { _ =>
+          Ok(Json.obj("status" -> "OK", "message" -> "FeatureCollection created."))
+        }
       }
     )
   }

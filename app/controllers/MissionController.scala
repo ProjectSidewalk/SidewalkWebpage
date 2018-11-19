@@ -18,6 +18,7 @@ import play.api.i18n.Messages.Implicits._
 
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class MissionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -31,15 +32,15 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     request.identity match {
       case Some(user) =>
         // Get the missions for the currently assigned neighborhood.
-        val userCurrentRegion: Option[Int] = UserCurrentRegionTable.currentRegion(user.userId)
-        if (userCurrentRegion.isEmpty)
-          println(s"problem with /neighborhoodMissions: user has no current region.")
+        UserCurrentRegionTable.currentRegion(user.userId).flatMap { userCurrentRegion =>
+          if (userCurrentRegion.isEmpty)
+            println(s"problem with /neighborhoodMissions: user has no current region.")
 
-        val completedMissions: List[Mission] =
           MissionTable.selectCompletedAuditMissionsByAUser(user.userId, userCurrentRegion.get, includeOnboarding = true)
-
-        Future.successful(Ok(JsArray(completedMissions.map(_.toJSON))))
-
+            .map { completedMissions =>
+              Ok(JsArray(completedMissions.map(_.toJSON)))
+            }
+        }
         // If the user doesn't already have an anonymous ID, sign them up and rerun.
       case _ => Future.successful(Redirect(s"/anonSignUp?url=/neighborhoodMissions"))
     }
@@ -52,7 +53,10 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     */
   def getTotalRewardEarned() = UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) => Future.successful(Ok(Json.obj("reward_earned" -> MissionTable.totalRewardEarned(user.userId))))
+      case Some(user) =>
+        MissionTable.totalRewardEarned(user.userId).map { totalRewardEarned =>
+          Ok(Json.obj("reward_earned" -> totalRewardEarned))
+        }
       case _ => Future.successful(Redirect(s"/anonSignUp?url=/rewardEarned"))
     }
   }

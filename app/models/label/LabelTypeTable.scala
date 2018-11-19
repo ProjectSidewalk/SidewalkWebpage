@@ -1,12 +1,13 @@
 package models.label
 
 import models.utils.MyPostgresDriver.api._
-import play.api.Play.current
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
@@ -35,9 +36,13 @@ object LabelTypeTable {
     * @param labelType
     * @return
     */
-  def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
-    val typeId: Option[Int] = labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.headOption
-    typeId.getOrElse(LabelTypeTable.save(LabelType(0, labelType, "")))
+  def labelTypeToId(labelType: String): Future[Int] = {
+    db.run(
+      labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).result.headOption
+    ).flatMap {
+      case Some(_) => Future.successful(0)
+      case None => LabelTypeTable.save(LabelType(0, labelType, ""))
+    }
   }
 
   /**
@@ -46,19 +51,21 @@ object LabelTypeTable {
     * @param labelTypeId
     * @return
     */
-  def labelTypeIdToLabelType(labelTypeId: Int): String = db.withTransaction { implicit session =>
-    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).list.head
-  }
+  def labelTypeIdToLabelType(labelTypeId: Int): Future[String] = db.run(
+    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).result.head
+  )
+
+  def labelTypeByIds(labelTypeIds: Seq[Int]): Future[Seq[(Int,String)]] = db.run(
+    labelTypes.filter(_.labelTypeId inSet labelTypeIds).map(t => (t.labelTypeId, t.labelType)).result
+  )
 
   /**
    * Saves a new label type in the table
    * @param lt
    * @return
    */
-  def save(lt: LabelType): Int = db.withTransaction { implicit session =>
-    val labelTypeId: Int =
-      (labelTypes returning labelTypes.map(_.labelTypeId)) += lt
-    labelTypeId
-  }
+  def save(lt: LabelType): Future[Int] = db.run(
+    ((labelTypes returning labelTypes.map(_.labelTypeId)) += lt).transactionally
+  )
 }
 
