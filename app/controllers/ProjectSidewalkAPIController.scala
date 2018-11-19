@@ -9,7 +9,7 @@ import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import javax.inject.Inject
-//import play.api.Play.current
+import play.api.Play.current
 //import play.api.i18n.Messages.Implicits._
 import play.api.i18n.{I18nSupport, MessagesApi}
 
