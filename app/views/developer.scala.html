@@ -1,6 +1,6 @@
 @import models.user.User
 @import models.street.StreetEdgeTable
-@(title: String, user: Option[User] = None)(implicit messages: Messages)
+@(title: String, user: Option[User] = None, distanceCompletionRate: Float)(implicit messages: Messages)
 
 @main(title) {
     @navbar(user)
@@ -263,7 +263,7 @@
                 <ol>
                     <li>APIs' design (e.g., URL, response formats) could change.</li>
                     <li>We are focusing on collecting data only from Washington, D.C. at the moment.</li>
-                    <li>Since we have only covered @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of DC,
+                    <li>Since we have only covered @("%.0f".format(distanceCompletionRate * 100))% of DC,
                         there are neighborhoods where we currently have very little accessibility data.
                         Note: You can help us by <a href='@routes.AuditController.audit()'>contributing to data collection</a> too ;-).</li>
                 </ol>
