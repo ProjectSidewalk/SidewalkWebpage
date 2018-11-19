@@ -1,9 +1,8 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.label._
-@import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)(implicit messages: Messages)
+@(title: String, user: Option[User] = None, auditedDistance: Float, distanceCompletionRate: Float, labelCount: Int)(implicit messages: Messages)
 
 @main(title) {
     @navbar(user)
@@ -219,15 +218,15 @@
 
             </div>
             <script language="javascript">
-                    if(@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))<100){
-                        document.getElementById('conditional-text').innerHTML = "Users like you have already mapped @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of Washington DC--that's nearly @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of the city!";
+                    if(@("%.0f".format(distanceCompletionRate * 100))<100){
+                        document.getElementById('conditional-text').innerHTML = "Users like you have already mapped @("%.0f".format(auditedDistance)) miles of Washington DC--that's nearly @("%.0f".format(distanceCompletionRate * 100))% of the city!";
                     } else {
-                        document.getElementById('conditional-text').innerHTML = "We did it! Users like you have mapped all @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of Washington DC. However, we are not done. The more users who contribute, the better quality data. So start mapping today!";
+                        document.getElementById('conditional-text').innerHTML = "We did it! Users like you have mapped all @("%.0f".format(auditedDistance)) miles of Washington DC. However, we are not done. The more users who contribute, the better quality data. So start mapping today!";
                     }
 
-                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
-                    var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
-                    var milesAnim = new CountUp("nummiles", 0, @("%.2f".format(StreetEdgeTable.auditedStreetDistance(1))),0,2.5,{suffix:''});
+                    var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(distanceCompletionRate * 100)),0,2.5,{suffix:'%'});
+                    var labelsAnim = new CountUp("numlabels", 0, @labelCount,0,2.5,{suffix:''});
+                    var milesAnim = new CountUp("nummiles", 0, @("%.2f".format(auditedDistance)),0,2.5,{suffix:''});
             </script>
         </div>
     </div>

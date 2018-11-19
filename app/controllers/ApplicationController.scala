@@ -1,18 +1,20 @@
 package controllers
 
 import java.sql.Timestamp
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+import models.label.LabelTable
+import models.street.StreetEdgeTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.mvc._
 
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -102,7 +104,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case Some(user) =>
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+              for {
+                auditedDistance <- StreetEdgeTable.auditedStreetDistance(1)
+                completionRate <- StreetEdgeTable.streetDistanceCompletionRate(1)
+                labelCount <- LabelTable.countLabels
+              } yield {
+                Ok(views.html.index("Project Sidewalk", Some(user), auditedDistance, completionRate, labelCount))
+              }
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
