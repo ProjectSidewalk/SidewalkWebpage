@@ -44,55 +44,6 @@ object WebpageActivityTable {
   }
 
   /**
-    * Returns the last log in timestamp
-    *
-    * @param userId User id
-    * @return
-    */
-  def selectLastSignInTimestamp(userId: UUID): Future[Option[java.sql.Timestamp]] = {
-    val signInString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignIn"
-    db.run(
-      activities.filter(_.userId === userId.toString).filter(_.activity === signInString).sortBy(_.timestamp.desc)
-        .to[List].result
-    ).map { signInActivities =>
-      if (signInActivities.nonEmpty) {
-        Some(signInActivities.head.timestamp)
-      } else {
-        None
-      }
-    }
-  }
-
-  /**
-    * Returns the signup timestamp
-    *
-    * @param userId User id
-    * @return
-    */
-  def selectSignUpTimestamp(userId: UUID): Future[Option[java.sql.Timestamp]] = {
-    val signUpString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignUp"
-    db.run(
-      activities.filter(_.userId === userId.toString).filter(_.activity === signUpString).sortBy(_.timestamp.desc)
-        .to[List].result
-    ).map { signUpActivities =>
-      if (signUpActivities.nonEmpty) {
-        Some(signUpActivities.head.timestamp)
-      } else {
-        None
-      }
-    }
-  }
-
-  /**
-    * Returns the signin count
-    * @param userId User id
-    * @return
-    */
-  def selectSignInCount(userId: UUID): Future[Int] = db.run(
-      activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").length.result
-    )
-
-  /**
     * Returns a list of signin counts, each element being a count of logins for a user
     *
     * @return List[(userId: String, role: String, count: Int)]

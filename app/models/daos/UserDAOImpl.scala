@@ -1,12 +1,15 @@
 package models.daos
 
+import java.sql.Timestamp
 import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import models.user.{RoleTable, User, UserRoleTable}
+import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.audit._
+import models.label.LabelTable
+import models.mission.MissionTable
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -17,6 +20,10 @@ import scala.concurrent.Future
 import models.utils.MyPostgresDriver.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+
+case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
+                                 signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
+                                 completedMissions: Int, completedAudits: Int, labels: Int)
 
 class UserDAOImpl extends UserDAO {
 
@@ -225,5 +232,77 @@ object UserDAOImpl {
       turkers <- countUsersContributedYesterday("Turker")
       researchers <- countResearchersContributedYesterday
     } yield (registered + anonymous + turkers + researchers)
+  }
+
+  /**
+    * Gets metadata for each user that we use on the admin page.
+    *
+    * @return
+    */
+  def getUserStatsForAdminPage: Future[List[UserStatsForAdminPage]] = {
+
+    // We run 6 queries for different bits of metadata that we need. We run each query and convert them to Scala maps
+    // with the user_id as the key. We then query for all the users in the `user` table and for each user, we lookup
+    // the user's metadata in each of the maps from those 6 queries. This simulates a left join across the six sub-
+    // queries. We are using Scala Map objects instead of Slick b/c Slick doesn't create very efficient queries for this
+    // use-case (at least in the old version of Slick that we are using right now).
+
+    // Map(user_id: String -> role: String)
+    val rolesF: Future[Map[String, String]] = db.run {
+      userRoleTable.join(roleTable).on(_.roleId === _.roleId).map(x => (x._1.userId, x._2.role)).result
+    }.map(_.toMap)
+
+    // Map(user_id: String -> signup_time: Option[Timestamp])
+    val signUpTimesF: Future[Map[String, Option[Timestamp]]] = db.run {
+      WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignUp"))
+        .groupBy(_.userId).map { case (_userId, group) => (_userId, group.map(_.timestamp).max) }.result
+    }.map(_.toMap)
+
+    // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int))
+    val signInTimesAndCountsF: Future[Map[String, (Option[Timestamp], Int)]] = db.run {
+      WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignIn"))
+        .groupBy(_.userId).map { case (_userId, group) => (_userId, group.map(_.timestamp).min, group.length) }.result
+      //        .list.map { case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
+    }.map { rows => rows.map { case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap }
+
+    // Map(user_id: String -> mission_count: Int)
+    val missionCountsF: Future[Map[String, Int]] = db.run {
+      MissionTable.missions.filter(_.completed)
+        .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.result
+    }.map(_.toMap)
+
+    // Map(user_id: String -> audit_count: Int)
+    val auditCountsF: Future[Map[String, Int]] = db.run {
+      AuditTaskTable.completedTasks.groupBy(_.userId).map { case (_uId, group) => (_uId, group.length) }.result
+    }.map(_.toMap)
+
+    // Map(user_id: String -> label_count: Int)
+    val labelCountsF: Future[Map[String, Int]] = db.run {
+      AuditTaskTable.auditTasks.join(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+        .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.result
+    }.map(_.toMap)
+
+    // Now left join them all together and put into UserStatsForAdminPage objects.
+    for {
+      dbUsers <- UserDAOImpl.all
+      roles <- rolesF
+      signUpTimes <- signUpTimesF
+      signInTimesAndCounts <- signInTimesAndCountsF
+      missionCounts <- missionCountsF
+      auditCounts <- auditCountsF
+      labelCounts <- labelCountsF
+    } yield {
+      dbUsers.map { u =>
+        UserStatsForAdminPage(
+          u.userId, u.username, u.email,
+          roles.getOrElse(u.userId, ""),
+          signUpTimes.get(u.userId).flatten,
+          signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
+          missionCounts.getOrElse(u.userId, 0),
+          auditCounts.getOrElse(u.userId, 0),
+          labelCounts.getOrElse(u.userId, 0)
+        )
+      }
+    }
   }
 }
