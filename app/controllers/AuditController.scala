@@ -16,6 +16,7 @@ import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
+import models.survey.{SurveyOptionTable, SurveyQuestionTable}
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
@@ -23,7 +24,6 @@ import play.api.Logger
 import play.api.mvc._
 
 import scala.concurrent.Future
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
@@ -102,9 +102,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               region <- regionFuture
               task <- AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user.userId)
               mission <- (if(retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay)
-              else MissionTable.resumeOrCreateNewAuditMission(user.userId, region.get.regionId, payPerMeter, tutorialPay))
+                else MissionTable.resumeOrCreateNewAuditMission(user.userId, region.get.regionId, payPerMeter, tutorialPay))
+              surveyQuestions <- SurveyQuestionTable.listAll
+              surveyOptions <- SurveyOptionTable.listAll
+              asmtId <- AMTAssignmentTable.getMostRecentAssignmentId(user.username)
+              amtAsmtId <- AMTAssignmentTable.getMostRecentAMTAssignmentId(user.username)
+              confirmationCode <- AMTAssignmentTable.getConfirmationCode(user.username, asmtId.getOrElse(""))
+              missionCount <- MissionTable.countCompletedMissionsByUserId(user.userId, includeOnboarding = false)
             } yield {
-              Ok(views.html.audit("Project Sidewalk - Audit", task, mission.get, region.get, Some(user)))
+              Ok(views.html.audit("Project Sidewalk - Audit", task, mission.get, region.get, Some(user), surveyQuestions, surveyOptions, asmtId, amtAsmtId, confirmationCode, missionCount))
             }
         }
       // For anonymous users.
@@ -149,9 +155,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             for {
               task <- AuditTaskTable.selectANewTaskInARegion(regionId, userId)
               mission <- MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay)
+              surveyQuestions <- SurveyQuestionTable.listAll
+              surveyOptions <- SurveyOptionTable.listAll
+              asmtId <- AMTAssignmentTable.getMostRecentAssignmentId(user.username)
+              amtAsmtId <- AMTAssignmentTable.getMostRecentAMTAssignmentId(user.username)
+              confirmationCode <- AMTAssignmentTable.getConfirmationCode(user.username, asmtId.getOrElse(""))
+              missionCount <- MissionTable.countCompletedMissionsByUserId(user.userId, includeOnboarding = false)
               _ <- UserCurrentRegionTable.saveOrUpdate(userId, regionId)
             } yield {
-              Ok(views.html.audit("Project Sidewalk - Audit", task, mission.get, namedRegion, Some(user)))
+              Ok(views.html.audit("Project Sidewalk - Audit", task, mission.get, namedRegion, Some(user), surveyQuestions, surveyOptions, asmtId, amtAsmtId, confirmationCode, missionCount))
             }
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
@@ -188,8 +200,14 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             for {
               task <- AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
               mission <- MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay)
+              surveyQuestions <- SurveyQuestionTable.listAll
+              surveyOptions <- SurveyOptionTable.listAll
+              asmtId <- AMTAssignmentTable.getMostRecentAssignmentId(user.username)
+              amtAsmtId <- AMTAssignmentTable.getMostRecentAMTAssignmentId(user.username)
+              confirmationCode <- AMTAssignmentTable.getConfirmationCode(user.username, asmtId.getOrElse(""))
+              missionCount <- MissionTable.countCompletedMissionsByUserId(user.userId, includeOnboarding = false)
             } yield {
-              Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission.get, region, Some(user)))
+              Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission.get, region, Some(user), surveyQuestions, surveyOptions, asmtId, amtAsmtId, confirmationCode, missionCount))
             }
           }
         }

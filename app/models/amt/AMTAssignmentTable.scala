@@ -48,20 +48,20 @@ object AMTAssignmentTable {
     db.run((amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg)
   }
 
-  def getConfirmationCode(workerId: String, assignmentId: String): Future[String] = {
+  def getConfirmationCode(workerId: String, assignmentId: String): Future[Option[String]] = {
     val confCodeQuery = amtAssignments
       .filter(x => x.workerId === workerId && x.assignmentId === assignmentId)
       .sortBy(_.assignmentStart.desc)
       .map(_.confirmationCode)
-    db.run(confCodeQuery.result.head).map(_.getOrElse(""))
+    db.run(confCodeQuery.result.headOption).map(_.flatten)
   }
 
-  def getMostRecentAssignmentId(workerId: String): Future[String] = db.run {
-    amtAssignments.filter(x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).result.head
+  def getMostRecentAssignmentId(workerId: String): Future[Option[String]] = db.run {
+    amtAssignments.filter(x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).result.headOption
   }
 
-  def getMostRecentAMTAssignmentId(workerId: String): Future[Int] = db.run {
-    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).result.head
+  def getMostRecentAMTAssignmentId(workerId: String): Future[Option[Int]] = db.run {
+    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).result.headOption
   }
 
   /**

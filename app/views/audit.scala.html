@@ -7,7 +7,9 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None)(implicit messages: Messages)
+@import models.survey.SurveyQuestion
+@import models.survey.SurveyOption
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, surveyQuestions: List[SurveyQuestion], surveyOptions: List[SurveyOption], asmtId: Option[String], amtAsmtId: Option[Int], confirmationCode: Option[String], completedMissionCount: Int)(implicit messages: Messages)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -33,7 +35,7 @@
 
                             <form id="surveyForm" method="post">
                                 <ol>
-                                @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                                @for(surveyQuestion <- surveyQuestions){
                                     <li>
                                     @if(surveyQuestion.required == true) {
                                         <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
@@ -42,7 +44,7 @@
                                     }
                                     @if(surveyQuestion.surveyInputType == "radio"){
                                         <ul class="survey-option-holder">
-                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                        @for(surveyOption <- surveyOptions.filter(_.surveyCategoryOptionId == surveyQuestion.surveyCategoryOptionId.get)){
                                             <li class="survey-option">
                                                 @if(surveyQuestion.required == true){
                                                     <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
@@ -56,7 +58,7 @@
                                     }else{
                                         @if(surveyQuestion.surveyInputType == "checkbox"){
                                             <ul class="survey-option-holder">
-                                            @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                            @for(surveyOption <- surveyOptions.filter(_.surveyCategoryOptionId == surveyQuestion.surveyCategoryOptionId.get)){
                                                 <li class="survey-option">
                                                     <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                                     <label>@surveyOption.surveyOptionText</label>
@@ -920,10 +922,10 @@
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
             @if(user){
                 @if(user.get.role.getOrElse("") == "Turker") {
-                    svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
-                    svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0){
+                    svl.assignmentId = "@asmtId.get";
+                    svl.amtAssignmentId = @amtAsmtId.get;
+                    svl.confirmationCode = "@confirmationCode.get";
+                    @if(completedMissionCount == 0){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");

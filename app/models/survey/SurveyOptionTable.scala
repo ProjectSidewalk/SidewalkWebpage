@@ -1,11 +1,12 @@
 package models.survey
 
+import models.survey.SurveyQuestionTable.{db, surveyQuestions}
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
+
 import scala.concurrent.Future
 
 case class SurveyOption(surveyOptionId: Int, surveyCategoryOptionId: Int, surveyOptionText: String, surveyDisplayRank: Option[Int])
@@ -24,6 +25,11 @@ object SurveyOptionTable{
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
   val surveyOptions = TableQuery[SurveyOptionTable]
+
+
+  def listAll: Future[List[SurveyOption]] = db.run(
+    surveyOptions.to[List].result
+  )
 
   def save(surveyOption: SurveyOption): Future[Int] = db.run(
     ((surveyOptions returning surveyOptions.map(_.surveyOptionId)) += surveyOption).transactionally
