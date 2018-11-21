@@ -13,6 +13,7 @@ import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit._
+import models.daos.UserDAOImpl
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.label._
 import models.mission.MissionTable
@@ -43,7 +44,17 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // Pages
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
+      for {
+        countsAndRates <- StreetEdgeTable.countAuditedStreetCountAndRateByUserGroup()
+        streetCnt <- StreetEdgeTable.countTotalStreets()
+        distancesAndRates <- StreetEdgeTable.countAuditedStreetDistanceAndRateByUserGroup()
+        streetDist <- StreetEdgeTable.totalStreetDistance()
+        comments <- AuditTaskCommentTable.takeRight(100)
+        labels <- LabelTable.selectTopLabelsAndMetadata(1000)
+        userStats <- UserDAOImpl.getUserStatsForAdminPage
+      } yield {
+        Ok(views.html.admin.index("Project Sidewalk", request.identity, countsAndRates, streetCnt, distancesAndRates, streetDist, comments, labels, userStats))
+      }
     } else {
       Future.successful(Redirect("/"))
     }

@@ -6,12 +6,13 @@
 @import models.audit._
 @import models.label._
 @import models.mission.MissionTable
-@import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import java.util.UUID
 @import play.api.libs.json.Json
 
-@(title: String, user: Option[User] = None)(implicit messages: Messages)
+@import models.label.LabelTable.LabelMetadata
+@import models.daos.UserStatsForAdminPage
+@(title: String, user: Option[User] = None, auditCountsAndRates: Map[String, (Int, Float)], streetCnt: Int, auditDistancesAndRates: Map[String, (Float, Float)], streetDistance: Float, comments: Seq[AuditTaskComment], labels: List[LabelMetadata], userStats: List[UserStatsForAdminPage])(implicit messages: Messages)
 @main(title) {
 @navbar(user)
 <style>
@@ -153,63 +154,63 @@
                             </tr>
                             <tr>
                                 <th>Audited Streets</th>
-                                <td>@StreetEdgeTable.countAuditedStreets()</td>
-                                <td>@StreetEdgeTable.countTotalStreets()</td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%</td>
+                                <td>@auditCountsAndRates("All")._1</td>
+                                <td>@streetCnt</td>
+                                <td>@("%.0f".format(auditCountsAndRates("All")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Registered")</td>
+                                <td>@auditCountsAndRates("Registered")._1</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%</td>
+                                <td>@("%.0f".format(auditCountsAndRates("Registered")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous")</td>
+                                <td>@auditCountsAndRates("Anonymous")._1</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%</td>
+                                <td>@("%.0f".format(auditCountsAndRates("Anonymous")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turker</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Turker")</td>
+                                <td>@auditCountsAndRates("Turker")._1</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%</td>
+                                <td>@("%.0f".format(auditCountsAndRates("Turker")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researcher</td>
-                                <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher")</td>
+                                <td>@auditCountsAndRates("Researcher")._1</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%</td>
+                                <td>@("%.0f".format(auditCountsAndRates("Researcher")._2 * 100))%</td>
                             </tr>
                             <tr>
                                 <th>Distance</th>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
-                                <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
+                                <td>@("%.1f".format(auditDistancesAndRates("All")._1)) miles</td>
+                                <td>@("%.1f".format(streetDistance)) miles</td>
+                                <td>@("%.0f".format(auditDistancesAndRates("All")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Registered"))) miles</td>
+                                <td>@("%.1f".format(auditDistancesAndRates("Registered")._1)) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%</td>
+                                <td>@("%.0f".format(auditDistancesAndRates("Registered")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Anonymous"))) miles</td>
+                                <td>@("%.1f".format(auditDistancesAndRates("Anonymous")._1)) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%</td>
+                                <td>@("%.0f".format(auditDistancesAndRates("Anonymous")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turker</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Turker"))) miles</td>
+                                <td>@("%.1f".format(auditDistancesAndRates("Turker")._1)) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%</td>
+                                <td>@("%.0f".format(auditDistancesAndRates("Turker")._2 * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researcher</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Researcher"))) miles</td>
+                                <td>@("%.1f".format(auditDistancesAndRates("Researcher")._1)) miles</td>
                                 <td></td>
-                                <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%</td>
+                                <td>@("%.0f".format(auditDistancesAndRates("Researcher")._2 * 100))%</td>
                             </tr>
                         </table>
                     </div>
@@ -233,7 +234,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @AuditTaskCommentTable.takeRight(100).map { comment =>
+                            @comments.map { comment =>
                             <tr>
                                 <td><a href='@routes.AdminController.userProfile(comment.userId)'>@comment.userId</a>
                                 </td>
@@ -512,7 +513,7 @@
                             </thead>
                             <!-- using this id to locate the labelTags so we can insert the tags-->
                             <tbody id = 'labelRows'>
-                                @LabelTable.selectTopLabelsAndMetadata(1000).map { label =>
+                                @labels.map { label =>
                                     <tr>
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
@@ -552,7 +553,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @UserDAOImpl.getUserStatsForAdminPage.map { u =>
+                            @userStats.map { u =>
                             <tr>
                                 <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
                                 <td>@u.userId</td>

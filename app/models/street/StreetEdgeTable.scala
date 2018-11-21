@@ -130,22 +130,6 @@ object StreetEdgeTable {
     * @return
     */
   def countTotalStreets(): Future[Int] = all.map(_.size)
-  
-  /**
-    * This method returns the audit completion rate for the specified group of users.
-    *
-    * @param auditCount
-    * @param userType
-    * @return
-    */
-  def auditCompletionRate(auditCount: Int, userType: String = "All"): Future[Float] = {
-    for {
-      auditedStreetCount <- countAuditedStreets(1, userType)
-      allEdgesCount <- db.run(streetEdgesWithoutDeleted.length.result)
-    } yield {
-      auditedStreetCount.toFloat / allEdgesCount
-    }
-  }
 
   /**
     * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
@@ -153,9 +137,9 @@ object StreetEdgeTable {
     * @param auditCount
     * @return Float between 0 and 1
     */
-  def streetDistanceCompletionRate(auditCount: Int, userType: String = "All"): Future[Float] = {
+  def streetDistanceCompletionRate(userType: String = "All"): Future[Float] = {
     for {
-      auditedDistance <- auditedStreetDistance(auditCount, userType)
+      auditedDistance <- auditedStreetDistance(userType)
       totalDistance <- totalStreetDistance()
     } yield {
       auditedDistance / totalDistance
@@ -185,7 +169,7 @@ object StreetEdgeTable {
     * @param auditCount
     * @return
     */
-  def auditedStreetDistance(auditCount: Int, userType: String = "All"): Future[Float] = {
+  def auditedStreetDistance(userType: String = "All"): Future[Float] = {
 
     val auditTaskQuery = userType match {
       case "All" => completedAuditTasks
@@ -201,16 +185,36 @@ object StreetEdgeTable {
       _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
     } yield _edges
 
-    // Gets tuple of (street_edge_id, num_completed_audits)
-    val edgesWithAuditCounts = edges.groupBy(x => x).map{
-      case (edge, group) => (edge.geom.transform(26918).length, group.length)
+    // Selects distinct and gets distance of each street edge
+    val edgesWithLength = edges.groupBy(x => x).map {
+      case (edge, group) => edge.geom.transform(26918).length
     }
 
-    // Get length of each street segment, sum the lengths, and convert from meters to miles
-    db.run(
-      edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).to[List].result
-    ).map { distances =>
-      (distances.sum * 0.000621371).toFloat
+    // Sum the lengths of the streets and convert from meters to miles
+    db.run(edgesWithLength.to[List].result).map { distances => (distances.sum * 0.000621371).toFloat }
+  }
+
+  /**
+    * Gets a mapping from user group to the distance of unique streets and percentage of total that group has audited.
+    *
+    * @return
+    */
+  def countAuditedStreetDistanceAndRateByUserGroup(): Future[Map[String, (Float, Float)]] = {
+    for {
+      allEdgesDistance <- totalStreetDistance()
+      allDistance <- auditedStreetDistance("All")
+      researcherDistance <- auditedStreetDistance("Researcher")
+      turkDistance <- auditedStreetDistance("Turker")
+      regDistance <- auditedStreetDistance("Registered")
+      anonDistance <- auditedStreetDistance("Anonymous")
+    } yield {
+      Map(
+        "All" -> ((allDistance, allDistance / allEdgesDistance)),
+        "Researcher" -> ((researcherDistance, researcherDistance / allEdgesDistance)),
+        "Turker" -> ((turkDistance, turkDistance / allEdgesDistance)),
+        "Registered" -> ((regDistance, regDistance / allEdgesDistance)),
+        "Anonymous" -> ((anonDistance, anonDistance / allEdgesDistance))
+      )
     }
   }
 
@@ -282,11 +286,37 @@ object StreetEdgeTable {
   }
 
   /**
-    * Returns a list of street edges that are audited at least auditCount times
+    * Gets a mapping from user group to the number of unique streets and percentage of total that group has audited.
     *
     * @return
     */
-  def selectAuditedStreets(auditCount: Int = 1, userType: String = "All"): Future[List[StreetEdge]] = {
+  def countAuditedStreetCountAndRateByUserGroup(): Future[Map[String, (Int, Float)]] = {
+    for {
+      allEdgesCnt <- db.run(streetEdgesWithoutDeleted.length.result)
+      allCnt <- countAuditedStreets("All")
+      researcherCnt <- countAuditedStreets("Researcher")
+      turkCnt <- countAuditedStreets("Turker")
+      regCnt <- countAuditedStreets("Registered")
+      anonCnt <- countAuditedStreets("Anonymous")
+    } yield {
+      Map(
+        "All" -> ((allCnt, allCnt.toFloat / allEdgesCnt)),
+        "Researcher" -> ((researcherCnt, researcherCnt.toFloat / allEdgesCnt)),
+        "Turker" -> ((turkCnt, turkCnt.toFloat / allEdgesCnt)),
+        "Registered" -> ((regCnt, regCnt.toFloat / allEdgesCnt)),
+        "Anonymous" -> ((anonCnt, anonCnt.toFloat / allEdgesCnt))
+      )
+    }
+  }
+
+  /**
+    * Count the number of streets that have been audited at least a given number of times
+    *
+    * @param auditCount
+    * @return
+    */
+  def countAuditedStreets(userType: String = "All"): Future[Int] = {
+
     val auditTasksQuery = userType match {
       case "All" => completedAuditTasks
       case "Researcher" => researcherCompletedAuditTasks
@@ -300,28 +330,8 @@ object StreetEdgeTable {
       (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.join(auditTasksQuery).on(_.streetEdgeId === _.streetEdgeId)
     } yield _streetEdges
 
-    //FIXME sorry, don't know the logic
-//    val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
-//      // Filter out group of edges with the size less than the passed `auditCount`
-//      if (auditCount > 0 && groupedEdges.size >= auditCount) {
-//        Some(groupedEdges.head)
-//      } else {
-//        None
-//      }
-//    }).toList.flatten
-//
-//    uniqueStreetEdges
-    Future.successful(Nil)
+    db.run(edges.groupBy(_.streetEdgeId).map(_._1).length.result)
   }
-
-  /**
-    * Count the number of streets that have been audited at least a given number of times
-    *
-    * @param auditCount
-    * @return
-    */
-  def countAuditedStreets(auditCount: Int = 1, userType: String = "All"): Future[Int] =
-    selectAuditedStreets(auditCount, userType).map(_.size)
 
   /**
     * Returns all the streets in the given region that has been audited

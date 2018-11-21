@@ -105,8 +105,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               for {
-                auditedDistance <- StreetEdgeTable.auditedStreetDistance(1)
-                completionRate <- StreetEdgeTable.streetDistanceCompletionRate(1)
+                auditedDistance <- StreetEdgeTable.auditedStreetDistance()
+                completionRate <- StreetEdgeTable.streetDistanceCompletionRate()
                 labelCount <- LabelTable.countLabels
               } yield {
                 Ok(views.html.index("Project Sidewalk", Some(user), auditedDistance, completionRate, labelCount))
@@ -177,7 +177,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
-        StreetEdgeTable.streetDistanceCompletionRate(1) map { completionRate =>
+        StreetEdgeTable.streetDistanceCompletionRate() map { completionRate =>
           Ok(views.html.developer("Project Sidewalk - Developers", Some(user), completionRate))
         }
       case None =>
