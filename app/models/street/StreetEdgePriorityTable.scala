@@ -266,7 +266,7 @@ object StreetEdgePriorityTable {
     *
     * @return A query with rows of the form (user_id: String, is_good_user: Boolean)
     */
-  def getQualityOfUsers: Query[(Rep[String], Rep[Option[Boolean]]), (String, Option[Boolean]), Seq] = {
+  def getQualityOfUsers: Query[(Rep[String], Rep[Boolean]), (String, Boolean), Seq] = {
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
     // Gets all tasks completed by users, groups by user_id, and sums over the distances of the street edges.
@@ -277,17 +277,23 @@ object StreetEdgePriorityTable {
     } yield (_user.userId, _dist._2)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
 
     // Gets all audit tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
-    val labelCounts = (for {
+    val labels = for {
       _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.auditTasks if _task.userId === _user.userId
       _lab  <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
-    } yield (_user.userId, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT user_id, COUNT(*)
+    } yield (_user.userId, _lab.labelId) // SELECT user_id, label_id
+
+    val labelCounts: Query[(Rep[String], Rep[Int]), (String, Int), Seq] =
+      auditedDists
+        .joinLeft(labels).on(_._1 === _._1)
+        .map { case (d, l) => (d._1, l.map(_._2)) } // SELECT user_id, label_id
+        .groupBy(_._1) // GROUP BY user_id
+        .map { case (d, group) => (d, group.map(_._2).countDefined) } // SELECT user_id, COALESCE(0, COUNT(label_id))
 
     // Finally, determine whether each user is above or below the label per meter threshold.
     // SELECT user_id, is_good_user (where is_good_user = label_count/distance_audited > threshold)
-    auditedDists
-      .joinLeft(labelCounts).on(_._1 === _._1)
-      .map { case (d,c) => (d._1, c.map(v => v._2.ifNull(0).asColumnOf[Float] / d._2.get > LABEL_PER_METER_THRESHOLD)) }
+    auditedDists.join(labelCounts).on(_._1 === _._1)
+      .map { case (d,c) => (d._1, c._2.asColumnOf[Float] / d._2.get > LABEL_PER_METER_THRESHOLD) }
   }
 
   def getIdsOfGoodUsers: Future[List[String]] = db.run(
