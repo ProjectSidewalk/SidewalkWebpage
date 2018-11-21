@@ -496,15 +496,22 @@ object AuditTaskTable {
     db.run({
       val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 
-      val userCompletedStreets = completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map{ x => (x._1, true) }
+      // For every street in the region: (street_edge_id: Int, user_audited_street: Boolean)
+      val userCompletedStreets: Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq] =
+        completedTasks.filter(_.userId === user.toString)
+          .joinRight(edgesInRegion).on(_.streetEdgeId === _.streetEdgeId)
+          .map { case (_task, _edge) => (_task.map(_.auditTaskId), _edge.streetEdgeId) }
+          .groupBy(_._2)
+          .map { case (_edgeId, group) => (_edgeId, group.map(_._1).countDefined > 0) }
 
       val tasks = for {
-        (ser, ucs) <- edgesInRegion.joinLeft(userCompletedStreets).on(_.streetEdgeId === _._1)
+        ser <- edgesInRegion
+        ucs <- userCompletedStreets if ser.streetEdgeId === ucs._1
         se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
         sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
         scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
       } yield (
-        se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, ucs.map(_._2.ifNull(false)))
+        se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, ucs._2)
 
       tasks.to[List].result
 
