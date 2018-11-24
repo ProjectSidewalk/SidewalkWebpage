@@ -149,15 +149,20 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
-
+    println()
+    println("[request.body] " + request.body)
+    println()
     var submission = request.body.validate[Seq[AuditTaskSubmission]]
-
+    println("[Submission] " + submission)
+    println()
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
         val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
+          println("[Data] " + data)
+          println()
           // Insert assignment (if any)
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
@@ -171,6 +176,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           val streetEdgeId = data.auditTask.streetEdgeId
 
           if (data.auditTask.auditTaskId.isDefined) {
+            println("[TaskController] data.auditTask.auditTaskId is: " + data.auditTask.auditTaskId);
             user match {
               case Some(user) =>
                 // Update the street's priority only if the user has not completed this street previously

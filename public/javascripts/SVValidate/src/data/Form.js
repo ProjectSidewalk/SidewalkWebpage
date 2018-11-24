@@ -5,7 +5,10 @@ function Form(url) {
 
     function compileSubmissionData() {
         var data = {};
-        var label = undefined;
+
+        data.interactions = svv.tracker.getActions();
+        svv.tracker.refresh();
+        return data;
     }
 
     function _isValidationButtonClick(action) {
@@ -13,17 +16,17 @@ function Form(url) {
     }
 
     function submit(data, async) {
+        console.log("[Form.js] Submit function called");
         if (typeof async === "undefined") {
             async = true;
         }
-
 
         if (data.constructor !== Array) {
             console.log("Converting data...");
             data = [data];
         }
-
-        console.log("Data: " + data);
+        console.log("[Form.js] submit data");
+        console.log(data);
 
         $.ajax({
             async: async,
@@ -41,6 +44,7 @@ function Form(url) {
                 console.error(result);
             }
         });
+        return data;
     }
 
     self.compileSubmissionData = compileSubmissionData;

@@ -456,6 +456,7 @@ object LabelTable {
         |     sidewalk.label_point AS lp
         |WHERE lp.label_id = lb.label_id
         |      AND lt.label_type_id = lb.label_type_id
+        |      AND lb.deleted = false
         |OFFSET floor(random() * (SELECT COUNT(*) FROM sidewalk.label))
         |LIMIT ?""".stripMargin.stripMargin
     )

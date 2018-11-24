@@ -5,12 +5,17 @@
  */
 function Panorama() {
     var currentLabel = new Label();
-    var panoCanvas = document.getElementById("svv-panorama");
-    var panorama = undefined;
     var init = true;
+    var panoCanvas = document.getElementById("svv-panorama");
+    var properties = {};
+    var panorama = undefined;
+    var zoomLevel = {
+        1: 1.2,
+        2: 2.2,
+        3: 3.2
+    };
 
     function _init() {
-        // Onboarding location (for now)
         if (typeof google != "undefined") {
             // Set control options
             panorama = new google.maps.StreetViewPanorama(panoCanvas);
@@ -35,9 +40,48 @@ function Panorama() {
         }
     }
 
+    /**
+     * Returns the label object for the label that is loaded on this panorama
+     * @returns {Label}
+     */
     function getCurrentLabel() {
-        console.log("From method: " + currentLabel.getProperty('labelType'));
         return currentLabel;
+    }
+
+    /**
+     *
+     * @returns {String} Google StreetView Panorama Id
+     */
+    function getPanoId() {
+        return panorama.getPano();
+    }
+
+    /**
+     * Returns the lat lng of the panorama
+     * @returns {{lat, lng}}
+     */
+    function getPosition() {
+        var position = panorama.getPosition();
+        return { 'lat' : position.lat(), 'lng' : position.lng() };
+    }
+
+    function getPov() {
+        var pov = panorama.getPov();
+
+        // Pov can be less than 0. So adjust it.
+        while (pov.heading < 0) {
+            pov.heading += 360;
+        }
+
+        // Pov can be more than 360. Adjust it.
+        while (pov.heading > 360) {
+            pov.heading -= 360;
+        }
+        return pov;
+    }
+
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
     }
 
     /**
@@ -46,8 +90,7 @@ function Panorama() {
      * @private
      */
     function _handleData(labelMetadata) {
-        console.log("_handleData");
-        console.log("Label ID: " + labelMetadata['label_id']);
+        // console.log("[Panorama.js] Label ID: " + labelMetadata['label_id']);
         setPanorama(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
                 labelMetadata['pitch'], labelMetadata['zoom']);
 
@@ -60,6 +103,7 @@ function Panorama() {
         currentLabel.setProperty('labelType', labelMetadata['label_type']);
         currentLabel.setProperty('pitch', labelMetadata['pitch']);
         currentLabel.setProperty('zoom', labelMetadata['zoom']);
+        return currentLabel;
     }
 
     /**
@@ -70,30 +114,29 @@ function Panorama() {
      * @param zoom      Photographer zoom
      */
     function setPanorama(panoId, heading, pitch, zoom) {
+        setProperty("panoId", panoId);
         if (init) {
             panorama.setPano(panoId);
             panorama.set('pov', {heading: heading, pitch: pitch});
-            console.log("setting pano: checkpoint 3");
             /* TODO: See if we need to adjust the zoom level */
-            panorama.set('zoom', zoom);
+            panorama.set('zoom', zoomLevel[zoom]);
             init = false;
         } else {
-            console.log("not initializing");
+            if (self.labelMarker) {
+                self.labelMarker.onRemove();
+            }
 
             // Adding in callback function because there are some issues with Google Maps
             // setPano function. Will start to running an infinite loop if panorama does not
             // load in time.
             function changePano() {
-                self.labelMarker.onRemove();
                 _init();
                 panorama.setPano(panoId);
                 panorama.set('pov', {heading: heading, pitch: pitch});
-                panorama.set('zoom', zoom);
+                panorama.set('zoom', zoomLevel[zoom]);
                 renderLabel();
             }
             setTimeout(changePano, 100);
-            // renderLabel();
-            console.log("SVV Panorama: " + panorama);
         }
         return this;
     }
@@ -119,7 +162,6 @@ function Panorama() {
      * Retrieves a random label from the database.
      */
     function setLabel() {
-        console.log("setting label");
         var labelUrl = "/label/geo/random";
         $.ajax({
             url: labelUrl,
@@ -130,6 +172,12 @@ function Panorama() {
             }
         });
         renderLabel();
+        return this;
+    }
+
+    function setProperty(key, value) {
+        properties[key] = value;
+        return this;
     }
 
     /**
@@ -137,7 +185,6 @@ function Panorama() {
      * @returns {renderLabel}
      */
     function renderLabel() {
-        console.log("render label");
         var url = currentLabel.getIconUrl();
         var pos = _getPosition(currentLabel.getProperty('canvasX'), currentLabel.getProperty('canvasY'),
             currentLabel.getProperty('canvasWidth'), currentLabel.getProperty('canvasHeight'),
@@ -221,10 +268,16 @@ function Panorama() {
     }
 
     _init();
+
     self.getCurrentLabel = getCurrentLabel;
+    self.getPanoId = getPanoId;
+    self.getPosition = getPosition;
+    self.getProperty = getProperty;
+    self.getPov = getPov;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;
     self.setPanorama = setPanorama;
+    self.setProperty = setProperty;
 
     return self;
 }

@@ -14,7 +14,7 @@ function Main (param) {
         svv.ui.validation.buttons = $('button.validation-button');
         svv.ui.validation.agreeButton = $("#validation-agree-button");
         svv.ui.validation.disagreeButton = $("#validation-disagree-button");
-        svv.ui.validation.unclearButton = $("#validation-unclear-button");
+        svv.ui.validation.unsureButton = $("#validation-unsure-button");
     }
 
     function _init() {

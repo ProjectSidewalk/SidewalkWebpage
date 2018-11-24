@@ -14,7 +14,7 @@ function Tracker () {
     var currentAuditTask = null;
 
     this.init = function () {
-        this.trackWindowEvents();
+        // this.trackWindowEvents();
     };
 
     this.getCurrentLabel = function(){
@@ -191,7 +191,7 @@ function Tracker () {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
-
+        console.log("[Tracker.js] action: " + action + ", notes: " + notes + ", extraData: " + extraData);
         //console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
         if(self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
             console.log("ContextMenuAction: " + self._isContextMenuAction(action));

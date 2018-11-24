@@ -7,34 +7,28 @@
 function Mission(params) {
     var self = this;
     var properties = {
-        missionId: null,
-        missionType: null,
-        isComplete: false,
-        pay: null,
-        paid: null,
-        validation: null,
-        validationProgress: null,
-        skipped: false
+        missionId: undefined,
+        missionType: undefined,
+        isComplete: undefined,
+        labelsProgress: undefined,
+        labelsValidated: undefined,
+        pay: undefined,
+        paid: undefined,
+        skipped: undefined
     };
 
     /**
-     * Initializes a front-end mission object
+     * Initializes a front-end mission object.
      */
     function _init() {
-        if ("missionId" in params) {
-            console.log("exists");
-        } else {
-            console.log("doesn't exist");
-        }
-
         if ("missionId" in params) setProperty("missionId", params.missionId);
         if ("missionType" in params) setProperty("missionType", params.missionType);
         if ("regionId" in params) setProperty("regionId", params.regionId);
         if ("isComplete" in params) setProperty("isComplete", params.isComplete);
         if ("pay" in params) setProperty("pay", params.pay);
         if ("paid" in params) setProperty("paid", params.paid);
-        if ("validation" in params) setProperty("distance", params.labelsValidated);
-        if ("validationProgress" in params) setProperty("distanceProgress", params.labelsProgress);
+        if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
+        if ("labelsValidated" in params) setProperty("labelsValidated", params.labelsValidated);
         if ("skipped" in params) setProperty("skipped", params.skipped);
     }
 
@@ -45,6 +39,10 @@ function Mission(params) {
      */
     function getProperty (key) {
         return key in properties ? properties[key] : null;
+    }
+
+    function getProperties() {
+        return properties;
     }
 
     /**
@@ -58,6 +56,7 @@ function Mission(params) {
         return this;
     }
 
+    self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
 

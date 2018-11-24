@@ -1,11 +1,12 @@
 /**
- * This function acts as a liason between the the mission factory and mission container.
+ *
+ * @returns {MissionModel}
  * @constructor
  */
 function MissionModel () {
     var self = this;
-    self._currentMission = null;
-    self._completedMissions = [];
+    var currentMission = undefined;
+    var completedMissions = [];
 
     _init();
 
@@ -19,11 +20,11 @@ function MissionModel () {
      * @private
      */
     function _addAMission(mission) {
-        console.log("Adding a mission");
+        // console.log("[Mission.js] Adding a mission");
         if (mission.getProperty("isComplete")) {
-            self._completedMissions.push(mission);
+            completedMissions.push(mission);
         } else {
-            self._currentMission = mission;
+            currentMission = mission;
         }
     }
 
@@ -35,34 +36,42 @@ function MissionModel () {
     function _createAMission(missionMetadata) {
         var metadata = {
             completed : missionMetadata.completed,
-            labelsProgress : missionMetadata.validate_progress,
-            labelsValidated : missionMetadata.validate_total,
+            labelsProgress : missionMetadata.labels_progress,
+            labelsValidated : missionMetadata.labels_validated,
             missionId : missionMetadata.mission_id,
             missionType : missionMetadata.mission_type,
             skipped : missionMetadata.skipped
         };
         var mission = new Mission(metadata);
-        console.log(mission.getProperty("missionType"));
+        // console.log(mission.getProperty("missionType"));
+        // console.log(mission.getProperty("labelsProgress"));
+        // console.log(mission.getProperty("labelsValidated"));
         _addAMission(mission);
     }
 
+    function getCurrentMission() {
+        return currentMission;
+    }
+
     /**
-     * Events that trigger functions
+     * Events that trigger mission creation and updating functions
      */
     self.on("MissionModel:createAMission", function (mission) {
-        console.log("JSON mission");
-        console.log(mission);
+        // console.log("[MissionModel.js] createAMission mission");
+        // console.log(mission);
         _createAMission(mission);
     });
 
     self.on("MissionModel:addAMission", function (mission) {
-        console.log("Adding a mission...");
+        // console.log("[MissionModel.js] Adding a mission...");
         _addAMission(mission);
     });
 
     self.on("MissionModel:updateAMission", function (mission) {
-       console.log("Updating a mission...");
+       // console.log("[MissionModel.js] Updating a mission...");
     });
+
+    self.getCurrentMission = getCurrentMission;
 
     return self;
 }

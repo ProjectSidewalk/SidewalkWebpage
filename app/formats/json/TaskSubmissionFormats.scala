@@ -18,7 +18,6 @@ object TaskSubmissionFormats {
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
-  case class ValidationTaskSubmission(validationId: Int, labelId: Int)
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and
@@ -133,9 +132,4 @@ object TaskSubmissionFormats {
     (JsPath \ "amt_assignment_id").read[Int] and
       (JsPath \ "completed").readNullable[Boolean]
     )(AMTAssignmentCompletionSubmission.apply _)
-
-  implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
-    (JsPath \ "validation_id").read[Int] and
-      (JsPath \ "label_id").read[Int]
-  )(ValidationTaskSubmission.apply _)
 }
