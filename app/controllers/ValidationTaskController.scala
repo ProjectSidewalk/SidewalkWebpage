@@ -16,9 +16,8 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.label.LabelTable.LabelValidationMetadata
 import models.mission.{Mission, MissionTable}
-import models.region._
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
 import models.user.{User, UserCurrentRegionTable}
+import models.validation._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
@@ -48,6 +47,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       submission => {
         for (data <- submission) yield {
           println("[Data] " + data)
+          for (interaction: InteractionSubmission <- data.interactions) {
+            ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
+              interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
+              interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
+          }
         }
         println("[ValidationTaskController] Success");
         Future.successful(Ok(Json.obj("status" -> "Ok")))

@@ -7,7 +7,6 @@ CREATE TABLE validation_options (
 
 CREATE TABLE validation_task_interaction (
   validation_task_interaction_id SERIAL,
-  validation_task_id INT NOT NULL,
   action TEXT NOT NULL,
   gsv_panorama_id VARCHAR(64),
   lat DOUBLE PRECISION,
@@ -21,14 +20,14 @@ CREATE TABLE validation_task_interaction (
 );
 
 CREATE TABLE label_validation (
-  validation_task_id SERIAL,
+  label_validation_id SERIAL,
   label_id INT NOT NULL,
   validation_result INT NOT NULL,
   user_id TEXT NOT NULL,
   mission_id INT NOT NULL,
   start_timestamp TIMESTAMP,
   end_timestamp TIMESTAMP,
-  PRIMARY KEY (validation_task_id),
+  PRIMARY KEY (label_validation_id),
   FOREIGN KEY (label_id) REFERENCES label(label_id),
   FOREIGN KEY (validation_result) REFERENCES validation_options(validation_option_id),
   FOREIGN KEY (user_id) REFERENCES sidewalk.user(user_id),
