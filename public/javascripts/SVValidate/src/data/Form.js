@@ -5,9 +5,13 @@ function Form(url) {
 
     function compileSubmissionData() {
         var data = {};
-
         data.interactions = svv.tracker.getActions();
+        data.labels = svv.labelContainer.getCurrentLabels();
+
         svv.tracker.refresh();
+        svv.labelContainer.refresh();
+        console.log("[Form.js] compileSubmissionData");
+        console.log(data);
         return data;
     }
 
@@ -25,7 +29,7 @@ function Form(url) {
             console.log("Converting data...");
             data = [data];
         }
-        console.log("[Form.js] submit data");
+        console.log("[Form.js] Submitting data");
         console.log(data);
 
         $.ajax({

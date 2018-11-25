@@ -14,8 +14,8 @@ case class LabelValidation(validationId: Int,
                            labelValidationId: Int,
                            userId: String,
                            missionId: Int,
-                           startTimestamp: Option[TimeStamp],
-                           endTimestamp: Option[Timestamp])
+                           startTimestamp: java.sql.Timestamp,
+                           endTimestamp: java.sql.Timestamp)
 
 
 /**
@@ -24,16 +24,16 @@ case class LabelValidation(validationId: Int,
   * @param tag
   */
 class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, Some("sidewalk"), "label_validation") {
-  def validationId = column[Int]("validation_id"), O.AutoInc)
+  def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
-  def validationResult = column[Int]("validation_result"), O.NotNull)
+  def validationResult = column[Int]("validation_result", O.NotNull)
   def userId = column[String]("user_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
-  def startTimestamp = column[Option[Timestamp]]("start_timestamp", O.Nullable)
-  def endTimestamp = column[Option[Timestamp]]("end_timestamp", O.Nullable)
+  def startTimestamp = column[java.sql.Timestamp]("start_timestamp", O.NotNull)
+  def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
 
-  def * = (validationId, labelId, validationResult, userId, missionId, startTimestamp,
-    endTimestamp) <> ((LabelValidation.apply _).tupeled, LabelValidation.unapply)
+  def * = (labelValidationId, labelId, validationResult, userId, missionId, startTimestamp,
+    endTimestamp) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 }
 
 /**
@@ -41,22 +41,23 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   */
 object LabelValidationTable {
   val db = play.api.db.slick.DB
-  val validatedLabels = TableQuery[LabelValidation]
+  val labelValidationTable = TableQuery[LabelValidationTable]
 
   /**
     * Finds a validated id from the table
     * @param validationTaskId   TaskID for this label
     * @return
     */
+  /*
   def find(validationTaskId: int): Option[LabelValidation] = db.withSession { implicit session =>
     val labelList = List(validatedLabels.filter(_.validationTaskId === validationTaskId))
     labelList.headOption
   }
+  */
 
   def save(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val labelValidationId: Int =
-      (validatedLabels returning validatedPoints.map(_.labelValidationId)) += label
+      (labelValidationTable returning labelValidationTable.map(_.labelValidationId)) += label
     labelValidationId
   }
 }
-

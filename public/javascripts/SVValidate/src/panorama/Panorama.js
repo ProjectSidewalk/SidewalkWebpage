@@ -15,6 +15,10 @@ function Panorama() {
         3: 3.2
     };
 
+    /**
+     * Initalizes a Google StreetView Panorama and disables most UI/Control settings.
+     * @private
+     */
     function _init() {
         if (typeof google != "undefined") {
             // Set control options
@@ -49,7 +53,7 @@ function Panorama() {
     }
 
     /**
-     *
+     * Returns the panorama ID for the current panorama.
      * @returns {String} Google StreetView Panorama Id
      */
     function getPanoId() {
@@ -57,7 +61,7 @@ function Panorama() {
     }
 
     /**
-     * Returns the lat lng of the panorama
+     * Returns the lat lng of the panorama.
      * @returns {{lat, lng}}
      */
     function getPosition() {
@@ -65,6 +69,10 @@ function Panorama() {
         return { 'lat' : position.lat(), 'lng' : position.lng() };
     }
 
+    /**
+     * Returns the pov of the viewer.
+     * @returns {{heading: float, pitch: float, zoom: float}}
+     */
     function getPov() {
         var pov = panorama.getPov();
 
@@ -102,6 +110,7 @@ function Panorama() {
         currentLabel.setProperty('labelId', labelMetadata['label_id']);
         currentLabel.setProperty('labelType', labelMetadata['label_type']);
         currentLabel.setProperty('pitch', labelMetadata['pitch']);
+        currentLabel.setProperty('startTimestamp', new Date().getTime());
         currentLabel.setProperty('zoom', labelMetadata['zoom']);
         return currentLabel;
     }
@@ -142,8 +151,8 @@ function Panorama() {
     }
 
     /**
-     * Retrieves a currentLabel from the database
-     * @param labelId   label_id
+     * Retrieves a label with a given id from the database.
+     * @param labelId   label_id of the desired label.
      */
     function setLabel(labelId) {
         var labelUrl = "/label/geo/" + labelId;

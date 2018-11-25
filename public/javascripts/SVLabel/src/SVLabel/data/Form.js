@@ -160,23 +160,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             panoramas[i].setProperty("submitted", true);
         }
 
-        /**
-         *  data.audit_task = {
-            street_edge_id: task.getStreetEdgeId(),
-            task_start: task.getTaskStart(),
-            audit_task_id: task.getAuditTaskId(),
-            completed: task.isComplete()
-        };
-
-         */
-        /*
-        console.log("[Form.js] compileSubmissionData");
-        console.log("data.audit_task: " + data.audit_task);
-        console.log("data.audit_task.street_edge_id: " + data.audit_task.street_edge_id);
-        console.log("data.audit_task.task_start: " + data.audit_task.task_start);
-        console.log("data.audit_task.audit_task_id: " + data.audit_task.audit_task_id);
-        console.log("data.audit_task.completed: " + data.audit_task.completed);
-        */
         return data;
     };
 
@@ -241,13 +224,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      * @param async
      */
     this.submit = function (data, task, async) {
-        console.log("[Form.js] submitting form");
-        console.log("[Form.js] submit");
-        console.log("data.audit_task: " + data.audit_task);
-        console.log("data.audit_task.street_edge_id: " + data.audit_task.street_edge_id);
-        console.log("data.audit_task.task_start: " + data.audit_task.task_start);
-        console.log("data.audit_task.audit_task_id: " + data.audit_task.audit_task_id);
-        console.log("data.audit_task.completed: " + data.audit_task.completed);
         if (typeof async === "undefined") { async = true; }
 
         if (data.constructor !== Array) { data = [data]; }
@@ -257,6 +233,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             data[0].interactions.push(action);
         }
 
+        console.log("[Form.js] Submitting data:");
+        console.log(data);
         labelContainer.refresh();
 
         $.ajax({

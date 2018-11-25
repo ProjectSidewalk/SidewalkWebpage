@@ -3,51 +3,46 @@
  * @constructor
  */
 function MenuButton(menuUI, form) {
-    var properties = {
-        labelId: undefined,
-        labelType: undefined,
-        validationResult: undefined
-    };
     var self = this;
 
     menuUI.agreeButton.click(function() {
         console.log("Agree button clicked");
-        recordAction(1);
+        clickButton(1);
         svv.panorama.setLabel();
     });
 
     menuUI.disagreeButton.click(function() {
         console.log("Disagree button clicked");
-        recordAction(2);
+        clickButton(2);
         svv.panorama.setLabel();
     });
 
     menuUI.unsureButton.click(function() {
         console.log("Unsure button clicked");
-        recordAction(3);
+        clickButton(3);
         svv.panorama.setLabel();
     });
-
-    function getProperty (key) {
-        return key in properties ? properties[key] : null;
-    }
 
     /**
      *
      * @param validationResult  Result ID {1: agree, 2: disagree, 3: unsure}
      */
-    function recordAction(validationResult) {
-        setProperty("labelId", svv.panorama.getCurrentLabel().getProperty("labelId"));
-        setProperty("labelType", svv.panorama.getCurrentLabel().getProperty("labelType"));
-        setProperty("validationResult", validationResult);
+    function clickButton(validationResult) {
+        var currentLabel = svv.panorama.getCurrentLabel();
+        currentLabel.setProperty("validationResult", validationResult);
+        currentLabel.setProperty("endTimestamp", new Date().getTime());
+
         switch (validationResult) {
             case 1:
+                svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Agree");
                 break;
             case 2:
+                svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Disagree");
                 break;
             case 3:
+                svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Unsure");
                 break;
         }
@@ -55,14 +50,6 @@ function MenuButton(menuUI, form) {
         // console.log("[MenuButton.js] labelId: " + getProperty("labelId") + ", labelType: " + getProperty("labelType") + ", validationResult: " + getProperty("validationResult"));
         // form.submit(data, true);
     }
-
-    function setProperty(key, value) {
-        properties[key] = value;
-        return this;
-    }
-
-    self.getProperty = getProperty;
-    self.setProperty = setProperty;
 
     return self;
 }

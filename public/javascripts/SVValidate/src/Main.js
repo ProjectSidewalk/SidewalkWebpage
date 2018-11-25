@@ -22,6 +22,7 @@ function Main (param) {
         svv.form = new Form(param.dataStoreUrl);
         svv.tracker = new Tracker();
 
+        svv.labelContainer = new LabelContainer();
         svv.panorama = new Panorama();
         svv.menuButtons = new MenuButton(svv.ui.validation, svv.form);
 

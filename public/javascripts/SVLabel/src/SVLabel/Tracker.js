@@ -167,8 +167,8 @@ function Tracker () {
             audit_task_id: audit_task_id,
             timestamp: timestamp
         };
-        console.log("Data");
-        console.log(data);
+        // console.log("Data");
+        // console.log(data);
 
         return {
             action : action,
@@ -191,11 +191,11 @@ function Tracker () {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
-        console.log("[Tracker.js] action: " + action + ", notes: " + notes + ", extraData: " + extraData);
+        // console.log("[Tracker.js] action: " + action + ", notes: " + notes + ", extraData: " + extraData);
         //console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
         if(self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
-            console.log("ContextMenuAction: " + self._isContextMenuAction(action));
-            console.log("IsSeverityShortcutAction: " + self._isSeverityShortcutAction(action));
+            // console.log("ContextMenuAction: " + self._isContextMenuAction(action));
+            // console.log("IsSeverityShortcutAction: " + self._isSeverityShortcutAction(action));
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);
@@ -209,7 +209,7 @@ function Tracker () {
             //console.log("Current Label: " + currentLabel + " " + action);
 
         } else if (self._isDeleteLabelAction(action)){
-            console.log("IsDeleteLabelAction: " + self._isDeleteLabelAction(action));
+            // console.log("IsDeleteLabelAction: " + self._isDeleteLabelAction(action));
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);

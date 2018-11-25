@@ -9,10 +9,13 @@ function Label() {
         canvasWidth: undefined,
         canvasX: undefined,
         canvasY: undefined,
+        endTimestamp: undefined,
         heading: undefined,
         labelId: undefined,
         labelType: undefined,
         pitch: undefined,
+        startTimestamp: undefined,
+        validationResult: undefined,
         zoom: undefined
     };
 

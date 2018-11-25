@@ -14,6 +14,7 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
+import models.label.LabelValidationTable._
 import models.label.LabelTable.LabelValidationMetadata
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserCurrentRegionTable}
@@ -51,6 +52,18 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
               interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
+          }
+
+          for (label: LabelValidationSubmission <- data.labels) {
+            val user = request.identity
+            user match {
+              case Some(user) =>
+                LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
+                  user.userId.toString, label.missionId, new Timestamp(label.startTimestamp),
+                  new Timestamp(label.endTimestamp)))
+              case None =>
+                Logger.warn("User without user_id validated a label, but every user should have a user_id.")
+            }
           }
         }
         println("[ValidationTaskController] Success");
