@@ -218,45 +218,31 @@ object StreetEdgePriorityTable {
     // Compute distance of each street edge
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
-
-    /********** Quality of Users **********/
-
-    // To each audit_task completed by a user, we attach a boolean indicating whether or not the user had a labeling
-    // frequency above our threshold.
-    // NOTE We are calling the getQualityOfUsers function below, which does the heavy lifting.
-    val completions = AuditTaskTable.completedTasks
-      .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
-      .join(getQualityOfUsers).on(_._2 === _._1)  // join on user_id
-      .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
-
-    /********** Compute Audit Counts **********/
-
-    // For audits by good users and bad users separately, group by street_edge_id and count the number of audits.
-    val goodUserAuditCounts = completions.filter(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length)}
-    val badUserAuditCounts = completions.filterNot(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length)}
-
-    // Join the good and bad user audit counts with street_edge table, filling in any counts not present as 0. We now
-    // have a table with three columns: street_edge_id, good_user_audit_count, bad_user_audit_count.
-    val allAuditCounts =
-      StreetEdgeTable.streetEdgesWithoutDeleted.joinLeft(goodUserAuditCounts).on(_.streetEdgeId === _._1).map {
-        case (_edge, _goodCount) => (_edge.streetEdgeId, _goodCount.map(_._2.ifNull(0.asColumnOf[Int])))
-      }.joinLeft(badUserAuditCounts).on(_._1 === _._1).map {
-        case (_goodCount, _badCount) => (_goodCount._1, _goodCount._2.get, _badCount.map(_._2.ifNull(0.asColumnOf[Int])).get)
-      }
-
-    /********** Compute Priority **********/
-    // If good_user_audit_count > 0, priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
-    // Else priority = 1 -- i.e., 1 / (1 + 0)
-    db.run(allAuditCounts.to[List].result).map { streetCounts =>
-      streetCounts.map { streetCount =>
-        if (streetCount._2 > 0) {
-          StreetEdgePriorityParameter.tupled(streetCount._1, 0.25 * streetCount._3 + streetCount._2)
-        }
-        else {
+    for {
+      // (street_edge_id, user_id)
+      completedStreets: Seq[(Int, String)] <- db.run(AuditTaskTable.completedTasks.groupBy(task => (task.streetEdgeId, task.userId)).map(_._1).result)
+      // (user_id, is_good_user)
+      userQuality: Map[String, Boolean] <- getQualityOfUsers
+      // (street_edge_id, is_good_user)
+      streetsWithQual: Seq[(Int, Boolean)] = completedStreets.map(x => (x._1, userQuality(x._2)))
+      // (street_edge_id, good_user_audit_count)
+      goodUserCounts: Map[Int, Int] = streetsWithQual.filter(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length)}
+      // (street_edge_id, bad_user_audit_count)
+      badUserCounts: Map[Int, Int] = streetsWithQual.filterNot(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length)}
+      // (street_edge_id)
+      edges: Seq[Int] <- db.run(StreetEdgeTable.streetEdgesWithoutDeleted.map(_.streetEdgeId).result)
+      // (street_edge_id, (good_user_audit_count, bad user_audit_count))
+      allAuditCounts: Map[Int, (Int, Int)] = edges.map(e => (e, (goodUserCounts.getOrElse(e, 0), badUserCounts.getOrElse(e, 0)))).toMap
+      // If good_user_audit_count > 0, priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
+      // Else priority = 1 -- i.e., 1 / (1 + 0)
+      priorityParamTable: List[StreetEdgePriorityParameter] = allAuditCounts.map { streetCount =>
+        if (streetCount._2._1 > 0) {
+          StreetEdgePriorityParameter.tupled((streetCount._1, 0.25 * streetCount._2._2 + streetCount._2._1))
+        } else {
           StreetEdgePriorityParameter.tupled((streetCount._1, 0.0))
         }
-      }
-    }.map { priorityParamTable =>
+      }.toList
+    } yield {
       normalizePriorityReciprocal(priorityParamTable)
     }
   }
@@ -266,7 +252,7 @@ object StreetEdgePriorityTable {
     *
     * @return A query with rows of the form (user_id: String, is_good_user: Boolean)
     */
-  def getQualityOfUsers: Query[(Rep[String], Rep[Boolean]), (String, Boolean), Seq] = {
+  def getQualityOfUsers: Future[Map[String, Boolean]] = {
     val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
 
     // Gets all tasks completed by users, groups by user_id, and sums over the distances of the street edges.
@@ -277,28 +263,25 @@ object StreetEdgePriorityTable {
     } yield (_user.userId, _dist._2)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
 
     // Gets all audit tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
-    val labels = for {
+    val labelCounts = (for {
       _user <- userTable if _user.username =!= "anonymous"
       _task <- AuditTaskTable.auditTasks if _task.userId === _user.userId
       _lab  <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
-    } yield (_user.userId, _lab.labelId) // SELECT user_id, label_id
-
-    val labelCounts: Query[(Rep[String], Rep[Int]), (String, Int), Seq] =
-      auditedDists
-        .joinLeft(labels).on(_._1 === _._1)
-        .map { case (d, l) => (d._1, l.map(_._2)) } // SELECT user_id, label_id
-        .groupBy(_._1) // GROUP BY user_id
-        .map { case (d, group) => (d, group.map(_._2).countDefined) } // SELECT user_id, COALESCE(0, COUNT(label_id))
+    } yield (_user.userId, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT user_id, COUNT(*)
 
     // Finally, determine whether each user is above or below the label per meter threshold.
     // SELECT user_id, is_good_user (where is_good_user = label_count/distance_audited > threshold)
-    auditedDists.join(labelCounts).on(_._1 === _._1)
-      .map { case (d,c) => (d._1, c._2.asColumnOf[Float] / d._2.get > LABEL_PER_METER_THRESHOLD) }
+    for {
+      aDists <- db.run(auditedDists.result).map(_.toMap)
+      lCounts <- db.run(labelCounts.result).map(_.toMap)
+    } yield {
+      aDists.map(x => (x._1, lCounts.getOrElse(x._1, 0) / x._2.getOrElse(0F) > LABEL_PER_METER_THRESHOLD))
+    }
   }
 
-  def getIdsOfGoodUsers: Future[List[String]] = db.run(
-    getQualityOfUsers.filter(_._2).map(_._1).to[List].result
-  )
+  def getIdsOfGoodUsers: Future[List[String]] = {
+    getQualityOfUsers.map{ qualMap => qualMap.filter(u => u._2).keys.toList }
+  }
 
   /**
     * Partially updates priority of a street edge based on current priority (used after an audit of the street is done).
