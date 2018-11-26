@@ -18,21 +18,24 @@ function Main (param) {
 
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
+        svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
+        svv.ui.status.labelTypeExample = $("#label-type-example");
+        svv.ui.status.missionDescription = $("#current-mission-description");
     }
 
     function _init() {
         // TODO later: Add params for map
         svv.form = new Form(param.dataStoreUrl);
+        svv.statusField = new StatusField(param.mission);
         svv.tracker = new Tracker();
 
         svv.labelContainer = new LabelContainer();
         svv.panorama = new Panorama();
         svv.menuButtons = new MenuButton(svv.ui.validation, svv.form);
-        svv.statusField = new StatusField();
 
         // mission stuff
-        svv.missionModel = new MissionContainer();
-        svv.missionModel.trigger("MissionContainer:createAMission", param.mission);
+        svv.missionContainer = new MissionContainer();
+        svv.missionContainer.trigger("MissionContainer:createAMission", param.mission);
     }
 
     _initUI();

@@ -18,7 +18,7 @@ function Mission(params) {
     };
 
     /**
-     * Initializes a front-end mission object.
+     * Initializes a front-end mission object from metadata.
      */
     function _init() {
         if ("missionId" in params) setProperty("missionId", params.missionId);
@@ -33,7 +33,7 @@ function Mission(params) {
     }
 
     /**
-     * Gets a property for this mission object
+     * Gets a single property for this mission object.
      * @param key   String representation of property
      * @returns     property if it exists, null otherwise
      */
@@ -41,10 +41,18 @@ function Mission(params) {
         return key in properties ? properties[key] : null;
     }
 
+    /**
+     * Returns all properties associated with this mission.
+     * @returns Object for properties.
+     */
     function getProperties() {
         return properties;
     }
 
+    /**
+     * Function that checks if the current mission is complete.
+     * @returns {property} True if this mission is complete, false if in progress
+     */
     function isComplete() {
         return getProperty("isComplete");
     }
@@ -61,7 +69,7 @@ function Mission(params) {
     }
 
     /**
-     * Updates mission progress for this mission.
+     * Updates status bar (UI) and current mission properties.
      */
     function updateMissionProgress() {
         var labelsProgress = getProperty("labelsProgress");

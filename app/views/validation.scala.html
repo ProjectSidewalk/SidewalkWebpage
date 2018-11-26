@@ -45,21 +45,31 @@
                 </div>
                 <div class="status-box">
                     <h1>Current Mission</h1>
+                    <h2 id="current-mission-description"></h2>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header-1">Missing Curb Ramp</h1>
+                    <h1 class="status-holder-header-1" id="label-type-example">Missing Curb Ramp</h1>
                     <div id="example-image-holder"></div>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header 2"><i>NOT</i> a Missing Curb Ramp</h1>
+                    <h1 class="status-holder-header-2" id="label-type-counterexample"><i>NOT</i> a Missing Curb Ramp</h1>
                     <div id="example-image-holder"></div>
                 </div>
             </div>
             <div id="mission-status-holder"></div>
             <div id="validation-button-holder">
-                <button id="validation-agree-button" class="validation-button">Agree</button>
-                <button id="validation-disagree-button" class="validation-button">Disagree</button>
-                <button id="validation-not-sure-button" class="validation-button">Not sure</button>
+                <button id="validation-agree-button" class="validation-button">
+                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
+                    Agree
+                </button>
+                <button id="validation-disagree-button" class="validation-button">
+                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
+                    Disagree
+                </button>
+                <button id="validation-not-sure-button" class="validation-button">
+                    <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
+                    Not sure
+                </button>
             </div>
         </div>
         <div id="mini-footer-audit">

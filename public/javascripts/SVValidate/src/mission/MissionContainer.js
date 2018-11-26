@@ -34,7 +34,7 @@ function MissionContainer () {
 
     /**
      * Creates a mission by parsing a JSON file
-     * @param missionMetadata   JSON representation of mission (from backend)
+     * @param missionMetadata   JSON metadata for mission (from backend)
      * @private
      */
     function _createAMission(missionMetadata) {
@@ -52,6 +52,10 @@ function MissionContainer () {
         _addAMission(mission);
     }
 
+    /**
+     * Returns the current mission in progress.
+     * @returns Mission object for the current mission.
+     */
     function getCurrentMission() {
         return currentMission;
     }

@@ -31,18 +31,37 @@ function Label() {
 
     var self = this;
 
+    /**
+     * Gets the file path associated with the labels' icon type.
+     * @returns {*} String - Path of image in the directory.
+     */
     function getIconUrl() {
         return icons[properties.labelType];
     }
 
+    /**
+     * Returns a specific property of a label.
+     * @param key   Name of property.
+     * @returns     Property associated with the key.
+     */
     function getProperty (key) {
         return key in properties ? properties[key] : null;
     }
 
-    function getProperties (key) {
+    /**
+     * Returns the entire property object for this label.
+     * @returns Object for properties.
+     */
+    function getProperties () {
         return properties;
     }
 
+    /**
+     * Sets the value of a single property.
+     * @param key   Name of property
+     * @param value Value to set property to.
+     * @returns {setProperty}
+     */
     function setProperty(key, value) {
         // console.log("[Label.js] Setting property " + key + " to value " + value);
         properties[key] = value;

@@ -41,7 +41,7 @@ function Tracker() {
             lat: panorama.getPosition().lat,
             lng: panorama.getPosition().lng,
             heading: panorama.getPov().heading,
-            mission_id: svv.missionModel.getCurrentMission().getProperty("missionId"),
+            mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
             note: note,
             pitch: panorama.getPov().pitch,
             timestamp: timestamp,

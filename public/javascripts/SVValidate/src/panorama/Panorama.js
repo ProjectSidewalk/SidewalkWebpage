@@ -10,9 +10,9 @@ function Panorama() {
     var properties = {};
     var panorama = undefined;
     var zoomLevel = {
-        1: 1.2,
-        2: 2.2,
-        3: 3.2
+        1: 1.1,
+        2: 2.1,
+        3: 3.1
     };
 
     /**
@@ -102,6 +102,7 @@ function Panorama() {
         setPanorama(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
                 labelMetadata['pitch'], labelMetadata['zoom']);
 
+        svv.statusField.updateLabelText(labelMetadata['label_type']);
         currentLabel.setProperty('canvasHeight', labelMetadata['canvas_height']);
         currentLabel.setProperty('canvasWidth', labelMetadata['canvas_width']);
         currentLabel.setProperty('canvasX', labelMetadata['canvas_x']);

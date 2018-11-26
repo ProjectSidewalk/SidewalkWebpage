@@ -24,7 +24,7 @@ function LabelContainer() {
         var data = {
             end_timestamp: labelMetadata.endTimestamp,
             label_id: labelMetadata.labelId,
-            mission_id: svv.missionModel.getCurrentMission().getProperty("missionId"),
+            mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
             start_timestamp: labelMetadata.startTimestamp,
             validation_result: labelMetadata.validationResult
         };

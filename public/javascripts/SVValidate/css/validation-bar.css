@@ -21,6 +21,11 @@
     margin-right: 0px;
 }
 
+.validation-status-icon {
+    height: 20px;
+    margin-right: 2px;
+}
+
 .validation-button:focus {outline:0;}
 
 .validation-button:active {

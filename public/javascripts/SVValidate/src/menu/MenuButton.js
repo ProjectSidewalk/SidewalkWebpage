@@ -24,8 +24,9 @@ function MenuButton(menuUI, form) {
     });
 
     /**
-     *
-     * @param validationResult  Result ID {1: agree, 2: disagree, 3: unsure}
+     * Updates validation status for Label, StatusField and logs interactions into Tracker. Occurs
+     * when a validation button is clicked.
+     * @param validationResult  Result ID: {1: agree, 2: disagree, 3: unsure}.
      */
     function clickButton(validationResult) {
         var currentLabel = svv.panorama.getCurrentLabel();
@@ -33,20 +34,23 @@ function MenuButton(menuUI, form) {
         currentLabel.setProperty("endTimestamp", new Date().getTime());
 
         switch (validationResult) {
+            // Agree button clicked.
             case 1:
                 svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Agree");
-                svv.missionModel.trigger("MissionContainer:updateAMission");
+                svv.missionContainer.trigger("MissionContainer:updateAMission");
                 break;
+            // Disagree button clicked.
             case 2:
                 svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Disagree");
-                svv.missionModel.trigger("MissionContainer:updateAMission");
+                svv.missionContainer.trigger("MissionContainer:updateAMission");
                 break;
+            // Unsure button clicked.
             case 3:
                 svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Unsure");
-                svv.missionModel.trigger("MissionContainer:updateAMission");
+                svv.missionContainer.trigger("MissionContainer:updateAMission");
                 break;
         }
 
