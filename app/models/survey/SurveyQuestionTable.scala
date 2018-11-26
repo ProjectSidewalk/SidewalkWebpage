@@ -24,7 +24,7 @@ class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, Some("sid
 
   def * = (surveyQuestionId, surveyQuestionText, surveyInputType, surveyCategoryOptionId, surveyDisplayRank, deleted, surveyUserRoleId, required) <> ((SurveyQuestion.apply _).tupled, SurveyQuestion.unapply)
 
-  def survey_category_option = foreignKey("survey_question_survey_category_option_id_fkey", surveyCategoryOptionId, TableQuery[SurveyCategoryOptionTable])(_.surveyCategoryOptionId)
+  def survey_category_option = foreignKey("survey_question_survey_category_option_id_fkey", surveyCategoryOptionId, TableQuery[SurveyCategoryOptionTable])(_.surveyCategoryOptionId.?)
 
 }
 

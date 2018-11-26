@@ -72,7 +72,7 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 
   def user = foreignKey("mission_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 
-  def region = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
+  def region = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId.?)
 }
 
 object MissionTable {
