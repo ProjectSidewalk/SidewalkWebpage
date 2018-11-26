@@ -127,9 +127,14 @@ object MissionTable {
     * @param userId
     * @return
     */
-  def hasCompletedAuditOnboarding(userId: UUID): Future[Boolean] =
-    selectCompletedMissionsByAUser(userId, includeOnboarding = true)
-    .map(_.exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding")))
+  def hasCompletedAuditOnboarding(userId: UUID): Future[Boolean] = {
+    for {
+      missions <- selectCompletedMissionsByAUser(userId, includeOnboarding = true)
+      missionTypeId <- MissionTypeTable.missionTypeToId("auditOnboarding")
+    } yield {
+      missions.exists(_.missionTypeId == missionTypeId)
+    }
+  }
 
 
   /**
