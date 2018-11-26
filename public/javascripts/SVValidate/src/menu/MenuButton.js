@@ -17,7 +17,7 @@ function MenuButton(menuUI, form) {
         svv.panorama.setLabel();
     });
 
-    menuUI.unsureButton.click(function() {
+    menuUI.notSureButton.click(function() {
         console.log("Unsure button clicked");
         clickButton(3);
         svv.panorama.setLabel();
@@ -36,14 +36,17 @@ function MenuButton(menuUI, form) {
             case 1:
                 svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Agree");
+                svv.missionModel.trigger("MissionContainer:updateAMission");
                 break;
             case 2:
                 svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Disagree");
+                svv.missionModel.trigger("MissionContainer:updateAMission");
                 break;
             case 3:
                 svv.labelContainer.push(currentLabel.getProperties());
                 svv.tracker.push("ValidationButtonClick_Unsure");
+                svv.missionModel.trigger("MissionContainer:updateAMission");
                 break;
         }
 

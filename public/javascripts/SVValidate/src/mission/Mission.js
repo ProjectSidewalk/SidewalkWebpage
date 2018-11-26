@@ -1,6 +1,6 @@
 /**
  * Represents a single validation mission
- * @param params  Mission metadata passed in from MissionModel.js
+ * @param params  Mission metadata passed in from MissionContainer.js
  * @returns {Mission} object
  * @constructor
  */
@@ -45,6 +45,10 @@ function Mission(params) {
         return properties;
     }
 
+    function isComplete() {
+        return getProperty("isComplete");
+    }
+
     /**
      * Sets a property of this mission
      * @param key       Name of property
@@ -56,9 +60,26 @@ function Mission(params) {
         return this;
     }
 
+    /**
+     * Updates mission progress for this mission.
+     */
+    function updateMissionProgress() {
+        var labelsProgress = getProperty("labelsProgress");
+        // TODO: update progress bar
+        if (labelsProgress >= getProperty("labelsValidated")) {
+            setProperty("isComplete", true);
+        } else {
+            labelsProgress += 1;
+        }
+        svv.statusField.updateLabelCounts(labelsProgress);
+        console.log("Validated: " + labelsProgress + ", total: " + getProperty("labelsValidated"));
+        setProperty("labelsProgress", labelsProgress);
+    }
+
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
+    self.updateMissionProgress = updateMissionProgress;
 
     _init();
     return self;

@@ -15,6 +15,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
 
+    <!-- TODO: Clean up CSS - start moving all non-header/footer stuff to SVValidate -->
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
@@ -56,10 +57,9 @@
             </div>
             <div id="mission-status-holder"></div>
             <div id="validation-button-holder">
-                <!-- put agree / disagree buttons here -->
                 <button id="validation-agree-button" class="validation-button">Agree</button>
                 <button id="validation-disagree-button" class="validation-button">Disagree</button>
-                <button id="validation-unsure-button" class="validation-button">Unsure</button>
+                <button id="validation-not-sure-button" class="validation-button">Not sure</button>
             </div>
         </div>
         <div id="mini-footer-audit">
