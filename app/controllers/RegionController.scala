@@ -24,7 +24,7 @@ import collection.immutable.Seq
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator], val messagesApi: MessagesApi)
+class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator], override val messagesApi: MessagesApi)
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   /**
