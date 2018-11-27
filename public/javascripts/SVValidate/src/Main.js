@@ -25,6 +25,10 @@ function Main (param) {
 
     function _init() {
         // TODO later: Add params for map
+        svv.util = {};
+        svv.util.properties = {};
+        svv.util.properties.panorama = new PanoProperties();
+
         svv.form = new Form(param.dataStoreUrl);
         svv.statusField = new StatusField(param.mission);
         svv.tracker = new Tracker();
