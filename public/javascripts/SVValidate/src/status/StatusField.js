@@ -35,10 +35,17 @@ function StatusField(missionMetadata) {
 
     /**
      * Updates the label name that is displayed in the status field.
+     * Updates the label name that is displayed in the title bar.
+     * TODO: Clean this up! So messy :(
+     * TODO: Make a file to keep track of useful constants, i.e., canvas width
      * @param labelType {String} Name of label without spaces.
      */
     function updateLabelText(labelType) {
         var labelName = labelNames[labelType];
+        svv.ui.status.upperMenuTitle.html("Is this a " + labelName.bold() + "?");
+        var offset = svv.ui.status.upperMenuTitle.width();
+        var width = (720 - offset) / 2;
+        svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         svv.ui.status.labelTypeExample.html(labelName);
         svv.ui.status.labelTypeCounterexample.html("NOT".italics() + " a " + labelName);

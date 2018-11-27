@@ -11,7 +11,14 @@
     top: 0px;
     width: 730px;
     height: 100px;
-    background: rgb(185, 185, 185);
+    /* background: rgb(185, 185, 185); */
+}
+
+#upper-menu-title-bar {
+    position: absolute;
+    top: 70px;
+    font-size: 25px;
+
 }
 
 #svv-panorama-holder {

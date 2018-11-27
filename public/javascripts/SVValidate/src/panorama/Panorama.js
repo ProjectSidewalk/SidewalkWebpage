@@ -211,9 +211,6 @@ function Panorama() {
         return this;
     }
 
-
-    /* TODO: move this to a util file? */
-
     _init();
 
     self.getCurrentLabel = getCurrentLabel;

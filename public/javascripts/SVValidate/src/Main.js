@@ -21,6 +21,7 @@ function Main (param) {
         svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
         svv.ui.status.labelTypeExample = $("#label-type-example");
         svv.ui.status.missionDescription = $("#current-mission-description");
+        svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
     }
 
     function _init() {
