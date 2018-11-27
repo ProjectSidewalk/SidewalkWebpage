@@ -277,7 +277,7 @@ object LabelTable {
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
-        |     sidewalk.user AS u,
+        |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
         |			(
         |         SELECT lb.label_id,
@@ -328,7 +328,7 @@ object LabelTable {
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
-        |     sidewalk.user AS u,
+        |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
         |			(
         |         SELECT lb.label_id,
@@ -380,7 +380,7 @@ object LabelTable {
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
         |     sidewalk.audit_task AS at,
-        |     sidewalk.user AS u,
+        |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
         |		  (
         |         SELECT lb.label_id,
