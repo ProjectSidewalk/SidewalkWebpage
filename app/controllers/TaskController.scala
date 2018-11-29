@@ -229,7 +229,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 }
                 LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
                                       label.photographerHeading, label.photographerPitch, label.panoramaLat,
-                                      label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated))
+                                      label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated, false))
             }
 
             // Insert label points
