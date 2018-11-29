@@ -40,6 +40,7 @@ function Label (svl, pathIn, params) {
         tagX: -1,
         tagY: -1,
         severity: null,
+        tutorial: null,
         temporary_label_id: null,
         temporaryLabel: null,
         description: null
