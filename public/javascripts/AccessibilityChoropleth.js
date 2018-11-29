@@ -82,13 +82,15 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     var totalIssues = 0;
-                    for(var issue in rates[i].labels){
-                        totalIssues += rates[i].labels[issue];
+                    for(var issue in rates[i].labels) {
+                        if (rates[i].labels.hasOwnProperty(issue)) {
+                            totalIssues += rates[i].labels[issue];
+                        }
                     }
 
                     var significantData = rates[i].rate >= .3;
-                    var fillColor = significantData ? getColor(1000.0 * totalIssues/rates[i].completed_distance_m) : '#888';
-                    var fillOpacity = significantData ? 0.4 + (totalIssues/rates[i].completed_distance_m) : .25;
+                    var fillColor = significantData ? getColor(1000.0 * totalIssues / rates[i].completed_distance_m) : '#888';
+                    var fillOpacity = significantData ? 0.4 + (totalIssues / rates[i].completed_distance_m) : .25;
                     return {
                         color: '#888',
                         weight: 1,
@@ -158,7 +160,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                                     '</td><td>Surface Problems<br/>'+
                                     '</td><td>Sidewalk Obstacles<br/>'+
                                     '</td></tr>'+
-                                    '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Other.png"></td>'+
+                                    '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoSidewalk.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoCurbRamp.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_SurfaceProblem.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Obstacle.png"></td>'+

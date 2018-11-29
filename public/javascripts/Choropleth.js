@@ -44,16 +44,18 @@ function Choropleth(_, $, turf, difficultRegionIds) {
      */
 
     function getColor(p) {
-        return p > 90 ? '#08306b' :
-            p > 80 ? '#08519c' :
-                p > 70 ? '#08719c' :
-                    p > 60 ? '#2171b5' :
-                        p > 50 ? '#4292c6' :
-                            p > 40 ? '#6baed6' :
-                                p > 30 ? '#9ecae1' :
-                                    p > 20 ? '#c6dbef' :
-                                        p > 10 ? '#deebf7' :
-                                            '#f7fbff';
+        //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
+        return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
+                 p > 90 ? '#08306b' :
+                    p > 80 ? '#08519c' :
+                        p > 70 ? '#08719c' :
+                            p > 60 ? '#2171b5' :
+                                p > 50 ? '#4292c6' :
+                                    p > 40 ? '#6baed6' :
+                                        p > 30 ? '#9ecae1' :
+                                            p > 20 ? '#c6dbef' :
+                                                p > 10 ? '#deebf7' :
+                                                    '#f7fbff';
     }
 
     /**
@@ -191,7 +193,7 @@ function Choropleth(_, $, turf, difficultRegionIds) {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
                 return regionId == x.region_id;
-            })
+            });
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";

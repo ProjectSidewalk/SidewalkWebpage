@@ -2,7 +2,6 @@ package models.label
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import play.api.Logger
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
@@ -18,7 +17,7 @@ class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("
 }
 
 /**
- * Data access object for the label table
+ * Data access object for the label_type table
  */
 object LabelTypeTable {
   val db = play.api.db.slick.DB

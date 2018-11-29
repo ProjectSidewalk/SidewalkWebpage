@@ -2,6 +2,7 @@
  * Todo. This module needs to be cleaned up.
  * Todo. Separate the Google Maps component (UI and logic) and Street View component (UI and logic).
  * @param canvas
+ * @param neighborhoodModel
  * @param uiMap
  * @param params
  * @returns {{className: string}}
@@ -15,6 +16,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             renderLabels : false
         },
         markers = [],
+        prevPanoId = undefined,
         properties = {
             browser : 'unknown',
             latlng : {
@@ -372,7 +374,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Blink google maps pane
      */
     function blinkGoogleMaps () {
-        var highlighted = false;
         stopBlinkingGoogleMaps();
         googleMapsPaneBlinkInterval = window.setInterval(function () {
             svl.ui.googleMaps.overlay.toggleClass("highlight-50");
@@ -563,9 +564,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {*}
      */
     function _takeAStep(currentPosition, heading) {
-        var newPosition = google.maps.geometry.spherical.computeOffset(currentPosition,
-            ONE_STEP_DISTANCE_IN_M, heading);
-        return newPosition;
+        return google.maps.geometry.spherical.computeOffset(currentPosition, ONE_STEP_DISTANCE_IN_M, heading);
     }
 
     /**
@@ -771,7 +770,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                     //});
                                 }
                             }
-                            svl.tracker.push("PanoId_Changed");
+
+                            // Checks if pano_id is the same as the previous one.
+                            // Google maps API triggers the pano_changed event twice: once moving
+                            // between pano_ids  and once for setting the new pano_id.
+                            if (panoId !== prevPanoId) {
+                                svl.tracker.push("PanoId_Changed");
+                                prevPanoId = panoId;
+                            }
                         }
                         else {
                             handleImageryNotFound(panoId, panoStatus);
@@ -786,20 +792,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             throw self.className + ' handlerPanoramaChange(): panorama not defined.';
         }
 
-    }
-
-    // missions greater than 3000 feet are measured in miles
-    function distanceLeftFeetOrMiles(){
-        var remainingRate = 1 - svl.missionContainer.getCurrentMission().getMissionCompletionRate();
-        var missionDistance = svl.missionContainer.getCurrentMission().getProperty("auditDistanceFt");
-        if(missionDistance < 3000){
-            return parseInt(missionDistance * remainingRate) + " feet";
-        }
-        else{
-            missionDistance = svl.missionContainer.getCurrentMission().getProperty("auditDistanceMi");
-            var miles = missionDistance * remainingRate;
-            return miles.toFixed(2) + " miles";
-        }
     }
 
     function finishNeighborhood() {
@@ -823,32 +815,21 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         if (!status.labelBeforeJumpListenerSet) {
 
-            // Get a new task and check if its disconnected from the current task
-            // If yes, then finish the current task after the user has labeling the
-            // the current location before jumping to the new location
+            // Get a new task and check if its disconnected from the current task. If yes, then finish the current task
+            // after the user has labeling the the current location before jumping to the new location.
 
-            //console.log("Current street: " + task.getStreetEdgeId());
-            //console.log("Task ID:" + task.getAuditTaskId());
-
-            // Set mission
             missionJump = mission;
-            //Get a new task
-            // var nextTask = svl.taskContainer.getFinishedAndFindNextTask(task);
             var nextTask = svl.taskContainer.nextTask(task);
 
-            // Check if the interface jumped the user to another discontinuous location.
-            // If the user has indeed jumped, [UPDATE] before jumping, let the user know to
-            // label the location before proceeding.
-
             if (nextTask && !task.isConnectedTo(nextTask)) {
+                // Check if the interface jumped the user to another discontinuous location. If the user has indeed
+                // jumped, [UPDATE] before jumping, let the user know to label the location before proceeding.
 
                 // Set the newTask before jumping
                 svl.taskContainer.setBeforeJumpNewTask(nextTask);
-
                 status.labelBeforeJumpListenerSet = true;
 
-                // Store before jump location for tracking before-jump actions every time the user
-                // moves away from his location
+                // Store before jump location for tracking pre-jump actions when the user leaves their location.
                 setBeforeJumpLocation();
 
                 // Listener activated for tracking before-jump actions
@@ -856,10 +837,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     listeners.beforeJumpListenerHandle = google.maps.event.addListener(svl.panorama,
                         "pano_changed", trackBeforeJumpActions);
                 } catch (err) {}
-
             }
             else {
-                // Finish a task
                 finishCurrentTaskBeforeJumping(missionJump);
 
                 // Move to the new task if the neighborhood has not finished
@@ -877,7 +856,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Callback to track when user moves away from his current location
      */
-
     function trackBeforeJumpActions() {
 
         // This is a callback function that is called each time the user moves
@@ -900,8 +878,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             }
             else if (distance > 0.07) {
-
-                //console.log("You are way off! " + distance)
 
                 // Message versions:
                 // v3: "Don't walk too far");
@@ -1110,7 +1086,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                 });
-                labelType = selectedLabel.getProperty("labelType");
+                var labelType = selectedLabel.getProperty("labelType");
                 if(labelType === "Other"){
                   //no tooltips for other
                   $('#severity-one').tooltip('destroy');
@@ -1198,7 +1174,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param e
      */
     function handlerViewControlLayerMouseLeave (e) {
-        setViewControlLayerCursor('OpenHand')
+        setViewControlLayerCursor('OpenHand');
         mouseStatus.isLeftDown = false;
     }
 
@@ -1256,8 +1232,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.showLabelTag(label);
         }
         else {
-            // console.log("On nothing");
-            // canvas.hideDeleteLabel();
             _canvas.showLabelTag(undefined);
             _canvas.setCurrentLabel(undefined);
         }
@@ -1627,6 +1601,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /**
      * Sets the initial location before the pano change happens
      * @param gLatLng
+     * @param panoId
      */
     function setPanoChangeInitialLocation(gLatLng, panoId) {
         panoChange["initialPos"]["pano"] = panoId;
@@ -1736,7 +1711,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     function setPov (pov, durationMs, callback) {
         if (('panorama' in svl) && svl.panorama) {
             var currentPov = svl.panorama.getPov();
-            var end = false;
             var interval;
 
             pov.heading = parseInt(pov.heading, 10);
@@ -1776,7 +1750,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 // Get how much angle you change over timeSegment of time.
                 var cw = (pov.heading - currentPov.heading + 360) % 360;
                 var ccw = 360 - cw;
-                var headingDelta;
                 var headingIncrement;
                 if (cw < ccw) {
                     headingIncrement = cw * (timeSegment / durationMs);
@@ -1850,19 +1823,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     /**
-     * Show delete menu
-     */
-    function showDeleteLabelMenu () {
-        var item = canvas.isOn(mouseStatus.currX,  mouseStatus.currY);
-        if (item && item.className === "Point") {
-            var selectedLabel = item.belongsTo().belongsTo();
-            if (selectedLabel === canvas.getCurrentLabel()) {
-                canvas.showDeleteLabel(mouseStatus.currX, mouseStatus.currY);
-            }
-        }
-    }
-
-    /**
      * Unlock disable panning
      * @returns {unlockDisablePanning}
      */
@@ -1897,7 +1857,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     // Set a flag that triggers the POV being reset into the route direction upon the postiion changing
     self.preparePovReset = function(){
         initialPositionUpdate = true;
-    }
+    };
     // Set the POV in the same direction as the route
     function setPovToRouteDirection(){
         var pov = svl.panorama.getPov(),

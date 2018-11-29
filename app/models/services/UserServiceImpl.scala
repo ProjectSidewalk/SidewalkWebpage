@@ -1,12 +1,10 @@
 package models.services
 
-import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAO
 import models.user.User
-import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.concurrent.Future
 

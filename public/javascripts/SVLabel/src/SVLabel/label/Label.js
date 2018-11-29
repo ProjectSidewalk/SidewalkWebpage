@@ -1,5 +1,6 @@
 /**
  * A Label module.
+ * @param svl
  * @param pathIn
  * @param params
  * @returns {*}
@@ -40,7 +41,7 @@ function Label (svl, pathIn, params) {
         tagY: -1,
         severity: null,
         temporary_label_id: null,
-        temporaryProblem: null,
+        temporaryLabel: null,
         description: null
     };
 
@@ -219,13 +220,12 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This method returns the boudning box of the label's outline.
+     * This method returns the bounding box of the label's outline.
      * @param pov
      * @returns {*}
      */
     function getBoundingBox (pov) {
-        var boundingBox = path.getBoundingBox(pov);
-        return boundingBox;
+        return path.getBoundingBox(pov);
     }
 
     /**
@@ -738,7 +738,7 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This function sets the sub label type of this label. E.g. for a bus stop there are StopSign_OneLeg
+     * This function sets the sub label type of this label. E.g. for a NoCurbRamp there are "Missing Curb Ramp"
      * @param labelType
      * @returns {setSubLabelDescription}
      */
@@ -791,7 +791,7 @@ function Label (svl, pathIn, params) {
     /**
      * Set visibility of labels
      * @param visibility
-     * @param panoId
+     * @param panoramaId
      * @returns {setVisibilityBasedOnLocation}
      */
     function setVisibilityBasedOnLocation (visibility, panoramaId) {

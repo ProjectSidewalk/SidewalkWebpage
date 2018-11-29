@@ -1,13 +1,13 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.region.NamedRegion
-@import models.mission.MissionTable
+@import models.mission.{MissionTable, Mission}
 @import models.survey._
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, region: Option[NamedRegion], user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -330,11 +330,11 @@
                                 <div class="radio-inline" id="column-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible-2.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
-                                    <div class="problem-severity-axis-label">Passable</div>
+                                    <div class="label-severity-axis-label">Passable</div>
                                 </div>
                                 <div class="radio-inline" id="severity-one" data-toggle="tooltip" onmouseut="function(){}">
                                     <label class="radio-button-labels">
-                                        <input type="radio" name="problem-severity" value="1">
+                                        <input type="radio" name="label-severity" value="1">
                                             <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
                                             value="1" alt="Smiley face rating 1">
@@ -343,7 +343,7 @@
                                 </div>
                                 <div class="radio-inline" id="severity-two">
                                     <label class="radio-button-labels">
-                                        <input type="radio" name="problem-severity" value="2">
+                                        <input type="radio" name="label-severity" value="2">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_2_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_2_BW.png'
                                             value="2" alt="Smiley face rating 2">
@@ -352,7 +352,7 @@
                                 </div>
                                 <div class="radio-inline" id="severity-three" data-toggle="tooltip">
                                   <label class="radio-button-labels">
-                                      <input type="radio" name="problem-severity" value="3">
+                                      <input type="radio" name="label-severity" value="3">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_3_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_3_BW.png'
                                             value="3" alt="Smiley face rating 3">
@@ -361,7 +361,7 @@
                                 </div>
                                 <div class="radio-inline" id="severity-four">
                                     <label class="radio-button-labels">
-                                        <input type="radio" name="problem-severity" value="4">
+                                        <input type="radio" name="label-severity" value="4">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_4_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_4_BW.png'
                                             value="4" alt="Smiley face rating 4">
@@ -370,7 +370,7 @@
                                 </div>
                                 <div class="radio-inline" id="severity-five" data-toggle="tooltip">
                                   <label class="radio-button-labels">
-                                      <input type="radio" name="problem-severity" value="5">
+                                      <input type="radio" name="label-severity" value="5">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_5_BW.png'
                                             default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_5_BW.png'
                                             value="5" alt="Smiley face rating 5">
@@ -380,7 +380,7 @@
                                 <div class="radio-inline" id="column-not-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible-2.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
-                                    <div class="problem-severity-axis-label">Not Passable</div>
+                                    <div class="label-severity-axis-label">Not Passable</div>
                                 </div>
                             </div>
                         </div>
@@ -519,6 +519,10 @@
                                     <td id="modal-mission-complete-surface-problem-count" class="col-right"></td>
                                 </tr>
                                 <tr>
+                                    <th>No Sidewalk</th>
+                                    <td id="modal-mission-complete-no-sidewalk-count" class="col-right"></td>
+                                </tr>
+                                <tr>
                                     <th>Other</th>
                                     <td id="modal-mission-complete-other-count" class="col-right"></td>
                                 </tr>
@@ -548,7 +552,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId)==0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -733,24 +737,13 @@
                 </div>
 
             <script>
-                    var url = '/isTurker';
+                    var role = '@user.get.role';
                     var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
-                    $.ajax({
-                        async: true,
-                        url: url,//endpoint that checks above conditions
-                        type: 'get',
-                        success: function(data){
-                            if(data.isTurker && numMissionsCompleted == 0){
-                                $("#onboarding-skip-option").hide();
-                            }
-                            else{
-                                $("#onboarding-skip-option").show();
-                            }
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                            console.log(thrownError);
-                        }
-                    });
+                    if (role === 'Turker' && numMissionsCompleted === 0) {
+                        $("#onboarding-skip-option").hide();
+                    } else{
+                        $("#onboarding-skip-option").show();
+                    }
             </script>
 
         </div>
@@ -792,17 +785,20 @@
         svl.userModel = new UserModel();
         @if(user) {
             var userParam = {
-                username : '@user.get.username',
-                completedMissions: @Html(Json.stringify(Json.toJson(MissionTable.selectCompletedMissionsByAUser(user.get.userId).map(_.toJSON))))
+                username: '@user.get.username',
+                role: '@user.get.role'
             };
-            svl.user = new User(userParam, svl.userModel);
+            svl.user = new User(userParam);
 
             $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
         } else {
             $('#status-neighborhood-link').hide();
 
-            var userParam = { username : "anonymous" };
-            svl.user = new User(userParam, svl.userModel);
+            var userParam = {
+                username: "anonymous",
+                role: "Anonymous"
+            };
+            svl.user = new User(userParam);
         }
         svl.userModel._user = svl.user;
         @if(task) {
@@ -927,7 +923,7 @@
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId)==0){
+                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");
@@ -963,19 +959,15 @@
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
 
-            @if(region) {
-                mainParam.regionId = @region.get.regionId;
-                mainParam.regionName = '@region.get.name';
-                mainParam.regionLayer = omnivore.wkt.parse("@region.get.geom");
-                if(@RegionTable.difficultRegionIds.contains(region.get.regionId)){
-                       $('#advanced-overlay').show();
-                       mainParam.advancedOverlay = true
-                }
-            } else {
-                mainParam.regionId = 1;
-                mainParam.regionName = "";
-                mainParam.regionLayer = null;
+            mainParam.regionId = @region.regionId;
+            mainParam.regionName = '@region.name';
+            mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
+            if(@RegionTable.difficultRegionIds.contains(region.regionId)){
+                   $('#advanced-overlay').show();
+                   mainParam.advancedOverlay = true
             }
+
+            mainParam.mission = @Html(mission.toJSON.toString);
 
             svl.main = new Main(mainParam);
 

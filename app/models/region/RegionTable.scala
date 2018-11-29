@@ -3,7 +3,7 @@ package models.region
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.Polygon
-import models.mission.MissionTable
+import models.audit.AuditTaskTable
 
 import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
@@ -84,21 +84,6 @@ object RegionTable {
   }
 
   /**
-    * Picks one of the easy regions with highest average priority.
-    *
-    * @return
-    */
-  def selectAHighPriorityEasyRegion: Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] =
-      regionsWithoutDeleted.filterNot(_.regionId inSet difficultRegionIds).map(_.regionId).list
-
-    selectAHighPriorityRegionGeneric(possibleRegionIds) match {
-      case Some(region) => Some(region)
-      case _ => selectAHighPriorityRegion // Should only happen if all regions are difficult regions.
-    }
-  }
-
-  /**
     * Picks one of the regions with highest average priority.
     *
     * @return
@@ -119,7 +104,7 @@ object RegionTable {
     * @return
     */
   def selectAHighPriorityRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
-    val possibleRegionIds: List[Int] = MissionTable.selectIncompleteRegionsUsingTasks(userId).toList
+    val possibleRegionIds: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
       case Some(region) => Some(region)
@@ -135,7 +120,7 @@ object RegionTable {
     */
   def selectAHighPriorityEasyRegion(userId: UUID): Option[NamedRegion] = db.withSession { implicit session =>
     val possibleRegionIds: List[Int] =
-      MissionTable.selectIncompleteRegionsUsingTasks(userId).filterNot(difficultRegionIds.contains(_)).toList
+      AuditTaskTable.selectIncompleteRegions(userId).filterNot(difficultRegionIds.contains(_)).toList
 
     selectAHighPriorityRegionGeneric(possibleRegionIds) match {
       case Some(region) => Some(region)
@@ -222,12 +207,13 @@ object RegionTable {
 
   def selectNamedRegionsIntersectingAStreet(streetEdgeId: Int): List[NamedRegion] = db.withSession { implicit session =>
     val selectRegionQuery = Q.query[Int, NamedRegion](
-      """SELECT region.region_id, region_property.value, region.geom FROM sidewalk.region
-        |INNER JOIN sidewalk.street_edge
-        | ON ST_Intersects(region.geom, street_edge.geom)
-        |LEFT JOIN sidewalk.region_property
-        | ON region.region_id = region_property.region_id
-        |WHERE street_edge.street_edge_id = ? AND region_property.key = 'Neighborhood Name' AND region.deleted = FALSE
+      """SELECT region.region_id, region_property.value, region.geom
+        |FROM sidewalk.region
+        |INNER JOIN sidewalk.street_edge ON ST_Intersects(region.geom, street_edge.geom)
+        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
+        |WHERE street_edge.street_edge_id = ?
+        |    AND region_property.key = 'Neighborhood Name'
+        |    AND region.deleted = FALSE
       """.stripMargin
     )
     selectRegionQuery(streetEdgeId).list
@@ -246,12 +232,11 @@ object RegionTable {
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
       """SELECT region.region_id, region_property.value, region.geom
-        | FROM sidewalk.region
-        |LEFT JOIN sidewalk.region_property
-        | ON region.region_id = region_property.region_id
+        |FROM sidewalk.region
+        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
         |WHERE region.deleted = FALSE
-        | AND region.region_type_id = 2
-        | AND ST_Intersects(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
+        |    AND region.region_type_id = 2
+        |    AND ST_Intersects(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
     )
     val minLat = min(lat1, lat2)
     val minLng = min(lng1, lng2)
@@ -273,12 +258,11 @@ object RegionTable {
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNamedNeighborhoodQuery = Q.query[(Double, Double, Double, Double), NamedRegion](
       """SELECT region.region_id, region_property.value, region.geom
-        | FROM sidewalk.region
-        |LEFT JOIN sidewalk.region_property
-        | ON region.region_id = region_property.region_id
+        |FROM sidewalk.region
+        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
         |WHERE region.deleted = FALSE
-        | AND region.region_type_id = 2
-        | AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
+        |    AND region.region_type_id = 2
+        |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
     )
     val minLat = min(lat1, lat2)
     val minLng = min(lng1, lng2)
@@ -319,14 +303,13 @@ object RegionTable {
   def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Int = db.withSession { implicit session =>
     val closestNeighborhoodQuery = Q.query[(Float, Float, Float, Float), Int](
       """SELECT region_id
-        |FROM
-        |region,
-        |(
-        |    SELECT MIN(st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326))) AS min_dist
-        |    FROM region
-        |    WHERE region.deleted = FALSE
-        |        AND region.region_type_id = 2
-        |) region_dists
+        |FROM region,
+        |     (
+        |         SELECT MIN(st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326))) AS min_dist
+        |         FROM region
+        |         WHERE region.deleted = FALSE
+        |             AND region.region_type_id = 2
+        |     ) region_dists
         |WHERE st_distance(geom, st_setsrid(st_makepoint(?, ?), 4326)) = min_dist
         |    AND deleted = FALSE
         |    AND region_type_id = 2;

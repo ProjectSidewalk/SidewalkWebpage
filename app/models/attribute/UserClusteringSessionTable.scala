@@ -4,9 +4,9 @@ package models.attribute
   * Created by misaugstad on 4/27/17.
   */
 
-import models.audit.{AuditTaskEnvironmentTable, AuditTaskTable}
+import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTypeTable, ProblemTemporarinessTable}
+import models.label.{LabelTable, LabelTypeTable, LabelTemporarinessTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -16,7 +16,7 @@ import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.language.postfixOps
 
-case class LabelToCluster(userIdOrIp: Option[String],
+case class LabelToCluster(userId: String,
                           labelId: Int,
                           labelType: String,
                           lat: Option[Float],
@@ -30,7 +30,7 @@ case class LabelToCluster(userIdOrIp: Option[String],
     */
   def toJSON: JsObject = {
     Json.obj(
-      "user_id_or_ip" -> userIdOrIp,
+      "user_id" -> userId,
       "label_id" -> labelId,
       "label_type" -> labelType,
       "lat" -> lat,
@@ -41,19 +41,15 @@ case class LabelToCluster(userIdOrIp: Option[String],
   }
 }
 
-case class UserClusteringSession(userClusteringSessionId: Int,
-                                 isAnonymous: Boolean, userId: Option[String], ipAddress: Option[String],
-                                 timeCreated: java.sql.Timestamp)
+case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: java.sql.Timestamp)
 
 
 class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](tag, Some("sidewalk"), "user_clustering_session") {
   def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def isAnonymous: Column[Boolean] = column[Boolean]("is_anonymous", O.NotNull)
-  def userId: Column[Option[String]] = column[Option[String]]("user_id")
-  def ipAddress: Column[Option[String]] = column[Option[String]]("ip_address")
+  def userId: Column[String] = column[String]("user_id", O.NotNull)
   def timeCreated: Column[java.sql.Timestamp] = column[java.sql.Timestamp]("time_created", O.NotNull)
 
-  def * : ProvenShape[UserClusteringSession] = (userClusteringSessionId, isAnonymous, userId, ipAddress, timeCreated) <>
+  def * : ProvenShape[UserClusteringSession] = (userClusteringSessionId, userId, timeCreated) <>
     ((UserClusteringSession.apply _).tupled, UserClusteringSession.unapply)
 
   def user: ForeignKeyQuery[UserTable, DBUser] =
@@ -68,7 +64,7 @@ object UserClusteringSessionTable {
   val userClusteringSessions: TableQuery[UserClusteringSessionTable] = TableQuery[UserClusteringSessionTable]
 
   implicit val labelToClusterConverter = GetResult[LabelToCluster](r => {
-    LabelToCluster(r.nextStringOption, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
+    LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextBoolean)
   })
 
   def getAllUserClusteringSessions: List[UserClusteringSession] = db.withTransaction { implicit session =>
@@ -81,7 +77,7 @@ object UserClusteringSessionTable {
     * @param userId
     * @return
     */
-  def getRegisteredUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
+  def getUserLabelsToCluster(userId: String): List[LabelToCluster] = db.withSession { implicit session =>
 
     // Gets all non-deleted, non-tutorial labels placed by the specified user.
     val labels = for {
@@ -98,44 +94,8 @@ object UserClusteringSessionTable {
 
     // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
     val labelsWithTemporariness = for {
-      (_lab, _temp) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
-    } yield (_lab._1.asColumnOf[Option[String]], _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
-
-    labelsWithTemporariness.list.map(LabelToCluster.tupled)
-  }
-
-  /**
-    * Returns labels that were placed by the specified user, in the form needed for clustering.
-    *
-    * @param ipAddress
-    * @return
-    */
-  def getAnonymousUserLabelsToCluster(ipAddress: String): List[LabelToCluster] = db.withSession { implicit session =>
-
-    // Gets the audit tasks completed by this anonymous user.
-    val userAudits: Set[Int] =
-      AuditTaskEnvironmentTable.auditTaskEnvironments
-        .filter(_.ipAddress === ipAddress)
-        .map(_.auditTaskId)
-        .list.toSet
-
-    // Gets all non-deleted, non-tutorial labels placed by the specified user (filters using audit tasks from above).
-    val labels = for {
-      _task <- AuditTaskTable.auditTasks if _task.auditTaskId inSet userAudits
-      _lab <- LabelTable.labelsWithoutDeletedOrOnboarding if _lab.auditTaskId === _task.auditTaskId
-      _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
-      _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
-    } yield (_task.userId, _lab.labelId, _type.labelType, _latlng.lat, _latlng.lng)
-
-    // Left joins to get severity for any labels that have them.
-    val labelsWithSeverity = for {
-      (_lab, _severity) <- labels.leftJoin(LabelTable.severities).on(_._2 === _.labelId)
-    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _severity.severity.?)
-
-    // Left joins to get temporariness for any labels that have them (those that don't are marked as temporary=false).
-    val labelsWithTemporariness = for {
-      (_lab, _temp) <- labelsWithSeverity.leftJoin(ProblemTemporarinessTable.problemTemporarinesses).on(_._2 === _.labelId)
-    } yield (_lab._1.asColumnOf[Option[String]], _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporaryProblem.?.getOrElse(false))
+      (_lab, _temp) <- labelsWithSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._2 === _.labelId)
+    } yield (_lab._1, _lab._2, _lab._3, _lab._4, _lab._5, _lab._6, _temp.temporary.?.getOrElse(false))
 
     labelsWithTemporariness.list.map(LabelToCluster.tupled)
   }
@@ -153,7 +113,7 @@ object UserClusteringSessionTable {
       _type <- LabelTypeTable.labelTypes if _att.labelTypeId === _type.labelTypeId
       if _att.regionId === regionId
     } yield (
-      _sess.ipAddress.ifNull(_sess.userId),
+      _sess.userId,
       _att.userAttributeId,
       _type.labelType,
       _att.lat.?,

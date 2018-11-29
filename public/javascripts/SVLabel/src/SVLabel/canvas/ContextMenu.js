@@ -7,7 +7,7 @@ function ContextMenu (uiContextMenu) {
     var $menuWindow = uiContextMenu.holder,
         $connector = uiContextMenu.connector,
         $radioButtons = uiContextMenu.radioButtons,
-        $temporaryProblemCheckbox = uiContextMenu.temporaryProblemCheckbox,
+        $temporaryLabelCheckbox = uiContextMenu.temporaryLabelCheckbox,
         $descriptionTextBox = uiContextMenu.textBox,
         windowWidth = $menuWindow.width(),
         windowHeight = $menuWindow.outerHeight();
@@ -22,29 +22,17 @@ function ContextMenu (uiContextMenu) {
         var clicked_out = !(context_menu_el.contains(event.target));
         if (isOpen()){
             hide();
-            wasOpen = true;
             if (clicked_out) {
              svl.tracker.push('ContextMenu_CloseClickOut');
-            _handleSeverityPopup();
+            handleSeverityPopup();
             }
         }
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
-    document.onkeypress= function(e){
-        e= e || window.event;
-        var key_pressed = e.which || e.keyCode;
-        if (key_pressed == 13 && isOpen()){
-            hide();
-            svl.tracker.push('ContextMenu_ClosePressEnter');
-            _handleSeverityPopup();
-        }
-    };//handles pressing enter key to exit ContextMenu
-
-
 
     $menuWindow.on('mousedown', handleMenuWindowMouseDown);
     $radioButtons.on('change', _handleRadioChange);
-    $temporaryProblemCheckbox.on('change', handleTemporaryProblemCheckboxChange);
+    $temporaryLabelCheckbox.on('change', handleTemporaryLabelCheckboxChange);
     $descriptionTextBox.on('change', handleDescriptionTextBoxChange);
     $descriptionTextBox.on('focus', handleDescriptionTextBoxFocus);
     $descriptionTextBox.on('blur', handleDescriptionTextBoxBlur);
@@ -80,7 +68,7 @@ function ContextMenu (uiContextMenu) {
             lastKeyPressed = 0;
             lastKeyCmd = false;
         }
-    }//handles both key down and key up events
+    }; //handles both key down and key up events
 
     function checkRadioButton (value) {
         uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click");
@@ -137,18 +125,18 @@ function ContextMenu (uiContextMenu) {
 
         svl.tracker.push('ContextMenu_CloseButtonClick');
         hide();
-        _handleSeverityPopup();
+        handleSeverityPopup();
 
     }
 
     function _handleOKButtonClick () {
         svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
-        _handleSeverityPopup();
+        handleSeverityPopup();
 
     }
 
-    function _handleSeverityPopup () {
+    function handleSeverityPopup () {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
         if (labels.length == 0){
@@ -264,13 +252,13 @@ function ContextMenu (uiContextMenu) {
      *
      * @param e
      */
-    function handleTemporaryProblemCheckboxChange (e) {
+    function handleTemporaryLabelCheckboxChange (e) {
         var checked = $(this).is(":checked"),
             label = getTargetLabel();
         svl.tracker.push('ContextMenu_CheckboxChange', { checked: checked });
 
         if (label) {
-            label.setProperty('temporaryProblem', checked);
+            label.setProperty('temporaryLabel', checked);
         }
     }
 
@@ -402,7 +390,7 @@ function ContextMenu (uiContextMenu) {
     function show (x, y, param) {
         setStatus('targetLabel', null);
         $radioButtons.prop('checked', false);
-        $temporaryProblemCheckbox.prop('checked', false);
+        $temporaryLabelCheckbox.prop('checked', false);
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType(),
@@ -420,7 +408,7 @@ function ContextMenu (uiContextMenu) {
                     left: x,
                     width: '2px',
                     height: '2px',
-                })
+                });
 
                 // Determines coordinates for context menu when displayed below the label.
                 var topCoordinate = y + 20;
@@ -454,7 +442,7 @@ function ContextMenu (uiContextMenu) {
 
                 // Set the menu value if label has it's value set.
                 var severity = param.targetLabel.getProperty('severity'),
-                    temporaryProblem = param.targetLabel.getProperty('temporaryProblem'),
+                    temporaryLabel = param.targetLabel.getProperty('temporaryLabel'),
                     description = param.targetLabel.getProperty('description');
                 if (severity) {
                     $radioButtons.each(function (i, v) {
@@ -462,8 +450,8 @@ function ContextMenu (uiContextMenu) {
                     });
                 }
 
-                if (temporaryProblem) {
-                    $temporaryProblemCheckbox.prop("checked", temporaryProblem);
+                if (temporaryLabel) {
+                    $temporaryLabelCheckbox.prop("checked", temporaryLabel);
                 }
 
                 if (description) {
@@ -484,7 +472,7 @@ function ContextMenu (uiContextMenu) {
     /**
      * Toggles the color of the tag when selected/deselected.
      * @param labelTags     List of tags that the current label has.
-     * @param tagValue      Text value of tag that has been selected.
+     * @param id
      * @param target        Tag button that is being modified.
      */
     function _toggleTagColor(labelTags, id, target) {
@@ -498,6 +486,7 @@ function ContextMenu (uiContextMenu) {
     self.getContextMenuUI = getContextMenuUI;
     self.checkRadioButton = checkRadioButton;
     self.getTargetLabel = getTargetLabel;
+    self.handleSeverityPopup = handleSeverityPopup;
     self.hide = hide;
     self.unhide = unhide;
     self.isOpen = isOpen;
