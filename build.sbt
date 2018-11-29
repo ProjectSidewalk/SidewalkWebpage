@@ -25,7 +25,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   evolutions,
-  jdbc,
+//  jdbc,
 //  anorm, // change to "com.typesafe.play" %% "anorm" % "2.4.0" for Play 2.4
 //  cache,
 //  "com.vividsolutions" % "jts" % "1.13",
