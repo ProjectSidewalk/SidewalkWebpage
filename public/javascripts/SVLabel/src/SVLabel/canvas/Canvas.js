@@ -662,99 +662,6 @@ function Canvas(ribbon) {
     }
 
     /**
-     * This method takes a label data (i.e., a set of point coordinates, label types, etc) and
-     * and insert it into the labels array so the Canvas will render it
-     * @method
-     */
-    function insertLabel(labelPoints, target) {
-        if (!target) {
-            target = 'user';
-        }
-
-        var pointData, pov, point, path, param = {},
-            labelColors = util.misc.getLabelColors(),
-            labelDescriptions = util.misc.getLabelDescriptions(),
-            iconImagePaths = util.misc.getIconImagePaths(),
-            length = labelPoints.length,
-            points = [];
-
-        for (var i = 0; i < length; i += 1) {
-            pointData = labelPoints[i];
-            pov = {
-                heading: pointData.originalHeading,
-                pitch: pointData.originalPitch,
-                zoom: pointData.originalZoom
-            };
-            point = new Point();
-
-            if ('PhotographerHeading' in pointData && pointData.PhotographerHeading &&
-                'PhotographerPitch' in pointData && pointData.PhotographerPitch) {
-                point.setPhotographerPov(parseFloat(pointData.PhotographerHeading), parseFloat(pointData.PhotographerPitch));
-            }
-
-            point.resetSVImageCoordinate({
-                x: parseInt(pointData.svImageX, 10),
-                y: parseInt(pointData.svImageY, 10)
-            });
-
-
-            point.setProperties({
-                fillStyleInnerCircle: labelColors[pointData.LabelType].fillStyle,
-                lineWidthOuterCircle: 2,
-                iconImagePath: iconImagePaths[pointData.LabelType].iconImagePath,
-                originalCanvasCoordinate: pointData.originalCanvasCoordinate,
-                originalHeading: pointData.originalHeading,
-                originalPitch: pointData.originalPitch,
-                originalZoom: pointData.originalZoom,
-                pov: pov,
-                radiusInnerCircle: properties.pointInnerCircleRadius,
-                radiusOuterCircle: properties.pointOuterCircleRadius,
-                strokeStyleOuterCircle: 'rgba(255,255,255,1)',
-                storedInDatabase: false
-            });
-
-            points.push(point)
-        }
-
-        path = new Path(svl, points);
-
-        param.canvasWidth = svl.canvasWidth;
-        param.canvasHeight = svl.canvasHeight;
-        param.canvasDistortionAlphaX = svl.alpha_x;
-        param.canvasDistortionAlphaY = svl.alpha_y;
-        param.labelId = labelPoints[0].LabelId;
-        param.labelerId = labelPoints[0].AmazonTurkerId;
-        param.labelType = labelPoints[0].LabelType;
-        param.labelDescription = labelDescriptions[param.labelType].text;
-        param.labelFillStyle = labelColors[param.labelType].fillStyle;
-        param.panoId = labelPoints[0].LabelGSVPanoramaId;
-        param.panoramaLat = labelPoints[0].Lat;
-        param.panoramaLng = labelPoints[0].Lng;
-        param.panoramaHeading = labelPoints[0].heading;
-        param.panoramaPitch = labelPoints[0].pitch;
-        param.panoramaZoom = labelPoints[0].zoom;
-
-        param.svImageWidth = svl.svImageWidth;
-        param.svImageHeight = svl.svImageHeight;
-        param.svMode = 'html4';
-
-
-        if (("PhotographerPitch" in labelPoints[0]) && ("PhotographerHeading" in labelPoints[0])) {
-            param.photographerHeading = labelPoints[0].PhotographerHeading;
-            param.photographerPitch = labelPoints[0].PhotographerPitch;
-        }
-
-        var newLabel = svl.labelFactory.create(path, param);
-
-        if (target === 'system') {
-            systemLabels.push(newLabel);
-        } else {
-            svl.labelContainer.push(newLabel);
-        }
-    }
-
-
-    /**
      * This method returns the current status drawing.
      * @method
      * @return {boolean}
@@ -1148,7 +1055,6 @@ function Canvas(ribbon) {
     self.getSystemLabels = getSystemLabels;
     self.getUserLabelCount = getUserLabelCount;
     self.getUserLabels = getUserLabels;
-    self.insertLabel = insertLabel;
     self.isDrawing = isDrawing;
     self.isOn = isOn;
     self.lockCurrentLabel = lockCurrentLabel;
