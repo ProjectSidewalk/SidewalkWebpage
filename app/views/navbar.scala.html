@@ -18,7 +18,7 @@
                     </li>
                     <script>
                         // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
-                        var countDownDate = new Date("Nov 30, 2018 13:07:15").getTime();
+                        var countDownDate = new Date("@{models.amt.AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)}");
 
                         // Update the count down every 1 second
                         var x = setInterval(function() {

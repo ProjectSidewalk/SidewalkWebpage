@@ -10,6 +10,7 @@ import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import org.joda.time.{DateTime, DateTimeZone}
+import java.util.Calendar
 import play.api.mvc._
 
 
@@ -50,8 +51,16 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             val workerId: String = qString.get("workerId").get
             val assignmentId: String = qString.get("assignmentId").get
             val hitId: String = qString.get("hitId").get
+            val minutes: Int = qString.get("minutes").get.toInt
 
-            var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
+            var cal = Calendar.getInstance
+            cal.setTimeInMillis(timestamp.getTime)
+            cal.add(Calendar.MINUTE, minutes)
+            val later = new Timestamp(cal.getTime.getTime)
+            println(timestamp)
+            println(later)
+
+            var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId + "_minutes=" + minutes.toString
             request.identity match {
               case Some(user) =>
                 // Have different cases when the user.username is the same as the workerId and when it isn't.
@@ -59,7 +68,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                   case `workerId` =>
                     val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
                     activityLogText = activityLogText + "_reattempt=true"
-                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
+                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
                     val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
                     Future.successful(Redirect("/audit"))
@@ -70,7 +79,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               case None =>
                 // Add an entry into the amt_assignment table.
                 val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
+                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
                 val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
