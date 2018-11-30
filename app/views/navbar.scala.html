@@ -18,7 +18,7 @@
                     </li>
                     <script>
                         // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
-                        var countDownDate = new Date("Nov 30, 2018 13:00:00").getTime();
+                        var countDownDate = new Date("Nov 30, 2018 13:07:15").getTime();
 
                         // Update the count down every 1 second
                         var x = setInterval(function() {
@@ -30,17 +30,30 @@
                             var distance = countDownDate - now;
 
                             // Time calculations for days, hours, minutes and seconds
-                            var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            var hours = Math.floor(distance / (1000 * 60 * 60));
                             var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                             var seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
                             // Output the result in an element with id="demo"
+                            if (hours > 0) {}
                             document.getElementById("navbarTimerBtn").innerHTML = hours + "h " + minutes + "m " + seconds + "s ";
 
                             // If the count down is over, write some text
                             if (distance < 0) {
                                 clearInterval(x);
                                 document.getElementById("navbarTimerBtn").innerHTML = "EXPIRED";
+                            } else if (hours > 0) {
+                                document.getElementById("navbarTimerBtn").innerHTML = hours + "h " + minutes + "m ";
+                            } else if (minutes > 0) {
+                                document.getElementById("navbarTimerBtn").innerHTML = minutes + "m " + seconds + "s ";
+                            } else {
+                                document.getElementById("navbarTimerBtn").innerHTML = seconds + "s ";
+                            }
+                            var fifteenMinutes = 1000 * 60 * 15;
+                            if (distance > fifteenMinutes) {
+                                document.getElementById('navbarTimerBtn').style.backgroundColor = '#00ff00'
+                            } else {
+                                document.getElementById('navbarTimerBtn').style.backgroundColor = '#ff6666'
                             }
                         }, 1000);
                     </script>
