@@ -6,7 +6,7 @@
 function MissionContainer () {
     var self = this;
     var currentMission = undefined;
-    var completedMissions = [];
+    var _completedMissions = [];
 
     _init();
 
@@ -22,7 +22,7 @@ function MissionContainer () {
     function _addAMission(mission) {
         console.log("[Mission.js] Adding a mission");
         if (mission.getProperty("isComplete")) {
-            completedMissions.push(mission);
+            _completedMissions.push(mission);
             console.log("mission is complete");
         } else {
             currentMission = mission;
@@ -30,6 +30,18 @@ function MissionContainer () {
             console.log(currentMission);
         }
         return this;
+    }
+
+    function _addToCompletedMissions(mission) {
+        var existingMissionIds = _completedMissions.map(function (m) {
+            return m.getProperty("missionId")
+        });
+        var currentMissionId = mission.getProperty("missionId");
+        if (existingMissionIds.indexOf(currentMissionId) < 0) {
+            self._completedMissions.push(mission);
+        } else {
+            console.log("Oops, we are trying to add to completed missions array multiple times.")
+        }
     }
 
     /**
@@ -77,6 +89,11 @@ function MissionContainer () {
     self.on("MissionContainer:updateAMission", function () {
        console.log("[MissionContainer.js] Updating a mission...");
        currentMission.updateMissionProgress();
+    });
+
+    self.on("MissionContainer:completeAMission", function () {
+        console.log("[MissionContainer.js] Completed a mission");
+        _addToCompletedMissions(currentMission.getProperties());
     });
 
     self.getCurrentMission = getCurrentMission;
