@@ -46,6 +46,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
+        val user = request.identity
         for (data <- submission) yield {
           println("[Data] " + data)
           for (interaction: InteractionSubmission <- data.interactions) {
@@ -55,7 +56,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           for (label: LabelValidationSubmission <- data.labels) {
-            val user = request.identity
             user match {
               case Some(user) =>
                 LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
@@ -65,6 +65,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
                 Logger.warn("User without user_id validated a label, but every user should have a user_id.")
             }
           }
+
+          val missionId: Int = data.mission.missionId
+          println("missionId: " + missionId)
+          // val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
+
         }
         println("[ValidationTaskController] Success");
         Future.successful(Ok(Json.obj("status" -> "Ok")))
@@ -96,4 +101,28 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
     Future.successful(Ok(labelMetadataJson))
   }
+
+  /**
+    *
+    * @param user
+    * @param missionProgress  Metadata for this mission
+    * @return
+    */
+  /*
+  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress): Option[Mission] = {
+    val missionId: Int = mission.missionId
+    val skipped: Boolean = missionProgress.skipped
+    val userId: UUID = user.get.userId
+    val role: String = user.get.role.getOrElse("")
+
+    if (missionProgress.labelsProgress.isEmpty) Logger.error("Received null labels progress for validation mission.")
+    val distProgress: Float = missionProgress.labelsProgress.get
+
+    if (missionProgress.completed) {
+      MissionTable.updateCompleteAndGetNextMission(userId, missionId, labelsProgress, skipped)
+    } else {
+      MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
+    }
+  }
+  */
 }

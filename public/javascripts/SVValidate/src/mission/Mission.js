@@ -9,7 +9,7 @@ function Mission(params) {
     var properties = {
         missionId: undefined,
         missionType: undefined,
-        isComplete: undefined,
+        completed: undefined,
         labelsProgress: undefined,
         labelsValidated: undefined,
         pay: undefined,
@@ -24,7 +24,7 @@ function Mission(params) {
         if ("missionId" in params) setProperty("missionId", params.missionId);
         if ("missionType" in params) setProperty("missionType", params.missionType);
         if ("regionId" in params) setProperty("regionId", params.regionId);
-        if ("isComplete" in params) setProperty("isComplete", params.isComplete);
+        if ("completed" in params) setProperty("completed", params.completed);
         if ("pay" in params) setProperty("pay", params.pay);
         if ("paid" in params) setProperty("paid", params.paid);
         if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
@@ -54,7 +54,7 @@ function Mission(params) {
      * @returns {property} True if this mission is complete, false if in progress
      */
     function isComplete() {
-        return getProperty("isComplete");
+        return getProperty("completed");
     }
 
     /**
@@ -74,11 +74,11 @@ function Mission(params) {
     function updateMissionProgress() {
         var labelsProgress = getProperty("labelsProgress");
         // TODO: update progress bar
-        if (labelsProgress <= getProperty("labelsValidated")) {
+        if (labelsProgress < getProperty("labelsValidated")) {
             labelsProgress += 1;
 
             if (labelsProgress == getProperty("labelsValidated")) {
-                setProperty("isComplete", true);
+                setProperty("completed", true);
                 svv.missionContainer.trigger("MissionContainer:completeAMission");
             }
         }

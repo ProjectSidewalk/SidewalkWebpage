@@ -5,8 +5,18 @@ function Form(url) {
 
     function compileSubmissionData() {
         var data = {};
+        var mission = svv.missionContainer.getCurrentMission();
+
         data.interactions = svv.tracker.getActions();
         data.labels = svv.labelContainer.getCurrentLabels();
+
+        // Add the current mission
+        data.mission = {
+            mission_id: mission.getProperty("missionId"),
+            labels_progress: mission.getProperty("labelsProgress"),
+            completed: mission.getProperty("completed"),
+            skipped: mission.getProperty("skipped")
+        };
 
         svv.tracker.refresh();
         svv.labelContainer.refresh();

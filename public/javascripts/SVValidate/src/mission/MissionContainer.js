@@ -21,7 +21,7 @@ function MissionContainer () {
      */
     function _addAMission(mission) {
         console.log("[Mission.js] Adding a mission");
-        if (mission.getProperty("isComplete")) {
+        if (mission.getProperty("completed")) {
             console.log("[Mission.js] Mission is complete");
             _addToCompletedMissions(mission);
         } else {
@@ -32,7 +32,11 @@ function MissionContainer () {
         return this;
     }
 
-
+    /**
+     * This function adds the current mission to a list of completed missions.
+     * @param mission  Mission object of the current mission.
+     * @private
+     */
     function _addToCompletedMissions(mission) {
         var existingMissionIds = _completedMissions.map(function (m) {
             return m.getProperty("missionId")
@@ -96,7 +100,10 @@ function MissionContainer () {
     });
 
     self.on("MissionContainer:completeAMission", function () {
-        console.log("[MissionContainer.js] Completed a mission");
+        console.log("[MissionContainer.js] Completed a mission and submitting form");
+        // Submit form with completed mission.
+        var data = svv.form.compileSubmissionData();
+        svv.form.submit(data, true);
         _addToCompletedMissions(currentMission);
     });
 
