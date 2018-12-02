@@ -457,10 +457,15 @@ object LabelTable {
         |WHERE lp.label_id = lb.label_id
         |      AND lt.label_type_id = lb.label_type_id
         |      AND lb.deleted = false
-        |OFFSET floor(random() * (SELECT COUNT(*) FROM sidewalk.label))
+        |OFFSET floor(random() *
+        |      (
+        |          SELECT COUNT(*)
+        |          FROM sidewalk.label
+        |          WHERE sidewalk.label.deleted = false
+        |      )
+        |)
         |LIMIT ?""".stripMargin.stripMargin
     )
-
     selectQuery(1).list.map(label => validationLabelsToLabelMetadata(label)).head
   }
 

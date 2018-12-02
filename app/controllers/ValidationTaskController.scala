@@ -75,11 +75,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   /**
     * This function gets the metadata for a specific label in the database.
     * @param labelId  label_id for this label
-    * @return GSV metadata and label type
+    * @return Label metadata containing GSV metadata and label type
     */
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(Json.obj("status" -> "Ok")))
-
     LabelTable.find(labelId) match {
       case Some(labelPointObj) =>
         val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleLabelForValidation(labelId)
@@ -89,6 +87,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     }
   }
 
+  /**
+    * This function gets the metadata for a random label in the database.
+    * @return Label metadata containing GSV metadata and label type
+    */
   def getRandomLabelData = UserAwareAction.async { implicit request =>
     val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelForValidation()
     val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)

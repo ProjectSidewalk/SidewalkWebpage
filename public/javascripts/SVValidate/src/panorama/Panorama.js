@@ -199,15 +199,19 @@ function Panorama() {
         var pos = svv.util.properties.panorama.getPosition(currentLabel.getProperty('canvasX'), currentLabel.getProperty('canvasY'),
             currentLabel.getProperty('canvasWidth'), currentLabel.getProperty('canvasHeight'),
             currentLabel.getProperty('zoom'), currentLabel.getProperty('heading'), currentLabel.getProperty('pitch'));
-
-        self.labelMarker = new PanoMarker ({
-            container: panoCanvas,
-            pano: panorama,
-            position: {heading: pos.heading, pitch: pos.pitch},
-            icon: url,
-            size: new google.maps.Size(20, 20),
-            anchor: new google.maps.Point(10, 10)
-        });
+        try {
+            self.labelMarker = new PanoMarker({
+                container: panoCanvas,
+                pano: panorama,
+                position: {heading: pos.heading, pitch: pos.pitch},
+                icon: url,
+                size: new google.maps.Size(20, 20),
+                anchor: new google.maps.Point(10, 10)
+            });
+        } catch (err) {
+            console.log("Label " + currentLabel.getProperty('labelId') + " failed to render correctly.");
+            console.error("Error: " + err);
+        }
         return this;
     }
 
