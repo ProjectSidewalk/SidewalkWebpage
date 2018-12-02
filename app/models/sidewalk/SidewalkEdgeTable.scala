@@ -89,7 +89,7 @@ object SidewalkEdgeTable {
 //    import Q.interpolation
 //
 //    val columns = MTable.getTables(None, None, None, None).list.filter(_.name.name == "USER")
-//    val user = sql"""SELECT * FROM "user" WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
+//    val user = sql"""SELECT * FROM sidewalk_user WHERE "id" = $id""".as[List[String]].firstOption.map(columns zip _ toMap)
 //    user
 //  }
 }

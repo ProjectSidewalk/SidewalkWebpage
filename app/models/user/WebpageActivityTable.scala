@@ -36,52 +36,6 @@ object WebpageActivityTable {
   }
 
   /**
-    * Returns the last log in timestamp
-    *
-    * @param userId User id
-    * @return
-    */
-  def selectLastSignInTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
-    val signInString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignIn"
-    val signInActivities: List[WebpageActivity] =
-      activities.filter(_.userId === userId.toString).filter(_.activity === signInString).sortBy(_.timestamp.desc).list
-
-    if (signInActivities.nonEmpty) {
-      Some(signInActivities.head.timestamp)
-    } else {
-      None
-    }
-  }
-
-  /**
-    * Returns the signup timestamp
-    *
-    * @param userId User id
-    * @return
-    */
-  def selectSignUpTimestamp(userId: UUID): Option[java.sql.Timestamp] = db.withTransaction { implicit session =>
-    val signUpString: String = if (UserRoleTable.getRole(userId) == "Anonymous") "AnonAutoSignUp" else "SignUp"
-    val signUpActivities: List[WebpageActivity] =
-      activities.filter(_.userId === userId.toString).filter(_.activity === signUpString).sortBy(_.timestamp.desc).list
-
-    if (signUpActivities.nonEmpty) {
-      Some(signUpActivities.head.timestamp)
-    } else {
-      None
-    }
-  }
-
-  /**
-    * Returns the signin count
-    * @param userId User id
-    * @return
-    */
-  def selectSignInCount(userId: UUID): Option[Integer] = db.withTransaction { implicit session =>
-    val signInActivities: List[WebpageActivity] = activities.filter(_.userId === userId.toString).filter(_.activity === "SignIn").list
-    Some(signInActivities.length)
-  }
-
-  /**
     * Returns a list of signin counts, each element being a count of logins for a user
     *
     * @return List[(userId: String, role: String, count: Int)]
