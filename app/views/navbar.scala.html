@@ -13,9 +13,10 @@
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
-                    <li class="navbarLink">
-                        <a class="navbarBtn" id="navbarTimerBtn" href="@routes.AuditController.audit()">Loading...</a>
+                    <li>
+                        <img src="@routes.Assets.at("assets/clock.png")" style="width:23px;margin-top:23px;padding-right:5px;">
                     </li>
+                    <li><p id="navbarTimerBtn" style="width:75px;margin-top:20px;">Loading...</p></li>
                     <script>
                         // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
                         var countDownDate = new Date("@{models.amt.AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)}");
@@ -48,12 +49,6 @@
                                 document.getElementById("navbarTimerBtn").innerHTML = minutes + "m " + seconds + "s ";
                             } else {
                                 document.getElementById("navbarTimerBtn").innerHTML = seconds + "s ";
-                            }
-                            var fifteenMinutes = 1000 * 60 * 15;
-                            if (distance > fifteenMinutes) {
-                                document.getElementById('navbarTimerBtn').style.backgroundColor = '#00ff00'
-                            } else {
-                                document.getElementById('navbarTimerBtn').style.backgroundColor = '#ff6666'
                             }
                         }, 1000);
                     </script>
