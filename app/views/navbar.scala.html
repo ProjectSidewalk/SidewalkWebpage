@@ -14,7 +14,7 @@
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
                     <li>
-                        <img src="@routes.Assets.at("assets/clock.png")" style="width:23px;margin-top:23px;padding-right:5px;">
+                        <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:23px;padding-right:5px;">
                     </li>
                     <li><p id="navbarTimerBtn" style="width:75px;margin-top:20px;">Loading...</p></li>
                     <script>
@@ -43,6 +43,9 @@
                             if (distance < 0) {
                                 clearInterval(x);
                                 document.getElementById("navbarTimerBtn").innerHTML = "EXPIRED";
+                                @if(url.get == "/audit") {
+                                    $('#HIT-expiration-overlay').show();
+                                }
                             } else if (hours > 0) {
                                 document.getElementById("navbarTimerBtn").innerHTML = hours + "h " + minutes + "m ";
                             } else if (minutes > 0) {

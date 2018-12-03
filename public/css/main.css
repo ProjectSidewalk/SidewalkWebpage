@@ -1186,7 +1186,7 @@ kbd {
     position: relative;
 }
 /*Overlay box - start*/
-#advanced-overlay, #neighborhood-completion-overlay, #already-completed-neighborhood-overlay{
+#advanced-overlay, #neighborhood-completion-overlay, #already-completed-neighborhood-overlay, #HIT-expiration-overlay{
     display:none;
 }
 .overlay-text{
