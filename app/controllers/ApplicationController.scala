@@ -57,8 +57,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             cal.setTimeInMillis(timestamp.getTime)
             cal.add(Calendar.MINUTE, minutes)
             val later = new Timestamp(cal.getTime.getTime)
-            println(timestamp)
-            println(later)
 
             var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId + "_minutes=" + minutes.toString
             request.identity match {
@@ -66,10 +64,14 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 // Have different cases when the user.username is the same as the workerId and when it isn't.
                 user.username match{
                   case `workerId` =>
-                    val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
                     activityLogText = activityLogText + "_reattempt=true"
-                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
-                    val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                    // Unless they are mid-assignment, create a new assignment.
+                    val oldEndTime: Option[Timestamp] = AMTAssignmentTable.getMostRecentAsmtEnd(workerId)
+                    if (oldEndTime.isEmpty || oldEndTime.get.before(timestamp)) {
+                      val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
+                      val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                    }
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
                     Future.successful(Redirect("/audit"))
                   case _ =>
