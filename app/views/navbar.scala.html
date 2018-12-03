@@ -14,7 +14,7 @@
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
                     <li class="navbarLink">
-                        <a class="navbarBtn" id="navbarTimerBtn" href="@routes.AuditController.audit()">blah</a>
+                        <a class="navbarBtn" id="navbarTimerBtn" href="@routes.AuditController.audit()">Loading...</a>
                     </li>
                     <script>
                         // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp

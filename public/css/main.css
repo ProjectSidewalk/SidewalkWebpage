@@ -1196,7 +1196,7 @@ kbd {
     background: rgba(0,0,0,0.89);
     z-index: 5;
 }
-#advanced-neighborhood-text, #neighborhood-completion-text, #already-completed-neighborhood-text{
+#advanced-neighborhood-text, #neighborhood-completion-text, #already-completed-neighborhood-text, #HIT-expiration-text{
     color: white;
     text-align: center;
     width: 70%;
@@ -1214,7 +1214,10 @@ kbd {
 #already-completed-neighborhood-text {
     top: 28%;
 }
-#advanced-neighborhood-text p, #neighborhood-completion-text p, #already-completed-neighborhood-text p{
+#HIT-expiration-text {
+    top: 28%;
+}
+#advanced-neighborhood-text p, #neighborhood-completion-text p, #already-completed-neighborhood-text p, #HIT-expiration-text p{
     border-radius: 5px;
     padding: 7px;
 }
