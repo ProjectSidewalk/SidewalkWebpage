@@ -68,7 +68,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     // Unless they are mid-assignment, create a new assignment.
                     val oldEndTime: Option[Timestamp] = AMTAssignmentTable.getMostRecentAsmtEnd(workerId)
                     if (oldEndTime.isEmpty || oldEndTime.get.before(timestamp)) {
-                      val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                      val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
                       val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
                       val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                     }
@@ -80,7 +80,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 }
               case None =>
                 // Add an entry into the amt_assignment table.
-                val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
                 val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
                 val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
