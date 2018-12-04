@@ -60,9 +60,6 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
     val submission = request.body.validate[AMTAssignmentCompletionSubmission]
 
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
@@ -72,7 +69,6 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         amtAssignmentId match {
           case Some(asgId) =>
             // Update the AMTAssignmentTable
-            AMTAssignmentTable.updateAssignmentEnd(asgId, timestamp)
             AMTAssignmentTable.updateCompleted(asgId, completed=true)
             Future.successful(Ok(Json.obj("success" -> true)))
           case None =>

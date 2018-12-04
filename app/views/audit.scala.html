@@ -567,7 +567,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -938,7 +938,7 @@
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0){
+                    @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");

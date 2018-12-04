@@ -63,16 +63,8 @@ object AMTAssignmentTable {
     amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).list.headOption
   }
 
-  /**
-    * Update the `assignment_end` timestamp column of the specified amt_assignment row
-    *
-    * @param amtAssignmentId
-    * @param timestamp
-    * @return
-    */
-  def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
-    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.assignmentEnd
-    q.update(Some(timestamp))
+  def getMostRecentAssignment(workerId: String): Option[AMTAssignment] = db.withSession { implicit session =>
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).list.headOption
   }
 
   /**
