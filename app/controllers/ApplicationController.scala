@@ -79,10 +79,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     // Need to be able to login as a different user here, but the signout redirect isn't working.
                 }
               case None =>
-                // Add an entry into the amt_assignment table.
-                val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
-                val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
+                if (asmt.isEmpty) {
+                  // Add an entry into the amt_assignment table.
+                  val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
+                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
+                  val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                }
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
                 val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
                 Future.successful(Redirect(redirectTo))
