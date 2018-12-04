@@ -53,6 +53,10 @@
                             } else {
                                 document.getElementById("navbarTimerBtn").innerHTML = seconds + "s ";
                             }
+                            var fifteenMinutes = 1000 * 60 * 15;
+                            if (distance < fifteenMinutes) {
+                                document.getElementById('navbarTimerBtn').style.color = 'red'
+                            }
                         }, 1000);
                     </script>
                 }
