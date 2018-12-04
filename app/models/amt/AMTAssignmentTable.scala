@@ -67,6 +67,10 @@ object AMTAssignmentTable {
     amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).list.headOption
   }
 
+  def getAssignment(workerId: String, assignmentId: String): Option[AMTAssignment] = db.withSession { implicit session =>
+    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).list.headOption
+  }
+
   /**
     * Update the `completed`  column of the specified amt_assignment row
     *

@@ -66,8 +66,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                   case `workerId` =>
                     activityLogText = activityLogText + "_reattempt=true"
                     // Unless they are mid-assignment, create a new assignment.
-                    val oldEndTime: Option[Timestamp] = AMTAssignmentTable.getMostRecentAsmtEnd(workerId)
-                    if (oldEndTime.isEmpty || oldEndTime.get.before(timestamp)) {
+                    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
+                    if (asmt.isEmpty) {
                       val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
                       val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
                       val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
