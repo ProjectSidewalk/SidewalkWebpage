@@ -21,6 +21,9 @@ function Main (param) {
         svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
         svv.ui.status.labelTypeExample = $("#label-type-example");
         svv.ui.status.missionDescription = $("#current-mission-description");
+        svv.ui.status.progressBar = $("#status-current-mission-completion-bar");
+        svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
+        svv.ui.status.progressText = $("#status-current-mission-completion-rate");
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
     }
 

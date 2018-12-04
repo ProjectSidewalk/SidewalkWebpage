@@ -85,6 +85,10 @@ function Mission(params) {
         svv.statusField.updateLabelCounts(labelsProgress);
         console.log("Validated: " + labelsProgress + ", total: " + getProperty("labelsValidated"));
         setProperty("labelsProgress", labelsProgress);
+
+        var completionRate = labelsProgress / getProperty("labelsValidated");
+        svv.statusField.setProgressBar(completionRate);
+        svv.statusField.setProgressText(completionRate);
     }
 
     self.isComplete = isComplete;

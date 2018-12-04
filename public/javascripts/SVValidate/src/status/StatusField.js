@@ -19,10 +19,13 @@ function StatusField(missionMetadata) {
     /**
      * Function to initialize the status field the first time.
      * Sets the mission description to validate the number of labels in the initial mission.
+     * TODO: Feels really sloppy... is there a better way to do this?
      * @private
      */
     function _init() {
         updateMissionDescription(missionMetadata.labels_validated);
+        setProgressText(missionMetadata.labels_progress / missionMetadata.labels_validated);
+        setProgressText(missionMetadata.labels_progress / missionMetadata.labels_validated)
     }
 
     /**
@@ -60,9 +63,38 @@ function StatusField(missionMetadata) {
     }
 
     // TODO: write resizeTextSize function, if necessary
+    /**
+     * Updates the mission progress completion bar
+     * @param completion
+     */
+    function setProgressBar(completionRate) {
+        var color = completionRate < 1 ? 'rgba(0, 161, 203, 1)' : 'rgba(0, 222, 38, 1)';
+
+        completionRate *=  100;
+        if (completionRate > 100) completionRate = 100;
+
+        completionRate = completionRate.toFixed(0);
+        completionRate = completionRate + "%";
+
+        // Update blue portion of progress bar
+        svv.ui.status.progressFiller.css({
+            background: color,
+            width: completionRate
+        });
+    }
+
+    function setProgressText(completionRate) {
+        completionRate *= 100;
+        if (completionRate > 100) completionRate = 100;
+        completionRate = completionRate.toFixed(0, 10);
+        completionRate = completionRate + "% complete";
+        svv.ui.status.progressText.html(completionRate);
+    }
 
     _init();
 
+    self.setProgressBar = setProgressBar;
+    self.setProgressText = setProgressText;
     self.updateLabelCounts = updateLabelCounts;
     self.updateLabelText = updateLabelText;
     self.updateMissionDescription = updateMissionDescription;
