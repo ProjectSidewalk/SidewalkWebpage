@@ -56,7 +56,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             var cal = Calendar.getInstance
             cal.setTimeInMillis(timestamp.getTime)
             cal.add(Calendar.MINUTE, minutes)
-            val later = new Timestamp(cal.getTime.getTime)
+            val asmtEndTime = new Timestamp(cal.getTime.getTime)
 
             var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId + "_minutes=" + minutes.toString
             request.identity match {
@@ -69,7 +69,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
                     if (asmt.isEmpty) {
                       val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
+                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(asmtEndTime), workerId, confirmationCode, false)
                       val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                     }
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
@@ -79,11 +79,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     // Need to be able to login as a different user here, but the signout redirect isn't working.
                 }
               case None =>
+                // Unless they are mid-assignment, create a new assignment.
                 val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
                 if (asmt.isEmpty) {
-                  // Add an entry into the amt_assignment table.
                   val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(later), workerId, confirmationCode, false)
+                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(asmtEndTime), workerId, confirmationCode, false)
                   val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                 }
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
