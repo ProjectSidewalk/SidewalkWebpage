@@ -69,7 +69,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
                     if (asmt.isEmpty) {
                       val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(asmtEndTime), workerId, confirmationCode, false)
+                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
                       val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                     }
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
@@ -83,7 +83,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
                 if (asmt.isEmpty) {
                   val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, Some(asmtEndTime), workerId, confirmationCode, false)
+                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
                   val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
                 }
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.

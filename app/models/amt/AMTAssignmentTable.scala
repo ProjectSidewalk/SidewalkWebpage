@@ -6,7 +6,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
-                         assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
+                         assignmentStart: Timestamp, assignmentEnd: Timestamp,
                          workerId: String, confirmationCode: String, completed: Boolean)
 
 /**
@@ -17,7 +17,7 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def hitId = column[String]("hit_id", O.NotNull)
   def assignmentId = column[String]("assignment_id", O.NotNull)
   def assignmentStart = column[Timestamp]("assignment_start", O.NotNull)
-  def assignmentEnd = column[Option[Timestamp]]("assignment_end")
+  def assignmentEnd = column[Timestamp]("assignment_end")
   def workerId = column[String]("turker_id", O.NotNull)
   def confirmationCode = column[String]("confirmation_code")
   def completed = column[Boolean]("completed", O.NotNull)
@@ -56,7 +56,7 @@ object AMTAssignmentTable {
   }
 
   def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).list.headOption.flatten
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).list.headOption
   }
 
   def getMostRecentConfirmationCode(workerId: String): Option[String] = db.withSession { implicit session =>

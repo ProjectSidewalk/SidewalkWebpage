@@ -9,7 +9,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
+import models.amt.AMTAssignmentTable
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
