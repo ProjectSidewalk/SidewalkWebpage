@@ -14,9 +14,9 @@
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
                     <li>
-                        <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:22px;padding-right:5px;">
+                        <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:20px;padding-right:5px;">
                     </li>
-                    <li><p id="navbarTimer" style="width:75px;margin-top:20px;">Loading...</p></li>
+                    <li><p id="navbarTimer" style="width:75px;margin-top:19px;">Loading...</p></li>
                     <script>
                         // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
                         var asmtEndTime = new Date("@{models.amt.AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)}");
