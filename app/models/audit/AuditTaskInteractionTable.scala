@@ -168,14 +168,14 @@ def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit sessi
       |    FROM audit_task_interaction
       |    INNER JOIN audit_task
       |        ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-      |    INNER JOIN sidewalk.user
-      |        ON audit_task.user_id = sidewalk.user.user_id
+      |    INNER JOIN sidewalk_user
+      |        ON audit_task.user_id = sidewalk_user.user_id
       |    INNER JOIN user_role
       |        ON audit_task.user_id = user_role.user_id
       |    INNER JOIN role
       |        ON user_role.role_id = role.role_id
       |    WHERE action = 'ViewControl_MouseDown'
-      |        AND sidewalk.user.username <> 'anonymous'
+      |        AND sidewalk_user.username <> 'anonymous'
       |        AND role.role IN ('Registered', 'Anonymous', 'Turker')
       |    ) user_audit_times
       |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
