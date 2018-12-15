@@ -1,6 +1,6 @@
 
 # --- !Ups
-CREATE TABLE region_completion
+CREATE TABLE IF NOT EXISTS region_completion
 (
   region_id INTEGER NOT NULL,
   total_distance REAL,

@@ -100,3 +100,6 @@ special_api_key.txt
 # sidewalk-webpage-binary directory
 sidewalk-webpage/
 nohup.out
+
+# docker db files
+db/dump

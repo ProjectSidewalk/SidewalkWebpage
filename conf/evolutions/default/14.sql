@@ -1,5 +1,5 @@
 # --- !Ups
-CREATE TABLE tag
+CREATE TABLE IF NOT EXISTS tag
 (
   tag_id SERIAL NOT NULL,
   label_type_id INT NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE tag
   PRIMARY KEY (tag_id)
 );
 
-CREATE TABLE label_tag
+CREATE TABLE IF NOT EXISTS label_tag
 (
   label_tag_id SERIAL NOT NULL,
   label_id INT NOT NULL,

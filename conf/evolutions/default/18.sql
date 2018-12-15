@@ -2,7 +2,7 @@
 DROP TABLE street_edge_assignment_count;
 
 # --- !Downs
-CREATE TABLE street_edge_assignment_count
+CREATE TABLE IF NOT EXISTS street_edge_assignment_count
 (
   street_edge_assignment_count_id SERIAL NOT NULL,
   street_edge_id INT NOT NULL,

@@ -5,7 +5,7 @@ DROP TABLE accessibility_feature;
 
 INSERT INTO label_type VALUES (8, 'Problem', 'Composite type: represents cluster of NoCurbRamp, Obstacle, and/or SurfaceProblem labels');
 
-CREATE TABLE user_clustering_session
+CREATE TABLE IF NOT EXISTS user_clustering_session
 (
   user_clustering_session_id SERIAL NOT NULL,
   is_anonymous BOOLEAN NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE user_clustering_session
   FOREIGN KEY (user_id) REFERENCES "user" (user_id)
 );
 
-CREATE TABLE user_attribute
+CREATE TABLE IF NOT EXISTS user_attribute
 (
   user_attribute_id SERIAL NOT NULL,
   user_clustering_session_id INT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE user_attribute
   FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
-CREATE TABLE user_attribute_label
+CREATE TABLE IF NOT EXISTS user_attribute_label
 (
   user_attribute_label_id SERIAL NOT NULL,
   user_attribute_id INT NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE user_attribute_label
   FOREIGN KEY (label_id) REFERENCES label(label_id)
 );
 
-CREATE TABLE global_clustering_session
+CREATE TABLE IF NOT EXISTS global_clustering_session
 (
   global_clustering_session_id SERIAL NOT NULL,
   region_id INT NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE global_clustering_session
   FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
-CREATE TABLE global_attribute
+CREATE TABLE IF NOT EXISTS global_attribute
 (
   global_attribute_id SERIAL NOT NULL,
   global_clustering_session_id INT NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE global_attribute
   FOREIGN KEY (region_id) REFERENCES region(region_id)
 );
 
-CREATE TABLE global_attribute_user_attribute
+CREATE TABLE IF NOT EXISTS global_attribute_user_attribute
 (
   global_attribute_user_attribute_id SERIAL NOT NULL,
   global_attribute_id INT NOT NULL,
@@ -95,7 +95,7 @@ DROP TABLE user_clustering_session;
 
 DELETE FROM label_type WHERE label_type.label_type = 'Problem';
 
-CREATE TABLE accessibility_feature
+CREATE TABLE IF NOT EXISTS accessibility_feature
 (
   accessibility_feature_id SERIAL NOT NULL,
   geom public.geometry,
@@ -106,7 +106,7 @@ CREATE TABLE accessibility_feature
   FOREIGN KEY (label_type_id) REFERENCES label_type (label_type_id)
 );
 
-CREATE TABLE sidewalk_edge_accessibility_feature
+CREATE TABLE IF NOT EXISTS sidewalk_edge_accessibility_feature
 (
   sidewalk_edge_accessibility_feature_id SERIAL NOT NULL,
   sidewalk_edge_id INTEGER,

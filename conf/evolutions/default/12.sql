@@ -1,5 +1,5 @@
 # --- !Ups
-CREATE TABLE street_edge_priority
+CREATE TABLE IF NOT EXISTS street_edge_priority
 (
  street_edge_priority_id SERIAL NOT NULL,
  street_edge_id INT NOT NULL,
