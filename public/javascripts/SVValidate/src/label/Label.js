@@ -68,10 +68,43 @@ function Label() {
         return this;
     }
 
+    /**
+     * Updates validation status for Label, StatusField and logs interactions into Tracker. Occurs
+     * when a validation button is clicked.
+     * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
+     */
+    function validate(validationResult) {
+        setProperty("endTimestamp", new Date().getTime());
+
+        switch (validationResult) {
+            // Agree option selected.
+            case "Agree":
+                setProperty("validationResult", 1);
+                svv.labelContainer.push(getProperties());
+                svv.missionContainer.trigger("MissionContainer:updateAMission");
+                break;
+            // Disagree option selected.
+            case "Disagree":
+                setProperty("validationResult", 2);
+                svv.labelContainer.push(getProperties());
+                svv.missionContainer.trigger("MissionContainer:updateAMission");
+                break;
+            // Unsure option selected.
+            case "Unsure":
+                setProperty("validationResult", 3);
+                svv.labelContainer.push(getProperties());
+                svv.missionContainer.trigger("MissionContainer:updateAMission");
+                break;
+        }
+        // Add a new label to the panorama
+        svv.panorama.setLabel();
+    }
+
     self.getIconUrl = getIconUrl;
     self.getProperty = getProperty;
     self.getProperties = getProperties;
     self.setProperty = setProperty;
+    self.validate = validate;
 
     return this;
 }

@@ -71,6 +71,12 @@ function Form(url) {
         return data;
     }
 
+    $(window).on('beforeunload', function () {
+        svv.tracker.push("Unload");
+        var data = compileSubmissionData();
+        self.submit(data, true);
+    });
+
     self.compileSubmissionData = compileSubmissionData;
     self.submit = submit;
 

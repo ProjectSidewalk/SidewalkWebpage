@@ -54,7 +54,7 @@ function Panorama() {
 
     /**
      * Returns the panorama ID for the current panorama.
-     * @returns {String} Google StreetView Panorama Id
+     * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
      */
     function getPanoId() {
         return panorama.getPano();
@@ -132,9 +132,6 @@ function Panorama() {
             panorama.set('zoom', zoomLevel[zoom]);
             init = false;
         } else {
-            if (self.labelMarker) {
-                self.labelMarker.onRemove();
-            }
 
             // Adding in callback function because there are some issues with Google Maps
             // setPano function. Will start to running an infinite loop if panorama does not
@@ -199,7 +196,8 @@ function Panorama() {
         var pos = svv.util.properties.panorama.getPosition(currentLabel.getProperty('canvasX'), currentLabel.getProperty('canvasY'),
             currentLabel.getProperty('canvasWidth'), currentLabel.getProperty('canvasHeight'),
             currentLabel.getProperty('zoom'), currentLabel.getProperty('heading'), currentLabel.getProperty('pitch'));
-        try {
+
+        if (!self.labelMarker) {
             self.labelMarker = new PanoMarker({
                 container: panoCanvas,
                 pano: panorama,
@@ -208,9 +206,13 @@ function Panorama() {
                 size: new google.maps.Size(20, 20),
                 anchor: new google.maps.Point(10, 10)
             });
-        } catch (err) {
-            console.log("Label " + currentLabel.getProperty('labelId') + " failed to render correctly.");
-            console.error("Error: " + err);
+        } else {
+            self.labelMarker.setPano(panorama, panoCanvas);
+            self.labelMarker.setPosition({
+                heading: pos.heading,
+                pitch: pos.pitch
+            });
+            self.labelMarker.setIcon(url);
         }
         return this;
     }

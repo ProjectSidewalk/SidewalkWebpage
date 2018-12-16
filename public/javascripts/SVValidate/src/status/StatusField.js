@@ -31,6 +31,13 @@ function StatusField(missionMetadata) {
     }
 
     /**
+     * Resets the status field
+     */
+    function reset() {
+        _init();
+    }
+
+    /**
      * Updates the number of labels the user has validated.
      * @param count {int} Number of labels the user has validated.
      */
@@ -100,6 +107,7 @@ function StatusField(missionMetadata) {
     self.updateLabelCounts = updateLabelCounts;
     self.updateLabelText = updateLabelText;
     self.updateMissionDescription = updateMissionDescription;
+    self.reset = reset;
 
     return this;
 }

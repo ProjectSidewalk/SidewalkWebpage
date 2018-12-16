@@ -53,6 +53,7 @@ module.exports = function(grunt) {
             validation_svl: {
                 src: [
                     'public/javascripts/SVValidate/src/data/*.js',
+                    'public/javascripts/SVValidate/src/keyboard/*.js',
                     'public/javascripts/SVValidate/src/label/*.js',
                     'public/javascripts/SVValidate/src/menu/*.js',
                     'public/javascripts/SVValidate/src/mission/*.js',

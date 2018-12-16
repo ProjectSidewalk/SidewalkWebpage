@@ -37,9 +37,10 @@ function Main (param) {
         svv.statusField = new StatusField(param.mission);
         svv.tracker = new Tracker();
 
+        svv.keyboard = new Keyboard(svv.ui.validation);
         svv.labelContainer = new LabelContainer();
         svv.panorama = new Panorama();
-        svv.menuButtons = new MenuButton(svv.ui.validation, svv.form);
+        svv.menuButtons = new MenuButton(svv.ui.validation);
 
         // mission stuff
         svv.missionContainer = new MissionContainer();

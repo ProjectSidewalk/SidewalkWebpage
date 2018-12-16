@@ -26,12 +26,8 @@ function MissionContainer (statusFieldMission, missionModel) {
 
     _missionModel.on("MissionContainer:addAMission", function (mission) {
         if (mission.getProperty("isComplete")) {
-            console.log("This mission is complete: ");
-            console.log(mission);
             self._completedMissions.push(mission);
         } else {
-            console.log("Setting current mission: ");
-            console.log(mission);
             self.setCurrentMission(mission);
         }
     });

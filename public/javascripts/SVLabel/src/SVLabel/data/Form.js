@@ -233,8 +233,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             data[0].interactions.push(action);
         }
 
-        console.log("[Form.js] Submitting data:");
-        console.log(data);
         labelContainer.refresh();
 
         $.ajax({
