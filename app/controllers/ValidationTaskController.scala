@@ -29,14 +29,14 @@ import scala.concurrent.Future
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class ValidationPostReturnValue(validationTaskId: Int, mission: Option[Mission])
+  case class ValidationTaskPostReturnValue(mission: Option[Mission])
   /**
     * Parse submitted validation data and submit to tables
     * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
     * BodyParsers.parse.json in async
     */
 
-  def post = UserAwareAction.async(BodyParsers.parse.json) {implicit request =>
+  def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     println("[ValidationTaskController] request.body: " + request.body)
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
     println("[ValidationTaskController] submission: " + submission)
@@ -47,7 +47,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       },
       submission => {
         val user = request.identity
-        for (data <- submission) yield {
+        val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
           println("[Data] " + data)
           for (interaction: InteractionSubmission <- data.interactions) {
             ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
@@ -69,10 +69,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           val missionId: Int = data.missionProgress.missionId
           println("missionId: " + missionId)
           val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
+          println("[ValidationTaskController] possibleMission: " + possibleNewMission)
+          ValidationTaskPostReturnValue(possibleNewMission)
 
         }
         println("[ValidationTaskController] Success");
-        Future.successful(Ok(Json.obj("status" -> "Ok")))
+        Future.successful(Ok(Json.obj("mission" -> returnValues.head.mission.map(_.toJSON))))
       }
     )
   }
@@ -120,18 +122,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
     if (missionProgress.completed) {
       println("[updateMissionTable] This mission is complete")
+      // TODO: replace 0.0 with pay per label...
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, 0.0, missionId, labelsProgress, skipped)
     } else {
       println("[updateMissionTable] This mission is not complete")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
-
-    return None
-    /*
-    if (missionProgress.completed) {
-      MissionTable.updateCompleteAndGetNextMission(userId, missionId, labelsProgress, skipped)
-    } else {
-      MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
-    }
-    */
   }
 }

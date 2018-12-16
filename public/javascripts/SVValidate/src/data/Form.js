@@ -29,6 +29,12 @@ function Form(url) {
         return action.indexOf("ValidationButtonClick") >= 0;
     }
 
+    /**
+     * Submits all front-end data to the backend.
+     * @param data  Data object (containing Interactions, Missions, etc...)
+     * @param async
+     * @returns {*}
+     */
     function submit(data, async) {
         console.log("[Form.js] Submit function called");
         if (typeof async === "undefined") {
@@ -52,6 +58,10 @@ function Form(url) {
             success: function (result) {
                 if (result) {
                     console.log('Success');
+                    // If a mission was returned after posting data, create a new mission.
+                    if (result.mission) {
+                        svv.missionContainer.trigger("MissionContainer:createAMission", result.mission);
+                    }
                 }
             },
             error: function (result) {

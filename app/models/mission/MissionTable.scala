@@ -173,7 +173,7 @@ object MissionTable {
 
   def getCurrentValidationMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
     val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId).list.headOption
+    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && !m.completed).list.headOption
   }
 
   /**
@@ -332,29 +332,36 @@ object MissionTable {
   def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double],
                                           tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int],
                                           labelsProgress: Option[Int], skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
+    this.synchronized {
+      if (actions.contains("updateProgress")) {
+        println("[MissionTable] queryMissionTable: updateValidationProgress");
+        updateValidationProgress(missionId.get, labelsProgress.get)
+      }
 
-  // actions: List[String], userId: UUID, payPerLabel: Option[Double], tutorialPay: Option[Double]): Option[Mission] = db.withSession { implicit session =>
-    if (actions.contains("updateValidationProgress")) {
-      println("[MissionTable] queryMissionTable: updateValidationProgress");
-      updateValidationProgress(missionId.get, labelsProgress.get)
-      None // temp
-    }
+      if (actions.contains("updateComplete")) {
+        println("[MissionTable] updateComplete called")
+        updateComplete(missionId.get)
+        if (skipped.getOrElse(false)) {
+          updateSkipped(missionId.get)
+        }
+      }
 
-    if (actions.contains("getValidationMission")) {
+      if (actions.contains("getValidationMission")) {
         println("[MissionTable] Getting validation mission")
         getCurrentValidationMission(userId) match {
           case Some(incompleteMission) =>
             println("[MissionTable] Incomplete validation mission available")
             Some(incompleteMission)
           case _ =>
-            val validationLabels: Int = getNextValidationMissionLabelCount (userId)
-            println ("[MissionTable] Getting " + validationLabels + " labels")
+            val validationLabels: Int = getNextValidationMissionLabelCount(userId)
+            println("[MissionTable] Getting " + validationLabels + " labels")
             val pay: Double = validationLabels.toDouble * payPerLabel.get
-            Some (createNextValidationMission (userId, pay, validationLabels))
+            Some(createNextValidationMission(userId, pay, validationLabels))
         }
       } else {
         None // If we are not trying to get a mission, return None
       }
+    }
   }
 
   /**
@@ -386,6 +393,12 @@ object MissionTable {
     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), Some(skipped))
   }
 
+  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, labelsProgress: Int, skipped: Boolean): Option[Mission] = {
+    val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
+    println("Actions: " + actions)
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(labelsProgress), Some(skipped))
+  }
+
   /**
     * Updates the distance_progress column of a mission using the helper method to prevent race conditions.
     *
@@ -400,7 +413,7 @@ object MissionTable {
    }
 
   def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Option[Mission] = {
-    val actions: List[String] = List("updateValidationProgress")
+    val actions: List[String] = List("updateProgress")
     queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), Some(labelsProgress), None)
   }
 

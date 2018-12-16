@@ -76,15 +76,15 @@ function Mission(params) {
         // TODO: update progress bar
         if (labelsProgress < getProperty("labelsValidated")) {
             labelsProgress += 1;
-
+            svv.statusField.updateLabelCounts(labelsProgress);
+            console.log("Validated: " + labelsProgress + ", total: " + getProperty("labelsValidated"));
+            setProperty("labelsProgress", labelsProgress);
             if (labelsProgress == getProperty("labelsValidated")) {
                 setProperty("completed", true);
                 svv.missionContainer.trigger("MissionContainer:completeAMission");
             }
         }
-        svv.statusField.updateLabelCounts(labelsProgress);
-        console.log("Validated: " + labelsProgress + ", total: " + getProperty("labelsValidated"));
-        setProperty("labelsProgress", labelsProgress);
+
 
         var completionRate = labelsProgress / getProperty("labelsValidated");
         svv.statusField.setProgressBar(completionRate);
