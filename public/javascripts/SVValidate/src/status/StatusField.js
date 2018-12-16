@@ -23,9 +23,11 @@ function StatusField(missionMetadata) {
      * @private
      */
     function _init() {
+        var completionRate = missionMetadata.labels_progress / missionMetadata.labels_validated;
+        updateLabelCounts(missionMetadata.labels_progress);
         updateMissionDescription(missionMetadata.labels_validated);
-        setProgressText(missionMetadata.labels_progress / missionMetadata.labels_validated);
-        setProgressText(missionMetadata.labels_progress / missionMetadata.labels_validated)
+        setProgressText(completionRate);
+        setProgressBar(completionRate);
     }
 
     /**
@@ -65,7 +67,7 @@ function StatusField(missionMetadata) {
     // TODO: write resizeTextSize function, if necessary
     /**
      * Updates the mission progress completion bar
-     * @param completion
+     * @param completionRate    Proportion of this region completed (0 <= completionRate <= 1)
      */
     function setProgressBar(completionRate) {
         var color = completionRate < 1 ? 'rgba(0, 161, 203, 1)' : 'rgba(0, 222, 38, 1)';

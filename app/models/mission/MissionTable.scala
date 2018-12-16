@@ -329,8 +329,18 @@ object MissionTable {
     * @param tutorialPay
     * @return
     */
-  def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double], tutorialPay: Option[Double]): Option[Mission] = db.withSession { implicit session =>
-      if (actions.contains("getValidationMission")) {
+  def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double],
+                                          tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int],
+                                          labelsProgress: Option[Int], skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
+
+  // actions: List[String], userId: UUID, payPerLabel: Option[Double], tutorialPay: Option[Double]): Option[Mission] = db.withSession { implicit session =>
+    if (actions.contains("updateValidationProgress")) {
+      println("[MissionTable] queryMissionTable: updateValidationProgress");
+      updateValidationProgress(missionId.get, labelsProgress.get)
+      None // temp
+    }
+
+    if (actions.contains("getValidationMission")) {
         println("[MissionTable] Getting validation mission")
         getCurrentValidationMission(userId) match {
           case Some(incompleteMission) =>
@@ -389,6 +399,11 @@ object MissionTable {
      queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress), None)
    }
 
+  def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Option[Mission] = {
+    val actions: List[String] = List("updateValidationProgress")
+    queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), Some(labelsProgress), None)
+  }
+
   /**
     * Gets auditOnboarding mission the user started in the region if one exists, o/w makes a new mission.
     *
@@ -415,9 +430,10 @@ object MissionTable {
      queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None)
    }
 
+  // actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None
   def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double): Option[Mission] = {
     val actions: List[String] = List("getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay))
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, None, None)
   }
 
   /**
@@ -537,6 +553,20 @@ object MissionTable {
     } else {
       Logger.error("Trying to update mission progress with distance greater than total mission distance.")
       missionToUpdate.update((Some(missionDistance), now))
+    }
+  }
+
+  def updateValidationProgress(missionId: Int, labelsProgress: Int): Int = db.withSession { implicit session =>
+    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val missionLabels: Int = missions.filter(_.missionId === missionId).map(_.labelsValidated).list.head.get
+    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.labelsProgress, m.missionEnd)
+
+    if (labelsProgress <= missionLabels) {
+      println("[MissionTable] updateValidationProgress: need to update this mission!")
+      missionToUpdate.update((Some(labelsProgress), now))
+    } else {
+      Logger.error("Trying to update mission progress with labels greater than total mission labels.")
+      missionToUpdate.update((Some(missionLabels), now))
     }
   }
 

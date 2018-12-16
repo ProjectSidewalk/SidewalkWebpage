@@ -11,7 +11,7 @@ function Form(url) {
         data.labels = svv.labelContainer.getCurrentLabels();
 
         // Add the current mission
-        data.mission = {
+        data.missionProgress = {
             mission_id: mission.getProperty("missionId"),
             labels_progress: mission.getProperty("labelsProgress"),
             completed: mission.getProperty("completed"),

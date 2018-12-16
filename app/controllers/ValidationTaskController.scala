@@ -66,9 +66,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             }
           }
 
-          val missionId: Int = data.mission.missionId
+          val missionId: Int = data.missionProgress.missionId
           println("missionId: " + missionId)
-          // val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
+          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
 
         }
         println("[ValidationTaskController] Success");
@@ -108,21 +108,30 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress  Metadata for this mission
     * @return
     */
-  /*
   def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress): Option[Mission] = {
-    val missionId: Int = mission.missionId
+    val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
     val role: String = user.get.role.getOrElse("")
 
-    if (missionProgress.labelsProgress.isEmpty) Logger.error("Received null labels progress for validation mission.")
-    val distProgress: Float = missionProgress.labelsProgress.get
+    //  (missionProgress.labelsProgress.isEmpty) Logger.error("Received null labels progress for validation mission.")
+    val labelsProgress: Int = missionProgress.labelsProgress
+    println("[updateMissionTable]: " + missionId + ", " + skipped + ", " + userId + ", " + role);
 
+    if (missionProgress.completed) {
+      println("[updateMissionTable] This mission is complete")
+    } else {
+      println("[updateMissionTable] This mission is not complete")
+      MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
+    }
+
+    return None
+    /*
     if (missionProgress.completed) {
       MissionTable.updateCompleteAndGetNextMission(userId, missionId, labelsProgress, skipped)
     } else {
       MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
     }
+    */
   }
-  */
 }
