@@ -103,8 +103,8 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         val userId: UUID = user.userId
 
         // The survey should show after the user completes their first non-tutorial mission. NOTE the number of missions
-        // before survey is actually 1, but this check is done before the next mission is updated on the back-end.
-        val numMissionsBeforeSurvey = 0
+        // before survey is actually 2, but this check is done before the next mission is updated on the back-end.
+        val numMissionsBeforeSurvey = 1
         val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey)
 
         //maps displaymodal to true in the future

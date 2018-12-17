@@ -22,7 +22,7 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
 
-    @if(user.get.role.getOrElse("") == "Anonymous" || user.get.role.getOrElse("") == "Registered" || user.get.role.getOrElse("") == "Turker" ){
+    @if(Some(User)){
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content" id="survey-modal">
