@@ -27,10 +27,10 @@
                         <a href="#" id="toolbar-onboarding-link">Retake tutorial</a>
                     </li>
                     <li class="navbarLink">
-                        <a href='@routes.ApplicationController.labelingGuide' id="toolbar-faq-link" target="_blank">Labeling guide</a>
+                        <a href='@routes.ApplicationController.labelingGuide' id="toolbar-nav-link" target="_blank">Labeling guide</a>
                     </li>
                     <li class = "navbarLink">
-                      <a href='@routes.ApplicationController.faq' id="toolbar-faq-link" target="_blank">FAQ</a>
+                      <a href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">Help</a>
                     </li>
                 }
 
@@ -94,41 +94,41 @@ $(document).ready(function () {
     }
 
     // Triggered when 'Sign In' in navbar is clicked
-    // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/faq|...>"
+    // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
     $("#sign-in-button").on('click', function(){
         logWebpageActivity("Click_module=SignIn");
     });
 
     // Triggered when 'Start Mapping' in navbar is clicked
-    // Logs "Click_module=StartMapping_location=Navbar_route=</|/audit|/faq|...>"
+    // Logs "Click_module=StartMapping_location=Navbar_route=</|/audit|/help|...>"
     $(".navbarStartBtn").on('click', function(){
         logWebpageActivity("Click_module=StartMapping");
     });
 
     // Triggered when 'Results' in navbar is clicked
-    // Logs "Click_module=Results_location=Navbar_route=</|/audit|/faq|...>"
+    // Logs "Click_module=Results_location=Navbar_route=</|/audit|/help|...>"
     $(".navbarResultsBtn ").on('click', function(){
         logWebpageActivity("Click_module=Results");
     });
 
     // Triggered when links in the navbar are pressed when on the Audit page
-    // Logs "Click_module=<RetakeTutorial|FAQ>_location=Navbar_route=</|/audit|/faq|...>"
+    // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
     $(".navbarLink").on('click', function(e){
         var activity = "Click_module=RetakeTutorial";
-        if(e.currentTarget.innerHTML.includes("FAQ")){
-            activity = "Click_module=FAQ";
+        if(e.currentTarget.innerHTML.includes("Help")){
+            activity = "Click_module=Help";
         }
         logWebpageActivity(activity);
     });
 
     // Triggered when Project Sidewalk logo on navbar is clicked
-    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/faq|...>"
+    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
     $("#brand").on('click', function(){
         logWebpageActivity("Click_module=PSLogo");
     });
 
     // Triggered when items in the user menu are clicked
-    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/faq|...>""
+    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/help|...>""
     $("#nav-user-menu").on('click', function(e){
         var activity = "Click_module=SignOut";
         if(e.target.innerText.includes("Admin")){

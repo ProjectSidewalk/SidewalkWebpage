@@ -176,21 +176,21 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns an FAQ page.
+    * Returns a help  page.
     *
     * @return
     */
-  def faq = UserAwareAction.async { implicit request =>
+  def help = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
         val ipAddress: String = request.remoteAddress
 
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_FAQ", timestamp))
-        Future.successful(Ok(views.html.faq("Project Sidewalk - FAQ", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Help", timestamp))
+        Future.successful(Ok(views.html.help("Project Sidewalk - Help", Some(user))))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/faq"))
+        Future.successful(Redirect("/anonSignUp?url=/help"))
     }
   }
 
