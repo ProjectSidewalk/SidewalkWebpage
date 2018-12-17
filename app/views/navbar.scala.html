@@ -120,17 +120,17 @@ $(document).ready(function () {
 
     // Triggered when links in the navbar are pressed when on the Audit page
     // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
-    $(".navbarLink").on('click', function(e){
-        var activity = "Click_module=RetakeTutorial";
-        if (e.currentTarget.innerHTML.includes("FAQ")){
-            activity = "Click_module=FAQ";
-        }
-
-        if (e.currentTarget.innerHTML.includes("How to label")) {
-            activity = "Click_module=LabelingGuide";
-        }
-        logWebpageActivity(activity);
-    });
+    @if(url.isDefined && url.get == "/audit") {
+        $(".navbarLink").on('click', function (e) {
+            var activity = "Click_module=RetakeTutorial";
+            if (e.currentTarget.innerHTML.includes("Help")) {
+                activity = "Click_module=Help";
+            } else if (e.currentTarget.innerHTML.includes("How to label")) {
+                activity = "Click_module=LabelingGuide";
+            }
+            logWebpageActivity(activity);
+        });
+    }
 
     // Triggered when Project Sidewalk logo on navbar is clicked
     // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
