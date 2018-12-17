@@ -1,8 +1,8 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
