@@ -89,8 +89,8 @@ function Label() {
                 svv.labelContainer.push(getProperties());
                 svv.missionContainer.trigger("MissionContainer:updateAMission");
                 break;
-            // Unsure option selected.
-            case "Unsure":
+            // Not sure option selected.
+            case "NotSure":
                 setProperty("validationResult", 3);
                 svv.labelContainer.push(getProperties());
                 svv.missionContainer.trigger("MissionContainer:updateAMission");

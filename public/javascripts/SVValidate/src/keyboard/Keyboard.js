@@ -31,11 +31,11 @@ function Keyboard(menuUI) {
                     svv.panorama.getCurrentLabel().validate("Disagree");
                     status.keyPressed = true;
                     break;
-                // "u" key
-                case 85:
+                // "n" key
+                case 78:
                     menuUI.notSureButton.css("background-color", "lightgrey");
-                    svv.tracker.push("ValidationKeyboardShortcut_Unclear");
-                    svv.panorama.getCurrentLabel().validate("Unclear");
+                    svv.tracker.push("ValidationKeyboardShortcut_NotSure");
+                    svv.panorama.getCurrentLabel().validate("NotSure");
                     status.keyPressed = true;
                     break;
             }
@@ -55,8 +55,8 @@ function Keyboard(menuUI) {
                     menuUI.disagreeButton.css("background-color", "white");
                     status.keyPressed = false;
                     break;
-                // "u" key
-                case 85:
+                // "n" key
+                case 78:
                     menuUI.notSureButton.css("background-color", "white");
                     status.keyPressed = false;
                     break;

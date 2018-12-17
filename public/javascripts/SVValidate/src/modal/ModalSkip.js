@@ -12,20 +12,18 @@ function ModalSkip (uiModal) {
     var self = this;
 
     /**
-     * Disables the skip button (makes button unclickable).
+     * Enables the skip button (makes button clickable).
      */
-    function disableSkip () {
-        console.log("Disabled skipping");
+    function enableSkip () {
         status.disableSkip = true;
         uiModal.skipButton.attr("disabled", false);
         uiModal.skipButton.removeClass("disabled");
     }
 
     /**
-     * Enables the skip button (makes button clickable).
+     * Disables the skip button (makes button unclickable).
      */
-    function enableSkip () {
-        console.log("Enabled skipping");
+    function disableSkip () {
         status.disableSkip = false;
         uiModal.skipButton.attr("disabled", true);
         uiModal.skipButton.addClass("disabled");

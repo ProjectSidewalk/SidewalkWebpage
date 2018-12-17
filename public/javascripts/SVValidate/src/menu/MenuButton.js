@@ -18,9 +18,9 @@ function MenuButton(menuUI) {
     });
 
     menuUI.notSureButton.click(function() {
-        console.log("Unsure button clicked");
-        svv.tracker.push("ValidationButtonClick_Unsure");
-        svv.panorama.getCurrentLabel().validate("Unsure");
+        console.log("Not Sure button clicked");
+        svv.tracker.push("ValidationButtonClick_NotSure");
+        svv.panorama.getCurrentLabel().validate("NotSure");
     });
 
     return self;

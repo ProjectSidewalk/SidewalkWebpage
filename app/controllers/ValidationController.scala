@@ -37,6 +37,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case Some(user) =>
         // println(user)
         val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
+        println("[ValidationController] Mission: " + mission)
+        println()
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission)))
       case None =>
         Future.successful(Redirect("/"))

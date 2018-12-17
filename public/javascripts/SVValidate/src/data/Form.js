@@ -75,6 +75,7 @@ function Form(url) {
         svv.tracker.push("Unload");
         var data = compileSubmissionData();
         self.submit(data, true);
+        console.log("Unloading - finished submitting data");
     });
 
     self.compileSubmissionData = compileSubmissionData;
