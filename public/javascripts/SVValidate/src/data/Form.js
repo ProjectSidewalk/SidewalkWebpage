@@ -38,7 +38,7 @@ function Form(url) {
     function submit(data, async) {
         console.log("[Form.js] Submit function called");
         if (typeof async === "undefined") {
-            async = true;
+            async = false;
         }
 
         if (data.constructor !== Array) {
@@ -74,7 +74,7 @@ function Form(url) {
     $(window).on('beforeunload', function () {
         svv.tracker.push("Unload");
         var data = compileSubmissionData();
-        self.submit(data, true);
+        self.submit(data, false);
         console.log("Unloading - finished submitting data");
     });
 

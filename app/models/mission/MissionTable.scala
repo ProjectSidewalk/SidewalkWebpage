@@ -443,7 +443,6 @@ object MissionTable {
      queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None)
    }
 
-  // actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None
   def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double): Option[Mission] = {
     val actions: List[String] = List("getValidationMission")
     queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, None, None)
@@ -575,10 +574,11 @@ object MissionTable {
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.labelsProgress, m.missionEnd)
 
     if (labelsProgress <= missionLabels) {
-      println("[MissionTable] updateValidationProgress: need to update this mission!")
+      println("[MissionTable] updateValidationProgress: need to update this mission! Completed " + labelsProgress + " labels")
       missionToUpdate.update((Some(labelsProgress), now))
     } else {
-      Logger.error("Trying to update mission progress with labels greater than total mission labels.")
+      println("[MissionTable] updateValidationProgress: in else statement...")
+      Logger.error("[MissionTable] updateValidationProgress: Trying to update mission progress with labels greater than total mission labels.")
       missionToUpdate.update((Some(missionLabels), now))
     }
   }
