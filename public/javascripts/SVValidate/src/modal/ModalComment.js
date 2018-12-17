@@ -78,11 +78,6 @@ function ModalComment (modalUI) {
     function submitComment (data) {
         var url = "/validate/comment";
         var async = true;
-        try {
-            console.log(JSON.stringify(data));
-        } catch (err) {
-            console.error(err);
-        }
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
@@ -90,9 +85,7 @@ function ModalComment (modalUI) {
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function (result) {
-                console.log("Feedback submitted successfully");
-            },
+            success: function (result) {},
             error: function(xhr, textStatus, error){
                 console.error(xhr.statusText);
                 console.error(textStatus);

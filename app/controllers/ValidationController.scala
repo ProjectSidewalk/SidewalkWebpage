@@ -11,6 +11,7 @@ import formats.json.CommentSubmissionFormats._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.Mission
 import models.mission.MissionTable
+import models.validation._
 import models.user._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
@@ -52,12 +53,26 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     println("[ValidationController] postComment submission: " + submission)
     submission.fold(
       errors => {
-        println("[ValidationController] Error")
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        println("[ValidationController] Success!")
-        Future.successful(Ok)
+        val userId: String = request.identity match {
+          case Some(user) => user.userId.toString
+          case None =>
+            Logger.warn("User without a user_id submitted a comment, but every user should have a user_id.")
+            val user: Option[DBUser] = UserTable.find("anonymous")
+            user.get.userId.toString
+        }
+        val ipAddress: String = request.remoteAddress
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
+
+        val comment = ValidationTaskComment(0, submission.missionId, submission.labelId, userId,
+          ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+          submission.zoom, submission.lat, submission.lng, Some(timestamp), submission.comment)
+
+        val commentId: Int = ValidationTaskCommentTable.save(comment)
+        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
       }
     )
   }
