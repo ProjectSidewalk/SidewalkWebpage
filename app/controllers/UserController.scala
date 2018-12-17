@@ -12,7 +12,6 @@ import models.user._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import play.api.mvc.BodyParsers
 import play.api.libs.json._
-import org.joda.time.{DateTime, DateTimeZone}
 import scala.concurrent.Future
 
 /**
@@ -81,8 +80,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
         request.identity match {
           case Some(user) =>
