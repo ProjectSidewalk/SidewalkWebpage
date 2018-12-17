@@ -16,6 +16,17 @@ function Main (param) {
         svv.ui.validation.disagreeButton = $("#validation-disagree-button");
         svv.ui.validation.notSureButton = $("#validation-not-sure-button");
 
+        svv.ui.modal = {};
+        svv.ui.modal.background = $("#modal-comment-background");
+        svv.ui.modal.skipButton = $("#left-column-jump-button");
+        svv.ui.modalComment = {};
+        svv.ui.modalComment.box = $("#modal-comment-box");
+        svv.ui.modalComment.feedbackButton = $("#left-column-feedback-button");
+        svv.ui.modalComment.holder = $("#modal-comment-holder");
+        svv.ui.modalComment.ok = $("#modal-comment-ok-button");
+        svv.ui.modalComment.cancel = $("#modal-comment-cancel-button");
+        svv.ui.modalComment.textarea = $("#modal-comment-textarea");
+
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
         svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
@@ -28,7 +39,6 @@ function Main (param) {
     }
 
     function _init() {
-        // TODO later: Add params for map
         svv.util = {};
         svv.util.properties = {};
         svv.util.properties.panorama = new PanoProperties();
@@ -40,7 +50,9 @@ function Main (param) {
         svv.keyboard = new Keyboard(svv.ui.validation);
         svv.labelContainer = new LabelContainer();
         svv.panorama = new Panorama();
+
         svv.menuButtons = new MenuButton(svv.ui.validation);
+        svv.modalComment = new ModalComment(svv.ui.modalComment);
 
         // mission stuff
         svv.missionContainer = new MissionContainer();

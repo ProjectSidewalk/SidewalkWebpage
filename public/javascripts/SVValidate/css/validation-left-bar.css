@@ -1,0 +1,6 @@
+/* Overriding CSS from SVLabel */
+#left-column-validation-control-pane {
+    position: relative;
+    left: -55px;
+    top: 290px;
+}

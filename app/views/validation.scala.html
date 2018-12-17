@@ -22,6 +22,19 @@
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
     <div class="container toolUI" style = "visibility: visible;">
         <div id="svv-application-holder">
+            <div id="left-column-validation-control-pane">
+                <div id="left-column-button-holder">
+                    <div id="left-column-jump-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
+                        <br>Skip
+                    </div>
+                    <div class="spacer10"></div>
+                    <div id="left-column-feedback-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                        Feedback
+                    </div>
+                </div>
+            </div>
             <div id="upper-menu-holder">
                 <!-- rename to something better... probably will hold information -->
                 <div id="upper-menu-title-bar"></div>
@@ -31,6 +44,26 @@
                     <div id="svv-panorama">
 
                     </div>
+                </div>
+            </div>
+            <div id="modal-comment-holder" class="hidden">
+                <div id="modal-comment-background"></div>
+                <div id="modal-comment-box">
+                    <form id="comment-form">
+                        <div id="modal-comment-title" class="bold">
+                            <p>
+                                Any thoughts? Found something confusing? Spotted a bug? <br />
+                                Send us comments!
+                            </p>
+                        </div>
+                        <div id="modal-comment-content">
+                            <textarea id="modal-comment-textarea" placeholder=""></textarea>
+                        </div>
+                        <div>
+                            <button class="button" id="modal-comment-ok-button" type="button">OK</button>&nbsp;
+                            <button class="button" id="modal-comment-cancel-button" type="button">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
             <div id="status-holder">

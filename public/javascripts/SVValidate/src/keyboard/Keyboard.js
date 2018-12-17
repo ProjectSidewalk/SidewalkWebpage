@@ -1,8 +1,18 @@
 function Keyboard(menuUI) {
+    var self = this;
+
     var status = {
         keyPressed: false,
         disableKeyboard: false
     };
+
+    function disableKeyboard () {
+        status.disableKeyboard = true;
+    }
+
+    function enableKeyboard () {
+        status.disableKeyboard = false;
+    }
 
     this._documentKeyDown = function (e) {
         if (!status.disableKeyboard && !status.keyPressed) {
@@ -56,4 +66,9 @@ function Keyboard(menuUI) {
 
     $(document).bind('keyup', this._documentKeyUp);
     $(document).bind('keydown', this._documentKeyDown);
+
+    self.disableKeyboard = disableKeyboard;
+    self.enableKeyboard = enableKeyboard;
+
+    return this;
 }

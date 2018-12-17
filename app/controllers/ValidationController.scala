@@ -7,7 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import models.audit._
+import formats.json.CommentSubmissionFormats._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.Mission
 import models.mission.MissionTable
@@ -23,7 +23,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
-  // Returns validation endpoint
+  /**
+    * Returns the validation page.
+    * @return
+    */
   def validate = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
@@ -37,5 +40,25 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case None =>
         Future.successful(Redirect("/"))
     }
+  }
+
+  /**
+    * This method handles a comment POST request. It parse the comment and insert it into the comment table
+    *
+    * @return
+    */
+  def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[ValidationCommentSubmission]
+    println("[ValidationController] postComment submission: " + submission)
+    submission.fold(
+      errors => {
+        println("[ValidationController] Error")
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        println("[ValidationController] Success!")
+        Future.successful(Ok)
+      }
+    )
   }
 }

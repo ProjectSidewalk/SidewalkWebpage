@@ -57,6 +57,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/label/*.js',
                     'public/javascripts/SVValidate/src/menu/*.js',
                     'public/javascripts/SVValidate/src/mission/*.js',
+                    'public/javascripts/SVValidate/src/modal/*.js',
                     'public/javascripts/SVValidate/src/panorama/*.js',
                     'public/javascripts/SVValidate/src/status/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
@@ -139,7 +140,7 @@ module.exports = function(grunt) {
                     'public/javascripts/FAQ/src/*.js',
                     'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/**/*.js',
-                    'public/javascripts/SVValidate/**/*.css'
+                    'public/javascripts/SVValidate/css/*.css'
                 ],
                 tasks: [
                     'concat',
