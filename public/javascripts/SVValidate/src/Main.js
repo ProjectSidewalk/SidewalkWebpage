@@ -18,7 +18,9 @@ function Main (param) {
 
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
-        svv.ui.modal.skipButton = $("#left-column-jump-button");
+
+        svv.ui.modalSkip = {};
+        svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");
         svv.ui.modalComment.feedbackButton = $("#left-column-feedback-button");
@@ -53,6 +55,7 @@ function Main (param) {
 
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
+        svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
 
         // mission stuff
         svv.missionContainer = new MissionContainer();

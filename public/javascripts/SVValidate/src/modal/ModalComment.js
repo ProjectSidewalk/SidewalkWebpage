@@ -1,42 +1,67 @@
+/**
+ * Handles feedback button functionality. Allows users to submit feedback, which is logged to the
+ * validation_task_interaction table.
+ * @param modalUI   UI elements related to feedback (button, dialog box buttons)
+ * @returns {ModalComment}
+ * @constructor
+ */
 function ModalComment (modalUI) {
     var self = this;
     var status = {
         disableClickOk: true
     };
 
+    /**
+     * Disables the ok button (makes button unclickable).
+     */
     function disableClickOk () {
         modalUI.ok.attr("disabled", true);
         modalUI.ok.addClass("disabled");
         status.disableClickOk = true;
     }
 
+    /**
+     * Enables the ok button (makes button clickable).
+     */
     function enableClickOk () {
         modalUI.ok.attr("disabled", false);
         modalUI.ok.removeClass("disabled");
         status.disableClickOk = false;
     }
 
+    /**
+     * Hides the comments dialog box.
+     */
     function handleClickCancel () {
-        console.log("Clicked cancel button");
+        svv.tracker.push("ModalComment_ClickCancel");
         hide();
     }
 
+    /**
+     * Shows the comments dialog box.
+     */
     function handleClickFeedbackButton() {
-        console.log("Clicked feedback button");
+        svv.tracker.push("ModalComment_ClickFeedback");
         showCommentMenu();
     }
 
+    /**
+     * Submits text in the comment box to the backend.
+     */
     function handleClickOk () {
-        console.log("Clicked ok button");
+        svv.tracker.push("ModalComment_ClickOK");
         var data = prepareCommentData();
         console.log(data);
         submitComment(data);
         hide();
     }
 
+    /**
+     * Function that is triggered when text is changed in the comments box. Will enable the "ok"
+     * button if there is text.
+     */
     function handleTextAreaChange () {
         var comment = modalUI.textarea.val();
-        console.log("Comment is: " + comment);
         if (comment.length > 0) {
             enableClickOk();
         } else {
@@ -49,19 +74,28 @@ function ModalComment (modalUI) {
     function hide () {
         modalUI.holder.addClass('hidden');
         svv.keyboard.enableKeyboard();
+        svv.modalSkip.enableSkip();
     }
 
+    /**
+     * Displays the comment menu. Disables validation keyboard controls (may interfere with the
+     * comment menu).
+     */
     function showCommentMenu () {
         modalUI.textarea.val("");
         modalUI.holder.removeClass('hidden');
         disableClickOk();
         svv.keyboard.disableKeyboard();
+        svv.modalSkip.disableSkip();
 
         // TODO: Fix CSS for the comment box. This is a temporary fix.
         modalUI.box.css("left", "5px");
         // showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
     }
 
+    /**
+     * Renders a transparent white background over the validation interface and side menus.
+     */
     function showBackground () {
         svv.ui.modal.background.css('background-color', 'white');
         svv.ui.modal.background.css({
@@ -94,6 +128,11 @@ function ModalComment (modalUI) {
         });
     }
 
+    /**
+     * Converts comment and some validation interface data into an object to be sent to the backend.
+     * @returns Comment data object {{comment, label_id, gsv_panorama_id: *, heading, lat, lng,
+     * pitch, mission_id, zoom}}
+     */
     function prepareCommentData () {
         var comment = modalUI.textarea.val();
         var position = svv.panorama.getPosition();
