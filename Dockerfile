@@ -30,5 +30,5 @@ RUN /bin/bash -c "source ~/.bashrc" && \
   chmod a+x activator
 
 WORKDIR /opt
-COPY package.json package-lock.json ./
+COPY package.json ./
 RUN npm install
