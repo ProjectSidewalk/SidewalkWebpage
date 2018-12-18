@@ -3,12 +3,16 @@
  * interface. It uses the Panomarker API to place labels onto the panorama.
  * @constructor
  */
-function Panorama() {
+function Panorama () {
     var currentLabel = new Label();
     var init = true;
     var panoCanvas = document.getElementById("svv-panorama");
-    var properties = {};
+    var properties = {
+        panoId: undefined
+    };
     var panorama = undefined;
+    // Determined manually by matching appearance of labels on the audit page and appearance of
+    // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
     var zoomLevel = {
         1: 1.1,
         2: 2.1,
@@ -19,21 +23,22 @@ function Panorama() {
      * Initalizes a Google StreetView Panorama and disables most UI/Control settings.
      * @private
      */
-    function _init() {
+    function _init () {
         if (typeof google != "undefined") {
             // Set control options
             panorama = new google.maps.StreetViewPanorama(panoCanvas);
             panorama.set('addressControl', false);
             panorama.set('clickToGo', false);
             panorama.set('disableDefaultUI', true);
-            panorama.set('linksControl', false);
-            panorama.set('navigationControl', false);
-            panorama.set('panControl', false);
-            panorama.set('zoomControl', false);
             panorama.set('keyboardShortcuts', false);
+            panorama.set('linksControl', false);
             panorama.set('motionTracking', false);
             panorama.set('motionTrackingControl', false);
+            panorama.set('navigationControl', false);
+            panorama.set('panControl', false);
+            panorama.set('scrollwheel', false);
             panorama.set('showRoadLabels', false);
+            panorama.set('zoomControl', false);
         } else {
             console.error("No typeof google");
         }
@@ -48,7 +53,7 @@ function Panorama() {
      * Returns the label object for the label that is loaded on this panorama
      * @returns {Label}
      */
-    function getCurrentLabel() {
+    function getCurrentLabel () {
         return currentLabel;
     }
 
@@ -56,7 +61,7 @@ function Panorama() {
      * Returns the panorama ID for the current panorama.
      * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
      */
-    function getPanoId() {
+    function getPanoId () {
         return panorama.getPano();
     }
 
@@ -64,7 +69,7 @@ function Panorama() {
      * Returns the lat lng of the panorama.
      * @returns {{lat, lng}}
      */
-    function getPosition() {
+    function getPosition () {
         var position = panorama.getPosition();
         return { 'lat' : position.lat(), 'lng' : position.lng() };
     }
@@ -73,7 +78,7 @@ function Panorama() {
      * Returns the pov of the viewer.
      * @returns {{heading: float, pitch: float, zoom: float}}
      */
-    function getPov() {
+    function getPov () {
         var pov = panorama.getPov();
 
         // Pov can be less than 0. So adjust it.
@@ -88,6 +93,14 @@ function Panorama() {
         return pov;
     }
 
+    /**
+     *
+     * @returns {*}
+     */
+    function getZoom () {
+        return panorama.getZoom();
+    }
+
     function getProperty (key) {
         return key in properties ? properties[key] : null;
     }
@@ -97,7 +110,7 @@ function Panorama() {
      * @param labelMetadata JSON with label data
      * @private
      */
-    function _handleData(labelMetadata) {
+    function _handleData (labelMetadata) {
         // console.log("[Panorama.js] Label ID: " + labelMetadata['label_id']);
         setPanorama(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
                 labelMetadata['pitch'], labelMetadata['zoom']);
@@ -123,7 +136,7 @@ function Panorama() {
      * @param pitch     Photographer pitch
      * @param zoom      Photographer zoom
      */
-    function setPanorama(panoId, heading, pitch, zoom) {
+    function setPanorama (panoId, heading, pitch, zoom) {
         setProperty("panoId", panoId);
         if (init) {
             panorama.setPano(panoId);
@@ -152,7 +165,7 @@ function Panorama() {
      * Retrieves a label with a given id from the database.
      * @param labelId   label_id of the desired label.
      */
-    function setLabel(labelId) {
+    function setLabel (labelId) {
         var labelUrl = "/label/geo/" + labelId;
         $.ajax({
             url: labelUrl,
@@ -168,7 +181,7 @@ function Panorama() {
     /**
      * Retrieves a random label from the database.
      */
-    function setLabel() {
+    function setLabel () {
         var labelUrl = "/label/geo/random";
         $.ajax({
             url: labelUrl,
@@ -182,9 +195,13 @@ function Panorama() {
         return this;
     }
 
-    function setProperty(key, value) {
+    function setProperty (key, value) {
         properties[key] = value;
         return this;
+    }
+
+    function setZoom (zoom) {
+        panorama.set('zoom', zoom);
     }
 
     /**
@@ -224,10 +241,12 @@ function Panorama() {
     self.getPosition = getPosition;
     self.getProperty = getProperty;
     self.getPov = getPov;
+    self.getZoom = getZoom;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
+    self.setZoom = setZoom;
 
     return self;
 }

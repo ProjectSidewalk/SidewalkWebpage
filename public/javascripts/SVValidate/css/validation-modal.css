@@ -21,6 +21,19 @@
 
 }
 
+#validation-zoom-control-holder {
+    background: transparent;
+    position: absolute;
+    left: 595px;
+    top: 60px;
+    height: 55px;
+    width: 185px;
+}
+
+.button.zoom-control-button:focus {
+    outline: none;
+}
+
 #svv-panorama-holder {
     position: absolute;
     top: 105px;
