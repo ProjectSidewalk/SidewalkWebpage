@@ -19,16 +19,6 @@ RUN apt-get update && \
   apt-get autoremove && \
   apt-get clean
 
-WORKDIR /usr/share
-RUN wget http://downloads.typesafe.com/typesafe-activator/1.3.2/typesafe-activator-1.3.2-minimal.zip && \
-  unzip typesafe-activator-1.3.2-minimal.zip && \
-  mv activator-1.3.2-minimal activator
-
-WORKDIR /usr/share/activator
-ENV PATH="/usr/share/activator:${PATH}"
-RUN /bin/bash -c "source ~/.bashrc" && \
-  chmod a+x activator
-
 WORKDIR /opt
 COPY package.json ./
 RUN npm install
