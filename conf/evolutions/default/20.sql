@@ -1,5 +1,5 @@
 # --- !Ups
-CREATE TABLE IF NOT EXISTS version
+CREATE TABLE version
 (
   version_id TEXT NOT NULL,
   version_start_time TIMESTAMP NOT NULL,

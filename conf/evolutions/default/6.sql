@@ -2,28 +2,22 @@
 # --- !Ups
 INSERT INTO role (role_id, role) VALUES (4, 'Turker');
 
-ALTER TABLE amt_assignment DROP COLUMN if exists turker_id;
-ALTER TABLE amt_assignment DROP COLUMN if exists confirmation_code;
-ALTER TABLE amt_assignment DROP COLUMN if exists completed;
-
 ALTER TABLE amt_assignment
   ADD turker_id TEXT NOT NULL,
   ADD confirmation_code TEXT,
   ADD completed BOOLEAN NOT NULL DEFAULT FALSE;
 
-ALTER TABLE mission_user DROP COLUMN if exists paid;
-
 ALTER TABLE mission_user
   ADD paid BOOLEAN NOT NULL DEFAULT FALSE;
 
-CREATE TABLE IF NOT EXISTS survey_category_option
+CREATE TABLE survey_category_option
 (
   survey_category_option_id SERIAL NOT NULL,
   survey_category_option_text TEXT NOT NULL,
   PRIMARY KEY (survey_category_option_id)
 );
 
-CREATE TABLE IF NOT EXISTS survey_question
+CREATE TABLE survey_question
 (
   survey_question_id SERIAL NOT NULL,
   survey_question_text TEXT NOT NULL,
@@ -37,7 +31,7 @@ CREATE TABLE IF NOT EXISTS survey_question
   FOREIGN KEY (survey_category_option_id) REFERENCES survey_category_option(survey_category_option_id)
 );
 
-CREATE TABLE IF NOT EXISTS survey_option(
+CREATE TABLE survey_option(
  survey_option_id INT NOT NULL,
  survey_category_option_id INT NOT NULL,
  survey_option_text TEXT NOT NULL,
@@ -78,7 +72,7 @@ INSERT INTO survey_question VALUES (4, 'Why did you choose to contribute to Proj
 INSERT INTO survey_question VALUES (5, 'Do you have any feedback for us?', 'free-text-feedback', NULL, 4, false, 1, false);
 
 
-create TABLE IF NOT EXISTS user_survey_text_submission
+create TABLE user_survey_text_submission
 (
   user_survey_text_submission_id SERIAL NOT NULL,
   user_id TEXT NOT NULL,
@@ -91,7 +85,7 @@ create TABLE IF NOT EXISTS user_survey_text_submission
   FOREIGN key (survey_question_id) REFERENCES  survey_question(survey_question_id)
 );
 
-CREATE TABLE IF NOT EXISTS user_survey_option_submission
+CREATE TABLE user_survey_option_submission
 (
   user_survey_option_submission_id SERIAL NOT NULL,
   user_id TEXT NOT NULL,

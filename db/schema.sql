@@ -80,6 +80,7 @@ CREATE TABLE sidewalk.accessibility_feature (
 
 ALTER TABLE sidewalk.accessibility_feature OWNER TO sidewalk;
 
+
 --
 -- Name: amt_assignment; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
@@ -89,10 +90,7 @@ CREATE TABLE sidewalk.amt_assignment (
     assignment_id text NOT NULL,
     assignment_start timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     assignment_end timestamp with time zone DEFAULT timezone('utc'::text, now()),
-    hit_id text NOT NULL,
-    turker_id text NOT NULL,
-    confirmation_code text,
-    completed boolean DEFAULT false NOT NULL
+    hit_id text NOT NULL
 );
 
 
@@ -398,18 +396,6 @@ CREATE TABLE sidewalk.gsv_model (
 ALTER TABLE sidewalk.gsv_model OWNER TO sidewalk;
 
 --
--- Name: gsv_onboarding_pano; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.gsv_onboarding_pano (
-    gsv_panorama_id text NOT NULL,
-    has_labels boolean NOT NULL
-);
-
-
-ALTER TABLE sidewalk.gsv_onboarding_pano OWNER TO sidewalk;
-
---
 -- Name: gsv_projection; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -438,8 +424,7 @@ CREATE TABLE sidewalk.label (
     photographer_pitch double precision NOT NULL,
     panorama_lat double precision,
     panorama_lng double precision,
-    temporary_label_id integer,
-    time_created timestamp without time zone
+    temporary_label_id integer
 );
 
 
@@ -637,8 +622,7 @@ ALTER SEQUENCE sidewalk.mission_mission_id_seq OWNED BY sidewalk.mission.mission
 CREATE TABLE sidewalk.mission_user (
     mission_user_id integer NOT NULL,
     mission_id integer NOT NULL,
-    user_id text NOT NULL,
-    paid boolean DEFAULT false NOT NULL
+    user_id text NOT NULL
 );
 
 
@@ -815,19 +799,6 @@ CREATE TABLE sidewalk.region (
 ALTER TABLE sidewalk.region OWNER TO sidewalk;
 
 --
--- Name: region_completion; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.region_completion (
-    region_id integer NOT NULL,
-    total_distance real,
-    audited_distance real
-);
-
-
-ALTER TABLE sidewalk.region_completion OWNER TO sidewalk;
-
---
 -- Name: region_property; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -929,19 +900,6 @@ CREATE TABLE sidewalk.sidewalk_edge (
 ALTER TABLE sidewalk.sidewalk_edge OWNER TO sidewalk;
 
 --
--- Name: sidewalk_edge_accessibility_feature; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.sidewalk_edge_accessibility_feature (
-    sidewalk_edge_accessibility_feature_id integer NOT NULL,
-    sidewalk_edge_id integer,
-    accessibility_feature_id integer
-);
-
-
-ALTER TABLE sidewalk.sidewalk_edge_accessibility_feature OWNER TO sidewalk;
-
---
 -- Name: sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -954,13 +912,6 @@ CREATE SEQUENCE sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibili
 
 
 ALTER TABLE sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq OWNER TO sidewalk;
-
---
--- Name: sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq OWNED BY sidewalk.sidewalk_edge_accessibility_feature.sidewalk_edge_accessibility_feature_id;
-
 
 --
 -- Name: sidewalk_edge_parent_edge; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
@@ -985,6 +936,19 @@ CREATE TABLE sidewalk.sidewalk_edge_sidewalk_node (
 
 
 ALTER TABLE sidewalk.sidewalk_edge_sidewalk_node OWNER TO sidewalk;
+
+--
+-- Name: sidewalk_edge_accessibility_feature; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
+--
+
+CREATE TABLE sidewalk.sidewalk_edge_accessibility_feature (
+    sidewalk_edge_accessibility_feature_id integer NOT NULL,
+    sidewalk_edge_id integer,
+    accessibility_feature_id integer
+);
+
+
+ALTER TABLE sidewalk.sidewalk_edge_accessibility_feature OWNER TO sidewalk;
 
 --
 -- Name: sidewalk_edge_sidewalk_node_sidewalk_edge_id_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
@@ -1422,92 +1386,6 @@ ALTER SEQUENCE sidewalk.street_node_street_node_id_seq OWNED BY sidewalk.street_
 
 
 --
--- Name: survey_category_option; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.survey_category_option (
-    survey_category_option_id integer NOT NULL,
-    survey_category_option_text text NOT NULL
-);
-
-
-ALTER TABLE sidewalk.survey_category_option OWNER TO sidewalk;
-
---
--- Name: survey_category_option_survey_category_option_id_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
---
-
-CREATE SEQUENCE sidewalk.survey_category_option_survey_category_option_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE sidewalk.survey_category_option_survey_category_option_id_seq OWNER TO sidewalk;
-
---
--- Name: survey_category_option_survey_category_option_id_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.survey_category_option_survey_category_option_id_seq OWNED BY sidewalk.survey_category_option.survey_category_option_id;
-
-
---
--- Name: survey_option; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.survey_option (
-    survey_option_id integer NOT NULL,
-    survey_category_option_id integer NOT NULL,
-    survey_option_text text NOT NULL,
-    survey_display_rank integer
-);
-
-
-ALTER TABLE sidewalk.survey_option OWNER TO sidewalk;
-
---
--- Name: survey_question; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.survey_question (
-    survey_question_id integer NOT NULL,
-    survey_question_text text NOT NULL,
-    survey_input_type text NOT NULL,
-    survey_category_option_id integer,
-    survey_display_rank integer,
-    deleted boolean DEFAULT false NOT NULL,
-    survey_user_role_id integer DEFAULT 1 NOT NULL,
-    required boolean DEFAULT false NOT NULL
-);
-
-
-ALTER TABLE sidewalk.survey_question OWNER TO sidewalk;
-
---
--- Name: survey_question_survey_question_id_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
---
-
-CREATE SEQUENCE sidewalk.survey_question_survey_question_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE sidewalk.survey_question_survey_question_id_seq OWNER TO sidewalk;
-
---
--- Name: survey_question_survey_question_id_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.survey_question_survey_question_id_seq OWNED BY sidewalk.survey_question.survey_question_id;
-
-
---
 -- Name: teaser; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -1657,80 +1535,6 @@ ALTER TABLE sidewalk.user_role_user_role_id_seq OWNER TO sidewalk;
 --
 
 ALTER SEQUENCE sidewalk.user_role_user_role_id_seq OWNED BY sidewalk.user_role.user_role_id;
-
-
---
--- Name: user_survey_option_submission; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.user_survey_option_submission (
-    user_survey_option_submission_id integer NOT NULL,
-    user_id text NOT NULL,
-    survey_question_id integer NOT NULL,
-    survey_option_id integer,
-    time_submitted timestamp without time zone,
-    num_missions_completed integer
-);
-
-
-ALTER TABLE sidewalk.user_survey_option_submission OWNER TO sidewalk;
-
---
--- Name: user_survey_option_submission_user_survey_option_submission_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
---
-
-CREATE SEQUENCE sidewalk.user_survey_option_submission_user_survey_option_submission_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE sidewalk.user_survey_option_submission_user_survey_option_submission_seq OWNER TO sidewalk;
-
---
--- Name: user_survey_option_submission_user_survey_option_submission_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.user_survey_option_submission_user_survey_option_submission_seq OWNED BY sidewalk.user_survey_option_submission.user_survey_option_submission_id;
-
-
---
--- Name: user_survey_text_submission; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.user_survey_text_submission (
-    user_survey_text_submission_id integer NOT NULL,
-    user_id text NOT NULL,
-    survey_question_id integer NOT NULL,
-    survey_text_submission text,
-    time_submitted timestamp without time zone,
-    num_missions_completed integer
-);
-
-
-ALTER TABLE sidewalk.user_survey_text_submission OWNER TO sidewalk;
-
---
--- Name: user_survey_text_submission_user_survey_text_submission_id_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
---
-
-CREATE SEQUENCE sidewalk.user_survey_text_submission_user_survey_text_submission_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE sidewalk.user_survey_text_submission_user_survey_text_submission_id_seq OWNER TO sidewalk;
-
---
--- Name: user_survey_text_submission_user_survey_text_submission_id_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.user_survey_text_submission_user_survey_text_submission_id_seq OWNED BY sidewalk.user_survey_text_submission.user_survey_text_submission_id;
 
 
 --
@@ -1889,13 +1693,6 @@ ALTER TABLE ONLY sidewalk.sidewalk_edge ALTER COLUMN sidewalk_edge_id SET DEFAUL
 
 
 --
--- Name: sidewalk_edge_accessibility_feature_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature ALTER COLUMN sidewalk_edge_accessibility_feature_id SET DEFAULT nextval('sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq'::regclass);
-
-
---
 -- Name: id_0; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -1931,20 +1728,6 @@ ALTER TABLE ONLY sidewalk.street_node ALTER COLUMN street_node_id SET DEFAULT ne
 
 
 --
--- Name: survey_category_option_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.survey_category_option ALTER COLUMN survey_category_option_id SET DEFAULT nextval('sidewalk.survey_category_option_survey_category_option_id_seq'::regclass);
-
-
---
--- Name: survey_question_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.survey_question ALTER COLUMN survey_question_id SET DEFAULT nextval('sidewalk.survey_question_survey_question_id_seq'::regclass);
-
-
---
 -- Name: user_current_region_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -1959,32 +1742,10 @@ ALTER TABLE ONLY sidewalk.user_role ALTER COLUMN user_role_id SET DEFAULT nextva
 
 
 --
--- Name: user_survey_option_submission_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.user_survey_option_submission ALTER COLUMN user_survey_option_submission_id SET DEFAULT nextval('sidewalk.user_survey_option_submission_user_survey_option_submission_seq'::regclass);
-
-
---
--- Name: user_survey_text_submission_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.user_survey_text_submission ALTER COLUMN user_survey_text_submission_id SET DEFAULT nextval('sidewalk.user_survey_text_submission_user_survey_text_submission_id_seq'::regclass);
-
-
---
 -- Name: webpage_activity_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
 --
 
 ALTER TABLE ONLY sidewalk.webpage_activity ALTER COLUMN webpage_activity_id SET DEFAULT nextval('sidewalk.webpage_activity_webpage_activity_id_seq'::regclass);
-
-
---
--- Name: accessibility_features_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.accessibility_feature
-    ADD CONSTRAINT accessibility_features_pkey PRIMARY KEY (accessibility_feature_id);
 
 
 --
@@ -2057,14 +1818,6 @@ ALTER TABLE ONLY sidewalk.gsv_location
 
 ALTER TABLE ONLY sidewalk.gsv_model
     ADD CONSTRAINT gsv_model_pkey PRIMARY KEY (gsv_panorama_id);
-
-
---
--- Name: gsv_onboarding_pano_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.gsv_onboarding_pano
-    ADD CONSTRAINT gsv_onboarding_pano_pkey PRIMARY KEY (gsv_panorama_id);
 
 
 --
@@ -2164,14 +1917,6 @@ ALTER TABLE ONLY sidewalk.problem_temporariness
 
 
 --
--- Name: region_completion_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.region_completion
-    ADD CONSTRAINT region_completion_pkey PRIMARY KEY (region_id);
-
-
---
 -- Name: region_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -2201,14 +1946,6 @@ ALTER TABLE ONLY sidewalk.region_type
 
 ALTER TABLE ONLY sidewalk.role
     ADD CONSTRAINT role_pkey PRIMARY KEY (role_id);
-
-
---
--- Name: sidewalk_edge_accessibility_feature_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature
-    ADD CONSTRAINT sidewalk_edge_accessibility_feature_pkey PRIMARY KEY (sidewalk_edge_accessibility_feature_id);
 
 
 --
@@ -2284,30 +2021,6 @@ ALTER TABLE ONLY sidewalk.street_node
 
 
 --
--- Name: survey_category_option_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.survey_category_option
-    ADD CONSTRAINT survey_category_option_pkey PRIMARY KEY (survey_category_option_id);
-
-
---
--- Name: survey_option_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.survey_option
-    ADD CONSTRAINT survey_option_pkey PRIMARY KEY (survey_option_id);
-
-
---
--- Name: survey_question_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.survey_question
-    ADD CONSTRAINT survey_question_pkey PRIMARY KEY (survey_question_id);
-
-
---
 -- Name: unique_email; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -2353,22 +2066,6 @@ ALTER TABLE ONLY sidewalk."user"
 
 ALTER TABLE ONLY sidewalk.user_role
     ADD CONSTRAINT user_role_pkey PRIMARY KEY (user_role_id);
-
-
---
--- Name: user_survey_option_submission_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.user_survey_option_submission
-    ADD CONSTRAINT user_survey_option_submission_pkey PRIMARY KEY (user_survey_option_submission_id);
-
-
---
--- Name: user_survey_text_submission_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.user_survey_text_submission
-    ADD CONSTRAINT user_survey_text_submission_pkey PRIMARY KEY (user_survey_text_submission_id);
 
 
 --
@@ -2521,13 +2218,6 @@ CREATE INDEX region_region_type_id_idx ON sidewalk.region USING btree (region_ty
 
 
 --
--- Name: sidewalk_edge_accessibility_feature_sidewalk_edge_id_idx; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE INDEX sidewalk_edge_accessibility_feature_sidewalk_edge_id_idx ON sidewalk.sidewalk_edge_accessibility_feature USING btree (sidewalk_edge_id);
-
-
---
 -- Name: sidewalk_edge_parent_edge_parent_edge_id_idx; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -2581,13 +2271,6 @@ CREATE INDEX sidewalk_edges_target_idx ON sidewalk.sidewalk_edge USING btree (ta
 --
 
 CREATE INDEX sidewalk_node_sidewalk_node_id_idx ON sidewalk.sidewalk_node USING btree (sidewalk_node_id);
-
-
---
--- Name: sidx_accessibility_features_geom; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE INDEX sidx_accessibility_features_geom ON sidewalk.accessibility_feature USING gist (geom);
 
 
 --
@@ -2724,14 +2407,6 @@ CREATE INDEX webpage_activity_user_id_idx ON sidewalk.webpage_activity USING btr
 
 
 --
--- Name: accessibility_feature_label_type_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.accessibility_feature
-    ADD CONSTRAINT accessibility_feature_label_type_id_fkey FOREIGN KEY (label_type_id) REFERENCES sidewalk.label_type(label_type_id);
-
-
---
 -- Name: audit_task_environment_audit_task_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -2780,22 +2455,6 @@ ALTER TABLE ONLY sidewalk.label
 
 
 --
--- Name: sidewalk_edge_accessibility_feature_accessibility_feature_id_fk; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature
-    ADD CONSTRAINT sidewalk_edge_accessibility_feature_accessibility_feature_id_fk FOREIGN KEY (accessibility_feature_id) REFERENCES sidewalk.accessibility_feature(accessibility_feature_id);
-
-
---
--- Name: sidewalk_edge_accessibility_feature_sidewalk_edge_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature
-    ADD CONSTRAINT sidewalk_edge_accessibility_feature_sidewalk_edge_id_fkey FOREIGN KEY (sidewalk_edge_id) REFERENCES sidewalk.sidewalk_edge(sidewalk_edge_id);
-
-
---
 -- Name: street_edge_assignment_count_street_edge_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -2828,54 +2487,6 @@ ALTER TABLE ONLY sidewalk.street_edge_street_node
 
 
 --
--- Name: survey_option_survey_category_option_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.survey_option
-    ADD CONSTRAINT survey_option_survey_category_option_id_fkey FOREIGN KEY (survey_category_option_id) REFERENCES sidewalk.survey_category_option(survey_category_option_id);
-
-
---
--- Name: survey_question_survey_category_option_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.survey_question
-    ADD CONSTRAINT survey_question_survey_category_option_id_fkey FOREIGN KEY (survey_category_option_id) REFERENCES sidewalk.survey_category_option(survey_category_option_id);
-
-
---
--- Name: user_survey_option_submission_survey_question_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.user_survey_option_submission
-    ADD CONSTRAINT user_survey_option_submission_survey_question_id_fkey FOREIGN KEY (survey_question_id) REFERENCES sidewalk.survey_question(survey_question_id);
-
-
---
--- Name: user_survey_option_submission_user_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.user_survey_option_submission
-    ADD CONSTRAINT user_survey_option_submission_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk."user"(user_id);
-
-
---
--- Name: user_survey_text_submission_survey_question_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.user_survey_text_submission
-    ADD CONSTRAINT user_survey_text_submission_survey_question_id_fkey FOREIGN KEY (survey_question_id) REFERENCES sidewalk.survey_question(survey_question_id);
-
-
---
--- Name: user_survey_text_submission_user_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.user_survey_text_submission
-    ADD CONSTRAINT user_survey_text_submission_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk."user"(user_id);
-
-
---
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
 --
 
@@ -2893,16 +2504,6 @@ REVOKE ALL ON SCHEMA sidewalk FROM PUBLIC;
 REVOKE ALL ON SCHEMA sidewalk FROM sidewalk;
 GRANT ALL ON SCHEMA sidewalk TO sidewalk;
 GRANT ALL ON SCHEMA sidewalk TO postgres;
-
-
---
--- Name: TABLE accessibility_feature; Type: ACL; Schema: sidewalk; Owner: sidewalk
---
-
-REVOKE ALL ON TABLE sidewalk.accessibility_feature FROM PUBLIC;
-REVOKE ALL ON TABLE sidewalk.accessibility_feature FROM sidewalk;
-GRANT ALL ON TABLE sidewalk.accessibility_feature TO sidewalk;
-GRANT ALL ON TABLE sidewalk.accessibility_feature TO postgres;
 
 
 --
@@ -3236,16 +2837,6 @@ REVOKE ALL ON TABLE sidewalk.sidewalk_edge FROM PUBLIC;
 REVOKE ALL ON TABLE sidewalk.sidewalk_edge FROM sidewalk;
 GRANT ALL ON TABLE sidewalk.sidewalk_edge TO sidewalk;
 GRANT ALL ON TABLE sidewalk.sidewalk_edge TO postgres;
-
-
---
--- Name: TABLE sidewalk_edge_accessibility_feature; Type: ACL; Schema: sidewalk; Owner: sidewalk
---
-
-REVOKE ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature FROM PUBLIC;
-REVOKE ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature FROM sidewalk;
-GRANT ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature TO sidewalk;
-GRANT ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature TO postgres;
 
 
 --

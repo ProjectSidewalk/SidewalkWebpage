@@ -1,6 +1,6 @@
 
 # --- !Ups
-CREATE TABLE IF NOT EXISTS gsv_onboarding_pano
+CREATE TABLE gsv_onboarding_pano
 (
   gsv_panorama_id TEXT NOT NULL,
   has_labels BOOLEAN NOT NULL,

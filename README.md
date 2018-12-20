@@ -39,7 +39,7 @@ Waiting...
 (Server started, use Ctrl+D to stop and go back to the console...)
 ```
 
-3. Head on over to your browser and navigate to `0.0.0.0:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
+3. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
 
 ### Additional Tools
 1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, get the dump as per [instructions](https://github.com/ProjectSidewalk/Instructions), rename the file `dump.sql`, place it in the `db` folder, and run `make import-dump` from the base folder.
