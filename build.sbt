@@ -12,6 +12,9 @@ sources in (Compile,doc) := Seq.empty
 
 publishArtifact in (Compile, packageDoc) := false
 
+// uncomment this when the sbt version is updated to > 0.13.7
+// updateOptions := updateOptions.value.withCachedResolution(true)
+
 resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
 
 resolvers += Resolver.sonatypeRepo("snapshots")
@@ -66,7 +69,7 @@ scalacOptions ++= Seq(
   "-Ywarn-numeric-widen" // Warn when numerics are widened.
 )
 
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
 javaOptions ++= Seq("-Xmx3072M", "-Xms2048M")
 
