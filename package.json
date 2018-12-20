@@ -14,8 +14,8 @@
   },
   "scripts": {
     "build": "npm install && grunt",
-    "debug": "grunt watch & activator -jvm-debug 9998 run",
-    "start": "grunt watch & activator run",
+    "debug": "grunt watch & sbt -jvm-debug 9998 run",
+    "start": "grunt watch & sbt compile \"~ run\"",
     "test": "grunt && grunt test"
   }
 }
