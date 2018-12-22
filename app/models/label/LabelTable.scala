@@ -415,7 +415,7 @@ object LabelTable {
   /**
     * This method returns a LabelMetadata object for the validation interface.
     * Sends relevant information for rendering onto a GSV panorama.
-    * @param labelId  Label from query.
+    * @param labelId  Label ID from query.
     * @return         LabelMetadata object.
     */
   def retrieveSingleLabelForValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
@@ -441,6 +441,11 @@ object LabelTable {
     selectQuery(labelId).list.map(label => validationLabelsToLabelMetadata(label)).head
   }
 
+  /**
+    * Retrieves a random label that has an existing GSVPanorama.
+    * Will keep querying for a random label until a suitable label has been found.
+    * @return LabelValidationMetadata of this label.
+    */
   def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
     var labelToValidate: List[(Int, String, String, Float, Float, Float, Int, Int, Int, Int)] = null
@@ -490,6 +495,39 @@ object LabelTable {
       }
     }
     labelToValidate.map(label => validationLabelsToLabelMetadata(label)).head
+  }
+
+  def retrieveRandomLabelListForValidation(count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
+      """SELECT lb.label_id,
+        |       lt.label_type,
+        |       lb.gsv_panorama_id,
+        |       lp.heading,
+        |       lp.pitch,
+        |       lp.zoom,
+        |       lp.canvas_x,
+        |       lp.canvas_y,
+        |       lp.canvas_width,
+        |       lp.canvas_height
+        |FROM sidewalk.label AS lb,
+        |     sidewalk.label_type AS lt,
+        |     sidewalk.label_point AS lp,
+        |     sidewalk.gsv_data AS gd
+        |WHERE lp.label_id = lb.label_id
+        |      AND lt.label_type_id = lb.label_type_id
+        |      AND lb.deleted = false
+        |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
+        |      AND gd.expired = false
+        |OFFSET floor(random() *
+        |      (
+        |          SELECT COUNT(*)
+        |          FROM sidewalk.label
+        |          WHERE sidewalk.label.deleted = false
+        |      )
+        |)
+        |LIMIT ?""".stripMargin
+    )
+    selectQuery(count).list.map(label => validationLabelsToLabelMetadata(label))
   }
 
   /**

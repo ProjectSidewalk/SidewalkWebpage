@@ -104,6 +104,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     Future.successful(Ok(labelMetadataJson))
   }
 
+  def getRandomLabelDataList(count: Int) = UserAwareAction.async { implicit request =>
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(5)
+    val labelMetadataJson: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    Future.successful(Ok(Json.obj("labelToValidate" -> labelMetadataJson)))
+  }
+
   /**
     *
     * @param user
