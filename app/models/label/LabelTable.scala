@@ -1,16 +1,18 @@
 package models.label
 
+import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.gsv.GSVOnboardingPanoTable
+import models.gsv.{GSVOnboardingPanoTable, GSVDataTable}
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -440,8 +442,11 @@ object LabelTable {
   }
 
   def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
-      """SELECT lb.label_id,
+    var exists: Boolean = false
+    var labelToValidate: List[(Int, String, String, Float, Float, Float, Int, Int, Int, Int)] = null
+    while (!exists) {
+      val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
+        """SELECT lb.label_id,
         |       lt.label_type,
         |       lb.gsv_panorama_id,
         |       lp.heading,
@@ -453,10 +458,13 @@ object LabelTable {
         |       lp.canvas_height
         |FROM sidewalk.label AS lb,
         |     sidewalk.label_type AS lt,
-        |     sidewalk.label_point AS lp
+        |     sidewalk.label_point AS lp,
+        |     sidewalk.gsv_data AS gd
         |WHERE lp.label_id = lb.label_id
         |      AND lt.label_type_id = lb.label_type_id
         |      AND lb.deleted = false
+        |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
+        |      AND gd.expired = false
         |OFFSET floor(random() *
         |      (
         |          SELECT COUNT(*)
@@ -464,9 +472,52 @@ object LabelTable {
         |          WHERE sidewalk.label.deleted = false
         |      )
         |)
-        |LIMIT ?""".stripMargin.stripMargin
-    )
-    selectQuery(1).list.map(label => validationLabelsToLabelMetadata(label)).head
+        |LIMIT ?""".stripMargin
+      )
+      val singleLabel = selectQuery(1).list
+      // Uses panorama ID to check if this panorama exists
+      exists = panoExists(singleLabel(0)._3)
+      println("[LabelTable.scala] retrieveSingleRandomLabelForValidation" + singleLabel(0)._3 + " exists? " + exists)
+
+      if (exists) {
+        labelToValidate = singleLabel
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
+      } else {
+        println("Panorama " + singleLabel(0)._3 + " doesn't exist")
+        GSVDataTable.markExpired(singleLabel(0)._3, true)
+      }
+    }
+    labelToValidate.map(label => validationLabelsToLabelMetadata(label)).head
+  }
+
+  /**
+    * This method checks if the panorama associated with a label eixsts by pinging Google Maps.
+    * @param gsvPanoId  Panorama ID
+    * @return           True if the panorama exists, false otherwise
+    */
+  def panoExists(gsvPanoId: String): Boolean = {
+    try {
+      val now = new DateTime(DateTimeZone.UTC)
+      val urlString : String = "http://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
+      println(urlString)
+      val panoURL : URL = new java.net.URL(urlString)
+      val connection : HttpURLConnection = panoURL.openConnection.asInstanceOf[HttpURLConnection]
+      connection.setConnectTimeout(5000)
+      connection.setReadTimeout(5000)
+      connection.setRequestMethod("GET")
+      val responseCode: Int = connection.getResponseCode
+      println("Response Code: " + responseCode)
+
+      // URL is only valid if the response code is between 200 and 399.
+      200 <= responseCode && responseCode <= 399
+    } catch {
+      case e: ConnectException => false
+      case e: SocketException => false
+      case e: Exception => false
+    }
+
   }
 
   def validationLabelsToLabelMetadata(label: (Int, String, String, Float, Float, Float, Int, Int, Int, Int)): LabelValidationMetadata = {
