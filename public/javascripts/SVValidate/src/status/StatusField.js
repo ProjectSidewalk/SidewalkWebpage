@@ -17,24 +17,17 @@ function StatusField(missionMetadata) {
     };
 
     /**
-     * Function to initialize the status field the first time.
-     * Sets the mission description to validate the number of labels in the initial mission.
-     * TODO: Feels really sloppy... is there a better way to do this?
-     * @private
+     * Resets the status field whenever a new mission is introduced.
+     * @param currentMission    Mission object for the current mission.
      */
-    function _init() {
-        var completionRate = missionMetadata.labels_progress / missionMetadata.labels_validated;
-        updateLabelCounts(missionMetadata.labels_progress);
-        updateMissionDescription(missionMetadata.labels_validated);
+    function reset(currentMission) {
+        var progress = currentMission.getProperty('labelsProgress');
+        var total = currentMission.getProperty('labelsValidated');
+        var completionRate = progress / total;
+        updateLabelCounts(progress);
+        updateMissionDescription(total);
         setProgressText(completionRate);
         setProgressBar(completionRate);
-    }
-
-    /**
-     * Resets the status field
-     */
-    function reset() {
-        _init();
     }
 
     /**
@@ -99,8 +92,6 @@ function StatusField(missionMetadata) {
         completionRate = completionRate + "% complete";
         svv.ui.status.progressText.html(completionRate);
     }
-
-    _init();
 
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;

@@ -26,7 +26,7 @@ function MissionContainer () {
             _addToCompletedMissions(mission);
         } else {
             currentMission = mission;
-            svv.statusField.reset();
+            svv.statusField.reset(mission);
             console.log("[Mission.js] currentMission set");
             console.log(currentMission);
         }
