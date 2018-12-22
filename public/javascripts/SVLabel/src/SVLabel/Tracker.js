@@ -14,7 +14,7 @@ function Tracker () {
     var currentAuditTask = null;
 
     this.init = function () {
-        // this.trackWindowEvents();
+        this.trackWindowEvents();
     };
 
     this.getCurrentLabel = function(){

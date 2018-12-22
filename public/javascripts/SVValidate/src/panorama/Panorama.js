@@ -8,7 +8,8 @@ function Panorama () {
     var init = true;
     var panoCanvas = document.getElementById("svv-panorama");
     var properties = {
-        panoId: undefined
+        panoId: undefined,
+        prevPanoId: undefined
     };
     var panorama = undefined;
     // Determined manually by matching appearance of labels on the audit page and appearance of
@@ -47,6 +48,17 @@ function Panorama () {
         if (init) {
             setLabel();
         }
+    }
+
+    /**
+     * This function adds listeners to the panorama.
+     * @private
+     */
+    function _addListeners () {
+        console.log("Adding listeners...");
+        panorama.addListener('pov_changed', handlerPovChange);
+        panorama.addListener('pano_changed', handlerPanoChange);
+        return this;
     }
 
     /**
@@ -129,6 +141,31 @@ function Panorama () {
         return currentLabel;
     }
 
+    function handlerPovChange () {
+        if (svv.tracker && svv.panorama) {
+            svv.tracker.push('POV_Changed');
+        }
+    }
+
+    function handlerPanoChange () {
+        if (svv.panorama) {
+            var panoId = getPanoId();
+            if (panoId !== getProperty('panoId')) {
+                self.labelMarker.setVisible(false);
+            } else {
+                self.labelMarker.setVisible(true);
+            }
+
+            /**
+             * PanoId is sometimes changed twice. This avoids logging duplicate panos.
+             */
+            if (svv.tracker && panoId !== getProperty('prevPanoId')) {
+                setProperty('prevPanoId', panoId);
+                svv.tracker.push('PanoId_Changed');
+            }
+        }
+    }
+
     /**
      * Sets the panorama ID, and heading/pitch/zoom
      * @param panoId    String representation of the Panorama ID
@@ -138,6 +175,7 @@ function Panorama () {
      */
     function setPanorama (panoId, heading, pitch, zoom) {
         setProperty("panoId", panoId);
+        setProperty("prevPanoId", panoId);
         if (init) {
             panorama.setPano(panoId);
             panorama.set('pov', {heading: heading, pitch: pitch});
@@ -158,6 +196,7 @@ function Panorama () {
             }
             setTimeout(changePano, 100);
         }
+        _addListeners();
         return this;
     }
 

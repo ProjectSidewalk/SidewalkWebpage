@@ -9,6 +9,29 @@ function Tracker() {
     var actions = [];
     var prevActions = [];
 
+    function _init() {
+        // _trackWindowEvents();
+    }
+
+    function _trackWindowEvents() {
+        var prefix = "LowLevelEvent_";
+
+        // track all mouse related events
+        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
+            self.push(prefix + e.type, {
+                cursorX: 'pageX' in e ? e.pageX : null,
+                cursorY: 'pageY' in e ? e.pageY : null
+            });
+        });
+
+        // keyboard related events
+        $(document).on('keydown keyup', function(e) {
+            self.push(prefix + e.type, {
+                keyCode: 'keyCode' in e ? e.keyCode : null
+            });
+        });
+    };
+
     /**
      *
      * @param action
@@ -35,17 +58,21 @@ function Tracker() {
             panorama = svv.panorama;
         }
 
+        var panoId = panorama.getPanoId();
+        var position = panorama.getPosition();
+        var pov = panorama.getPov();
+
         var data = {
             action: action,
-            gsv_panorama_id: panorama.getPanoId(),
-            lat: panorama.getPosition().lat,
-            lng: panorama.getPosition().lng,
-            heading: panorama.getPov().heading,
+            gsv_panorama_id: panoId,
+            lat: position.lat,
+            lng: position.lng,
+            heading: pov.heading,
             mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
             note: note,
-            pitch: panorama.getPov().pitch,
+            pitch: pov.pitch,
             timestamp: timestamp,
-            zoom: panorama.getPov().zoom
+            zoom: pov.zoom
         };
 
         console.log("[Tracker.js] data ");
@@ -81,13 +108,7 @@ function Tracker() {
     function push(action, notes, extraData) {
         var item = _createAction(action, notes, extraData);
         actions.push(item);
-        /*
-        console.log("Action: " + action);
-        console.log("Notes: " + notes);
-        console.log("Extra Data: " + extraData);
-        console.log("item.labelId: " + item.labelId);
-        */
-        if (actions.length > 2) {
+        if (actions.length > 200) {
             var data = svv.form.compileSubmissionData();
             svv.form.submit(data, true);
         }
@@ -100,17 +121,11 @@ function Tracker() {
         self.push("RefreshTracker");
     }
 
-    /**
-     * Submits data from the Tracker to the backend
-     */
-    function submitForm() {
-
-    }
+    _init();
 
     self.getActions = getActions;
     self.push = push;
     self.refresh = refresh;
-    self.submitForm = submitForm;
 
     return this;
 }
