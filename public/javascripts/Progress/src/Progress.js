@@ -436,17 +436,18 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
 
 
-            var grouped = _.groupBy(_data.tasks, function (o) { return o.audit_task_id});
-            var auditTaskId;
-            var auditTaskIds = Object.keys(grouped);
+            var grouped = _.groupBy(_data.tasks, function (o) { return o.mission_id });
+            var missionId;
+            var missionTaskIds = Object.keys(grouped);
+            var missionNumber = 0;
             var tableRows = "";
             var labelCounter;
             var i;
-            var auditTaskIdsLength = auditTaskIds.length;
+            var missionTaskIdsLength = missionTaskIds.length;
             var j;
             var labelsLength;
             var labelType;
-            auditTaskIds.sort(function (id1, id2) {
+            missionTaskIds.sort(function (id1, id2) {
                 var timestamp1 = grouped[id1][0].task_start;
                 var timestamp2 = grouped[id2][0].task_start;
                 if (timestamp1 < timestamp2) { return -1; }
@@ -454,24 +455,27 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 else { return 0; }
             });
 
-            for (i = auditTaskIdsLength - 1; i >= 0; i--) {
+            for (i = missionTaskIdsLength - 1; i >= 0; i--) {
+                console.log('hello');
                 labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
-                auditTaskId = auditTaskIds[i];
-                labelsLength = grouped[auditTaskId].length;
+                missionId = missionTaskIds[i];
+                labelsLength = grouped[missionId].length;
                 for (j = 0; j < labelsLength; j++) {
-                    labelType = grouped[auditTaskId][j]["label_type"];
+                    labelType = grouped[missionId][j]["label_type"];
                     if (!(labelType in labelCounter)) {
                         labelType = "Other";
                     }
                     labelCounter[labelType] += 1;
                 }
 
-                var date = new Date(grouped[auditTaskId][0]["task_end"]);
+                var date = new Date(grouped[missionId][0]["task_end"]);
                 var day = date.getDate();
                 var monthIndex = date.getMonth();
                 var year = date.getFullYear();
+                missionNumber++;
 
                 tableRows += "<tr>" +
+                    "<td class='col-xs-1'>" + missionNumber + "</td>" +
                     "<td class='col-xs-1'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
