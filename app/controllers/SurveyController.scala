@@ -47,6 +47,11 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
 
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
+
+        //this will log when a user submits a survey response
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "SurveySubmit", timestamp))
+
         val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
 
         val allSurveyQuestions = SurveyQuestionTable.listAll
