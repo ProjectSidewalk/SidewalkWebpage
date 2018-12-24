@@ -101,6 +101,20 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
+    * This gets a random list of labels to validate for this mission.
+    * @param count  Number of labels to retrieve for this list.
+    * @return       JsValue containing a list of labels with the following attributes:
+    *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
+    *               canvas_width, canvas_height}
+    */
+  def getLabelListForValidation(count: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
+    labelMetadataJson
+  }
+
+  /**
     * This function gets the metadata for a random label in the database.
     * @return Label metadata containing GSV metadata and label type
     */
@@ -135,14 +149,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }
-  
-  /**
-    * This gets a random list of labels to validate for this mission.
-    * @param count  Number of labels to retrieve for this list.
-    * @return       JsValue containing a list of labels with the following attributes:
-    *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
-    *               canvas_width, canvas_height}
-    */
+
   def getLabelList(missionProgress: ValidationMissionProgress): Option[JsValue] = {
     // Retrieve more labels. Currently hard-coded to be 10 labels.
     // TODO: Replace all 10s later so we don't hardcode the number of labels to retrieve.

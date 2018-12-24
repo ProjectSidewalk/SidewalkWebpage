@@ -34,7 +34,7 @@ function ModalSkip (uiModal) {
      */
     function skip () {
         svv.tracker.push("ModalSkip_ClickOK");
-        svv.panorama.setRandomLabel();
+        svv.panorama.skipLabel();
     }
 
     uiModal.skipButton.on("click", skip);

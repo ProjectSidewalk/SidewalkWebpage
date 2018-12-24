@@ -59,14 +59,14 @@ function Tracker() {
         }
 
         var panoId = panorama.getPanoId();
-        var position = panorama.getPosition();
+        var position = panorama.getPosition();  // sometimes buggy, so position will be undefined.
         var pov = panorama.getPov();
 
         var data = {
             action: action,
             gsv_panorama_id: panoId,
-            lat: position.lat,
-            lng: position.lng,
+            lat: position ? position.lat : null,
+            lng: position ? position.lng : null,
             heading: pov.heading,
             mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
             note: note,

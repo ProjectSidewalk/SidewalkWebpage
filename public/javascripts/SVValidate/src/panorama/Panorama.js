@@ -68,6 +68,46 @@ function Panorama (labelList) {
     }
 
     /**
+     * Uses label metadata to initialize a new label.
+     * @param metadata  Metadata for the label.
+     * @returns {Label} Label object for this label.
+     * @private
+     */
+    function _createSingleLabel (metadata) {
+        var labelMetadata = {
+            canvasHeight: metadata.canvas_height,
+            canvasWidth: metadata.canvas_width,
+            canvasX: metadata.canvas_x,
+            canvasY: metadata.canvas_y,
+            gsvPanoramaId: metadata.gsv_panorama_id,
+            heading: metadata.heading,
+            labelId: metadata.label_id,
+            labelType: metadata.label_type,
+            pitch: metadata.pitch,
+            zoom: metadata.zoom
+        };
+        return new Label(labelMetadata);
+    }
+
+    /**
+     * Fetches a single label from the database. Missions fetch exactly the number of labels that
+     * are needed to complete the mission. When the user clicks skip, need to get more.
+     * @param count Number of labels to append to the labels.
+     * @private
+     */
+    function _fetchNewLabel () {
+        var labelUrl = "/label/geo/random";
+        $.ajax({
+            url: labelUrl,
+            async: false,
+            dataType: 'json',
+            success: function (labelMetadata) {
+                labels.push(_createSingleLabel(labelMetadata));
+            }
+        });
+    }
+
+    /**
      * Returns the label object for the label that is loaded on this panorama
      * @returns {Label}
      */
@@ -97,7 +137,7 @@ function Panorama (labelList) {
      */
     function getPosition () {
         var position = panorama.getPosition();
-        return { 'lat' : position.lat(), 'lng' : position.lng() };
+        return (position) ? {'lat': position.lat(), 'lng': position.lng()} : null;
     }
 
     /**
@@ -185,16 +225,6 @@ function Panorama (labelList) {
      * Assumes there are still labels remaining in the label list.
      */
     function loadNewLabelFromList () {
-        var progress = labels[getProperty('progress')];
-
-        // NOTE: 3 is arbitrary.
-        // If we are going to run out of labels soon, fetch some more (in case the user decides to
-        // skip a label)
-        if (labels.length - progress < 3) {
-            console.log("Need to add more labels! Only " + (labels.length - progress) + " labels remaining.");
-            // var newLabels = fetchNewLabels(3);
-            // append newLabels to labelList
-        }
         setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
     }
@@ -205,19 +235,7 @@ function Panorama (labelList) {
      */
     function setLabelList (labelList) {
         Object.keys(labelList).map(function(key, index) {
-            var labelMetadata = {
-                canvasHeight: labelList[key].canvas_height,
-                canvasWidth: labelList[key].canvas_width,
-                canvasX: labelList[key].canvas_x,
-                canvasY: labelList[key].canvas_y,
-                gsvPanoramaId: labelList[key].gsv_panorama_id,
-                heading: labelList[key].heading,
-                labelId: labelList[key].label_id,
-                labelType: labelList[key].label_type,
-                pitch: labelList[key].pitch,
-                zoom: labelList[key].zoom
-            };
-            labelList[key] = new Label(labelMetadata);
+            labelList[key] = _createSingleLabel(labelList[key]);
         });
 
         labels = labelList;
@@ -252,12 +270,12 @@ function Panorama (labelList) {
             }
             setTimeout(changePano, 300);
         }
-        // _addListeners();
+        _addListeners();
         return this;
     }
 
     /**
-     * Retrieves a label with a given id from the database.
+     * Retrieves a label with a given id from the database and renders it onto the panorama.
      * @param labelId   label_id of the desired label.
      */
     function setLabelWithId (labelId) {
@@ -287,20 +305,12 @@ function Panorama (labelList) {
     }
 
     /**
-     * Retrieves a random label from the database.
+     * Skips the label on this panorama.
      */
-    function setRandomLabel () {
-        var labelUrl = "/label/geo/random";
-        $.ajax({
-            url: labelUrl,
-            async: false,
-            dataType: 'json',
-            success: function (labelMetadata) {
-                _handleData(labelMetadata);
-            }
-        });
-        renderLabel();
-        return this;
+    function skipLabel () {
+        _fetchNewLabel();
+        setProperty('progress', getProperty('progress') + 1);
+        setLabel(labels[getProperty('progress')]);
     }
 
     function setProperty (key, value) {
@@ -363,11 +373,11 @@ function Panorama (labelList) {
     self.loadNewLabelFromList = loadNewLabelFromList;
     self.renderLabel = renderLabel;
     self.reset = reset;
-    self.setRandomLabel = setRandomLabel;
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
     self.setLabelList = setLabelList;
     self.setZoom = setZoom;
+    self.skipLabel = skipLabel;
 
     return self;
 }
