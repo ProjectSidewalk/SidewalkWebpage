@@ -29,13 +29,13 @@ import scala.concurrent.Future
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class ValidationTaskPostReturnValue(mission: Option[Mission])
+  case class ValidationTaskPostReturnValue(mission: Option[Mission], labels: Seq[JsObject])
+
   /**
     * Parse submitted validation data and submit to tables
     * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
     * BodyParsers.parse.json in async
     */
-
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     println("[ValidationTaskController] request.body: " + request.body)
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
@@ -69,12 +69,18 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           val missionId: Int = data.missionProgress.missionId
           println("missionId: " + missionId)
           val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
-          println("[ValidationTaskController] possibleMission: " + possibleNewMission)
-          ValidationTaskPostReturnValue(possibleNewMission)
 
+          // Temporary value - this is the number of labels that are in each mission.
+          val labelList: Seq[JsObject] = getRandomLabelDataListTest(10)
+          println("[ValidationTaskController] possibleMission: " + possibleNewMission)
+          println("[ValidationTaskController] labelList      : " + Json.toJson(labelList))
+          ValidationTaskPostReturnValue(possibleNewMission, labelList)
         }
         println("[ValidationTaskController] Success");
-        Future.successful(Ok(Json.obj("mission" -> returnValues.head.mission.map(_.toJSON))))
+        Future.successful(Ok(Json.obj(
+          "mission" -> returnValues.head.mission.map(_.toJSON),
+          "labels" -> Json.toJson(returnValues.head.labels)
+        )))
       }
     )
   }
@@ -106,8 +112,15 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   def getRandomLabelDataList(count: Int) = UserAwareAction.async { implicit request =>
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
-    val labelMetadataJson: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
-    Future.successful(Ok(Json.obj("labels" -> labelMetadataJson)))
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
+    Future.successful(Ok(labelMetadataJson))
+  }
+
+  def getRandomLabelDataListTest(count: Int): Seq[JsObject] = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    labelMetadataJsonSeq
   }
 
   /**
@@ -128,7 +141,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
     if (missionProgress.completed) {
       println("[updateMissionTable] This mission is complete")
-      // TODO: replace 0.0 with pay per label...
+      // TODO: replace 0.0 with pay per label (later)
       MissionTable.updateCompleteAndGetNextValidationMission(userId, 0.0, missionId, labelsProgress, skipped)
     } else {
       println("[updateMissionTable] This mission is not complete")

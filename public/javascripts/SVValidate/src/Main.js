@@ -2,8 +2,9 @@
 var svv = svv || {};
 
 /**
- * Main module of SVValidate
- * @param params
+ * Main module for SVValidate (Validation interface)
+ * @param params    Object passed from validation.scala.html containing initial values pulled from
+ *                  the database on page load. (Currently, mission and labels)
  * @constructor
  */
 function Main (param) {
@@ -51,7 +52,7 @@ function Main (param) {
 
         svv.keyboard = new Keyboard(svv.ui.validation);
         svv.labelContainer = new LabelContainer();
-        svv.panorama = new Panorama();
+        svv.panorama = new Panorama(param.labelList);
         svv.zoomControl = new ZoomControl();
 
         svv.menuButtons = new MenuButton(svv.ui.validation);

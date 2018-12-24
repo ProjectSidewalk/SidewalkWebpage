@@ -3,7 +3,7 @@
  * @returns {Label}
  * @constructor
  */
-function Label() {
+function Label(params) {
     var properties = {
         canvasHeight: undefined,
         canvasWidth: undefined,
@@ -30,6 +30,22 @@ function Label() {
     };
 
     var self = this;
+
+    function _init() {
+        if (params) {
+            if ("canvasHeight" in params) setProperty("canvasHeight", params.canvasHeight);
+            if ("canvasWidth" in params) setProperty("canvasWidth", params.canvasWidth);
+            if ("canvasX" in params) setProperty("canvasX", params.canvasX);
+            if ("canvasY" in params) setProperty("canvasY", params.canvasY);
+            if ("gsvPanoramaId" in params) setProperty("gsvPanoramaId", params.gsvPanoramaId);
+            if ("heading" in params) setProperty("heading", params.heading);
+            if ("labelId" in params) setProperty("labelId", params.labelId);
+            if ("labelType" in params) setProperty("labelType", params.labelType);
+            if ("pitch" in params) setProperty("pitch", params.pitch);
+            if ("zoom" in params) setProperty("zoom", params.zoom);
+            console.log("Initialized label " + getProperty("labelId"));
+        }
+    }
 
     /**
      * Gets the file path associated with the labels' icon type.
@@ -97,8 +113,10 @@ function Label() {
                 break;
         }
         // Add a new label to the panorama
-        svv.panorama.setLabel();
+        svv.panorama.loadNewLabelFromList();
     }
+
+    _init();
 
     self.getIconUrl = getIconUrl;
     self.getProperty = getProperty;

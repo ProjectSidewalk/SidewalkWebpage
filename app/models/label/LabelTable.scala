@@ -48,6 +48,11 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      lat: Float,
                                      lng: Float)
 
+
+case class LabelValidationLocation(labelId: Int, labelType: String, gsvPanoramaId: String,
+                                   heading: Float, pitch: Float, zoom: Float, canvasX: Int,
+                                   canvasY: Int, canvasWidth: Int, canvasHeight: Int)
+
 /**
  *
  */

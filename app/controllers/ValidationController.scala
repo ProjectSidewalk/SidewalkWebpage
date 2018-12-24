@@ -9,6 +9,8 @@ import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.CommentSubmissionFormats._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.label.LabelTable
+import models.label.LabelTable.LabelValidationMetadata
 import models.mission.Mission
 import models.mission.MissionTable
 import models.validation._
@@ -37,12 +39,32 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case Some(user) =>
         // println(user)
         val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
+        val labelsProgress: Int = mission.labelsProgress.get
+        val labelsValidated: Int = mission.labelsValidated.get
+        val labelsToRetrieve: Int = labelsValidated - labelsProgress
+        val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
+        println("Labels to retrieve: " + labelsToRetrieve)
         println("[ValidationController] Mission: " + mission)
+        println("Returning validate page")
         println()
-        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission)))
+        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
       case None =>
         Future.successful(Redirect("/"))
     }
+  }
+
+  /**
+    * This gets a random list of labels to validate for this mission.
+    * @param count  Number of labels to retrieve for this list.
+    * @return       JsValue containing a list of labels with the following attributes:
+    *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
+    *               canvas_width, canvas_height}
+    */
+  def getLabelListForValidation(count: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
+    labelMetadataJson
   }
 
   /**

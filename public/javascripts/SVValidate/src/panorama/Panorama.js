@@ -1,13 +1,16 @@
 /**
  * This function creates/controls the Google StreetView panorama that is used in the validation
  * interface. It uses the Panomarker API to place labels onto the panorama.
+ * @param   labelList   String of labels to validate.
  * @constructor
  */
-function Panorama () {
+function Panorama (labelList) {
     var currentLabel = new Label();
     var init = true;
+    var labels = labelList;
     var panoCanvas = document.getElementById("svv-panorama");
     var properties = {
+        progress: 0,
         panoId: undefined,
         prevPanoId: undefined
     };
@@ -44,9 +47,10 @@ function Panorama () {
             console.error("No typeof google");
         }
 
-        // Sets to a random label
+        // When initializing, we can directly set the label onto the panorama. Otherwise, we need
+        // to trigger a callback function to avoid infinite looping (GSV bug).
         if (init) {
-            setLabel();
+            setLabel(labels[getProperty("progress")]);
         }
     }
 
@@ -167,6 +171,14 @@ function Panorama () {
     }
 
     /**
+     * Loads a new label onto the panorama.
+     */
+    function loadNewLabelFromList () {
+        setProperty('progress', getProperty('progress') + 1);
+        setLabel(labels[getProperty('progress')]);
+    }
+
+    /**
      * Sets the panorama ID, and heading/pitch/zoom
      * @param panoId    String representation of the Panorama ID
      * @param heading   Photographer heading
@@ -194,9 +206,9 @@ function Panorama () {
                 panorama.set('zoom', zoomLevel[zoom]);
                 renderLabel();
             }
-            setTimeout(changePano, 100);
+            setTimeout(changePano, 300);
         }
-        _addListeners();
+        // _addListeners();
         return this;
     }
 
@@ -204,7 +216,7 @@ function Panorama () {
      * Retrieves a label with a given id from the database.
      * @param labelId   label_id of the desired label.
      */
-    function setLabel (labelId) {
+    function setLabelWithId (labelId) {
         var labelUrl = "/label/geo/" + labelId;
         $.ajax({
             url: labelUrl,
@@ -218,9 +230,22 @@ function Panorama () {
     }
 
     /**
+     * Sets the label on the panorama to be some label.
+     * @param label {Label} Label to be displayed on the panorama.
+     */
+    function setLabel (label) {
+        currentLabel = label;
+        currentLabel.setProperty('startTimestamp', new Date().getTime());
+        console.log("Setting panorama to be: " + label.getProperty('gsvPanoramaId'));
+        setPanorama(label.getProperty('gsvPanoramaId'), label.getProperty('heading'),
+            label.getProperty('pitch'), label.getProperty('zoom'));
+        renderLabel();
+    }
+
+    /**
      * Retrieves a random label from the database.
      */
-    function setLabel () {
+    function setRandomLabel () {
         var labelUrl = "/label/geo/random";
         $.ajax({
             url: labelUrl,
@@ -281,8 +306,9 @@ function Panorama () {
     self.getProperty = getProperty;
     self.getPov = getPov;
     self.getZoom = getZoom;
+    self.loadNewLabelFromList = loadNewLabelFromList;
     self.renderLabel = renderLabel;
-    self.setLabel = setLabel;
+    self.setRandomLabel = setRandomLabel;
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
     self.setZoom = setZoom;
