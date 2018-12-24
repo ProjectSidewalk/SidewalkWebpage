@@ -61,7 +61,7 @@ function Main (param) {
 
         // mission stuff
         svv.missionContainer = new MissionContainer();
-        svv.missionContainer.trigger("MissionContainer:createAMission", param.mission);
+        svv.missionContainer.createAMission(param.mission);
     }
 
     _initUI();

@@ -1,7 +1,8 @@
 /**
- * This function creates/controls the Google StreetView panorama that is used in the validation
- * interface. It uses the Panomarker API to place labels onto the panorama.
- * @param   labelList   String of labels to validate.
+ * This function creates and controls the Google StreetView panorama that is used in the validation
+ * interface. It also holds a list of labels to be validated and uses the Panomarker API to place
+ * labels onto the panorama.
+ * @param   labelList   List of Labels to validate.
  * @constructor
  */
 function Panorama (labelList) {
@@ -24,7 +25,7 @@ function Panorama (labelList) {
     };
 
     /**
-     * Initalizes a Google StreetView Panorama and disables most UI/Control settings.
+     * Initializes a Google StreetView Panorama and renders a label onto the screen.
      * @private
      */
     function _init () {
@@ -35,6 +36,10 @@ function Panorama (labelList) {
         setLabel(labels[getProperty("progress")]);
     }
 
+    /**
+     * Initializes a Google StreetView Panorama and disables most UI/Control settings.
+     * @private
+     */
     function _createNewPanorama () {
         if (typeof google != "undefined") {
             // Set control options
@@ -62,8 +67,8 @@ function Panorama (labelList) {
      */
     function _addListeners () {
         console.log("Adding listeners...");
-        panorama.addListener('pov_changed', handlerPovChange);
-        panorama.addListener('pano_changed', handlerPanoChange);
+        panorama.addListener('pov_changed', _handlerPovChange);
+        panorama.addListener('pano_changed', _handlerPanoChange);
         return this;
     }
 
@@ -132,7 +137,8 @@ function Panorama (labelList) {
     }
 
     /**
-     * Returns the lat lng of the panorama.
+     * Returns the lat lng of this panorama. Note that sometimes position is null/undefined
+     * (probably a bug in GSV), so sometimes this function returns null.
      * @returns {{lat, lng}}
      */
     function getPosition () {
@@ -160,48 +166,29 @@ function Panorama (labelList) {
     }
 
     /**
-     *
-     * @returns {*}
+     * Returns the zoom level of this panorama.
+     * @returns Zoom level from {1.1, 2.1, 3.1}
      */
     function getZoom () {
         return panorama.getZoom();
     }
 
+    /**
+     * Gets a specific property from this Panorama.
+     * @param key   Property name.
+     * @returns     Value associated with this property or null.
+     */
     function getProperty (key) {
         return key in properties ? properties[key] : null;
     }
 
     /**
-     * Sets label properties from metadata
-     * @param labelMetadata JSON with label data
+     * Logs interactions from panorama changes.
+     * Occurs when the user loads a new label onto the screen, or if they use arrow keys to move
+     * around. (This is behavior that is automatically enabled by the GSV Panorama).
      * @private
      */
-    function _handleData (labelMetadata) {
-        // console.log("[Panorama.js] Label ID: " + labelMetadata['label_id']);
-        setPanorama(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
-                labelMetadata['pitch'], labelMetadata['zoom']);
-
-        svv.statusField.updateLabelText(labelMetadata['label_type']);
-        currentLabel.setProperty('canvasHeight', labelMetadata['canvas_height']);
-        currentLabel.setProperty('canvasWidth', labelMetadata['canvas_width']);
-        currentLabel.setProperty('canvasX', labelMetadata['canvas_x']);
-        currentLabel.setProperty('canvasY', labelMetadata['canvas_y']);
-        currentLabel.setProperty('heading', labelMetadata['heading']);
-        currentLabel.setProperty('labelId', labelMetadata['label_id']);
-        currentLabel.setProperty('labelType', labelMetadata['label_type']);
-        currentLabel.setProperty('pitch', labelMetadata['pitch']);
-        currentLabel.setProperty('startTimestamp', new Date().getTime());
-        currentLabel.setProperty('zoom', labelMetadata['zoom']);
-        return currentLabel;
-    }
-
-    function handlerPovChange () {
-        if (svv.tracker && svv.panorama) {
-            svv.tracker.push('POV_Changed');
-        }
-    }
-
-    function handlerPanoChange () {
+    function _handlerPanoChange () {
         if (svv.panorama) {
             var panoId = getPanoId();
             if (panoId !== getProperty('panoId')) {
@@ -221,6 +208,16 @@ function Panorama (labelList) {
     }
 
     /**
+     * Logs panning interactions.
+     * @private
+     */
+    function _handlerPovChange () {
+        if (svv.tracker && svv.panorama) {
+            svv.tracker.push('POV_Changed');
+        }
+    }
+
+    /**
      * Loads a new label onto the panorama.
      * Assumes there are still labels remaining in the label list.
      */
@@ -229,8 +226,49 @@ function Panorama (labelList) {
         setProperty('progress', getProperty('progress') + 1);
     }
 
+
     /**
-     * Creates an object of labels to be validated.
+     * Renders a label onto the screen using a Panomarker.
+     * @returns {renderLabel}
+     */
+    function renderLabel() {
+        var url = currentLabel.getIconUrl();
+        var pos = svv.util.properties.panorama.getPosition(currentLabel.getProperty('canvasX'), currentLabel.getProperty('canvasY'),
+            currentLabel.getProperty('canvasWidth'), currentLabel.getProperty('canvasHeight'),
+            currentLabel.getProperty('zoom'), currentLabel.getProperty('heading'), currentLabel.getProperty('pitch'));
+
+        if (!self.labelMarker) {
+            self.labelMarker = new PanoMarker({
+                container: panoCanvas,
+                pano: panorama,
+                position: {heading: pos.heading, pitch: pos.pitch},
+                icon: url,
+                size: new google.maps.Size(20, 20),
+                anchor: new google.maps.Point(10, 10)
+            });
+        } else {
+            self.labelMarker.setPano(panorama, panoCanvas);
+            self.labelMarker.setPosition({
+                heading: pos.heading,
+                pitch: pos.pitch
+            });
+            self.labelMarker.setIcon(url);
+        }
+        return this;
+    }
+
+    /**
+     * Resets the state of the mission.
+     * Called when a new validation mission is loaded, and when we need to get rid of lingering
+     * data from the previous validation mission.
+     */
+    function reset () {
+        setProperty('progress', 0);
+    }
+
+    /**
+     * Creates a list of label objects to be validated from label metadata.
+     * Called when a new mission is loaded onto the screen.
      * @param labelList Object containing key-value pairings of (index, labelMetadata)
      */
     function setLabelList (labelList) {
@@ -275,7 +313,8 @@ function Panorama (labelList) {
     }
 
     /**
-     * Retrieves a label with a given id from the database and renders it onto the panorama.
+     * Retrieves a label with a given id from the database and adds it to the label list.
+     * NOTE: Currently unused, but may be useful later.
      * @param labelId   label_id of the desired label.
      */
     function setLabelWithId (labelId) {
@@ -285,10 +324,10 @@ function Panorama (labelList) {
             async: false,
             dataType: 'json',
             success: function (labelMetadata) {
-                _handleData(labelMetadata);
+                var label = _createSingleLabel(labelMetadata);
+                labels.push(label);
             }
         });
-        renderLabel();
     }
 
     /**
@@ -298,6 +337,7 @@ function Panorama (labelList) {
     function setLabel (label) {
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
+        svv.statusField.updateLabelText(currentLabel.getProperty('labelType'));
         console.log("Setting panorama to be: " + label.getProperty('gsvPanoramaId'));
         setPanorama(label.getProperty('gsvPanoramaId'), label.getProperty('heading'),
             label.getProperty('pitch'), label.getProperty('zoom'));
@@ -305,7 +345,7 @@ function Panorama (labelList) {
     }
 
     /**
-     * Skips the label on this panorama.
+     * Skips the current label on this panorama and fetches a new label for validation.
      */
     function skipLabel () {
         _fetchNewLabel();
@@ -313,52 +353,23 @@ function Panorama (labelList) {
         setLabel(labels[getProperty('progress')]);
     }
 
+    /**
+     * Sets a property for this panorama.
+     * @param key   Name of property
+     * @param value Value of property.
+     * @returns {setProperty}
+     */
     function setProperty (key, value) {
         properties[key] = value;
         return this;
     }
 
+    /**
+     * Sets the zoom level for this panorama.
+     * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
+     */
     function setZoom (zoom) {
         panorama.set('zoom', zoom);
-    }
-
-    /**
-     * Renders a label onto the screen using a Panomarker.
-     * @returns {renderLabel}
-     */
-    function renderLabel() {
-        var url = currentLabel.getIconUrl();
-        var pos = svv.util.properties.panorama.getPosition(currentLabel.getProperty('canvasX'), currentLabel.getProperty('canvasY'),
-            currentLabel.getProperty('canvasWidth'), currentLabel.getProperty('canvasHeight'),
-            currentLabel.getProperty('zoom'), currentLabel.getProperty('heading'), currentLabel.getProperty('pitch'));
-
-        if (!self.labelMarker) {
-            self.labelMarker = new PanoMarker({
-                container: panoCanvas,
-                pano: panorama,
-                position: {heading: pos.heading, pitch: pos.pitch},
-                icon: url,
-                size: new google.maps.Size(20, 20),
-                anchor: new google.maps.Point(10, 10)
-            });
-        } else {
-            self.labelMarker.setPano(panorama, panoCanvas);
-            self.labelMarker.setPosition({
-                heading: pos.heading,
-                pitch: pos.pitch
-            });
-            self.labelMarker.setIcon(url);
-        }
-        return this;
-    }
-
-    /**
-     * Resets the state of the mission.
-     * Called when a new validation mission is loaded, and when we need to get rid of lingering
-     * data from the previous validation mission.
-     */
-    function reset () {
-        setProperty('progress', 0);
     }
 
     _init();

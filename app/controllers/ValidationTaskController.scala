@@ -37,7 +37,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * BodyParsers.parse.json in async
     */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    println("[ValidationTaskController] request.body: " + request.body)
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
     println("[ValidationTaskController] submission: " + submission)
     submission.fold(
@@ -48,7 +47,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       submission => {
         val user = request.identity
         val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
-          println("[Data] " + data)
           for (interaction: InteractionSubmission <- data.interactions) {
             ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
@@ -138,28 +136,24 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
     //  (missionProgress.labelsProgress.isEmpty) Logger.error("Received null labels progress for validation mission.")
     val labelsProgress: Int = missionProgress.labelsProgress
-    println("[updateMissionTable]: " + missionId + ", " + skipped + ", " + userId + ", " + role);
+    println("[ValidationTaskController] updateMissionTable: " + missionId + ", " + skipped + ", " + userId + ", " + role);
 
     if (missionProgress.completed) {
-      println("[updateMissionTable] This mission is complete")
+      println("[ValidationTaskController] updateMissionTable: This mission is complete")
       // TODO: replace 0.0 with pay per label (later)
       MissionTable.updateCompleteAndGetNextValidationMission(userId, 0.0, missionId, labelsProgress, skipped)
     } else {
-      println("[updateMissionTable] This mission is not complete")
+      println("[ValidationTaskController] updateMissionTable: This mission is not complete")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }
 
   def getLabelList(missionProgress: ValidationMissionProgress): Option[JsValue] = {
     // Retrieve more labels. Currently hard-coded to be 10 labels.
-    // TODO: Replace all 10s later so we don't hardcode the number of labels to retrieve.
+    // TODO: Get rid of hard-coded 10 value.
     if (missionProgress.completed) {
-      Some(getLabelListForValidation(10))
-    } else {
-      val labelsProgress: Int = missionProgress.labelsProgress
-      val labelsValidated: Int = 10
-      val labelsToRetrieve: Int = labelsValidated - labelsProgress
-      Some(getLabelListForValidation(labelsToRetrieve))
+      return Some(getLabelListForValidation(10))
     }
+    None
   }
 }

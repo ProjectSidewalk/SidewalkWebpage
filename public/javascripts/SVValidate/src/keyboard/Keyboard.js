@@ -21,7 +21,8 @@ function Keyboard(menuUI) {
             switch (e.keyCode) {
                 // shift key
                 case 16:
-                    // store the timestamp here so that we can check if the z-up event is in the buffer range
+                    // Store the timestamp here so that we can check if the z-up event is
+                    // within the buffer range
                     lastShiftKeyUpTimestamp = e.timeStamp;
                     break;
                 // "a" key
@@ -54,7 +55,7 @@ function Keyboard(menuUI) {
                         svv.tracker.push("KeyboardShortcut_ZoomOut", {
                             keyCode: e.keyCode
                         });
-                    // Zoom in when just z key pressed.
+                    // Zoom in when just the z key is pressed.
                     } else {
                         svv.zoomControl.zoomIn();
                         svv.tracker.push("KeyboardShortcut_ZoomIn", {

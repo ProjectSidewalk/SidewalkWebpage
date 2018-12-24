@@ -8,18 +8,12 @@ function MissionContainer () {
     var currentMission = undefined;
     var _completedMissions = [];
 
-    _init();
-
-    function _init() {
-        _.extend(self, Backbone.Events);
-    }
-
     /**
      * Adds a mission to in progress or list of completed missions
      * @param mission
      * @private
      */
-    function _addAMission(mission) {
+    function addAMission(mission) {
         console.log("[Mission.js] Adding a mission");
         if (mission.getProperty("completed")) {
             console.log("[Mission.js] Mission is complete");
@@ -54,11 +48,21 @@ function MissionContainer () {
     }
 
     /**
+     * Submits this mission to the backend.
+     */
+    function completeAMission () {
+        var data = svv.form.compileSubmissionData();
+        svv.form.submit(data, true);
+        _addToCompletedMissions(currentMission);
+    }
+
+    /**
      * Creates a mission by parsing a JSON file
      * @param missionMetadata   JSON metadata for mission (from backend)
      * @private
      */
-    function _createAMission(missionMetadata) {
+    function createAMission(missionMetadata) {
+        console.log("[MissionContainer.js] createAMission mission");
         var metadata = {
             completed : missionMetadata.completed,
             labelsProgress : missionMetadata.labels_progress,
@@ -70,7 +74,7 @@ function MissionContainer () {
         var mission = new Mission(metadata);
         console.log("Creating a mission");
         console.log(mission);
-        _addAMission(mission);
+        addAMission(mission);
     }
 
     /**
@@ -82,33 +86,17 @@ function MissionContainer () {
     }
 
     /**
-     * Events that trigger mission creation and updating functions
+     * Updates the status of the current mission.
      */
-    self.on("MissionContainer:createAMission", function (mission) {
-        console.log("[MissionContainer.js] createAMission mission");
-        console.log(mission);
-        _createAMission(mission);
-    });
+    function updateAMission() {
+        currentMission.updateMissionProgress();
+    }
 
-    self.on("MissionContainer:addAMission", function (mission) {
-        console.log("[MissionContainer.js] Adding a mission...");
-        _addAMission(mission);
-    });
-
-    self.on("MissionContainer:updateAMission", function () {
-       console.log("[MissionContainer.js] Updating a mission...");
-       currentMission.updateMissionProgress();
-    });
-
-    self.on("MissionContainer:completeAMission", function () {
-        console.log("[MissionContainer.js] Completed a mission and submitting form");
-        // Submit form with completed mission.
-        var data = svv.form.compileSubmissionData();
-        svv.form.submit(data, true);
-        _addToCompletedMissions(currentMission);
-    });
-
+    self.addAMission = addAMission;
+    self.completeAMission = completeAMission;
+    self.createAMission = createAMission;
     self.getCurrentMission = getCurrentMission;
+    self.updateAMission = updateAMission;
 
-    return self;
+    return this;
 }

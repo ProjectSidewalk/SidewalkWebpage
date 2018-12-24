@@ -10,7 +10,7 @@ function Tracker() {
     var prevActions = [];
 
     function _init() {
-        // _trackWindowEvents();
+        _trackWindowEvents();
     }
 
     function _trackWindowEvents() {
@@ -40,7 +40,7 @@ function Tracker() {
      * @private
      */
     function _createAction(action, notes, extraData) {
-        console.log("[Tracker.js] createAction");
+        // console.log("[Tracker.js] createAction: " + action);
         if (!notes) {
             notes = {};
         }
@@ -59,7 +59,7 @@ function Tracker() {
         }
 
         var panoId = panorama.getPanoId();
-        var position = panorama.getPosition();  // sometimes buggy, so position will be undefined.
+        var position = panorama.getPosition();  // sometimes buggy, so position will be null.
         var pov = panorama.getPov();
 
         var data = {
@@ -74,9 +74,6 @@ function Tracker() {
             timestamp: timestamp,
             zoom: pov.zoom
         };
-
-        console.log("[Tracker.js] data ");
-        console.log(data);
 
         return data;
     }
@@ -115,6 +112,9 @@ function Tracker() {
         return this;
     }
 
+    /**
+     * Empties actions stored in the Tracker.
+     */
     function refresh() {
         prevActions = prevActions.concat(actions);
         actions = [];

@@ -45,7 +45,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
         println("Labels to retrieve: " + labelsToRetrieve)
         println("[ValidationController] Mission: " + mission)
-        println("Returning validate page")
         println()
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
       case None =>

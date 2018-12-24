@@ -60,10 +60,8 @@ function Form(url) {
                     console.log('Success');
                     // If a mission was returned after posting data, create a new mission.
                     if (result.mission) {
-                        svv.missionContainer.trigger("MissionContainer:createAMission", result.mission);
-                    }
-
-                    if (result.labels) {
+                        console.log("New mission created");
+                        svv.missionContainer.createAMission(result.mission);
                         svv.panorama.reset();
                         svv.panorama.setLabelList(result.labels);
                         svv.panorama.loadNewLabelFromList();
@@ -81,7 +79,6 @@ function Form(url) {
         svv.tracker.push("Unload");
         var data = compileSubmissionData();
         self.submit(data, false);
-        console.log("Unloading - finished submitting data");
     });
 
     self.compileSubmissionData = compileSubmissionData;
