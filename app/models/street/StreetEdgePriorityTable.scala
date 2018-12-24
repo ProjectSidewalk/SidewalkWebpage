@@ -190,22 +190,8 @@ object StreetEdgePriorityTable {
 
 
   /**
-    * Functions that generate paramaters for street edge priority evaluation.
+    * Functions that generate parameters for street edge priority evaluation.
     */
-
-  /**
-    * Returns 1 / (1 + audit_count) for each street edge.
-    *
-    * @return
-    */
-  def selectCompletionCountPriority: List[StreetEdgePriorityParameter] = db.withSession { implicit session =>
-    
-    val priorityParamTable: List[StreetEdgePriorityParameter] =
-      StreetEdgeAssignmentCountTable.computeEdgeCompletionCounts.list.map {
-        x => StreetEdgePriorityParameter.tupled((x._1, x._2.toDouble))
-      }
-    normalizePriorityReciprocal(priorityParamTable)
-  }
 
   /**
     * Returns 1 if good_user_audit_count = 0, o/w 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)

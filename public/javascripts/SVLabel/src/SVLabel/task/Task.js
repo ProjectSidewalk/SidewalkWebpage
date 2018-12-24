@@ -12,7 +12,6 @@ function Task (geojson, currentLat, currentLng) {
     var _geojson;
     var _furthestPoint;
 
-    var taskCompletionRate = 0;
     var paths;
     var status = {
         isComplete: false
@@ -20,7 +19,7 @@ function Task (geojson, currentLat, currentLng) {
     var properties = {
         auditTaskId: null,
         streetEdgeId: null,
-        completionCount: null,
+        completedByAnyUser: null,
         priority: null
     };
 
@@ -34,7 +33,7 @@ function Task (geojson, currentLat, currentLng) {
         _geojson = geojson;
 
         self.setProperty("streetEdgeId", _geojson.features[0].properties.street_edge_id);
-        self.setProperty("completionCount", _geojson.features[0].properties.completion_count);
+        self.setProperty("completedByAnyUser", _geojson.features[0].properties.completed_by_any_user);
         self.setProperty("priority", _geojson.features[0].properties.priority);
 
         if (_geojson.features[0].properties.completed) {
@@ -309,8 +308,8 @@ function Task (geojson, currentLat, currentLng) {
         return _geojson.features[0].properties.street_edge_id;
     };
 
-    this.getStreetCompletionCount = function () {
-        return _geojson.features[0].properties.completion_count;
+    this.streetCompletedByAnyUser = function () {
+        return _geojson.features[0].properties.completed_by_any_user;
     };
 
     this.getStreetPriority = function () {

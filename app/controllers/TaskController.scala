@@ -16,7 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdgePriorityTable}
+import models.street.StreetEdgePriorityTable
 import models.user.{User, UserCurrentRegionTable}
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
@@ -124,21 +124,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   def updateAuditTaskCompleteness(auditTaskId: Int, auditTask: TaskSubmission, incomplete: Option[IncompleteTaskSubmission]): Unit = {
-    if (auditTask.completed.isDefined && auditTask.completed.get) {
-      AuditTaskTable.updateCompleted(auditTaskId, completed=true)
-      val updatedCount: Int = StreetEdgeAssignmentCountTable.incrementCompletion(auditTask.streetEdgeId)
+    // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion.
+    if ((auditTask.completed.isDefined && auditTask.completed.get)
+      || (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable")) {
       // if this was the first completed audit of this street edge, increase total audited distance of that region.
-      if (updatedCount == 1) {
+      if (!AuditTaskTable.anyoneHasAuditedStreet(auditTask.streetEdgeId)) {
         RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
       }
-    } else if (incomplete.isDefined && incomplete.get.issueDescription == "GSVNotAvailable") {
-      // If the user skipped with `GSVNotAvailable`, mark the task as completed and increment the task completion
-      AuditTaskTable.updateCompleted(auditTaskId, completed=true)
-      val updatedCount: Int = StreetEdgeAssignmentCountTable.incrementCompletion(auditTask.streetEdgeId) // Increment task completion
-      // if this was the first completed audit of this street edge, increase total audited distance of that region.
-      if (updatedCount == 1) {
-        RegionCompletionTable.updateAuditedDistance(auditTask.streetEdgeId)
-      }
+      AuditTaskTable.updateCompleted(auditTaskId, completed = true)
     }
   }
 
@@ -149,20 +142,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
-    println()
-    println("[request.body] " + request.body)
-    println()
     var submission = request.body.validate[Seq[AuditTaskSubmission]]
-    println("[Submission] " + submission)
-    println()
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
         val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-          println("[Data] " + data)
-          println()
           // Insert assignment (if any)
           val amtAssignmentId: Option[Int] = data.assignment match {
             case Some(asg) =>
@@ -176,7 +162,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           val streetEdgeId = data.auditTask.streetEdgeId
 
           if (data.auditTask.auditTaskId.isDefined) {
-            println("[TaskController] data.auditTask.auditTaskId is: " + data.auditTask.auditTaskId);
             user match {
               case Some(user) =>
                 // Update the street's priority only if the user has not completed this street previously
@@ -242,7 +227,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 }
                 LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
                                       label.photographerHeading, label.photographerPitch, label.panoramaLat,
-                                      label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated))
+                                      label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated,
+                                      label.tutorial))
             }
 
             // Insert label points

@@ -7,7 +7,7 @@ object DBTableDefinitions {
 
   case class DBUser (userId: String, username: String, email: String )
 
-  class UserTable(tag: Tag) extends Table[DBUser](tag, Some("sidewalk"), "user") {
+  class UserTable(tag: Tag) extends Table[DBUser](tag, Some("sidewalk"), "sidewalk_user") {
     def userId = column[String]("user_id", O.PrimaryKey)
     def username = column[String]("username")
     def email = column[String]("email")
