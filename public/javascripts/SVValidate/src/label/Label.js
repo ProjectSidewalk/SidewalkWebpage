@@ -31,6 +31,10 @@ function Label(params) {
 
     var self = this;
 
+    /**
+     * Initializes a label from metadata (if parameters are passed in)
+     * @private
+     */
     function _init() {
         if (params) {
             if ("canvasHeight" in params) setProperty("canvasHeight", params.canvasHeight);
@@ -112,8 +116,13 @@ function Label(params) {
                 svv.missionContainer.trigger("MissionContainer:updateAMission");
                 break;
         }
-        // Add a new label to the panorama
-        svv.panorama.loadNewLabelFromList();
+
+        // If there are more labels left to validate, add a new label to the panorama.
+        // Otherwise, we will load a new label onto the panorama from Form.js - where we still need
+        // to retrieve 10 more labels for the next mission.
+        if (!svv.missionContainer.getCurrentMission().isComplete()) {
+            svv.panorama.loadNewLabelFromList();
+        }
     }
 
     _init();

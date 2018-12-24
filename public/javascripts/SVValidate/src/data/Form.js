@@ -62,6 +62,12 @@ function Form(url) {
                     if (result.mission) {
                         svv.missionContainer.trigger("MissionContainer:createAMission", result.mission);
                     }
+
+                    if (result.labels) {
+                        svv.panorama.reset();
+                        svv.panorama.setLabelList(result.labels);
+                        svv.panorama.loadNewLabelFromList();
+                    }
                 }
             },
             error: function (result) {

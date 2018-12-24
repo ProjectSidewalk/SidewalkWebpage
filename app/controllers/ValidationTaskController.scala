@@ -29,7 +29,7 @@ import scala.concurrent.Future
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class ValidationTaskPostReturnValue(mission: Option[Mission], labels: Seq[JsObject])
+  case class ValidationTaskPostReturnValue(mission: Option[Mission], labels: Option[JsValue])
 
   /**
     * Parse submitted validation data and submit to tables
@@ -71,7 +71,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
 
           // Temporary value - this is the number of labels that are in each mission.
-          val labelList: Seq[JsObject] = getRandomLabelDataListTest(10)
+          val labelList: Option[JsValue] = getLabelList(data.missionProgress)
           println("[ValidationTaskController] possibleMission: " + possibleNewMission)
           println("[ValidationTaskController] labelList      : " + Json.toJson(labelList))
           ValidationTaskPostReturnValue(possibleNewMission, labelList)
@@ -79,7 +79,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         println("[ValidationTaskController] Success");
         Future.successful(Ok(Json.obj(
           "mission" -> returnValues.head.mission.map(_.toJSON),
-          "labels" -> Json.toJson(returnValues.head.labels)
+          "labels" -> returnValues.head.labels
         )))
       }
     )
@@ -110,19 +110,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     Future.successful(Ok(labelMetadataJson))
   }
 
-  def getRandomLabelDataList(count: Int) = UserAwareAction.async { implicit request =>
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
-    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
-    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
-    Future.successful(Ok(labelMetadataJson))
-  }
-
-  def getRandomLabelDataListTest(count: Int): Seq[JsObject] = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
-    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
-    labelMetadataJsonSeq
-  }
-
   /**
     *
     * @param user
@@ -146,6 +133,26 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     } else {
       println("[updateMissionTable] This mission is not complete")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
+    }
+  }
+  
+  /**
+    * This gets a random list of labels to validate for this mission.
+    * @param count  Number of labels to retrieve for this list.
+    * @return       JsValue containing a list of labels with the following attributes:
+    *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
+    *               canvas_width, canvas_height}
+    */
+  def getLabelList(missionProgress: ValidationMissionProgress): Option[JsValue] = {
+    // Retrieve more labels. Currently hard-coded to be 10 labels.
+    // TODO: Replace all 10s later so we don't hardcode the number of labels to retrieve.
+    if (missionProgress.completed) {
+      Some(getLabelListForValidation(10))
+    } else {
+      val labelsProgress: Int = missionProgress.labelsProgress
+      val labelsValidated: Int = 10
+      val labelsToRetrieve: Int = labelsValidated - labelsProgress
+      Some(getLabelListForValidation(labelsToRetrieve))
     }
   }
 }

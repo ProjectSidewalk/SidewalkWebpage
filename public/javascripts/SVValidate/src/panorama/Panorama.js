@@ -28,6 +28,14 @@ function Panorama (labelList) {
      * @private
      */
     function _init () {
+        _createNewPanorama();
+
+        // When initializing, we can directly set the label onto the panorama. Otherwise, we need
+        // to trigger a callback function to avoid infinite looping (GSV bug).
+        setLabel(labels[getProperty("progress")]);
+    }
+
+    function _createNewPanorama () {
         if (typeof google != "undefined") {
             // Set control options
             panorama = new google.maps.StreetViewPanorama(panoCanvas);
@@ -45,12 +53,6 @@ function Panorama (labelList) {
             panorama.set('zoomControl', false);
         } else {
             console.error("No typeof google");
-        }
-
-        // When initializing, we can directly set the label onto the panorama. Otherwise, we need
-        // to trigger a callback function to avoid infinite looping (GSV bug).
-        if (init) {
-            setLabel(labels[getProperty("progress")]);
         }
     }
 
@@ -71,6 +73,14 @@ function Panorama (labelList) {
      */
     function getCurrentLabel () {
         return currentLabel;
+    }
+
+    /**
+     * Returns the list of labels to validate / to be validated in this mission.
+     * @returns {*}
+     */
+    function getCurrentMissionLabels () {
+        return labels;
     }
 
     /**
@@ -172,10 +182,45 @@ function Panorama (labelList) {
 
     /**
      * Loads a new label onto the panorama.
+     * Assumes there are still labels remaining in the label list.
      */
     function loadNewLabelFromList () {
-        setProperty('progress', getProperty('progress') + 1);
+        var progress = labels[getProperty('progress')];
+
+        // NOTE: 3 is arbitrary.
+        // If we are going to run out of labels soon, fetch some more (in case the user decides to
+        // skip a label)
+        if (labels.length - progress < 3) {
+            console.log("Need to add more labels! Only " + (labels.length - progress) + " labels remaining.");
+            // var newLabels = fetchNewLabels(3);
+            // append newLabels to labelList
+        }
         setLabel(labels[getProperty('progress')]);
+        setProperty('progress', getProperty('progress') + 1);
+    }
+
+    /**
+     * Creates an object of labels to be validated.
+     * @param labelList Object containing key-value pairings of (index, labelMetadata)
+     */
+    function setLabelList (labelList) {
+        Object.keys(labelList).map(function(key, index) {
+            var labelMetadata = {
+                canvasHeight: labelList[key].canvas_height,
+                canvasWidth: labelList[key].canvas_width,
+                canvasX: labelList[key].canvas_x,
+                canvasY: labelList[key].canvas_y,
+                gsvPanoramaId: labelList[key].gsv_panorama_id,
+                heading: labelList[key].heading,
+                labelId: labelList[key].label_id,
+                labelType: labelList[key].label_type,
+                pitch: labelList[key].pitch,
+                zoom: labelList[key].zoom
+            };
+            labelList[key] = new Label(labelMetadata);
+        });
+
+        labels = labelList;
     }
 
     /**
@@ -191,7 +236,6 @@ function Panorama (labelList) {
         if (init) {
             panorama.setPano(panoId);
             panorama.set('pov', {heading: heading, pitch: pitch});
-            /* TODO: See if we need to adjust the zoom level */
             panorama.set('zoom', zoomLevel[zoom]);
             init = false;
         } else {
@@ -200,7 +244,7 @@ function Panorama (labelList) {
             // setPano function. Will start to running an infinite loop if panorama does not
             // load in time.
             function changePano() {
-                _init();
+                _createNewPanorama();
                 panorama.setPano(panoId);
                 panorama.set('pov', {heading: heading, pitch: pitch});
                 panorama.set('zoom', zoomLevel[zoom]);
@@ -298,9 +342,19 @@ function Panorama (labelList) {
         return this;
     }
 
+    /**
+     * Resets the state of the mission.
+     * Called when a new validation mission is loaded, and when we need to get rid of lingering
+     * data from the previous validation mission.
+     */
+    function reset () {
+        setProperty('progress', 0);
+    }
+
     _init();
 
     self.getCurrentLabel = getCurrentLabel;
+    self.getCurrentMissionLabels = getCurrentMissionLabels;
     self.getPanoId = getPanoId;
     self.getPosition = getPosition;
     self.getProperty = getProperty;
@@ -308,9 +362,11 @@ function Panorama (labelList) {
     self.getZoom = getZoom;
     self.loadNewLabelFromList = loadNewLabelFromList;
     self.renderLabel = renderLabel;
+    self.reset = reset;
     self.setRandomLabel = setRandomLabel;
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
+    self.setLabelList = setLabelList;
     self.setZoom = setZoom;
 
     return self;

@@ -91,7 +91,6 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/geo/random                                    @controllers.ValidationTaskController.getRandomLabelData()
-GET     /label/geo/randomList/:count                         @controllers.ValidationTaskController.getRandomLabelDataList(count: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods
