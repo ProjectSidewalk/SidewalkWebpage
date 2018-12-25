@@ -7,6 +7,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
+import formats.json.MissionFormat
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.label.LabelTable
 import models.user.User
@@ -114,7 +115,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getSubmittedTasksWithLabels = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(user.userId).map(x => Json.toJson(x))
+        val tasksWithLabels = AuditTaskTable.selectMissions(user.userId).map(x => Json.toJson(x))
         Future.successful(Ok(JsArray(tasksWithLabels)))
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",

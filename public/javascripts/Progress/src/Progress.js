@@ -437,6 +437,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
 
             var grouped = _.groupBy(_data.tasks, function (o) { return o.mission_id });
+            console.log(grouped);
             var missionId;
             var missionTaskIds = Object.keys(grouped);
             var missionNumber = 0;
@@ -448,15 +449,14 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             var labelsLength;
             var labelType;
             missionTaskIds.sort(function (id1, id2) {
-                var timestamp1 = grouped[id1][0].task_start;
-                var timestamp2 = grouped[id2][0].task_start;
+                var timestamp1 = grouped[id1][0].mission_end;
+                var timestamp2 = grouped[id2][0].mission_end;
                 if (timestamp1 < timestamp2) { return -1; }
                 else if (timestamp1 > timestamp2) { return 1; }
                 else { return 0; }
             });
 
             for (i = missionTaskIdsLength - 1; i >= 0; i--) {
-                console.log('hello');
                 labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
                 missionId = missionTaskIds[i];
                 labelsLength = grouped[missionId].length;
@@ -468,7 +468,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                     labelCounter[labelType] += 1;
                 }
 
-                var date = new Date(grouped[missionId][0]["task_end"]);
+                var date = new Date(grouped[missionId][0]["mission_end"]);
                 var day = date.getDate();
                 var monthIndex = date.getMonth();
                 var year = date.getFullYear();

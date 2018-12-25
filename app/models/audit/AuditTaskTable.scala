@@ -9,6 +9,7 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
+import models.mission.MissionTable
 import models.street.StreetEdgePriorityTable
 import play.api.libs.json._
 import play.api.Play.current
@@ -99,6 +100,7 @@ object AuditTaskTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val labels = TableQuery[LabelTable]
   val labelTypes = TableQuery[LabelTypeTable]
+  val missions = TableQuery[MissionTable]
   val streetEdges = TableQuery[StreetEdgeTable]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val users = TableQuery[UserTable]
@@ -108,7 +110,7 @@ object AuditTaskTable {
   val nonDeletedStreetEdgeRegions = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions
 
   case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
+  case class AuditMission(userId: String, username: String, missionId: Int, completed: Boolean, missionStart: Timestamp, missionEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
 
   /**
     * This method returns all the tasks
@@ -277,27 +279,27 @@ object AuditTaskTable {
   }
 
   /**
-    * Return a list of tasks associated with labels
+    * Return a list of missions for a specific user
     *
     * @param userId User id
     * @return
     */
-  def selectTasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
-    val userTasks = for {
-      (_users, _tasks) <- users.innerJoin(auditTasks).on(_.userId === _.userId)
+  def selectMissions(userId: UUID): List[AuditMission] = db.withSession { implicit session =>
+    val userMissions = for {
+      (_users, _missions) <- users.innerJoin(missions).on(_.userId === _.userId)
       if _users.userId === userId.toString
-    } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
+    } yield (_users.userId, _users.username, _missions.missionId, _missions.completed, _missions.missionStart, _missions.missionEnd)
 
-    val userTaskLabels = for {
-      (_userTasks, _labels) <- userTasks.leftJoin(labels).on(_._3 === _.auditTaskId)
+    val userMissionLabels = for {
+      (_userMissions, _labels) <- userMissions.leftJoin(labels).on(_._3 === _.missionId)
       if _labels.deleted === false
-    } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
+    } yield (_userMissions._1, _userMissions._2, _userMissions._3, _userMissions._4, _userMissions._5, _userMissions._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
-    val tasksWithLabels = for {
-      (_labelTypes, _userTaskLabels) <- labelTypes.innerJoin(userTaskLabels).on(_.labelTypeId === _._9)
-    } yield (_userTaskLabels._1, _userTaskLabels._2, _userTaskLabels._3, _userTaskLabels._4, _userTaskLabels._5, _userTaskLabels._6, _userTaskLabels._7, _userTaskLabels._8, _labelTypes.labelType.?)
+    val missionsWithLabels = for {
+      (_labelTypes, _userMissionLabels) <- labelTypes.innerJoin(userMissionLabels).on(_.labelTypeId === _._9)
+    } yield (_userMissionLabels._1, _userMissionLabels._2, _userMissionLabels._3, _userMissionLabels._4, _userMissionLabels._5, _userMissionLabels._6, _userMissionLabels._7, _userMissionLabels._8, _labelTypes.labelType.?)
 
-    tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
+    missionsWithLabels.list.map(x => AuditMission.tupled(x))
   }
 
 
