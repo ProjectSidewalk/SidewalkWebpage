@@ -1,4 +1,7 @@
 # --- !Ups
+ALTER TABLE street_edge DROP COLUMN source;
+ALTER TABLE street_edge DROP COLUMN target;
+
 DROP TABLE sidewalk_edge_sidewalk_node;
 DROP TABLE sidewalk_edge_parent_edge;
 DROP TABLE sidewalk_edge;
@@ -64,3 +67,9 @@ CREATE TABLE sidewalk_edge_sidewalk_node (
   FOREIGN KEY (sidewalk_edge_id) REFERENCES sidewalk_edge(sidewalk_edge_id),
   FOREIGN KEY (sidewalk_node_id) REFERENCES sidewalk_node(id_0)
 );
+
+ALTER TABLE street_edge
+  ADD COLUMN source INT,
+  ADD COLUMN target INT,
+  ADD CONSTRAINT street_edge_source_idx FOREIGN KEY (source) REFERENCES street_node(street_node_id),
+  ADD CONSTRAINT street_edge_target_idx FOREIGN KEY (target) REFERENCES street_node(street_node_id)
