@@ -451,19 +451,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             missionTaskIds.sort(function (id1, id2) {
                 var timestamp1 = grouped[id1][0].mission_end;
                 var timestamp2 = grouped[id2][0].mission_end;
-                if (grouped[id1][0].completed && grouped[id2][0].completed) {
-                    if (timestamp1 < timestamp2) {
-                        return -1;
-                    } else if (timestamp1 > timestamp2) {
-                        return 1;
-                    } else { return 0; }
-                } else {
-                    if (!timestamp1.completed) {
-                        return -1;
-                    } else {
-                        return 1;
-                    }
-                }
+                if (timestamp1 < timestamp2) { return -1; }
+                else if (timestamp1 > timestamp2) { return 1; }
+                else { return 0; }
             });
 
             for (i = missionTaskIdsLength - 1; i >= 0; i--) {
@@ -485,7 +475,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 missionNumber++;
                 var dateString;
                 if (grouped[missionId][0]["completed"]) {
-                    dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year)
+                    (day + ' ' + monthNames[monthIndex] + ' ' + year)
                 } else {
                     dateString = "In Progress";
                 }
