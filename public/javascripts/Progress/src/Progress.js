@@ -422,7 +422,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     }
 
     function initializeSubmittedTasks(map) {
-        $.getJSON("/contribution/tasks", function (data) {
+        $.getJSON("/contribution/missions", function (data) {
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
 
@@ -451,9 +451,19 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             missionTaskIds.sort(function (id1, id2) {
                 var timestamp1 = grouped[id1][0].mission_end;
                 var timestamp2 = grouped[id2][0].mission_end;
-                if (timestamp1 < timestamp2) { return -1; }
-                else if (timestamp1 > timestamp2) { return 1; }
-                else { return 0; }
+                if (grouped[id1][0].completed && grouped[id2][0].completed) {
+                    if (timestamp1 < timestamp2) {
+                        return -1;
+                    } else if (timestamp1 > timestamp2) {
+                        return 1;
+                    } else { return 0; }
+                } else {
+                    if (!timestamp1.completed) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                }
             });
 
             for (i = missionTaskIdsLength - 1; i >= 0; i--) {
@@ -473,10 +483,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var monthIndex = date.getMonth();
                 var year = date.getFullYear();
                 missionNumber++;
+                var dateString;
+                if (grouped[missionId][0]["completed"]) {
+                    dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year)
+                } else {
+                    dateString = "In Progress";
+                }
 
                 tableRows += "<tr>" +
                     "<td class='col-xs-1'>" + missionNumber + "</td>" +
-                    "<td class='col-xs-1'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
+                    "<td class='col-xs-1'>" + dateString + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +

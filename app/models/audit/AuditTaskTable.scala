@@ -110,6 +110,7 @@ object AuditTaskTable {
   val nonDeletedStreetEdgeRegions = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions
 
   case class AuditCountPerDay(date: String, count: Int)
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
   case class AuditMission(userId: String, username: String, missionId: Int, completed: Boolean, missionStart: Timestamp, missionEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
 
   /**
@@ -276,6 +277,30 @@ object AuditTaskTable {
       .filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user))
       .map(_.regionId)
       .list.toSet
+  }
+
+  /**
+    * Return a list of tasks associated with labels
+    *
+    * @param userId User id
+    * @return
+    */
+  def selectTasksWithLabels(userId: UUID): List[AuditTaskWithALabel] = db.withSession { implicit session =>
+    val userTasks = for {
+      (_users, _tasks) <- users.innerJoin(auditTasks).on(_.userId === _.userId)
+      if _users.userId === userId.toString
+    } yield (_users.userId, _users.username, _tasks.auditTaskId, _tasks.streetEdgeId, _tasks.taskStart, _tasks.taskEnd)
+
+    val userTaskLabels = for {
+      (_userTasks, _labels) <- userTasks.leftJoin(labels).on(_._3 === _.auditTaskId)
+      if _labels.deleted === false
+    } yield (_userTasks._1, _userTasks._2, _userTasks._3, _userTasks._4, _userTasks._5, _userTasks._6, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
+
+    val tasksWithLabels = for {
+      (_labelTypes, _userTaskLabels) <- labelTypes.innerJoin(userTaskLabels).on(_.labelTypeId === _._9)
+    } yield (_userTaskLabels._1, _userTaskLabels._2, _userTaskLabels._3, _userTaskLabels._4, _userTaskLabels._5, _userTaskLabels._6, _userTaskLabels._7, _userTaskLabels._8, _labelTypes.labelType.?)
+
+    tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
   }
 
   /**

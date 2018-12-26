@@ -9,6 +9,7 @@ import play.api.libs.functional.syntax._
 
 object MissionFormat {
 
+  //   case class AuditMission(userId: String, username: String, missionId: Int, completed: Boolean, missionStart: Timestamp, missionEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
   implicit val auditMissionWrites: Writes[AuditMission] = (
     (__ \ "user_id").write[String] and
       (__ \ "username").write[String] and
