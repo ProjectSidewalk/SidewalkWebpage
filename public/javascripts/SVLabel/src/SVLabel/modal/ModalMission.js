@@ -51,6 +51,12 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
+    var returningToMissionHTML = ' <figure> \
+        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        </figure> \
+        <div class="spacer10"></div>\
+        <p>Continue auditing __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!</p>\
+        <div class="spacer10"></div>';
 
     this._handleBackgroundClick = function () {
         self.hide();
@@ -102,6 +108,9 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
+            } else if (mission.getProperty("distanceProgress") > 0) {
+                missionTitle = "Returning to your mission";
+                templateHTML = returningToMissionHTML;
             }
 
             distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
