@@ -423,22 +423,20 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     function initializeSubmittedTasks(map) {
         $.getJSON("/contribution/missions", function (data) {
-            console.log(data);
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
 
             // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
             var monthNames = [
-                "Jan.", "Feb.", "Mar.",
+                "January", "February", "March",
                 "April", "May", "June", "July",
-                "Aug.", "Sept.", "Oct.",
-                "Nov.", "Dec."
+                "August", "September", "October",
+                "November", "December"
             ];
 
 
 
             var grouped = _.groupBy(_data.tasks, function (o) { return o.mission_id });
-            console.log(grouped);
             var missionId;
             var missionTaskIds = Object.keys(grouped);
             var missionNumber = 0;
@@ -463,9 +461,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 } else if (!firstCompleted && secondCompleted) {
                     return -1;
                 } else {
-                    var firstNeighborhood = grouped[id1][0].neighborhood;
-                    var secondNeighborhood = grouped[id2][0].neighborhood;
-                    return (firstNeighborhood < secondNeighborhood ? -1 :(firstNeighborhood > secondNeighborhood ? 1 : 0));
+                    return grouped[id1].length - grouped[id2].length;
                 }
             });
 
