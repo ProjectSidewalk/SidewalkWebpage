@@ -423,15 +423,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     function initializeSubmittedTasks(map) {
         $.getJSON("/contribution/missions", function (data) {
+            console.log(data);
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
 
             // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
             var monthNames = [
-                "January", "February", "March",
+                "Jan.", "Feb.", "Mar.",
                 "April", "May", "June", "July",
-                "August", "September", "October",
-                "November", "December"
+                "Aug.", "Sept.", "Oct.",
+                "Nov.", "Dec."
             ];
 
 
@@ -451,9 +452,21 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             missionTaskIds.sort(function (id1, id2) {
                 var timestamp1 = grouped[id1][0].mission_end;
                 var timestamp2 = grouped[id2][0].mission_end;
-                if (timestamp1 < timestamp2) { return 1; }
-                else if (timestamp1 > timestamp2) { return -1; }
-                else { return 0; }
+                var firstCompleted = grouped[id1][0].completed;
+                var secondCompleted = grouped[id2][0].completed;
+                if (firstCompleted && secondCompleted) {
+                    if (timestamp1 < timestamp2) { return 1; }
+                    else if (timestamp1 > timestamp2) { return -1; }
+                    else { return 0; }
+                } else if (firstCompleted && !secondCompleted) {
+                    return 1;
+                } else if (!firstCompleted && secondCompleted) {
+                    return -1;
+                } else {
+                    var firstNeighborhood = grouped[id1][0].neighborhood;
+                    var secondNeighborhood = grouped[id2][0].neighborhood;
+                    return (firstNeighborhood < secondNeighborhood ? -1 :(firstNeighborhood > secondNeighborhood ? 1 : 0));
+                }
             });
 
             for (i = missionTaskIdsLength - 1; i >= 0; i--) {
@@ -472,7 +485,15 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var day = date.getDate();
                 var monthIndex = date.getMonth();
                 var year = date.getFullYear();
-                missionNumber++;
+
+
+                var neighborhood;
+                if (grouped[missionId][0]["neighborhood"]) {
+                    neighborhood = grouped[missionId][0]["neighborhood"];
+                } else {
+                    neighborhood = "Onboarding";
+                }
+
                 var dateString;
                 if (grouped[missionId][0]["completed"]) {
                     dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
@@ -480,9 +501,12 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                     dateString = "In Progress";
                 }
 
+                missionNumber++;
+
                 tableRows += "<tr>" +
                     "<td class='col-xs-1'>" + missionNumber + "</td>" +
                     "<td class='col-xs-1'>" + dateString + "</td>" +
+                    "<td class='col-xs-1'>" + neighborhood + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
                     "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +

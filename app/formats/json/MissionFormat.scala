@@ -17,6 +17,7 @@ object MissionFormat {
       (__ \ "completed").write[Boolean] and
       (__ \ "mission_start").write[Timestamp] and
       (__ \ "mission_end").write[Timestamp] and
+      (__ \ "neighborhood").writeNullable[String] and
       (__ \ "label_id").writeNullable[Int] and
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "label_type").writeNullable[String]

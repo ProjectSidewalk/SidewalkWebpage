@@ -74,8 +74,8 @@ svg {
 }
 
 /**
- * Allows bootstrap tables to have eight columns.
+ * Allows bootstrap tables to have nine columns.
  */
-.eight-cols .col-xs-1 {
-    width: 12.5%;
+.nine-cols .col-xs-1 {
+    width: 11.1111111111111111111111111111111%;
 }
