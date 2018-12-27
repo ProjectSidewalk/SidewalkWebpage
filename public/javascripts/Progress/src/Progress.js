@@ -428,10 +428,10 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
             // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
             var monthNames = [
-                "January", "February", "March",
-                "April", "May", "June", "July",
-                "August", "September", "October",
-                "November", "December"
+                "Jan.", "Feb.", "Mar.",
+                "Apr.", "May", "June", "July",
+                "Aug.", "Sept.", "Oct.",
+                "Nov.", "Dec."
             ];
 
 
