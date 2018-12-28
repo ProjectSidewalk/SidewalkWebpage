@@ -113,7 +113,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
                 // Set returning-to-mission specific css
                 uiModalMission.instruction.css('text-align', 'center');
-                uiModalMission.closeButton.css('float', 'center');
+                uiModalMission.closeButton.css('font-size', '24px')
             }
 
             distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
