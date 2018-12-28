@@ -104,13 +104,16 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         if (missionType === "audit") {
             var distanceString;
             templateHTML = distanceMissionHTML;
-
             if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
-            } else if (mission.getProperty("distanceProgress") > 0) {
-                missionTitle = "Returning to your mission";
+            } else if (mission.getProperty("distanceProgress") > 0) { // In-progress mission
+                missionTitle = "Return to your mission";
                 templateHTML = returningToMissionHTML;
+
+                // Set returning-to-mission specific css
+                uiModalMission.instruction.css('text-align', 'center');
+                uiModalMission.closeButton.css('float', 'center');
             }
 
             distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
