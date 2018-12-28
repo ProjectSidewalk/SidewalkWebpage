@@ -461,7 +461,11 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 } else if (!firstCompleted && secondCompleted) {
                     return -1;
                 } else {
-                    return grouped[id1].length - grouped[id2].length;
+                    var startstamp1 = grouped[id1][0].mission_start;
+                    var startstamp2 = grouped[id2][0].mission_start;
+                    if (startstamp1 < startstamp2) { return 1; }
+                    else if (startstamp1 > startstamp2) { return -1; }
+                    else { return 0; }
                 }
             });
 
@@ -487,7 +491,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 if (grouped[missionId][0]["neighborhood"]) {
                     neighborhood = grouped[missionId][0]["neighborhood"];
                 } else {
-                    neighborhood = "Onboarding";
+                    neighborhood = "Tutorial";
                 }
 
                 var dateString;
@@ -500,15 +504,15 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 missionNumber++;
 
                 tableRows += "<tr>" +
-                    "<td class='col-xs-1'>" + missionNumber + "</td>" +
-                    "<td class='col-xs-1'>" + dateString + "</td>" +
-                    "<td class='col-xs-1'>" + neighborhood + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["Other"] + "</td>" +
+                    "<td class='col-xxs-1'>" + missionNumber + "</td>" +
+                    "<td class='col-date'>" + dateString + "</td>" +
+                    "<td class='col-neighborhood'>" + neighborhood + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["CurbRamp"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["Obstacle"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["Other"] + "</td>" +
                     "</tr>";
             }
 
