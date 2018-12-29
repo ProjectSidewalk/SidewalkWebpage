@@ -104,6 +104,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         if (missionType === "audit") {
             var distanceString;
             templateHTML = distanceMissionHTML;
+
             if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
@@ -113,7 +114,13 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
                 // Set returning-to-mission specific css
                 uiModalMission.instruction.css('text-align', 'center');
-                uiModalMission.closeButton.css('font-size', '24px')
+                uiModalMission.closeButton.css('font-size', '24px');
+                uiModalMission.closeButton.css('width', '300px');
+            } else {
+                // We have to reset the css from the resuming screen, otherwise the button will remain big
+                uiModalMission.instruction.css('text-align', 'left');
+                uiModalMission.closeButton.css('font-size', '24px');
+                uiModalMission.closeButton.css('width', '200px');
             }
 
             distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
