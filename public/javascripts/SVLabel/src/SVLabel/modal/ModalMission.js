@@ -113,14 +113,16 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 templateHTML = returningToMissionHTML;
 
                 // Set returning-to-mission specific css
+                uiModalMission.closeButton.html('Resume Mission');
                 uiModalMission.instruction.css('text-align', 'center');
                 uiModalMission.closeButton.css('font-size', '24px');
                 uiModalMission.closeButton.css('width', '300px');
             } else {
-                // We have to reset the css from the resuming screen, otherwise the button will remain big
+                // We have to reset the css from the resuming screen, otherwise the button will remain as set
+                uiModalMission.closeButton.html('OK');
                 uiModalMission.instruction.css('text-align', 'left');
-                uiModalMission.closeButton.css('font-size', '24px');
-                uiModalMission.closeButton.css('width', '200px');
+                uiModalMission.closeButton.css('font-size', '');
+                uiModalMission.closeButton.css('width', '');
             }
 
             distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
