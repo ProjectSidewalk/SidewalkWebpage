@@ -105,10 +105,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             var distanceString;
             templateHTML = distanceMissionHTML;
 
-            if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
-                missionTitle = "First Mission: " + missionTitle;
-                templateHTML = initialMissionHTML;
-            } else if (mission.getProperty("distanceProgress") > 0) { // In-progress mission
+            if (mission.getProperty("distanceProgress") > 0) { // In-progress mission
                 missionTitle = "Return to your mission";
                 templateHTML = returningToMissionHTML;
 
@@ -117,6 +114,9 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 uiModalMission.instruction.css('text-align', 'center');
                 uiModalMission.closeButton.css('font-size', '24px');
                 uiModalMission.closeButton.css('width', '300px');
+            } else if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) { // First mission
+                missionTitle = "First Mission: " + missionTitle;
+                templateHTML = initialMissionHTML;
             } else {
                 // We have to reset the css from the resuming screen, otherwise the button will remain as set
                 uiModalMission.closeButton.html('OK');
