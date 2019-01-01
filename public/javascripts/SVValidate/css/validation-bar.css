@@ -1,7 +1,7 @@
 /* Put buttons here */
 .validation-button {
     height: 70px;
-    background: white;
+    background-color: white;
     margin-right: 2px;
     border-radius: 5px;
     border-width: 2px;
@@ -26,12 +26,20 @@
     margin-right: 2px;
 }
 
-.validation-button:focus {
-    outline:0;
-}
-
 .validation-button:active {
     outline: none;
     border: none;
+    background-color: lightgrey;
+}
+
+.validation-button:focus {
+    outline: none;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+    background-color: white;
+}
+
+.validation-button:hover {
     background-color: lightgrey;
 }
