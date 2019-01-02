@@ -8,7 +8,7 @@ describe("Tests for the Path module.", function () {
         svl.rootDirectory = '/';
         svl.onboarding = null;
         svl.isOnboarding = function () {return false; };
-        svl.canvasWidth = 720;
+        svl.canvasWidth = 920;
         svl.canvasHeight = 480;
         svl.svImageHeight = 6656;
         svl.svImageWidth = 13312;

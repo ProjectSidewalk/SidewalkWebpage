@@ -40,7 +40,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
-    var canvasWidth = 720;
+    var canvasWidth = 920;
     var canvasHeight = 480;
     var blink_timer = 0;
     var blink_function_identifier = [];

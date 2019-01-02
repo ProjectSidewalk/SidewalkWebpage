@@ -27,7 +27,7 @@ describe("HandAnimation module", function () {
 
     function prepareFixture() {
         return $('  <div id="onboarding-holder" class="Window_StreetView"> \
-                        <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas> \
+                        <canvas id="onboarding-canvas"  class="Window_StreetView" width="920px" height="480px" style="cursor: default, move;"></canvas> \
                         <div id="hand-gesture-holder"></div> \
                         <div id="onboarding-background"></div> \
                         <div id="onboarding-message-holder" class="white-background"> \

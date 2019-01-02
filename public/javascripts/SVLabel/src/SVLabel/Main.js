@@ -24,7 +24,7 @@ function Main (params) {
     svl.isOnboarding = function () {
         return svl.onboarding != null && svl.onboarding.isOnboarding();
     };
-    svl.canvasWidth = 720;
+    svl.canvasWidth = 920;
     svl.canvasHeight = 480;
     svl.svImageHeight = 6656;
     svl.svImageWidth = 13312;
