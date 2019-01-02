@@ -8,7 +8,7 @@
  * @memberof svl
  */
 function Label (svl, pathIn, params) {
-    var self = { className: 'Label' };
+    var self = { className: 'Label', hasBeenRendered: false };
 
     var path, googleMarker;
 
@@ -449,6 +449,73 @@ function Label (svl, pathIn, params) {
     }
 
     /**
+     * From panomarker spec
+     * @param zoom
+     * @returns {number}
+     */
+    function get3dFov (zoom) {
+        console.log("calling 3dfov");
+        console.log(zoom);
+        return zoom <= 2 ?
+            126.5 - zoom * 36.75 :  // linear descent
+            195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
+    }
+
+    /**
+     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
+     * @param canvas_x          X coordinate (pixel) for label
+     * @param canvas_y          Y coordinate (pixel) for label
+     * @param canvas_width      Original canvas width
+     * @param canvas_height     Original canvas height
+     * @param zoom              Original zoom level of label
+     * @param heading           Original heading of label
+     * @param pitch             Original pitch of label
+     * @returns {{heading: number, pitch: number}}
+     */
+    function getPosition(canvas_x, canvas_y, canvas_width, canvas_height, zoom, heading, pitch) {
+        function sgn(x) {
+            return x >= 0 ? 1 : -1;
+        }
+
+        var PI = Math.PI;
+        var cos = Math.cos;
+        var sin = Math.sin;
+        var tan = Math.tan;
+        var sqrt = Math.sqrt;
+        var atan2 = Math.atan2;
+        var asin = Math.asin;
+        var fov = get3dFov(zoom) * PI / 180.0;
+        console.log("fov is");
+        console.log(fov);
+        var width = canvas_width;
+        var height = canvas_height;
+        var h0 = heading * PI / 180.0;
+        var p0 = pitch * PI / 180.0;
+        var f = 0.5 * width / tan(0.5 * fov);
+        var x0 = f * cos(p0) * sin(h0);
+        var y0 = f * cos(p0) * cos(h0);
+        var z0 = f * sin(p0);
+        var du = (canvas_x) - width / 2;
+        var dv = height / 2 - (canvas_y - 5);
+        var ux = sgn(cos(p0)) * cos(h0);
+        var uy = -sgn(cos(p0)) * sin(h0);
+        var uz = 0;
+        var vx = -sin(p0) * sin(h0);
+        var vy = -sin(p0) * cos(h0);
+        var vz = cos(p0);
+        var x = x0 + du * ux + dv * vx;
+        var y = y0 + du * uy + dv * vy;
+        var z = z0 + du * uz + dv * vz;
+        var R = sqrt(x * x + y * y + z * z);
+        var h = atan2(x, y);
+        var p = asin(z / R);
+        return {
+            heading: h * 180.0 / PI,
+            pitch: p * 180.0 / PI
+        };
+    }
+
+    /**
      * This method renders this label on a canvas.
      * @param ctx
      * @param pov
@@ -456,6 +523,7 @@ function Label (svl, pathIn, params) {
      * @returns {self}
      */
     function render (ctx, pov, evaluationMode) {
+        console.log("Render method called");
         if (!evaluationMode) {
             evaluationMode = false;
         }
@@ -472,8 +540,56 @@ function Label (svl, pathIn, params) {
                 }
 
                 // Renders the label image.
-                path.render2(ctx, pov);
 
+                // Old way
+                //path.render2(ctx, pov);
+                /*
+                console.log("Logging ctx object");
+                console.log(ctx);
+                console.log("Logging pov object");
+                console.log(pov);
+                console.log("Logging self");
+                console.log(self);
+                */
+                if (!self.hasBeenRendered) {
+                    console.log("Rendering label");
+                    console.log(self.getProperties());
+                    console.log(self.getPoint());
+                    var label = self.getPoint();
+                    var pos = getPosition(
+                        label.getCanvasX(),
+                        label.getCanvasY(),
+                        self.getProperties().canvasWidth,
+                        self.getProperties().canvasHeight,
+                        self.getProperties().panoramaZoom,
+                        self.getProperties().panoramaHeading,
+                        self.getProperties().panoramaPitch);
+                    console.log("Pos is");
+                    console.log(pos);
+                    console.log({"canvasX":label.getCanvasX(),
+                                 "canvasY":label.getCanvasY(),
+                                 "canvasWidth":self.getProperties().canvasWidth,
+                                 "canvasHeight":self.getProperties().canvasHeight,
+                                 "zoom": self.getProperties().panoramaZoom,
+                                 "heading": self.getProperties().panoramaHeading,
+                                 "pitch": self.getProperties().panoramaPitch
+
+                    });
+                    console.log("Type of container:");
+                    console.log(typeof svl.panoramaContainer);
+                    console.log(svl);
+                    new PanoMarker(
+                        {
+                            container: document.getElementById('pano'),
+                            pano: svl.panorama,
+                            position: {heading: pos.heading, pitch: pos.pitch},
+                            anchor: new google.maps.Point(10, 10),
+                            size: new google.maps.Size(20, 20),
+                            icon: 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
+                            title: 'Click me!'
+                        });
+                    self.hasBeenRendered = true;
+                }
                 // Only render severity label if there's a severity option.
                 if (properties.labelType !== 'NoSidewalk' && properties.labelType !== 'Occlusion') {
                     if (properties.severity == undefined) {
@@ -481,41 +597,6 @@ function Label (svl, pathIn, params) {
                     }
                 }
 
-            } else if (false) {
-                // TAG: OLD IMAGE COORDINATE USED
-                // Render labels that are not in the current panorama but are close enough.
-                // Get the label'svar latLng = toLatLng();
-                var currLat = svl.panorama.location.latLng.lat(),
-                    currLng = svl.panorama.location.latLng.lng();
-                var d = util.math.haversine(currLat, currLng, latLng.lat, latLng.lng);
-                var offset = toOffset();
-
-                if (d < properties.distanceThreshold) {
-                    var dPosition = util.math.latlngInverseOffset(currLat, currLat - latLng.lat, currLng - latLng.lng);
-
-                    var dx = offset.dx - dPosition.dx;
-                    var dy = offset.dy - dPosition.dy;
-                    var dz = offset.dz;
-
-                    var idx = svl.pointCloud.search(svl.panorama.pano, {x: dx, y: dy, z: dz});
-                    var ix = idx / 3 % 512;
-                    var iy = (idx / 3 - ix) / 512;
-                    var imageCoordinateX = ix * 26;
-                    var imageCoordinateY = 3328 - iy * 26;
-                    var canvasPoint = util.panomarker.imageCoordinateToCanvasCoordinate(imageCoordinateX, imageCoordinateY, pov);
-
-                    //console.log(canvasPoint);
-                    ctx.save();
-                    ctx.strokeStyle = 'rgba(255,255,255,1)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(canvasPoint.x, canvasPoint.y, 10, 2 * Math.PI, 0, true);
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.fillStyle = path.getProperty('fillStyle'); // changeAlphaRGBA(properties.fillStyleInnerCircle, 0.5);
-                    ctx.fill();
-                    ctx.restore();
-                }
             }
         }
 
