@@ -319,13 +319,11 @@ object AuditTaskTable {
 
     val userMissionLabels = for {
       (_userMissions, _labels) <- userMissions.leftJoin(labels).on(_._3 === _.missionId)
-      if _labels.deleted === false
     } yield (_userMissions._1, _userMissions._2, _userMissions._3, _userMissions._4, _userMissions._5, _userMissions._6, _userMissions._7, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
 
     val missionsWithLabels = for {
-      (_labelTypes, _userMissionLabels) <- labelTypes.innerJoin(userMissionLabels).on(_.labelTypeId === _._10)
+      (_userMissionLabels, _labelTypes) <- userMissionLabels.leftJoin(labelTypes).on(_._10 === _.labelTypeId)
     } yield (_userMissionLabels._1, _userMissionLabels._2, _userMissionLabels._3, _userMissionLabels._4, _userMissionLabels._5, _userMissionLabels._6, _userMissionLabels._7, _userMissionLabels._8, _userMissionLabels._9, _labelTypes.labelType.?)
-
 
     val missionsWithNeighborhoods = for {
       (_missionsWithLabels, _regionProperties) <- missionsWithLabels.leftJoin(regionProperties).on(_._7 === _.regionId)

@@ -475,10 +475,14 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 labelsLength = grouped[missionId].length;
                 for (j = 0; j < labelsLength; j++) {
                     labelType = grouped[missionId][j]["label_type"];
-                    if (!(labelType in labelCounter)) {
-                        labelType = "Other";
+                    if (labelType === undefined) {
+                        break;
+                    } else {
+                        if (!(labelType in labelCounter)) {
+                            labelType = "Other";
+                        }
+                        labelCounter[labelType] += 1;
                     }
-                    labelCounter[labelType] += 1;
                 }
 
                 var date = new Date(grouped[missionId][0]["mission_end"]);
