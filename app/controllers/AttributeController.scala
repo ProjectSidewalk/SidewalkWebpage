@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -18,7 +19,6 @@ import models.attribute._
 import models.label.LabelTypeTable
 import models.region.RegionTable
 import models.street.StreetEdgePriorityTable
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 
 import collection.immutable.Seq
@@ -240,8 +240,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 
           // Group the labels by the cluster they were put into.
           val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
-          val now = new DateTime(DateTimeZone.UTC)
-          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
           // Add corresponding entry to the user_clustering_session table
           val userSessionId: Int = UserClusteringSessionTable.save(UserClusteringSession(0, userId, timestamp))
@@ -304,8 +303,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 
           // Group the labels by the cluster they were put into.
           val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
-          val now = new DateTime(DateTimeZone.UTC)
-          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
           // Add corresponding entry to the global_clustering_session table
           val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))

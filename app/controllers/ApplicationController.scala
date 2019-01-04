@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -9,10 +10,8 @@ import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import org.joda.time.{DateTime, DateTimeZone}
 import java.util.Calendar
 import play.api.mvc._
-
 
 import scala.concurrent.Future
 import scala.util.Random
@@ -29,8 +28,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def index = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
@@ -140,8 +138,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def about = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_About", timestamp))
@@ -159,8 +156,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def mobile = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
@@ -178,8 +174,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def developer = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
@@ -190,21 +185,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns an FAQ page.
+    * Returns a help  page.
     *
     * @return
     */
-  def faq = UserAwareAction.async { implicit request =>
+  def help = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_FAQ", timestamp))
-        Future.successful(Ok(views.html.faq("Project Sidewalk - FAQ", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Help", timestamp))
+        Future.successful(Ok(views.html.help("Project Sidewalk - Help", Some(user))))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/faq"))
+        Future.successful(Redirect("/anonSignUp?url=/help"))
     }
   }
 
@@ -214,8 +208,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     */
 
   def labelingGuide = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -228,8 +221,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideCurbRamps = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -242,8 +234,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideSurfaceProblems = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -256,8 +247,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideObstacles = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -270,8 +260,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideNoSidewalk = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -284,8 +273,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideOcclusion = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -305,8 +293,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def terms = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Terms", timestamp))
@@ -324,8 +311,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Results", timestamp))
@@ -343,8 +329,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def demo = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))

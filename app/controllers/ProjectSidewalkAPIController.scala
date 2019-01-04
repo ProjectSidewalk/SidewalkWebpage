@@ -8,6 +8,7 @@ import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
 
 import math._
@@ -16,7 +17,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.cache.Cache
 import play.api.Play.current
 import play.api.libs.json._
@@ -35,8 +35,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
     if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = request.remoteAddress
       request.identity match {
         case Some(user) =>
@@ -95,8 +94,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
     if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = request.remoteAddress
       request.identity match {
         case Some(user) =>
@@ -203,8 +201,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
     if (request.remoteAddress != "0:0:0:0:0:0:0:1") {
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = request.remoteAddress
       request.identity match {
         case Some(user) =>
