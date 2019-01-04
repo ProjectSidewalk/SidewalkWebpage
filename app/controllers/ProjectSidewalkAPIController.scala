@@ -8,7 +8,7 @@ import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
-
+import java.time.Instant
 import javax.inject.Inject
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable}
 
@@ -18,7 +18,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.cache.Cache
 import play.api.Play.current
 import play.api.libs.json._
@@ -44,8 +43,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     */
   def apiLogging(remoteAddress: String, identity: Option[User], requestStr: String) = {
     if (remoteAddress != "0:0:0:0:0:0:0:1") {
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val ipAddress: String = remoteAddress
       identity match {
         case Some(user) =>
