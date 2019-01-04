@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 import javax.inject.Inject
@@ -17,7 +18,6 @@ import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
@@ -37,8 +37,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def audit(nextRegion: Option[String], retakeTutorial: Option[Boolean]) = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
@@ -115,8 +114,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
         val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
         WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
@@ -201,8 +199,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             user.get.userId.toString
         }
         val ipAddress: String = request.remoteAddress
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
         val comment = AuditTaskComment(0, submission.auditTaskId, submission.missionId, submission.streetEdgeId, userId,
                                        ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
@@ -233,8 +230,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         val issue = StreetEdgeIssue(0, submission.streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
