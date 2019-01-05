@@ -9,6 +9,8 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.{RoleTable, UserRoleTable}
+import models.label.{LabelTable, LabelTypeTable}
+import models.region.RegionPropertyTable
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -18,6 +20,10 @@ import scala.slick.jdbc.GetResult
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
                            distanceMeters: Option[Float], labelsValidated: Option[Int])
+
+case class AuditMission(userId: String, username: String, missionId: Int, completed: Boolean, missionStart: Timestamp,
+                        missionEnd: Timestamp, neighborhood: Option[String], labelId: Option[Int], temporaryLabelId: Option[Int],
+                        labelType: Option[String])
 
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
                    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
@@ -80,6 +86,10 @@ object MissionTable {
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
+
+  val labels = TableQuery[LabelTable]
+  val labelTypes = TableQuery[LabelTypeTable]
+  val regionProperties = TableQuery[RegionPropertyTable]
 
   // Distances for first few missions: 500ft, 500ft, 1000ft, 1000ft, then 1/4 mile for all remaining. This is just a
   // temporary setup for that sake of testing the new missions infrastructure.
@@ -213,6 +223,38 @@ object MissionTable {
     )
 
     regionalMissions.sortBy(rm => (rm.regionId, rm.missionId))
+  }
+
+  /**
+    * Return a list of missions for a specific user
+    *
+    * @param userId User id
+    * @return
+    */
+  def selectMissions(userId: UUID): List[AuditMission] = db.withSession { implicit session =>
+    // gets all the missions that correspond to the user
+    val userMissions = for {
+      (_users, _missions) <- users.innerJoin(missions).on(_.userId === _.userId)
+      if _users.userId === userId.toString && _missions.skipped === false
+    } yield (_users.userId, _users.username, _missions.missionId, _missions.completed, _missions.missionStart, _missions.missionEnd, _missions.regionId)
+
+    // gets all the labels for all the missions but maintains missions that have no labels
+    val userMissionLabels = for {
+      (_userMissions, _labels) <- userMissions.leftJoin(labels).on(_._3 === _.missionId)
+    } yield (_userMissions._1, _userMissions._2, _userMissions._3, _userMissions._4, _userMissions._5, _userMissions._6, _userMissions._7, _labels.labelId.?, _labels.temporaryLabelId, _labels.labelTypeId.?)
+
+    // changes the id of each label to a string representing its label type
+    val missionsWithLabels = for {
+      (_userMissionLabels, _labelTypes) <- userMissionLabels.leftJoin(labelTypes).on(_._10 === _.labelTypeId)
+    } yield (_userMissionLabels._1, _userMissionLabels._2, _userMissionLabels._3, _userMissionLabels._4, _userMissionLabels._5, _userMissionLabels._6, _userMissionLabels._7, _userMissionLabels._8, _userMissionLabels._9, _labelTypes.labelType.?)
+
+    // changes the region id to the name of the neighborhood
+    val missionsWithNeighborhoods = for {
+      (_missionsWithLabels, _regionProperties) <- missionsWithLabels.leftJoin(regionProperties).on(_._7 === _.regionId)
+    } yield (_missionsWithLabels._1, _missionsWithLabels._2, _missionsWithLabels._3, _missionsWithLabels._4, _missionsWithLabels._5, _missionsWithLabels._6, _regionProperties.value.?, _missionsWithLabels._8, _missionsWithLabels._9, _missionsWithLabels._10)
+
+    // formats the finalized JSON object using the format in the MissionFormat class
+    missionsWithNeighborhoods.list.map(x => AuditMission.tupled(x))
   }
 
   /**

@@ -2,7 +2,7 @@ package formats.json
 
 import java.sql.Timestamp
 
-import models.audit.AuditTaskTable.AuditMission
+import models.mission.AuditMission
 import play.api.libs.json._
 
 import play.api.libs.functional.syntax._

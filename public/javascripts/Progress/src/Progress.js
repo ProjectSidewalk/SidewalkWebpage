@@ -421,8 +421,14 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         });
     }
 
-    function initializeSubmittedTasks(map) {
-        $.getJSON("/contribution/missions", function (data) {
+    /**
+     * This method appends all the missions a user has to the task
+     * contribution table in the user dashboard
+     *
+     * @param map
+     */
+    function initializeSubmittedMissions(map) {
+        $.getJSON("/getMissions", function (data) {
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
 
@@ -435,7 +441,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             ];
 
 
-
+            // sorts all labels the user has completed by mission
             var grouped = _.groupBy(_data.tasks, function (o) { return o.mission_id });
             var missionId;
             var missionTaskIds = Object.keys(grouped);
@@ -447,6 +453,8 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             var j;
             var labelsLength;
             var labelType;
+            // sorts missions by putting completed missions first then
+            // uncompleted missions, each in chronological order
             missionTaskIds.sort(function (id1, id2) {
                 var timestamp1 = grouped[id1][0].mission_end;
                 var timestamp2 = grouped[id2][0].mission_end;
@@ -469,12 +477,15 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 }
             });
 
+            // counts the type of label for each mission to display the
+            // numbers in the missions table
             for (i = missionTaskIdsLength - 1; i >= 0; i--) {
                 labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
                 missionId = missionTaskIds[i];
                 labelsLength = grouped[missionId].length;
                 for (j = 0; j < labelsLength; j++) {
                     labelType = grouped[missionId][j]["label_type"];
+                    // missions with no labels have an undefined labelType
                     if (labelType === undefined) {
                         break;
                     } else {
@@ -492,6 +503,8 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
 
                 var neighborhood;
+                // neighborhood name is tutorial if there is no neighborhood
+                // assigned for that mission
                 if (grouped[missionId][0]["neighborhood"]) {
                     neighborhood = grouped[missionId][0]["neighborhood"];
                 } else {
@@ -499,6 +512,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 }
 
                 var dateString;
+                // Date is "In Progress" if the mission has not yet been completed
                 if (grouped[missionId][0]["completed"]) {
                     dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
                 } else {
@@ -507,6 +521,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
                 missionNumber++;
 
+                // adds all the mission information to a row in the table
                 tableRows += "<tr>" +
                     "<td class='col-xxs-1'>" + missionNumber + "</td>" +
                     "<td class='col-date'>" + dateString + "</td>" +
@@ -533,7 +548,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);
         initializeAuditCountChart(c3, map);
-        initializeSubmittedTasks(map);
+        initializeSubmittedMissions(map);
     });
 
     self.data = _data;

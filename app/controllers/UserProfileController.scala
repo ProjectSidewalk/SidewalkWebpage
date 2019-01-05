@@ -9,6 +9,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.MissionFormat._
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.mission.MissionTable
 import models.label.LabelTable
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
@@ -115,7 +116,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasksWithLabels = AuditTaskTable.selectMissions(user.userId).map(x => Json.toJson(x))
+        val tasksWithLabels = MissionTable.selectMissions(user.userId).map(x => Json.toJson(x))
         Future.successful(Ok(JsArray(tasksWithLabels)))
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",
