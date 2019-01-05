@@ -62,6 +62,23 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                         backdrop: 'static',
                         keyboard: false
                     });
+
+                    //we will log in the webpage activity table if the survey has been shown
+                    var activity = "SurveyShown";
+                    var url = "/userapi/logWebpageActivity";
+                    var async = true;
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify(activity),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
                 }
             },
             error: function (xhr, ajaxOptions, thrownError) {
