@@ -9,7 +9,17 @@ DROP TABLE sidewalk_node;
 DROP TABLE street_edge_street_node;
 DROP TABLE street_node;
 
+CREATE TABLE osm_way_street_edge (
+  osm_way_street_edge_id SERIAL NOT NULL,
+  osm_way_id INT NOT NULL,
+  street_edge_id INT NOT NULL,
+  FOREIGN KEY (street_edge_id) REFERENCES street_edge(street_edge_id),
+  PRIMARY KEY (osm_way_street_edge_id)
+);
+
 # --- !Downs
+DROP TABLE osm_way_street_edge;
+
 CREATE TABLE street_node (
   street_node_id integer NOT NULL,
   geom public.geometry(Point,4326) NOT NULL,
