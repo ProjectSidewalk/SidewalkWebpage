@@ -77,6 +77,10 @@ describe("StatusFieldMissionProgressBar module", function () {
 
             statusFieldMissionProgressBar.setCompletionRate(0.51432423);
             expect($completionRate.text()).toBe("51% complete");
+
+            statusFieldMissionProgressBar.setCompletionRate(0.99632423);
+            expect($completionRate.text()).toBe("99% complete");
+
         });
     });
 

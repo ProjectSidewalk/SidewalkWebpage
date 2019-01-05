@@ -244,6 +244,7 @@ function ContextMenu (uiContextMenu) {
                         label.setProperty('tagIds', labelTags);
                     }
                 })
+                e.target.blur();
             }
         });
     }
