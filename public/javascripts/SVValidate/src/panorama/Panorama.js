@@ -13,7 +13,8 @@ function Panorama (labelList) {
     var properties = {
         progress: 0,
         panoId: undefined,
-        prevPanoId: undefined
+        prevPanoId: undefined,
+        validationTimestamp: new Date().getTime()
     };
     var panorama = undefined;
     // Determined manually by matching appearance of labels on the audit page and appearance of

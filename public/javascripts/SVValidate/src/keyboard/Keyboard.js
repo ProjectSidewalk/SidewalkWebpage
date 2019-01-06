@@ -1,6 +1,6 @@
 function Keyboard(menuUI) {
     var self = this;
-    var lastShiftKeyUpTimestamp = undefined;
+    var lastShiftKeyDownTimestamp = undefined;
     var status = {
         disableKeyboard: false,
         keyPressed: false,
@@ -15,6 +15,27 @@ function Keyboard(menuUI) {
         status.disableKeyboard = false;
     }
 
+    /**
+     * Validate a single label using keyboard shortcuts.
+     * @param button    jQuery element for the button clicked.
+     * @param action    {String} Validation action. Must be either agree, disagree, or not sure.
+     */
+    function validateLabel (button, action) {
+        // Want at least 800ms in-between to allow GSV Panorama to load. (Value determined
+        // experimentally).
+
+        // It does not look like GSV StreetView supports any listeners that will check when the
+        // panorama is fully loaded yet.
+        var timestamp = new Date().getTime();
+        if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
+            button.toggleClass("validate");
+            svv.tracker.push("ValidationKeyboardShortcut_" + action);
+            svv.panorama.getCurrentLabel().validate(action);
+            svv.panorama.setProperty('validationTimestamp', timestamp);
+            status.keyPressed = true;
+        }
+    }
+
     this._documentKeyDown = function (e) {
         if (!status.disableKeyboard && !status.keyPressed) {
             status.shiftDown = e.shiftKey;
@@ -23,33 +44,30 @@ function Keyboard(menuUI) {
                 case 16:
                     // Store the timestamp here so that we can check if the z-up event is
                     // within the buffer range
-                    lastShiftKeyUpTimestamp = e.timeStamp;
+                    lastShiftKeyDownTimestamp = e.timeStamp;
                     break;
                 // "a" key
                 case 65:
-                    menuUI.agreeButton.css("background-color", "lightgrey");
-                    svv.tracker.push("ValidationKeyboardShortcut_Agree");
-                    svv.panorama.getCurrentLabel().validate("Agree");
-                    status.keyPressed = true;
+                    validateLabel(menuUI.agreeButton, "Agree");
+                    menuUI.disagreeButton.removeClass("validate");
+                    menuUI.notSureButton.removeClass("validate");
                     break;
                 // "d" key
                 case 68:
-                    menuUI.disagreeButton.css("background-color", "lightgrey");
-                    svv.tracker.push("ValidationKeyboardShortcut_Disagree");
-                    svv.panorama.getCurrentLabel().validate("Disagree");
-                    status.keyPressed = true;
+                    validateLabel(menuUI.disagreeButton, "Disagree");
+                    menuUI.agreeButton.removeClass("validate");
+                    menuUI.notSureButton.removeClass("validate");
                     break;
                 // "n" key
                 case 78:
-                    menuUI.notSureButton.css("background-color", "lightgrey");
-                    svv.tracker.push("ValidationKeyboardShortcut_NotSure");
-                    svv.panorama.getCurrentLabel().validate("NotSure");
-                    status.keyPressed = true;
+                    validateLabel(menuUI.notSureButton, "NotSure");
+                    menuUI.agreeButton.removeClass("validate");
+                    menuUI.disagreeButton.removeClass("validate");
                     break;
                 // "z" key
                 case 90:
                     // Zoom out when shift + z keys are pressed.
-                    if (status.shiftDown || (e.timeStamp - lastShiftKeyUpTimestamp) < 100) {
+                    if (status.shiftDown || (e.timeStamp - lastShiftKeyDownTimestamp) < 100) {
                         // Zoom out
                         svv.zoomControl.zoomOut();
                         svv.tracker.push("KeyboardShortcut_ZoomOut", {
@@ -72,17 +90,17 @@ function Keyboard(menuUI) {
             switch (e.keyCode) {
                 // "a" key
                 case 65:
-                    menuUI.agreeButton.css("background-color", "white");
+                    menuUI.agreeButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
                 // "d" key
                 case 68:
-                    menuUI.disagreeButton.css("background-color", "white");
+                    menuUI.disagreeButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
                 // "n" key
                 case 78:
-                    menuUI.notSureButton.css("background-color", "white");
+                    menuUI.notSureButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
             }

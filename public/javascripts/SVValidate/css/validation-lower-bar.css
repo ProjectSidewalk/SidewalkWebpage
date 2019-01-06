@@ -21,6 +21,12 @@
     margin-right: 0px;
 }
 
+.validate {
+    outline: none;
+    border: none;
+    background-color: lightgrey;
+}
+
 .validation-status-icon {
     height: 20px;
     margin-right: 2px;
@@ -34,10 +40,6 @@
 
 .validation-button:focus {
     outline: none;
-    border-radius: 5px;
-    border-width: 2px;
-    border-color: lightgrey;
-    background-color: white;
 }
 
 .validation-button:hover {
