@@ -8,6 +8,7 @@ DROP TABLE sidewalk_edge;
 DROP TABLE sidewalk_node;
 DROP TABLE street_edge_street_node;
 DROP TABLE street_node;
+DROP TABLE street_edge_parent_edge;
 
 CREATE TABLE osm_way_street_edge (
   osm_way_street_edge_id SERIAL NOT NULL,
@@ -19,6 +20,15 @@ CREATE TABLE osm_way_street_edge (
 
 # --- !Downs
 DROP TABLE osm_way_street_edge;
+
+CREATE TABLE street_edge_parent_edge (
+  street_edge_parent_edge_id SERIAL NOT NULL,
+  street_edge_id INT NOT NULL,
+  parent_edge_id INT NOT NULL,
+  PRIMARY KEY (street_edge_parent_edge_id),
+  FOREIGN KEY (street_edge_id) REFERENCES street_edge(street_edge_id),
+  FOREIGN KEY (parent_edge_id) REFERENCES street_edge(street_edge_id)
+);
 
 CREATE TABLE street_node (
   street_node_id integer NOT NULL,
