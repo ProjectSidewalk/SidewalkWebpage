@@ -18,17 +18,25 @@ function LabelContainer() {
 
     /**
      * Pushes a label to the list of current labels.
-     * @param labelMetadata     Label metadata (properties field)
+     * @param labelMetadata     Label metadata (validationProperties object)
      */
     function push(labelMetadata) {
+        console.log("[LabelContainer.js] Pushing validation label data");
         var data = {
+            canvas_height: svv.canvasHeight,
+            canvas_width: svv.canvasWidth,
+            canvas_x: labelMetadata.canvasX,
+            canvas_y: labelMetadata.canvasY,
             end_timestamp: labelMetadata.endTimestamp,
+            heading: labelMetadata.heading,
             label_id: labelMetadata.labelId,
             mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
+            pitch: labelMetadata.pitch,
             start_timestamp: labelMetadata.startTimestamp,
-            validation_result: labelMetadata.validationResult
+            validation_result: labelMetadata.validationResult,
+            zoom: labelMetadata.zoom
         };
-
+        console.log(data);
         currentLabels.push(data);
     }
 

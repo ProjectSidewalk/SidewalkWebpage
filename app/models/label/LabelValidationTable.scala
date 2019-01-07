@@ -14,6 +14,13 @@ case class LabelValidation(validationId: Int,
                            labelValidationId: Int,
                            userId: String,
                            missionId: Int,
+                           canvasX: Int,
+                           canvasY: Int,
+                           heading: Float,
+                           pitch: Float,
+                           zoom: Float,
+                           canvasHeight: Int,
+                           canvasWidth: Int,
                            startTimestamp: java.sql.Timestamp,
                            endTimestamp: java.sql.Timestamp)
 
@@ -29,11 +36,19 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def validationResult = column[Int]("validation_result", O.NotNull)
   def userId = column[String]("user_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
+  def canvasX = column[Int]("canvas_x", O.NotNull)
+  def canvasY = column[Int]("canvas_y", O.NotNull)
+  def heading = column[Float]("heading", O.NotNull)
+  def pitch = column[Float]("pitch", O.NotNull)
+  def zoom = column[Float]("zoom", O.NotNull)
+  def canvasHeight = column[Int]("canvas_height", O.NotNull)
+  def canvasWidth = column[Int]("canvas_width", O.NotNull)
   def startTimestamp = column[java.sql.Timestamp]("start_timestamp", O.NotNull)
   def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
 
-  def * = (labelValidationId, labelId, validationResult, userId, missionId, startTimestamp,
-    endTimestamp) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
+  def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
+    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp) <>
+    ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 }
 
 /**

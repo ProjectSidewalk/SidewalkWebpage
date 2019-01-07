@@ -8,6 +8,9 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
+    svv.canvasHeight = 410;
+    svv.canvasWidth = 720;
+
     function _initUI() {
         svv.ui = {};
 

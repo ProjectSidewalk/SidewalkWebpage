@@ -57,8 +57,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             user match {
               case Some(user) =>
                 LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
-                  user.userId.toString, label.missionId, new Timestamp(label.startTimestamp),
-                  new Timestamp(label.endTimestamp)))
+                  user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
+                  label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
               case None =>
                 Logger.warn("User without user_id validated a label, but every user should have a user_id.")
             }

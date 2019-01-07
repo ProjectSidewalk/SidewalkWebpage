@@ -234,9 +234,7 @@ function Panorama (labelList) {
      */
     function renderLabel() {
         var url = currentLabel.getIconUrl();
-        var pos = svv.util.properties.panorama.getPosition(currentLabel.getProperty('canvasX'), currentLabel.getProperty('canvasY'),
-            currentLabel.getProperty('canvasWidth'), currentLabel.getProperty('canvasHeight'),
-            currentLabel.getProperty('zoom'), currentLabel.getProperty('heading'), currentLabel.getProperty('pitch'));
+        var pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
             self.labelMarker = new PanoMarker({
@@ -244,8 +242,8 @@ function Panorama (labelList) {
                 pano: panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
                 icon: url,
-                size: new google.maps.Size(20, 20),
-                anchor: new google.maps.Point(10, 10)
+                size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
+                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius())
             });
         } else {
             self.labelMarker.setPano(panorama, panoCanvas);
@@ -337,11 +335,11 @@ function Panorama (labelList) {
      */
     function setLabel (label) {
         currentLabel = label;
-        currentLabel.setProperty('startTimestamp', new Date().getTime());
-        svv.statusField.updateLabelText(currentLabel.getProperty('labelType'));
-        console.log("Setting panorama to be: " + label.getProperty('gsvPanoramaId'));
-        setPanorama(label.getProperty('gsvPanoramaId'), label.getProperty('heading'),
-            label.getProperty('pitch'), label.getProperty('zoom'));
+        currentLabel.setValidationProperty('startTimestamp', new Date().getTime());
+        svv.statusField.updateLabelText(currentLabel.getOriginalProperty('labelType'));
+        console.log("Setting panorama to be: " + label.getOriginalProperty('gsvPanoramaId'));
+        setPanorama(label.getOriginalProperty('gsvPanoramaId'), label.getOriginalProperty('heading'),
+            label.getOriginalProperty('pitch'), label.getOriginalProperty('zoom'));
         renderLabel();
     }
 

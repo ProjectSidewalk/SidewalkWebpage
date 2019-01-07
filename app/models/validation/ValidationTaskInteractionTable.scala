@@ -18,7 +18,7 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
                                      lng: Option[Float],
                                      heading: Option[Float],
                                      pitch: Option[Float],
-                                     zoom: Option[Int],
+                                     zoom: Option[Float],
                                      note: Option[String],
                                      timestamp: java.sql.Timestamp)
 
@@ -31,7 +31,7 @@ class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[Valida
   def lng = column[Option[Float]]("lng", O.Nullable)
   def heading = column[Option[Float]]("heading", O.Nullable)
   def pitch = column[Option[Float]]("pitch", O.Nullable)
-  def zoom = column[Option[Int]]("zoom", O.Nullable)
+  def zoom = column[Option[Float]]("zoom", O.Nullable)
   def note = column[Option[String]]("note", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
 

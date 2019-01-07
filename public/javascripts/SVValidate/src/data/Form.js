@@ -25,10 +25,6 @@ function Form(url) {
         return data;
     }
 
-    function _isValidationButtonClick(action) {
-        return action.indexOf("ValidationButtonClick") >= 0;
-    }
-
     /**
      * Submits all front-end data to the backend.
      * @param data  Data object (containing Interactions, Missions, etc...)

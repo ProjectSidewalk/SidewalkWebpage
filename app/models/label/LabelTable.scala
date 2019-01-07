@@ -479,6 +479,7 @@ object LabelTable {
         |WHERE lp.label_id = lb.label_id
         |      AND lt.label_type_id = lb.label_type_id
         |      AND lb.deleted = false
+        |      AND lb.tutorial = false
         |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
         |      AND gd.expired = false
         |OFFSET floor(random() *
@@ -486,6 +487,7 @@ object LabelTable {
         |          SELECT COUNT(*)
         |          FROM sidewalk.label
         |          WHERE sidewalk.label.deleted = false
+        |              AND sidewalk.label.tutorial = false
         |      )
         |)
         |LIMIT ?""".stripMargin
