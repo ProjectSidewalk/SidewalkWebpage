@@ -45,6 +45,11 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         }
 
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
+        //this will log when a user submits a survey response
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "SurveySubmit", timestamp))
+
         val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
 
         val allSurveyQuestions = SurveyQuestionTable.listAll
@@ -99,15 +104,15 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val userRole: String = UserRoleTable.getRole(userId)
 
-        // NOTE the number of missions before survey is actually 3, but this check is done before the next mission is
-        // updated on the back-end.
+        // The survey should show after the user completes their first non-tutorial mission. NOTE the number of missions
+        // before survey is actually 2, but this check is done before the next mission is updated on the back-end.
         val numMissionsBeforeSurvey = 1
-        val userRoleForSurvey = "Turker"
+        val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey)
 
-        val displaySurvey = userRole == userRoleForSurvey && MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey
+        //maps displaymodal to true in the future
         Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
+
 
       case None => Future.successful(Redirect(s"/anonSignUp?url=/survey/display"))
     }
