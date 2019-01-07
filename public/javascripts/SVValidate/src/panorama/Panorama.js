@@ -17,6 +17,7 @@ function Panorama (labelList) {
         validationTimestamp: new Date().getTime()
     };
     var panorama = undefined;
+
     // Determined manually by matching appearance of labels on the audit page and appearance of
     // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
     var zoomLevel = {
@@ -288,10 +289,12 @@ function Panorama (labelList) {
     function setPanorama (panoId, heading, pitch, zoom) {
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
+
         if (init) {
             panorama.setPano(panoId);
             panorama.set('pov', {heading: heading, pitch: pitch});
             panorama.set('zoom', zoomLevel[zoom]);
+            _addListeners();
             init = false;
         } else {
 
@@ -300,6 +303,7 @@ function Panorama (labelList) {
             // load in time.
             function changePano() {
                 _createNewPanorama();
+                _addListeners();
                 panorama.setPano(panoId);
                 panorama.set('pov', {heading: heading, pitch: pitch});
                 panorama.set('zoom', zoomLevel[zoom]);
@@ -307,7 +311,6 @@ function Panorama (labelList) {
             }
             setTimeout(changePano, 300);
         }
-        _addListeners();
         return this;
     }
 
