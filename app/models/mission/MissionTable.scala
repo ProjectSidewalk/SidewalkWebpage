@@ -236,7 +236,9 @@ object MissionTable {
     val userMissions = for {
       _users <- users if _users.userId === userId.toString
       _missions <- missions if _missions.skipped === false && _missions.userId === _users.userId
-      _missionTypes <- missionTypes if _missionTypes.missionType === "audit" || _missionTypes.missionType === "auditOnboarding"
+      _missionTypes <- missionTypes if _missions.missionTypeId === _missionTypes.missionTypeId &&
+                                       _missionTypes.missionType === "audit" ||
+                                       _missionTypes.missionType === "auditOnboarding"
     } yield (_users.userId, _users.username, _missions.missionId, _missions.completed, _missions.missionStart, _missions.missionEnd, _missions.regionId)
 
     // gets all the labels for all the missions but maintains missions that have no labels
