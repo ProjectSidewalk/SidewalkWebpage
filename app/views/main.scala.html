@@ -92,7 +92,7 @@
                 <!-- Back to top<br>-->
                 <a href='@routes.ApplicationController.about' id="sidewalk-about-link">About Us</a> <br/>
                 <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
-                <a href='@routes.ApplicationController.faq' id="sidewalk-faq-link">FAQ</a> <br/>
+                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
                 <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
             </div>
             <div class="col-sm-4 footerlink">
@@ -196,7 +196,7 @@
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
-            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/faq|...>"
+            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/help|...>"
             $('#info-footer').on('click','a', function(e){
                 var currentRoute = window.location.pathname;
                 var link = e.currentTarget.id.split("-")[0];

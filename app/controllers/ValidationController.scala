@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -15,7 +16,6 @@ import models.mission.Mission
 import models.mission.MissionTable
 import models.validation._
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
@@ -31,8 +31,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * @return
     */
   def validate = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -87,8 +86,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
             user.get.userId.toString
         }
         val ipAddress: String = request.remoteAddress
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
         val comment = ValidationTaskComment(0, submission.missionId, submission.labelId, userId,
           ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,

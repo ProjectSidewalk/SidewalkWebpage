@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 import javax.inject.Inject
@@ -18,7 +19,6 @@ import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.StreetEdgePriorityTable
 import models.user.{User, UserCurrentRegionTable}
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -69,14 +69,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     if (auditTask.auditTaskId.isDefined) {
       // Update the existing audit task row
       val id = auditTask.auditTaskId.get
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       AuditTaskTable.updateTaskEnd(id, timestamp)
       id
     } else {
       // Insert audit task
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val auditTaskObj = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
           Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false)
@@ -297,8 +295,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           for (panorama <- data.gsvPanoramas) {
             // Check the presence of the data
             if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
+              val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
               val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "", false, Some(timestamp))
               GSVDataTable.save(gsvData)
 
