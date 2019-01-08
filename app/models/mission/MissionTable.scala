@@ -234,9 +234,10 @@ object MissionTable {
   def selectMissions(userId: UUID): List[AuditMission] = db.withSession { implicit session =>
     // gets all the missions that correspond to the user
     val userMissions = for {
-      (_users, _missions) <- users.innerJoin(missions).on(_.userId === _.userId)
+      ((_users, _missions), _missionTypes) <- users.innerJoin(missions).on(_.userId === _.userId)
+        .innerJoin(missionTypes).on(_._2.missionTypeId === _.missionTypeId)
       if _users.userId === userId.toString && _missions.skipped === false &&
-         _missions.missionTypeId === 1 || _missions.missionTypeId === 2
+        (_missionTypes.missionType === "audit" || _missionTypes.missionType === "auditOnboarding")
     } yield (_users.userId, _users.username, _missions.missionId, _missions.completed, _missions.missionStart, _missions.missionEnd, _missions.regionId)
 
     // gets all the labels for all the missions but maintains missions that have no labels
