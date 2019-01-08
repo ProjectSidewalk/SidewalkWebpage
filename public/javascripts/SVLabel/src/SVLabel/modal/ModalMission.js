@@ -116,6 +116,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 uiModalMission.closeButton.css('width', '40%');
                 uiModalMission.closeButton.css('margin-right', '30%');
                 uiModalMission.closeButton.css('margin-left', '30%');
+                uiModalMission.closeButton.css('margin-top', '30px');
             } else if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) { // First mission
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
@@ -127,6 +128,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 uiModalMission.closeButton.css('width', '');
                 uiModalMission.closeButton.css('margin-right', '');
                 uiModalMission.closeButton.css('margin-left', '');
+                uiModalMission.closeButton.css('margin-top', '');
             }
 
             distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
