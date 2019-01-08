@@ -73,7 +73,7 @@ ALTER TABLE gsv_data
 DROP TABLE label_validation;
 DROP TABLE validation_options;
 DROP TABLE validation_task_interaction;
-DROP TABLE validation_task_comment
+DROP TABLE validation_task_comment;
 
 ALTER TABLE gsv_data
   DROP COLUMN expired,
