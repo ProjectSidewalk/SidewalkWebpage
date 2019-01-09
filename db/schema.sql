@@ -75,21 +75,6 @@ CREATE TABLE sidewalk."sidewalk_user" (
 ALTER TABLE sidewalk."sidewalk_user" OWNER TO sidewalk;
 
 --
--- Name: accessibility_feature; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.accessibility_feature (
-    geom sidewalk.geometry(Point,4326),
-    accessibility_feature_id integer NOT NULL,
-    label_type_id integer,
-    x double precision,
-    y double precision
-);
-
-
-ALTER TABLE sidewalk.accessibility_feature OWNER TO sidewalk;
-
---
 -- Name: amt_assignment; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -412,18 +397,6 @@ CREATE TABLE sidewalk.gsv_model (
 ALTER TABLE sidewalk.gsv_model OWNER TO sidewalk;
 
 --
--- Name: gsv_onboarding_pano; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.gsv_onboarding_pano (
-    gsv_panorama_id text NOT NULL,
-    has_labels boolean NOT NULL
-);
-
-
-ALTER TABLE sidewalk.gsv_onboarding_pano OWNER TO sidewalk;
-
---
 -- Name: gsv_projection; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -666,41 +639,6 @@ ALTER TABLE sidewalk.mission_mission_id_seq OWNER TO sidewalk;
 --
 
 ALTER SEQUENCE sidewalk.mission_mission_id_seq OWNED BY sidewalk.mission.mission_id;
-
-
---
--- Name: mission_user; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.mission_user (
-    mission_user_id integer NOT NULL,
-    mission_id integer NOT NULL,
-    user_id text NOT NULL,
-    paid boolean DEFAULT false NOT NULL
-);
-
-
-ALTER TABLE sidewalk.mission_user OWNER TO sidewalk;
-
---
--- Name: mission_user_mission_user_id_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
---
-
-CREATE SEQUENCE sidewalk.mission_user_mission_user_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE sidewalk.mission_user_mission_user_id_seq OWNER TO sidewalk;
-
---
--- Name: mission_user_mission_user_id_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.mission_user_mission_user_id_seq OWNED BY sidewalk.mission_user.mission_user_id;
 
 
 --
@@ -1941,19 +1879,6 @@ CREATE TABLE sidewalk.sidewalk_edge (
 ALTER TABLE sidewalk.sidewalk_edge OWNER TO sidewalk;
 
 --
--- Name: sidewalk_edge_accessibility_feature; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.sidewalk_edge_accessibility_feature (
-    sidewalk_edge_accessibility_feature_id integer NOT NULL,
-    sidewalk_edge_id integer,
-    accessibility_feature_id integer
-);
-
-
-ALTER TABLE sidewalk.sidewalk_edge_accessibility_feature OWNER TO sidewalk;
-
---
 -- Name: sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -1966,13 +1891,6 @@ CREATE SEQUENCE sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibili
 
 
 ALTER TABLE sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq OWNER TO sidewalk;
-
---
--- Name: sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq OWNED BY sidewalk.sidewalk_edge_accessibility_feature.sidewalk_edge_accessibility_feature_id;
-
 
 --
 -- Name: sidewalk_edge_parent_edge; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
@@ -2097,41 +2015,6 @@ CREATE TABLE sidewalk.street_edge (
 
 
 ALTER TABLE sidewalk.street_edge OWNER TO sidewalk;
-
---
--- Name: street_edge_assignment_count; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE TABLE sidewalk.street_edge_assignment_count (
-    street_edge_assignment_count_id integer NOT NULL,
-    street_edge_id integer NOT NULL,
-    assignment_count integer DEFAULT 0 NOT NULL,
-    completion_count integer DEFAULT 0 NOT NULL
-);
-
-
-ALTER TABLE sidewalk.street_edge_assignment_count OWNER TO sidewalk;
-
---
--- Name: street_edge_assignment_count_street_edge_assignment_count_i_seq; Type: SEQUENCE; Schema: sidewalk; Owner: sidewalk
---
-
-CREATE SEQUENCE sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq OWNER TO sidewalk;
-
---
--- Name: street_edge_assignment_count_street_edge_assignment_count_i_seq; Type: SEQUENCE OWNED BY; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER SEQUENCE sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq OWNED BY sidewalk.street_edge_assignment_count.street_edge_assignment_count_id;
-
 
 --
 -- Name: street_edge_issue; Type: TABLE; Schema: sidewalk; Owner: sidewalk; Tablespace:
@@ -2905,13 +2788,6 @@ ALTER TABLE ONLY sidewalk.mission ALTER COLUMN mission_id SET DEFAULT nextval('s
 
 
 --
--- Name: mission_user_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.mission_user ALTER COLUMN mission_user_id SET DEFAULT nextval('sidewalk.mission_user_mission_user_id_seq'::regclass);
-
-
---
 -- Name: problem_description_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -2954,13 +2830,6 @@ ALTER TABLE ONLY sidewalk.sidewalk_edge ALTER COLUMN sidewalk_edge_id SET DEFAUL
 
 
 --
--- Name: sidewalk_edge_accessibility_feature_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature ALTER COLUMN sidewalk_edge_accessibility_feature_id SET DEFAULT nextval('sidewalk.sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq'::regclass);
-
-
---
 -- Name: id_0; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -2972,13 +2841,6 @@ ALTER TABLE ONLY sidewalk.sidewalk_node ALTER COLUMN id_0 SET DEFAULT nextval('s
 --
 
 ALTER TABLE ONLY sidewalk.street_edge ALTER COLUMN street_edge_id SET DEFAULT nextval('sidewalk.street_edge_street_edge_id_seq'::regclass);
-
-
---
--- Name: street_edge_assignment_count_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.street_edge_assignment_count ALTER COLUMN street_edge_assignment_count_id SET DEFAULT nextval('sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq'::regclass);
 
 
 --
@@ -3060,14 +2922,6 @@ ALTER TABLE ONLY sidewalk.webpage_activity ALTER COLUMN webpage_activity_id SET 
 
 
 --
--- Name: accessibility_features_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.accessibility_feature
-    ADD CONSTRAINT accessibility_features_pkey PRIMARY KEY (accessibility_feature_id);
-
-
---
 -- Name: amt_assignment_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -3140,14 +2994,6 @@ ALTER TABLE ONLY sidewalk.gsv_model
 
 
 --
--- Name: gsv_onboarding_pano_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.gsv_onboarding_pano
-    ADD CONSTRAINT gsv_onboarding_pano_pkey PRIMARY KEY (gsv_panorama_id);
-
-
---
 -- Name: gsv_panorama_data_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -3201,14 +3047,6 @@ ALTER TABLE ONLY sidewalk.login_info
 
 ALTER TABLE ONLY sidewalk.mission
     ADD CONSTRAINT mission_pkey PRIMARY KEY (mission_id);
-
-
---
--- Name: mission_user_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.mission_user
-    ADD CONSTRAINT mission_user_pkey PRIMARY KEY (mission_user_id);
 
 
 --
@@ -3284,14 +3122,6 @@ ALTER TABLE ONLY sidewalk.role
 
 
 --
--- Name: sidewalk_edge_accessibility_feature_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature
-    ADD CONSTRAINT sidewalk_edge_accessibility_feature_pkey PRIMARY KEY (sidewalk_edge_accessibility_feature_id);
-
-
---
 -- Name: sidewalk_edges_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -3305,14 +3135,6 @@ ALTER TABLE ONLY sidewalk.sidewalk_edge
 
 ALTER TABLE ONLY sidewalk.sidewalk_node
     ADD CONSTRAINT sidewalk_nodes_pkey PRIMARY KEY (id_0);
-
-
---
--- Name: street_edge_assignment_count_pkey; Type: CONSTRAINT; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-ALTER TABLE ONLY sidewalk.street_edge_assignment_count
-    ADD CONSTRAINT street_edge_assignment_count_pkey PRIMARY KEY (street_edge_assignment_count_id);
 
 
 --
@@ -3573,20 +3395,6 @@ CREATE INDEX mission_region_id_idx ON sidewalk.mission USING btree (region_id);
 
 
 --
--- Name: mission_user_mission_id_idx; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE INDEX mission_user_mission_id_idx ON sidewalk.mission_user USING btree (mission_id);
-
-
---
--- Name: mission_user_user_id_idx; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE INDEX mission_user_user_id_idx ON sidewalk.mission_user USING btree (user_id);
-
-
---
 -- Name: region_property_region_id_idx; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
 --
 
@@ -3598,13 +3406,6 @@ CREATE INDEX region_property_region_id_idx ON sidewalk.region_property USING btr
 --
 
 CREATE INDEX region_region_type_id_idx ON sidewalk.region USING btree (region_type_id);
-
-
---
--- Name: sidewalk_edge_accessibility_feature_sidewalk_edge_id_idx; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE INDEX sidewalk_edge_accessibility_feature_sidewalk_edge_id_idx ON sidewalk.sidewalk_edge_accessibility_feature USING btree (sidewalk_edge_id);
 
 
 --
@@ -3661,20 +3462,6 @@ CREATE INDEX sidewalk_edges_target_idx ON sidewalk.sidewalk_edge USING btree (ta
 --
 
 CREATE INDEX sidewalk_node_sidewalk_node_id_idx ON sidewalk.sidewalk_node USING btree (sidewalk_node_id);
-
-
---
--- Name: sidx_accessibility_features_geom; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE INDEX sidx_accessibility_features_geom ON sidewalk.accessibility_feature USING gist (geom);
-
-
---
--- Name: street_edge_assignment_count_street_edge_id_idx; Type: INDEX; Schema: sidewalk; Owner: sidewalk; Tablespace:
---
-
-CREATE INDEX street_edge_assignment_count_street_edge_id_idx ON sidewalk.street_edge_assignment_count USING btree (street_edge_id);
 
 
 --
@@ -3804,14 +3591,6 @@ CREATE INDEX webpage_activity_user_id_idx ON sidewalk.webpage_activity USING btr
 
 
 --
--- Name: accessibility_feature_label_type_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.accessibility_feature
-    ADD CONSTRAINT accessibility_feature_label_type_id_fkey FOREIGN KEY (label_type_id) REFERENCES sidewalk.label_type(label_type_id);
-
-
---
 -- Name: audit_task_environment_audit_task_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -3857,30 +3636,6 @@ ALTER TABLE ONLY sidewalk.label
 
 ALTER TABLE ONLY sidewalk.label
     ADD CONSTRAINT label_label_type_id_fkey FOREIGN KEY (label_type_id) REFERENCES sidewalk.label_type(label_type_id);
-
-
---
--- Name: sidewalk_edge_accessibility_feature_accessibility_feature_id_fk; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature
-    ADD CONSTRAINT sidewalk_edge_accessibility_feature_accessibility_feature_id_fk FOREIGN KEY (accessibility_feature_id) REFERENCES sidewalk.accessibility_feature(accessibility_feature_id);
-
-
---
--- Name: sidewalk_edge_accessibility_feature_sidewalk_edge_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.sidewalk_edge_accessibility_feature
-    ADD CONSTRAINT sidewalk_edge_accessibility_feature_sidewalk_edge_id_fkey FOREIGN KEY (sidewalk_edge_id) REFERENCES sidewalk.sidewalk_edge(sidewalk_edge_id);
-
-
---
--- Name: street_edge_assignment_count_street_edge_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
---
-
-ALTER TABLE ONLY sidewalk.street_edge_assignment_count
-    ADD CONSTRAINT street_edge_assignment_count_street_edge_id_fkey FOREIGN KEY (street_edge_id) REFERENCES sidewalk.street_edge(street_edge_id);
 
 
 --
@@ -4172,16 +3927,6 @@ REVOKE ALL ON SCHEMA sidewalk FROM PUBLIC;
 REVOKE ALL ON SCHEMA sidewalk FROM sidewalk;
 GRANT ALL ON SCHEMA sidewalk TO sidewalk;
 GRANT ALL ON SCHEMA sidewalk TO postgres;
-
-
---
--- Name: TABLE accessibility_feature; Type: ACL; Schema: sidewalk; Owner: sidewalk
---
-
-REVOKE ALL ON TABLE sidewalk.accessibility_feature FROM PUBLIC;
-REVOKE ALL ON TABLE sidewalk.accessibility_feature FROM sidewalk;
-GRANT ALL ON TABLE sidewalk.accessibility_feature TO sidewalk;
-GRANT ALL ON TABLE sidewalk.accessibility_feature TO postgres;
 
 
 --
@@ -4518,16 +4263,6 @@ GRANT ALL ON TABLE sidewalk.sidewalk_edge TO postgres;
 
 
 --
--- Name: TABLE sidewalk_edge_accessibility_feature; Type: ACL; Schema: sidewalk; Owner: sidewalk
---
-
-REVOKE ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature FROM PUBLIC;
-REVOKE ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature FROM sidewalk;
-GRANT ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature TO sidewalk;
-GRANT ALL ON TABLE sidewalk.sidewalk_edge_accessibility_feature TO postgres;
-
-
---
 -- Name: SEQUENCE sidewalk_edge_accessibility_f_sidewalk_edge_accessibility_f_seq; Type: ACL; Schema: sidewalk; Owner: sidewalk
 --
 
@@ -4605,26 +4340,6 @@ REVOKE ALL ON TABLE sidewalk.street_edge FROM PUBLIC;
 REVOKE ALL ON TABLE sidewalk.street_edge FROM sidewalk;
 GRANT ALL ON TABLE sidewalk.street_edge TO sidewalk;
 GRANT ALL ON TABLE sidewalk.street_edge TO postgres;
-
-
---
--- Name: TABLE street_edge_assignment_count; Type: ACL; Schema: sidewalk; Owner: sidewalk
---
-
-REVOKE ALL ON TABLE sidewalk.street_edge_assignment_count FROM PUBLIC;
-REVOKE ALL ON TABLE sidewalk.street_edge_assignment_count FROM sidewalk;
-GRANT ALL ON TABLE sidewalk.street_edge_assignment_count TO sidewalk;
-GRANT ALL ON TABLE sidewalk.street_edge_assignment_count TO postgres;
-
-
---
--- Name: SEQUENCE street_edge_assignment_count_street_edge_assignment_count_i_seq; Type: ACL; Schema: sidewalk; Owner: sidewalk
---
-
-REVOKE ALL ON SEQUENCE sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq FROM sidewalk;
-GRANT ALL ON SEQUENCE sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq TO sidewalk;
-GRANT ALL ON SEQUENCE sidewalk.street_edge_assignment_count_street_edge_assignment_count_i_seq TO postgres;
 
 
 --
