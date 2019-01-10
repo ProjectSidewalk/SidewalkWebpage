@@ -110,7 +110,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 templateHTML = returningToMissionHTML;
 
                 // Set returning-to-mission specific css
-                uiModalMission.closeButton.html('Resume Mission');
+                uiModalMission.closeButton.html('Resume Mission!');
                 uiModalMission.instruction.css('text-align', 'center');
                 uiModalMission.closeButton.css('font-size', '24px');
                 uiModalMission.closeButton.css('width', '40%');
