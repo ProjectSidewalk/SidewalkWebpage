@@ -80,6 +80,7 @@ POST    /task                                                @controllers.TaskCo
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
+GET     /getMissions                                         @controllers.UserProfileController.getMissions()
 GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
 
 # Labels
@@ -97,7 +98,6 @@ GET     /map/edit                                            @controllers.MapCon
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets
-GET     /contribution/tasks                                  @controllers.UserProfileController.getSubmittedTasksWithLabels
 GET     /contribution/auditCounts                            @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions

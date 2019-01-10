@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
@@ -13,7 +14,6 @@ import formats.json.UserFormats._
 import forms.SignInForm
 import models.services.UserService
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
@@ -108,8 +108,7 @@ class CredentialsAuthController @Inject() (
     }
 
     // Add Timestamp
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
     // Logger.info(updatedAuthenticator.toString)
