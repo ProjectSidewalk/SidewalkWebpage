@@ -19,7 +19,6 @@ object MissionFormat {
       (__ \ "mission_end").write[Timestamp] and
       (__ \ "neighborhood").writeNullable[String] and
       (__ \ "label_id").writeNullable[Int] and
-      (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "label_type").writeNullable[String]
     )(unlift(AuditMission.unapply _))
 }
