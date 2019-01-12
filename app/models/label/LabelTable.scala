@@ -120,7 +120,7 @@ object LabelTable {
                            temporary: Boolean, description: Option[String], tags: List[String])
 
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                     heading: Float, pitch: Float, zoom: Float, canvasX: Int,
+                                     heading: Float, pitch: Float, zoom: Int, canvasX: Int,
                                      canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
@@ -424,32 +424,19 @@ object LabelTable {
   }
 
   /**
-    * This method returns a LabelMetadata object for the validation interface.
-    * Sends relevant information for rendering onto a GSV panorama.
-    * @param labelId  Label ID from query.
-    * @return         LabelMetadata object.
+    * Retrieves a label with a given labelID for validation.
+    * @param labelId  Label ID for label to retrieve.
+    * @return         LabelValidationMetadata object.
     */
   def retrieveSingleLabelForValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
-      """SELECT lb.label_id,
-        |       lt.label_type,
-        |       lb.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height
-        |FROM sidewalk.label AS lb,
-        |     sidewalk.label_type AS lt,
-        |     sidewalk.label_point AS lp
-        |WHERE lb.label_id = ?
-        |      AND lp.label_id = lb.label_id
-        |      AND lt.label_type_id = lb.label_type_id
-        |ORDER BY lb.label_id DESC""".stripMargin
-    )
-    selectQuery(labelId).list.map(label => validationLabelsToLabelMetadata(label)).head
+    val validationLabels = for {
+      _lb <- labels if _lb.labelId === labelId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+    } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
+      _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
+
+    validationLabels.list.map(label => validationLabelsToLabelMetadata(label)).head
   }
 
   /**
@@ -459,9 +446,9 @@ object LabelTable {
     */
   def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
-    var labelToValidate: List[(Int, String, String, Float, Float, Float, Int, Int, Int, Int)] = null
+    var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
     while (!exists) {
-      val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Float, Int, Int, Int, Int)](
+      val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
         """SELECT lb.label_id,
         |       lt.label_type,
         |       lb.gsv_panorama_id,
@@ -525,7 +512,7 @@ object LabelTable {
   }
 
   /**
-    * This method checks if the panorama associated with a label eixsts by pinging Google Maps.
+    * Checks if the panorama associated with a label eixsts by pinging Google Maps.
     * @param gsvPanoId  Panorama ID
     * @return           True if the panorama exists, false otherwise
     */
@@ -552,7 +539,7 @@ object LabelTable {
 
   }
 
-  def validationLabelsToLabelMetadata(label: (Int, String, String, Float, Float, Float, Int, Int, Int, Int)): LabelValidationMetadata = {
+  def validationLabelsToLabelMetadata(label: (Int, String, String, Float, Float, Int, Int, Int, Int, Int)): LabelValidationMetadata = {
     LabelValidationMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7,
       label._8, label._9, label._10)
   }
@@ -573,7 +560,7 @@ object LabelTable {
   }
 
   /**
-    * This method returns a LabelMetadata object that has the label properties as well as the tags.
+    * Returns a LabelMetadata object that has the label properties as well as the tags.
     *
     * @param label label from query
     * @param tags list of tags as strings
