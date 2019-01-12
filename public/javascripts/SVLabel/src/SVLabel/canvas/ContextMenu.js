@@ -231,10 +231,16 @@ function ContextMenu (uiContextMenu) {
                 self.labelTags.forEach(function (tag) {
                     if (tag.tag === tagValue) {
                         if (!labelTags.includes(tag.tag_id)) {
-                            // Clear existing tags.
-                            labelTags.length = 0;
-                            // Update the colors of the buttons.
-                            _updateLabelColors(labelTags);
+                            // Strings of alternate route present and no alternate route
+                            var alternateRoutePresentStr = 'alternate route present';
+                            var noAlternateRouteStr = 'no alternate route';
+                            // Automatically deselect one of the tags above if the other one is selected
+                            if (tagValue == alternateRoutePresentStr) {
+                                removeLabelAndUpdateUI(noAlternateRouteStr, labelTags);
+                            } else if (tagValue == noAlternateRouteStr) {
+                                removeLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
+                            }
+
                             labelTags.push(tag.tag_id);
                             svl.tracker.push('ContextMenu_TagAdded',
                                 { tagId: tag.tag_id, tagName: tag.tag });
@@ -248,6 +254,15 @@ function ContextMenu (uiContextMenu) {
                         label.setProperty('tagIds', labelTags);
                     }
                 })
+            }
+        });
+    }
+
+    function removeLabelAndUpdateUI(labelName, labelTags) {
+        $tags.each((index, tag) => {if (tag.innerText == labelName) {tag.style.backgroundColor = "white"; } });
+        self.labelTags.forEach(tag => {
+            if (tag.tag == labelName && labelTags.includes(tag.tag_id)) {
+                labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
             }
         });
     }
@@ -485,21 +500,6 @@ function ContextMenu (uiContextMenu) {
         } else {
             target.style.backgroundColor = "white";
         }
-    }
-
-    /**
-     * Update the colors of all buttons according to labelTags.
-     * @param {*} labelTags List of tags that the current lable has.
-     */
-    function _updateLabelColors(labelTags) {
-        $tags.each(function(index, tag) {
-            tag = $(tag);
-            if (labelTags.includes(tag.attr('id'))) {
-                tag.css('backgroundColor', 'rgb(200, 200, 200)');
-            } else {
-                tag.css('backgroundColor', "white");
-            }
-        });
     }
 
     self.getContextMenuUI = getContextMenuUI;
