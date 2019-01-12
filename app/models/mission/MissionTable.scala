@@ -86,7 +86,7 @@ object MissionTable {
   val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 304.8F, 304.8F)
   val distanceForLaterMissions: Float = 402.336F // 1/4 mile
 
-  // Distances for validation mission
+  // Number of labels for validation mission
   val validationMissionLabelCount: Int = 10
 
 
@@ -483,12 +483,6 @@ object MissionTable {
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
   }
-
-  /* missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
-    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
-    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
-    labelsProgress: Option[Int], skipped: Boolean)
-    */
 
   /**
     *

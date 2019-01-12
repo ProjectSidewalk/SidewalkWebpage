@@ -39,8 +39,7 @@ function StatusField(missionMetadata) {
     }
 
     /**
-     * Updates the label name that is displayed in the status field.
-     * Updates the label name that is displayed in the title bar.
+     * Updates the label name that is displayed in the status field and title bar.
      * TODO: Clean this up! So messy :(
      * TODO: Make a file to keep track of useful constants, i.e., canvas width
      * @param labelType {String} Name of label without spaces.

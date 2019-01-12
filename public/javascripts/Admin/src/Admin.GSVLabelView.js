@@ -84,7 +84,7 @@ function AdminGSVLabel() {
             labelMetadata['canvas_x'], labelMetadata['canvas_y'],
             labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom']);
-        self.panorama.setRandomLabel(adminPanoramaLabel);
+        self.panorama.setLabel(adminPanoramaLabel);
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");

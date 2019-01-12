@@ -1,6 +1,7 @@
 package models.validation
 
 import java.util.UUID
+import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -38,10 +39,8 @@ class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[Valida
   def * = (validationTaskInteractionId, missionId, action, gsvPanoramaId, lat,
     lng, heading, pitch, zoom, note, timestamp) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
 
-  /*
   def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
-    */
+    foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 object ValidationTaskInteractionTable {
