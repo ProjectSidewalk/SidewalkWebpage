@@ -1,5 +1,5 @@
 /**
- * This function holds Panomarker/Panorama calculations. These functions are borrowed from the
+ * Holds Panomarker/Panorama calculations. These functions are borrowed from the
  * PanoMarker script.
  * @returns {PanoProperties}
  * @constructor

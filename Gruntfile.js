@@ -48,7 +48,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/help/src/*.js'
                 ],
-            dest: 'public/javascripts/help/build/help.js'
+                dest: 'public/javascripts/help/build/help.js'
             },
             validation_svl: {
                 src: [

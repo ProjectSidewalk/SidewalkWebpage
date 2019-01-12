@@ -58,18 +58,6 @@ object LabelValidationTable {
   val db = play.api.db.slick.DB
   val labelValidationTable = TableQuery[LabelValidationTable]
 
-  /**
-    * Finds a validated id from the table
-    * @param validationTaskId   TaskID for this label
-    * @return
-    */
-  /*
-  def find(validationTaskId: int): Option[LabelValidation] = db.withSession { implicit session =>
-    val labelList = List(validatedLabels.filter(_.validationTaskId === validationTaskId))
-    labelList.headOption
-  }
-  */
-
   def save(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val labelValidationId: Int =
       (labelValidationTable returning labelValidationTable.map(_.labelValidationId)) += label

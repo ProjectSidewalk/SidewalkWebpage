@@ -1,5 +1,5 @@
 /**
- * Class that logs information from the Validation interface
+ * Logs information from the Validation interface
  * @returns {Tracker}
  * @constructor
  */

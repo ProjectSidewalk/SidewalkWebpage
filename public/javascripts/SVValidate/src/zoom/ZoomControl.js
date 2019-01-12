@@ -1,5 +1,5 @@
 /**
- * This function handles zooming for the Google StreetView panorama. This is also called by the
+ * Handles zooming for the Google StreetView panorama. This is also called by the
  * Keyboard class to deal with zooming via keyboard shortcuts.
  * @returns {ZoomControl}
  * @constructor
@@ -10,7 +10,7 @@ function ZoomControl () {
     var zoomOutButton = $("#zoom-out-button");
 
     /**
-     * Function that is triggered when the zoom in button is clicked.
+     * Logs interaction when the zoom in button is clicked.
      */
     function clickZoomIn () {
         svv.tracker.push("Click_ZoomIn");
@@ -18,7 +18,7 @@ function ZoomControl () {
     }
 
     /**
-     * Function that is triggered when the zoom out button is clicked.
+     * Logs interaction when the zoom out button is clicked.
      */
     function clickZoomOut () {
         svv.tracker.push("Click_ZoomOut");

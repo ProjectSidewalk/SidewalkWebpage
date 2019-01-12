@@ -1,5 +1,5 @@
 /**
- * Function that keeps track of labels that have appeared on the panorama
+ * Keeps track of labels that have appeared on the panorama
  * @returns {LabelContainer}
  * @constructor
  */

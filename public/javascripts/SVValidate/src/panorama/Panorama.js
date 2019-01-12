@@ -1,5 +1,5 @@
 /**
- * This function creates and controls the Google StreetView panorama that is used in the validation
+ * Creates and controls the Google StreetView panorama that is used in the validation
  * interface. It also holds a list of labels to be validated and uses the Panomarker API to place
  * labels onto the panorama.
  * @param   labelList   List of Labels to validate.
@@ -64,7 +64,7 @@ function Panorama (labelList) {
     }
 
     /**
-     * This function adds listeners to the panorama.
+     * Adds listeners to the panorama to log user interactions.
      * @private
      */
     function _addListeners () {

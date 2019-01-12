@@ -57,7 +57,7 @@ function ModalComment (modalUI) {
     }
 
     /**
-     * Function that is triggered when text is changed in the comments box. Will enable the "ok"
+     * Triggered when text is changed in the comments box. Will enable the "ok"
      * button if there is text.
      */
     function handleTextAreaChange () {

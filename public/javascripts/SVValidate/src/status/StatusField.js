@@ -64,7 +64,6 @@ function StatusField(missionMetadata) {
         svv.ui.status.missionDescription.html("Validate " + count + " labels");
     }
 
-    // TODO: write resizeTextSize function, if necessary
     /**
      * Updates the mission progress completion bar
      * @param completionRate    Proportion of this region completed (0 <= completionRate <= 1)
