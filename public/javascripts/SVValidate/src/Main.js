@@ -8,7 +8,7 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
-    svv.canvasHeight = 410;
+    svv.canvasHeight = 440;
     svv.canvasWidth = 720;
 
     function _initUI() {
@@ -56,7 +56,6 @@ function Main (param) {
         svv.keyboard = new Keyboard(svv.ui.validation);
         svv.labelContainer = new LabelContainer();
         svv.panoramaContainer = new PanoramaContainer(param.labelList);
-        // svv.panorama = new Panorama();
         svv.zoomControl = new ZoomControl();
 
         svv.menuButtons = new MenuButton(svv.ui.validation);

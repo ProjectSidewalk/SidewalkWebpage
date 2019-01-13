@@ -1,3 +1,11 @@
+#validation-button-holder {
+    position: absolute;
+    left: 0px;
+    top: 530px;
+    height: 90px;
+    width: 730px;
+}
+
 /* Put buttons here */
 .validation-button {
     height: 70px;
