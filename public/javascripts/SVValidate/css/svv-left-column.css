@@ -1,14 +1,7 @@
-/* Overriding CSS from SVLabel */
-#left-column-validation-control-pane {
-    position: relative;
-    left: -55px;
-    top: 290px;
-}
-
 #left-column-control-pane {
     position: relative;
-    left: -55px;
-    top: 205px;
+    left: -60px;
+    top: 290px;
 }
 
 #left-column-button-holder .button {
@@ -19,7 +12,6 @@
     border: 2px #ccc solid;
     padding: 15px 0 0 0;
 }
-
 
 #left-column-button-holder img {
     width: 30px;

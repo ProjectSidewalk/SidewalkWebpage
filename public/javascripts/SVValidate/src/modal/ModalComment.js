@@ -87,9 +87,6 @@ function ModalComment (modalUI) {
         disableClickOk();
         svv.keyboard.disableKeyboard();
         svv.modalSkip.disableSkip();
-
-        // TODO: Fix CSS for the comment box. This is a temporary fix.
-        modalUI.box.css("left", "5px");
         // showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
     }
 

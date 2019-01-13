@@ -17,14 +17,12 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
-
-    <!-- TODO: Clean up CSS - start moving all non-header/footer stuff to SVValidate -->
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
     <div class="container toolUI" style = "visibility: visible;">
         <div id="svv-application-holder">
-            <div id="left-column-validation-control-pane">
+            <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
                     <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
@@ -38,9 +36,8 @@
                 </div>
             </div>
             <div id="upper-menu-holder">
-                <!-- rename to something better... probably will hold information -->
                 <div id="upper-menu-title-bar"></div>
-                <div id="validation-zoom-control-holder">
+                <div id="zoom-control-holder">
                     <button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
                         <br /><u>Z</u>oom In</button>
@@ -56,7 +53,6 @@
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
-                <div id="modal-comment-background"></div>
                 <div id="modal-comment-box">
                     <form id="comment-form">
                         <div id="modal-comment-title" class="bold">
@@ -118,6 +114,7 @@
                     <u>N</u>ot sure
                 </button>
             </div>
+            <div id="modal-comment-background"></div>
         </div>
         <div id="mini-footer-audit">
             Project Sidewalk is designed and operated by the
