@@ -15,7 +15,7 @@ CREATE TABLE validation_task_interaction (
   pitch DOUBLE PRECISION,
   zoom DOUBLE PRECISION,
   note TEXT,
-  timestamp TIMESTAMP,
+  timestamp TIMESTAMPTZ,
   mission_id INT
 );
 
@@ -32,8 +32,8 @@ CREATE TABLE label_validation (
   zoom DOUBLE PRECISION NOT NULL,
   canvas_height INT NOT NULL,
   canvas_width INT NOT NULL,
-  start_timestamp TIMESTAMP,
-  end_timestamp TIMESTAMP,
+  start_timestamp TIMESTAMPTZ,
+  end_timestamp TIMESTAMPTZ,
   PRIMARY KEY (label_validation_id),
   FOREIGN KEY (label_id) REFERENCES label(label_id),
   FOREIGN KEY (validation_result) REFERENCES validation_options(validation_option_id),
@@ -53,7 +53,7 @@ CREATE TABLE validation_task_comment (
   zoom INT NOT NULL,
   lat DOUBLE PRECISION NOT NULL,
   lng DOUBLE PRECISION NOT NULL,
-  timestamp TIMESTAMP,
+  timestamp TIMESTAMPTZ,
   comment TEXT NOT NULL,
   PRIMARY KEY (validation_task_comment_id),
   FOREIGN KEY (mission_id) REFERENCES mission(mission_id),
@@ -67,7 +67,7 @@ INSERT INTO validation_options (validation_option_id, text) VALUES (3, 'unclear'
 
 ALTER TABLE gsv_data
   ADD COLUMN expired BOOLEAN NOT NULL DEFAULT FALSE,
-  ADD COLUMN last_viewed TIMESTAMP;
+  ADD COLUMN last_viewed TIMESTAMPTZ;
 
 # --- !Downs
 DROP TABLE label_validation;
