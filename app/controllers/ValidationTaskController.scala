@@ -38,10 +38,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
-    println("[ValidationTaskController] submission: " + submission)
     submission.fold(
       errors => {
-        println("[ValidationTaskController] Error: " + errors);
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
@@ -66,16 +64,13 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           val missionId: Int = data.missionProgress.missionId
-          println("missionId: " + missionId)
           val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
 
           // Temporary value - this is the number of labels that are in each mission.
-          val labelList: Option[JsValue] = getLabelList(data.missionProgress)
-          println("[ValidationTaskController] possibleMission: " + possibleNewMission)
-          println("[ValidationTaskController] labelList      : " + Json.toJson(labelList))
+          val labelList: Option[JsValue] = getLabelList(user, data.missionProgress)
           ValidationTaskPostReturnValue(possibleNewMission, labelList)
         }
-        println("[ValidationTaskController] Success");
+
         Future.successful(Ok(Json.obj(
           "mission" -> returnValues.head.mission.map(_.toJSON),
           "labels" -> returnValues.head.labels
@@ -85,7 +80,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * This function gets the metadata for a specific label in the database.
+    * Gets the metadata for a specific label in the database.
     * @param labelId  label_id for this label
     * @return Label metadata containing GSV metadata and label type
     */
@@ -100,7 +95,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * This gets a random list of labels to validate for this mission.
+    * Gets a random list of labels to validate for this mission.
     * @param count  Number of labels to retrieve for this list.
     * @return       JsValue containing a list of labels with the following attributes:
     *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
@@ -114,7 +109,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * This function gets the metadata for a random label in the database.
+    * Gets the metadata for a single random label in the database.
     * @return Label metadata containing GSV metadata and label type
     */
   def getRandomLabelData = UserAwareAction.async { implicit request =>
@@ -124,7 +119,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    *
+    * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
     * @param user
     * @param missionProgress  Metadata for this mission
     * @return
@@ -134,26 +129,28 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
     val role: String = user.get.role.getOrElse("")
-
-    //  (missionProgress.labelsProgress.isEmpty) Logger.error("Received null labels progress for validation mission.")
     val labelsProgress: Int = missionProgress.labelsProgress
-    println("[ValidationTaskController] updateMissionTable: " + missionId + ", " + skipped + ", " + userId + ", " + role);
 
     if (missionProgress.completed) {
-      println("[ValidationTaskController] updateMissionTable: This mission is complete")
-      // TODO: replace 0.0 with pay per label (later)
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, 0.0, missionId, labelsProgress, skipped)
+      // payPerLabel is currently always 0 because this is only available to volunteers.
+      val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, skipped)
     } else {
-      println("[ValidationTaskController] updateMissionTable: This mission is not complete")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }
 
-  def getLabelList(missionProgress: ValidationMissionProgress): Option[JsValue] = {
-    // Retrieve more labels. Currently hard-coded to be 10 labels.
-    // TODO: Get rid of hard-coded 10 value.
+  /**
+    * Gets a list of new labels to validate if the mission is complete.
+    * @param user
+    * @param missionProgress  Metadata for this mission
+    * @return                 List of label metadata (if this mission is complete).
+    */
+  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress): Option[JsValue] = {
+    val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      return Some(getLabelListForValidation(10))
+      val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      return Some(getLabelListForValidation(labelCount))
     }
     None
   }

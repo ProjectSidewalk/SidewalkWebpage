@@ -334,12 +334,10 @@ object MissionTable {
                                           labelsProgress: Option[Int], skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
     this.synchronized {
       if (actions.contains("updateProgress")) {
-        println("[MissionTable] queryMissionTable: updateValidationProgress");
         updateValidationProgress(missionId.get, labelsProgress.get)
       }
 
       if (actions.contains("updateComplete")) {
-        println("[MissionTable] updateComplete called")
         updateComplete(missionId.get)
         if (skipped.getOrElse(false)) {
           updateSkipped(missionId.get)
@@ -347,14 +345,11 @@ object MissionTable {
       }
 
       if (actions.contains("getValidationMission")) {
-        println("[MissionTable] Getting validation mission")
         getCurrentValidationMission(userId) match {
           case Some(incompleteMission) =>
-            println("[MissionTable] Incomplete validation mission available")
             Some(incompleteMission)
           case _ =>
             val validationLabels: Int = getNextValidationMissionLabelCount(userId)
-            println("[MissionTable] Getting " + validationLabels + " labels")
             val pay: Double = validationLabels.toDouble * payPerLabel.get
             Some(createNextValidationMission(userId, pay, validationLabels))
         }
@@ -395,7 +390,6 @@ object MissionTable {
 
   def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, labelsProgress: Int, skipped: Boolean): Option[Mission] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
-    println("Actions: " + actions)
     queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(labelsProgress), Some(skipped))
   }
 
@@ -464,6 +458,11 @@ object MissionTable {
     math.min(distRemaining, naiveMissionDist)
   }
 
+  /**
+    * Gets the number of labels to be validated for a new mission. Currently returns 10 labels.
+    * @param userId UserID of user requesting more labels.
+    * @return 10
+    */
   def getNextValidationMissionLabelCount(userId: UUID): Int = {
     validationMissionLabelCount
   }
@@ -568,10 +567,8 @@ object MissionTable {
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.labelsProgress, m.missionEnd)
 
     if (labelsProgress <= missionLabels) {
-      println("[MissionTable] updateValidationProgress: need to update this mission! Completed " + labelsProgress + " labels")
       missionToUpdate.update((Some(labelsProgress), now))
     } else {
-      println("[MissionTable] updateValidationProgress: in else statement...")
       Logger.error("[MissionTable] updateValidationProgress: Trying to update mission progress with labels greater than total mission labels.")
       missionToUpdate.update((Some(missionLabels), now))
     }

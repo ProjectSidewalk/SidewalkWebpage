@@ -36,15 +36,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        // println(user)
         val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
         val labelsProgress: Int = mission.labelsProgress.get
         val labelsValidated: Int = mission.labelsValidated.get
         val labelsToRetrieve: Int = labelsValidated - labelsProgress
         val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
-        println("Labels to retrieve: " + labelsToRetrieve)
-        println("[ValidationController] Mission: " + mission)
-        println()
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
       case None =>
         Future.successful(Redirect("/"))
@@ -72,7 +68,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[ValidationCommentSubmission]
-    println("[ValidationController] postComment submission: " + submission)
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))

@@ -435,8 +435,7 @@ object LabelTable {
       _lp <- labelPoints if _lb.labelId === _lp.labelId
     } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
       _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
-
-    validationLabels.list.map(label => validationLabelsToLabelMetadata(label)).head
+    validationLabels.list.map(label => LabelValidationMetadata.tupled(label)).head
   }
 
   /**
@@ -482,7 +481,6 @@ object LabelTable {
       val singleLabel = selectQuery(1).list
       // Uses panorama ID to check if this panorama exists
       exists = panoExists(singleLabel(0)._3)
-      println("[LabelTable.scala] retrieveSingleRandomLabelForValidation" + singleLabel(0)._3 + " exists? " + exists)
 
       if (exists) {
         labelToValidate = singleLabel
@@ -494,7 +492,7 @@ object LabelTable {
         GSVDataTable.markExpired(singleLabel(0)._3, true)
       }
     }
-    labelToValidate.map(label => validationLabelsToLabelMetadata(label)).head
+    labelToValidate.map(label => LabelValidationMetadata.tupled(label)).head
   }
 
   /**
@@ -520,14 +518,14 @@ object LabelTable {
     try {
       val now = new DateTime(DateTimeZone.UTC)
       val urlString : String = "http://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
-      println(urlString)
+      // println("URL: " + urlString)
       val panoURL : URL = new java.net.URL(urlString)
       val connection : HttpURLConnection = panoURL.openConnection.asInstanceOf[HttpURLConnection]
       connection.setConnectTimeout(5000)
       connection.setReadTimeout(5000)
       connection.setRequestMethod("GET")
       val responseCode: Int = connection.getResponseCode
-      println("Response Code: " + responseCode)
+      // println("Response Code: " + responseCode)
 
       // URL is only valid if the response code is between 200 and 399.
       200 <= responseCode && responseCode <= 399
@@ -537,11 +535,6 @@ object LabelTable {
       case e: Exception => false
     }
 
-  }
-
-  def validationLabelsToLabelMetadata(label: (Int, String, String, Float, Float, Int, Int, Int, Int, Int)): LabelValidationMetadata = {
-    LabelValidationMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7,
-      label._8, label._9, label._10)
   }
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
