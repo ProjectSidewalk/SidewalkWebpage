@@ -14,15 +14,11 @@ function MissionContainer () {
      * @private
      */
     function addAMission(mission) {
-        console.log("[Mission.js] Adding a mission");
         if (mission.getProperty("completed")) {
-            console.log("[Mission.js] Mission is complete");
             _addToCompletedMissions(mission);
         } else {
             currentMission = mission;
             svv.statusField.reset(mission);
-            console.log("[Mission.js] currentMission set");
-            console.log(currentMission);
         }
         return this;
     }
@@ -36,14 +32,9 @@ function MissionContainer () {
         var existingMissionIds = _completedMissions.map(function (m) {
             return m.getProperty("missionId")
         });
-        console.log("existingMissionIds: ");
-        console.log(existingMissionIds);
         var currentMissionId = mission.getProperty("missionId");
-        console.log("currentMissionId: " + currentMissionId);
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
             _completedMissions.push(mission);
-        } else {
-            console.log("Oops, we are trying to add to completed missions array multiple times.")
         }
     }
 
@@ -62,7 +53,6 @@ function MissionContainer () {
      * @private
      */
     function createAMission(missionMetadata) {
-        console.log("[MissionContainer.js] createAMission mission");
         var metadata = {
             completed : missionMetadata.completed,
             labelsProgress : missionMetadata.labels_progress,
@@ -72,8 +62,6 @@ function MissionContainer () {
             skipped : missionMetadata.skipped
         };
         var mission = new Mission(metadata);
-        console.log("Creating a mission");
-        console.log(mission);
         addAMission(mission);
     }
 

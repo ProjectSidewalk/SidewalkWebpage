@@ -76,7 +76,6 @@ function Mission(params) {
         if (labelsProgress < getProperty("labelsValidated")) {
             labelsProgress += 1;
             svv.statusField.updateLabelCounts(labelsProgress);
-            console.log("Validated: " + labelsProgress + ", total: " + getProperty("labelsValidated"));
             setProperty("labelsProgress", labelsProgress);
 
             // Submit mission if mission is complete

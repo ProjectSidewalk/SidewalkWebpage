@@ -21,7 +21,6 @@ function LabelContainer() {
      * @param labelMetadata     Label metadata (validationProperties object)
      */
     function push(labelMetadata) {
-        console.log("[LabelContainer.js] Pushing validation label data");
         var data = {
             canvas_height: svv.canvasHeight,
             canvas_width: svv.canvasWidth,
@@ -36,7 +35,6 @@ function LabelContainer() {
             validation_result: labelMetadata.validationResult,
             zoom: labelMetadata.zoom
         };
-        console.log(data);
         currentLabels.push(data);
     }
 

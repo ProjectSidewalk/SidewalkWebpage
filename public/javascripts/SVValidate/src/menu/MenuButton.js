@@ -6,17 +6,14 @@ function MenuButton(menuUI) {
     var self = this;
 
     menuUI.agreeButton.click(function() {
-        console.log("Agree button clicked");
         validateLabel("Agree");
     });
 
     menuUI.disagreeButton.click(function() {
-        console.log("Disagree button clicked");
         validateLabel("Disagree");
     });
 
     menuUI.notSureButton.click(function() {
-        console.log("Not Sure button clicked");
         validateLabel("NotSure");
     });
 

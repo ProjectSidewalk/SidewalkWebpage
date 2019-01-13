@@ -34,7 +34,7 @@ function ModalComment (modalUI) {
      */
     function handleClickCancel () {
         svv.tracker.push("ModalComment_ClickCancel");
-        hide();
+        hideCommentMenu();
     }
 
     /**
@@ -51,9 +51,8 @@ function ModalComment (modalUI) {
     function handleClickOk () {
         svv.tracker.push("ModalComment_ClickOK");
         var data = prepareCommentData();
-        console.log(data);
         submitComment(data);
-        hide();
+        hideCommentMenu();
     }
 
     /**
@@ -68,13 +67,24 @@ function ModalComment (modalUI) {
             disableClickOk();
         }
     }
+
     /**
      * Hides comment box, enables validation keyboard shortcuts
      */
-    function hide () {
+    function hideCommentMenu () {
         modalUI.holder.addClass('hidden');
+        hideBackground();
         svv.keyboard.enableKeyboard();
         svv.modalSkip.enableSkip();
+    }
+
+    function hideBackground () {
+        svv.ui.modal.background.css({
+            width: 0,
+            height: 0
+        });
+
+        $('#svv-panorama').css('z-Index', '1');
     }
 
     /**
@@ -87,11 +97,11 @@ function ModalComment (modalUI) {
         disableClickOk();
         svv.keyboard.disableKeyboard();
         svv.modalSkip.disableSkip();
-        // showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
+        showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
     }
 
     /**
-     * Renders a transparent white background over the validation interface and side menus.
+     * Renders a transparent white overlay over the validation interface and side menus.
      */
     function showBackground () {
         svv.ui.modal.background.css('background-color', 'white');
@@ -101,6 +111,9 @@ function ModalComment (modalUI) {
             opacity: '0.5',
             visibility: 'visible'
         });
+
+        // SVV Panorama is not covered by overlay at regular z-index
+        $('#svv-panorama').css('z-Index', '0');
     }
 
     /**
@@ -137,7 +150,7 @@ function ModalComment (modalUI) {
 
         var data =  {
             comment: comment,
-            label_id: svv.panorama.getCurrentLabel().getProperty("labelId"),
+            label_id: svv.panorama.getCurrentLabel().getOriginalProperty("labelId"),
             gsv_panorama_id: svv.panorama.getPanoId(),
             heading: pov.heading,
             lat: position.lat,

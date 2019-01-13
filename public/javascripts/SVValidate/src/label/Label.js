@@ -65,7 +65,6 @@ function Label(params) {
             if ("labelType" in params) setOriginalProperty("labelType", params.labelType);
             if ("pitch" in params) setOriginalProperty("pitch", params.pitch);
             if ("zoom" in params) setOriginalProperty("zoom", params.zoom);
-            console.log("Initialized label " + getOriginalProperty("labelId"));
         }
     }
 
@@ -139,7 +138,6 @@ function Label(params) {
      * @param value Value to set property to.
      */
     function setOriginalProperty(key, value) {
-        // console.log("[Label.js] Setting property " + key + " to value " + value);
         originalProperties[key] = value;
         return this;
     }
@@ -183,7 +181,6 @@ function Label(params) {
         setValidationProperty("pitch", userPov.pitch);
         setValidationProperty("zoom", userPov.zoom);
 
-        console.log("TOP: " + (pixelCoordinates.top - getRadius()) + " LEFT: " + (pixelCoordinates.left - getRadius()));
         switch (validationResult) {
             // Agree option selected.
             case "Agree":

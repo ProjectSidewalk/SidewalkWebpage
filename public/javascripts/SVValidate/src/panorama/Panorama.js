@@ -8,12 +8,13 @@ function Panorama (label) {
     var currentLabel = label;
     var init = true;
     var panoCanvas = document.getElementById("svv-panorama");
+    var panorama = undefined;
     var properties = {
         panoId: undefined,
         prevPanoId: undefined,
         validationTimestamp: new Date().getTime()
     };
-    var panorama = undefined;
+    var self = this;
 
     // Determined manually by matching appearance of labels on the audit page and appearance of
     // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
@@ -29,18 +30,7 @@ function Panorama (label) {
      */
     function _init () {
         _createNewPanorama();
-
-        console.log("Does currentLabel exist?");
-        if (currentLabel) {
-            console.log("Yes");
-        } else {
-            console.log("No");
-        }
-
         setLabel(currentLabel);
-        // When initializing, we can directly set the label onto the panorama. Otherwise, we need
-        // to trigger a callback function to avoid infinite looping (GSV bug).
-        // setLabel(labels[getProperty("progress")]);
     }
 
     /**
@@ -73,7 +63,6 @@ function Panorama (label) {
      * @private
      */
     function _addListeners () {
-        console.log("Adding listeners...");
         panorama.addListener('pov_changed', _handlerPovChange);
         panorama.addListener('pano_changed', _handlerPanoChange);
         return this;
@@ -256,7 +245,6 @@ function Panorama (label) {
         currentLabel = label;
         currentLabel.setValidationProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getOriginalProperty('labelType'));
-        console.log("Setting panorama to be: " + label.getOriginalProperty('gsvPanoramaId'));
         setPanorama(label.getOriginalProperty('gsvPanoramaId'), label.getOriginalProperty('heading'),
             label.getOriginalProperty('pitch'), label.getOriginalProperty('zoom'));
         renderLabel();
@@ -304,5 +292,5 @@ function Panorama (label) {
     self.setZoom = setZoom;
     self.skipLabel = skipLabel;
 
-    return self;
+    return this;
 }

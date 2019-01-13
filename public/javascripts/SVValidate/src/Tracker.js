@@ -40,7 +40,6 @@ function Tracker() {
      * @private
      */
     function _createAction(action, notes, extraData) {
-        // console.log("[Tracker.js] createAction: " + action);
         if (!notes) {
             notes = {};
         }
