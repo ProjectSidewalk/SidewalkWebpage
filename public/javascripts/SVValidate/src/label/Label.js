@@ -209,7 +209,7 @@ function Label(params) {
         // Otherwise, we will load a new label onto the panorama from Form.js - where we still need
         // to retrieve 10 more labels for the next mission.
         if (!svv.missionContainer.getCurrentMission().isComplete()) {
-            svv.panorama.loadNewLabelFromList();
+            svv.panoramaContainer.loadNewLabelOntoPanorama();
         }
     }
 

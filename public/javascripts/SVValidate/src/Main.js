@@ -55,7 +55,8 @@ function Main (param) {
 
         svv.keyboard = new Keyboard(svv.ui.validation);
         svv.labelContainer = new LabelContainer();
-        svv.panorama = new Panorama(param.labelList);
+        svv.panoramaContainer = new PanoramaContainer(param.labelList);
+        // svv.panorama = new Panorama();
         svv.zoomControl = new ZoomControl();
 
         svv.menuButtons = new MenuButton(svv.ui.validation);

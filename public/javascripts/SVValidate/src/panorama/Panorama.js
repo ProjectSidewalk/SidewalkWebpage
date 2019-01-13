@@ -1,17 +1,14 @@
 /**
  * Creates and controls the Google StreetView panorama that is used in the validation
- * interface. It also holds a list of labels to be validated and uses the Panomarker API to place
- * labels onto the panorama.
- * @param   labelList   List of Labels to validate.
+ * interface. Uses Panomarkers to place labels onto the Panorama.
+ * @param   label   Initial label to load onto the panorama.
  * @constructor
  */
-function Panorama (labelList) {
-    var currentLabel = new Label();
+function Panorama (label) {
+    var currentLabel = label;
     var init = true;
-    var labels = labelList;
     var panoCanvas = document.getElementById("svv-panorama");
     var properties = {
-        progress: 0,
         panoId: undefined,
         prevPanoId: undefined,
         validationTimestamp: new Date().getTime()
@@ -33,9 +30,17 @@ function Panorama (labelList) {
     function _init () {
         _createNewPanorama();
 
+        console.log("Does currentLabel exist?");
+        if (currentLabel) {
+            console.log("Yes");
+        } else {
+            console.log("No");
+        }
+
+        setLabel(currentLabel);
         // When initializing, we can directly set the label onto the panorama. Otherwise, we need
         // to trigger a callback function to avoid infinite looping (GSV bug).
-        setLabel(labels[getProperty("progress")]);
+        // setLabel(labels[getProperty("progress")]);
     }
 
     /**
@@ -72,46 +77,6 @@ function Panorama (labelList) {
         panorama.addListener('pov_changed', _handlerPovChange);
         panorama.addListener('pano_changed', _handlerPanoChange);
         return this;
-    }
-
-    /**
-     * Uses label metadata to initialize a new label.
-     * @param metadata  Metadata for the label.
-     * @returns {Label} Label object for this label.
-     * @private
-     */
-    function _createSingleLabel (metadata) {
-        var labelMetadata = {
-            canvasHeight: metadata.canvas_height,
-            canvasWidth: metadata.canvas_width,
-            canvasX: metadata.canvas_x,
-            canvasY: metadata.canvas_y,
-            gsvPanoramaId: metadata.gsv_panorama_id,
-            heading: metadata.heading,
-            labelId: metadata.label_id,
-            labelType: metadata.label_type,
-            pitch: metadata.pitch,
-            zoom: metadata.zoom
-        };
-        return new Label(labelMetadata);
-    }
-
-    /**
-     * Fetches a single label from the database. Missions fetch exactly the number of labels that
-     * are needed to complete the mission. When the user clicks skip, need to get more.
-     * @param count Number of labels to append to the labels.
-     * @private
-     */
-    function _fetchNewLabel () {
-        var labelUrl = "/label/geo/random";
-        $.ajax({
-            url: labelUrl,
-            async: false,
-            dataType: 'json',
-            success: function (labelMetadata) {
-                labels.push(_createSingleLabel(labelMetadata));
-            }
-        });
     }
 
     /**
@@ -219,15 +184,6 @@ function Panorama (labelList) {
         }
     }
 
-    /**
-     * Loads a new label onto the panorama.
-     * Assumes there are still labels remaining in the label list.
-     */
-    function loadNewLabelFromList () {
-        setLabel(labels[getProperty('progress')]);
-        setProperty('progress', getProperty('progress') + 1);
-    }
-
 
     /**
      * Renders a label onto the screen using a Panomarker.
@@ -255,28 +211,6 @@ function Panorama (labelList) {
             self.labelMarker.setIcon(url);
         }
         return this;
-    }
-
-    /**
-     * Resets the state of the mission.
-     * Called when a new validation mission is loaded, and when we need to get rid of lingering
-     * data from the previous validation mission.
-     */
-    function reset () {
-        setProperty('progress', 0);
-    }
-
-    /**
-     * Creates a list of label objects to be validated from label metadata.
-     * Called when a new mission is loaded onto the screen.
-     * @param labelList Object containing key-value pairings of (index, labelMetadata)
-     */
-    function setLabelList (labelList) {
-        Object.keys(labelList).map(function(key, index) {
-            labelList[key] = _createSingleLabel(labelList[key]);
-        });
-
-        labels = labelList;
     }
 
     /**
@@ -315,24 +249,6 @@ function Panorama (labelList) {
     }
 
     /**
-     * Retrieves a label with a given id from the database and adds it to the label list.
-     * NOTE: Currently unused, but may be useful later.
-     * @param labelId   label_id of the desired label.
-     */
-    function setLabelWithId (labelId) {
-        var labelUrl = "/label/geo/" + labelId;
-        $.ajax({
-            url: labelUrl,
-            async: false,
-            dataType: 'json',
-            success: function (labelMetadata) {
-                var label = _createSingleLabel(labelMetadata);
-                labels.push(label);
-            }
-        });
-    }
-
-    /**
      * Sets the label on the panorama to be some label.
      * @param label {Label} Label to be displayed on the panorama.
      */
@@ -344,15 +260,6 @@ function Panorama (labelList) {
         setPanorama(label.getOriginalProperty('gsvPanoramaId'), label.getOriginalProperty('heading'),
             label.getOriginalProperty('pitch'), label.getOriginalProperty('zoom'));
         renderLabel();
-    }
-
-    /**
-     * Skips the current label on this panorama and fetches a new label for validation.
-     */
-    function skipLabel () {
-        _fetchNewLabel();
-        setProperty('progress', getProperty('progress') + 1);
-        setLabel(labels[getProperty('progress')]);
     }
 
     /**
@@ -374,6 +281,13 @@ function Panorama (labelList) {
         panorama.set('zoom', zoom);
     }
 
+    /**
+     * Skips the current label on this panorama and fetches a new label for validation.
+     */
+    function skipLabel () {
+        svv.panoramaContainer.fetchNewLabel();
+    }
+
     _init();
 
     self.getCurrentLabel = getCurrentLabel;
@@ -383,12 +297,10 @@ function Panorama (labelList) {
     self.getProperty = getProperty;
     self.getPov = getPov;
     self.getZoom = getZoom;
-    self.loadNewLabelFromList = loadNewLabelFromList;
     self.renderLabel = renderLabel;
-    self.reset = reset;
+    self.setLabel = setLabel;
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
-    self.setLabelList = setLabelList;
     self.setZoom = setZoom;
     self.skipLabel = skipLabel;
 

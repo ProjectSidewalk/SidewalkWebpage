@@ -58,9 +58,9 @@ function Form(url) {
                     if (result.mission) {
                         console.log("New mission created");
                         svv.missionContainer.createAMission(result.mission);
-                        svv.panorama.reset();
-                        svv.panorama.setLabelList(result.labels);
-                        svv.panorama.loadNewLabelFromList();
+                        svv.panoramaContainer.reset();
+                        svv.panoramaContainer.setLabelList(result.labels);
+                        svv.panoramaContainer.loadNewLabelOntoPanorama();
                     }
                 }
             },
