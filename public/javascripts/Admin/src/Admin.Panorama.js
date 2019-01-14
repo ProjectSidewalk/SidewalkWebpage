@@ -205,7 +205,7 @@ function AdminPanorama(svHolder) {
     _init();
 
     self.setPano = setPano;
-    self.setRandomLabel = setLabel;
+    self.setLabel = setLabel;
     self.renderLabel = renderLabel;
     return self;
 }
