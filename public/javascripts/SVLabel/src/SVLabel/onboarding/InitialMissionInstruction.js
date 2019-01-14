@@ -20,9 +20,7 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
             var distance = taskContainer.getCompletedTaskDistance("kilometers");
             if (distance >= 0.025) {
-                var title = "Please check both sides of the street";
-                var message = "Remember, we would like you to check both sides of the street. " +
-                    "Please label accessibility issues like sidewalk obstacles and surface problems.";
+                var title = "As you walk, please remember to check both sides of the street like this:";
                 tracker.push('PopUpShow_CheckBothSides');
 
                 popUpMessage.notify(title, message, function() {

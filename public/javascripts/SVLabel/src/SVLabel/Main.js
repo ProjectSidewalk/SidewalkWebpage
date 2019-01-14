@@ -480,6 +480,7 @@ function Main (params) {
         svl.ui.popUpMessage.title = $("#pop-up-message-title");
         svl.ui.popUpMessage.content = $("#pop-up-message-content");
         svl.ui.popUpMessage.buttonHolder = $("#pop-up-message-button-holder");
+        svl.ui.popUpMessage.image = $("#pop-up-message-image");
 
         // Ribbon menu DOMs
         svl.ui.ribbonMenu = {};
