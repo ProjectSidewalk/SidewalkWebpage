@@ -44,11 +44,11 @@ module.exports = function(grunt) {
                 ],
                 dest: 'public/javascripts/Admin/build/Admin.js'
             },
-            dist_faq: {
+            dist_help: {
                 src: [
-                    'public/javascripts/FAQ/src/*.js'
+                    'public/javascripts/help/src/*.js'
                 ],
-                dest: 'public/javascripts/FAQ/build/FAQ.js'
+                dest: 'public/javascripts/help/build/help.js'
             }
         },
         uglify: {
@@ -115,7 +115,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/css/*.css',
                     'public/javascripts/Progress/src/**/*.js',
                     'public/javascripts/Admin/src/**/*.js',
-                    'public/javascripts/FAQ/src/*.js'
+                    'public/javascripts/help/src/*.js'
                 ],
                 tasks: [
                     'concat',

@@ -51,8 +51,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         mission.complete();
 
         // Survey prompt. Modal should display survey if
-        // 1. User is a Turker (/survey/display endpoint returns true if this is the case).
-        // 2. User has just completed numMissionsBeforeSurvey number of missions.
+        // 1. User has just completed numMissionsBeforeSurvey number of missions.
         $.ajax({
             async: true,
             url: '/survey/display',
@@ -63,7 +62,23 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
                         backdrop: 'static',
                         keyboard: false
                     });
-                    //console.log('Survey displayed');
+
+                    //we will log in the webpage activity table if the survey has been shown
+                    var activity = "SurveyShown";
+                    var url = "/userapi/logWebpageActivity";
+                    var async = true;
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify(activity),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
                 }
             },
             error: function (xhr, ajaxOptions, thrownError) {

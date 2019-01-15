@@ -73,3 +73,17 @@ svg {
 .seven-cols .col-lg-1  {
     width: 14.285714285714285714285714285714%;
 }
+
+.col-xxs-1 {
+    width: 9%;
+}
+
+.col-neighborhood {
+    width: 22%;
+}
+
+.col-date {
+    width: 15%;
+}
+
+
