@@ -245,6 +245,7 @@ function Panorama (label) {
         currentLabel = label;
         currentLabel.setValidationProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getOriginalProperty('labelType'));
+        svv.statusExample.updateLabelImage(currentLabel.getOriginalProperty('labelType'));
         setPanorama(label.getOriginalProperty('gsvPanoramaId'), label.getOriginalProperty('heading'),
             label.getOriginalProperty('pitch'), label.getOriginalProperty('zoom'));
         renderLabel();

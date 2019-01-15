@@ -8,12 +8,12 @@ function StatusField(missionMetadata) {
     var self = this;
 
     var labelNames = {
-        CurbRamp : "Curb Ramp",
-        NoCurbRamp : "Missing Curb Ramp",
-        Obstacle : "Obstacle in Path",
-        SurfaceProblem : "Surface Problem",
-        NoSidewalk : "Missing Sidewalk",
-        Other : "Other"
+        CurbRamp: "Curb Ramp",
+        NoCurbRamp: "Missing Curb Ramp",
+        Obstacle: "Obstacle in Path",
+        SurfaceProblem: "Surface Problem",
+        NoSidewalk: "Missing Sidewalk",
+        Other: "Other"
     };
 
     /**

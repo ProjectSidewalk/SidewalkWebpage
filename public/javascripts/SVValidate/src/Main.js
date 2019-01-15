@@ -51,6 +51,7 @@ function Main (param) {
 
         svv.form = new Form(param.dataStoreUrl);
         svv.statusField = new StatusField(param.mission);
+        svv.statusExample = new StatusExample();
         svv.tracker = new Tracker();
 
         svv.keyboard = new Keyboard(svv.ui.validation);

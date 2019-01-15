@@ -8,7 +8,15 @@
 
 #example-image-holder {
     height: 170px;
-    background: rgb(185, 185, 185);
+    /* background: rgb(185, 185, 185); */
+}
+
+.example-image {
+    height: 83px;
+    width: 95px;
+    display: inline-block;
+    margin-bottom: 2px;
+    /* background: blueviolet; */
 }
 
 #status-holder {
