@@ -204,12 +204,11 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      * @param image
      * @param callback
      */
-    this.notifyWithImage = function (title, image, callback) {
+    this.notifyWithImage = function (title, callback) {
         uiPopUpMessage.buttonHolder.html("");
         self._setPosition(40, 260, 640);
         self.show();
         self._setTitle(title);
-        self._setImage(image);
         self._appendOKButton();
 
         if (callback) {
@@ -270,20 +269,6 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     this._setTitle = function (title) {
          uiPopUpMessage.title.html(title);
     };
-
-    /**
-     * Sets the message.
-     */
-    this._setMessage = function (message) {
-        uiPopUpMessage.content.html(message);
-    };
-
-    /**
-     * Sets the image.
-     */
-    this._setImage = function (image) {
-        uiPopUpMessage.image.html(image);
-    }
 
     /*
      * Sets the position of the message.
