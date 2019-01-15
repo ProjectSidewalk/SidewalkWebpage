@@ -20,8 +20,6 @@ function Form(url) {
 
         svv.tracker.refresh();
         svv.labelContainer.refresh();
-        console.log("[Form.js] compileSubmissionData");
-        console.log(data);
         return data;
     }
 
@@ -32,17 +30,13 @@ function Form(url) {
      * @returns {*}
      */
     function submit(data, async) {
-        console.log("[Form.js] Submit function called");
         if (typeof async === "undefined") {
             async = false;
         }
 
         if (data.constructor !== Array) {
-            console.log("Converting data...");
             data = [data];
         }
-        console.log("[Form.js] Submitting data");
-        console.log(data);
 
         $.ajax({
             async: async,
@@ -53,10 +47,8 @@ function Form(url) {
             dataType: 'json',
             success: function (result) {
                 if (result) {
-                    console.log('Success');
                     // If a mission was returned after posting data, create a new mission.
                     if (result.mission) {
-                        console.log("New mission created");
                         svv.missionContainer.createAMission(result.mission);
                         svv.panoramaContainer.reset();
                         svv.panoramaContainer.setLabelList(result.labels);

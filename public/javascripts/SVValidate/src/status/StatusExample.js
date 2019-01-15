@@ -24,6 +24,12 @@ function StatusExample () {
      * @param labelType Type of label being displayed on the interface.
      */
     function updateLabelImage (labelType) {
+        // Temporary: for NoSidewalk, Other and Occlusion labels, just use curb ramp images.
+        // TODO: Find images for NoSidewalk, Other, and Occlusion.
+        if (labelType === "NoSidewalk" || labelType === "Other" || labelType === "Occlusion") {
+            labelType = "CurbRamp";
+        }
+
         _updateCounterExamples(labelType);
         _updateExamples(labelType);
     }
@@ -34,7 +40,6 @@ function StatusExample () {
      * @private
      */
     function _updateCounterExamples (labelType) {
-        console.log("Label Type: " + labelType);
         example1.attr('src', 'assets/javascripts/SVValidate/img/ValidationExamples/' + labelType + 'Example1.png');
         example2.attr('src', 'assets/javascripts/SVValidate/img/ValidationExamples/' + labelType + 'Example2.png');
         example3.attr('src', 'assets/javascripts/SVValidate/img/ValidationExamples/' + labelType + 'Example3.png');

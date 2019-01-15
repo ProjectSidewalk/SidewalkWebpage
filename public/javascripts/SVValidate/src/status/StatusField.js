@@ -13,7 +13,8 @@ function StatusField(missionMetadata) {
         Obstacle: "Obstacle in Path",
         SurfaceProblem: "Surface Problem",
         NoSidewalk: "Missing Sidewalk",
-        Other: "Other"
+        Occlusion: "Occlusion",
+        Other: "accessibility issue"
     };
 
     /**
@@ -46,14 +47,23 @@ function StatusField(missionMetadata) {
         var labelName = labelNames[labelType];
 
         // Centers and updates title top of the validation interface.
-        svv.ui.status.upperMenuTitle.html("Is this a " + labelName.bold() + "?");
+        var prefix = undefined;
+        if (labelType === "CurbRamp" || labelType === "NoCurbRamp" || labelType === "SurfaceProblem") {
+            prefix = "a ";
+        } else if (labelType === "Occlusion") {
+            prefix = " ";
+        } else {
+            prefix = "an "
+        }
+
+        svv.ui.status.upperMenuTitle.html("Is this " + prefix + labelName.bold() + "?");
         var offset = svv.ui.status.upperMenuTitle.width();
         var width = (svv.canvasWidth - offset) / 2;
         svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         // Changes text on on the status field (right side of the validation interface).
         svv.ui.status.labelTypeExample.html(labelName);
-        svv.ui.status.labelTypeCounterexample.html("NOT".italics() + " a " + labelName);
+        svv.ui.status.labelTypeCounterexample.html("NOT ".italics() + prefix + labelName);
     }
 
     /**
