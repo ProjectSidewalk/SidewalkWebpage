@@ -73,10 +73,15 @@ GET     /audit/recalculateStreetPriority                     @controllers.AuditP
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
 
+# Label validation tasks
+GET     /validate                                            @controllers.ValidationController.validate
+POST    /validate/comment                                    @controllers.ValidationController.postComment
+
 # Task API.
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
+POST    /validationTask                                      @controllers.ValidationTaskController.post
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
@@ -86,6 +91,8 @@ GET     /rewardEarned                                        @controllers.Missio
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
+GET     /label/geo/random                                    @controllers.ValidationTaskController.getRandomLabelData()
+GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods

@@ -140,9 +140,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
-
     var submission = request.body.validate[Seq[AuditTaskSubmission]]
-
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
@@ -297,7 +295,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           for (panorama <- data.gsvPanoramas) {
             // Check the presence of the data
             if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
-              val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "")
+              val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+              val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "", false, Some(timestamp))
               GSVDataTable.save(gsvData)
 
               for (link <- panorama.links) {
