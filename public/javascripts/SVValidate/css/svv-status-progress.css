@@ -1,0 +1,20 @@
+#status-current-mission-completion-bar {
+    background: rgba(210,210,210,1);
+    height: 14px;
+    position: absolute;
+    width: 190px;
+}
+
+#status-current-mission-completion-bar-filler {
+    border-width: 0;
+    height: 14px;
+    position: absolute;
+    width: 190px;
+}
+
+#status-current-mission-completion-rate {
+    color: white;
+    font-size: 8pt;
+    width: 100px;
+    padding-left: 5px;
+}

@@ -1220,12 +1220,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.clear();
             _canvas.render2();
         } else if (item && item.className === "Label") {
-            console.log("On a label");
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
             _canvas.showLabelTag(selectedLabel);
         } else if (item && item.className === "Path") {
-            //console.log("On a Path");
             var label = item.belongsTo();
             _canvas.clear();
             _canvas.render2();
