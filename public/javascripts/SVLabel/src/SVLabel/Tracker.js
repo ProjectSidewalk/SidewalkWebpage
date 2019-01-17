@@ -176,10 +176,7 @@ function Tracker () {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
-
-        //console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
         if(self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
-
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);
@@ -190,10 +187,8 @@ function Tracker () {
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
-            //console.log("Current Label: " + currentLabel + " " + action);
 
         } else if (self._isDeleteLabelAction(action)){
-
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);

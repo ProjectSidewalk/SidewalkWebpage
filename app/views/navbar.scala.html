@@ -299,6 +299,10 @@ $(document).ready(function () {
 
                 $("#navbar-dropdown-list").html(htmlString);
                 var path = window.location.pathname;
+
+                // Toggle the sign-in modal 
+                $('#sign-in-modal-container').modal('toggle');
+
                 if(path.includes("/audit") && svl) {
                     svl.user.setProperty('username', data.username);
 
@@ -331,7 +335,6 @@ $(document).ready(function () {
                     $('#nav-user-menu').children('#dashboard-link').after(adminLi);
                 }
 
-                $('#sign-in-modal-container').modal('toggle');
             }
 
 

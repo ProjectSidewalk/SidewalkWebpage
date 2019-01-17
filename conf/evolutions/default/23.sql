@@ -1,5 +1,4 @@
 # --- !Ups
-
 UPDATE survey_question
 SET survey_question_text = 'How much have you been enjoying using Project Sidewalk?'
 WHERE survey_question_id = 1;
@@ -21,7 +20,6 @@ SET survey_question_text = 'Do you have any feedback, design ideas, or questions
 WHERE survey_question_id = 5;
 
 # --- !Downs
-
 UPDATE survey_question
 SET survey_question_text = 'How much did you enjoy this task?'
 WHERE survey_question_id = 1;

@@ -126,5 +126,4 @@ object TaskSubmissionFormats {
     (JsPath \ "amt_assignment_id").read[Int] and
       (JsPath \ "completed").readNullable[Boolean]
     )(AMTAssignmentCompletionSubmission.apply _)
-
 }

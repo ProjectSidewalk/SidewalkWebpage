@@ -493,7 +493,7 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
-                    @if(user){
+                    @if(user) {
                         @if(user.get.role.getOrElse("") == "Turker") {
                             <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
                         }
@@ -511,8 +511,8 @@
                             <div id="modal-mission-complete-map">
                             </div>
                             <div id="map-legend">
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></svg> This Mission</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></svg> Previous Missions</span>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> This Mission</span><br>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> Previous Missions</span>
                             </div>
 
                         </div>
