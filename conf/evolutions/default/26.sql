@@ -1,6 +1,6 @@
 # --- !Ups
 ALTER TABLE label
-    ALTER COLUMN time_created TYPE TIMESTAMPTZ USING time_created AT TIME ZONE 'UTC',
+    ALTER COLUMN time_created TYPE TIMESTAMPTZ USING time_created AT TIME ZONE 'PST',
     ALTER COLUMN time_created SET DEFAULT now();
 
 # --- !Downs
