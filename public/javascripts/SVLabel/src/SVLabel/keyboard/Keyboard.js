@@ -122,12 +122,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @private
      */
     this._documentKeyDown = function (e) {
-        // The callback method that is triggered with a keyUp event.
-        //equal button || - button
-        if (e.keyCode == 187 || e.keyCode == 189) {
-            svl.contextMenu.hide();
-            return;
-        } else if (!status.focusOnTextField && !status.disableKeyboard) {
+        if (!status.focusOnTextField && !status.disableKeyboard) {
             //only set shift if the event was made after the keyup.
             if (e.timeStamp > lastShiftKeyUpTimestamp) {
                 status.shiftDown = e.shiftKey;
