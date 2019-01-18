@@ -46,9 +46,9 @@ function StatusField(missionMetadata) {
     function updateLabelText(labelType) {
         var labelName = labelNames[labelType];
 
-        // Centers and updates title top of the validation interface.
         var prefix = undefined;
-        if (labelType === "CurbRamp" || labelType === "NoCurbRamp" || labelType === "SurfaceProblem") {
+        if (labelType === "CurbRamp" || labelType === "NoCurbRamp" ||
+            labelType === "SurfaceProblem" || labelType === "NoSidewalk") {
             prefix = "a ";
         } else if (labelType === "Occlusion") {
             prefix = " ";
@@ -56,6 +56,7 @@ function StatusField(missionMetadata) {
             prefix = "an "
         }
 
+        // Centers and updates title top of the validation interface.
         svv.ui.status.upperMenuTitle.html("Is this " + prefix + labelName.bold() + "?");
         var offset = svv.ui.status.upperMenuTitle.width();
         var width = (svv.canvasWidth - offset) / 2;
