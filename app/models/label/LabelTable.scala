@@ -760,35 +760,6 @@ object LabelTable {
     labelLocationList
   }
 
-  /**
-    * Returns counts of labels by label type in the specified region
-    *
-    * @param regionId
-    * @return
-    */
-  def selectNegativeLabelCountsByRegionId(regionId: Int) = db.withSession { implicit session =>
-    val selectQuery = Q.query[(Int), (String, Int)](
-      """SELECT labels.label_type, COUNT(labels.label_type)
-        |FROM
-        |(
-        |    SELECT label.label_id, label_type.label_type, label_point.lat, region.region_id
-        |    FROM sidewalk.label
-        |    INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
-        |    INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
-        |    INNER JOIN sidewalk.region ON ST_Intersects(region.geom, label_point.geom)
-        |    WHERE label.deleted = FALSE
-        |        AND label_point.lat IS NOT NULL
-        |        AND region.deleted = FALSE
-        |        AND region.region_type_id = 2
-        |        AND label.label_type_id NOT IN (1,5,6)
-        |        AND label.tutorial = FALSE
-        |        AND region_id = ?
-        |) AS labels
-        |GROUP BY (labels.label_type)""".stripMargin
-    )
-    selectQuery(regionId).list
-  }
-
   def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int) = db.withSession { implicit session =>
     val selectQuery = Q.query[(String, Int), LabelLocation](
       """SELECT label.label_id,
