@@ -1,18 +1,22 @@
 package models.label
 
+import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
+import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
+import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -44,6 +48,11 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      severity: Int,
                                      lat: Float,
                                      lng: Float)
+
+
+case class LabelValidationLocation(labelId: Int, labelType: String, gsvPanoramaId: String,
+                                   heading: Float, pitch: Float, zoom: Float, canvasX: Int,
+                                   canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
 /**
  *
@@ -109,6 +118,10 @@ object LabelTable {
                            timestamp: Option[java.sql.Timestamp],
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
                            temporary: Boolean, description: Option[String], tags: List[String])
+
+  case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
+                                     heading: Float, pitch: Float, zoom: Int, canvasX: Int,
+                                     canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -411,7 +424,136 @@ object LabelTable {
   }
 
   /**
-    * This method returns a LabelMetadata object that has the label properties as well as the tags.
+    * Retrieves a label with a given labelID for validation.
+    * @param labelId  Label ID for label to retrieve.
+    * @return         LabelValidationMetadata object.
+    */
+  def retrieveSingleLabelForValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
+    val validationLabels = for {
+      _lb <- labels if _lb.labelId === labelId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+    } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
+      _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
+    validationLabels.list.map(label => LabelValidationMetadata.tupled(label)).head
+  }
+
+  /**
+    * Retrieves a random label that has an existing GSVPanorama.
+    * Will keep querying for a random label until a suitable label has been found.
+    * @return LabelValidationMetadata of this label.
+    */
+  def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
+    var exists: Boolean = false
+    var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
+    while (!exists) {
+      val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
+        """SELECT lb.label_id,
+        |       lt.label_type,
+        |       lb.gsv_panorama_id,
+        |       lp.heading,
+        |       lp.pitch,
+        |       lp.zoom,
+        |       lp.canvas_x,
+        |       lp.canvas_y,
+        |       lp.canvas_width,
+        |       lp.canvas_height
+        |FROM sidewalk.label AS lb,
+        |     sidewalk.label_type AS lt,
+        |     sidewalk.label_point AS lp,
+        |     sidewalk.gsv_data AS gd
+        |WHERE lp.label_id = lb.label_id
+        |      AND lt.label_type_id = lb.label_type_id
+        |      AND lb.deleted = false
+        |      AND lb.tutorial = false
+        |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
+        |      AND gd.expired = false
+        |OFFSET floor(random() *
+        |      (
+        |          SELECT COUNT(*)
+        |          FROM sidewalk.label
+        |          WHERE sidewalk.label.deleted = false
+        |              AND sidewalk.label.tutorial = false
+        |      )
+        |)
+        |LIMIT ?""".stripMargin
+      )
+      val singleLabel = selectQuery(1).list
+      // Uses panorama ID to check if this panorama exists
+      exists = panoExists(singleLabel(0)._3)
+
+      if (exists) {
+        labelToValidate = singleLabel
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
+      } else {
+        println("Panorama " + singleLabel(0)._3 + " doesn't exist")
+        GSVDataTable.markExpired(singleLabel(0)._3, true)
+      }
+    }
+    labelToValidate.map(label => LabelValidationMetadata.tupled(label)).head
+  }
+
+  /**
+    * Retrieves a list of labels to be validated
+    * @param count  Length of list
+    * @return       Seq[LabelValidationMetadata]
+    */
+  def retrieveRandomLabelListForValidation(count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    var labelList = new ListBuffer[LabelValidationMetadata]()
+    for (a <- 1 to count) {
+      labelList += retrieveSingleRandomLabelForValidation()
+    }
+    val labelSeq: Seq[LabelValidationMetadata] = labelList
+    labelSeq
+  }
+
+  /**
+    * Checks if the panorama associated with a label eixsts by pinging Google Maps.
+    * @param gsvPanoId  Panorama ID
+    * @return           True if the panorama exists, false otherwise
+    */
+  def panoExists(gsvPanoId: String): Boolean = {
+    try {
+      val now = new DateTime(DateTimeZone.UTC)
+      val urlString : String = "http://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
+      // println("URL: " + urlString)
+      val panoURL : URL = new java.net.URL(urlString)
+      val connection : HttpURLConnection = panoURL.openConnection.asInstanceOf[HttpURLConnection]
+      connection.setConnectTimeout(5000)
+      connection.setReadTimeout(5000)
+      connection.setRequestMethod("GET")
+      val responseCode: Int = connection.getResponseCode
+      // println("Response Code: " + responseCode)
+
+      // URL is only valid if the response code is between 200 and 399.
+      200 <= responseCode && responseCode <= 399
+    } catch {
+      case e: ConnectException => false
+      case e: SocketException => false
+      case e: Exception => false
+    }
+
+  }
+
+  def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
+    Json.obj(
+      "label_id" -> labelMetadata.labelId,
+      "label_type" -> labelMetadata.labelType,
+      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
+      "heading" -> labelMetadata.heading,
+      "pitch" -> labelMetadata.pitch,
+      "zoom" -> labelMetadata.zoom,
+      "canvas_x" -> labelMetadata.canvasX,
+      "canvas_y" -> labelMetadata.canvasY,
+      "canvas_width" -> labelMetadata.canvasWidth,
+      "canvas_height" -> labelMetadata.canvasHeight
+    )
+  }
+
+  /**
+    * Returns a LabelMetadata object that has the label properties as well as the tags.
     *
     * @param label label from query
     * @param tags list of tags as strings

@@ -252,8 +252,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
             val properties = Json.obj(
               "street_edge_id" -> edge.streetEdgeId,
-              "source" -> edge.source,
-              "target" -> edge.target,
               "way_type" -> edge.wayType
             )
             Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
