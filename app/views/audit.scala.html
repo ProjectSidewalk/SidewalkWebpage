@@ -819,7 +819,19 @@
             svl.user = new User(userParam);
         }
         svl.userModel._user = svl.user;
-        @if(task) {
+        var hitExpired = false;
+        @if(user && user.get.role.getOrElse("") == "Turker") {
+            var asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
+            var now = new Date().getTime();
+            var timeRemaining = asmtEndTime - now;
+            if (timeRemaining < 0) {
+                hitExpired = true;
+            }
+        }
+        if(hitExpired) {
+            $(".toolUI").css({"visibility": "visible"});
+            $('#HIT-expiration-overlay').show();
+        } else @if(task) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 25;
@@ -940,6 +952,7 @@
                 @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                    svl.asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                     @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
