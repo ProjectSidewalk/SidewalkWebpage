@@ -20,6 +20,7 @@
                     <script>
                         // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
                         var asmtEndTime = new Date("@{models.amt.AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)}");
+                        var expired = true;
 
                         // Update the count down every 1 second
                         var timerInterval = setInterval(function() {
@@ -35,16 +36,21 @@
                             if (timeRemaining < 0) {
                                 clearInterval(timerInterval);
                                 document.getElementById("navbarTimer").innerHTML = "EXPIRED";
-                                // If on the audit page, show HIT expiration overlay so they are unable to audit.
-                                @if(url.get == "/audit") {
-                                    $('#HIT-expiration-overlay').show();
+
+                                // If on the audit page and the timer has just expired, refresh page to show HIT
+                                // expiration overlay so they are unable to audit.
+                                if("@url.get" === "/audit" && !expired) {
+                                    window.location.href = window.location.origin + "/audit";
                                 }
                             } else if (hours > 0) {
                                 document.getElementById("navbarTimer").innerHTML = hours + "h " + minutes + "m ";
+                                expired = false;
                             } else if (minutes > 0) {
                                 document.getElementById("navbarTimer").innerHTML = minutes + "m " + seconds + "s ";
+                                expired = false;
                             } else {
                                 document.getElementById("navbarTimer").innerHTML = seconds + "s ";
+                                expired = false;
                             }
                             // If there are less than 15 minutes remaining, color the text red.
                             var fifteenMinutes = 1000 * 60 * 15;
