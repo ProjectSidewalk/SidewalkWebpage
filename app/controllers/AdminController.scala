@@ -205,20 +205,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
-    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
-
-    val features: List[JsObject] = neighborhoods.map {neighborhood =>
-      val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
-      Json.obj(
-        "region_id" -> neighborhood.regionId,
-        "labels" -> Json.toJson(labelResults.toMap)
+    // Groups by region_id... json looks like: {region_id: 123, labels: {NoCurbRamp: 5, Obstacle: 10, ...}}
+    val features: List[JsObject] = GlobalAttributeTable.selectNegativeAttributeCountsByRegion().groupBy(_._1).map {
+      case (rId, group) => Json.obj(
+        "region_id" -> rId,
+        "labels" -> Json.toJson(group.map(x => (x._2, x._3)).toMap)
       )
-    }
+    }.toList
 
     val jsonObjectList = features.map(x => Json.toJson(x))
-
     Future.successful(Ok(JsArray(jsonObjectList)))
-
   }
 
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
