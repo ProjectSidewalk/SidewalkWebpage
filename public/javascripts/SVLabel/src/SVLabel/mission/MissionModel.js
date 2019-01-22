@@ -23,7 +23,6 @@ function MissionModel () {
 }
 _.extend(MissionModel.prototype, Backbone.Events);
 
-
 MissionModel.prototype.addAMission = function (mission) {
     this.trigger("MissionContainer:addAMission", mission);
 };

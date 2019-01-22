@@ -8,6 +8,10 @@ object CommentSubmissionFormats {
                                gsvPanoramaId: Option[String], heading: Option[Double], pitch: Option[Double],
                                zoom: Option[Int], lat: Option[Double], lng: Option[Double])
 
+  case class ValidationCommentSubmission(missionId: Int, labelId: Int, comment: String,
+                                         gsvPanoramaId: String, heading: Double, pitch: Double,
+                                         zoom: Int, lat: Double, lng: Double)
+
   implicit val commentSubmissionReads: Reads[CommentSubmission] = (
     (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
@@ -20,4 +24,16 @@ object CommentSubmissionFormats {
       (JsPath \ "lat").readNullable[Double] and
       (JsPath \ "lng").readNullable[Double]
     )(CommentSubmission.apply _)
+
+  implicit val validationCommentSubmissionReads : Reads[ValidationCommentSubmission] = (
+    (JsPath \ "mission_id").read[Int] and
+      (JsPath \ "label_id").read[Int] and
+      (JsPath \ "comment").read[String] and
+      (JsPath \ "gsv_panorama_id").read[String] and
+      (JsPath \ "heading").read[Double] and
+      (JsPath \ "pitch").read[Double] and
+      (JsPath \ "zoom").read[Int] and
+      (JsPath \ "lat").read[Double] and
+      (JsPath \ "lng").read[Double]
+  )(ValidationCommentSubmission.apply _)
 }

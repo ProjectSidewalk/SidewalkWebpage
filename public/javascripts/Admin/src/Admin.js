@@ -609,7 +609,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
-                    // "height": 800,
                     "height": 300,
                     "width": 875,
                     "mark": "area",
@@ -630,62 +629,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                             }
                         }
                     },
-                    // this is the slightly different code for the interactive version
-                    // "vconcat": [
-                    //     {
-                    //         "width": 800,
-                    //         "height": 150,
-                    //         "mark": "area",
-                    //         "selection": {
-                    //             "brush": {
-                    //                 "type": "interval", "encodings": ["x"]
-                    //             }
-                    //         },
-                    //         "encoding": {
-                    //             "x": {
-                    //                 "field": "date",
-                    //                 "type": "temporal",
-                    //                 "axis": {"title": "Date", "labelAngle": 0}
-                    //             },
-                    //             "y": {
-                    //                 "field": "completion",
-                    //                 "type": "quantitative", "scale": {
-                    //                     "domain": [0,100]
-                    //                 },
-                    //                 "axis": {
-                    //                     "title": "DC Coverage (%)"
-                    //                 }
-                    //             }
-                    //         }
-                    //     },
-                    //     {
-                    //         "width": 800,
-                    //         "height": 400,
-                    //         "mark": "area",
-                    //         "encoding": {
-                    //             "x": {
-                    //                 "field": "date",
-                    //                 "type": "temporal",
-                    //                 "scale": {
-                    //                     "domain": {
-                    //                         "selection": "brush", "encoding": "x"
-                    //                     }
-                    //                 },
-                    //                 "axis": {
-                    //                     "title": "", "labelAngle": 0
-                    //                 }
-                    //             },
-                    //             "y": {
-                    //                 "field": "completion","type": "quantitative", "scale": {
-                    //                     "domain": [0,100]
-                    //                 },
-                    //                 "axis": {
-                    //                     "title": "DC Coverage (%)"
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    // ],
                     "config": {
                         "axis": {
                             "titleFontSize": 16
@@ -693,92 +636,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     }
                 };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
-            });
-            $.getJSON("/adminapi/onboardingInteractions", function (data) {
-                function cmp(a, b) {
-                    return a.timestamp - b.timestamp;
-                }
-
-                // Group the audit task interaction records by audit_task_id, then go through each group and compute
-                // the duration between the first time stamp and the last time stamp.
-                var grouped = _.groupBy(data, function (x) {
-                    return x.audit_task_id;
-                });
-                var onboardingTimes = [];
-                var record1;
-                var record2;
-                var duration;
-                var bounceCount = 0;
-                for (var auditTaskId in grouped) {
-                    grouped[auditTaskId].sort(cmp);
-                    record1 = grouped[auditTaskId][0];
-                    record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-                    if(record2.note === "from:outro" || record2.note === "onboardingTransition:outro"){
-                        duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
-                        onboardingTimes.push({duration: duration, binned: Math.min(10.0, duration)});
-                    }
-                    else bounceCount++;
-                }
-                var bounceRate = bounceCount / (bounceCount + onboardingTimes.length);
-                $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(2) + "%");
-
-                var stats = getSummaryStats(onboardingTimes, "duration");
-                $("#onboarding-std").html((stats.std).toFixed(2) + " minutes");
-
-                var histOpts = {col:"binned", xAxisTitle:"Onboarding Completion Time (minutes)", xDomain:[0, 10],
-                                width:400, height:250, binStep:1};
-                var chart = getVegaLiteHistogram(onboardingTimes, stats.mean, stats.median, histOpts);
-
-                vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
-            });
-
-            // Draw a chart of total time spent auditing
-            $.getJSON("/adminapi/auditTimes", function (times) {
-                var allTimes = times.map(user => { user.binned = Math.min(200.0, user.time); return user; });
-                var regTimes = allTimes.filter(user => user.role === 'Registered');
-                var anonTimes = allTimes.filter(user => user.role === 'Anonymous');
-                var turkTimes = allTimes.filter(user => user.role === 'Turker');
-
-                var allStats = getSummaryStats(allTimes, "time");
-                var regStats = getSummaryStats(regTimes, "time");
-                var anonStats = getSummaryStats(anonTimes, "time");
-                var turkerStats = getSummaryStats(turkTimes, "time");
-
-                var allHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - All Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 10, legendOffset: -80
-                };
-                var regHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Registered Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 10, legendOffset: -80
-                };
-                var turkerHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Turker Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 10, legendOffset: -80
-                };
-                var anonHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Anon Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 1, legendOffset: -80
-                };
-
-                var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
-                var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
-                var turkerChart = getVegaLiteHistogram(turkTimes, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
-
-                $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
-                $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
-                $("#turker-audittimes-std").html((turkerStats.std).toFixed(2) + " Minutes");
-                $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
-
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-
-                vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function (error, results) {
-                });
             });
 
             $.getJSON('/adminapi/labels/all', function (data) {
