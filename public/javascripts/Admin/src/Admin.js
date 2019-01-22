@@ -675,55 +675,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
             });
 
-            // Draw a chart of total time spent auditing
-            $.getJSON("/adminapi/auditTimes", function (times) {
-                var allTimes = times.map(user => { user.binned = Math.min(200.0, user.time); return user; });
-                var regTimes = allTimes.filter(user => user.role === 'Registered');
-                var anonTimes = allTimes.filter(user => user.role === 'Anonymous');
-                var turkTimes = allTimes.filter(user => user.role === 'Turker');
-
-                var allStats = getSummaryStats(allTimes, "time");
-                var regStats = getSummaryStats(regTimes, "time");
-                var anonStats = getSummaryStats(anonTimes, "time");
-                var turkerStats = getSummaryStats(turkTimes, "time");
-
-                var allHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - All Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 10, legendOffset: -80
-                };
-                var regHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Registered Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 10, legendOffset: -80
-                };
-                var turkerHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Turker Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 10, legendOffset: -80
-                };
-                var anonHistOpts = {
-                    col: "binned", xAxisTitle: "Total Auditing Time (minutes) - Anon Users",
-                    yAxisTitle: "Counts (users)", xDomain: [0, 200], width: 187, height: 250,
-                    binStep: 1, legendOffset: -80
-                };
-
-                var allChart = getVegaLiteHistogram(allTimes, allStats.mean, allStats.median, allHistOpts);
-                var regChart = getVegaLiteHistogram(regTimes, regStats.mean, regStats.median, regHistOpts);
-                var turkerChart = getVegaLiteHistogram(turkTimes, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                var anonChart = getVegaLiteHistogram(anonTimes, anonStats.mean, anonStats.median, anonHistOpts);
-
-                $("#all-audittimes-std").html((allStats.std).toFixed(2) + " Minutes");
-                $("#reg-audittimes-std").html((regStats.std).toFixed(2) + " Minutes");
-                $("#turker-audittimes-std").html((turkerStats.std).toFixed(2) + " Minutes");
-                $("#anon-audittimes-std").html((anonStats.std).toFixed(2) + " Minutes");
-
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-
-                vega.embed("#auditing-duration-time-histogram", combinedChart, opt, function (error, results) {
-                });
-            });
-
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {
                     data.features[i].label_type = data.features[i].properties.label_type;

@@ -11,7 +11,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel, UserAuditTime}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
@@ -280,22 +280,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.successful(Redirect("/"))
     }
   }
-
-  /**
-    * Get all auditing times
-    *
-    * @return
-    */
-  def getAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "role" -> auditTime.role, "time" -> auditTime.duration))
-      Future.successful(Ok(JsArray(auditTimes)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
 
   /**
     * This method returns the tasks and labels submitted by the given user.
