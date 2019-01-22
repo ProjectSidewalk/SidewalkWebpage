@@ -637,43 +637,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
-            $.getJSON("/adminapi/onboardingInteractions", function (data) {
-                function cmp(a, b) {
-                    return a.timestamp - b.timestamp;
-                }
-
-                // Group the audit task interaction records by audit_task_id, then go through each group and compute
-                // the duration between the first time stamp and the last time stamp.
-                var grouped = _.groupBy(data, function (x) {
-                    return x.audit_task_id;
-                });
-                var onboardingTimes = [];
-                var record1;
-                var record2;
-                var duration;
-                var bounceCount = 0;
-                for (var auditTaskId in grouped) {
-                    grouped[auditTaskId].sort(cmp);
-                    record1 = grouped[auditTaskId][0];
-                    record2 = grouped[auditTaskId][grouped[auditTaskId].length - 1];
-                    if(record2.note === "from:outro" || record2.note === "onboardingTransition:outro"){
-                        duration = (record2.timestamp - record1.timestamp) / 60000;  // Duration in minutes
-                        onboardingTimes.push({duration: duration, binned: Math.min(10.0, duration)});
-                    }
-                    else bounceCount++;
-                }
-                var bounceRate = bounceCount / (bounceCount + onboardingTimes.length);
-                $("#onboarding-bounce-rate").html((bounceRate * 100).toFixed(2) + "%");
-
-                var stats = getSummaryStats(onboardingTimes, "duration");
-                $("#onboarding-std").html((stats.std).toFixed(2) + " minutes");
-
-                var histOpts = {col:"binned", xAxisTitle:"Onboarding Completion Time (minutes)", xDomain:[0, 10],
-                                width:400, height:250, binStep:1};
-                var chart = getVegaLiteHistogram(onboardingTimes, stats.mean, stats.median, histOpts);
-
-                vega.embed("#onboarding-completion-duration-histogram", chart, opt, function(error, results) {});
-            });
 
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {

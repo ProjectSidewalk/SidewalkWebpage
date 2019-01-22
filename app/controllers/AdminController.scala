@@ -266,22 +266,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method returns the onboarding interaction data
-    *
-    * @return
-    */
-  def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val onboardingTransitions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")
-      val jsonObjectList = onboardingTransitions.map(x => Json.toJson(x))
-
-      Future.successful(Ok(JsArray(jsonObjectList)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
     * This method returns the tasks and labels submitted by the given user.
     *
     * @param username Username

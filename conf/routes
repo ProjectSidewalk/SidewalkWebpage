@@ -46,7 +46,6 @@ GET     /adminapi/allSignInCounts                            @controllers.AdminC
 GET     /adminapi/completionRateByDate                       @controllers.AdminController.getCompletionRateByDate
 GET     /adminapi/tasks/:username                            @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
 GET     /adminapi/interactions/:username                     @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
-GET     /adminapi/onboardingInteractions                     @controllers.AdminController.getOnboardingTaskInteractions
 GET     /adminapi/auditpath/:id                              @controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreets/:username                   @controllers.AdminController.getStreetsAuditedByAUser(username: String)
 GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
