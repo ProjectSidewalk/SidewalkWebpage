@@ -284,25 +284,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  /**
-    * Get records of audit task interactions of a user
-    *
-    * @param username
-    * @return
-    */
-  def getAuditTaskInteractionsOfAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(UUID.fromString(user.userId)).map(interaction => Json.toJson(interaction))
-          Future.successful(Ok(JsArray(interactions)))
-        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
-      }
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
   def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       AuditTaskTable.find(taskId) match {
