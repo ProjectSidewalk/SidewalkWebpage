@@ -11,7 +11,7 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel, UserAuditTime}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
@@ -205,20 +205,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
-    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
-
-    val features: List[JsObject] = neighborhoods.map {neighborhood =>
-      val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
-      Json.obj(
-        "region_id" -> neighborhood.regionId,
-        "labels" -> Json.toJson(labelResults.toMap)
+    // Groups by region_id... json looks like: {region_id: 123, labels: {NoCurbRamp: 5, Obstacle: 10, ...}}
+    val features: List[JsObject] = GlobalAttributeTable.selectNegativeAttributeCountsByRegion().groupBy(_._1).map {
+      case (rId, group) => Json.obj(
+        "region_id" -> rId,
+        "labels" -> Json.toJson(group.map(x => (x._2, x._3)).toMap)
       )
-    }
+    }.toList
 
     val jsonObjectList = features.map(x => Json.toJson(x))
-
     Future.successful(Ok(JsArray(jsonObjectList)))
-
   }
 
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
@@ -270,38 +266,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method returns the onboarding interaction data
-    *
-    * @return
-    */
-  def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val onboardingTransitions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")
-      val jsonObjectList = onboardingTransitions.map(x => Json.toJson(x))
-
-      Future.successful(Ok(JsArray(jsonObjectList)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get all auditing times
-    *
-    * @return
-    */
-  def getAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "role" -> auditTime.role, "time" -> auditTime.duration))
-      Future.successful(Ok(JsArray(auditTimes)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-
-  /**
     * This method returns the tasks and labels submitted by the given user.
     *
     * @param username Username
@@ -314,25 +278,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
-      }
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get records of audit task interactions of a user
-    *
-    * @param username
-    * @return
-    */
-  def getAuditTaskInteractionsOfAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(UUID.fromString(user.userId)).map(interaction => Json.toJson(interaction))
-          Future.successful(Ok(JsArray(interactions)))
-        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
       }
     } else {
       Future.successful(Redirect("/"))
