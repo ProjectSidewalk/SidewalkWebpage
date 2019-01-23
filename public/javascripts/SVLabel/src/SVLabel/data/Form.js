@@ -97,7 +97,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 temporary_label: label.getProperty('temporaryLabel'),
                 tag_ids: label.getProperty('tagIds'),
                 description: label.getProperty('description'),
-                time_created: timeCreated
+                time_created: timeCreated,
+                tutorial: prop.tutorial
             };
 
             for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
