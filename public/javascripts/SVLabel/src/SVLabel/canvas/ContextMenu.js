@@ -231,14 +231,14 @@ function ContextMenu (uiContextMenu) {
                 self.labelTags.forEach(function (tag) {
                     if (tag.tag === tagValue) {
                         if (!labelTags.includes(tag.tag_id)) {
-                            // Strings of alternate route present and no alternate route
                             var alternateRoutePresentStr = 'alternate route present';
                             var noAlternateRouteStr = 'no alternate route';
                             // Automatically deselect one of the tags above if the other one is selected
-                            if (tagValue == alternateRoutePresentStr) {
-                                removeLabelAndUpdateUI(noAlternateRouteStr, labelTags);
-                            } else if (tagValue == noAlternateRouteStr) {
-                                removeLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
+                            if (tagValue === alternateRoutePresentStr) {
+                                labelTags = removeLabelAndUpdateUI(noAlternateRouteStr, labelTags);
+                                
+                            } else if (tagValue === noAlternateRouteStr) {
+                                labelTags = removeLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
                             }
 
                             labelTags.push(tag.tag_id);
@@ -258,13 +258,21 @@ function ContextMenu (uiContextMenu) {
         });
     }
 
+    /**
+     * Remove the alternate lable, update UI, and add the selected label.
+     * @param {*} labelName     The name of the label to be removed.
+     * @param {*} labelTags     List of tags that the current label has.
+     */
     function removeLabelAndUpdateUI(labelName, labelTags) {
-        $tags.each((index, tag) => {if (tag.innerText == labelName) {tag.style.backgroundColor = "white"; } });
+        $tags.each((index, tag) => {if (tag.innerText === labelName) {tag.style.backgroundColor = "white"; } });
         self.labelTags.forEach(tag => {
-            if (tag.tag == labelName && labelTags.includes(tag.tag_id)) {
+            if (tag.tag === labelName && labelTags.includes(tag.tag_id)) {
                 labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
+                svl.tracker.push('ContextMenu_TagRemoved',
+                    { tagId: tag.tag_id, tagName: tag.tag });
             }
         });
+        return labelTags;
     }
 
     /**
