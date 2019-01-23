@@ -184,7 +184,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  
+  /**
+    * Drops a researcher at a given location on the given street edge.
+    *
+    * @param streetEdgeId
+    * @param lat
+    * @param lng
+    * @param panoId
+    * @return
+    */
   def auditLocation(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
