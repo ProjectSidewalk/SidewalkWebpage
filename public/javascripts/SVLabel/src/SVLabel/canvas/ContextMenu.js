@@ -233,56 +233,43 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleTagClick () {
         var label = getTargetLabel();
-        var labelTags = label.getProperty('tagIds');
 
-        $("body").unbind('click').on('click', 'button', function(e){
+        $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
                 var tagValue = e.target.textContent || e.target.innerText;
 
                 // Adds or removes tag from the label's current list of tags.
-                self.labelTags.forEach(function (tag) {
-                    if (tag.tag === tagValue) {
-                        if (!labelTags.includes(tag.tag_id)) {
-                            labelTags.push(tag.tag_id);
-                            svl.tracker.push('ContextMenu_TagAdded',
-                                { tagId: tag.tag_id, tagName: tag.tag });
-                        } else {
-                            var index = labelTags.indexOf(tag.tag_id);
-                            labelTags.splice(index, 1);
-                            svl.tracker.push('ContextMenu_TagRemoved',
-                                { tagId: tag.tag_id, tagName: tag.tag });
-                        }
-                        _toggleTagColor(labelTags, tag.tag_id, e.target);
-                        label.setProperty('tagIds', labelTags);
-                    }
-                })
-                e.target.blur();
+                toggleTag(e, label, tagValue);
             }
         });
     }
 
     /**
-     * Toggles selection of a tag. Will record the ID, as well as update the tag color.
+     * Toggles selection of a tag. Adds or removes tag from the label's current list of tags, as well as update the tag color.
+     * @param e The tag element
+     * @param label The label that we are toggling the tag for
      * @param tagValue The String text content of the tag to be toggled.
      */
-    self.toggleTag = function (tagValue) {
+    function toggleTag (e, label, tagValue) {
+        var labelTags = label.getProperty('tagIds');
         self.labelTags.forEach(function (tag) {
             if (tag.tag === tagValue) {
                 if (!labelTags.includes(tag.tag_id)) {
                     labelTags.push(tag.tag_id);
                     svl.tracker.push('ContextMenu_TagAdded',
-                        { tagId: tag.tag_id, tagName: tag.tag });
+                        {tagId: tag.tag_id, tagName: tag.tag});
                 } else {
                     var index = labelTags.indexOf(tag.tag_id);
                     labelTags.splice(index, 1);
                     svl.tracker.push('ContextMenu_TagRemoved',
-                        { tagId: tag.tag_id, tagName: tag.tag });
+                        {tagId: tag.tag_id, tagName: tag.tag});
                 }
                 _toggleTagColor(labelTags, tag.tag_id, e.target);
                 label.setProperty('tagIds', labelTags);
             }
-        })
-    };
+        });
+        e.target.blur();
+    }
 
     /**
      *
