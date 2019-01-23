@@ -269,7 +269,7 @@ function ContextMenu (uiContextMenu) {
         self.labelTags.forEach(tag => {
             if (tag.tag === labelName && labelTags.includes(tag.tag_id)) {
                 labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
-                svl.tracker.push('ContextMenu_TagRemoved',
+                svl.tracker.push('ContextMenu_TagAutoRemoved',
                     { tagId: tag.tag_id, tagName: tag.tag });
             }
         });
