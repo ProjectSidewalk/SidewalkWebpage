@@ -264,6 +264,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                         break;
                     case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
+                        // "n" for NoSidewalk
                         _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch("NoSidewalk");
                         svl.tracker.push("KeyboardShortcut_ModeSwitch_NoSidewalk", {
@@ -281,6 +282,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                         break;
                     case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
+                        // "s" for surface problem
                         _closeContextMenu(e.keyCode);
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("SurfaceProblem");
