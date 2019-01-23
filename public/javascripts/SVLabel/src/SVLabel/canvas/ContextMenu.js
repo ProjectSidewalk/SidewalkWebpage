@@ -45,29 +45,41 @@ function ContextMenu (uiContextMenu) {
     var down = {};
     var lastKeyPressed = 0;
     var lastKeyCmd = false;
-    onkeydown = onkeyup = function(e){
+    onkeydown = onkeyup = function (e) {
         e = e || event; // to deal with IE
         var isMac = navigator.platform.indexOf('Mac') > -1;
         down[e.keyCode] = e.type == 'keydown';
-        if (isMac){
-            if (lastKeyCmd && down[91] && isOpen() && down[65]){
+
+        // Code to highlight description box on command+A or ctrl+A (depending on OS)
+        if (isMac) {
+            if (lastKeyCmd && down[91] && isOpen() && down[65]) {
                 $descriptionTextBox.select();
                 down[65] = false; //reset A key
             }//A key, menu shown
 
         }//mac
-        else{
-            if (lastKeyPressed == 17 && isOpen() && down[65]){
+        else {
+            if (lastKeyPressed == 17 && isOpen() && down[65]) {
                 $descriptionTextBox.select();
             }//ctrl+A while context menu open
         }//windows
-        if (e.type == 'keydown'){
+
+        // Add shortcuts for tag selection
+        if (isOpen()) {
+            if (down[65]) {
+
+            }
+        }
+
+        // Log last keypresses
+        if (e.type == 'keydown') {
             lastKeyPressed = e.keyCode;
             lastKeyCmd = e.metaKey;
-        }else{
+        } else {
             lastKeyPressed = 0;
             lastKeyCmd = false;
         }
+
     }; //handles both key down and key up events
 
     function checkRadioButton (value) {
@@ -248,6 +260,29 @@ function ContextMenu (uiContextMenu) {
             }
         });
     }
+
+    /**
+     * Toggles selection of a tag. Will record the ID, as well as update the tag color.
+     * @param tagValue The String text content of the tag to be toggled.
+     */
+    self.toggleTag = function (tagValue) {
+        self.labelTags.forEach(function (tag) {
+            if (tag.tag === tagValue) {
+                if (!labelTags.includes(tag.tag_id)) {
+                    labelTags.push(tag.tag_id);
+                    svl.tracker.push('ContextMenu_TagAdded',
+                        { tagId: tag.tag_id, tagName: tag.tag });
+                } else {
+                    var index = labelTags.indexOf(tag.tag_id);
+                    labelTags.splice(index, 1);
+                    svl.tracker.push('ContextMenu_TagRemoved',
+                        { tagId: tag.tag_id, tagName: tag.tag });
+                }
+                _toggleTagColor(labelTags, tag.tag_id, e.target);
+                label.setProperty('tagIds', labelTags);
+            }
+        })
+    };
 
     /**
      *
