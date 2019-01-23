@@ -235,10 +235,10 @@ function ContextMenu (uiContextMenu) {
                             var noAlternateRouteStr = 'no alternate route';
                             // Automatically deselect one of the tags above if the other one is selected
                             if (tagValue === alternateRoutePresentStr) {
-                                labelTags = removeLabelAndUpdateUI(noAlternateRouteStr, labelTags);
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(noAlternateRouteStr, labelTags);
                                 
                             } else if (tagValue === noAlternateRouteStr) {
-                                labelTags = removeLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
                             }
 
                             labelTags.push(tag.tag_id);
@@ -264,7 +264,7 @@ function ContextMenu (uiContextMenu) {
      * @param {*} labelName     The name of the label to be removed.
      * @param {*} labelTags     List of tags that the current label has.
      */
-    function removeLabelAndUpdateUI(labelName, labelTags) {
+    function autoRemoveAlternateLabelAndUpdateUI(labelName, labelTags) {
         $tags.each((index, tag) => {if (tag.innerText === labelName) {tag.style.backgroundColor = "white"; } });
         self.labelTags.forEach(tag => {
             if (tag.tag === labelName && labelTags.includes(tag.tag_id)) {
