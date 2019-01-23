@@ -1,6 +1,5 @@
 /**
  * TaskFactory module.
- * @param turf
  * @returns {{className: string}}
  * @constructor
  * @memberof svl

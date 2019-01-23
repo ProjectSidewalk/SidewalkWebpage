@@ -24,12 +24,12 @@ try:
     #(Find the same user in the amt_assignment table and get the hit id and assignment id for this)
 
     cur.execute("""SELECT username,mission.mission_id,mission_user.mission_user_id,mission.label,
-        region_id,distance,distance_ft,distance_mi, hit_id, assignment_id, paid 
-        from mission_user 
-        join mission on(mission.mission_id = mission_user.mission_id) 
-        join user_role on(user_role.user_id=mission_user.user_id and user_role.role_id=4) 
-        join sidewalk.user on(sidewalk.user.user_id = mission_user.user_id) 
-        join amt_assignment on(username = amt_assignment.turker_id) 
+        region_id,distance,distance_ft,distance_mi, hit_id, assignment_id, paid
+        from mission_user
+        join mission on(mission.mission_id = mission_user.mission_id)
+        join user_role on(user_role.user_id=mission_user.user_id and user_role.role_id=2)
+        join sidewalk_user on(sidewalk_user.user_id = mission_user.user_id)
+        join amt_assignment on(username = amt_assignment.turker_id)
         where mission.deleted = false and mission.label !='onboarding';""")
 
     mission_rows = cur.fetchall()

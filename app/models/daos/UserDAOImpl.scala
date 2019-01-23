@@ -1,20 +1,25 @@
 package models.daos
 
+import java.sql.Timestamp
 import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.user.User
-import models.label.Label
+import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.audit._
-
+import models.label.LabelTable
+import models.mission.MissionTable
 import play.api.Play.current
 
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.slick.driver.PostgresDriver.simple._
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import scala.slick.jdbc.{StaticQuery => Q}
+
+case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
+                                 signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
+                                 completedMissions: Int, completedAudits: Int, labels: Int)
 
 class UserDAOImpl extends UserDAO {
 
@@ -59,25 +64,13 @@ class UserDAOImpl extends UserDAO {
 object UserDAOImpl {
   val db = play.api.db.slick.DB
   val userTable = TableQuery[UserTable]
+  val userRoleTable = TableQuery[UserRoleTable]
+  val roleTable = TableQuery[RoleTable]
   val auditTaskTable = TableQuery[AuditTaskTable]
   val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
   val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
 
-  val anonId = "97760883-8ef0-4309-9a5e-0c086ef27573"
-  val anonUsers = for {
-    (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
-    if _at.userId === anonId && _at.completed === true
-  } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
-
-  val anonIps = anonUsers.groupBy(_._1).map{case(ip,group)=>ip}
-
-  val anonUserInteractions = getAnonUserInteractions
-
-
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
-
-  case class AnonymousUserProfile(ipAddress: String, timestamp: java.sql.Timestamp, auditCount: Int, labelCount: Int)
-  case class AnonymousUserRecords(ipAddress: String, taskId: Int)
 
   def all: List[DBUser] = db.withTransaction { implicit session =>
     userTable.list
@@ -87,320 +80,197 @@ object UserDAOImpl {
     userTable.list.size
   }
 
-  /*
-   * Total number of contributing users
-   */
-  def countContributingUsers: Int = db.withTransaction { implicit session =>
-    val count = size - 1 + countAnonymousUsers
-    count
-  }
+  /**
+    * Count the number of users of the given role who have ever started (or completed) an audit task.
+    *
+    * @param roles
+    * @param taskCompleted
+    * @return
+    */
+  def countUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
 
-  /*
-   * Total number of contributing registered users
-   */
-  def countRegisteredUsers: Int = db.withTransaction { implicit session =>
-    val count = size - 1
-    count
-  }
+    val tasks = if (taskCompleted) auditTaskTable.filter(_.completed) else auditTaskTable
 
-  /*
-   * Gets anonymous user records
-   * Date: Oct 11, 2016
-   */
-  def getAnonymousUsers: List[AnonymousUserRecords] = db.withSession { implicit session =>
+    val users = for {
+      _task <- tasks
+      _user <- userTable if _task.userId === _user.userId
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      if _user.username =!= "anonymous"
+      if _role.role inSet roles
+    } yield _user.userId
 
-    val anonUsers = Q.queryNA[(String, Int)](
-      """select distinct ip_address, audit_task_id
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where user_id = (select user_id
-        |						                 from sidewalk.user
-        |						                 where username = 'anonymous')
-        |						      and completed = true);""".stripMargin
-    )
-    anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
-  }
-
-  /*
-   * Counts anonymous user records
-   * Date: Oct 10, 2016
-   */
-  def countAnonymousUsers: Int = db.withSession { implicit session =>
-
-    val anonUsers = getAnonymousUsers
-    anonUsers.groupBy(_.ipAddress).keySet.size
+    // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
+    users.groupBy(x => x).map(_._1).list.length
   }
 
   /**
-    * Gets a query for all audit task interactions done by anonymous users
+    * Count the number of researchers who have ever started (or completed) an audit task.
     *
-    * @return a query
+    * Researchers include the Researcher, Adminstrator, and Owner roles.
+    *
+    * @param taskCompleted
+    * @return
     */
-  def getAnonUserInteractions = db.withSession { implicit session =>
-    val anonAuditTasks = for {
-      (_ate, _at) <- auditTaskEnvironmentTable.innerJoin(auditTaskTable).on(_.auditTaskId === _.auditTaskId)
-      if _at.userId === anonId
-    } yield (_ate.ipAddress, _ate.auditTaskId, _at.taskStart, _at.taskEnd)
-
-    val interactions = for {
-      (_ati, _au) <-auditTaskInteractionTable.innerJoin(anonAuditTasks).on(_.auditTaskId === _._2)
-    } yield (_au._1, _au._2, _au._3, _au._4, _ati.action)
-    interactions
+  def countResearchersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
   }
 
   /**
-    * Gets the number of missions completed by each anonymous user.
+    * Count the number of users who have ever started (or completed) an audit task (across all roles).
     *
-    * Unfortunate limitation of slick: https://groups.google.com/forum/#!topic/scalaquery/lrumVNo3JE4
-    *
-    * @return List[(String: ipAddress, Int: missionCount)]
+    * @param taskCompleted
+    * @return
     */
-  def getAnonUserCompletedMissionCounts: List[(Option[String], Int)] = db.withSession { implicit session =>
-    // filter down to only the MissionComplete interactions, then get the set of unique ip/taskId pairs, then group by
-    // ip and count the number of audit tasks in there.
-    val completedMissions = anonUserInteractions.filter(_._5 === "MissionComplete").groupBy(x => (x._1, x._2)).map{
-      case ((ip, taskId), group) => (ip, taskId)
-    }.groupBy(x => x._1).map{case(ip, group) => (ip, group.map(_._2).length)}
-
-    // then join with the table of anon user ip addresses to give those with no completed missions a 0.
-    val missionCounts: List[(Option[String], Option[Int])] = completedMissions.rightJoin(anonIps).on(_._1 === _).map{
-      case (cm, ai) => (ai, cm._2.?)
-    }.list
-
-    // right now the count is an option; replace the None with a 0 -- it was none b/c only users who had completed
-    // missions ended up in the completedMissions query.
-    missionCounts.map{pair => (pair._1, pair._2.getOrElse(0))}
+  def countAllUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countUsersContributed(roleTable.map(_.role).list, taskCompleted)
   }
 
-  /*
-   * Counts anonymous user records visited today
-   * Date: Nov 10, 2016
-   */
-  def countAnonymousUsersVisitedToday: Int = db.withSession { implicit session =>
-
-    val anonUsers = Q.queryNA[(String, Int)](
-      """select distinct ip_address, audit_task_id
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where completed = true
-        |						      and task_end::date = now()::date
-        |							  and user_id = (select user_id
-        |						                 from sidewalk.user
-        |						                 where username = 'anonymous'));""".stripMargin
-    )
-    val records = anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
-    val count = records.groupBy(_.ipAddress).keySet.size
-    count
-  }
-
- /*
-  * Counts the number of registered users who contributed today.
-  * Author: Manaswi Saha
-  * Date: Nov 11, 2016
-  */
-  def countRegisteredUsersVisitedToday: Int = db.withSession { implicit session =>
-    // TODO: Condense both calculations into one query and then use filters
-    val countQuery = Q.queryNA[(Int)](
+  /**
+    * Count the number of users of the given role who contributed today.
+    *
+    * We consider a "contribution" to mean that a user has completed at least one audit task.
+    *
+    * @param role
+    * @return
+    */
+  def countUsersContributedToday(role: String): Int = db.withSession { implicit session =>
+    val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
-        |  FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.user
-        |  ON sidewalk.user.user_id = audit_task.user_id
+        |FROM sidewalk.audit_task
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
         |WHERE audit_task.task_end::date = now()::date
-        |      and audit_task.user_id != (select user_id
-        |												          from sidewalk.user
-        |												          where username = 'anonymous')
-        |      and audit_task.completed = true""".stripMargin
+        |    AND sidewalk_user.username <> 'anonymous'
+        |    AND role.role = ?
+        |    AND audit_task.completed = true""".stripMargin
     )
-    val count = countQuery.list.head
-    count
+    countQuery(role).list.head
   }
 
-  /*
-  * Counts the number of users who contributed today.
-  * Author: Manaswi Saha
-  * Date: Aug 28, 2016
-  * Updated: Nov 11, 2016
-  */
-  def countTodayUsers: Int = db.withSession { implicit session =>
-
-    val count = countRegisteredUsersVisitedToday + countAnonymousUsersVisitedToday
-    count
+  /**
+    * Count the number of researchers who contributed today (includes Researcher, Adminstrator, and Owner roles).
+    *
+    * @return
+    */
+  def countResearchersContributedToday: Int = db.withSession { implicit session =>
+    countUsersContributedToday("Researcher") +
+      countUsersContributedToday("Administrator") +
+      countUsersContributedToday("Owner")
   }
 
-  /*
-   * Counts anonymous user records contributed yesterday
-   * Date: Nov 10, 2016
-   */
-
-  def countAnonymousUsersVisitedYesterday: Int = db.withSession { implicit session =>
-
-    val anonUsers = Q.queryNA[(String, Int)](
-      """select distinct ip_address, audit_task_id
-        |from sidewalk.audit_task_environment
-        |where audit_task_id in (select audit_task_id
-        |						from sidewalk.audit_task
-        |						where audit_task.completed = true
-        |						      and audit_task.task_end::date = now()::date - interval '1' day
-        |							    and audit_task.user_id = (select user_id
-        |						                                 from sidewalk.user
-        |						                                 where username = 'anonymous'));""".stripMargin
-    )
-    val records = anonUsers.list.map(anonUser => AnonymousUserRecords.tupled(anonUser))
-    records.groupBy(_.ipAddress).keySet.size
+  /**
+    * Count the number of users who contributed today (across all roles).
+    *
+    * @return
+    */
+  def countAllUsersContributedToday: Int = db.withSession { implicit session =>
+    countUsersContributedToday("Registered") +
+      countUsersContributedToday("Anonymous") +
+      countUsersContributedToday("Turker") +
+      countResearchersContributedToday
   }
 
-  /*
-  * Counts the number of registered users who contributed yesterday.
-  * Author: Manaswi Saha
-  * Date: Nov 11, 2016
-  */
-  def countRegisteredUsersVisitedYesterday: Int = db.withSession { implicit session =>
-
-    val countQuery = Q.queryNA[(Int)](
+  /**
+    * Count the number of users of the given role who contributed yesterday.
+    *
+    * We consider a "contribution" to mean that a user has completed at least one audit task.
+    *
+    * @param role
+    * @return
+    */
+  def countUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
+    val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
-        |  FROM sidewalk.audit_task
-        |INNER JOIN sidewalk.user
-        |  ON sidewalk.user.user_id = audit_task.user_id
-        |WHERE audit_task.completed = true
-        |      and audit_task.task_end::date = now()::date - interval '1' day
-        |      and audit_task.user_id != (select user_id
-        |												          from sidewalk.user
-        |												          where username = 'anonymous')""".stripMargin
+        |FROM sidewalk.audit_task
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
+        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |    AND sidewalk_user.username <> 'anonymous'
+        |    AND role.role = ?
+        |    AND audit_task.completed = true""".stripMargin
     )
-    val count = countQuery.list.head
-    count
+    countQuery(role).list.head
   }
 
-  /*
-  * Counts the number of users who contributed yesterday.
-  * Author: Manaswi Saha
-  * Date: Aug 28, 2016
-  * Updated: Nov 11, 2016
-  */
-  def countYesterdayUsers: Int = db.withSession { implicit session =>
-
-    val count = countRegisteredUsersVisitedYesterday + countAnonymousUsersVisitedYesterday
-    count
+  /**
+    * Count the number of researchers who contributed yesterday (includes Researcher, Adminstrator, and Owner roles).
+    *
+    * @return
+    */
+  def countResearchersContributedYesterday: Int = db.withSession { implicit session =>
+    countUsersContributedYesterday("Researcher") +
+      countUsersContributedYesterday("Administrator") +
+      countUsersContributedYesterday("Owner")
   }
 
-  /*
-   * Counts anonymous user records
-   * Date: Oct 11, 2016
-   */
-
-  def getAnonymousUserProfiles: List[AnonymousUserProfile] = db.withSession { implicit session =>
-    // TODO: Implement a more cleaner, elegant solution
-    /*
-    Correct way of doing it:
-      - Using anonUsersTable, filter/join to get (i) ip_address with timestamp
-        (ii) user records with ip_address and the audit and label counts
-    - Join both results based on ip_address
-
-    The following solution does:
-      - Runs two sub-queries to get the above mentioned results (which has a redundant computation of anonUsersTable
-      - Does a join on the result of the two queries.
+  /**
+    * Count the number of users who contributed yesterday (across all roles).
+    *
+    * @return
     */
-    val anonProfileQuery = Q.queryNA[(String, java.sql.Timestamp, Int, Int)](
-      """select AnonProfile.ip_address, LastAuditTimestamp.new_timestamp, AnonProfile.audit_count, AnonProfile.label_count
-        |from (select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count,
-        |      sum (anonProfile.n_labels) as label_count
-        |		from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
-        |				   from (select distinct ip_address, audit_task_id
-        |						     from sidewalk.audit_task_environment
-        |						     where audit_task_id in (select audit_task_id
-        |													                from sidewalk.audit_task
-        |													                where user_id = (select user_id
-        |														                              from sidewalk.user
-        |														                              where username = 'anonymous')
-        |													         and completed = true)
-        |						) as anonUsersTable
-        |				  left join sidewalk.label as l
-        |				  	on anonUsersTable.audit_task_id = l.audit_task_id
-        |				  group by anonUsersTable.ip_address, anonUsersTable.audit_task_id
-        |			  ) as anonProfile
-        |		group by anonProfile.ip_address) as AnonProfile,
-        |
-        |	(select ip_address, max(timestamp) as new_timestamp
-        |		from (select ip_address, anonUsersTable.audit_task_id as task_id, task_end as timestamp
-        |			 from (select distinct ip_address, audit_task_id
-        |						     from sidewalk.audit_task_environment
-        |						     where audit_task_id in (select audit_task_id
-        |									                 from sidewalk.audit_task
-        |									                 where user_id = (select user_id
-        |										                              from sidewalk.user
-        |										                              where username = 'anonymous')
-        |													 and completed = true)
-        |						) as anonUsersTable
-        |
-        |			 left join sidewalk.audit_task as at
-        |				on anonUsersTable.audit_task_id = at.audit_task_id) as t
-        |		group by ip_address) as LastAuditTimestamp
-        |where AnonProfile.ip_address = LastAuditTimestamp.ip_address;""".stripMargin
-    )
+  def countAllUsersContributedYesterday: Int = db.withSession { implicit session =>
+    countUsersContributedYesterday("Registered") +
+      countUsersContributedYesterday("Anonymous") +
+      countUsersContributedYesterday("Turker") +
+      countResearchersContributedYesterday
+  }
 
-    anonProfileQuery.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
-    /*
-    An attempt:
-
-    val anonProfileQuery = Q.queryNA[(String, Int, Int)](
-      """select anonProfile.ip_address, count(anonProfile.audit_task_id) as audit_count, sum (anonProfile.n_labels) as label_count
-        |from (select anonUsersTable.ip_address, anonUsersTable.audit_task_id , count (l.label_id) as n_labels
-        |		   from (select distinct ip_address, audit_task_id
-        |				     from sidewalk.audit_task_environment
-        |				     where audit_task_id in (select audit_task_id
-        |											                from sidewalk.audit_task
-        |											                where user_id = (select user_id
-        |												                              from sidewalk.user
-        |												                              where username = 'anonymous')
-        |											         and completed = true)
-        |				) as anonUsersTable
-        |		  left join sidewalk.label as l
-        |		  	on anonUsersTable.audit_task_id = l.audit_task_id
-        |		  group by anonUsersTable.ip_address, anonUsersTable.audit_task_id
-        |	  ) as anonProfile
-        |group by anonProfile.ip_address;""".stripMargin
-    )
-
-
-    val anonProfiles = anonProfileQuery.list
-
-    val lastAuditedTimestampQuery = Q.queryNA[(String, Int)](
-      """select ip_address, max(timestamp) as new_timestamp
-        |from (select ip_address, anonUsersTable.audit_task_id as task_id, task_end as timestamp
-        |	 from (select distinct ip_address, audit_task_id
-        |				     from sidewalk.audit_task_environment
-        |				     where audit_task_id in (select audit_task_id
-        |							                 from sidewalk.audit_task
-        |							                 where user_id = (select user_id
-        |								                              from sidewalk.user
-        |								                              where username = 'anonymous')
-        |											 and completed = true)
-        |				) as anonUsersTable
-        |	 left join sidewalk.audit_task as at
-        |		on anonUsersTable.audit_task_id = at.audit_task_id) as t
-        |group by ip_address;""".stripMargin
-    )
-
-    val recordsWithLastAudit = lastAuditedTimestampQuery.list
-
-    val anonUsers = for {
-      (_anonProfiles, _recordsWithLastAudit) <- anonProfiles.innerJoin(recordsWithLastAudit).on(_.ip_address === _.ip_address)
-    } yield _anonProfiles
-
-    anonUsers.list.map(anonUser => AnonymousUserProfile.tupled(anonUser))
+  /**
+    * Gets metadata for each user that we use on the admin page.
+    *
+    * @return
     */
+  def getUserStatsForAdminPage: List[UserStatsForAdminPage] = db.withSession { implicit session =>
 
-    /*
-    val anonymousUser: DBUser = UserTable.find("anonymous").get
+    // We run 6 queries for different bits of metadata that we need. We run each query and convert them to Scala maps
+    // with the user_id as the key. We then query for all the users in the `user` table and for each user, we lookup
+    // the user's metadata in each of the maps from those 6 queries. This simulates a left join across the six sub-
+    // queries. We are using Scala Map objects instead of Slick b/c Slick doesn't create very efficient queries for this
+    // use-case (at least in the old version of Slick that we are using right now).
 
-    // Placeholder code -- won't compile
-    val entries = (for {
-      a <- anonUsers
-      t <- auditTaskTable
-      l <- labelTable
-    }.yield(a, t, l)).groupby(_.ipAddress).map{case (a,t,l) => (a,a.map(_.audit_task_id).length)}
-    */
+    // Map(user_id: String -> role: String)
+    val roles =
+      userRoleTable.innerJoin(roleTable).on(_.roleId === _.roleId).map(x => (x._1.userId, x._2.role)).list.toMap
+
+    // Map(user_id: String -> signup_time: Option[Timestamp])
+    val signUpTimes =
+      WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignUp"))
+        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max) }.list.toMap
+
+    // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int))
+    val signInTimesAndCounts =
+      WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignIn"))
+        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).min, group.length) }
+        .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
+
+    // Map(user_id: String -> mission_count: Int)
+    val missionCounts =
+      MissionTable.missions.filter(_.completed)
+        .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+
+    // Map(user_id: String -> audit_count: Int)
+    val auditCounts =
+      AuditTaskTable.completedTasks.groupBy(_.userId).map { case (_uId, group) => (_uId, group.length) }.list.toMap
+
+    // Map(user_id: String -> label_count: Int)
+    val labelCounts =
+      AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
+          .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+
+    // Now left join them all together and put into UserStatsForAdminPage objects.
+    userTable.list.map{ u =>
+      UserStatsForAdminPage(
+        u.userId, u.username, u.email,
+        roles.getOrElse(u.userId, ""),
+        signUpTimes.get(u.userId).flatten,
+        signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
+        missionCounts.getOrElse(u.userId, 0),
+        auditCounts.getOrElse(u.userId, 0),
+        labelCounts.getOrElse(u.userId, 0)
+      )
+    }
   }
 }

@@ -3,12 +3,16 @@
  * @param label_type
  * @param canvasX
  * @param canvasY
- * @param originalCanvasX
- * @param originalCanvasY
+ * @param originalCanvasWidth
+ * @param originalCanvasHeight
+ * @param heading
+ * @param pitch
+ * @param zoom
  * @returns {{className: string}}
  * @constructor
  */
-function AdminPanoramaLabel(label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight) {
+function AdminPanoramaLabel(label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight,
+                            heading, pitch, zoom) {
     var self = { className: "AdminPanoramaLabel" };
 
     /**
@@ -20,6 +24,9 @@ function AdminPanoramaLabel(label_type, canvasX, canvasY, originalCanvasWidth, o
         self.canvasY = canvasY;
         self.originalCanvasWidth = originalCanvasWidth;
         self.originalCanvasHeight = originalCanvasHeight;
+        self.heading = heading;
+        self.pitch = pitch;
+        self.zoom = zoom;
         return this;
     }
 

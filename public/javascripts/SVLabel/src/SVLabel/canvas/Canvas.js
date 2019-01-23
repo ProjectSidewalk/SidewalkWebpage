@@ -68,9 +68,6 @@ function Canvas(ribbon) {
 
     var tempPath = [];
 
-    // Right click menu
-    var rightClickMenu = undefined;
-
     // Path elements
     var systemLabels = [];
     var labels = [];
@@ -111,7 +108,6 @@ function Canvas(ribbon) {
      * Clean this method when I get a chance.....
      */
     function closeLabelPath() {
-
         var labelType = ribbon.getStatus('selectedLabelType');
         var labelColor = util.misc.getLabelColors()[labelType],
             labelDescription = util.misc.getLabelDescriptions(labelType),
@@ -136,6 +132,7 @@ function Canvas(ribbon) {
             canvasDistortionAlphaX: svl.alpha_x,
             canvasDistortionAlphaY: svl.alpha_y,
             //labelId: svl.getLabelCounter(),
+            tutorial: svl.missionContainer.getCurrentMission().getProperty("missionType") === "auditOnboarding",
             labelType: labelDescription.id,
             labelDescription: labelDescription.text,
             labelFillStyle: labelColor.fillStyle,
@@ -200,7 +197,6 @@ function Canvas(ribbon) {
         }, {
             temporaryLabelId: status.currentLabel.getProperty('temporary_label_id')
         });
-        svl.actionStack.push('addLabel', status.currentLabel);
 
         // Sound effect
         if ('audioEffect' in svl) {
@@ -342,10 +338,6 @@ function Canvas(ribbon) {
         if (labelType) {
             var cursorImagePath = cursorImagePaths[labelType].cursorImagePath;
             var cursorUrl = "url(" + cursorImagePath + ") 15 15, auto";
-
-            if (rightClickMenu && rightClickMenu.isAnyOpen()) {
-                cursorUrl = 'default';
-            }
             $(this).css('cursor', ''); //should first reset the cursor, otherwise safari strangely does not update the cursor
             $(this).css('cursor', cursorUrl);
         }
@@ -416,7 +408,6 @@ function Canvas(ribbon) {
 
             if (currLabel) {
                 svl.labelContainer.removeLabel(currLabel);
-                svl.actionStack.push('deleteLabel', self.getCurrentLabel());
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
 
                 // If showLabelTag is blocked by GoldenInsertion (or by any other object), unlock it as soon as
@@ -532,14 +523,6 @@ function Canvas(ribbon) {
         // If any of menu is visible, disable labeling
         if (!status.lockDisableLabeling) {
             status.disableLabeling = true;
-            /*
-             var menuOpen = rightClickMenu.isAnyOpen();
-             if (menuOpen) {
-             status.disableLabeling = true;
-             } else {
-             status.disableLabeling = false;
-             }
-             */
             return this;
         }
         return false;
@@ -631,13 +614,6 @@ function Canvas(ribbon) {
     }
 
     /**
-     * @method
-     */
-    function getRightClickMenu() {
-        return rightClickMenu;
-    }
-
-    /**
      * Returns a status
      * @method
      */
@@ -651,7 +627,7 @@ function Canvas(ribbon) {
     /**
      * This method returns system labels; the labels stored in our database (e.g., other users' labels and the user's
      * previous labels) that are not from this auditing session.
-     * If refrence is true, then it returns reference to the labels.
+     * If reference is true, then it returns reference to the labels.
      * Otherwise it returns deepcopy of labels.
      * @method
      */
@@ -684,119 +660,6 @@ function Canvas(ribbon) {
         }
         return reference ? svl.labelContainer.getCanvasLabels() : $.extend(true, [], svl.labelContainer.getCanvasLabels());
     }
-
-    /**
-     * Hide the delete label
-     * @method
-     */
-    function hideDeleteLabel() {
-        rightClickMenu.hideDeleteLabel();
-        return this;
-    }
-
-    /**
-     * Hide the right click menu
-     * @returns {hideRightClickMenu}
-     */
-    function hideRightClickMenu() {
-        rightClickMenu.hideBusStopType();
-        rightClickMenu.hideBusStopPosition();
-        return this;
-    }
-
-    /**
-     * This method takes a label data (i.e., a set of point coordinates, label types, etc) and
-     * and insert it into the labels array so the Canvas will render it
-     * @method
-     */
-    function insertLabel(labelPoints, target) {
-        if (!target) {
-            target = 'user';
-        }
-
-        var pointData, pov, point, path, param = {},
-            labelColors = util.misc.getLabelColors(),
-            labelDescriptions = util.misc.getLabelDescriptions(),
-            iconImagePaths = util.misc.getIconImagePaths(),
-            length = labelPoints.length,
-            points = [];
-
-
-        for (var i = 0; i < length; i += 1) {
-            pointData = labelPoints[i];
-            pov = {
-                heading: pointData.originalHeading,
-                pitch: pointData.originalPitch,
-                zoom: pointData.originalZoom
-            };
-            point = new Point();
-
-            if ('PhotographerHeading' in pointData && pointData.PhotographerHeading &&
-                'PhotographerPitch' in pointData && pointData.PhotographerPitch) {
-                point.setPhotographerPov(parseFloat(pointData.PhotographerHeading), parseFloat(pointData.PhotographerPitch));
-            }
-
-            point.resetSVImageCoordinate({
-                x: parseInt(pointData.svImageX, 10),
-                y: parseInt(pointData.svImageY, 10)
-            });
-
-
-            point.setProperties({
-                fillStyleInnerCircle: labelColors[pointData.LabelType].fillStyle,
-                lineWidthOuterCircle: 2,
-                iconImagePath: iconImagePaths[pointData.LabelType].iconImagePath,
-                originalCanvasCoordinate: pointData.originalCanvasCoordinate,
-                originalHeading: pointData.originalHeading,
-                originalPitch: pointData.originalPitch,
-                originalZoom: pointData.originalZoom,
-                pov: pov,
-                radiusInnerCircle: properties.pointInnerCircleRadius,
-                radiusOuterCircle: properties.pointOuterCircleRadius,
-                strokeStyleOuterCircle: 'rgba(255,255,255,1)',
-                storedInDatabase: false
-            });
-
-            points.push(point)
-        }
-
-        path = new Path(svl, points);
-
-        param.canvasWidth = svl.canvasWidth;
-        param.canvasHeight = svl.canvasHeight;
-        param.canvasDistortionAlphaX = svl.alpha_x;
-        param.canvasDistortionAlphaY = svl.alpha_y;
-        param.labelId = labelPoints[0].LabelId;
-        param.labelerId = labelPoints[0].AmazonTurkerId;
-        param.labelType = labelPoints[0].LabelType;
-        param.labelDescription = labelDescriptions[param.labelType].text;
-        param.labelFillStyle = labelColors[param.labelType].fillStyle;
-        param.panoId = labelPoints[0].LabelGSVPanoramaId;
-        param.panoramaLat = labelPoints[0].Lat;
-        param.panoramaLng = labelPoints[0].Lng;
-        param.panoramaHeading = labelPoints[0].heading;
-        param.panoramaPitch = labelPoints[0].pitch;
-        param.panoramaZoom = labelPoints[0].zoom;
-
-        param.svImageWidth = svl.svImageWidth;
-        param.svImageHeight = svl.svImageHeight;
-        param.svMode = 'html4';
-
-
-        if (("PhotographerPitch" in labelPoints[0]) && ("PhotographerHeading" in labelPoints[0])) {
-            param.photographerHeading = labelPoints[0].PhotographerHeading;
-            param.photographerPitch = labelPoints[0].PhotographerPitch;
-        }
-
-        var newLabel = svl.labelFactory.create(path, param);
-
-        if (target === 'system') {
-            systemLabels.push(newLabel);
-        } else {
-            svl.labelContainer.push(newLabel);
-        }
-    }
-
 
     /**
      * This method returns the current status drawing.
@@ -878,9 +741,6 @@ function Canvas(ribbon) {
     function pushLabel(label) {
         status.currentLabel = label;
         svl.labelContainer.push(label);
-        if (svl.actionStack) {
-            svl.actionStack.push('addLabel', label);
-        }
         return this;
     }
 
@@ -906,16 +766,6 @@ function Canvas(ribbon) {
         }
         var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
-        var labelCount = {
-            Landmark_Bench: 0,
-            Landmark_Shelter: 0,
-            Landmark_TrashCan: 0,
-            Landmark_MailboxAndNewsPaperBox: 0,
-            Landmark_OtherPole: 0,
-            StopSign: 0,
-            CurbRamp: 0,
-            NoCurbRamp: 0
-        };
         status.totalLabelCount = 0;
         var pov = svl.map.getPov();
 
@@ -986,7 +836,6 @@ function Canvas(ribbon) {
             label.render(ctx, pov);
 
             if (label.isVisible() && !label.isDeleted()) {
-                labelCount[label.getLabelType()] += 1;
                 status.totalLabelCount += 1;
             }
         }
@@ -1009,24 +858,9 @@ function Canvas(ribbon) {
             renderTempPath();
         }
 
-        // Update the landmark counts on the right side of the interface.
-        if (svl.labeledLandmarkFeedback) {
-            svl.labeledLandmarkFeedback.setLabelCount(labelCount);
-        }
-
-        // Update the opacity of undo and redo buttons.
-        if (svl.actionStack) {
-            svl.actionStack.updateOpacity();
-        }
-
         // Update the opacity of Zoom In and Zoom Out buttons.
         if (svl.zoomControl) {
             svl.zoomControl.updateOpacity();
-        }
-
-        // This line of code checks if the golden insertion code is running or not.
-        if ('goldenInsertion' in svl && svl.goldenInsertion) {
-            svl.goldenInsertion.renderMessage();
         }
 
         return this;
@@ -1163,13 +997,6 @@ function Canvas(ribbon) {
     /**
      * @method
      */
-    function showDeleteLabel(x, y) {
-        rightClickMenu.showDeleteLabel(x, y);
-    }
-
-    /**
-     * @method
-     */
     function unlockCurrentLabel() {
         status.lockCurrentLabel = false;
         return this;
@@ -1224,14 +1051,10 @@ function Canvas(ribbon) {
     self.getLabels = getLabels;
     self.getLock = getLock;
     self.getNumLabels = getNumLabels;
-    self.getRightClickMenu = getRightClickMenu;
     self.getStatus = getStatus;
     self.getSystemLabels = getSystemLabels;
     self.getUserLabelCount = getUserLabelCount;
     self.getUserLabels = getUserLabels;
-    self.hideDeleteLabel = hideDeleteLabel;
-    self.hideRightClickMenu = hideRightClickMenu;
-    self.insertLabel = insertLabel;
     self.isDrawing = isDrawing;
     self.isOn = isOn;
     self.lockCurrentLabel = lockCurrentLabel;
@@ -1252,7 +1075,6 @@ function Canvas(ribbon) {
     self.setVisibilityBasedOnLocation = setVisibilityBasedOnLocation;
     self.setVisibilityBasedOnLabelerId = setVisibilityBasedOnLabelerId;
     self.setVisibilityBasedOnLabelerIdAndLabelTypes = setVisibilityBasedOnLabelerIdAndLabelTypes;
-    self.showDeleteLabel = showDeleteLabel;
     self.unlockCurrentLabel = unlockCurrentLabel;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
     self.unlockDisableLabelEdit = unlockDisableLabelEdit;

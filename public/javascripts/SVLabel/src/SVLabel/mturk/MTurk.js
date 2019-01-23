@@ -1,7 +1,6 @@
-function MTurk (mTurkModel) {
+function MTurk () {
     var self = this;
 
-    this._mTurkModel = mTurkModel;
     this._properties = {
         assignmentId: null,
         groupId: null,

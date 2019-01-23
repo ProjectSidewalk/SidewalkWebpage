@@ -32,7 +32,7 @@
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=3.29&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=3.31&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
@@ -76,7 +76,8 @@
         <div id="mini-footer-audit">
           Project Sidewalk is designed and operated by the
           <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
-          <a href="http://www.umd.edu/">University of Maryland</a><br>
+          <a href="http://www.umd.edu/">University of Maryland</a> and
+              <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
           <span id="application-version"></span>
         </div>
 
@@ -91,7 +92,8 @@
                 <!-- Back to top<br>-->
                 <a href='@routes.ApplicationController.about' id="sidewalk-about-link">About Us</a> <br/>
                 <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
-                <a href='@routes.ApplicationController.faq' id="sidewalk-faq-link">FAQ</a> <br/>
+                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
+                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
             </div>
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">DEVELOPER</span><br/>
@@ -101,7 +103,7 @@
                 <span class="footerheader">CONNECT</span><br/>
                 <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
                 <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
-                <a target="_blank" href="mailto:sidewalk@@umiacs.umd.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
+                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
                 <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.at("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
             </div>
         </div>
@@ -109,24 +111,29 @@
     <div class="container" id="info-footer">
         <br>
         <p><span id="funding-title">WE ARE PROUDLY FUNDED BY</span></p>
-        <div class="row" style="max-width: 340px; margin: 0 auto;">
+        <div class="row" style="max-width: 900px; margin: 0 auto;">
 
-            <div class="col-sm-6">
+            <div class="col-sm-4">
                 <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
                     <img src="@routes.Assets.at("assets/nsf.png")">
                 </a>
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-4">
                 <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
+            </div>
+            <div class="col-sm-4">
+                <a href="https://sloan.org/fellowships/" id ="sloan-link">
+                    <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
+                </a>
             </div>
 
         </div>
-        <div class="row" style="max-width: 340px; margin: 0 auto;">
+        <div class="row" style="max-width: 900px; margin: 0 auto;">
 
-            <div class="col-sm-6" id="awardnum">
+            <div class="col-sm-4" id="awardnum">
                 Award #1302338
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-8">
 
             </div>
 
@@ -134,7 +141,8 @@
 
         Project Sidewalk is designed and operated by the
         <a href="https://makeabilitylab.umiacs.umd.edu/" id="makeability-link">Makeability Lab</a> at the
-        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a><br>
+        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
+        <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
         <span id="application-version"></span>
     </div>
 
@@ -188,7 +196,7 @@
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
-            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/faq|...>"
+            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/help|...>"
             $('#info-footer').on('click','a', function(e){
                 var currentRoute = window.location.pathname;
                 var link = e.currentTarget.id.split("-")[0];

@@ -1,0 +1,105 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+
+    <div class="spacer20"></div>
+
+    <div class="container help">
+        <div class="row">
+            <div class="col-md-3" id="sidebar">
+                <div id="help-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        No Sidewalk
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                            <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideCurbRamps'>Curb Ramps</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideSurfaceProblems'>Surface Problems</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideObstacles'>Obstacles</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideNoSidewalk'><strong>No Sidewalk</strong></a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideOcclusion'>Occlusion</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="help-item">
+                    <h2 class="question" id="no-sidewalk">No Sidewalk</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                A <i>No Sidewalk</i> label should be placed if there is a missing sidewalk where there
+                                should be one.
+                            </p>
+                            <h3>Where and how should I place a No Sidewalk label?</h3>
+                            <p>
+                                You should place a <i>No Sidewalk</i> label starting where the sidewalk ends, and then
+                                continue placing labels every few feet (about 1 per panorama) until you reach a place
+                                where the sidewalk begins again.
+                            </p>
+                            <p>
+                                You should not place <i>No Sidewalk</i> labels in narrow side streets or alleys.
+                            </p>
+                            <div class="img-container">
+                                <div class="col-sm-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk4.png")' href='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk4.png")'
+                                        alt="A StreetView image of an intersection missing a sidewalk from one direction" class="img-responsive" align=""
+                                        title="The sidewalk only extends from one corner of this intersection.">
+                                        <figcaption>The sidewalk only covers for one street of this intersection.</figcaption>
+                                    </figure>
+                                </div>
+                                <div class="col-sm-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk5.png")' href='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk5.png")'
+                                        alt="A Street View image of a road that is missing a sidewalk on the left side" class="img-responsive" align=""
+                                        title="An extended stretch of road where there is no sidewalk">
+                                        <figcaption>An extended stretch of road where there is no sidewalk</figcaption>
+                                    </figure>
+                                </div>
+                                <div class="col-sm-4">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk6.png")' href='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk6.png")'
+                                        alt="A Street View image of a road with a short stretch that is missing a sidewalk" class="img-responsive" align=""
+                                        title="A short stretch of road where there is no sidewalk">
+                                        <figcaption>A short stretch of road where there is no sidewalk</figcaption>
+                                    </figure>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <h3>Do I place a No Sidewalk label on a median?</h3>
+                            <p>
+                                You should not place <i>No Sidewalk</i> labels on a median that separates the two directions of traffic,
+                                unless the median has a sidewalk that abruptly ends.
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk3.png")' href='@routes.Assets.at("images/labeling_guide_misc/NoSidewalk3.png")'
+                                    alt="A Street View image of a median that separates two directions of traffic" class="img-responsive" align=""
+                                    title="A median that separates two directions of traffic">
+                                    <figcaption>A median that separates two directions of traffic</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}

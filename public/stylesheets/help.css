@@ -1,0 +1,88 @@
+.help p {
+    font-size: 14px;
+}
+
+.help .maincontent {
+    padding-left: 40px;
+}
+
+figure figcaption {
+    padding-top: 10px;
+}
+
+.help video, .help img, .help iframe {
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    border-radius:4px;
+}
+
+.help video, .help iframe {
+    border: 1px solid #ddd;
+
+}
+
+.help .help-item {
+    margin-bottom: 100px;
+}
+/* Found recommended fix here: https://github.com/twbs/bootstrap/issues/1768 */
+.help .help-item h2 {
+    margin-top: -70px;
+    margin-bottom: 20px;
+    padding-top: 75px;
+}
+
+#help-panel .panel-body{
+    padding: 0;
+}
+
+.help ul#questions-list {
+    padding: 0;
+    list-style-type: none;
+    margin: 0;
+}
+
+.help ul#questions-list li {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.help ul#questions-list li:hover {
+    /*background-color: #eee;*/
+}
+
+.help table {
+    font-size: 14px;
+}
+
+/* the youtube videos */
+iframe {
+    margin-top: 30px;
+}
+
+ul.reference {
+    list-style-type: none;
+    padding-left: 0;
+    font-size: 11px;
+}
+
+ul.reference li {
+    margin-bottom: 10px;
+}
+
+ul.reference li .title {
+    font-weight: 600;
+    display: inline-block;
+}
+
+.video {
+    position: relative;
+    height: 0;
+    padding-bottom: 56.25%;
+}
+
+.video iframe {
+    position: absolute;
+    top: 0;
+    left: 15px;
+    width: 94%;
+    height: 100%;
+}

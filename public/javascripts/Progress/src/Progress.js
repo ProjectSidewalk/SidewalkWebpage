@@ -1,12 +1,11 @@
-function Progress (_, $, c3, L, difficultRegionIds) {
+function Progress (_, $, c3, L, role, difficultRegionIds) {
     var self = {};
-    var completedInitializingOverlayPolygon = false,
-        completedInitializingNeighborhoodPolygons = false,
-        completedInitializingAuditedStreets = false,
-        completedInitializingSubmittedLabels = false,
-        completedInitializingAuditCountChart = false,
-        completedInitializingAuditedTasks = false,
-        completedInitializingInteractions = false;
+    var completedInitializingOverlayPolygon = false;
+    var completedInitializingNeighborhoodPolygons = false;
+    var completedInitializingAuditedStreets = false;
+    var completedInitializingSubmittedLabels = false;
+    var completedInitializingAuditCountChart = false;
+    var completedInitializingAuditedTasks = false;
 
     var neighborhoodPolygonStyle = {
             color: '#888',
@@ -59,8 +58,7 @@ function Progress (_, $, c3, L, difficultRegionIds) {
             completedInitializingAuditedStreets &&
             completedInitializingSubmittedLabels &&
             completedInitializingAuditCountChart &&
-            completedInitializingAuditedTasks //&&
-            //completedInitializingInteractions
+            completedInitializingAuditedTasks
         ) {
 
             // Search for a region id in the query string. If you find one, focus on that region.
@@ -234,7 +232,7 @@ function Progress (_, $, c3, L, difficultRegionIds) {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
                 return regionId == x.region_id;
-            })
+            });
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";
@@ -269,56 +267,8 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         });
     }
 
-    function updateTotalRewardEarned(missionJson){
-        //console.log(missionJson);
-        var completedMissionJson = missionJson
-            .filter(function(el){return el.is_completed && el.region_id!=null})
-            .reduce(function(region_groups,el){
-            region_groups[el.region_id] = region_groups[el.region_id] || 0.0;
-            if(el.distance_mi>region_groups[el.region_id]){
-                region_groups[el.region_id] = el.distance_mi;
-            }
-            return region_groups;}
-            ,{});
-        //console.log(completedMissionJson);
-        var totalMissionCompleteDistance = Object.values(completedMissionJson).reduce(function(sum, el) {
-            return sum + el;
-        }, 0.0);
-        //console.log(totalMissionCompleteDistance);
-        //Calculate accumulated reward if the user is a turker
-        var url = '/isTurker';
-        $.ajax({
-            async: true,
-            url: url,//endpoint that checks above conditions
-            type: 'get',
-            success: function(data){
-                if(data.isTurker){
-                    var url = '/rewardPerMile';
-                    $.ajax({
-                        async: true,
-                        url: url,//endpoint that checks above conditions
-                        type: 'get',
-                        success: function(data){
-                            var missionReward = totalMissionCompleteDistance*data.rewardPerMile;
-                            // Mission Rewards.
-                            document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toFixed(2);
-                            //console.log("Expected output: "+missionReward);
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                            console.log(thrownError);
-                        }
-                    });
-                    //console.log('Survey displayed');
-                }
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        });
-    }
-
     /**
-     * This function queries the streets that the user audited and visualize them as segmetns on the map.
+     * This function queries the streets that the user audited and visualize them as segments on the map.
      */
     function initializeAuditedStreets(map) {
         var distanceAudited = 0,  // Distance audited in km
@@ -342,7 +292,6 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 pointToLayer: L.mapbox.marker.style,
                 style: function(feature) {
                     var style = $.extend(true, {}, streetLinestringStyle);
-                    var randomInt = Math.floor(Math.random() * 5);
                     style.color = "rgba(128, 128, 128, 1.0)";
                     style["stroke-width"] = 3;
                     style.opacity = 0.75;
@@ -359,8 +308,21 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 distanceAudited += turf.lineDistance(data.features[i], "miles");
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
-            //Calculate the total reward earned by the user in completed missions
-            $.when($.ajax("/mission")).done(updateTotalRewardEarned);
+
+            // Get total reward if a turker
+            if (role === 'Turker') {
+                $.ajax({
+                    async: true,
+                    url: '/rewardEarned',
+                    type: 'get',
+                    success: function(rewardData) {
+                        document.getElementById("td-total-reward-earned").innerHTML = "$" + rewardData.reward_earned.toFixed(2);
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
+                })
+            }
 
             completedInitializingAuditedStreets = true;
             handleInitializationComplete(map);
@@ -392,7 +354,8 @@ function Progress (_, $, c3, L, difficultRegionIds) {
                 "CurbRamp": 0,
                 "NoCurbRamp": 0,
                 "Obstacle": 0,
-                "SurfaceProblem": 0
+                "SurfaceProblem": 0,
+                "NoSidewalk": 0
             };
 
             for (var i = data.features.length - 1; i >= 0; i--) {
@@ -402,11 +365,13 @@ function Progress (_, $, c3, L, difficultRegionIds) {
             document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
             document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
             document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+            document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
 
             document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
             document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+            document.getElementById("map-legend-no-sidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "'></svg>";
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='rgba(128, 128, 128, 1.0)' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Render submitted labels
@@ -456,76 +421,122 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         });
     }
 
-    function initializeSubmittedTasks(map) {
-        $.getJSON("/contribution/tasks", function (data) {
+    /**
+     * This method appends all the missions a user has to the task
+     * contribution table in the user dashboard
+     *
+     * @param map
+     */
+    function initializeSubmittedMissions(map) {
+        $.getJSON("/getMissions", function (data) {
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
 
             // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
             var monthNames = [
-                "January", "February", "March",
-                "April", "May", "June", "July",
-                "August", "September", "October",
-                "November", "December"
+                "Jan.", "Feb.", "Mar.",
+                "Apr.", "May", "June", "July",
+                "Aug.", "Sept.", "Oct.",
+                "Nov.", "Dec."
             ];
 
 
-
-            var grouped = _.groupBy(_data.tasks, function (o) { return o.audit_task_id});
-            var auditTaskId;
-            var auditTaskIds = Object.keys(grouped);
+            // sorts all labels the user has completed by mission
+            var grouped = _.groupBy(_data.tasks, function (o) { return o.mission_id });
+            var missionId;
+            var missionTaskIds = Object.keys(grouped);
+            var missionNumber = 0;
             var tableRows = "";
             var labelCounter;
             var i;
-            var auditTaskIdsLength = auditTaskIds.length;
+            var missionTaskIdsLength = missionTaskIds.length;
             var j;
             var labelsLength;
             var labelType;
-            auditTaskIds.sort(function (id1, id2) {
-                var timestamp1 = grouped[id1][0].task_start;
-                var timestamp2 = grouped[id2][0].task_start;
-                if (timestamp1 < timestamp2) { return -1; }
-                else if (timestamp1 > timestamp2) { return 1; }
-                else { return 0; }
+            // sorts missions by putting completed missions first then
+            // uncompleted missions, each in chronological order
+            missionTaskIds.sort(function (id1, id2) {
+                var timestamp1 = grouped[id1][0].mission_end;
+                var timestamp2 = grouped[id2][0].mission_end;
+                var firstCompleted = grouped[id1][0].completed;
+                var secondCompleted = grouped[id2][0].completed;
+                if (firstCompleted && secondCompleted) {
+                    if (timestamp1 < timestamp2) { return 1; }
+                    else if (timestamp1 > timestamp2) { return -1; }
+                    else { return 0; }
+                } else if (firstCompleted && !secondCompleted) {
+                    return 1;
+                } else if (!firstCompleted && secondCompleted) {
+                    return -1;
+                } else {
+                    var startstamp1 = grouped[id1][0].mission_start;
+                    var startstamp2 = grouped[id2][0].mission_start;
+                    if (startstamp1 < startstamp2) { return 1; }
+                    else if (startstamp1 > startstamp2) { return -1; }
+                    else { return 0; }
+                }
             });
 
-            for (i = auditTaskIdsLength - 1; i >= 0; i--) {
-                labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "Other": 0 };
-                auditTaskId = auditTaskIds[i];
-                labelsLength = grouped[auditTaskId].length;
+            // counts the type of label for each mission to display the
+            // numbers in the missions table
+            for (i = missionTaskIdsLength - 1; i >= 0; i--) {
+                labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
+                missionId = missionTaskIds[i];
+                labelsLength = grouped[missionId].length;
                 for (j = 0; j < labelsLength; j++) {
-                    labelType = grouped[auditTaskId][j]["label_type"];
-                    if (!(labelType in labelCounter)) {
-                        labelType = "Other";
+                    labelType = grouped[missionId][j]["label_type"];
+                    // missions with no labels have an undefined labelType
+                    if (labelType === undefined) {
+                        break;
+                    } else {
+                        if (!(labelType in labelCounter)) {
+                            labelType = "Other";
+                        }
+                        labelCounter[labelType] += 1;
                     }
-                    labelCounter[labelType] += 1;
                 }
 
-                var date = new Date(grouped[auditTaskId][0]["task_end"]);
+                var date = new Date(grouped[missionId][0]["mission_end"]);
                 var day = date.getDate();
                 var monthIndex = date.getMonth();
                 var year = date.getFullYear();
 
+
+                var neighborhood;
+                // neighborhood name is tutorial if there is no neighborhood
+                // assigned for that mission
+                if (grouped[missionId][0]["neighborhood"]) {
+                    neighborhood = grouped[missionId][0]["neighborhood"];
+                } else {
+                    neighborhood = "Tutorial";
+                }
+
+                var dateString;
+                // Date is "In Progress" if the mission has not yet been completed
+                if (grouped[missionId][0]["completed"]) {
+                    dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
+                } else {
+                    dateString = "In Progress";
+                }
+
+                missionNumber++;
+
+                // adds all the mission information to a row in the table
                 tableRows += "<tr>" +
-                    "<td class='col-xs-2'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["CurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["NoCurbRamp"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Obstacle"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["SurfaceProblem"] + "</td>" +
-                    "<td class='col-xs-2'>" + labelCounter["Other"] + "</td>" +
+                    "<td class='col-xxs-1'>" + missionNumber + "</td>" +
+                    "<td class='col-date'>" + dateString + "</td>" +
+                    "<td class='col-neighborhood'>" + neighborhood + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["CurbRamp"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["Obstacle"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["Other"] + "</td>" +
                     "</tr>";
             }
 
             $("#task-contribution-table").append(tableRows);
 
-            handleInitializationComplete(map);
-        });
-    }
-
-    function initializeInteractions(map) {
-        $.getJSON("/contribution/auditInteractions", function (data) {
-            _data.interactions = data;
-            completedInitializingInteractions = true;
             handleInitializationComplete(map);
         });
     }
@@ -537,8 +548,7 @@ function Progress (_, $, c3, L, difficultRegionIds) {
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);
         initializeAuditCountChart(c3, map);
-        initializeSubmittedTasks(map);
-        //initializeInteractions(map);
+        initializeSubmittedMissions(map);
     });
 
     self.data = _data;

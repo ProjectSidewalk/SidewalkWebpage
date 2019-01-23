@@ -1,16 +1,9 @@
 package controllers
 
-import play.api.mvc._
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import play.extras.geojson
-import com.vividsolutions.jts.io.{WKBReader, WKBWriter, WKTReader}
-import com.vividsolutions.jts.geom.{LineString, Coordinate, CoordinateSequence, GeometryFactory, PrecisionModel}
-import collection.immutable.Seq
+import com.vividsolutions.jts.geom.Coordinate
 
-import play.api.db.slick._
-
-// import play.api.db.slick.Config.driver.simple._
 import models.utils.MyPostgresDriver.simple._
 import play.api.mvc._
 
@@ -24,7 +17,6 @@ import play.api.libs.json.Json._
 object StreetController extends Controller {
 
   val streetEdges = TableQuery[StreetEdgeTable]
-  val assignmentCounts = TableQuery[StreetEdgeAssignmentCountTable]
 
   /**
    * This returns a list of all the streets stored in the database

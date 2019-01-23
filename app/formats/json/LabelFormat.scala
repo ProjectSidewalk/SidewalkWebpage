@@ -23,6 +23,7 @@ object LabelFormats {
   implicit val labelWrites: Writes[Label] = (
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
+      (__ \ "mission_id").write[Int] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "photographer_heading").write[Float] and
@@ -31,7 +32,8 @@ object LabelFormats {
       (__ \ "panorama_lng").write[Float] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").writeNullable[Int] and
-      (__ \ "time_created").writeNullable[Timestamp]
+      (__ \ "time_created").writeNullable[Timestamp] and
+      (__ \ "tutorial").write[Boolean]
     )(unlift(Label.unapply _))
 
 }

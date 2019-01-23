@@ -1,8 +1,8 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
@@ -10,9 +10,8 @@ import formats.json.UserFormats._
 import forms._
 import models.user._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import play.api.mvc.{BodyParsers, RequestHeader, Result}
+import play.api.mvc.BodyParsers
 import play.api.libs.json._
-import org.joda.time.{DateTime, DateTimeZone}
 import scala.concurrent.Future
 
 /**
@@ -24,23 +23,15 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
   /**
-   * Handles the index action.
-   *
-   * @return The result to display.
-   */
-//  def index = SecuredAction.async { implicit request =>
-//    Future.successful(Ok(views.html.home(request.identity)))
-//  }
-
-  /**
    * Handles the Sign In action.
    *
    * @return The result to display.
    */
   def signIn(url: String) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => Future.successful(Redirect(url))
-      case None => Future.successful(Ok(views.html.signIn(SignInForm.form, url)))
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signIn(SignInForm.form, url)))
+    } else {
+      Future.successful(Redirect(url))
     }
   }
 
@@ -50,9 +41,10 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @return The result to display.
    */
   def signUp(url: String) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) => Future.successful(Redirect(url))
-      case None => Future.successful(Ok(views.html.signUp(SignUpForm.form)))
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signUp(SignUpForm.form)))
+    } else {
+      Future.successful(Redirect(url))
     }
   }
 
@@ -64,6 +56,9 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   def signOut(url: String) = SecuredAction.async { implicit request =>
 //    val result = Future.successful(Redirect(routes.UserController.index()))
 
+    // TODO: Find a better fix for issue #1026
+    // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
+    Thread.sleep(100)
     val result = Future.successful(Redirect(url))
     env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
     request.authenticator.discard(result)
@@ -88,8 +83,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
         request.identity match {
           case Some(user) =>

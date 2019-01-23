@@ -1,0 +1,226 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
+
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src='@routes.Assets.at("javascripts/jquery.magnific-popup.js")'></script>
+
+    <div class="spacer20"></div>
+
+    <div class="container help">
+        <div class="row">
+            <div class="col-md-3" id="sidebar">
+                <div id="help-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Obstacles
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+
+                            <li><a href='@routes.ApplicationController.labelingGuide'>Introduction</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideCurbRamps'>Curb Ramps</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideSurfaceProblems'>Surface Problems</a></li>
+                            <li class="topic"><a href='@routes.ApplicationController.labelingGuideObstacles'><strong>Obstacles</strong></a>
+                                <span class="plusminus">+</span></li>
+                            <div id="subtopics">
+                                    <!--This list will be automatically filled-->
+                            </div>
+                            <li><a href='@routes.ApplicationController.labelingGuideNoSidewalk'>No Sidewalk</a></li>
+                            <li><a href='@routes.ApplicationController.labelingGuideOcclusion'>Occlusion</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+
+                <div class="help-item">
+                    <h2 id="obstacles">Obstacles</h2>
+                    <p>
+                        Obstacles are objects that are directly on the path of a pedestrian route, thus
+                        blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor
+                        or ground space" along accessible pedestrian routes (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006198">ADA 305</a>).
+                        This allows pedestrians, especially those using walkers or wheelchairs, to remain safely
+                        on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible
+                        or may cause imbalance, tripping, or other hazards.
+                    </p>
+
+                    <h3 class=question id="how-should-I-mark-an-obstacle">How should I mark an obstacle?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should place labels at the base of the obstacle, which is any object that blocks a path. Placing a
+                                label any higher may make the lat-lng estimation inaccurate. Notice how the label on the lower left image
+                                that is not placed at the base of the tree has a lat-lng that is very far from the
+                                sidewalk (as seen in the mini map).
+                            </p>
+                            <p>
+                                If there is a long stretch of construction, like in the example on the right below, you should place
+                                a temporary obstacle label at the beginning and end of the construction (in the same manner as in the
+                                <a href='@routes.ApplicationController.labelingGuideSurfaceProblems'>Surface Problems</a> section.
+                            </p>
+                            <p>
+                                Severity should be higher for obstacles that cover more of the path, have less room for navigating
+                                around them, or would cause pedestrians that avoid them to put themselves into harm’s way (by going
+                                into traffic, going off the sidewalk, etc). There are more examples throughout this page.
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview1.png")' href='@routes.Assets.at("images/obstacles/Obstacles_Overview1.png")'
+                                    alt="A Street View image with a tree in the middle of the sidewalk" class="img-responsive" align=""
+                                    title="A Street View image with a tree in the middle of the sidewalk">
+                                    <figcaption>A tree in the middle of a sidewalk.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-sm-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview2.png")' href='@routes.Assets.at("images/obstacles/Obstacles_Overview2.png")'
+                                    alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align=""
+                                    title="A Street View image of a long stretch of sidewalk under construction">
+                                    <figcaption>A long stretch of sidewalk under construction.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h3 class="question" id="permanent-obstacles">What do I do about permanent obstacles?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should use an <i>Obstacle</i> label on any permanent fixture that is placed in the direct path of pedestrian routes.
+                                This could also include extreme instances of overgrowth or poles that are located (even partially) within
+                                curb ramp flares. Below are examples with various degrees of severity.
+                            </p>
+                        </div>
+                        <div class="img-container-3">
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity1-2.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity1.png")'
+                                    alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp" class="img-responsive" align=""
+                                    title="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp">
+                                    <figcaption>Severity: 1. The pole is almost entirely out of the path, but it is still located in the ramp.</figcaption>
+
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity3.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity3.png")'
+                                    alt="A Street View image of a street light pole in the middle of the sidewalk" class="img-responsive" align=""
+                                    title="A Street View image of a street light pole in the middle of the sidewalk">
+                                    <figcaption>Severity: 3. There is probably enough space to maneuver around.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity5.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity5.png")'
+                                    alt="A Street View image of a tree in the middle of the sidewalk" class="img-responsive" align=""
+                                    title="A Street View image of a tree in the middle of the sidewalk">
+                                    <figcaption>Severity: 5. There is no way to get around this obstacle without going into the street.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h3 class="question" id="temporary-obstacles">Do I label temporary obstacles as obstacles?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                You should label temporary obstacles with the <i>Obstacle</i> label. Temporary obstacles
+                                are objects that are not part of the "built environment", such as construction, minor
+                                overgrowth, parked cars, and trash cans.
+                            </p>
+                        </div>
+                        <div class="img-container-3">
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle1.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle1.png")'
+                                    alt="A Street View image of a trashcan on a sidewalk" class="img-responsive" align=""
+                                    title="A Street View image of a trashcan on a sidewalk">
+                                    <figcaption>Severity: 1. The trash cans only slightly blocks the path, and is easy to avoid safely.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle4.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle4.png")'
+                                    alt="A Street View image of leaves and foliage overflowing onto a sidewalk" class="img-responsive" align=""
+                                    title="A Street View image of leaves and foliage overflowing onto a sidewalk">
+                                    <figcaption>Severity: 1. There is enough space for pedestrians to use the sidewalk without being blocked by the leaves.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-4">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle3.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle3.png")'
+                                    alt="A Street View image of overgrowth onto a sidewalk" class="img-responsive" align=""
+                                    title="A Street View image of overgrowth onto a sidewalk">
+                                    <figcaption>Severity: 3. This does not leave quite enough space to maneuver around.
+                                        This is also on the edge of temporary and permanent; overgrowth that is any more
+                                        severe than this would probably be permanent. (this also requires a surface problem label)</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h3 class="question" id="non-obstacles">Do I label non-obstacles as obstacles?</h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Any objects that are not directly on the path of a pedestrian route (as in the first
+                                three examples below) should not be marked as obstacles. Perhaps more obviously, things
+                                like moving cars and other pedestrians are not obstacles either, so these should not be marked.
+                            </p>
+                        </div>
+                        <div class="img-container">
+                            <div class="col-md-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle1.png")' href='@routes.Assets.at("images/obstacles/NonObstacle1.png")'
+                                    alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp" class="img-responsive" align=""
+                                    title="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp">
+                                    <figcaption>This pole is clearly not on the path of a pedestrian route.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle8.png")' href='@routes.Assets.at("images/obstacles/NonObstacle8.png")'
+                                    alt="A Street View image of a pole not on the path of a sidewalk" class="img-responsive" align=""
+                                    title="A Street View image of a pole not on the path of a sidewalk">
+                                    <figcaption>This pole is not at all on the actual path, nor on the curb ramp flare at all.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle9.png")' href='@routes.Assets.at("images/obstacles/NonObstacle9.png")'
+                                    alt="A Street View image of objects that are not obstacles, such as a trash can" class="img-responsive" align=""
+                                    title="A Street View image of objects that are not obstacles, such as a trash can">
+                                    <figcaption>This trash bin should not be labeled as an obstacle in path. It does not directly block the
+                                        path of a pedestrian route, and is easily avoidable.</figcaption>
+                                </figure>
+                            </div>
+                            <div class="col-md-6">
+                                <figure class="text-center">
+                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle4.png")' href='@routes.Assets.at("images/obstacles/NonObstacle4.png")'
+                                    alt="A Street View of a vehicle in motion" class="img-responsive" align=""
+                                    title="A Street View of a vehicle in motion">
+                                    <figcaption>Vehicle in motion. Hopefully self-explanatory.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}

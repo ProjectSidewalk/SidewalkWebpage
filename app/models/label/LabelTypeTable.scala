@@ -2,14 +2,13 @@ package models.label
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import play.api.Logger
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
 /**
  *
  */
-class LabelTypeTable(tag: Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
+class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
   def labelType = column[String]("label_type", O.NotNull)
   def description = column[String]("description")
@@ -18,25 +17,31 @@ class LabelTypeTable(tag: Tag) extends Table[LabelType](tag, Some("sidewalk"), "
 }
 
 /**
- * Data access object for the label table
+ * Data access object for the label_type table
  */
 object LabelTypeTable {
   val db = play.api.db.slick.DB
   val labelTypes = TableQuery[LabelTypeTable]
 
   /**
-   * Return the label id
-   * @param labelType
-   * @return
-   */
+    * Gets the label type id from the label type name
+    *
+    * @param labelType
+    * @return
+    */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
-    try {
-      labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.head
-    } catch {
-      case e: java.util.NoSuchElementException => {
-        LabelTypeTable.save(LabelType(0, labelType, ""))
-      }
-    }
+    val typeId: Option[Int] = labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.headOption
+    typeId.getOrElse(LabelTypeTable.save(LabelType(0, labelType, "")))
+  }
+
+  /**
+    * Gets the label type name from the label type id
+    *
+    * @param labelTypeId
+    * @return
+    */
+  def labelTypeIdToLabelType(labelTypeId: Int): String = db.withTransaction { implicit session =>
+    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).list.head
   }
 
   /**

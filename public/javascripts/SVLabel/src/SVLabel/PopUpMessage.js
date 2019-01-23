@@ -5,6 +5,7 @@
  * @param taskContainer
  * @param tracker
  * @param user
+ * @param onboardingModel
  * @param uiPopUpMessage
  * @returns {{className: string}}
  * @constructor
@@ -224,7 +225,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     };
 
     /**
-     * This method shows a messaage box on the page.
+     * This method shows a message box on the page.
      */
     this.show = function (disableOtherInteraction) {
         disableInteractions();

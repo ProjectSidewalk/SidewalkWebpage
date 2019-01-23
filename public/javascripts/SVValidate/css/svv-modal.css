@@ -1,0 +1,49 @@
+#modal-skip-holder, #modal-comment-holder, #modal-mission-holder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    text-align: justify;
+}
+
+#modal-mission-holder {
+    visibility: hidden;
+}
+
+#modal-skip-background, #modal-comment-background, #modal-mission-background {
+    position: absolute;
+    left: 0px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
+    height: 100%;
+    width: 110%;
+}
+
+#modal-skip-box, #modal-comment-box {
+    background: rgba(255, 255, 255, 1);
+    /*border: 3px solid rgba(200, 200, 200, 1);*/
+    color: rgba(80, 80, 80, 1);
+    font-size: 14pt;
+    padding: 10px;
+    position: relative;
+    top: 35%;
+    left: 5px;
+    visibility: visible;
+    width: 720px;
+    z-index: 1;
+
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#modal-comment-textarea {
+    height: 100px;
+    width: 100%;
+    margin: 5px 0 10px 0;
+    border-radius: 3px 3px 3px 3px;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}

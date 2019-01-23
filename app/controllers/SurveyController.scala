@@ -1,30 +1,26 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
-import formats.json.IssueFormats._
 import formats.json.SurveySubmissionFormats._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.survey._
 import models.user._
 import models.mission.MissionTable
-import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
 import play.api.libs.json._
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.Play.current
-import play.extras.geojson
 
+import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
 /**
-  * Audit controller
+  * Survey controller
   */
 class SurveyController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -32,7 +28,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
   val anonymousUser: DBUser = UserTable.find("anonymous").get
 
   def postSurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[SurveySubmission]
+    var submission = request.body.validate[Seq[SurveySingleSubmission]]
 
     submission.fold(
       errors => {
@@ -43,25 +39,28 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         val userId: String = request.identity match {
           case Some(user) => user.userId.toString
           case None =>
+            Logger.warn("User without a user_id completed a survey, but every user should have a user_id.")
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
 
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
+        //this will log when a user submits a survey response
         val ipAddress: String = request.remoteAddress
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
-        val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId))
+        WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "SurveySubmit", timestamp))
+
+        val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
 
         val allSurveyQuestions = SurveyQuestionTable.listAll
         val allSurveyQuestionIds = allSurveyQuestions.map(_.surveyQuestionId)
-        val answeredQuestions = submission.answeredQuestions
-        val answeredQuestionIds = submission.answeredQuestions.map(_.surveyQuestionId.toInt)
+        val answeredQuestionIds = submission.map(_.surveyQuestionId.toInt)
         val unansweredQuestionIds = allSurveyQuestionIds diff answeredQuestionIds
         // Iterate over all the questions and check if there is a submission attribute matching question id.
         // Add the associated submission to the user_submission tables for that question
 
 
-        answeredQuestions.foreach{ q =>
+        submission.foreach{ q =>
           val questionId = q.surveyQuestionId.toInt
           val temp_question = SurveyQuestionTable.getQuestionById(questionId)
           temp_question match{
@@ -102,20 +101,20 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
   }
 
   def shouldDisplaySurvey = UserAwareAction.async { implicit request =>
-    val userId: UUID = request.identity match {
-      case Some(user) => user.userId
-      case None =>
-        val user: Option[DBUser] = UserTable.find("anonymous")
-        UUID.fromString(user.get.userId)
+    request.identity match {
+      case Some(user) =>
+        val userId: UUID = user.userId
+
+        // The survey should show after the user completes their first non-tutorial mission. NOTE the number of missions
+        // before survey is actually 2, but this check is done before the next mission is updated on the back-end.
+        val numMissionsBeforeSurvey = 1
+        val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey)
+
+        //maps displaymodal to true in the future
+        Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
+
+
+      case None => Future.successful(Redirect(s"/anonSignUp?url=/survey/display"))
     }
-    val userRole: String = UserRoleTable.getRole(userId)
-
-    val numMissionsBeforeSurvey = 2
-    val userRoleForSurvey = "Turker"
-
-    val displaySurvey = userRole == userRoleForSurvey //&& MissionTable.countCompletedMissionsByUserId(userId) == numMissionsBeforeSurvey
-    Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
-
   }
-
 }

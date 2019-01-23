@@ -27,6 +27,7 @@ object LabelControllerHelper {
     val labels = LabelTable.selectLabelsByInteractions(userId, filteredInteractions)
 
     labels
+    // TODO if the old code below is ever used, replace using JTS.transform to find dist /w doing it within query, see MissionController.updateUnmarkedCompletedMissionsAsCompleted
     //    val CRSEpsg4326 = CRS.decode("epsg:4326")
     //    val CRSEpsg26918 = CRS.decode("epsg:26918")
     //    val transform = CRS.findMathTransform(CRSEpsg4326, CRSEpsg26918)
@@ -37,7 +38,7 @@ object LabelControllerHelper {
     //    if (tasks.isEmpty) return List()
     //
     //    // Get missions in the current region
-    //    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId)
+    //    val completedMissions = MissionTable.selectCompletedMissionsByAUser(userId, regionId, includeOnboarding = true)
     //
     //    // Get the last mission distances (i.e., the cumulatirve mission distance traveled traveled).
     //    if (completedMissions.isEmpty) {

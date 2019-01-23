@@ -3,8 +3,6 @@ package models.gsv
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.lifted.ForeignKeyQuery
-
 case class GSVLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, roadArgb: String, description: String)
 
 class GSVLinkTable(tag: Tag) extends Table[GSVLink](tag, Some("sidewalk"), "gsv_link") {

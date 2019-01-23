@@ -734,16 +734,6 @@ video#bgvid {
 
 }
 
-#undo-button small{
-    position: relative;
-    top: -5px;
-}
-
-#redo-button small{
-    position: relative;
-    top: -5px;
-}
-
 #wrap {
     min-height: 100%;
     height: auto;
@@ -1196,7 +1186,7 @@ kbd {
     position: relative;
 }
 /*Overlay box - start*/
-#advanced-overlay, #neighborhood-completion-overlay{
+#advanced-overlay, #neighborhood-completion-overlay, #already-completed-neighborhood-overlay{
     display:none;
 }
 .overlay-text{
@@ -1206,7 +1196,7 @@ kbd {
     background: rgba(0,0,0,0.89);
     z-index: 5;
 }
-#advanced-neighborhood-text, #neighborhood-completion-text{
+#advanced-neighborhood-text, #neighborhood-completion-text, #already-completed-neighborhood-text{
     color: white;
     text-align: center;
     width: 70%;
@@ -1221,7 +1211,10 @@ kbd {
 #neighborhood-completion-text {
     top: 28%;
 }
-#advanced-neighborhood-text p, #neighborhood-completion-text p{
+#already-completed-neighborhood-text {
+    top: 28%;
+}
+#advanced-neighborhood-text p, #neighborhood-completion-text p, #already-completed-neighborhood-text p{
     border-radius: 5px;
     padding: 7px;
 }
@@ -1241,6 +1234,9 @@ kbd {
     background-color: white;
     color: black;
     cursor: pointer;
+}
+#accept-redirect{
+    width: 75px;
 }
 
 /*Overlay box - end*/

@@ -1,11 +1,8 @@
 function GraphEdit(d3, _, map, graph, parameters) {
-    var mode = "edit",// "edit", "explore"
-        mousedownVertex,
-        temporaryVertices = [],
-        temporaryEdges = [],
-        status = {
-            doNotDraw: false
-        };
+    var mode = "edit";// "edit", "explore"
+    var mousedownVertex;
+    var temporaryVertices = [];
+    var temporaryEdges = [];
     var svg = d3.select(map.getPanes().overlayPane)
         .append("svg")
         .attr("width", map.getSize().x)
@@ -93,7 +90,6 @@ function GraphEdit(d3, _, map, graph, parameters) {
 
     /**
      * A callback for a mouse event
-     * @param d
      */
     function mouseDown () {
         if (mode == "draw" || mode == "edit" || mode == "delete") {
@@ -189,7 +185,6 @@ function GraphEdit(d3, _, map, graph, parameters) {
 
     /**
      * A callback for the vertex dragend event.
-     * @param d
      */
     function endedDraggingVertex() {
         if (mode == "edit") {
