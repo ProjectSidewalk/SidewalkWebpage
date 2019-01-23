@@ -91,9 +91,9 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
-     * Returns a status
-     * @param key
-     * @returns {null}
+     * Returns a the value in status given a key
+     * @param key The key to find in status
+     * @returns The value in status if it exists. If it doesn't, returns null
      */
     function getStatus (key) {
         return (key in status) ? status[key] : null;
