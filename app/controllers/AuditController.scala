@@ -31,6 +31,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
+  // Helper methods
+  def isAdmin(user: Option[User]): Boolean = user match {
+    case Some(user) =>
+      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
+    case _ => false
+  }
+
   /**
     * Returns an audit page.
     *
@@ -175,6 +182,48 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId"))
     }
+  }
+
+  /**
+    * Drops a researcher at a given location on the given street edge.
+    *
+    * @param streetEdgeId
+    * @param lat
+    * @param lng
+    * @param panoId
+    * @return
+    */
+  def auditLocation(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
+        val userId: UUID = user.userId
+        val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
+        val region: NamedRegion = regions.head
+
+        val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
+        val role: String = user.role.getOrElse("")
+        val payPerMeter: Double =
+          if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
+        val tutorialPay: Double =
+          if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
+        val mission: Mission =
+          MissionTable.resumeOrCreateNewAuditMission(userId, region.regionId, payPerMeter, tutorialPay).get
+
+        if(isAdmin(request.identity)){
+          panoId match {
+            case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), None, None, Some(panoId))))
+            case None =>
+              (lat, lng) match {
+                case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), Some(lat), Some(lng))))
+                case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None)))
+              }
+          }
+        } else {
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
+        }
+      case None => Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId"))
+    }    
   }
 
   /**
