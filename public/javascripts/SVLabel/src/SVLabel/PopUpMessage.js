@@ -204,11 +204,12 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      * @param image
      * @param callback
      */
-    this.notifyWithImage = function (title, image, callback) {
+    this.notifyWithImage = function (title, message, image, callback) {
         uiPopUpMessage.buttonHolder.html("");
-        self._setPosition(40, 260, 640);
+        self._setPosition(40, 60, 640);
         self.show();
         self._setTitle(title);
+        self._setMessage(message);
         self._setImage(image);
         self._appendOKButton();
 
@@ -272,14 +273,20 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     };
 
     /**
+     * Sets the message.
+     */
+    this._setMessage = function (message) {
+        uiPopUpMessage.content.html(message);
+    };
+    /**
      * Sets the image
      */
     this._setImage = function (image) {
-        var imageHtml = '<img src = ${image} id="pop-up-message-image" />';
+        var imageHtml = `<img src = ${svl.rootDirectory}` + `${image} id="pop-up-message-image" />`;
         var $img = $(imageHtml);
-        $img.css({ cursor: 'default', width: '10px', height: '10px' });
+        $img.css({ cursor: 'default', width: '600px', height: '388px', left: '50px' });
         $img.addClass('img');
-        uiPopUpMessage.foreground.append($img);
+        uiPopUpMessage.imageHolder.append($img);
     };
 
     /*
