@@ -224,7 +224,8 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function setLabelBeforeJumpMessage () {
-        var message = "<div style='width: 20%'>You have reached the end of this route. Finish labeling this intersection then <br/> " +
+        var message = "<div style='width: 20%'>You have reached the end of this route. " +
+            "<span class='bold'>Finish labeling this intersection</span> then <br/> " +
             "<span class='bold'>click here to move to a new location.</span></div>";
         uiCompass.message.html(message);
     }
