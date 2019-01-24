@@ -66,8 +66,10 @@ function ContextMenu (uiContextMenu) {
 
         // Add shortcuts for tag selection
         if (isOpen()) {
+            var label = getTargetLabel();
             if (down[65]) {
-
+                //
+                document.getElementsByClassName('context-menu-tag')[0].click();
             }
         }
 
@@ -239,38 +241,27 @@ function ContextMenu (uiContextMenu) {
                 var tagValue = e.target.textContent || e.target.innerText;
 
                 // Adds or removes tag from the label's current list of tags.
-                toggleTag(e, label, tagValue);
+                var labelTags = label.getProperty('tagIds');
+                self.labelTags.forEach(function (tag) {
+                    if (tag.tag === tagValue) {
+                        if (!labelTags.includes(tag.tag_id)) {
+                            labelTags.push(tag.tag_id);
+                            svl.tracker.push('ContextMenu_TagAdded',
+                                {tagId: tag.tag_id, tagName: tag.tag});
+                        } else {
+                            var index = labelTags.indexOf(tag.tag_id);
+                            labelTags.splice(index, 1);
+                            svl.tracker.push('ContextMenu_TagRemoved',
+                                {tagId: tag.tag_id, tagName: tag.tag});
+                        }
+                        _toggleTagColor(labelTags, tag.tag_id, e.target);
+                        label.setProperty('tagIds', labelTags);
+                    }
+                });
+                e.target.blur();
             }
         });
     }
-
-    /**
-     * Toggles selection of a tag. Adds or removes tag from the label's current list of tags, as well as update the tag color.
-     * @param e The tag element
-     * @param label The label that we are toggling the tag for
-     * @param tagValue The String text content of the tag to be toggled.
-     */
-    function toggleTag (e, label, tagValue) {
-        var labelTags = label.getProperty('tagIds');
-        self.labelTags.forEach(function (tag) {
-            if (tag.tag === tagValue) {
-                if (!labelTags.includes(tag.tag_id)) {
-                    labelTags.push(tag.tag_id);
-                    svl.tracker.push('ContextMenu_TagAdded',
-                        {tagId: tag.tag_id, tagName: tag.tag});
-                } else {
-                    var index = labelTags.indexOf(tag.tag_id);
-                    labelTags.splice(index, 1);
-                    svl.tracker.push('ContextMenu_TagRemoved',
-                        {tagId: tag.tag_id, tagName: tag.tag});
-                }
-                _toggleTagColor(labelTags, tag.tag_id, e.target);
-                label.setProperty('tagIds', labelTags);
-            }
-        });
-        e.target.blur();
-    }
-
     /**
      *
      * @param e
