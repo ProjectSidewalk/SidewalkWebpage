@@ -65,7 +65,7 @@ function ContextMenu (uiContextMenu) {
         }//windows
 
         // Add shortcuts for tag selection
-        if (isOpen()) {
+        if (isOpen() && document.activeElement.nodeName != 'INPUT') {
             var labelType = getTargetLabel().getProperty('labelType');
             if (labelType == 'CurbRamp') { // Curb Ramp
                 if (down[65]) { // 'a' for 'narrow'
