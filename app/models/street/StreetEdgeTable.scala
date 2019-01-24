@@ -146,6 +146,9 @@ object StreetEdgeTable {
     auditedDistance / totalDistance
   }
 
+  var resultT = 0.0f
+  var isCachedT = false
+
   /**
     * Get the total distance in miles
     * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
@@ -153,12 +156,33 @@ object StreetEdgeTable {
     * @return
     */
   def totalStreetDistance(): Float = db.withSession { implicit session =>
-    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+    if(isCachedT) {
+      return resultT
+    }
 
-    // get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
-    (distances.sum * 0.000621371).toFloat
+    println("totalStreetDistance")
+    time {
+      // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+
+      // get length of each street segment, sum the lengths, and convert from meters to miles
+      val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+      resultT = (distances.sum * 0.000621371).toFloat
+      isCachedT = true
+      resultT
+    }
+
   }
+
+  def time[R](block: => R): R = {
+    val t0 = System.currentTimeMillis()
+    val result = block    // call-by-name
+    val t1 = System.currentTimeMillis()
+    println("Elapsed time: " + (t1 - t0) + "ms")
+    result
+  }
+
+  var result = 0.0f
+  var isCached = false
 
   /**
     * Get the audited distance in miles
@@ -168,29 +192,37 @@ object StreetEdgeTable {
     * @return
     */
   def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
-
-    val auditTaskQuery = userType match {
-      case "All" => completedAuditTasks
-      case "Researcher" => researcherCompletedAuditTasks
-      case "Turker" => turkerCompletedAuditTasks
-      case "Registered" => regUserCompletedAuditTasks
-      case "Anonymous" => anonCompletedAuditTasks
-      case _ => completedAuditTasks
+    if(isCached) {
+      return result
     }
 
-    val edges = for {
-      _edges <- streetEdgesWithoutDeleted
-      _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
-    } yield _edges
+    println("yawt")
+    time {
+      val auditTaskQuery = userType match {
+        case "All" => completedAuditTasks
+        case "Researcher" => researcherCompletedAuditTasks
+        case "Turker" => turkerCompletedAuditTasks
+        case "Registered" => regUserCompletedAuditTasks
+        case "Anonymous" => anonCompletedAuditTasks
+        case _ => completedAuditTasks
+      }
 
-    // Gets tuple of (street_edge_id, num_completed_audits)
-    val edgesWithAuditCounts = edges.groupBy(x => x).map{
-      case (edge, group) => (edge.geom.transform(26918).length, group.length)
+      val edges = for {
+        _edges <- streetEdgesWithoutDeleted
+        _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
+      } yield _edges
+
+      // Gets tuple of (street_edge_id, num_completed_audits)
+      val edgesWithAuditCounts = edges.groupBy(x => x).map{
+        case (edge, group) => (edge.geom.transform(26918).length, group.length)
+      }
+
+      // Get length of each street segment, sum the lengths, and convert from meters to miles
+      val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
+      result = (distances.sum * 0.000621371).toFloat
+      isCached = true
+      result
     }
-
-    // Get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
-    (distances.sum * 0.000621371).toFloat
   }
 
   /**
