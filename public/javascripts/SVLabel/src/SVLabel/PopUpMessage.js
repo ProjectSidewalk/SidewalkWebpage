@@ -204,11 +204,12 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      * @param image
      * @param callback
      */
-    this.notifyWithImage = function (title, callback) {
+    this.notifyWithImage = function (title, image, callback) {
         uiPopUpMessage.buttonHolder.html("");
         self._setPosition(40, 260, 640);
         self.show();
         self._setTitle(title);
+        self._setImage(image);
         self._appendOKButton();
 
         if (callback) {
@@ -267,7 +268,18 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      * Sets the title
      */
     this._setTitle = function (title) {
-         uiPopUpMessage.title.html(title);
+        uiPopUpMessage.title.html(title);
+    };
+
+    /**
+     * Sets the image
+     */
+    this._setImage = function (image) {
+        var imageHtml = '<img src = ${image} id="pop-up-message-image" />';
+        var $img = $(imageHtml);
+        $img.css({ cursor: 'default', width: '10px', height: '10px' });
+        $img.addClass('img');
+        uiPopUpMessage.foreground.append($img);
     };
 
     /*

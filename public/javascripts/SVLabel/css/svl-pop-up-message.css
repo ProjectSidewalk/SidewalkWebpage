@@ -33,9 +33,3 @@
 #pop-up-message-foreground a {
     color: rgba(20, 20, 20, 1);
 }
-
-#pop-up-message-image img {
-    cursor: default;
-    width: 10px;
-    height: 10px;
-}

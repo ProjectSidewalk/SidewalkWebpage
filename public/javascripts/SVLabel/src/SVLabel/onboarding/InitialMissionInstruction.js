@@ -21,9 +21,10 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             var distance = taskContainer.getCompletedTaskDistance("kilometers");
             if (distance >= 0.025) {
                 var title = "As you walk, please remember to check both sides of the street like this:";
+                var image = "../../img/examples/lookaround-example.gif";
                 tracker.push('PopUpShow_CheckBothSides');
 
-                popUpMessage.notify(title, message, function() {
+                popUpMessage.notifyWithImage(title, image, function() {
                     mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
                     mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
                 });
