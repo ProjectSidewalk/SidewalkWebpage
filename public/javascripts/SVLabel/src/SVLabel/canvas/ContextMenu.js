@@ -235,13 +235,13 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleTagClick () {
         var label = getTargetLabel();
+        var labelTags = label.getProperty('tagIds');
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
                 var tagValue = e.target.textContent || e.target.innerText;
 
                 // Adds or removes tag from the label's current list of tags.
-                var labelTags = label.getProperty('tagIds');
                 self.labelTags.forEach(function (tag) {
                     if (tag.tag === tagValue) {
                         if (!labelTags.includes(tag.tag_id)) {
