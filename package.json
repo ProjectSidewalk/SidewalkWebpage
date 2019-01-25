@@ -15,7 +15,7 @@
   "scripts": {
     "build": "npm install && grunt",
     "debug": "grunt watch & sbt -jvm-debug 9998 run",
-    "start": "grunt watch & sbt compile \"~ run\"",
+    "start": "grunt watch & sbt -Dsbt.ivy.home='.ivy2' -Dsbt.global.base='.sbt' -Dsbt.repository.config='.sbt/repositories' compile \"~ run\"",
     "test": "grunt && grunt test"
   }
 }
