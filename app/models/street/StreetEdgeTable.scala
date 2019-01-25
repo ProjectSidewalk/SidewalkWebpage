@@ -174,7 +174,7 @@ object StreetEdgeTable {
   def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
     val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
-    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
+    Cache.getOrElse(cacheKey, 1.hour.toSeconds.toInt) {
       val auditTaskQuery = userType match {
         case "All" => completedAuditTasks
         case "Researcher" => researcherCompletedAuditTasks
