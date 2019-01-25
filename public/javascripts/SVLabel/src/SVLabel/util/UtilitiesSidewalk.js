@@ -209,11 +209,11 @@ function UtilitiesMisc (JSON) {
         }
     }
 
-    function getLabelDescriptions (category) {
+    function getLabelDescriptions(category) {
         var descriptions = {
-            'Walk' : {
-                'id' : 'Walk',
-                'text' : 'Walk',
+            'Walk': {
+                'id': 'Walk',
+                'text': 'Walk',
                 shortcut: {
                     keyNumber: 69,
                     keyChar: 'E'
@@ -225,6 +225,24 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 67,
                     keyChar: 'C'
+                },
+                tagInfo: {
+                    'narrow': {
+                        keyNumber: 65,
+                        keyChar: 'A'
+                    },
+                    'points into traffic': {
+                        keyNumber: 80,
+                        keyChar: 'P'
+                    },
+                    'missing friction strip': {
+                        keyNumber: 70,
+                        keyChar: 'F'
+                    },
+                    'steep': {
+                        keyNumber: 84,
+                        keyChar: 'T'
+                    }
                 }
             },
             NoCurbRamp: {
@@ -233,6 +251,20 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 77,
                     keyChar: 'M'
+                },
+                tagInfo: {
+                    'alternate route present': {
+                        keyNumber: 65,
+                        keyChar: 'A'
+                    },
+                    'no alternate route': {
+                        keyNumber: 76,
+                        keyChar: 'L'
+                    },
+                    'unclear if needed': {
+                        keyNumber: 85,
+                        keyChar: 'U'
+                    }
                 }
             },
             Obstacle: {
@@ -241,11 +273,43 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 79,
                     keyChar: 'O'
+                },
+                tagInfo: {
+                    'trash can': {
+                        keyNumber: 82,
+                        keyChar: 'R'
+                    },
+                    'fire hydrant': {
+                        keyNumber: 70,
+                        keyChar: 'F'
+                    },
+                    'pole': {
+                        keyNumber: 80,
+                        keyChar: 'P'
+                    },
+                    'tree': {
+                        keyNumber: 84,
+                        keyChar: 'T'
+                    },
+                    'vegetation': {
+                        keyNumber: 86,
+                        keyChar: 'V'
+                    }
                 }
             },
             Other: {
                 id: 'Other',
-                text: 'Other'
+                text: 'Other',
+                tagInfo: {
+                    'missing crosswalk': {
+                        keyNumber: 73,
+                        keyChar: 'I'
+                    },
+                    'no bus stop access': {
+                        keyNumber: 65,
+                        keyChar: 'A'
+                    }
+                }
             },
             Occlusion: {
                 id: 'Occlusion',
@@ -269,6 +333,28 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 83,
                     keyChar: 'S'
+                },
+                tagInfo: {
+                    'bumpy': {
+                        keyNumber: 80,
+                        keyChar: 'P'
+                    },
+                    'uneven': {
+                        keyNumber: 85,
+                        keyChar: 'U'
+                    },
+                    'cracks': {
+                        keyNumber: 82,
+                        keyChar: 'R'
+                    },
+                    'grass': {
+                        keyNumber: 71,
+                        keyChar: 'G'
+                    },
+                    'narrow sidewalk': {
+                        keyNumber: 65,
+                        keyChar: 'A'
+                    }
                 }
             },
             Void: {
