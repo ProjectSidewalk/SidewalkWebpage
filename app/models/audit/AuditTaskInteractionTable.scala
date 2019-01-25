@@ -3,11 +3,11 @@ package models.audit
 import java.util.UUID
 
 import models.label._
-import models.mission.{Mission, MissionTable}
+import models.mission.{ Mission, MissionTable }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
-import play.extras.geojson
+import play.api.libs.json.{ JsObject, Json }
+import au.id.jazzy.play.geojson
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -16,29 +16,29 @@ import scala.concurrent.Future
 
 import slick.jdbc.GetResult
 
-case class AuditTaskInteraction(auditTaskInteractionId: Int,
-                                auditTaskId: Int,
-                                missionId: Int,
-                                action: String,
-                                gsvPanoramaId: Option[String],
-                                lat: Option[Float],
-                                lng: Option[Float],
-                                heading: Option[Float],
-                                pitch: Option[Float],
-                                zoom: Option[Int],
-                                note: Option[String],
-                                temporaryLabelId: Option[Int],
-                                timestamp: java.sql.Timestamp)
+case class AuditTaskInteraction(
+  auditTaskInteractionId: Int,
+  auditTaskId: Int,
+  missionId: Int,
+  action: String,
+  gsvPanoramaId: Option[String],
+  lat: Option[Float],
+  lng: Option[Float],
+  heading: Option[Float],
+  pitch: Option[Float],
+  zoom: Option[Int],
+  note: Option[String],
+  temporaryLabelId: Option[Int],
+  timestamp: java.sql.Timestamp)
 
 case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, missionId: Int, action: String,
-                                gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
-                                heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
-                                note: Option[String], timestamp: java.sql.Timestamp,
-                                labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
-                                canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
+  gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
+  heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
+  note: Option[String], timestamp: java.sql.Timestamp,
+  labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
+  canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
 case class UserAuditTime(userId: String, role: String, duration: Option[Float])
-
 
 class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
   def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
@@ -107,14 +107,12 @@ object AuditTaskInteractionTable {
     )
   })
 
-
   implicit val userAuditTime = GetResult[UserAuditTime](r => {
-      UserAuditTime(
-        r.nextString,
-        r.nextString,
-        r.nextFloatOption
-      )
-    })
+    UserAuditTime(
+      r.nextString,
+      r.nextString,
+      r.nextFloatOption)
+  })
 
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
@@ -123,26 +121,24 @@ object AuditTaskInteractionTable {
   val labels = TableQuery[LabelTable]
   val labelPoints = TableQuery[LabelPointTable]
 
-
-
   def save(interaction: AuditTaskInteraction): Future[Int] = db.run {
     (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) += interaction
   }
 
   /**
-    * Select all audit task interaction records of the specified action
-    * @param actionType
-    * @return
-    */
+   * Select all audit task interaction records of the specified action
+   * @param actionType
+   * @return
+   */
   def selectAuditTaskInteractionsOfAnActionType(actionType: String): Future[Seq[AuditTaskInteraction]] = db.run {
     auditTaskInteractions.filter(_.action === actionType).result
   }
 
   /**
-    * Select all the audit task interactions of the specified user
-    * @param userId User id
-    * @return
-    */
+   * Select all the audit task interactions of the specified user
+   * @param userId User id
+   * @return
+   */
   def selectAuditTaskInteractionsOfAUser(userId: UUID): Future[Seq[AuditTaskInteraction]] = db.run {
     auditTasks.filter(_.userId === userId.toString)
       .join(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
@@ -150,12 +146,12 @@ object AuditTaskInteractionTable {
   }
 
   /**
-  * Select all audit task interaction times for non-researchers.
-    *
-  * @return
-  */
-def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
-  val selectAuditTimesQuery =  sql"""
+   * Select all audit task interaction times for non-researchers.
+   *
+   * @return
+   */
+  def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
+    val selectAuditTimesQuery = sql"""
       SELECT user_audit_times.user_id,
              user_audit_times.role,
              CAST(extract( second from SUM(diff) ) /60 +
@@ -181,8 +177,8 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
       WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
       GROUP BY user_id, role;""".as[UserAuditTime]
 
-  db.run(selectAuditTimesQuery)
-}
+    db.run(selectAuditTimesQuery)
+  }
 
   def selectAuditTaskInteractionsOfAUser(regionId: Int, userId: UUID): Future[Seq[AuditTaskInteraction]] = db.run {
     sql"""SELECT audit_task_interaction.audit_task_interaction_id,
@@ -218,12 +214,12 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
   }
 
   /**
-    * Get a list of audit task interactions with corresponding labels.
-    * It would be faster to do this with a raw sql query. Update if too slow.
-    *
-    * @param auditTaskId
-    * @return
-    */
+   * Get a list of audit task interactions with corresponding labels.
+   * It would be faster to do this with a raw sql query. Update if too slow.
+   *
+   * @param auditTaskId
+   * @return
+   */
   def selectAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]] = db.run {
     sql"""SELECT interaction.audit_task_interaction_id,
                  interaction.audit_task_id,
@@ -253,14 +249,13 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
          ORDER BY interaction.timestamp""".as[InteractionWithLabel]
   }
 
-
   // Helper methods
 
   /**
-    * This method takes an output of the method `selectAuditInteractionsWithLabels` and
-    * returns a GeoJSON feature collection
-    * @param interactions
-    */
+   * This method takes an output of the method `selectAuditInteractionsWithLabels` and
+   * returns a GeoJSON feature collection
+   * @param interactions
+   */
   def auditTaskInteractionsToGeoJSON(interactions: Seq[InteractionWithLabel]): JsObject = {
     val features: Seq[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp.getTime).map { interaction =>
       val point = geojson.Point(geojson.LatLng(interaction.lat.get.toDouble, interaction.lng.get.toDouble))
@@ -274,8 +269,7 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
           "canvasHeight" -> interaction.canvasHeight,
           "canvasWidth" -> interaction.canvasWidth,
           "action" -> interaction.action,
-          "note" -> interaction.note
-        )
+          "note" -> interaction.note)
       } else {
         Json.obj(
           "panoId" -> interaction.gsvPanoramaId,
@@ -291,9 +285,7 @@ def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
             "label_type" -> interaction.labelType,
             "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
             "canvasX" -> interaction.canvasX,
-            "canvasY" -> interaction.canvasY
-          )
-        )
+            "canvasY" -> interaction.canvasY))
       }
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
     }

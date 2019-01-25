@@ -1,10 +1,10 @@
 package models.attribute
 
 /**
-  * Created by misaugstad on 4/27/17.
-  */
+ * Created by misaugstad on 4/27/17.
+ */
 
-import models.region.{Region, RegionTable}
+import models.region.{ Region, RegionTable }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
@@ -18,7 +18,6 @@ import scala.language.postfixOps
 
 case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: java.sql.Timestamp)
 
-
 class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSession](tag, Some("sidewalk"), "global_clustering_session") {
   def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id", O.PrimaryKey, O.AutoInc)
   def regionId: Rep[Int] = column[Int]("region_id")
@@ -31,8 +30,8 @@ class GlobalClusteringSessionTable(tag: Tag) extends Table[GlobalClusteringSessi
 }
 
 /**
-  * Data access object for the GlobalClusteringSessionTable table
-  */
+ * Data access object for the GlobalClusteringSessionTable table
+ */
 object GlobalClusteringSessionTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
@@ -43,8 +42,8 @@ object GlobalClusteringSessionTable {
   }
 
   /**
-    * Truncates global_clustering_session, global_attribute, and global_attribute_user_attribute.
-    */
+   * Truncates global_clustering_session, global_attribute, and global_attribute_user_attribute.
+   */
   def truncateTables(): Future[Int] = db.run {
     sqlu"""TRUNCATE TABLE global_clustering_session CASCADE"""
   }

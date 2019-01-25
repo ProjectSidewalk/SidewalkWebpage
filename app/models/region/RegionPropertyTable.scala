@@ -28,22 +28,21 @@ object RegionPropertyTable {
   val neighborhoodNames = regionProperties.filter(_.key === "Neighborhood Name")
 
   /**
-    * Returns a list of all the sidewalk edges
-    * @return A list of SidewalkEdge objects.
-    */
+   * Returns a list of all the sidewalk edges
+   * @return A list of SidewalkEdge objects.
+   */
   def all: Future[List[RegionProperty]] = db.run(regionProperties.to[List].result)
 
   /**
-    * Return the neighborhood name of the given region
-    * @param regionId Region id
-    * @return
-    */
+   * Return the neighborhood name of the given region
+   * @param regionId Region id
+   * @return
+   */
   def neighborhoodName(regionId: Int): Future[Option[String]] = {
     db.run(
-      regionProperties.filter(_.regionId === regionId).filter(_.key === "Neighborhood Name").result.headOption
-    ).map {
-      case Some(rp) => Some(rp.value)
-      case _ => None
-    }
+      regionProperties.filter(_.regionId === regionId).filter(_.key === "Neighborhood Name").result.headOption).map {
+        case Some(rp) => Some(rp.value)
+        case _ => None
+      }
   }
 }

@@ -6,7 +6,7 @@ import com.vividsolutions.jts.geom.Polygon
 import models.audit.AuditTaskTable
 
 import math._
-import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
+import models.street.{ StreetEdgePriorityTable, StreetEdgeRegionTable }
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver.api._
 import play.api.Play
@@ -73,40 +73,37 @@ object RegionTable {
 
   /**
    * Returns a list of all the neighborhood regions
-    *
-    * @return A list of Region objects.
+   *
+   * @return A list of Region objects.
    */
   def selectAllNeighborhoods: Future[List[Region]] = db.run(
-    regionsWithoutDeleted.filter(_.regionTypeId === 2).to[List].result
-  )
+    regionsWithoutDeleted.filter(_.regionTypeId === 2).to[List].result)
 
   /**
-    * Returns a list of all neighborhoods with names
-    * @return
-    */
+   * Returns a list of all neighborhoods with names
+   * @return
+   */
   def selectAllNamedNeighborhoods: Future[List[NamedRegion]] = db.run(
-    namedRegions.to[List].result.map(_.map(NamedRegion.tupled))
-  )
+    namedRegions.to[List].result.map(_.map(NamedRegion.tupled)))
 
   /**
-    * Picks one of the regions with highest average priority.
-    *
-    * @return
-    */
+   * Picks one of the regions with highest average priority.
+   *
+   * @return
+   */
   def selectAHighPriorityRegion: Future[Option[NamedRegion]] = {
     db.run(
-      regionsWithoutDeleted.map(_.regionId).to[List].result
-    ).flatMap { possibleRegionIds =>
-      selectAHighPriorityRegionGeneric(possibleRegionIds)
-    }
+      regionsWithoutDeleted.map(_.regionId).to[List].result).flatMap { possibleRegionIds =>
+        selectAHighPriorityRegionGeneric(possibleRegionIds)
+      }
   }
 
   /**
-    * Picks one of the regions with highest average priority out of those that the user has not completed.
-    *
-    * @param userId
-    * @return
-    */
+   * Picks one of the regions with highest average priority out of those that the user has not completed.
+   *
+   * @param userId
+   * @return
+   */
   def selectAHighPriorityRegion(userId: UUID): Future[Option[NamedRegion]] = {
     AuditTaskTable.selectIncompleteRegions(userId).flatMap { possibleRegionIds =>
       selectAHighPriorityRegionGeneric(possibleRegionIds.toList).flatMap {
@@ -117,11 +114,11 @@ object RegionTable {
   }
 
   /**
-    * Picks one of the easy regions with highest average priority out of those that the user has not completed.
-    *
-    * @param userId
-    * @return
-    */
+   * Picks one of the easy regions with highest average priority out of those that the user has not completed.
+   *
+   * @param userId
+   * @return
+   */
   def selectAHighPriorityEasyRegion(userId: UUID): Future[Option[NamedRegion]] = {
     AuditTaskTable.selectIncompleteRegions(userId).flatMap { incompleteRegions =>
       val possibleRegionIds = incompleteRegions.filterNot(difficultRegionIds.contains(_)).toList
@@ -133,11 +130,11 @@ object RegionTable {
   }
 
   /**
-    * Out of the provided regions, picks one of the 5 with highest average priority across their street edges.
-    *
-    * @param possibleRegionIds
-    * @return
-    */
+   * Out of the provided regions, picks one of the 5 with highest average priority across their street edges.
+   *
+   * @param possibleRegionIds
+   * @return
+   */
   def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Future[Option[NamedRegion]] = {
     db.run(
       StreetEdgeRegionTable.streetEdgeRegionTable
@@ -146,31 +143,29 @@ object RegionTable {
         .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
         .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
         .sortBy(_._2.desc).take(5).map(_._1) // take the 5 with highest average priority, select region_id
-        .to[List].result
-    ).flatMap { highestPriorityRegions =>
-      scala.util.Random.shuffle(highestPriorityRegions).headOption match {
-        case Some(regionId) => selectANamedRegion(regionId)
-        case _ => Future.successful(None)
+        .to[List].result).flatMap { highestPriorityRegions =>
+        scala.util.Random.shuffle(highestPriorityRegions).headOption match {
+          case Some(regionId) => selectANamedRegion(regionId)
+          case _ => Future.successful(None)
+        }
       }
-    }
   }
 
   /**
-    * Get the region specified by the region id
-    *
-    * @param regionId region id
-    * @return
-    */
+   * Get the region specified by the region id
+   *
+   * @param regionId region id
+   * @return
+   */
   def selectANeighborhood(regionId: Int): Future[Option[Region]] = db.run(
-      neighborhoods.filter(_.regionId === regionId).result.headOption
-  )
+    neighborhoods.filter(_.regionId === regionId).result.headOption)
 
   /**
-    * Get the region specified by the region id
-    *
-    * @param regionId region id
-    * @return
-    */
+   * Get the region specified by the region id
+   *
+   * @param regionId region id
+   * @return
+   */
   def selectANamedRegion(regionId: Int): Future[Option[NamedRegion]] = {
     db.run({
       val filteredNeighborhoods = neighborhoods.filter(_.regionId === regionId)
@@ -183,11 +178,11 @@ object RegionTable {
   }
 
   /**
-    * Get the neighborhood that is currently assigned to the user.
-    *
-    * @param userId user id
-    * @return
-    */
+   * Get the neighborhood that is currently assigned to the user.
+   *
+   * @param userId user id
+   * @return
+   */
   def selectTheCurrentRegion(userId: UUID): Future[Option[Region]] = {
     db.run({
       val currentRegions = for {
@@ -199,11 +194,11 @@ object RegionTable {
   }
 
   /**
-    * Get the neighborhood that is currently assigned to the user.
-    *
-    * @param userId user id
-    * @return
-    */
+   * Get the neighborhood that is currently assigned to the user.
+   *
+   * @param userId user id
+   * @return
+   */
   def selectTheCurrentNamedRegion(userId: UUID): Future[Option[NamedRegion]] = {
     db.run({
       val currentRegions = for {
@@ -238,13 +233,13 @@ object RegionTable {
   }
 
   /**
-    * Returns a list of neighborhoods intersecting the given bounding box
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
-    * @return
-    */
+   * Returns a list of neighborhoods intersecting the given bounding box
+   * @param lat1
+   * @param lng1
+   * @param lat2
+   * @param lng2
+   * @return
+   */
   def selectNamedNeighborhoodsIntersecting(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Future[List[NamedRegion]] = {
     def selectNamedNeighborhoodQuery(lat1: Double, lng1: Double, lat2: Double, lng2: Double) =
       sql"""SELECT region.region_id, region_property.value, region.geom
@@ -267,13 +262,13 @@ object RegionTable {
   }
 
   /**
-    * Returns a list of neighborhoods within the given bounding box
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
-    * @return
-    */
+   * Returns a list of neighborhoods within the given bounding box
+   * @param lat1
+   * @param lng1
+   * @param lat2
+   * @param lng2
+   * @return
+   */
   def selectNamedNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Future[List[NamedRegion]] = {
     def selectNamedNeighborhoodQuery(lat1: Double, lng1: Double, lat2: Double, lng2: Double) =
       sql"""SELECT region.region_id, region_property.value, region.geom
@@ -296,18 +291,17 @@ object RegionTable {
   }
 
   /**
-    * This method returns a list of NamedRegions
-    *
-    * @param regionType
-    * @return
-    */
+   * This method returns a list of NamedRegions
+   *
+   * @param regionType
+   * @return
+   */
   def selectNamedRegionsOfAType(regionType: String): Future[List[NamedRegion]] = {
     db.run({
       val _regions = for {
         (_regions, _regionTypes) <- regionsWithoutDeleted.join(regionTypes).on(_.regionTypeId === _.regionTypeId)
         if _regionTypes.regionType === regionType
       } yield _regions
-
 
       val _namedRegions = for {
         (_regions, _regionProperties) <- _regions.joinLeft(regionProperties).on(_.regionId === _.regionId)
@@ -319,12 +313,12 @@ object RegionTable {
   }
 
   /**
-    * Gets the region id of the neighborhood wherein the lat-lng point is located, the closest neighborhood otherwise.
-    *
-    * @param lng
-    * @param lat
-    * @return
-    */
+   * Gets the region id of the neighborhood wherein the lat-lng point is located, the closest neighborhood otherwise.
+   *
+   * @param lng
+   * @param lat
+   * @return
+   */
   def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Future[Int] = {
     def closestNeighborhoodQuery(lng: Float, lat: Float) =
       sql"""SELECT region_id

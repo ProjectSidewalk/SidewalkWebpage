@@ -1,15 +1,15 @@
 package models.audit
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, UUID}
+import java.util.{ Calendar, Date, UUID }
 
-import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, LineString, Polygon}
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{Label, LabelTable, LabelType, LabelTypeTable}
-import models.region.{Region, RegionTable, RegionType, RegionTypeTable}
-import models.street.{StreetEdge, StreetEdgeTable}
+import com.vividsolutions.jts.geom.{ Coordinate, GeometryFactory, LineString, Polygon }
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
+import models.label.{ Label, LabelTable, LabelType, LabelTypeTable }
+import models.region.{ Region, RegionTable, RegionType, RegionTypeTable }
+import models.street.{ StreetEdge, StreetEdgeTable }
 import models.utils.MyPostgresDriver.simple._
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import org.specs2.mutable._
 import play.api.test._
 import play.api.test._
@@ -20,14 +20,12 @@ import play.api.db.BoneCPPlugin
 import scala.slick.driver.JdbcDriver.backend.Database
 import scala.slick.jdbc.GetResult
 
-class AuditTaskInteractionSpec extends Specification  {
+class AuditTaskInteractionSpec extends Specification {
 
-//  val appWithMemoryDatabase = FakeApplication(additionalConfiguration = inMemoryDatabase())
-
-
+  //  val appWithMemoryDatabase = FakeApplication(additionalConfiguration = inMemoryDatabase())
 
   "AuditTaskInteractionTable" should {
-    "be able to insert" in new WithApplication(app = FakeApplication()){
+    "be able to insert" in new WithApplication(app = FakeApplication()) {
       play.api.db.slick.DB.withSession { implicit session =>
 
         Q.updateNA("""CREATE SCHEMA IF NOT EXISTS "sidewalk";""").execute
@@ -112,8 +110,8 @@ class AuditTaskInteractionSpec extends Specification  {
   "`AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser` method" should {
     "be able to fetch interactions of a given user at the given region" in new WithApplication(
       app = FakeApplication()
-//      app = FakeApplication(withoutPlugins = Seq("play.api.db.BoneCPPlugin"), additionalPlugins = Seq("model.audit.MyBoneCPPlugin"))
-    ){
+    //      app = FakeApplication(withoutPlugins = Seq("play.api.db.BoneCPPlugin"), additionalPlugins = Seq("model.audit.MyBoneCPPlugin"))
+    ) {
       // Variables have to be `lazy` to prevent "obtain a connection from a pool that has already been shutdown" error
       // https://github.com/playframework/playframework/issues/3867
       // https://groups.google.com/forum/#!msg/play-framework/znFuqeRz84w/k39KMfuNhcEJ
@@ -122,7 +120,7 @@ class AuditTaskInteractionSpec extends Specification  {
       // TODO. Ok, doesn't work... Need to run test one by one. Otherwise the SQLException stops the tests
 
       lazy val database = play.api.db.slick.DB
-//      implicit lazy val session = database.createSession()
+      //      implicit lazy val session = database.createSession()
       database.withSession { implicit session =>
 
         // Create tables
@@ -164,13 +162,11 @@ class AuditTaskInteractionSpec extends Specification  {
 
           regionTypes ++= Seq(
             RegionType(1, "city"),
-            RegionType(2, "neighborhood")
-          )
+            RegionType(2, "neighborhood"))
 
           regions ++= Seq(
             Region(1, 2, "TestDataSource", "TestRegion1", regionGeom_1, deleted = false),
-            Region(2, 2, "TestDataSource", "TestRegion2", regionGeom_2, deleted = false)
-          )
+            Region(2, 2, "TestDataSource", "TestRegion2", regionGeom_2, deleted = false))
 
           lazy val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426655440000")
           lazy val user = DBUser(uuid.toString, "TestUserName", "TestUser@email.com")

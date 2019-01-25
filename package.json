@@ -15,7 +15,7 @@
   "scripts": {
     "build": "npm install && grunt",
     "debug": "grunt watch & activator -jvm-debug 9998 run",
-    "start": "grunt watch & activator run",
+    "start": "grunt watch & activator ~compile",
     "test": "grunt && grunt test"
   }
 }

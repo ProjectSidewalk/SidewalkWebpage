@@ -3,42 +3,39 @@ package controllers
 import java.sql.Timestamp
 import java.util.UUID
 
-import javax.inject.Inject
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import com.mohiva.play.silhouette.api.Silhouette
 import com.vividsolutions.jts.geom._
-import controllers.headers.ProvidesHeader
 import formats.json.IssueFormats._
 import formats.json.CommentSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit._
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import models.mission.{Mission, MissionTable}
+import models.daos.slickdaos.DBTableDefinitions.UserTable
+import models.mission.MissionTable
 import models.region._
-import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
-import models.survey.{SurveyOptionTable, SurveyQuestionTable}
+import models.street.{ StreetEdgeIssue, StreetEdgeIssueTable }
+import models.survey.{ SurveyOptionTable, SurveyQuestionTable }
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
+import play.api.i18n.{ I18nSupport, MessagesApi }
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
-  * Audit controller
-  */
-class AuditController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+ * Audit controller
+ */
+class AuditController(silhouette: Silhouette[User], messagesApi: MessagesApi) extends Controller with I18nSupport {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
-    * Returns an audit page.
-    *
-    * @return
-    */
-  def audit(nextRegion: Option[String], retakeTutorial: Option[Boolean]) = UserAwareAction.async { implicit request =>
+   * Returns an audit page.
+   *
+   * @return
+   */
+  def audit(nextRegion: Option[String], retakeTutorial: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
@@ -46,7 +43,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
 
     request.identity match {
-      case Some(user) =>
+      case Some(u) =>
+        val user = u.asInstanceOf[User]
         // Get current region if we aren't assigning new one; otherwise assign new region
         val regionFuture: Future[Option[NamedRegion]] = nextRegion match {
           case Some("easy") => // Assign an easy region if the query string has nextRegion=easy.
@@ -56,22 +54,22 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           case Some(illformedString) => // Log warning, assign new region if one is not already assigned.
             Logger.warn(s"Parameter to audit must be \'easy\' or \'regular\', but \'$illformedString\' was passed.")
             UserCurrentRegionTable.isAssigned(user.userId).flatMap {
-              case true   => RegionTable.selectTheCurrentNamedRegion(user.userId)
-              case false  => UserCurrentRegionTable.assignRegion(user.userId)
+              case true => RegionTable.selectTheCurrentNamedRegion(user.userId)
+              case false => UserCurrentRegionTable.assignRegion(user.userId)
             }
           case None => // Assign new region if one is not already assigned.
             UserCurrentRegionTable.isAssigned(user.userId).flatMap {
-              case true   => RegionTable.selectTheCurrentNamedRegion(user.userId)
-              case false  => UserCurrentRegionTable.assignRegion(user.userId)
+              case true => RegionTable.selectTheCurrentNamedRegion(user.userId)
+              case false => UserCurrentRegionTable.assignRegion(user.userId)
             }
         }
 
         // Check if a user still has tasks available in this region. This also should never really happen.
-        val region1 = regionFuture.flatMap {
+        regionFuture.flatMap {
           case Some(r) =>
             AuditTaskTable.isTaskAvailable(user.userId, r.regionId).map {
-              case true   => regionFuture
-              case false  => UserCurrentRegionTable.assignRegion(user.userId)
+              case true => regionFuture
+              case false => UserCurrentRegionTable.assignRegion(user.userId)
             }
           case None => UserCurrentRegionTable.assignRegion(user.userId)
         }.map {
@@ -94,15 +92,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val role: String = user.role.getOrElse("")
             val payPerMeter: Double = if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
             val tutorialPay: Double = if (retakingTutorial || role != "Turker")
-                AMTAssignmentTable.VOLUNTEER_PAY
-              else
-                AMTAssignmentTable.TURKER_TUTORIAL_PAY
+              AMTAssignmentTable.VOLUNTEER_PAY
+            else
+              AMTAssignmentTable.TURKER_TUTORIAL_PAY
 
             for {
               region <- regionFuture
               task <- AuditTaskTable.selectANewTaskInARegion(region.get.regionId, user.userId)
-              mission <- (if(retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay)
-                else MissionTable.resumeOrCreateNewAuditMission(user.userId, region.get.regionId, payPerMeter, tutorialPay))
+              mission <- (if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay)
+              else MissionTable.resumeOrCreateNewAuditMission(user.userId, region.get.regionId, payPerMeter, tutorialPay))
               surveyQuestions <- SurveyQuestionTable.listAll
               surveyOptions <- SurveyOptionTable.listAll
               asmtId <- AMTAssignmentTable.getMostRecentAssignmentId(user.username)
@@ -118,23 +116,24 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
         val redirectString: String = (nextRegion, retakeTutorial) match {
           case (Some(nextR), Some(retakeT)) => s"/anonSignUp?url=/audit%3FnextRegion=$nextR%26retakeTutorial=$retakeT"
-          case (Some(nextR), None         ) => s"/anonSignUp?url=/audit%3FnextRegion=$nextR"
-          case (None,        Some(retakeT)) => s"/anonSignUp?url=/audit%3FretakeTutorial=$retakeT"
-          case _                            => s"/anonSignUp?url=/audit"
+          case (Some(nextR), None) => s"/anonSignUp?url=/audit%3FnextRegion=$nextR"
+          case (None, Some(retakeT)) => s"/anonSignUp?url=/audit%3FretakeTutorial=$retakeT"
+          case _ => s"/anonSignUp?url=/audit"
         }
         Future.successful(Redirect(redirectString))
     }
   }
 
   /**
-    * Audit a given region
-    *
-    * @param regionId region id
-    * @return
-    */
-  def auditRegion(regionId: Int) = UserAwareAction.async { implicit request =>
+   * Audit a given region
+   *
+   * @param regionId region id
+   * @return
+   */
+  def auditRegion(regionId: Int) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) =>
+      case Some(u) =>
+        val user = u.asInstanceOf[User]
         val userId: UUID = user.userId
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
@@ -175,14 +174,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Audit a given street
-    *
-    * @param streetEdgeId street edge id
-    * @return
-    */
-  def auditStreet(streetEdgeId: Int) = UserAwareAction.async { implicit request =>
+   * Audit a given street
+   *
+   * @param streetEdgeId street edge id
+   * @return
+   */
+  def auditStreet(streetEdgeId: Int) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) =>
+      case Some(u) =>
+        val user = u.asInstanceOf[User]
         val userId: UUID = user.userId
         RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId).flatMap { regions =>
           if (regions.isEmpty) {
@@ -217,11 +217,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method handles a comment POST request. It parse the comment and insert it into the comment table
-    *
-    * @return
-    */
-  def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+   * This method handles a comment POST request. It parse the comment and insert it into the comment table
+   *
+   * @return
+   */
+  def postComment = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     request.body.validate[CommentSubmission].fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
@@ -232,7 +232,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
 
         (request.identity match {
-          case Some(user) => Future.successful(user.userId.toString)
+          case Some(user) => Future.successful(user.asInstanceOf[User].userId.toString)
           case None =>
             Logger.warn("User without a user_id submitted a comment, but every user should have a user_id.")
             UserTable.find("anonymous").map { user =>
@@ -247,15 +247,14 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             Ok(Json.obj("comment_id" -> commentId))
           }
         }
-      }
-    )
+      })
   }
 
   /**
-    * This method handles a POST request in which user reports a missing Street View image
-    * @return
-    */
-  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+   * This method handles a POST request in which user reports a missing Street View image
+   * @return
+   */
+  def postNoStreetView = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     request.body.validate[NoStreetView].fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
@@ -266,7 +265,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val ipAddress: String = request.remoteAddress
 
         (request.identity match {
-          case Some(user) => Future.successful(user.userId.toString)
+          case Some(user) => Future.successful(user.asInstanceOf[User].userId.toString)
           case None =>
             Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
             UserTable.find("anonymous")
@@ -274,9 +273,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         }).flatMap { userId =>
           val issue = StreetEdgeIssue(0, submission.streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
           StreetEdgeIssueTable.save(issue)
-              .map(_ => Ok)
+            .map(_ => Ok)
         }
-      }
-    )
+      })
   }
 }

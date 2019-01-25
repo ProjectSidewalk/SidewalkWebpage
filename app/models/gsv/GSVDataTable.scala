@@ -10,7 +10,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class GSVData(gsvPanoramaId: String, imageWidth: Int, imageHeight: Int, tileWidth: Int, tileHeight: Int,
-                   imageDate: String, imageryType: Int, copyright: String)
+  imageDate: String, imageryType: Int, copyright: String)
 
 class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Some("sidewalk"), "gsv_data") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
@@ -32,16 +32,14 @@ object GSVDataTable {
   val gsvDataRecords = TableQuery[GSVDataTable]
 
   /**
-    * This method checks if the given panorama id already exists in the table
-    * @param panoramaId Google Street View panorama Id
-    * @return
-    */
+   * This method checks if the given panorama id already exists in the table
+   * @param panoramaId Google Street View panorama Id
+   * @return
+   */
   def panoramaExists(panoramaId: String): Future[Boolean] = db.run(
-    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).result.headOption
-  ).map(_.isDefined)
+    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).result.headOption).map(_.isDefined)
 
   def save(data: GSVData): Future[String] = db.run(
-    ((gsvDataRecords returning gsvDataRecords.map(_.gsvPanoramaId)) += data).transactionally
-  )
+    ((gsvDataRecords returning gsvDataRecords.map(_.gsvPanoramaId)) += data).transactionally)
 
 }

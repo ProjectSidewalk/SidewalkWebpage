@@ -3,19 +3,20 @@ package controllers
 import javax.inject.Inject
 import java.sql.Timestamp
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats.AMTAssignmentCompletionSubmission
-import models.mission.{Mission, MissionTable}
-import models.user.{User, UserCurrentRegionTable}
+import models.mission.{ Mission, MissionTable }
+import models.user.{ User, UserCurrentRegionTable }
 import models.amt.AMTAssignmentTable
 import play.api.libs.json._
-import play.api.mvc.{Action, BodyParsers}
+import play.api.mvc.{ Action, BodyParsers }
 //import play.api.Play.current
 //import play.api.i18n.Messages.Implicits._
-import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.i18n.{ I18nSupport, MessagesApi }
+import play.api.mvc.Results._
 
 import scala.concurrent.Future
 
@@ -25,10 +26,10 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   /**
-    * Return the completed missions in the user's current region in a JSON array.
-    *
-    * @return
-    */
+   * Return the completed missions in the user's current region in a JSON array.
+   *
+   * @return
+   */
   def getMissionsInCurrentRegion() = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -42,16 +43,16 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
               Ok(JsArray(completedMissions.map(_.toJSON)))
             }
         }
-        // If the user doesn't already have an anonymous ID, sign them up and rerun.
+      // If the user doesn't already have an anonymous ID, sign them up and rerun.
       case _ => Future.successful(Redirect(s"/anonSignUp?url=/neighborhoodMissions"))
     }
   }
 
   /**
-    * Return the total reward earned by the user.
-    *
-    * @return
-    */
+   * Return the total reward earned by the user.
+   *
+   * @return
+   */
   def getTotalRewardEarned() = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -80,13 +81,11 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
           case Some(asgId) =>
             // Update the AMTAssignmentTable
             AMTAssignmentTable.updateAssignmentEnd(asgId, timestamp)
-            AMTAssignmentTable.updateCompleted(asgId, completed=true)
+            AMTAssignmentTable.updateCompleted(asgId, completed = true)
             Future.successful(Ok(Json.obj("success" -> true)))
           case None =>
             Future.successful(Ok(Json.obj("success" -> false)))
         }
-      }
-    )
+      })
   }
 }
-

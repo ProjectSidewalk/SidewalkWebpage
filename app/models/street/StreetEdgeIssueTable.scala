@@ -31,14 +31,13 @@ object StreetEdgeIssueTable {
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTable]
 
   /**
-    * Save a StreetEdge into the street_edge table
-    *
-    * @param issue A StreetEdge object
-    * @return
-    */
+   * Save a StreetEdge into the street_edge table
+   *
+   * @param issue A StreetEdge object
+   * @return
+   */
   def save(issue: StreetEdgeIssue): Future[Int] = db.run(
-    (streetEdgeIssues += issue).transactionally
-  )
+    (streetEdgeIssues += issue).transactionally)
 
 }
 

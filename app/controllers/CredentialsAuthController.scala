@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
-import com.mohiva.play.silhouette.api.exceptions.{ConfigurationException, ProviderException}
+import com.mohiva.play.silhouette.api.exceptions.{ ConfigurationException, ProviderException }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
@@ -13,34 +13,32 @@ import formats.json.UserFormats._
 import forms.SignInForm
 import models.services.UserService
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
-import play.api.mvc.{Action, RequestHeader}
+import play.api.mvc.{ Action, Controller, RequestHeader }
 import play.api.Play
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-
-
 /**
-  * The credentials auth controller that is responsible for user log in.
-  *
-  * @param env The Silhouette environment.
-  */
-class CredentialsAuthController @Inject() (
-                                            implicit val env: Environment[User, SessionAuthenticator],
-                                            val userService: UserService)
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
+ * The credentials auth controller that is responsible for user log in.
+ *
+ * @param env The Silhouette environment.
+ */
+class CredentialsAuthController(
+  silhouette: Silhouette[User],
+  userService: UserService
+) extends Controller {
 
   /**
-    * Authenticates a user against the credentials provider.
-    *
-    * @return The result to display.
-    */
+   * Authenticates a user against the credentials provider.
+   *
+   * @return The result to display.
+   */
   def authenticate(url: String) = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
@@ -62,14 +60,13 @@ class CredentialsAuthController @Inject() (
       }.recover {
         case e: ProviderException =>
           Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("invalid.credentials"))
-      }
-    )
+      })
   }
 
   /**
-    * REST endpoint for sign in.
-    * @return
-    */
+   * REST endpoint for sign in.
+   * @return
+   */
   def postAuthenticate = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
@@ -90,8 +87,7 @@ class CredentialsAuthController @Inject() (
       }.recover {
         case e: ProviderException =>
           Redirect(routes.ApplicationController.index())
-      }
-    )
+      })
   }
 
   def signIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
@@ -105,7 +101,7 @@ class CredentialsAuthController @Inject() (
     val updatedAuthenticator = authenticator.copy(expirationDateTime = expirationDate, idleTimeout = Some(2592000.millis))
 
     UserCurrentRegionTable.isAssigned(user.userId).flatMap {
-      case true  => Future.successful(None)
+      case true => Future.successful(None)
       case false => UserCurrentRegionTable.assignRegion(user.userId)
     }.flatMap { _ =>
       // Add Timestamp

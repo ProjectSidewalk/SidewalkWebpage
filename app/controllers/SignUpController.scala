@@ -7,7 +7,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.api.services.AvatarService
-import com.mohiva.play.silhouette.api.util.{PasswordHasher, PasswordInfo}
+import com.mohiva.play.silhouette.api.util.{ PasswordHasher, PasswordInfo }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
@@ -15,10 +15,11 @@ import formats.json.UserFormats._
 import forms.SignUpForm
 import models.services.UserService
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-import play.api.mvc.{Action, RequestHeader}
+import play.api.mvc.{ Action, RequestHeader }
+import play.api.mvc.Results._
 import play.api.Play
 import play.api.Play.current
 import models.daos.slickdaos.DBTableDefinitions.UserTable
@@ -38,13 +39,13 @@ import scala.concurrent.duration._
  * @param passwordHasher The password hasher implementation.
  */
 class SignUpController @Inject() (
-                                   implicit val env: Environment[User, SessionAuthenticator],
-                                   val userService: UserService,
-                                   val authInfoService: AuthInfoRepository, //FIXME
-                                   val avatarService: AvatarService,
-                                   val passwordHasher: PasswordHasher)
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
-
+  implicit
+  val env: Environment[User, SessionAuthenticator],
+  val userService: UserService,
+  val authInfoService: AuthInfoRepository, //FIXME
+  val avatarService: AvatarService,
+  val passwordHasher: PasswordHasher)
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
    * Registers a new user.
@@ -58,7 +59,7 @@ class SignUpController @Inject() (
       val timestamp: Timestamp = new Timestamp(now.getMillis)
       val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.get.userId.toString)
 
-      SignUpForm.form.bindFromRequest.fold (
+      SignUpForm.form.bindFromRequest.fold(
         form => Future.successful(BadRequest(views.html.signUp(form))),
 
         data => {
@@ -81,8 +82,7 @@ class SignUpController @Inject() (
                     loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
                     username = data.username,
                     email = data.email,
-                    role = None
-                  )
+                    role = None)
 
                   for {
                     user <- userService.save(user)
@@ -107,8 +107,7 @@ class SignUpController @Inject() (
                   }
               }
           }
-        }
-      )
+        })
     }
   }
 
@@ -119,7 +118,7 @@ class SignUpController @Inject() (
       val timestamp: Timestamp = new Timestamp(now.getMillis)
       val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.get.userId.toString)
 
-      SignUpForm.form.bindFromRequest.fold (
+      SignUpForm.form.bindFromRequest.fold(
         form => Future.successful(BadRequest(views.html.signUp(form))),
         data => {
           // Check presence of user by username
@@ -142,8 +141,7 @@ class SignUpController @Inject() (
                     loginInfo = loginInfo,
                     username = data.username,
                     email = data.email,
-                    role = None
-                  )
+                    role = None)
 
                   for {
                     user <- userService.save(user)
@@ -169,17 +167,16 @@ class SignUpController @Inject() (
                   }
               }
           }
-        }
-      )
+        })
     }
   }
 
   /**
-    * If there is no user signed in, an anon user with randomly generated username/password is created.
-    *
-    * @param url
-    * @return
-    */
+   * If there is no user signed in, an anon user with randomly generated username/password is created.
+   *
+   * @param url
+   * @return
+   */
   def signUpAnon(url: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) => Future.successful(Redirect(url))
@@ -207,38 +204,38 @@ class SignUpController @Inject() (
             loginInfo = loginInfo,
             username = randomUsername,
             email = randomEmail,
-            role = None
-          )
+            role = None)
 
           (user, loginInfo, authInfo)
-        }).flatMap { case (user: User, loginInfo: LoginInfo, authInfo: PasswordInfo) =>
+        }).flatMap {
+          case (user: User, loginInfo: LoginInfo, authInfo: PasswordInfo) =>
 
-          (for {
-            user <- userService.save(user)
-            authInfo <- authInfoService.save(loginInfo, authInfo)
-            authenticator <- env.authenticatorService.create(user.loginInfo)
-            value <- env.authenticatorService.init(authenticator)
-            _ <- UserRoleTable.setRole(user.userId, "Anonymous")  // Set the user role.
-            _ <- WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "AnonAutoSignUp",
-              new Timestamp(new DateTime(DateTimeZone.UTC).getMillis))) // Add Timestamp
-          } yield value).flatMap { value =>
-            val result = env.authenticatorService.embed(value, Redirect(url))
+            (for {
+              user <- userService.save(user)
+              authInfo <- authInfoService.save(loginInfo, authInfo)
+              authenticator <- env.authenticatorService.create(user.loginInfo)
+              value <- env.authenticatorService.init(authenticator)
+              _ <- UserRoleTable.setRole(user.userId, "Anonymous") // Set the user role.
+              _ <- WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "AnonAutoSignUp",
+                new Timestamp(new DateTime(DateTimeZone.UTC).getMillis))) // Add Timestamp
+            } yield value).flatMap { value =>
+              val result = env.authenticatorService.embed(value, Redirect(url))
 
-            env.eventBus.publish(SignUpEvent(user, request, request2Messages))
-            env.eventBus.publish(LoginEvent(user, request, request2Messages))
+              env.eventBus.publish(SignUpEvent(user, request, request2Messages))
+              env.eventBus.publish(LoginEvent(user, request, request2Messages))
 
-            result
-          }
+              result
+            }
         }
     }
   }
 
-  def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
+  def turkerSignUp(hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
-//    val anonymousUser: DBUser = UserTable.find("anonymous").get
+    //    val anonymousUser: DBUser = UserTable.find("anonymous").get
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
-    var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
+    var activityLogText: String = "Referrer=mturk" + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
 
     UserTable.find(workerId).flatMap {
       case Some(user) =>
@@ -263,7 +260,7 @@ class SignUpController @Inject() (
       case None =>
         // Create a dummy email and password. Keep the username as the workerId.
         val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
-        val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
+        val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString ("")}"
 
         val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
         val authInfo = passwordHasher.hash(turker_password)
@@ -272,8 +269,7 @@ class SignUpController @Inject() (
           loginInfo = loginInfo,
           username = workerId,
           email = turker_email,
-          role = None
-        )
+          role = None)
 
         for {
           user <- userService.save(user)
@@ -309,11 +305,11 @@ class SignUpController @Inject() (
     val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
     val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
     val expirationDate = authenticator.expirationDateTime.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
-    val updatedAuthenticator = authenticator.copy(expirationDateTime=expirationDate, idleTimeout = Some(2592000.millis))
+    val updatedAuthenticator = authenticator.copy(expirationDateTime = expirationDate, idleTimeout = Some(2592000.millis))
 
     UserCurrentRegionTable.isAssigned(user.userId).flatMap {
-      case true   => Future.successful(None)
-      case false  => UserCurrentRegionTable.assignEasyRegion(user.userId)
+      case true => Future.successful(None)
+      case false => UserCurrentRegionTable.assignEasyRegion(user.userId)
     }.flatMap { _ =>
       // Log the sign in.
       val now = new DateTime(DateTimeZone.UTC)

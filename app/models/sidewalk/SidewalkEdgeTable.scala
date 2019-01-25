@@ -7,7 +7,7 @@ package models.sidewalk
  * To use models when using REPL, type:
  * scala> new play.core.StaticApplication(new java.io.File("."))
  * https://yobriefca.se/blog/2014/07/11/working-with-play-apps-in-the-console/
-   */
+ */
 
 //import slick.driver.PostgresDriver.simple._
 
@@ -25,8 +25,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class SidewalkEdge(sidewalkEdgeId: Option[Int], geom: LineString, source: Int, target: Int,
-                        x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
-
+  x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
 /**
  *
@@ -46,7 +45,6 @@ class SidewalkEdgeTable(tag: Tag) extends Table[SidewalkEdge](tag, Some("sidewal
 
   def * = (sidewalkEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((SidewalkEdge.apply _).tupled, SidewalkEdge.unapply)
 }
-
 
 /**
  * Data access object for the sidewalk_edge table
@@ -77,6 +75,5 @@ object SidewalkEdgeTable {
    * @return
    */
   def save(newEdge: SidewalkEdge): Future[Int] = db.run(
-    ((sidewalkEdges returning sidewalkEdges.map(_.sidewalkEdgeId)) += newEdge).transactionally
-  ).map(_.get)
+    ((sidewalkEdges returning sidewalkEdges.map(_.sidewalkEdgeId)) += newEdge).transactionally).map(_.get)
 }

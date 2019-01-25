@@ -3,14 +3,13 @@ import org.specs2.runner._
 import org.junit.runner._
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date}
+import java.util.{ Calendar, Date }
 
 import play.api.test._
 import play.api.test.Helpers._
 
 import models.utils.MyPostgresDriver.api._
 import models.audit._
-
 
 //@RunWith(classOf[JUnitRunner])
 //class ApplicationSpec extends Specification {

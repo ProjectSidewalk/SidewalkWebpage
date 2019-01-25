@@ -1,15 +1,15 @@
 package models.attribute
 
 /**
-  * Created by misaugstad on 4/27/17.
-  */
+ * Created by misaugstad on 4/27/17.
+ */
 
 import models.audit.AuditTaskTable
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTypeTable, LabelTemporarinessTable}
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
+import models.label.{ LabelTable, LabelTypeTable, LabelTemporarinessTable }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{ JsObject, Json }
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -17,22 +17,23 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import slick.lifted.{ProvenShape, Tag}
-import slick.jdbc.{GetResult}
+import slick.lifted.{ ProvenShape, Tag }
+import slick.jdbc.{ GetResult }
 import scala.language.postfixOps
 
-case class LabelToCluster(userId: String,
-                          labelId: Int,
-                          labelType: String,
-                          lat: Option[Float],
-                          lng: Option[Float],
-                          severity: Option[Int],
-                          temporary: Boolean) {
+case class LabelToCluster(
+  userId: String,
+  labelId: Int,
+  labelType: String,
+  lat: Option[Float],
+  lng: Option[Float],
+  severity: Option[Int],
+  temporary: Boolean) {
   /**
-    * This method converts the data into the JSON format
-    *
-    * @return
-    */
+   * This method converts the data into the JSON format
+   *
+   * @return
+   */
   def toJSON: JsObject = {
     Json.obj(
       "user_id" -> userId,
@@ -41,13 +42,11 @@ case class LabelToCluster(userId: String,
       "lat" -> lat,
       "lng" -> lng,
       "severity" -> severity,
-      "temporary" -> temporary
-    )
+      "temporary" -> temporary)
   }
 }
 
 case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: java.sql.Timestamp)
-
 
 class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](tag, Some("sidewalk"), "user_clustering_session") {
   def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id", O.PrimaryKey, O.AutoInc)
@@ -61,8 +60,8 @@ class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](
 }
 
 /**
-  * Data access object for the UserClusteringSessionTable table
-  */
+ * Data access object for the UserClusteringSessionTable table
+ */
 object UserClusteringSessionTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
@@ -77,11 +76,11 @@ object UserClusteringSessionTable {
   }
 
   /**
-    * Returns labels that were placed by the specified user, in the format needed for clustering.
-    *
-    * @param userId
-    * @return
-    */
+   * Returns labels that were placed by the specified user, in the format needed for clustering.
+   *
+   * @param userId
+   * @return
+   */
   def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]] = {
 
     // Gets all non-deleted, non-tutorial labels placed by the specified user.
@@ -106,11 +105,11 @@ object UserClusteringSessionTable {
   }
 
   /**
-    * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
-    *
-    * @param regionId
-    * @return
-    */
+   * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
+   *
+   * @param regionId
+   * @return
+   */
   def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]] = {
     val labelsInRegion = for {
       _sess <- userClusteringSessions
@@ -124,14 +123,13 @@ object UserClusteringSessionTable {
       _att.lat.?,
       _att.lng.?,
       _att.severity,
-      _att.temporary
-    )
+      _att.temporary)
     db.run(labelsInRegion.result).map(labelList => labelList.map(LabelToCluster.tupled))
   }
 
   /**
-    * Truncates user_clustering_session, user_attribute, user_attribute_label, and global_attribute_user_attribute.
-    */
+   * Truncates user_clustering_session, user_attribute, user_attribute_label, and global_attribute_user_attribute.
+   */
   def truncateTables(): Future[Int] = db.run {
     sqlu"""TRUNCATE TABLE user_clustering_session CASCADE"""
   }

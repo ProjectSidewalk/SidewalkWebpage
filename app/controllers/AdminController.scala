@@ -5,34 +5,33 @@ import java.util.UUID
 import javax.inject.Inject
 import java.net.URLDecoder
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
-import models.attribute.{GlobalAttribute, GlobalAttributeTable}
+import models.attribute.{ GlobalAttribute, GlobalAttributeTable }
 import models.audit._
 import models.daos.UserDAOImpl
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.label._
 import models.mission.MissionTable
-import models.region.{RegionCompletionTable, RegionPropertyTable}
+import models.region.{ RegionCompletionTable, RegionPropertyTable }
 import models.street.StreetEdgeTable
 import models.user._
-import play.api.libs.json.{JsArray, JsError, JsObject, Json}
-import play.extras.geojson
-import play.api.mvc.BodyParsers
-
+import play.api.libs.json.{ JsArray, JsError, JsObject, Json }
+import au.id.jazzy.play.geojson
+import play.api.mvc.{ BodyParsers, Controller }
+import play.api.mvc.Results._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
-  * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
-  * @param env
-  */
-class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+ * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
+ * @param env
+ */
+class AdminController(silhouette: Silhouette[User]) extends Controller {
 
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
@@ -42,8 +41,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   // Pages
-  def index = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+  def index = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       for {
         countsAndRates <- StreetEdgeTable.countAuditedStreetCountAndRateByUserGroup()
         streetCnt <- StreetEdgeTable.countTotalStreets()
@@ -53,15 +53,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         labels <- LabelTable.selectTopLabelsAndMetadata(1000)
         userStats <- UserDAOImpl.getUserStatsForAdminPage
       } yield {
-        Ok(views.html.admin.index("Project Sidewalk", request.identity, countsAndRates, streetCnt, distancesAndRates, streetDist, comments, labels, userStats))
+        Ok(views.html.admin.index("Project Sidewalk", user, countsAndRates, streetCnt, distancesAndRates, streetDist, comments, labels, userStats))
       }
     } else {
       Future.successful(Redirect("/"))
     }
   }
 
-  def userProfile(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+  def userProfile(username: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       UserTable.find(username).flatMap {
         case Some(user) =>
           for {
@@ -75,8 +76,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             comments <- AuditTaskCommentTable.all(user.username)
           } yield {
             Ok(views.html.admin.user(
-              "Project Sidewalk", request.identity.get, user, mCount, aCount, lCount, rId, rName, labels, missions, comments)
-            )
+              "Project Sidewalk", request.identity.get, user, mCount, aCount, lCount, rId, rName, labels, missions, comments))
           }
         case _ => Future.successful(BadRequest("No user found with that username."))
       }
@@ -85,10 +85,11 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def task(taskId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+  def task(taskId: Int) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       AuditTaskTable.find(taskId).map {
-        case Some(t) => Ok(views.html.admin.task("Project Sidewalk", request.identity, t))
+        case Some(t) => Ok(views.html.admin.task("Project Sidewalk", user, t))
         case _ => Redirect("/")
       }
     } else {
@@ -99,12 +100,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // JSON APIs
 
   /**
-    * Get a list of all labels
-    *
-    * @return
-    */
-  def getAllLabels = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Get a list of all labels
+   *
+   * @return
+   */
+  def getAllLabels = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val labelFutures: Future[Seq[LabelLocationWithSeverity]] = LabelTable.selectLocationsAndSeveritiesOfLabels
       val features: Future[Seq[JsObject]] = labelFutures.map { labels =>
         labels.map { label =>
@@ -114,24 +116,24 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             "label_id" -> label.labelId,
             "gsv_panorama_id" -> label.gsvPanoramaId,
             "label_type" -> label.labelType,
-            "severity" -> label.severity
-          )
+            "severity" -> label.severity)
           Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
         }
       }
-      features.map { fs => Ok(Json.obj("type" -> "FeatureCollection", "features" -> fs))}
+      features.map { fs => Ok(Json.obj("type" -> "FeatureCollection", "features" -> fs)) }
     } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /**
-    * Get a list of all global attributes
-    *
-    * @return
-    */
-  def getAllAttributes = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Get a list of all global attributes
+   *
+   * @return
+   */
+  def getAllAttributes = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val attributesFuture: Future[Seq[GlobalAttribute]] = GlobalAttributeTable.getAllGlobalAttributes
       val features: Future[Seq[JsObject]] = attributesFuture.flatMap { attributes =>
         val attributeFutures = attributes.map { attribute =>
@@ -140,8 +142,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             val properties = Json.obj(
               "attribute_id" -> attribute.globalAttributeId,
               "label_type" -> labelType,
-              "severity" -> attribute.severity
-            )
+              "severity" -> attribute.severity)
             Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
           }
         }
@@ -154,33 +155,33 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Returns audit coverage of each neighborhood
-    *
-    * @return
-    */
-  def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
+   * Returns audit coverage of each neighborhood
+   *
+   * @return
+   */
+  def getNeighborhoodCompletionRate = silhouette.UserAwareAction.async { implicit request =>
     RegionCompletionTable.initializeRegionCompletionTable()
 
     RegionCompletionTable.selectAllNamedNeighborhoodCompletions.map { neighborhoods =>
       val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
-        Json.obj("region_id" -> neighborhood.regionId,
+        Json.obj(
+          "region_id" -> neighborhood.regionId,
           "total_distance_m" -> neighborhood.totalDistance,
           "completed_distance_m" -> neighborhood.auditedDistance,
           "rate" -> (neighborhood.auditedDistance / neighborhood.totalDistance),
-          "name" -> neighborhood.name
-        )
+          "name" -> neighborhood.name)
       }
       Ok(JsArray(completionRates))
     }
   }
 
   /**
-    * Gets count of completed missions for each user.
-    *
-    * @return
-    */
-  def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Gets count of completed missions for each user.
+   *
+   * @return
+   */
+  def getAllUserCompletedMissionCounts = silhouette.UserAwareAction.async { implicit request =>
+    if (isAdmin(user)) {
       MissionTable.selectMissionCountsPerUser.map { missionCounts =>
         val jsonArray = Json.arr(missionCounts.map(x => {
           Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
@@ -193,12 +194,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
-    *
-    * @return
-    */
-  def getAllUserSignInCounts = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+   *
+   * @return
+   */
+  def getAllUserSignInCounts = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       WebpageActivityTable.selectAllSignInCounts.map { counts =>
         val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
         Ok(jsonArray)
@@ -208,19 +210,18 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-
   /**
-    * Returns DC coverage percentage by Date
-    *
-    * @return
-    */
-  def getCompletionRateByDate = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Returns DC coverage percentage by Date
+   *
+   * @return
+   */
+  def getCompletionRateByDate = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       StreetEdgeTable.streetDistanceCompletionRateByDate(1).map { streets =>
         val json = Json.arr(streets.map(x => {
           Json.obj(
-            "date" -> x._1, "completion" -> x._2
-          )
+            "date" -> x._1, "completion" -> x._2)
         }))
 
         Ok(json)
@@ -231,18 +232,17 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Returns label counts by label type, for each region
-    * @return
-    */
-  def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
+   * Returns label counts by label type, for each region
+   * @return
+   */
+  def getRegionNegativeLabelCounts() = silhouette.UserAwareAction.async { implicit request =>
 
     RegionCompletionTable.selectAllNamedNeighborhoodCompletions.flatMap { neighborhoods =>
       val features = neighborhoods.map { neighborhood =>
         LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId).map { labelResults =>
           Json.obj(
             "region_id" -> neighborhood.regionId,
-            "labels" -> Json.toJson(labelResults.toMap)
-          )
+            "labels" -> Json.toJson(labelResults.toMap))
         }
       }
       Future.sequence(features)
@@ -252,8 +252,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+  def getLabelsCollectedByAUser(username: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       UserTable.find(username).flatMap {
         case Some(user) =>
           LabelTable.selectLocationsOfLabelsByUserId(UUID.fromString(user.userId)).map { labels =>
@@ -263,8 +264,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
                 "audit_task_id" -> label.auditTaskId,
                 "label_id" -> label.labelId,
                 "gsv_panorama_id" -> label.gsvPanoramaId,
-                "label_type" -> label.labelType
-              )
+                "label_type" -> label.labelType)
               Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
             }
             val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
@@ -277,8 +277,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getStreetsAuditedByAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+  def getStreetsAuditedByAUser(username: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       UserTable.find(username).flatMap {
         case Some(user) =>
           val streetsFuture = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
@@ -286,13 +287,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             streets.map { edge =>
               val coordinates: Array[Coordinate] = edge.geom.getCoordinates
               val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
-            val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+              val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
               val properties = Json.obj(
                 "street_edge_id" -> edge.streetEdgeId,
                 "source" -> edge.source,
                 "target" -> edge.target,
-                "way_type" -> edge.wayType
-              )
+                "way_type" -> edge.wayType)
               Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
             }
           }
@@ -305,12 +305,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method returns the onboarding interaction data
-    *
-    * @return
-    */
-  def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * This method returns the onboarding interaction data
+   *
+   * @return
+   */
+  def getOnboardingTaskInteractions = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val transitionsFuture = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")
       transitionsFuture map { transitions => Ok(JsArray(transitions.map(x => Json.toJson(x)))) }
     } else {
@@ -319,34 +320,34 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Get all auditing times
-    *
-    * @return
-    */
-  def getAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Get all auditing times
+   *
+   * @return
+   */
+  def getAuditTimes() = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val auditTimesFuture: Future[Seq[UserAuditTime]] = AuditTaskInteractionTable.selectAllAuditTimes()
       auditTimesFuture.map { auditTimes =>
         Ok(JsArray(
           auditTimes.map { auditTime =>
             Json.obj("user_id" -> auditTime.userId, "role" -> auditTime.role, "time" -> auditTime.duration)
-          }
-        ))
+          }))
       }
     } else {
       Future.successful(Redirect("/"))
     }
   }
 
-
   /**
-    * This method returns the tasks and labels submitted by the given user.
-    *
-    * @param username Username
-    * @return
-    */
-  def getSubmittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * This method returns the tasks and labels submitted by the given user.
+   *
+   * @param username Username
+   * @return
+   */
+  def getSubmittedTasksWithLabels(username: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       UserTable.find(username).flatMap {
         case Some(user) =>
           val tasksWithLabelsFuture = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId))
@@ -359,13 +360,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Get records of audit task interactions of a user
-    *
-    * @param username
-    * @return
-    */
-  def getAuditTaskInteractionsOfAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Get records of audit task interactions of a user
+   *
+   * @param username
+   * @return
+   */
+  def getAuditTaskInteractionsOfAUser(username: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       UserTable.find(username).flatMap {
         case Some(user) =>
           val interactionsFuture = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(UUID.fromString(user.userId))
@@ -377,8 +379,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+  def getAnAuditTaskPath(taskId: Int) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val auditTaskFuture: Future[Option[AuditTask]] = AuditTaskTable.find(taskId)
       auditTaskFuture flatMap {
         case Some(task) =>
@@ -393,8 +396,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+  def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val labelPointFuture: Future[Option[LabelPoint]] = LabelPointTable.find(labelId)
       labelPointFuture flatMap {
         case Some(labelPointObj) =>
@@ -406,104 +410,108 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getAllPanoIds() = UserAwareAction.async { implicit request =>
+  def getAllPanoIds() = silhouette.UserAwareAction.async { implicit request =>
     LabelTable.selectLocationsOfLabels map { labels =>
       Ok(Json.obj(
         "type" -> "FeatureCollection",
         "features" -> labels.map { label =>
           Json.obj("properties" -> Json.obj("gsv_panorama_id" -> label.gsvPanoramaId))
-        }
-      ))
+        }))
     }
   }
 
   /**
-    * USER CENTRIC ANALYTICS
-    */
+   * USER CENTRIC ANALYTICS
+   */
 
-  def getAllUserLabelCounts = UserAwareAction.async { implicit request =>
+  def getAllUserLabelCounts = silhouette.UserAwareAction.async { implicit request =>
     LabelTable.getLabelCountsPerUser.map { labelCounts =>
       Ok(Json.arr(labelCounts.map(x => Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3))))
     }
   }
 
   /**
-    * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
-    * If the activity provided doesn't exist, returns 400 (Bad Request).
-    *
-    * @param activity
-    */
-  def getWebpageActivities(activity: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)){
+   * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
+   * If the activity provided doesn't exist, returns 400 (Bad Request).
+   *
+   * @param activity
+   */
+  def getWebpageActivities(activity: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       WebpageActivityTable.findKeyVal(activity, Array()).map { webpageActivities =>
         val activities = WebpageActivityTable.webpageActivityListToJson(webpageActivities)
-        if(activities.length == 0){
+        if (activities.length == 0) {
           BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name"))
         } else {
           Ok(Json.arr(activities))
         }
       }
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns all records in the webpage_interactions table as a JSON array. */
-  def getAllWebpageActivities = UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getAllWebpageActivities = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       WebpageActivityTable.getAllActivities.map { webpageActivities =>
         Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(webpageActivities)))
       }
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /**
-    * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
-    *
-    * @param activity
-    * @param keyValPairs
-    * @return
-    */
-  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)){
+   * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
+   *
+   * @param activity
+   * @param keyValPairs
+   * @return
+   */
+  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
       WebpageActivityTable.findKeyVal(activity, keyVals).flatMap { webpageActivities =>
         val activities = WebpageActivityTable.webpageActivityListToJson(webpageActivities)
         Future.successful(Ok(Json.arr(activities)))
       }
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns number of records in webpage_activity table containing the specified activity. */
-  def getNumWebpageActivities(activity: String) =   UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getNumWebpageActivities(activity: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       WebpageActivityTable.findKeyVal(activity, Array()).flatMap { webpageActivities =>
         val activities = WebpageActivityTable.webpageActivityListToJson(webpageActivities)
         Future.successful(Ok(activities.length + ""))
       }
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
-  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)){
+  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
       WebpageActivityTable.findKeyVal(activity, keyVals).flatMap { webpageActivities =>
         val activities = WebpageActivityTable.webpageActivityListToJson(webpageActivities)
         Future.successful(Ok(activities.length + ""))
       }
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
-  def setUserRole = UserAwareAction.async(BodyParsers.parse.json){ implicit request =>
+  def setUserRole = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
 
     submission.fold(
@@ -514,14 +522,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId = UUID.fromString(submission.userId)
         val newRole = submission.roleId
 
-        if(isAdmin(request.identity)){
+        if (isAdmin(user)) {
           UserTable.findById(userId).flatMap {
             case Some(user) =>
               for {
                 role <- UserRoleTable.getRole(userId)
                 roleNames <- RoleTable.getRoleNames
               } yield {
-                if(role == "Owner") {
+                if (role == "Owner") {
                   BadRequest("Owner's role cannot be changed")
                 } else if (newRole == "Owner") {
                   BadRequest("Cannot set a new owner")
@@ -538,7 +546,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         } else {
           Future.successful(Redirect("/"))
         }
-      }
-    )
+      })
   }
 }

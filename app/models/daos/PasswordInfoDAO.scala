@@ -14,39 +14,39 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class PasswordInfoDAO extends DelegableAuthInfoDAO[PasswordInfo] {
 
   /**
-    * Adds new auth info for the given login info.
-    *
-    * @param loginInfo The login info for which the auth info should be added.
-    * @param authInfo The auth info to add.
-    * @return The added auth info.
-    */
+   * Adds new auth info for the given login info.
+   *
+   * @param loginInfo The login info for which the auth info should be added.
+   * @param authInfo The auth info to add.
+   * @return The added auth info.
+   */
   def add(loginInfo: LoginInfo, authInfo: PasswordInfo): Future[PasswordInfo] = {
     data += (loginInfo -> authInfo)
     Future.successful(authInfo)
   }
 
   /**
-    * Updates the auth info for the given login info.
-    *
-    * @param loginInfo The login info for which the auth info should be updated.
-    * @param authInfo The auth info to update.
-    * @return The updated auth info.
-    */
+   * Updates the auth info for the given login info.
+   *
+   * @param loginInfo The login info for which the auth info should be updated.
+   * @param authInfo The auth info to update.
+   * @return The updated auth info.
+   */
   def update(loginInfo: LoginInfo, authInfo: PasswordInfo): Future[PasswordInfo] = {
     data += (loginInfo -> authInfo)
     Future.successful(authInfo)
   }
 
   /**
-    * Saves the auth info for the given login info.
-    *
-    * This method either adds the auth info if it doesn't exists or it updates the auth info
-    * if it already exists.
-    *
-    * @param loginInfo The login info for which the auth info should be saved.
-    * @param authInfo The auth info to save.
-    * @return The saved auth info.
-    */
+   * Saves the auth info for the given login info.
+   *
+   * This method either adds the auth info if it doesn't exists or it updates the auth info
+   * if it already exists.
+   *
+   * @param loginInfo The login info for which the auth info should be saved.
+   * @param authInfo The auth info to save.
+   * @return The saved auth info.
+   */
   def save(loginInfo: LoginInfo, authInfo: PasswordInfo): Future[PasswordInfo] = {
     find(loginInfo).flatMap {
       case Some(_) => update(loginInfo, authInfo)
@@ -55,11 +55,11 @@ class PasswordInfoDAO extends DelegableAuthInfoDAO[PasswordInfo] {
   }
 
   /**
-    * Removes the auth info for the given login info.
-    *
-    * @param loginInfo The login info for which the auth info should be removed.
-    * @return A future to wait for the process to be completed.
-    */
+   * Removes the auth info for the given login info.
+   *
+   * @param loginInfo The login info for which the auth info should be removed.
+   * @return A future to wait for the process to be completed.
+   */
   def remove(loginInfo: LoginInfo): Future[Unit] = {
     data -= loginInfo
     Future.successful(())

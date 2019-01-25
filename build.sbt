@@ -1,22 +1,19 @@
-//import play.PlayScala
-
 import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "4.5.0"
+version := "5.0.0"
 
-scalaVersion := "2.10.6"
+scalaVersion := "2.12.8"
 
 sources in (Compile,doc) := Seq.empty
 
 publishArtifact in (Compile, packageDoc) := false
 
-routesGenerator := InjectedRoutesGenerator
-
-resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
+resolvers += "Atlassian Releases" at "https://maven.atlassian.com/public/"
 
 resolvers += Resolver.sonatypeRepo("snapshots")
+resolvers += Resolver.bintrayRepo("jroper", "maven")
 
 resolvers ++= Seq(
   "geosolutions" at "http://maven.geo-solutions.it/",
@@ -24,47 +21,39 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  evolutions,
-//  jdbc,
-//  anorm, // change to "com.typesafe.play" %% "anorm" % "2.4.0" for Play 2.4
+  jdbc,
 //  cache,
-//  "com.vividsolutions" % "jts" % "1.13",
-  "com.typesafe.slick" %% "slick" % "3.1.1",
-  "com.typesafe.slick" %% "slick-codegen" % "3.1.1",
-  "org.slf4j" % "slf4j-nop" % "1.6.4",
-  "com.typesafe.play" %% "play-slick" % "1.1.1",
-  "com.typesafe.play" %% "play-slick-evolutions" % "1.1.1",
+  "com.vividsolutions" % "jts" % "1.13",
+  "com.typesafe.slick" %% "slick" % "2.1.0",
+  "com.typesafe.play" %% "play-slick" % "3.0.3",
+  "com.typesafe.play" %% "anorm" % "2.5.3",
   "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
-  "com.mohiva" %% "play-silhouette" % "3.0.5",
-  "com.mohiva" %% "play-silhouette-testkit" % "3.0.5" % "test",
-  "org.webjars" %% "webjars-play" % "2.3.0",
-//  "org.webjars" % "bootstrap" % "3.1.1",
-//  "org.webjars" % "jquery" % "1.11.0",
-  "com.google.code.findbugs" % "jsr305" % "1.3.9",
-  "net.codingwell" %% "scala-guice" % "4.0.0-beta5",
-//  "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",
-  "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
-  "com.github.tminglei" %% "slick-pg" % "0.14.9",
-//  "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.9",
-  "com.github.tminglei" %% "slick-pg_jts" % "0.14.9",
-  "com.github.tminglei" %% "slick-pg_date2" % "0.14.9",
-//  "com.github.tminglei" %% "slick-pg_threeten" % "0.14.9",
-//  "com.github.tminglei" %% "slick-pg_json4s" % "0.14.9",
-  "com.github.tminglei" %% "slick-pg_play-json" % "0.14.9",
-//  "com.github.tminglei" %% "slick-pg_spray-json" % "0.14.9",
-//  "com.github.tminglei" %% "slick-pg_argonaut" % "0.14.9",
-//  "com.github.tminglei" %% "slick-pg_circe-json" % "0.14.9",
-//  "org.slf4j" % "slf4j-api"       % "1.7.7",
-//  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
-//  "joda-time" % "joda-time" % "2.9.4",
-//  "org.geotools" % "gt-coverage" % "14.3",
-//  "org.geotools" % "gt-epsg-hsql" % "14.3",
-//  "org.geotools" % "gt-geotiff" % "14.3",
-  "org.geotools" % "gt-main" % "14.3"
-//  "org.geotools" % "gt-referencing" % "14.3"
+  "com.mohiva" %% "play-silhouette" % "5.0.6",
+  "com.mohiva" %% "play-silhouette-testkit" % "5.0.6" % "test",
+  "org.webjars" %% "webjars-play" % "2.6.3",
+  "org.webjars" % "bootstrap" % "3.1.1",
+  "org.webjars" % "jquery" % "1.11.0",
+  "net.codingwell" %% "scala-guice" % "4.2.2",
+  "au.id.jazzy" %% "play-geojson" % "1.5.0",
+  "com.github.tminglei" %% "slick-pg" % "0.17.0",
+  "com.github.tminglei" %% "slick-pg_joda-time" % "0.17.0",
+  "com.github.tminglei" %% "slick-pg_jts" % "0.17.0",
+  "com.github.tminglei" %% "slick-pg_json4s" % "0.17.0",
+  "com.github.tminglei" %% "slick-pg_play-json" % "0.17.0",
+  "com.github.tminglei" %% "slick-pg_spray-json" % "0.17.0",
+  "com.github.tminglei" %% "slick-pg_argonaut" % "0.17.0",
+  "com.github.tminglei" %% "slick-pg_circe-json" % "0.17.0",
+  "org.slf4j" % "slf4j-api"       % "1.7.7",
+  "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
+  "joda-time" % "joda-time" % "2.9.4",
+  "org.geotools" % "gt-coverage" % "14.3",
+  "org.geotools" % "gt-epsg-hsql" % "14.3",
+  "org.geotools" % "gt-geotiff" % "14.3",
+  "org.geotools" % "gt-main" % "14.3",
+  "org.geotools" % "gt-referencing" % "14.3"
 ).map(_.force())
 
-//libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
+libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -91,11 +80,11 @@ javaOptions in Test += "-Dconfig.file=conf/application.test.conf"
 // Scalariform settings
 //********************************************************
 
-defaultScalariformSettings
+//defaultScalariformSettings
 
-ScalariformKeys.preferences := ScalariformKeys.preferences.value
+scalariformPreferences := scalariformPreferences.value
   .setPreference(FormatXml, false)
-  .setPreference(DoubleIndentClassDeclaration, false)
-  .setPreference(PreserveDanglingCloseParenthesis, true)
+  .setPreference(DoubleIndentConstructorArguments, false)
+  .setPreference(DanglingCloseParenthesis, Preserve)
 
 fork in run := true

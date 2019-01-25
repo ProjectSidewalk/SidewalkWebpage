@@ -2,8 +2,8 @@ package models.utils
 
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.utils.PlainSQLUtils.mkGetResult
-import com.vividsolutions.jts.geom.{Geometry, Polygon}
-import play.api.libs.json.{JsValue, Json}
+import com.vividsolutions.jts.geom.{ Geometry, Polygon }
+import play.api.libs.json.{ JsValue, Json }
 import slick.driver.JdbcProfile
 import slick.jdbc.JdbcType
 import slick.profile.Capability
@@ -39,10 +39,10 @@ trait MyPostgresDriver extends ExPostgresDriver
     with SearchAssistants {
     implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
     implicit val playJsonArrayTypeMapper =
-      new AdvancedArrayJdbcType[JsValue](pgjson,
+      new AdvancedArrayJdbcType[JsValue](
+        pgjson,
         (s) => utils.SimpleArrayUtils.fromString[JsValue](Json.parse(_))(s).orNull,
-        (v) => utils.SimpleArrayUtils.mkString[JsValue](_.toString())(v)
-      ).to(_.toList)
+        (v) => utils.SimpleArrayUtils.mkString[JsValue](_.toString())(v)).to(_.toList)
 
     implicit val getPolygon = mkGetResult(_.nextGeometry[Polygon]())
     implicit val getPolygonOption = mkGetResult(_.nextGeometryOption[Polygon]())

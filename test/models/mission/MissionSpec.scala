@@ -9,7 +9,6 @@ import org.specs2.runner._
 import play.api.test._
 import play.api.test.Helpers._
 
-
 //class MissionSpec extends Specification {
 ////  "MissionTable" should {
 ////    "run" in new WithApplication(FakeApplication()) {

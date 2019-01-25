@@ -2,7 +2,7 @@ package formats.json
 
 import java.util.UUID
 
-import play.api.libs.json.{Reads, JsPath}
+import play.api.libs.json.{ Reads, JsPath }
 import play.api.libs.functional.syntax._
 
 object UserRoleSubmissionFormats {
@@ -10,6 +10,5 @@ object UserRoleSubmissionFormats {
 
   implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
-      (JsPath \ "role_id").read[String]
-    )(UserRoleSubmission.apply _)
+    (JsPath \ "role_id").read[String])(UserRoleSubmission.apply _)
 }

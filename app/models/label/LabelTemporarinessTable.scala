@@ -24,32 +24,32 @@ object LabelTemporarinessTable {
   val labelTemporarinesses = TableQuery[LabelTemporarinessTable]
 
   /**
-    * Find a label temporariness
-    *
-    * @param labelId
-    * @return
-    */
+   * Find a label temporariness
+   *
+   * @param labelId
+   * @return
+   */
   def find(labelId: Int): Future[Option[LabelTemporariness]] = {
     db.run(labelTemporarinesses.filter(_.labelId === labelId).result.headOption)
   }
 
   /**
-    * Saves a new label temporariness to the table
-    *
-    * @param labelTemp
-    * @return
-    */
+   * Saves a new label temporariness to the table
+   *
+   * @param labelTemp
+   * @return
+   */
   def save(labelTemp: LabelTemporariness): Future[Int] = {
     db.run(((labelTemporarinesses returning labelTemporarinesses.map(_.labelTemporarinessId)) += labelTemp).transactionally)
   }
 
   /**
-    * Updates temporariness of the specified id to be newTemp.
-    *
-    * @param tempId
-    * @param newTemp
-    * @return Number of rows updated
-    */
+   * Updates temporariness of the specified id to be newTemp.
+   *
+   * @param tempId
+   * @param newTemp
+   * @return Number of rows updated
+   */
   def updateTemporariness(tempId: Int, newTemp: Boolean): Future[Int] = {
     db.run(labelTemporarinesses.filter(_.labelTemporarinessId === tempId).map(x => x.temporary).update(newTemp).transactionally)
   }

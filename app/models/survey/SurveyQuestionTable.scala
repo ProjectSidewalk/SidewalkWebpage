@@ -28,15 +28,14 @@ class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, Some("sid
 
 }
 
-object SurveyQuestionTable{
+object SurveyQuestionTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
   val surveyQuestions = TableQuery[SurveyQuestionTable]
   val surveyOptions = TableQuery[SurveyOptionTable]
 
   def getQuestionById(surveyQuestionId: Int): Future[Option[SurveyQuestion]] = db.run(
-    surveyQuestions.filter(_.surveyQuestionId === surveyQuestionId).result.headOption
-  )
+    surveyQuestions.filter(_.surveyQuestionId === surveyQuestionId).result.headOption)
 
   def listOptionsByQuestion(surveyQuestionId: Int): Future[Option[List[SurveyOption]]] = {
     getQuestionById(surveyQuestionId).flatMap {
@@ -48,14 +47,11 @@ object SurveyQuestionTable{
   }
 
   def listAll: Future[List[SurveyQuestion]] = db.run(
-    surveyQuestions.filter(_.deleted === false).to[List].result
-  )
+    surveyQuestions.filter(_.deleted === false).to[List].result)
 
   def listAllByUserRoleId(userRoleId: Int): Future[List[SurveyQuestion]] = db.run(
-    surveyQuestions.filter(x => x.deleted === false && x.surveyUserRoleId === userRoleId).to[List].result
-  )
+    surveyQuestions.filter(x => x.deleted === false && x.surveyUserRoleId === userRoleId).to[List].result)
 
   def save(surveyQuestion: SurveyQuestion): Future[Int] = db.run(
-    ((surveyQuestions returning surveyQuestions.map(_.surveyQuestionId)) += surveyQuestion).transactionally
-  )
+    ((surveyQuestions returning surveyQuestions.map(_.surveyQuestionId)) += surveyQuestion).transactionally)
 }

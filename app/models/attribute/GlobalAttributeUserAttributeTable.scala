@@ -1,8 +1,8 @@
 package models.attribute
 
 /**
-  * Created by misaugstad on 4/27/17.
-  */
+ * Created by misaugstad on 4/27/17.
+ */
 
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
@@ -16,7 +16,6 @@ import slick.lifted.ProvenShape
 import scala.language.postfixOps
 
 case class GlobalAttributeUserAttribute(globalAttributeUserAttributeId: Int, globalAttributeId: Int, userAttributeId: Int)
-
 
 class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeUserAttribute](tag, Some("sidewalk"), "global_attribute_user_attribute") {
   def globalAttributeUserAttributeId: Rep[Int] = column[Int]("global_attribute_user_attribute_id", O.PrimaryKey, O.AutoInc)
@@ -32,8 +31,8 @@ class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeU
 }
 
 /**
-  * Data access object for the GlobalAttributeUserAttributeTable table
-  */
+ * Data access object for the GlobalAttributeUserAttributeTable table
+ */
 object GlobalAttributeUserAttributeTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db

@@ -7,7 +7,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-
 case class GSVOnboardingPano(gsvPanoramaId: String, hasLabels: Boolean)
 
 // NOTE: We chose to add this as a separate table solely because of the ease of implementation. Perhaps it would be best
@@ -25,14 +24,11 @@ object GSVOnboardingPanoTable {
   val onboardingPanos = TableQuery[GSVOnboardingPanoTable]
 
   def selectGSVOnboardingPanos(): Future[List[GSVOnboardingPano]] = db.run(
-    onboardingPanos.to[List].result
-  )
+    onboardingPanos.to[List].result)
 
   def getOnboardingPanoIds(): Future[List[String]] = db.run(
-    onboardingPanos.map(_.gsvPanoramaId).to[List].result
-  )
+    onboardingPanos.map(_.gsvPanoramaId).to[List].result)
 
   def save(newOnboardingPano: GSVOnboardingPano): Future[String] = db.run(
-    ((onboardingPanos returning onboardingPanos.map(_.gsvPanoramaId)) += newOnboardingPano).transactionally
-  )
+    ((onboardingPanos returning onboardingPanos.map(_.gsvPanoramaId)) += newOnboardingPano).transactionally)
 }

@@ -4,7 +4,6 @@ import models.utils.MyPostgresDriver.simple._
 import org.specs2.mutable._
 import play.api.test._
 
-
 //class MissionUserSpec extends Specification {
 //  "MissionUserTable" should {
 //    "be able to insert" in new WithApplication {

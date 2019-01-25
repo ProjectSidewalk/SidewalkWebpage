@@ -24,31 +24,31 @@ object LabelDescriptionTable {
   val labelDescriptions = TableQuery[LabelDescriptionTable]
 
   /**
-    * Find a label description
-    *
-    * @param labelId
-    * @return
-    */
+   * Find a label description
+   *
+   * @param labelId
+   * @return
+   */
   def find(labelId: Int): Future[Option[LabelDescription]] = {
     db.run(labelDescriptions.filter(_.labelId === labelId).result.headOption)
   }
 
   /**
-    * Saves a new label description to the table
-    * @param pd
-    * @return Number of rows updated (should be 1)
-    */
+   * Saves a new label description to the table
+   * @param pd
+   * @return Number of rows updated (should be 1)
+   */
   def save(pd: LabelDescription): Future[Int] = {
     db.run(((labelDescriptions returning labelDescriptions.map(_.labelDescriptionId)) += pd).transactionally)
   }
 
   /**
-    * Updates description of the specified id to be newDescription.
-    *
-    * @param descriptionId
-    * @param newDescription
-    * @return Number of rows updated (should be 1)
-    */
+   * Updates description of the specified id to be newDescription.
+   *
+   * @param descriptionId
+   * @param newDescription
+   * @return Number of rows updated (should be 1)
+   */
   def updateDescription(descriptionId: Int, newDescription: String): Future[Int] = db.run {
     labelDescriptions.filter(_.labelDescriptionId === descriptionId).map(x => x.description).update(newDescription).transactionally
   }

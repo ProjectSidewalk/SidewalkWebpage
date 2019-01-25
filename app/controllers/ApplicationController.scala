@@ -3,17 +3,17 @@ package controllers
 import java.sql.Timestamp
 
 import javax.inject.Inject
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+import models.amt.{ AMTAssignment, AMTAssignmentTable }
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
 import models.label.LabelTable
 import models.street.StreetEdgeTable
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import play.api.mvc._
-
+import play.api.mvc.Results._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
@@ -21,27 +21,26 @@ import scala.util.Random
 class ApplicationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-//  val anonymousUser: DBUser = UserTable.find("anonymous").get //FIXME
+  //  val anonymousUser: DBUser = UserTable.find("anonymous").get //FIXME
 
   /**
-    * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.
-    * If no referrer is specified, then it just loads the landing page
-    *
-    * @return
-    */
+   * Logs that someone is coming to the site using a custom URL, then redirects to the specified page.
+   * If no referrer is specified, then it just loads the landing page
+   *
+   * @return
+   */
   def index = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
     val timestamp: Timestamp = new Timestamp(now.getMillis)
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
-    var referrer: Option[String] = qString.get("referrer") match{
+    var referrer: Option[String] = qString.get("referrer") match {
       case Some(r) =>
         Some(r)
       case None =>
         qString.get("r")
     }
-
 
     referrer match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location
@@ -59,7 +58,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 // Have different cases when the user.username is the same as the workerId and when it isn't.
                 user.username match {
                   case `workerId` =>
-                    val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                    val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString ("")}")
                     activityLogText = activityLogText + "_reattempt=true"
                     val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
                     val asgId: Future[Int] = AMTAssignmentTable.save(asg)
@@ -67,20 +66,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     Future.successful(Redirect("/audit"))
                   case _ =>
                     Future.successful(Redirect(routes.UserController.signOut(request.uri)))
-                    // Need to be able to login as a different user here, but the signout redirect isn't working.
+                  // Need to be able to login as a different user here, but the signout redirect isn't working.
                 }
               case None =>
                 // Add an entry into the amt_assignment table.
-                val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
+                val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString ("")}")
                 val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
                 val asgId: Future[Int] = AMTAssignmentTable.save(asg)
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
-                val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
+                val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ + "/" + _)
                 Future.successful(Redirect(redirectTo))
             }
 
           case _ =>
-            val redirectTo: String = qString.get("to") match{
+            val redirectTo: String = qString.get("to") match {
               case Some(to) =>
                 to
               case None =>
@@ -99,10 +98,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         }
       case None =>
         // When there are no referrers, load the landing page but store the query parameters that were passed anyway.
-        val activityLogText: String = "/?"+qString.keys.map(i => i.toString +"="+ qString(i).toString).mkString("&")
+        val activityLogText: String = "/?" + qString.keys.map(i => i.toString + "=" + qString(i).toString).mkString("&")
         request.identity match {
           case Some(user) =>
-            if(qString.isEmpty){
+            if (qString.isEmpty) {
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               for {
                 auditedDistance <- StreetEdgeTable.auditedStreetDistance()
@@ -111,14 +110,14 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               } yield {
                 Ok(views.html.index("Project Sidewalk", Some(user), auditedDistance, completionRate, labelCount))
               }
-            } else{
+            } else {
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
             }
           case None =>
-            if(qString.isEmpty){
+            if (qString.isEmpty) {
               Future.successful(Redirect("/anonSignUp?url=/"))
-            } else{
+            } else {
               // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
               Future.successful(Redirect("/anonSignUp?url=/%3F" + request.rawQueryString.replace("&", "%26")))
             }
@@ -127,10 +126,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns an about page.
-    *
-    * @return
-    */
+   * Returns an about page.
+   *
+   * @return
+   */
   def about = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -146,10 +145,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a page saying that we do not yet support mobile devices.
-    *
-    * @return
-    */
+   * Returns a page saying that we do not yet support mobile devices.
+   *
+   * @return
+   */
   def mobile = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -165,10 +164,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a developer page.
-    *
-    * @return
-    */
+   * Returns a developer page.
+   *
+   * @return
+   */
   def developer = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -186,10 +185,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns an FAQ page.
-    *
-    * @return
-    */
+   * Returns an FAQ page.
+   *
+   * @return
+   */
   def faq = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -205,9 +204,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns labeling guide page
-    * @return
-    */
+   * Returns labeling guide page
+   * @return
+   */
 
   def labelingGuide = UserAwareAction.async { implicit request =>
     val now = new DateTime(DateTimeZone.UTC)
@@ -294,10 +293,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns the terms page.
-    *
-    * @return
-    */
+   * Returns the terms page.
+   *
+   * @return
+   */
   def terms = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -313,10 +312,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns the results page that contains a cool visualization.
-    *
-    * @return
-    */
+   * Returns the results page that contains a cool visualization.
+   *
+   * @return
+   */
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -332,10 +331,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns the demo page that contains a cool visualization that is a work-in-progress.
-    *
-    * @return
-    */
+   * Returns the demo page that contains a cool visualization that is a work-in-progress.
+   *
+   * @return
+   */
   def demo = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -351,19 +350,19 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a page that tells Turkers that there are no further missions for them to complete at this time.
-    *
-    * @return
-    */
+   * Returns a page that tells Turkers that there are no further missions for them to complete at this time.
+   *
+   * @return
+   */
   def noAvailableMissionIndex = Action.async { implicit request =>
     Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
   }
 
   /**
-    * Returns a page telling the turker that they already signed in with their worker id.
-    *
-    * @return
-    */
+   * Returns a page telling the turker that they already signed in with their worker id.
+   *
+   * @return
+   */
   def turkerIdExists = Action.async { implicit request =>
     Future.successful(Ok(views.html.turkerIdExists("Project Sidewalk")))
   }

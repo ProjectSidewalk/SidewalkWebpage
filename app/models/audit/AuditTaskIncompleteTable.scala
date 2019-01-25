@@ -1,6 +1,6 @@
 package models.audit
 
-import models.mission.{Mission, MissionTable}
+import models.mission.{ Mission, MissionTable }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 

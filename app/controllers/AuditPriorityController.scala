@@ -1,23 +1,16 @@
 package controllers
 
-import javax.inject.Inject
-
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import controllers.headers.ProvidesHeader
+import com.mohiva.play.silhouette.api.Silhouette
 import models.user.User
 import models.street.StreetEdgePriorityTable
 //import play.api.Play.current
 //import play.api.i18n.Messages.Implicits._
-import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.i18n.{ I18nSupport, MessagesApi }
+import play.api.mvc.Controller
 
 import scala.concurrent.Future
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class AuditPriorityController @Inject() (implicit val env: Environment[User, SessionAuthenticator], override val messagesApi: MessagesApi)
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
-
+class AuditPriorityController(silhouette: Silhouette[User], messagesApi: MessagesApi) extends Controller with I18nSupport {
   // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
@@ -26,12 +19,13 @@ class AuditPriorityController @Inject() (implicit val env: Environment[User, Ses
   }
 
   /**
-    * Recalculates street edge priority for all streets.
-    *
-    * @return
-    */
-  def recalculateStreetPriority = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
+   * Recalculates street edge priority for all streets.
+   *
+   * @return
+   */
+  def recalculateStreetPriority = silhouette.UserAwareAction.async { implicit request =>
+    val user = Some(request.identity.asInstanceOf[User])
+    if (isAdmin(user)) {
       StreetEdgePriorityTable.recalculateStreetPriority.map { _ =>
         Ok("Successfully recalculated street priorities")
       }

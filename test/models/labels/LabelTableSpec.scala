@@ -1,18 +1,17 @@
 package models.labels
 
-
 import java.sql.Timestamp
-import java.util.{Calendar, Date, UUID}
+import java.util.{ Calendar, Date, UUID }
 
-import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory}
+import com.vividsolutions.jts.geom.{ Coordinate, GeometryFactory }
 import controllers.helper.LabelControllerHelper
-import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{Label, LabelTable, LabelType, LabelTypeTable}
-import models.region.{Region, RegionTable, RegionType, RegionTypeTable}
-import models.street.{StreetEdge, StreetEdgeTable}
+import models.audit.{ AuditTask, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable }
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
+import models.label.{ Label, LabelTable, LabelType, LabelTypeTable }
+import models.region.{ Region, RegionTable, RegionType, RegionTypeTable }
+import models.street.{ StreetEdge, StreetEdgeTable }
 import models.utils.MyPostgresDriver.simple._
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import org.specs2.mutable._
 import play.api.Logger._
 import play.api.test._
@@ -20,8 +19,7 @@ import play.api.test.Helpers._
 
 import scala.slick.jdbc.GetResult
 
-
-class LabelTableSpec extends Specification  {
+class LabelTableSpec extends Specification {
 
   "LabelTable" should {
 
@@ -64,7 +62,6 @@ class LabelTableSpec extends Specification  {
           lazy val regionGeom_1 = gf.createPolygon(polyCoordinates_1)
           lazy val regionGeom_2 = gf.createPolygon(polyCoordinates_2)
 
-
           lazy val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426655440000")
           lazy val user = DBUser(uuid.toString, "TestUserName", "TestUser@email.com")
           lazy val streetEdge_1 = StreetEdge(1, streetGeom_1, 0, 1, 0.0f, 0.0f, 1.0f, 0.0f, "primary", deleted = false, Some(timestamp))
@@ -89,13 +86,11 @@ class LabelTableSpec extends Specification  {
           // Insert data
           regionTypes ++= Seq(
             RegionType(1, "city"),
-            RegionType(2, "neighborhood")
-          )
+            RegionType(2, "neighborhood"))
 
           regions ++= Seq(
             Region(1, 2, "TestDataSource", "TestRegion1", regionGeom_1, deleted = false),
-            Region(2, 2, "TestDataSource", "TestRegion2", regionGeom_2, deleted = false)
-          )
+            Region(2, 2, "TestDataSource", "TestRegion2", regionGeom_2, deleted = false))
 
           users += user
           streetEdges ++= Seq(streetEdge_1, streetEdge_2)
@@ -103,8 +98,7 @@ class LabelTableSpec extends Specification  {
 
           labelTypes ++= Seq(
             LabelType(1, "CurbRamp", "Curb Ramp"),
-            LabelType(2, "NoCurbRamp", "No Curb Ramp")
-          )
+            LabelType(2, "NoCurbRamp", "No Curb Ramp"))
 
           labels ++= Seq(label1, label2, label3)
 
@@ -112,8 +106,7 @@ class LabelTableSpec extends Specification  {
             auditTaskInteraction_1,
             auditTaskInteraction_2,
             auditTaskInteraction_3,
-            auditTaskInteraction_4
-          )
+            auditTaskInteraction_4)
           auditTaskInteractions ++= interactions
 
           lazy val fetchedLabels = LabelControllerHelper._helpGetLabelsFromCurrentMission(1, uuid)
@@ -169,7 +162,6 @@ class LabelTableSpec extends Specification  {
           lazy val regionGeom_1 = gf.createPolygon(polyCoordinates_1)
           lazy val regionGeom_2 = gf.createPolygon(polyCoordinates_2)
 
-
           lazy val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426655440000")
           lazy val user = DBUser(uuid.toString, "TestUserName", "TestUser@email.com")
           lazy val streetEdge_1 = StreetEdge(1, streetGeom_1, 0, 1, 0.0f, 0.0f, 1.0f, 0.0f, "primary", deleted = false, Some(timestamp))
@@ -182,8 +174,8 @@ class LabelTableSpec extends Specification  {
             Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(1), timestamp)
           lazy val auditTaskInteraction_2 = AuditTaskInteraction(2, 1, "LabelingCanvas_FinishLabeling", Some("TestPanoramaId2"),
             Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(2), timestamp)
-//          lazy val auditTaskInteraction_3 = AuditTaskInteraction(3, 1, "MissionComplete", Some("TestPanoramaId2"),
-//            Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), None, timestamp)
+          //          lazy val auditTaskInteraction_3 = AuditTaskInteraction(3, 1, "MissionComplete", Some("TestPanoramaId2"),
+          //            Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), None, timestamp)
           lazy val auditTaskInteraction_4 = AuditTaskInteraction(4, 2, "LabelingCanvas_FinishLabeling", Some("TestPanoramaId2"),
             Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(3), timestamp)
 
@@ -194,13 +186,11 @@ class LabelTableSpec extends Specification  {
           // Insert data
           regionTypes ++= Seq(
             RegionType(1, "city"),
-            RegionType(2, "neighborhood")
-          )
+            RegionType(2, "neighborhood"))
 
           regions ++= Seq(
             Region(1, 2, "TestDataSource", "TestRegion1", regionGeom_1, deleted = false),
-            Region(2, 2, "TestDataSource", "TestRegion2", regionGeom_2, deleted = false)
-          )
+            Region(2, 2, "TestDataSource", "TestRegion2", regionGeom_2, deleted = false))
 
           users += user
           streetEdges ++= Seq(streetEdge_1, streetEdge_2)
@@ -208,17 +198,15 @@ class LabelTableSpec extends Specification  {
 
           labelTypes ++= Seq(
             LabelType(1, "CurbRamp", "Curb Ramp"),
-            LabelType(2, "NoCurbRamp", "No Curb Ramp")
-          )
+            LabelType(2, "NoCurbRamp", "No Curb Ramp"))
 
           labels ++= Seq(label1, label2, label3)
 
           lazy val interactions = Seq(
             auditTaskInteraction_1,
             auditTaskInteraction_2,
-//            auditTaskInteraction_3,
-            auditTaskInteraction_4
-          )
+            //            auditTaskInteraction_3,
+            auditTaskInteraction_4)
           auditTaskInteractions ++= interactions
 
           lazy val fetchedLabels = LabelControllerHelper._helpGetLabelsFromCurrentMission(1, uuid)

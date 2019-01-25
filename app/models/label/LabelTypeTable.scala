@@ -31,33 +31,30 @@ object LabelTypeTable {
   val labelTypes = TableQuery[LabelTypeTable]
 
   /**
-    * Gets the label type id from the label type name
-    *
-    * @param labelType
-    * @return
-    */
+   * Gets the label type id from the label type name
+   *
+   * @param labelType
+   * @return
+   */
   def labelTypeToId(labelType: String): Future[Int] = {
     db.run(
-      labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).result.headOption
-    ).flatMap {
-      case Some(_) => Future.successful(0)
-      case None => LabelTypeTable.save(LabelType(0, labelType, ""))
-    }
+      labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).result.headOption).flatMap {
+        case Some(_) => Future.successful(0)
+        case None => LabelTypeTable.save(LabelType(0, labelType, ""))
+      }
   }
 
   /**
-    * Gets the label type name from the label type id
-    *
-    * @param labelTypeId
-    * @return
-    */
+   * Gets the label type name from the label type id
+   *
+   * @param labelTypeId
+   * @return
+   */
   def labelTypeIdToLabelType(labelTypeId: Int): Future[String] = db.run(
-    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).result.head
-  )
+    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).result.head)
 
-  def labelTypeByIds(labelTypeIds: Seq[Int]): Future[Seq[(Int,String)]] = db.run(
-    labelTypes.filter(_.labelTypeId inSet labelTypeIds).map(t => (t.labelTypeId, t.labelType)).result
-  )
+  def labelTypeByIds(labelTypeIds: Seq[Int]): Future[Seq[(Int, String)]] = db.run(
+    labelTypes.filter(_.labelTypeId inSet labelTypeIds).map(t => (t.labelTypeId, t.labelType)).result)
 
   /**
    * Saves a new label type in the table
@@ -65,7 +62,6 @@ object LabelTypeTable {
    * @return
    */
   def save(lt: LabelType): Future[Int] = db.run(
-    ((labelTypes returning labelTypes.map(_.labelTypeId)) += lt).transactionally
-  )
+    ((labelTypes returning labelTypes.map(_.labelTypeId)) += lt).transactionally)
 }
 

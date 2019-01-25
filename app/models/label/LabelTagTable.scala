@@ -28,41 +28,41 @@ object LabelTagTable {
   val labelTagTable = TableQuery[LabelTagTable]
 
   /**
-    * Get all records.
-    *
-    * @return
-    */
+   * Get all records.
+   *
+   * @return
+   */
   def selectAllLabelTags(): Future[Seq[LabelTag]] = {
     db.run(labelTagTable.result)
   }
 
   /**
-    * Get all records for the given label_id.
-    *
-    * @param labelId
-    * @return
-    */
+   * Get all records for the given label_id.
+   *
+   * @param labelId
+   * @return
+   */
   def selectTagIdsForLabelId(labelId: Int): Future[Seq[Int]] = {
     db.run(labelTagTable.filter(_.labelId === labelId).map(_.tagId).result)
   }
 
   /**
-    * Delete a record with the given label_id and tag_id.
-    *
-    * @param labelId
-    * @param tagId
-    * @return Number of deleted rows.
-    */
+   * Delete a record with the given label_id and tag_id.
+   *
+   * @param labelId
+   * @param tagId
+   * @return Number of deleted rows.
+   */
   def delete(labelId: Int, tagId: Int): Future[Int] = {
     db.run(labelTagTable.filter(labelTag => labelTag.labelId === labelId && labelTag.tagId === tagId).delete)
   }
 
   /**
-    * Save a record.
-    *
-    * @param labelTag
-    * @return Number of added rows (should be 1)
-    */
+   * Save a record.
+   *
+   * @param labelTag
+   * @return Number of added rows (should be 1)
+   */
   def save(labelTag: LabelTag): Future[Int] = {
     db.run(labelTagTable += labelTag)
   }

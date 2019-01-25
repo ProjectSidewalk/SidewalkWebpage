@@ -2,8 +2,8 @@ package controllers.helper
 
 import java.util.UUID
 
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable}
-import models.label.{Label, LabelTable}
+import models.audit.{ AuditTaskInteraction, AuditTaskInteractionTable }
+import models.label.{ Label, LabelTable }
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

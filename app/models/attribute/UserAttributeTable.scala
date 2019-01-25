@@ -1,11 +1,11 @@
 package models.attribute
 
 /**
-  * Created by misaugstad on 4/27/17.
-  */
+ * Created by misaugstad on 4/27/17.
+ */
 
-import models.label.{LabelType, LabelTypeTable}
-import models.region.{Region, RegionTable}
+import models.label.{ LabelType, LabelTypeTable }
+import models.region.{ Region, RegionTable }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
@@ -14,19 +14,19 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.{ProvenShape, Tag}
+import slick.lifted.{ ProvenShape, Tag }
 import scala.language.postfixOps
 
-case class UserAttribute(userAttributeId: Int,
-                         userClusteringSessionId: Int,
-                         clusteringThreshold: Float,
-                         labelTypeId: Int,
-                         regionId: Int,
-                         lat: Float,
-                         lng: Float,
-                         severity: Option[Int],
-                         temporary: Boolean)
-
+case class UserAttribute(
+  userAttributeId: Int,
+  userClusteringSessionId: Int,
+  clusteringThreshold: Float,
+  labelTypeId: Int,
+  regionId: Int,
+  lat: Float,
+  lng: Float,
+  severity: Option[Int],
+  temporary: Boolean)
 
 class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidewalk"), "user_attribute") {
   def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.PrimaryKey, O.AutoInc)
@@ -39,14 +39,15 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
   def temporary: Rep[Boolean] = column[Boolean]("temporary")
 
-  def * : ProvenShape[UserAttribute] = (userAttributeId,
-                                        userClusteringSessionId,
-                                        clusteringThreshold,
-                                        labelTypeId,
-                                        regionId,
-                                        lat, lng,
-                                        severity,
-                                        temporary) <>
+  def * : ProvenShape[UserAttribute] = (
+    userAttributeId,
+    userClusteringSessionId,
+    clusteringThreshold,
+    labelTypeId,
+    regionId,
+    lat, lng,
+    severity,
+    temporary) <>
     ((UserAttribute.apply _).tupled, UserAttribute.unapply)
 
   def labelType = foreignKey("user_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
@@ -57,8 +58,8 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
 }
 
 /**
-  * Data access object for the UserAttributeTable table
-  */
+ * Data access object for the UserAttributeTable table
+ */
 object UserAttributeTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db

@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 case class StreetEdgeParentEdge(streetEdgeId: Int, parentEdgeId: Int)
 
-class StreetEdgeParentEdgeTable(tag: Tag) extends Table[StreetEdgeParentEdge](tag, Some("sidewalk"),  "street_edge_parent_edge") {
+class StreetEdgeParentEdgeTable(tag: Tag) extends Table[StreetEdgeParentEdge](tag, Some("sidewalk"), "street_edge_parent_edge") {
   def streetEdgeId = column[Int]("street_edge_id")
   def parentEdgeId = column[Int]("parent_edge_id")
 
@@ -28,8 +28,7 @@ object StreetEdgeParentEdgeTable {
    * @return
    */
   def selectByChildId(id: Int): Future[List[StreetEdgeParentEdge]] = db.run(
-    streetEdgeParentEdgeTable.filter(item => item.streetEdgeId === id).to[List].result
-  )
+    streetEdgeParentEdgeTable.filter(item => item.streetEdgeId === id).to[List].result)
 
   /**
    * Get records based on the parent id.
@@ -37,8 +36,7 @@ object StreetEdgeParentEdgeTable {
    * @return
    */
   def selectByParentId(id: Int): Future[List[StreetEdgeParentEdge]] = db.run(
-    streetEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).to[List].result
-  )
+    streetEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).to[List].result)
 
   /**
    * Save a record.
@@ -47,6 +45,5 @@ object StreetEdgeParentEdgeTable {
    * @return
    */
   def save(childId: Int, parentId: Int): Future[Int] = db.run(
-    (streetEdgeParentEdgeTable += new StreetEdgeParentEdge(childId, parentId)).transactionally
-  )
+    (streetEdgeParentEdgeTable += new StreetEdgeParentEdge(childId, parentId)).transactionally)
 }

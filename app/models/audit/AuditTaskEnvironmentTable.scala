@@ -1,6 +1,6 @@
 package models.audit
 
-import models.mission.{Mission, MissionTable}
+import models.mission.{ Mission, MissionTable }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
@@ -10,9 +10,9 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
 case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, missionId: Int, browser: Option[String],
-                                browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
-                                availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
-                                screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String])
+  browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
+  availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
+  screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String])
 
 /**
  *

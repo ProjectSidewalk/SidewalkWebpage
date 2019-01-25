@@ -2,7 +2,7 @@ package utils.actor
 
 import java.util.Calendar
 
-import akka.actor.{Actor, Cancellable, Props}
+import akka.actor.{ Actor, Cancellable, Props }
 import models.street.StreetEdgePriorityTable
 import play.api.Logger
 
@@ -14,7 +14,6 @@ import scala.concurrent.duration._
 class RecalculateStreetPriorityActor extends Actor {
 
   private var cancellable: Option[Cancellable] = None
-
 
   override def preStart(): Unit = {
     super.preStart()
@@ -29,24 +28,22 @@ class RecalculateStreetPriorityActor extends Actor {
     timeOfNextUpdate.set(Calendar.MINUTE, 0)
     timeOfNextUpdate.set(Calendar.SECOND, 0)
 
-//    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH))
+    //    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH))
     // If already past 3am, set next update to 3am tomorrow.
     if (currentTime.after(timeOfNextUpdate)) {
       timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
     }
-//    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH)) // if it is after 3am, this should have just incremented.
+    //    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH)) // if it is after 3am, this should have just incremented.
     val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
     val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
-//    println(millisUntilNextupdate / 3600000.0) // shows hours until next update
+    //    println(millisUntilNextupdate / 3600000.0) // shows hours until next update
 
     cancellable = Some(
       context.system.scheduler.schedule(
         durationToNextUpdate,
         24.hour,
         self,
-        RecalculateStreetPriorityActor.Tick
-      )(context.dispatcher)
-    )
+        RecalculateStreetPriorityActor.Tick)(context.dispatcher))
   }
 
   override def postStop(): Unit = {
@@ -59,7 +56,7 @@ class RecalculateStreetPriorityActor extends Actor {
     case RecalculateStreetPriorityActor.Tick() =>
       val currentTimeStart: String = Calendar.getInstance.getTime.toString
       Logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
-      Await.ready(StreetEdgePriorityTable.recalculateStreetPriority, Duration.Inf/*FIXME*/)
+      Await.ready(StreetEdgePriorityTable.recalculateStreetPriority, Duration.Inf /*FIXME*/ )
       val currentEndTime: String = Calendar.getInstance.getTime.toString
       Logger.info(s"Street priority recalculation completed at: $currentEndTime")
   }

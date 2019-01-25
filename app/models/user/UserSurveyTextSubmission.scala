@@ -4,7 +4,7 @@ import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import java.sql.Timestamp
 import models.survey._
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -27,12 +27,11 @@ class UserSurveyTextSubmissionTable(tag: Tag) extends Table[UserSurveyTextSubmis
   def survey_question = foreignKey("user_survey_text_submission_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTable])(_.surveyQuestionId)
 }
 
-object UserSurveyTextSubmissionTable{
+object UserSurveyTextSubmissionTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
   val userSurveyTextSubmissions = TableQuery[UserSurveyTextSubmissionTable]
 
   def save(userSurveyTextSubmission: UserSurveyTextSubmission): Future[Int] = db.run(
-    ((userSurveyTextSubmissions returning userSurveyTextSubmissions.map(_.userSurveyTextSubmissionId)) += userSurveyTextSubmission).transactionally
-  )
+    ((userSurveyTextSubmissions returning userSurveyTextSubmissions.map(_.userSurveyTextSubmissionId)) += userSurveyTextSubmission).transactionally)
 }

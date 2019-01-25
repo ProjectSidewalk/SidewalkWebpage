@@ -34,5 +34,4 @@ trait UserDAO {
    */
   def save(user: User): Future[User]
 
-
 }

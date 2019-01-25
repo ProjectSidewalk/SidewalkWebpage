@@ -3,51 +3,54 @@ package models.label
 import java.sql.Timestamp
 import java.util.UUID
 
-import models.audit.{AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
+import models.audit.{ AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable }
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.gsv.GSVOnboardingPanoTable
 import models.mission.MissionTable
 import models.region.RegionTable
-import models.user.{RoleTable, UserRoleTable}
+import models.user.{ RoleTable, UserRoleTable }
 import models.utils.MyPostgresDriver.api._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{ JsObject, Json }
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 import slick.jdbc.GetResult
 
 import scala.concurrent.duration.Duration
 
-case class Label(labelId: Int,
-                 auditTaskId: Int,
-                 missionId: Int,
-                 gsvPanoramaId: String,
-                 labelTypeId: Int,
-                 photographerHeading: Float,
-                 photographerPitch: Float,
-                 panoramaLat: Float,
-                 panoramaLng: Float,
-                 deleted: Boolean,
-                 temporaryLabelId: Option[Int],
-                 timeCreated: Option[Timestamp])
+case class Label(
+  labelId: Int,
+  auditTaskId: Int,
+  missionId: Int,
+  gsvPanoramaId: String,
+  labelTypeId: Int,
+  photographerHeading: Float,
+  photographerPitch: Float,
+  panoramaLat: Float,
+  panoramaLng: Float,
+  deleted: Boolean,
+  temporaryLabelId: Option[Int],
+  timeCreated: Option[Timestamp])
 
-case class LabelLocation(labelId: Int,
-                         auditTaskId: Int,
-                         gsvPanoramaId: String,
-                         labelType: String,
-                         lat: Float,
-                         lng: Float)
+case class LabelLocation(
+  labelId: Int,
+  auditTaskId: Int,
+  gsvPanoramaId: String,
+  labelType: String,
+  lat: Float,
+  lng: Float)
 
-case class LabelLocationWithSeverity(labelId: Int,
-                                     auditTaskId: Int,
-                                     gsvPanoramaId: String,
-                                     labelType: String,
-                                     severity: Int,
-                                     lat: Float,
-                                     lng: Float)
+case class LabelLocationWithSeverity(
+  labelId: Int,
+  auditTaskId: Int,
+  gsvPanoramaId: String,
+  labelType: String,
+  severity: Int,
+  lat: Float,
+  lng: Float)
 
 /**
  *
@@ -109,19 +112,19 @@ object LabelTable {
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadataWithoutTags(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-                                      canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
-                                      auditTaskId: Int,
-                                      userId: String, username: String,
-                                      timestamp: Option[java.sql.Timestamp],
-                                      labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                                      temporary: Boolean, description: Option[String])
+    canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
+    auditTaskId: Int,
+    userId: String, username: String,
+    timestamp: Option[java.sql.Timestamp],
+    labelTypeKey: String, labelTypeValue: String, severity: Option[Int],
+    temporary: Boolean, description: Option[String])
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-                           canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
-                           auditTaskId: Int,
-                           userId: String, username: String,
-                           timestamp: Option[java.sql.Timestamp],
-                           labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-                           temporary: Boolean, description: Option[String], tags: List[String])
+    canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
+    auditTaskId: Int,
+    userId: String, username: String,
+    timestamp: Option[java.sql.Timestamp],
+    labelTypeKey: String, labelTypeValue: String, severity: Option[Int],
+    temporary: Boolean, description: Option[String], tags: List[String])
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -130,39 +133,33 @@ object LabelTable {
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
 
   /**
-    * Find a label
-    *
-    * @param labelId
-    * @return
-    */
+   * Find a label
+   *
+   * @param labelId
+   * @return
+   */
   def find(labelId: Int): Future[Option[Label]] = db.run(
-    labels.filter(_.labelId === labelId).result.headOption
-  )
+    labels.filter(_.labelId === labelId).result.headOption)
 
   /**
-    * Find a label based on temp_label_id and audit_task_id.
-    *
-    * @param tempLabelId
-    * @param auditTaskId
-    * @return
-    */
+   * Find a label based on temp_label_id and audit_task_id.
+   *
+   * @param tempLabelId
+   * @param auditTaskId
+   * @return
+   */
   def find(tempLabelId: Int, auditTaskId: Int): Future[Option[Int]] = db.run(
     labels.filter(
-      x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId
-    ).map(_.labelId).result.headOption
-  )
+      x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map(_.labelId).result.headOption)
 
   def countLabels: Future[Int] = db.run(
-    labels.filter(_.deleted === false).length.result
-  )
+    labels.filter(_.deleted === false).length.result)
 
   def countLabelsBasedOnType(labelTypeString: String): Future[Int] = {
     LabelTypeTable.labelTypeToId(labelTypeString).flatMap { labelTypeId =>
       db.run(
         labels.filter(_.deleted === false).filter(
-          _.labelTypeId === labelTypeId
-        ).length.result
-      )
+          _.labelTypeId === labelTypeId).length.result)
     }
   }
 
@@ -240,13 +237,12 @@ object LabelTable {
     db.run(countQuery(labelType).head)
   }
 
-
   /**
-    * This method returns the number of labels submitted by the given user
-    *
-    * @param userId User id
-    * @return A number of labels submitted by the user
-    */
+   * This method returns the number of labels submitted by the given user
+   *
+   * @param userId User id
+   * @return A number of labels submitted by the user
+   */
   def countLabelsByUserId(userId: UUID): Future[Int] = db.run({
     val tasks = auditTasks.filter(_.userId === userId.toString)
     val _labels = for {
@@ -257,19 +253,17 @@ object LabelTable {
 
   def updateDeleted(labelId: Int, deleted: Boolean): Future[Int] = {
     db.run(
-      labels.filter(_.labelId === labelId).map(lab => lab.deleted).update(deleted).transactionally
-    )
+      labels.filter(_.labelId === labelId).map(lab => lab.deleted).update(deleted).transactionally)
   }
 
   /**
    * Saves a new label in the table
-    *
-    * @param label
+   *
+   * @param label
    * @return
    */
   def save(label: Label): Future[Int] = db.run(
-    ((labels returning labels.map(_.labelId)) += label).transactionally
-  )
+    ((labels returning labels.map(_.labelId)) += label).transactionally)
 
   // TODO translate the following three queries to Slick
   def retrieveLabelMetadata(takeN: Int): Future[List[LabelMetadata]] = {
@@ -317,9 +311,7 @@ object LabelTable {
             |    AND lb1.label_id = lp.label_id
             |ORDER BY lb1.label_id DESC
             |LIMIT #$takeN
-        """.as[(Int, String, Float, Float, Int, Int, Int, Int, Int,
-        Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-        Option[String])]
+        """.as[(Int, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String])]
 
     db.run(selectQuery(takeN)).flatMap { ret =>
       val futures = ret.toList.map(LabelMetadataWithoutTags.tupled).map { label =>
@@ -377,9 +369,7 @@ object LabelTable {
             |      AND lb1.label_id = lp.label_id
             |ORDER BY lb1.label_id DESC
             |LIMIT #$takeN
-            |""".as[(Int, String, Float, Float, Int, Int, Int, Int, Int,
-                    Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-                    Option[String])]
+            |""".as[(Int, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String])]
 
     db.run(selectQuery(takeN, userId)).flatMap { ret =>
       val futures = ret.toList.map(LabelMetadataWithoutTags.tupled).map { label =>
@@ -399,20 +389,19 @@ object LabelTable {
         r.nextFloat(),
         r.nextFloat(),
         r.nextInt(),
-        r.nextInt(),  //canvasX
+        r.nextInt(), //canvasX
         r.nextInt(),
         r.nextInt(),
         r.nextInt(),
-        r.nextInt(),  //auditTaskId
+        r.nextInt(), //auditTaskId
         r.nextString(),
         r.nextString(), //userId
         r.nextTimestampOption(),
         r.nextString(), //labelTypeKey
         r.nextString(),
         r.nextIntOption(),
-        r.nextBoolean(),  //temporary
-        r.nextStringOption()
-      ))
+        r.nextBoolean(), //temporary
+        r.nextStringOption()))
 
     val selectQuery =
       sql"""SELECT lb1.label_id,
@@ -467,17 +456,17 @@ object LabelTable {
   }
 
   /**
-    * This method returns a LabelMetadata object that has the label properties as well as the tags.
-    *
-    * @param label label from query
-    * @param tags list of tags as strings
-    * @return LabelMetadata object
-    */
+   * This method returns a LabelMetadata object that has the label properties as well as the tags.
+   *
+   * @param label label from query
+   * @param tags list of tags as strings
+   * @return LabelMetadata object
+   */
   def labelAndTagsToLabelMetadata(label: LabelMetadataWithoutTags, tags: List[String]): LabelMetadata = {
-      LabelMetadata(
-        label.labelId, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
-        label.canvasWidth, label.canvasHeight ,label.auditTaskId ,label.userId ,label.username, label.timestamp,
-        label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary, label.description, tags)
+    LabelMetadata(
+      label.labelId, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
+      label.canvasWidth, label.canvasHeight, label.auditTaskId, label.userId, label.username, label.timestamp,
+      label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary, label.description, tags)
   }
 
   def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
@@ -500,18 +489,17 @@ object LabelTable {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
-      "tags" -> labelMetadata.tags
-    )
+      "tags" -> labelMetadata.tags)
   }
 
   /**
-    * This method returns a list of strings with all the tags associated with a label
-    *
-    * @param userId Label id
-    * @return A list of strings with all the tags asscociated with a label
-    */
+   * This method returns a list of strings with all the tags associated with a label
+   *
+   * @param userId Label id
+   * @return A list of strings with all the tags asscociated with a label
+   */
   def getTagsFromLabelId(labelId: Int): Future[Seq[String]] = {
-      val getTagsQuery = sql"""
+    val getTagsQuery = sql"""
            SELECT tag
            FROM sidewalk.tag
            WHERE tag.tag_id IN
@@ -520,27 +508,26 @@ object LabelTable {
                FROM sidewalk.label_tag
                WHERE label_tag.label_id = #${labelId}
            )""".as[String]
-      db.run(getTagsQuery)
+    db.run(getTagsQuery)
   }
 
   /**
-    * Returns all the labels submitted by the given user
-    * @param userId
-    * @return
-    */
+   * Returns all the labels submitted by the given user
+   * @param userId
+   * @return
+   */
   def selectLabelsByUserId(userId: UUID): Future[List[Label]] = db.run(
     (for {
       (_labels, _auditTasks) <- labelsWithoutDeleted.join(auditTasks).on(_.auditTaskId === _.auditTaskId)
       if _auditTasks.userId === userId.toString
-    } yield _labels).to[List].result
-  )
+    } yield _labels).to[List].result)
 
   /**
-    * Returns all the labels of the given user that are associated with the given interactions
-    * @param userId
-    * @param interactions
-    * @return
-    */
+   * Returns all the labels of the given user that are associated with the given interactions
+   * @param userId
+   * @param interactions
+   * @return
+   */
   def selectLabelsByInteractions(userId: UUID, interactions: List[AuditTaskInteraction]): Future[List[Label]] = {
     selectLabelsByUserId(userId).map { labels =>
       for {
@@ -565,10 +552,10 @@ object LabelTable {
     retrieveLabelMetadata(n, userId.toString)
 
   /**
-    * This method returns all the submitted labels
-    *
-    * @return
-    */
+   * This method returns all the submitted labels
+   *
+   * @return
+   */
   def selectLocationsOfLabels: Future[Seq[LabelLocation]] = {
     val _labels = for {
       (_labels, _labelTypes) <- labelsWithoutDeleted.join(labelTypes).on(_.labelTypeId === _.labelTypeId)
@@ -582,10 +569,10 @@ object LabelTable {
   }
 
   /**
-    * This method returns all the submitted labels with their severities included.
-    *
-    * @return
-    */
+   * This method returns all the submitted labels with their severities included.
+   *
+   * @return
+   */
   def selectLocationsAndSeveritiesOfLabels: Future[Seq[LabelLocationWithSeverity]] = {
     val _labels = for {
       (_labels, _labelTypes) <- labelsWithoutDeleted.join(labelTypes).on(_.labelTypeId === _.labelTypeId)
@@ -603,14 +590,14 @@ object LabelTable {
   }
 
   /**
-    * Retrieve Label Locations within a given bounding box
-    *
-    * @param minLat
-    * @param minLng
-    * @param maxLat
-    * @param maxLng
-    * @return
-    */
+   * Retrieve Label Locations within a given bounding box
+   *
+   * @param minLat
+   * @param minLng
+   * @param maxLat
+   * @param maxLng
+   * @return
+   */
   def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): Future[List[LabelLocation]] = {
     def selectLabelLocationQuery(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) =
       sql"""
@@ -629,18 +616,18 @@ object LabelTable {
         """.as[(Int, Int, String, String, Float, Float)]
 
     db.run(selectLabelLocationQuery(minLng, minLat, maxLng, maxLat))
-        .map(_.toList.map(LabelLocation.tupled))
+      .map(_.toList.map(LabelLocation.tupled))
   }
 
   /**
    * This method returns a list of labels submitted by the given user.
-    *
-    * @param userId
+   *
+   * @param userId
    * @return
    */
   def selectLocationsOfLabelsByUserId(userId: UUID): Future[List[LabelLocation]] = {
     val _labels = for {
-      ((_auditTasks, _labels), _labelTypes) <- auditTasks join labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) join labelTypes on (_._2.labelTypeId === _.labelTypeId)
+      ((_auditTasks, _labels), _labelTypes) <- auditTasks join labelsWithoutDeleted on (_.auditTaskId === _.auditTaskId) join labelTypes on (_._2.labelTypeId === _.labelTypeId)
       if _auditTasks.userId === userId.toString
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
@@ -652,11 +639,11 @@ object LabelTable {
   }
 
   /**
-    * Returns counts of labels by label type in the specified region
-    *
-    * @param regionId
-    * @return
-    */
+   * Returns counts of labels by label type in the specified region
+   *
+   * @param regionId
+   * @return
+   */
   def selectNegativeLabelCountsByRegionId(regionId: Int): Future[Seq[(String, Int)]] = {
     val selectQuery = sql"""SELECT labels.label_type, COUNT(labels.label_type)
          FROM
@@ -707,10 +694,10 @@ object LabelTable {
   }
 
   /**
-    * Returns a count of the number of labels placed on each day since the tool was launched (11/17/2015).
-    *
-    * @return
-    */
+   * Returns a count of the number of labels placed on each day since the tool was launched (11/17/2015).
+   *
+   * @return
+   */
   def selectLabelCountsPerDay: Future[List[LabelCountPerDay]] = {
     val selectLabelCountQuery =
       sql"""SELECT calendar_date::date, COUNT(label_id)
@@ -729,12 +716,11 @@ object LabelTable {
       .map(_.toList.map(LabelCountPerDay.tupled))
   }
 
-
   /**
-    * Select label counts per user.
-    *
-    * @return list of tuples of (user_id, role, label_count)
-    */
+   * Select label counts per user.
+   *
+   * @return list of tuples of (user_id, role, label_count)
+   */
   def getLabelCountsPerUser: Future[Seq[(String, String, Int)]] = {
     val audits = for {
       _user <- users if _user.username =!= "anonymous"
@@ -745,6 +731,6 @@ object LabelTable {
     } yield (_user.userId, _role.role, _label.labelId)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    db.run(audits.groupBy(l => (l._1, l._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.result)
+    db.run(audits.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.result)
   }
 }

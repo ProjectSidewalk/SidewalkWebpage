@@ -24,32 +24,32 @@ object LabelSeverityTable {
   val labelSeverities = TableQuery[LabelSeverityTable]
 
   /**
-    * Find a label severity
-    *
-    * @param labelId
-    * @return
-    */
+   * Find a label severity
+   *
+   * @param labelId
+   * @return
+   */
   def find(labelId: Int): Future[Option[LabelSeverity]] = {
     db.run(labelSeverities.filter(_.labelId === labelId).result.headOption)
   }
 
   /**
-    * Saves a new label severity to the table.
-    *
-    * @param labelSev
-    * @return
-    */
+   * Saves a new label severity to the table.
+   *
+   * @param labelSev
+   * @return
+   */
   def save(labelSev: LabelSeverity): Future[Int] = {
     db.run((labelSeverities returning labelSeverities.map(_.labelSeverityId)) += labelSev)
   }
 
   /**
-    * Updates severity of the specified id to be newSeverity.
-    *
-    * @param severityId
-    * @param newSeverity
-    * @return
-    */
+   * Updates severity of the specified id to be newSeverity.
+   *
+   * @param severityId
+   * @param newSeverity
+   * @return
+   */
   def updateSeverity(severityId: Int, newSeverity: Int): Future[Int] = {
     db.run(labelSeverities.filter(_.labelSeverityId === severityId).map(sev => sev.severity).update(newSeverity).transactionally)
   }

@@ -1,10 +1,10 @@
 package models.attribute
 
 /**
-  * Created by misaugstad on 4/27/17.
-  */
+ * Created by misaugstad on 4/27/17.
+ */
 
-import models.label.{LabelType, LabelTypeTable}
+import models.label.{ LabelType, LabelTypeTable }
 import models.region.RegionTable
 import play.api.db.slick.DatabaseConfigProvider
 
@@ -14,16 +14,15 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-
-case class GlobalAttribute(globalAttributeId: Int,
-                           globalClusteringSessionId: Int,
-                           clusteringThreshold: Float,
-                           labelTypeId: Int,
-                           regionId: Int,
-                           lat: Float, lng: Float,
-                           severity: Option[Int],
-                           temporary: Boolean)
-
+case class GlobalAttribute(
+  globalAttributeId: Int,
+  globalClusteringSessionId: Int,
+  clusteringThreshold: Float,
+  labelTypeId: Int,
+  regionId: Int,
+  lat: Float, lng: Float,
+  severity: Option[Int],
+  temporary: Boolean)
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
   def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.PrimaryKey, O.AutoInc)
@@ -36,14 +35,15 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
   def temporary: Rep[Boolean] = column[Boolean]("temporary")
 
-  def * = (globalAttributeId,
-           globalClusteringSessionId,
-           clusteringThreshold,
-           labelTypeId,
-           regionId,
-           lat, lng,
-           severity,
-           temporary) <>
+  def * = (
+    globalAttributeId,
+    globalClusteringSessionId,
+    clusteringThreshold,
+    labelTypeId,
+    regionId,
+    lat, lng,
+    severity,
+    temporary) <>
     ((GlobalAttribute.apply _).tupled, GlobalAttribute.unapply)
 
   def labelType = foreignKey("global_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
@@ -54,8 +54,8 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
 }
 
 /**
-  * Data access object for the GlobalAttributeTable table
-  */
+ * Data access object for the GlobalAttributeTable table
+ */
 object GlobalAttributeTable {
   import models.utils.MyPostgresDriver.api._
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)

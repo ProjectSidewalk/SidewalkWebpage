@@ -9,8 +9,8 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
 case class GSVLocation(gsvPanoramaId: String, lat: Double, lng: Double, originalLat: Double, originalLng: Double,
-                       region: String, country: String, description: String,
-                       zoomLevels: Int, streetRange: Option[Int], elevationWgs84M: Double, elevationEgm96M: Double)
+  region: String, country: String, description: String,
+  zoomLevels: Int, streetRange: Option[Int], elevationWgs84M: Double, elevationEgm96M: Double)
 
 class GSVLocationTable(tag: Tag) extends Table[GSVLocation](tag, Some("sidewalk"), "gsv_location") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)

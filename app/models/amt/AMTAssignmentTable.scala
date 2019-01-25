@@ -12,8 +12,8 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
-                         assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
-                         workerId: String, confirmationCode: Option[String], completed: Boolean)
+  assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
+  workerId: String, confirmationCode: Option[String], completed: Boolean)
 
 /**
  *
@@ -61,27 +61,27 @@ object AMTAssignmentTable {
   }
 
   def getMostRecentAMTAssignmentId(workerId: String): Future[Option[Int]] = db.run {
-    amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).result.headOption
+    amtAssignments.filter(x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).result.headOption
   }
 
   /**
-    * Update the `assignment_end` timestamp column of the specified amt_assignment row
-    *
-    * @param amtAssignmentId
-    * @param timestamp
-    * @return
-    */
+   * Update the `assignment_end` timestamp column of the specified amt_assignment row
+   *
+   * @param amtAssignmentId
+   * @param timestamp
+   * @return
+   */
   def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp): Future[Int] = {
     db.run(amtAssignments.filter(_.amtAssignmentId === amtAssignmentId).map(a => a.assignmentEnd).update(Some(timestamp)))
   }
 
   /**
-    * Update the `completed`  column of the specified amt_assignment row
-    *
-    * @param amtAssignmentId
-    * @param completed
-    * @return
-    */
+   * Update the `completed`  column of the specified amt_assignment row
+   *
+   * @param amtAssignmentId
+   * @param completed
+   * @return
+   */
   def updateCompleted(amtAssignmentId: Int, completed: Boolean): Future[Int] = {
     db.run(amtAssignments.filter(_.amtAssignmentId === amtAssignmentId).map(a => a.completed).update(completed))
   }

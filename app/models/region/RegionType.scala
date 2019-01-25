@@ -26,6 +26,5 @@ object RegionTypeTable {
    * @return A list of SidewalkEdge objects.
    */
   def all: Future[List[RegionType]] = db.run(
-    regionTypes.to[List].result
-  )
+    regionTypes.to[List].result)
 }

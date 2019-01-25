@@ -8,10 +8,9 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-
 case class SidewalkEdgeParentEdge(sidewalkEdgeId: Int, parentEdgeId: Int)
 
-case class SidewalkEdgeParentEdgeTable(tag: Tag) extends Table[SidewalkEdgeParentEdge](tag, Some("sidewalk"),  "sidewalk_edge_parent_edge") {
+case class SidewalkEdgeParentEdgeTable(tag: Tag) extends Table[SidewalkEdgeParentEdge](tag, Some("sidewalk"), "sidewalk_edge_parent_edge") {
   def sidewalkEdgeId = column[Int]("sidewalk_edge_id", O.PrimaryKey, O.Default(0))
   def parentEdgeId = column[Int]("parent_edge_id")
 
@@ -32,8 +31,7 @@ object SidewalkEdgeParentEdgeTable {
    * @return
    */
   def selectByChildId(id: Int): Future[List[SidewalkEdgeParentEdge]] = db.run(
-    sidewalkEdgeParentEdgeTable.filter(item => item.sidewalkEdgeId === id).to[List].result
-  )
+    sidewalkEdgeParentEdgeTable.filter(item => item.sidewalkEdgeId === id).to[List].result)
 
   /**
    * Get records based on the parent id.
@@ -41,8 +39,7 @@ object SidewalkEdgeParentEdgeTable {
    * @return
    */
   def selectByParentId(id: Int): Future[List[SidewalkEdgeParentEdge]] = db.run(
-    sidewalkEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).to[List].result
-  )
+    sidewalkEdgeParentEdgeTable.filter(item => item.parentEdgeId === id).to[List].result)
 
   /**
    * Save a record.
@@ -51,6 +48,5 @@ object SidewalkEdgeParentEdgeTable {
    * @return
    */
   def save(childId: Int, parentId: Int): Future[Int] = db.run(
-    (sidewalkEdgeParentEdgeTable += new SidewalkEdgeParentEdge(childId, parentId)).transactionally
-  )
+    (sidewalkEdgeParentEdgeTable += new SidewalkEdgeParentEdge(childId, parentId)).transactionally)
 }

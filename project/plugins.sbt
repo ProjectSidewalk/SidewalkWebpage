@@ -5,13 +5,11 @@ resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/release
 // The Sonatype snapshots repository
 resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
-
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.4.11")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.6.21")
 
 // Use the Scalariform plugin to reformat the code
-addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.3.0")
-
+addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.8.0")
 
 // web plugins
 

@@ -1,6 +1,6 @@
 package models.user
 
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
 import models.utils.MyPostgresDriver.api._
 import java.util.UUID
 
@@ -18,7 +18,6 @@ class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk"), "us
   def userId = column[String]("user_id")
   def roleId = column[Int]("role_id")
 
-
   def * = (userRoleId, userId, roleId) <> ((UserRole.apply _).tupled, UserRole.unapply)
 }
 
@@ -30,26 +29,23 @@ object UserRoleTable {
   val userTable = TableQuery[UserTable]
 
   def roleMapping: Future[Map[String, Int]] = db.run(
-    roles.map(r => (r.role, r.roleId)).result
-  ).map(_.toMap)
-
+    roles.map(r => (r.role, r.roleId)).result).map(_.toMap)
 
   /**
-    * Gets the users role. If no role is found, the role of "Registered" is assigned and returned.
-    *
-    * @param userId
-    * @return
-    */
+   * Gets the users role. If no role is found, the role of "Registered" is assigned and returned.
+   *
+   * @param userId
+   * @return
+   */
   def getRole(userId: UUID): Future[String] = {
     db.run(
       (for {
         (_userRoles, _roles) <- userRoles.join(roles).on(_.roleId === _.roleId) if _userRoles.userId === userId.toString
-      } yield _roles.role).result.headOption
-    ).flatMap {
-      case Some(role) => Future.successful(role)
-      case None => setRole(userId, "Registered")
-        .map(_ => "Registered")
-    }
+      } yield _roles.role).result.headOption).flatMap {
+        case Some(role) => Future.successful(role)
+        case None => setRole(userId, "Registered")
+          .map(_ => "Registered")
+      }
   }
 
   def setRole(userId: UUID, newRole: String): Future[Int] = {
@@ -60,12 +56,10 @@ object UserRoleTable {
 
   def setRole(userId: UUID, newRole: Int): Future[Int] = {
     db.run(
-      userRoles.filter(_.userId === userId.toString).map(_.userRoleId).result.headOption
-    ).flatMap { userRoleId =>
-      db.run(
-        userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole)).transactionally
-      )
-    }
+      userRoles.filter(_.userId === userId.toString).map(_.userRoleId).result.headOption).flatMap { userRoleId =>
+        db.run(
+          userRoles.insertOrUpdate(UserRole(userRoleId.getOrElse(0), userId.toString, newRole)).transactionally)
+      }
   }
 
   def isResearcher(userId: UUID): Future[Boolean] = {

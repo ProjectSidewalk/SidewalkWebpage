@@ -1,23 +1,23 @@
 package utils.di
 
-import com.google.inject.{AbstractModule, Provides}
+import com.google.inject.{ AbstractModule, Provides }
 import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.api.services._
 import com.mohiva.play.silhouette.api.util._
-import com.mohiva.play.silhouette.api.{Environment, EventBus, RequestProvider}
+import com.mohiva.play.silhouette.api.{ Environment, EventBus, RequestProvider }
 import com.mohiva.play.silhouette.impl.authenticators._
 import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
 import com.mohiva.play.silhouette.impl.providers._
-import com.mohiva.play.silhouette.impl.providers.oauth1.secrets.{CookieSecretProvider, CookieSecretSettings}
+import com.mohiva.play.silhouette.impl.providers.oauth1.secrets.{ CookieSecretProvider, CookieSecretSettings }
 import com.mohiva.play.silhouette.impl.providers.oauth1.services.PlayOAuth1Service
 import com.mohiva.play.silhouette.impl.providers.oauth2._
-import com.mohiva.play.silhouette.impl.providers.oauth2.state.{CookieStateProvider, CookieStateSettings, DummyStateProvider}
+import com.mohiva.play.silhouette.impl.providers.oauth2.state.{ CookieStateProvider, CookieStateSettings, DummyStateProvider }
 import com.mohiva.play.silhouette.impl.services._
 import com.mohiva.play.silhouette.impl.util._
 import com.mohiva.play.silhouette.impl.repositories.DelegableAuthInfoRepository
 import models.daos._
 import models.daos.slickdaos._
-import models.services.{UserService, UserServiceImpl}
+import models.services.{ UserService, UserServiceImpl }
 import models.user.User
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Play
@@ -26,7 +26,6 @@ import play.api.Play.current
 import scala.concurrent.duration._
 import scala.collection.immutable.ListMap
 import scala.concurrent.ExecutionContext.Implicits.global
-
 
 /**
  * The Guice module which wires all Silhouette dependencies.
@@ -60,17 +59,16 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides
   def provideEnvironment(
-                          userService: UserService,
-                          authenticatorService: AuthenticatorService[SessionAuthenticator],
-                          eventBus: EventBus,
-                          credentialsProvider: CredentialsProvider): Environment[User, SessionAuthenticator] = {
+    userService: UserService,
+    authenticatorService: AuthenticatorService[SessionAuthenticator],
+    eventBus: EventBus,
+    credentialsProvider: CredentialsProvider): Environment[User, SessionAuthenticator] = {
 
     Environment[User, SessionAuthenticator](
       userService,
       authenticatorService,
       Seq(), //FIXME
-      eventBus
-    )
+      eventBus)
   }
 
   /**
@@ -98,9 +96,9 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides
   def provideAuthInfoRepository(
-                              passwordInfoDAO: DelegableAuthInfoDAO[PasswordInfo],
-                              oauth1InfoDAO: DelegableAuthInfoDAO[OAuth1Info],
-                              oauth2InfoDAO: DelegableAuthInfoDAO[OAuth2Info]): AuthInfoRepository = {
+    passwordInfoDAO: DelegableAuthInfoDAO[PasswordInfo],
+    oauth1InfoDAO: DelegableAuthInfoDAO[OAuth1Info],
+    oauth2InfoDAO: DelegableAuthInfoDAO[OAuth2Info]): AuthInfoRepository = {
 
     new DelegableAuthInfoRepository(passwordInfoDAO, oauth1InfoDAO, oauth2InfoDAO)
   }
@@ -157,8 +155,8 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides
   def provideCredentialsProvider(
-                                  authInfoService: AuthInfoRepository,
-                                  passwordHasher: PasswordHasher): CredentialsProvider = {
+    authInfoService: AuthInfoRepository,
+    passwordHasher: PasswordHasher): CredentialsProvider = {
 
     new CredentialsProvider(authInfoService, passwordHasher, Seq(passwordHasher))
   }

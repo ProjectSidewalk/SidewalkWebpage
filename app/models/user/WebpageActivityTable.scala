@@ -3,7 +3,7 @@ package models.user
 import java.util.UUID
 
 import models.utils.MyPostgresDriver.api._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{ JsObject, Json }
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -38,16 +38,15 @@ object WebpageActivityTable {
       Future.successful(0)
     } else {
       db.run(
-        ((activities returning activities.map(_.webpageActivityId)) += activity).transactionally
-      )
+        ((activities returning activities.map(_.webpageActivityId)) += activity).transactionally)
     }
   }
 
   /**
-    * Returns a list of signin counts, each element being a count of logins for a user
-    *
-    * @return List[(userId: String, role: String, count: Int)]
-    */
+   * Returns a list of signin counts, each element being a count of logins for a user
+   *
+   * @return List[(userId: String, role: String, count: Int)]
+   */
   def selectAllSignInCounts: Future[List[(String, String, Int)]] = {
     val signIns = for {
       _activity <- activities if _activity.activity === "SignIn"
@@ -58,30 +57,29 @@ object WebpageActivityTable {
 
     // Count sign in counts by grouping by (user_id, role).
     db.run(
-      signIns.groupBy(x => (x._1, x._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.to[List].result
-    )
+      signIns.groupBy(x => (x._1, x._2)).map { case ((uId, role), group) => (uId, role, group.length) }.to[List].result)
   }
 
   /**
-    * Returns all WebpageActivities that contain the given string in their 'activity' field
-    */
+   * Returns all WebpageActivities that contain the given string in their 'activity' field
+   */
   def find(activity: String): Future[List[WebpageActivity]] = db.run(
-    activities.filter(_.activity.like("%"++activity++"%")).to[List].result
-  )
+    activities.filter(_.activity.like("%" ++ activity ++ "%")).to[List].result)
 
-  /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
-    *
-    * Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins
-    * with "Cli...", such as "Click" will be matched)
-    *
-    * @param activity
-    * @param keyVals
-    * @return
-    */
+  /**
+   * Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
+   *
+   * Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins
+   * with "Cli...", such as "Click" will be matched)
+   *
+   * @param activity
+   * @param keyVals
+   * @return
+   */
   def findKeyVal(activity: String, keyVals: Array[String]): Future[List[WebpageActivity]] = db.run({
-    var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
-    for(keyVal <- keyVals) yield {
-      filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_"++keyVal++"_") >= 0) || x.activity.endsWith("_"+keyVal))
+    var filteredActivities = activities.filter(x => (x.activity.startsWith(activity ++ "_") || x.activity === activity))
+    for (keyVal <- keyVals) yield {
+      filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_" ++ keyVal ++ "_") >= 0) || x.activity.endsWith("_" + keyVal))
     }
     filteredActivities.to[List].result
   })
@@ -99,7 +97,6 @@ object WebpageActivityTable {
       "userId" -> webpageActivity.userId,
       "ipAddress" -> webpageActivity.ipAddress,
       "activity" -> webpageActivity.description,
-      "timestamp" -> webpageActivity.timestamp
-    )
+      "timestamp" -> webpageActivity.timestamp)
   }
 }

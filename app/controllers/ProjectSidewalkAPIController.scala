@@ -1,39 +1,37 @@
 package controllers
 
-
 import collection.immutable.Seq
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
-import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
+import com.vividsolutions.jts.index.kdtree.{ KdNode, KdTree }
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import javax.inject.Inject
 import play.api.Play.current
 //import play.api.i18n.Messages.Implicits._
-import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.i18n.{ I18nSupport, MessagesApi }
 
 import math._
 import models.region._
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelLocation, LabelTable}
-import models.street.{StreetEdge, StreetEdgeTable}
-import models.user.{User, WebpageActivity, WebpageActivityTable}
-import org.joda.time.{DateTime, DateTimeZone}
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
+import models.label.{ LabelLocation, LabelTable }
+import models.street.{ StreetEdge, StreetEdgeTable }
+import models.user.{ User, WebpageActivity, WebpageActivityTable }
+import org.joda.time.{ DateTime, DateTimeZone }
 import play.api.cache.Cache
 import play.api.libs.json._
 import play.api.libs.json.Json._
-import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon}
+import au.id.jazzy.play.geojson.{ LatLng => JsonLatLng, LineString => JsonLineString, Point => JsonPoint, Polygon => JsonPolygon }
 
 import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator], override val messagesApi: MessagesApi)
+class ProjectSidewalkAPIController @Inject() (implicit val env: Environment[User, SessionAuthenticator], override val messagesApi: MessagesApi)
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   case class AccessScoreStreet(streetEdge: StreetEdge, score: Double, features: Array[Double], significance: Array[Double])
-
 
   def getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
@@ -57,7 +55,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng = min(lng1, lng2)
     val maxLng = max(lng1, lng2)
 
-
     def prepareFeatureCollection: Future[JsObject] = {
       // Retrieve data and cluster them by location and label type.
       LabelTable.selectLocationsOfLabelsIn(minLat, minLng, maxLat, maxLng).map { labelLocations =>
@@ -70,9 +67,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           val labelId = label.labelId
           val panoramaId = label.gsvPanoramaId
           val properties = Json.obj(
-            "label_type" -> labelType,  // Todo. Actually calculate the access score,
-            "panorama_id" -> panoramaId
-          )
+            "label_type" -> labelType, // Todo. Actually calculate the access score,
+            "panorama_id" -> panoramaId)
           Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
         }
 
@@ -82,7 +78,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
     activitySave.flatMap { _ =>
       (if (request.toString == "GET /v1/access/features?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
-        Cache.getOrElse(request.toString, 1800){
+        Cache.getOrElse(request.toString, 1800) {
           prepareFeatureCollection
         }
       } else {
@@ -92,14 +88,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    *
-    * E.g. /v1/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
-    * @return
-    */
+   *
+   * E.g. /v1/access/score/neighborhood?lng1=-77.01098442077637&lat1=38.89035159350444&lng2=-76.97793960571289&lat2=38.91851800248647
+   * @param lat1
+   * @param lng1
+   * @param lat2
+   * @param lng2
+   * @return
+   */
   def getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
     var activitySave: Future[Int] = Future.successful(0)
@@ -142,7 +138,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           // Element-wise sum of arrays: http://stackoverflow.com/questions/32878818/how-to-sum-up-every-column-of-a-scala-array
           val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
           if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
-            val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, clusteredLabelLocations)  // I'm just interested in getting the features
+            val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, clusteredLabelLocations) // I'm just interested in getting the features
             val averagedStreetFeatures = streetAccessScores.map(_.features).transpose.map(_.sum / streetAccessScores.size).toArray
             val significance = Array(1.0, -1.0, -1.0, -1.0)
             val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
@@ -161,15 +157,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                 "CurbRamp" -> 1.0,
                 "NoCurbRamp" -> -1.0,
                 "Obstacle" -> -1.0,
-                "SurfaceProblem" -> -1.0
-              ),
+                "SurfaceProblem" -> -1.0),
               "feature" -> Json.obj(
                 "CurbRamp" -> averagedStreetFeatures(0),
                 "NoCurbRamp" -> averagedStreetFeatures(1),
                 "Obstacle" -> averagedStreetFeatures(2),
-                "SurfaceProblem" -> averagedStreetFeatures(3)
-              )
-            )
+                "SurfaceProblem" -> averagedStreetFeatures(3)))
             Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
           } else {
             val properties = Json.obj(
@@ -180,10 +173,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                 "CurbRamp" -> 1.0,
                 "NoCurbRamp" -> -1.0,
                 "Obstacle" -> -1.0,
-                "SurfaceProblem" -> -1.0
-              ),
-              "feature" -> None.asInstanceOf[Option[Array[Double]]]
-            )
+                "SurfaceProblem" -> -1.0),
+              "feature" -> None.asInstanceOf[Option[Array[Double]]])
             Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
           }
         }
@@ -194,7 +185,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     activitySave.flatMap { _ =>
       // Cache. https://www.playframework.com/documentation/2.3.x/ScalaCache
       (if (request.toString == "GET /v1/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
-        Cache.getOrElse(request.toString, 1800){
+        Cache.getOrElse(request.toString, 1800) {
           prepareFeatureCollection
         }
       } else {
@@ -204,15 +195,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * AccessScore:Street
-    *
-    * E.g., /v1/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
-    * @return
-    */
+   * AccessScore:Street
+   *
+   * E.g., /v1/access/score/streets?lng1=-76.9975519180&lat1=38.910286924&lng2=-76.9920158386&lat2=38.90793262720
+   * @param lat1
+   * @param lng1
+   * @param lat2
+   * @param lng2
+   * @return
+   */
   def getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     // Logging
     var activitySave: Future[Int] = Future.successful(0)
@@ -254,15 +245,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
               "CurbRamp" -> streetAccessScore.significance(0),
               "NoCurbRamp" -> streetAccessScore.significance(1),
               "Obstacle" -> streetAccessScore.significance(2),
-              "SurfaceProblem" -> streetAccessScore.significance(3)
-            ),
+              "SurfaceProblem" -> streetAccessScore.significance(3)),
             "feature" -> Json.obj(
               "CurbRamp" -> streetAccessScore.features(0),
               "NoCurbRamp" -> streetAccessScore.features(1),
               "Obstacle" -> streetAccessScore.features(2),
-              "SurfaceProblem" -> streetAccessScore.features(3)
-            )
-          )
+              "SurfaceProblem" -> streetAccessScore.features(3)))
           Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
         }
 
@@ -272,12 +260,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     }
   }
 
-
   // Helper methods
   def clusterLabelLocations(labelLocations: List[LabelLocation]): List[LabelLocation] = {
     // Cluster together the labelLocations
     var clusterIndex = 1
-    val radius = 5.78E-5  // Approximately 5 meters
+    val radius = 5.78E-5 // Approximately 5 meters
     val group = labelLocations.groupBy(l => l.labelType)
     val clustered = for ((labelType, groupedLabels) <- group) yield {
       val tree: KdTree = new KdTree(0.0)
@@ -316,15 +303,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     clustered.flatten.toList
   }
 
-
   /**
-    * Retrieve streets in the given bounding box and corresponding labels for each street.
-    *
-    * References:
-    * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
-    */
+   * Retrieve streets in the given bounding box and corresponding labels for each street.
+   *
+   * References:
+   * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
+   */
   def computeAccessScoresForStreets(streets: List[StreetEdge], labelLocations: List[LabelLocation]): List[AccessScoreStreet] = {
-    val radius = 3.0E-4  // Approximately 10 meters
+    val radius = 3.0E-4 // Approximately 10 meters
     val pm = new PrecisionModel()
     val srid = 4326
     val factory: GeometryFactory = new GeometryFactory(pm, srid)
@@ -338,8 +324,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         "CurbRamp" -> 0,
         "NoCurbRamp" -> 0,
         "Obstacle" -> 0,
-        "SurfaceProblem" -> 0
-      ).withDefaultValue(0)
+        "SurfaceProblem" -> 0).withDefaultValue(0)
       labelLocations.foreach { ll =>
         val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
         if (p.within(buffer)) {
@@ -357,47 +342,47 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   def computeAccessScore(features: Array[Double], significance: Array[Double]): Double = {
-    val t = (for ( (f, s) <- (features zip significance) ) yield f * s).sum  // dot product
-    val s = 1 / (1 + math.exp(-t))  // sigmoid function
+    val t = (for ((f, s) <- (features zip significance)) yield f * s).sum // dot product
+    val s = 1 / (1 + math.exp(-t)) // sigmoid function
     s
   }
 
   /**
-    * Compute distance between two latlng coordinates using the Haversine formula
-    * References:
-    * https://rosettacode.org/wiki/Haversine_formula#Scala
-    *
-    * @param lat1
-    * @param lon1
-    * @param lat2
-    * @param lon2
-    * @return Distance in meters
-    */
-  def haversine(lat1:Double, lon1:Double, lat2:Double, lon2:Double): Double = {
-    val R = 6372800.0  //radius in m
-    val dLat=(lat2 - lat1).toRadians
-    val dLon=(lon2 - lon1).toRadians
+   * Compute distance between two latlng coordinates using the Haversine formula
+   * References:
+   * https://rosettacode.org/wiki/Haversine_formula#Scala
+   *
+   * @param lat1
+   * @param lon1
+   * @param lat2
+   * @param lon2
+   * @return Distance in meters
+   */
+  def haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double = {
+    val R = 6372800.0 //radius in m
+    val dLat = (lat2 - lat1).toRadians
+    val dLon = (lon2 - lon1).toRadians
 
-    val a = pow(sin(dLat/2),2) + pow(sin(dLon/2),2) * cos(lat1.toRadians) * cos(lat2.toRadians)
+    val a = pow(sin(dLat / 2), 2) + pow(sin(dLon / 2), 2) * cos(lat1.toRadians) * cos(lat2.toRadians)
     val c = 2 * asin(sqrt(a))
     R * c
   }
 
   /**
-    * Compute distance between two latlng coordinates using the Haversine formula
-    * @param latLng1
-    * @param latLng2
-    * @return Distance in meters
-    */
+   * Compute distance between two latlng coordinates using the Haversine formula
+   * @param latLng1
+   * @param latLng2
+   * @return Distance in meters
+   */
   def haversine(latLng1: JsonLatLng, latLng2: JsonLatLng): Double = haversine(latLng1.lat, latLng1.lng, latLng2.lat, latLng2.lng)
 
   /**
-    * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
-    * @param latLng1 A latlng coordinate
-    * @param latLng2 A latlng coordinate
-    * @param stepSize A step size in meters
-    * @return A list of latlng grid
-    */
+   * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
+   * @param latLng1 A latlng coordinate
+   * @param latLng2 A latlng coordinate
+   * @param stepSize A step size in meters
+   * @return A list of latlng grid
+   */
   def makeALatLngGrid(latLng1: JsonLatLng, latLng2: JsonLatLng, stepSize: Double): List[JsonLatLng] = {
     val minLat: Double = min(latLng1.lat, latLng2.lat)
     val maxLat: Double = max(latLng1.lat, latLng2.lat)
@@ -422,14 +407,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
-    * @param lat1 Latitude
-    * @param lng1 Longitude
-    * @param lat2 Latitude
-    * @param lng2 Longitude
-    * @param stepSize A step size in meters
-    * @return A list of latlng grid
-    */
+   * Make a grid of latlng coordinates in a bounding box specified by a pair of latlng coordinates
+   * @param lat1 Latitude
+   * @param lng1 Longitude
+   * @param lat2 Latitude
+   * @param lng2 Longitude
+   * @param stepSize A step size in meters
+   * @return A list of latlng grid
+   */
   def makeALatLngGrid(lat1: Double, lng1: Double, lat2: Double, lng2: Double, stepSize: Double): List[JsonLatLng] =
     makeALatLngGrid(JsonLatLng(lat1, lng1), JsonLatLng(lat2, lng2), stepSize)
 }

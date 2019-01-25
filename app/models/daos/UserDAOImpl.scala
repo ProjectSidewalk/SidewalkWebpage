@@ -5,8 +5,8 @@ import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
-import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
+import models.user.{ RoleTable, User, UserRoleTable, WebpageActivityTable }
 import models.audit._
 import models.label.LabelTable
 import models.mission.MissionTable
@@ -22,11 +22,10 @@ import models.utils.MyPostgresDriver.api._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
-                                 signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
-                                 completedMissions: Int, completedAudits: Int, labels: Int)
+  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
+  completedMissions: Int, completedAudits: Int, labels: Int)
 
 class UserDAOImpl extends UserDAO {
-
 
   /**
    * Finds a user by its login info.
@@ -35,8 +34,7 @@ class UserDAOImpl extends UserDAO {
    * @return The found user or None if no user for the given login info could be found.
    */
   def find(loginInfo: LoginInfo) = Future.successful(
-    users.find { case (id, user) => user.loginInfo == loginInfo }.map(_._2)
-  )
+    users.find { case (id, user) => user.loginInfo == loginInfo }.map(_._2))
 
   /**
    * Finds a user by its user ID.
@@ -47,8 +45,7 @@ class UserDAOImpl extends UserDAO {
   def find(userID: UUID) = Future.successful(users.get(userID))
 
   def find(username: String) = Future.successful(
-    users.find { case (id, user) => user.username == username }.map(_._2)
-  )
+    users.find { case (id, user) => user.username == username }.map(_._2))
 
   /**
    * Saves a user.
@@ -78,20 +75,18 @@ object UserDAOImpl {
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
   def all: Future[List[DBUser]] = db.run(
-    userTable.to[List].result
-  )
+    userTable.to[List].result)
 
   def size: Future[Int] = db.run(
-    userTable.length.result
-  )
+    userTable.length.result)
 
   /**
-    * Count the number of users of the given role who have ever started (or completed) an audit task.
-    *
-    * @param roles
-    * @param taskCompleted
-    * @return
-    */
+   * Count the number of users of the given role who have ever started (or completed) an audit task.
+   *
+   * @param roles
+   * @param taskCompleted
+   * @return
+   */
   def countUsersContributed(roles: List[String], taskCompleted: Boolean): Future[Int] = db.run({
 
     val tasks = if (taskCompleted) auditTaskTable.filter(_.completed) else auditTaskTable
@@ -110,36 +105,35 @@ object UserDAOImpl {
   })
 
   /**
-    * Count the number of researchers who have ever started (or completed) an audit task.
-    *
-    * Researchers include the Researcher, Adminstrator, and Owner roles.
-    *
-    * @param taskCompleted
-    * @return
-    */
+   * Count the number of researchers who have ever started (or completed) an audit task.
+   *
+   * Researchers include the Researcher, Adminstrator, and Owner roles.
+   *
+   * @param taskCompleted
+   * @return
+   */
   def countResearchersContributed(taskCompleted: Boolean): Future[Int] =
     countUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
 
   /**
-    * Count the number of users who have ever started (or completed) an audit task (across all roles).
-    *
-    * @param taskCompleted
-    * @return
-    */
+   * Count the number of users who have ever started (or completed) an audit task (across all roles).
+   *
+   * @param taskCompleted
+   * @return
+   */
   def countAllUsersContributed(taskCompleted: Boolean): Future[Int] = db.run(
-    (roleTable.map(_.role).to[List].result)
-  ).flatMap { l =>
-    countUsersContributed(l, taskCompleted)
-  }
+    (roleTable.map(_.role).to[List].result)).flatMap { l =>
+      countUsersContributed(l, taskCompleted)
+    }
 
   /**
-    * Count the number of users of the given role who contributed today.
-    *
-    * We consider a "contribution" to mean that a user has completed at least one audit task.
-    *
-    * @param role
-    * @return
-    */
+   * Count the number of users of the given role who contributed today.
+   *
+   * We consider a "contribution" to mean that a user has completed at least one audit task.
+   *
+   * @param role
+   * @return
+   */
   def countUsersContributedToday(role: String): Future[Int] = {
     def countQuery(role: String) =
       sql"""SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -157,10 +151,10 @@ object UserDAOImpl {
   }
 
   /**
-    * Count the number of researchers who contributed today (includes Researcher, Adminstrator, and Owner roles).
-    *
-    * @return
-    */
+   * Count the number of researchers who contributed today (includes Researcher, Adminstrator, and Owner roles).
+   *
+   * @return
+   */
   def countResearchersContributedToday: Future[Int] = {
     for {
       researchers <- countUsersContributedToday("Researcher")
@@ -170,10 +164,10 @@ object UserDAOImpl {
   }
 
   /**
-    * Count the number of users who contributed today (across all roles).
-    *
-    * @return
-    */
+   * Count the number of users who contributed today (across all roles).
+   *
+   * @return
+   */
   def countAllUsersContributedToday: Future[Int] = {
     for {
       registered <- countUsersContributedToday("Registered")
@@ -184,13 +178,13 @@ object UserDAOImpl {
   }
 
   /**
-    * Count the number of users of the given role who contributed yesterday.
-    *
-    * We consider a "contribution" to mean that a user has completed at least one audit task.
-    *
-    * @param role
-    * @return
-    */
+   * Count the number of users of the given role who contributed yesterday.
+   *
+   * We consider a "contribution" to mean that a user has completed at least one audit task.
+   *
+   * @param role
+   * @return
+   */
   def countUsersContributedYesterday(role: String): Future[Int] = {
     def countQuery(role: String) =
       sql"""SELECT COUNT(DISTINCT(audit_task.user_id))
@@ -208,10 +202,10 @@ object UserDAOImpl {
   }
 
   /**
-    * Count the number of researchers who contributed yesterday (includes Researcher, Adminstrator, and Owner roles).
-    *
-    * @return
-    */
+   * Count the number of researchers who contributed yesterday (includes Researcher, Adminstrator, and Owner roles).
+   *
+   * @return
+   */
   def countResearchersContributedYesterday: Future[Int] = {
     for {
       researchers <- countUsersContributedYesterday("Researcher")
@@ -221,10 +215,10 @@ object UserDAOImpl {
   }
 
   /**
-    * Count the number of users who contributed yesterday (across all roles).
-    *
-    * @return
-    */
+   * Count the number of users who contributed yesterday (across all roles).
+   *
+   * @return
+   */
   def countAllUsersContributedYesterday: Future[Int] = {
     for {
       registered <- countUsersContributedYesterday("Registered")
@@ -235,10 +229,10 @@ object UserDAOImpl {
   }
 
   /**
-    * Gets metadata for each user that we use on the admin page.
-    *
-    * @return
-    */
+   * Gets metadata for each user that we use on the admin page.
+   *
+   * @return
+   */
   def getUserStatsForAdminPage: Future[List[UserStatsForAdminPage]] = {
 
     // We run 6 queries for different bits of metadata that we need. We run each query and convert them to Scala maps
@@ -300,8 +294,7 @@ object UserDAOImpl {
           signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
           missionCounts.getOrElse(u.userId, 0),
           auditCounts.getOrElse(u.userId, 0),
-          labelCounts.getOrElse(u.userId, 0)
-        )
+          labelCounts.getOrElse(u.userId, 0))
       }
     }
   }

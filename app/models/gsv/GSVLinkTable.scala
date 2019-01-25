@@ -27,20 +27,18 @@ object GSVLinkTable {
   val gsvLinks = TableQuery[GSVLinkTable]
 
   /**
-    * This method checks if the link already exists or not.
-    * @param panoramaId Google Street View panorama id
-    * @return
-    */
+   * This method checks if the link already exists or not.
+   * @param panoramaId Google Street View panorama id
+   * @return
+   */
   def linkExists(panoramaId: String, targetPanoramaId: String): Future[Boolean] = db.run(
-    gsvLinks.filter(x => (x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId)).result.headOption
-  ).map(_.isDefined)
+    gsvLinks.filter(x => (x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId)).result.headOption).map(_.isDefined)
 
   /**
-    * Save a GSVLink object
-    * @param link GSVLink object
-    * @return
-    */
+   * Save a GSVLink object
+   * @param link GSVLink object
+   * @return
+   */
   def save(link: GSVLink): Future[String] = db.run(
-    ((gsvLinks returning gsvLinks.map(_.gsvPanoramaId)) += link).transactionally
-  )
+    ((gsvLinks returning gsvLinks.map(_.gsvPanoramaId)) += link).transactionally)
 }

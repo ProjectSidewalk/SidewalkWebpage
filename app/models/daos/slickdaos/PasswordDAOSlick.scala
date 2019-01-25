@@ -15,9 +15,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * The DAO to store the password information.
-  *
-  * Most of this class was copied directly from this example code:
-  * https://github.com/sbrunk/play-silhouette-slick-seed/blob/master/app/models/daos/PasswordInfoDAO.scala
+ *
+ * Most of this class was copied directly from this example code:
+ * https://github.com/sbrunk/play-silhouette-slick-seed/blob/master/app/models/daos/PasswordInfoDAO.scala
  */
 class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
@@ -48,11 +48,11 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
       update((authInfo.hasher, authInfo.password, authInfo.salt))
 
   /**
-    * Finds the auth info which is linked with the specified login info.
-    *
-    * @param loginInfo The linked login info.
-    * @return The retrieved auth info or None if no auth info could be retrieved for the given login info.
-    */
+   * Finds the auth info which is linked with the specified login info.
+   *
+   * @param loginInfo The linked login info.
+   * @return The retrieved auth info or None if no auth info could be retrieved for the given login info.
+   */
   def find(loginInfo: LoginInfo): Future[Option[PasswordInfo]] = {
     db.run(passwordInfoQuery(loginInfo).result.headOption).map { dbPasswordInfoOption =>
       dbPasswordInfoOption.map(dbPasswordInfo =>
@@ -61,36 +61,36 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
   }
 
   /**
-    * Adds new auth info for the given login info.
-    *
-    * @param loginInfo The login info for which the auth info should be added.
-    * @param authInfo The auth info to add.
-    * @return The added auth info.
-    */
+   * Adds new auth info for the given login info.
+   *
+   * @param loginInfo The login info for which the auth info should be added.
+   * @param authInfo The auth info to add.
+   * @return The added auth info.
+   */
   def add(loginInfo: LoginInfo, authInfo: PasswordInfo): Future[PasswordInfo] = {
     db.run(addAction(loginInfo, authInfo)).map(_ => authInfo)
   }
 
   /**
-    * Updates the auth info for the given login info.
-    *
-    * @param loginInfo The login info for which the auth info should be updated.
-    * @param authInfo The auth info to update.
-    * @return The updated auth info.
-    */
+   * Updates the auth info for the given login info.
+   *
+   * @param loginInfo The login info for which the auth info should be updated.
+   * @param authInfo The auth info to update.
+   * @return The updated auth info.
+   */
   def update(loginInfo: LoginInfo, authInfo: PasswordInfo): Future[PasswordInfo] =
     db.run(updateAction(loginInfo, authInfo)).map(_ => authInfo)
 
   /**
-    * Saves the auth info for the given login info.
-    *
-    * This method either adds the auth info if it doesn't exists or it updates the auth info
-    * if it already exists.
-    *
-    * @param loginInfo The login info for which the auth info should be saved.
-    * @param authInfo The auth info to save.
-    * @return The saved auth info.
-    */
+   * Saves the auth info for the given login info.
+   *
+   * This method either adds the auth info if it doesn't exists or it updates the auth info
+   * if it already exists.
+   *
+   * @param loginInfo The login info for which the auth info should be saved.
+   * @param authInfo The auth info to save.
+   * @return The saved auth info.
+   */
   def save(loginInfo: LoginInfo, authInfo: PasswordInfo): Future[PasswordInfo] = {
     val query = loginInfoQuery(loginInfo).joinLeft(slickPasswordInfos).on(_.loginInfoId === _.loginInfoId)
     val action = query.result.head.flatMap {
@@ -101,11 +101,11 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
   }
 
   /**
-    * Removes the auth info for the given login info.
-    *
-    * @param loginInfo The login info for which the auth info should be removed.
-    * @return A future to wait for the process to be completed.
-    */
+   * Removes the auth info for the given login info.
+   *
+   * @param loginInfo The login info for which the auth info should be removed.
+   * @return A future to wait for the process to be completed.
+   */
   def remove(loginInfo: LoginInfo): Future[Unit] =
     db.run(passwordInfoSubQuery(loginInfo).delete).map(_ => ())
 }

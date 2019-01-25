@@ -26,9 +26,9 @@ object TagTable {
   val tagTable = TableQuery[TagTable]
 
   /**
-    * Get all records.
-    *
-    * @return
-    */
+   * Get all records.
+   *
+   * @return
+   */
   def selectAllTags(): Future[List[Tag]] = db.run(tagTable.to[List].result)
 }

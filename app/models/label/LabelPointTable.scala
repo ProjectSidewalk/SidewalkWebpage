@@ -9,8 +9,8 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
 case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int,
-                      heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int,
-                      alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], geom: Option[Point])
+  heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int,
+  alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], geom: Option[Point])
 
 /**
  *
@@ -49,11 +49,11 @@ object LabelPointTable {
   val labelPoints = TableQuery[LabelPointTable]
 
   /**
-    * Find a label point
-    *
-    * @param labelId
-    * @return
-    */
+   * Find a label point
+   *
+   * @param labelId
+   * @return
+   */
   def find(labelId: Int): Future[Option[LabelPoint]] = {
     db.run(labelPoints.filter(_.labelId === labelId).result.headOption)
   }
@@ -64,8 +64,7 @@ object LabelPointTable {
    * @return
    */
   def save(point: LabelPoint): Future[Int] = db.run(
-    ((labelPoints returning labelPoints.map(_.labelPointId)) += point).transactionally
-  )
+    ((labelPoints returning labelPoints.map(_.labelPointId)) += point).transactionally)
 
   /**
    * Todo. I need to

@@ -2,7 +2,7 @@ package controllers
 
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import controllers.helper.LabelControllerHelper
@@ -11,9 +11,10 @@ import models.label._
 import models.user.User
 import play.api.libs.json._
 import play.api.mvc.Action
+import play.api.mvc.Results._
 //import play.api.Play.current
 //import play.api.i18n.Messages.Implicits._
-import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.i18n.{ I18nSupport, MessagesApi }
 
 import scala.concurrent.Future
 
@@ -23,10 +24,10 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader with I18nSupport {
 
   /**
-    *
-    * @param regionId Region id
-    * @return
-    */
+   *
+   * @param regionId Region id
+   * @return
+   */
   def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -40,10 +41,10 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Gets all tags in the database in JSON.
-    *
-    * @return
-    */
+   * Gets all tags in the database in JSON.
+   *
+   * @return
+   */
   def getLabelTags() = Action.async { implicit request =>
     var tagList: List[Tag] = Nil
     TagTable.selectAllTags().flatMap { tags =>
@@ -55,8 +56,8 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         Json.obj(
           "tag_id" -> tag.tagId,
           "label_type" -> tagTypeMap(tag.labelTypeId),
-          "tag" -> tag.tag
-        )}))
+          "tag" -> tag.tag)
+      }))
     }
   }
 }

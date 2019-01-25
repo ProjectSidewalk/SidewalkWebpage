@@ -46,7 +46,6 @@ class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"),
   def * = (streetEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((StreetEdge.apply _).tupled, StreetEdge.unapply)
 }
 
-
 /**
  * Data access object for the street_edge table
  */
@@ -114,29 +113,27 @@ object StreetEdgeTable {
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
   val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.join(neighborhoods).on(_.regionId === _.regionId) } yield se
 
-
   /**
    * Returns a list of all the street edges
-    *
-    * @return A list of StreetEdge objects.
+   *
+   * @return A list of StreetEdge objects.
    */
   def all: Future[List[StreetEdge]] = db.run(
-    streetEdgesWithoutDeleted.to[List].result
-  )
+    streetEdgesWithoutDeleted.to[List].result)
 
   /**
-    * Count the number of streets that have been audited at least a given number of times
-    *
-    * @return
-    */
+   * Count the number of streets that have been audited at least a given number of times
+   *
+   * @return
+   */
   def countTotalStreets(): Future[Int] = all.map(_.size)
 
   /**
-    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
-    *
-    * @param auditCount
-    * @return Float between 0 and 1
-    */
+   * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
+   *
+   * @param auditCount
+   * @return Float between 0 and 1
+   */
   def streetDistanceCompletionRate(userType: String = "All"): Future[Float] = {
     for {
       auditedDistance <- auditedStreetDistance(userType)
@@ -147,28 +144,27 @@ object StreetEdgeTable {
   }
 
   /**
-    * Get the total distance in miles
-    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
-    *
-    * @return
-    */
+   * Get the total distance in miles
+   * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+   *
+   * @return
+   */
   def totalStreetDistance(): Future[Float] = {
     db.run(
       // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
       // get length of each street segment, sum the lengths, and convert from meters to miles
-      streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).to[List].result
-    ).map { distances =>
-      (distances.sum * 0.000621371).toFloat
-    }
+      streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).to[List].result).map { distances =>
+        (distances.sum * 0.000621371).toFloat
+      }
   }
 
   /**
-    * Get the audited distance in miles
-    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
-    *
-    * @param auditCount
-    * @return
-    */
+   * Get the audited distance in miles
+   * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
+   *
+   * @param auditCount
+   * @return
+   */
   def auditedStreetDistance(userType: String = "All"): Future[Float] = {
 
     val auditTaskQuery = userType match {
@@ -195,10 +191,10 @@ object StreetEdgeTable {
   }
 
   /**
-    * Gets a mapping from user group to the distance of unique streets and percentage of total that group has audited.
-    *
-    * @return
-    */
+   * Gets a mapping from user group to the distance of unique streets and percentage of total that group has audited.
+   *
+   * @return
+   */
   def countAuditedStreetDistanceAndRateByUserGroup(): Future[Map[String, (Float, Float)]] = {
     for {
       allEdgesDistance <- totalStreetDistance()
@@ -213,20 +209,19 @@ object StreetEdgeTable {
         "Researcher" -> ((researcherDistance, researcherDistance / allEdgesDistance)),
         "Turker" -> ((turkDistance, turkDistance / allEdgesDistance)),
         "Registered" -> ((regDistance, regDistance / allEdgesDistance)),
-        "Anonymous" -> ((anonDistance, anonDistance / allEdgesDistance))
-      )
+        "Anonymous" -> ((anonDistance, anonDistance / allEdgesDistance)))
     }
   }
 
   /**
-    * Computes percentage of DC audited over time.
-    *
-    * author: Mikey Saugstad
-    * date: 06/16/2017
-    *
-    * @param auditCount
-    * @return List[(String,Float)] representing dates and percentages
-    */
+   * Computes percentage of DC audited over time.
+   *
+   * author: Mikey Saugstad
+   * date: 06/16/2017
+   *
+   * @param auditCount
+   * @return List[(String,Float)] representing dates and percentages
+   */
   def streetDistanceCompletionRateByDate(auditCount: Int): Future[Seq[(String, Float)]] = {
     // join the street edges and audit tasks
     // TODO figure out how to do this w/out doing the join twice
@@ -239,41 +234,43 @@ object StreetEdgeTable {
 
     // get distances of street edges associated with their edgeId
     //FIXME
-//    val edgeDists: Map[Int, Float] = edges.groupBy(x => x).map(g => (g._1.streetEdgeId, g._1.geom.transform(26918).length)).list.toMap
+    //    val edgeDists: Map[Int, Float] = edges.groupBy(x => x).map(g => (g._1.streetEdgeId, g._1.geom.transform(26918).length)).list.toMap
 
     // Filter out group of edges with the size less than the passed `auditCount`, picking 1 rep from each group
     // TODO pick audit with earliest timestamp
     val uniqueEdgeDists: List[(Option[Timestamp], Option[Float])] = Nil
     //FIXME
-//      (for ((eid, groupedAudits) <- audits.list.groupBy(_.streetEdgeId)) yield {
-//        if (auditCount > 0 && groupedAudits.size >= auditCount) {
-//          Some((groupedAudits.head.taskEnd, edgeDists.get(eid)))
-//        } else {
-//          None
-//        }
-//      }).toList.flatten
+    //      (for ((eid, groupedAudits) <- audits.list.groupBy(_.streetEdgeId)) yield {
+    //        if (auditCount > 0 && groupedAudits.size >= auditCount) {
+    //          Some((groupedAudits.head.taskEnd, edgeDists.get(eid)))
+    //        } else {
+    //          None
+    //        }
+    //      }).toList.flatten
 
     // round the timestamps down to just the date (year-month-day)
     val dateRoundedDists: List[(Calendar, Double)] = uniqueEdgeDists.map({
-      pair => {
-        var c : Calendar = Calendar.getInstance()
-        c.setTimeInMillis(pair._1.get.getTime)
-        c.set(Calendar.HOUR_OF_DAY, 0)
-        c.set(Calendar.MINUTE, 0)
-        c.set(Calendar.SECOND, 0)
-        c.set(Calendar.MILLISECOND, 0)
-        (c, pair._2.get * 0.000621371) // converts from meters to miles
-      }})
+      pair =>
+        {
+          var c: Calendar = Calendar.getInstance()
+          c.setTimeInMillis(pair._1.get.getTime)
+          c.set(Calendar.HOUR_OF_DAY, 0)
+          c.set(Calendar.MINUTE, 0)
+          c.set(Calendar.SECOND, 0)
+          c.set(Calendar.MILLISECOND, 0)
+          (c, pair._2.get * 0.000621371) // converts from meters to miles
+        }
+    })
 
     // sum the distances by date
     val distsPerDay: List[(Calendar, Double)] = dateRoundedDists.groupBy(_._1).mapValues(_.map(_._2).sum).view.force.toList
 
     // sort the list by date
     val sortedEdges: Seq[(Calendar, Double)] =
-      scala.util.Sorting.stableSort(distsPerDay, (e1: (Calendar,Double), e2: (Calendar, Double)) => e1._1.getTimeInMillis < e2._1.getTimeInMillis).toSeq
+      scala.util.Sorting.stableSort(distsPerDay, (e1: (Calendar, Double), e2: (Calendar, Double)) => e1._1.getTimeInMillis < e2._1.getTimeInMillis).toSeq
 
     // get the cumulative distance over time
-    val cumDistsPerDay: Seq[(Calendar, Double)] = sortedEdges.map({var dist = 0.0; pair => {dist += pair._2; (pair._1, dist)}})
+    val cumDistsPerDay: Seq[(Calendar, Double)] = sortedEdges.map({ var dist = 0.0; pair => { dist += pair._2; (pair._1, dist) } })
 
     // calculate the completion percentage for each day
     totalStreetDistance().map { totalDist =>
@@ -286,10 +283,10 @@ object StreetEdgeTable {
   }
 
   /**
-    * Gets a mapping from user group to the number of unique streets and percentage of total that group has audited.
-    *
-    * @return
-    */
+   * Gets a mapping from user group to the number of unique streets and percentage of total that group has audited.
+   *
+   * @return
+   */
   def countAuditedStreetCountAndRateByUserGroup(): Future[Map[String, (Int, Float)]] = {
     for {
       allEdgesCnt <- db.run(streetEdgesWithoutDeleted.length.result)
@@ -304,17 +301,16 @@ object StreetEdgeTable {
         "Researcher" -> ((researcherCnt, researcherCnt.toFloat / allEdgesCnt)),
         "Turker" -> ((turkCnt, turkCnt.toFloat / allEdgesCnt)),
         "Registered" -> ((regCnt, regCnt.toFloat / allEdgesCnt)),
-        "Anonymous" -> ((anonCnt, anonCnt.toFloat / allEdgesCnt))
-      )
+        "Anonymous" -> ((anonCnt, anonCnt.toFloat / allEdgesCnt)))
     }
   }
 
   /**
-    * Count the number of streets that have been audited at least a given number of times
-    *
-    * @param auditCount
-    * @return
-    */
+   * Count the number of streets that have been audited at least a given number of times
+   *
+   * @param auditCount
+   * @return
+   */
   def countAuditedStreets(userType: String = "All"): Future[Int] = {
 
     val auditTasksQuery = userType match {
@@ -334,11 +330,11 @@ object StreetEdgeTable {
   }
 
   /**
-    * Returns all the streets in the given region that has been audited
-    * @param regionId
-    * @param auditCount
-    * @return
-    */
+   * Returns all the streets in the given region that has been audited
+   * @param regionId
+   * @param auditCount
+   * @return
+   */
   def selectAuditedStreetsByARegionId(regionId: Int, auditCount: Int = 1): Future[List[StreetEdge]] = {
     def selectAuditedStreetsQuery(regionId: Int) =
       sql"""SELECT street_edge.street_edge_id,
@@ -406,8 +402,8 @@ object StreetEdgeTable {
   def getDistanceAudited(userId: UUID): Future[Float] = {
     selectAllStreetsAuditedByAUserQuery(userId).map { streetEdges =>
       //FIXME `transform` is a server-side function
-//      val dist = streetEdges.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-//      (dist * 0.000621371).toFloat // converts to miles
+      //      val dist = streetEdges.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+      //      (dist * 0.000621371).toFloat // converts to miles
       1.0f
     }
   }
@@ -425,10 +421,10 @@ object StreetEdgeTable {
 
     // compute sum of lengths of the streets audited by the user in the region
     //FIXME `transform` is a server-side function
-//    auditedStreetsInRegion.map { auditedStreets =>
-//      val dist = auditedStreets.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-//      (dist * 0.000621371).toFloat // converts to miles
-//    }
+    //    auditedStreetsInRegion.map { auditedStreets =>
+    //      val dist = auditedStreets.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
+    //      (dist * 0.000621371).toFloat // converts to miles
+    //    }
     Future.successful(-1)
   }
 
@@ -445,8 +441,7 @@ object StreetEdgeTable {
 
     // select distinct and sum the lengths of the streets
     db.run(
-      auditedStreetsInARegion.groupBy(x => x).map(_._1.geom.transform(26918).length).to[List].result
-    ).map(_.sum)
+      auditedStreetsInARegion.groupBy(x => x).map(_._1.geom.transform(26918).length).to[List].result).map(_.sum)
   }
 
   /** Returns the sum of the lengths of all streets in the region */
@@ -462,15 +457,14 @@ object StreetEdgeTable {
 
   /** Returns the distance of the given street edge */
   def getStreetEdgeDistance(streetEdgeId: Int): Future[Float] = db.run(
-    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).result.head
-  )
+    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).result.head)
 
   /**
-    * Returns all the streets intersecting the neighborhood
-    * @param regionId
-    * @param auditCount
-    * @return
-    */
+   * Returns all the streets intersecting the neighborhood
+   * @param regionId
+   * @param auditCount
+   * @return
+   */
   def selectStreetsByARegionId(regionId: Int, auditCount: Int = 1): Future[List[StreetEdge]] = {
     val selectStreetsInARegionQuery =
       sql"""SELECT street_edge.street_edge_id,
@@ -497,7 +491,7 @@ object StreetEdgeTable {
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
     val selectEdgeQuery =
-    sql"""SELECT st_e.street_edge_id,
+      sql"""SELECT st_e.street_edge_id,
          |       st_e.geom,
          |       st_e.source,
          |       st_e.target,
@@ -587,17 +581,15 @@ object StreetEdgeTable {
    * Set a record's deleted column to true
    */
   def delete(id: Int): Future[Int] = db.run(
-    streetEdges.filter(edge => edge.streetEdgeId === id).map(_.deleted).update(true).transactionally
-  )
+    streetEdges.filter(edge => edge.streetEdgeId === id).map(_.deleted).update(true).transactionally)
 
   /**
    * Save a StreetEdge into the street_edge table
-    *
-    * @param edge A StreetEdge object
+   *
+   * @param edge A StreetEdge object
    * @return
    */
   def save(edge: StreetEdge): Future[Int] = db.run(
-    ((streetEdges returning streetEdges.map(_.streetEdgeId)) += edge).transactionally
-  )
+    ((streetEdges returning streetEdges.map(_.streetEdgeId)) += edge).transactionally)
 }
 

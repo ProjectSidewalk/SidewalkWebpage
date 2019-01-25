@@ -1,6 +1,6 @@
 package models.survey
 
-import models.survey.SurveyQuestionTable.{db, surveyQuestions}
+import models.survey.SurveyQuestionTable.{ db, surveyQuestions }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 import play.api.Play
@@ -21,17 +21,14 @@ class SurveyOptionTable(tag: Tag) extends Table[SurveyOption](tag, Some("sidewal
   def survey_category_option = foreignKey("survey_option_survey_category_option_id_fkey", surveyCategoryOptionId, TableQuery[SurveyCategoryOptionTable])(_.surveyCategoryOptionId)
 }
 
-object SurveyOptionTable{
+object SurveyOptionTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
   val surveyOptions = TableQuery[SurveyOptionTable]
 
-
   def listAll: Future[List[SurveyOption]] = db.run(
-    surveyOptions.to[List].result
-  )
+    surveyOptions.to[List].result)
 
   def save(surveyOption: SurveyOption): Future[Int] = db.run(
-    ((surveyOptions returning surveyOptions.map(_.surveyOptionId)) += surveyOption).transactionally
-  )
+    ((surveyOptions returning surveyOptions.map(_.surveyOptionId)) += surveyOption).transactionally)
 }

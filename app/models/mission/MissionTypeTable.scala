@@ -10,7 +10,6 @@ import scala.concurrent.Future
 
 case class MissionType(missionTypeId: Int, missionType: String)
 
-
 class MissionTypeTable(tag: slick.lifted.Tag) extends Table[MissionType](tag, Some("sidewalk"), "mission_type") {
   def missionTypeId: Rep[Int] = column[Int]("mission_type_id", O.PrimaryKey, O.AutoInc)
   def missionType: Rep[String] = column[String]("mission_type")
@@ -19,8 +18,8 @@ class MissionTypeTable(tag: slick.lifted.Tag) extends Table[MissionType](tag, So
 }
 
 /**
-  * Data access object for the mission_type table
-  */
+ * Data access object for the mission_type table
+ */
 object MissionTypeTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
@@ -28,35 +27,31 @@ object MissionTypeTable {
 
   val onboardingTypes: List[String] = List("auditOnboarding", "validationOnboarding")
   val onboardingTypeIds: Future[List[Int]] = db.run(
-    missionTypes.filter(_.missionType inSet onboardingTypes).map(_.missionTypeId).to[List].result
-  )
+    missionTypes.filter(_.missionType inSet onboardingTypes).map(_.missionTypeId).to[List].result)
 
   /**
-    * Gets the mission type id from the mission type name
-    *
-    * @param missionType
-    * @return
-    */
+   * Gets the mission type id from the mission type name
+   *
+   * @param missionType
+   * @return
+   */
   def missionTypeToId(missionType: String): Future[Int] = db.run(
-    missionTypes.filter(_.missionType === missionType).map(_.missionTypeId).result.head
-  )
+    missionTypes.filter(_.missionType === missionType).map(_.missionTypeId).result.head)
 
   /**
-    * Gets the mission type name from the mission type id
-    *
-    * @param missionTypeId
-    * @return
-    */
+   * Gets the mission type name from the mission type id
+   *
+   * @param missionTypeId
+   * @return
+   */
   def missionTypeIdToMissionType(missionTypeId: Int): Future[String] = db.run(
-    missionTypes.filter(_.missionTypeId === missionTypeId).map(_.missionType).result.head
-  )
+    missionTypes.filter(_.missionTypeId === missionTypeId).map(_.missionType).result.head)
 
   /**
-    * Saves a new mission type in the table
-    * @param missionType
-    * @return
-    */
+   * Saves a new mission type in the table
+   * @param missionType
+   * @return
+   */
   def save(missionType: MissionType): Future[Int] = db.run(
-    ((missionTypes returning missionTypes.map(_.missionTypeId)) += missionType).transactionally
-  )
+    ((missionTypes returning missionTypes.map(_.missionTypeId)) += missionType).transactionally)
 }

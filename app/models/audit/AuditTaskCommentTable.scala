@@ -14,9 +14,9 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, userId: String,
-                            ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
-                            pitch: Option[Double],  zoom: Option[Int], lat: Option[Double], lng: Option[Double],
-                            timestamp: Timestamp, comment: String)
+  ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
+  pitch: Option[Double], zoom: Option[Int], lat: Option[Double], lng: Option[Double],
+  timestamp: Timestamp, comment: String)
 
 class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some("sidewalk"), "audit_task_comment") {
   def auditTaskCommentId = column[Int]("audit_task_comment_id", O.PrimaryKey, O.AutoInc)
@@ -49,10 +49,10 @@ object AuditTaskCommentTable {
   val users = TableQuery[UserTable]
 
   /**
-    * Get all task records of the given user
-    * @param username Username
-    * @return
-    */
+   * Get all task records of the given user
+   * @param username Username
+   * @return
+   */
   def all(username: String): Future[Seq[AuditTaskComment]] = {
     val commentsQuery = for {
       (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
@@ -63,21 +63,21 @@ object AuditTaskCommentTable {
   }
 
   /**
-    * Insert an audit_task_comment record.
-    *
-    * @param comment AuditTaskComment object
-    * @return
-    */
+   * Insert an audit_task_comment record.
+   *
+   * @param comment AuditTaskComment object
+   * @return
+   */
   def save(comment: AuditTaskComment): Future[Int] = db.run {
     (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
   }
 
   /**
-    * Take the last n comments.
-    *
-    * @param n
-    * @return
-    */
+   * Take the last n comments.
+   *
+   * @param n
+   * @return
+   */
   def takeRight(n: Integer): Future[Seq[AuditTaskComment]] = {
     val comments = (for {
       (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)

@@ -6,9 +6,9 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.test._
 
 /**
-  * An example from:
-  * http://www.typesafe.com/activator/template/play-slick-quickstart
-  */
+ * An example from:
+ * http://www.typesafe.com/activator/template/play-slick-quickstart
+ */
 //class StreetSpec extends Specification {
 //  "StreetTable" should {
 //    "be able to insert" in new WithApplication {

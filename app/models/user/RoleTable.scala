@@ -23,10 +23,8 @@ object RoleTable {
   val roles = TableQuery[RoleTable]
 
   def getRoleNames: Future[List[String]] = db.run(
-    roles.map(_.role).to[List].result
-  )
+    roles.map(_.role).to[List].result)
 
   def save(role: Role): Future[Int] = db.run(
-    ((roles returning roles.map(_.roleId)) += role).transactionally
-  )
+    ((roles returning roles.map(_.roleId)) += role).transactionally)
 }

@@ -3,15 +3,16 @@ package controllers
 import java.sql.Timestamp
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
+import com.mohiva.play.silhouette.api.{ Environment, LogoutEvent, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import forms._
 import models.user._
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
 import play.api.mvc.BodyParsers
+import play.api.mvc.Results._
 import play.api.libs.json._
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -22,7 +23,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * @param env The Silhouette environment.
  */
 class UserController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
+  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
    * Handles the Sign In action.
@@ -56,7 +57,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @return The result to display.
    */
   def signOut(url: String) = SecuredAction.async { implicit request =>
-//    val result = Future.successful(Redirect(routes.UserController.index()))
+    //    val result = Future.successful(Redirect(routes.UserController.index()))
 
     val result = Redirect(url)
     env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
@@ -69,7 +70,6 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
       case None => Future.successful(Redirect("/"))
     }
   }
-
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp
   def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
@@ -93,8 +93,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
 
           Future.successful(Ok(Json.obj()))
-        }
-      )
+        })
     }
   }
 }

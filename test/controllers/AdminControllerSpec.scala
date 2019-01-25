@@ -5,7 +5,7 @@ import java.util.UUID
 import scala.concurrent.Future
 
 import com.mohiva.play.silhouette.api.LoginInfo
-import com.mohiva.play.silhouette.impl.authenticators.{DummyAuthenticator, SessionAuthenticator}
+import com.mohiva.play.silhouette.impl.authenticators.{ DummyAuthenticator, SessionAuthenticator }
 //import com.mohiva.play.silhouette.test.{FakeEnvironment, FakeRequestWithAuthenticator}
 import play.api.mvc.Result
 //import play.api.test.{FakeRequest, PlaySpecification, WithApplication}
@@ -13,8 +13,8 @@ import models.user.User
 import org.joda.time.DateTime
 
 /**
-  * http://silhouette.mohiva.com/docs/testing
-  */
+ * http://silhouette.mohiva.com/docs/testing
+ */
 //class AdminControllerSpec extends PlaySpecification {
 //  "The `fetchAuditTaskInteractionsOfAUser` method" should {
 ////    "return a list of JSON objects" in new WithApplication {

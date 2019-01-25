@@ -9,10 +9,9 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-
 case class Teaser(email: String)
 
-class TeaserTable(tag: Tag) extends Table[Teaser](tag, Some("sidewalk"),  "teaser") {
+class TeaserTable(tag: Tag) extends Table[Teaser](tag, Some("sidewalk"), "teaser") {
   def email = column[String]("email")
 
   def * = email <> (Teaser.apply, Teaser.unapply)

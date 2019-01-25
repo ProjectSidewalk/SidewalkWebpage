@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.json.{JsPath, Reads}
+import play.api.libs.json.{ JsPath, Reads }
 import play.api.libs.functional.syntax._
 
 object IssueFormats {
@@ -8,6 +8,5 @@ object IssueFormats {
 
   implicit val noStreetViewReads: Reads[NoStreetView] = (
     (JsPath \ "street_edge_id").read[Int] and
-      (JsPath \ "issue").read[String]
-    )(NoStreetView.apply _)
+    (JsPath \ "issue").read[String])(NoStreetView.apply _)
 }

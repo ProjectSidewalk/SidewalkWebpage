@@ -1,10 +1,10 @@
 package models.attribute
 
 /**
-  * Created by misaugstad on 4/27/17.
-  */
+ * Created by misaugstad on 4/27/17.
+ */
 
-import models.label.{Label, LabelTable}
+import models.label.{ Label, LabelTable }
 import models.utils.MyPostgresDriver.api._
 import play.api.Play.current
 
@@ -13,11 +13,10 @@ import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 
-import slick.lifted.{ProvenShape, Tag}
+import slick.lifted.{ ProvenShape, Tag }
 import scala.language.postfixOps
 
 case class UserAttributeLabel(userAttributeLabelId: Int, userAttributeId: Int, labelId: Int)
-
 
 class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, Some("sidewalk"), "user_attribute_label") {
   def userAttributeLabelId: Rep[Int] = column[Int]("user_attribute_label_id", O.PrimaryKey, O.AutoInc)
@@ -33,8 +32,8 @@ class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, S
 }
 
 /**
-  * Data access object for the UserAttributeLabelTable table
-  */
+ * Data access object for the UserAttributeLabelTable table
+ */
 object UserAttributeLabelTable {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db

@@ -4,18 +4,19 @@ import java.sql.Timestamp
 import java.util.UUID
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.{ Environment, Silhouette }
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import formats.json.SurveySubmissionFormats._
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slickdaos.DBTableDefinitions.{ DBUser, UserTable }
 import models.survey._
 import models.user._
 import models.mission.MissionTable
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{ DateTime, DateTimeZone }
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
+import play.api.mvc.Results._
 
 import scala.collection.immutable.Seq
 import scala.concurrent.Future
@@ -23,12 +24,12 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
-  * Survey controller
-  */
+ * Survey controller
+ */
 class SurveyController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-//  val anonymousUser: DBUser = UserTable.find("anonymous").get //FIXME
+  //  val anonymousUser: DBUser = UserTable.find("anonymous").get //FIXME
 
   def postSurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[SurveySingleSubmission]]
@@ -66,8 +67,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
                     if (question.surveyInputType != "free-text-feedback") {
                       val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, Some(q.answerText.toInt), timestamp, numMissionsCompleted)
                       UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
-                    }
-                    else {
+                    } else {
                       val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, Some(q.answerText), timestamp, numMissionsCompleted)
                       UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
                     }
@@ -78,12 +78,11 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
                 val userSurveySaves = questionIds.map { questionId =>
                   val temp_question = SurveyQuestionTable.getQuestionById(questionId)
                   temp_question.flatMap {
-                    case Some(question)=>
-                      if(question.surveyInputType != "free-text-feedback"){
+                    case Some(question) =>
+                      if (question.surveyInputType != "free-text-feedback") {
                         val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
                         UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
-                      }
-                      else {
+                      } else {
                         val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
                         UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
                       }
@@ -101,8 +100,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
               }
           }
         }
-      }
-    )
+      })
 
   }
 
