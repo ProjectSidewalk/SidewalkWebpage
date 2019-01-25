@@ -155,7 +155,7 @@ object StreetEdgeTable {
     * @return
     */
   def totalStreetDistance(): Float = db.withSession { implicit session =>
-    Cache.getOrElse("totalStreetDistance()", 10.minutes.toSeconds.toInt) {
+    Cache.getOrElse("totalStreetDistance()") {
       // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
       // get length of each street segment, sum the lengths, and convert from meters to miles
@@ -174,7 +174,7 @@ object StreetEdgeTable {
   def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
     val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
-    Cache.getOrElse(cacheKey, 10.minutes.toSeconds.toInt) {
+    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
       val auditTaskQuery = userType match {
         case "All" => completedAuditTasks
         case "Researcher" => researcherCompletedAuditTasks
