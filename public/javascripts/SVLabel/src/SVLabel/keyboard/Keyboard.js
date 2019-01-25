@@ -227,6 +227,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
                 switch (e.keyCode) {
+                    // Label selection hotkeys
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                         // "b" for a blocked view.
                         // Context menu may be open for a different label.
@@ -291,6 +292,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             });
                         }
                         break;
+                        
+                    // Zoom Hotkeys
                     case 16: //shift
                         // store the timestamp here so that we can check if the z-up event is in the buffer range
                         lastShiftKeyUpTimestamp = e.timeStamp;
@@ -316,6 +319,81 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 keyCode: e.keyCode
                             });
                         }
+                }
+
+                var labelType = contextMenu.getTargetLabel().getProperty('labelType');
+                if (labelType == 'CurbRamp') { // Curb Ramp
+                    switch (e.keyCode) {
+                        case 65: // 'a' for 'narrow'
+                            document.getElementsByClassName('context-menu-tag')[0].click();
+                            break;
+                        case 80: // 'p' for 'points into traffic'
+                            document.getElementsByClassName('context-menu-tag')[1].click();
+                            break;
+                        case 70: // 'f' for 'missing friction strip'
+                            document.getElementsByClassName('context-menu-tag')[2].click();
+                            break;
+                        case 84: // 't' for steep
+                            document.getElementsByClassName('context-menu-tag')[3].click();
+                            break;
+                    }
+                } else if (labelType == 'NoCurbRamp') { // Missing Curb Ramp
+                    switch (e.keyCode) {
+                        case 65: // 'a' for 'alternate route present'
+                            document.getElementsByClassName('context-menu-tag')[0].click();
+                            break;
+                        case 76: // 'l' for 'no alternate route'
+                            document.getElementsByClassName('context-menu-tag')[1].click();
+                            break;
+                        case 85: // 'u' for 'unclear if needed'
+                            document.getElementsByClassName('context-menu-tag')[2].click();
+                            break;
+                    }
+                } else if (labelType == 'Obstacle') { // Obstacle in Path
+                    switch (e.keyCode) {
+                        case 82: // 'r' for 'trash can'
+                            document.getElementsByClassName('context-menu-tag')[0].click();
+                            break;
+                        case 70: // 'f' for 'fire hydrant'
+                            document.getElementsByClassName('context-menu-tag')[1].click();
+                            break;
+                        case 80: // 'p' for 'pole'
+                            document.getElementsByClassName('context-menu-tag')[2].click();
+                            break;
+                        case 84: // 't' for 'tree'
+                            document.getElementsByClassName('context-menu-tag')[3].click();
+                            break;
+                        case 86: // 'v' for vegetation
+                            document.getElementsByClassName('context-menu-tag')[4].click();
+                            break;
+                    }
+                } else if (labelType == 'SurfaceProblem') { // Surface Problem
+                    switch (e.keyCode) {
+                        case 80 :// 'p' for 'bumpy'
+                            document.getElementsByClassName('context-menu-tag')[0].click();
+                            break;
+                        case 85:  // 'u' for 'uneven'
+                            document.getElementsByClassName('context-menu-tag')[1].click();
+                            break;
+                        case 82: // 'r' for 'cracks'
+                            document.getElementsByClassName('context-menu-tag')[2].click();
+                            break;
+                        case 71 : // 'g' for 'grass'
+                            document.getElementsByClassName('context-menu-tag')[3].click();
+                            break;
+                        case 65 : // 'a' for 'narrow sidewalk'
+                            document.getElementsByClassName('context-menu-tag')[4].click();
+                            break;
+                    }
+                } else if (labelType == 'Other') { // No Sidewalk
+                    switch (e.keyCode) {
+                        case 73: // 'i' for 'missing crosswalk'
+                            document.getElementsByClassName('context-menu-tag')[0].click();
+                            break;
+                        case 65: // 'a' for 'no bus stop access'
+                            document.getElementsByClassName('context-menu-tag')[1].click();
+                            break;
+                    }
                 }
             }
 

@@ -64,60 +64,6 @@ function ContextMenu (uiContextMenu) {
             }//ctrl+A while context menu open
         }//windows
 
-        // Add shortcuts for tag selection
-        if (isOpen() && document.activeElement.nodeName != 'INPUT') {
-            var labelType = getTargetLabel().getProperty('labelType');
-            if (labelType == 'CurbRamp') { // Curb Ramp
-                if (down[65]) { // 'a' for 'narrow'
-                    document.getElementsByClassName('context-menu-tag')[0].click();
-                } else if (down[80]) { // 'p' for 'points into traffic'
-                    document.getElementsByClassName('context-menu-tag')[1].click();
-                } else if (down[70]) { // 'f' for 'missing friction strip'
-                    document.getElementsByClassName('context-menu-tag')[2].click();
-                } else if (down[84]) { // 't' for steep
-                    document.getElementsByClassName('context-menu-tag')[3].click();
-                }
-            } else if (labelType == 'NoCurbRamp') { // Missing Curb Ramp
-                if (down[65]) { // 'a' for 'alternate route present'
-                    document.getElementsByClassName('context-menu-tag')[0].click();
-                } else if (down[76]) { // 'l' for 'no alternate route'
-                    document.getElementsByClassName('context-menu-tag')[1].click();
-                } else if (down[85]) { // 'u' for 'unclear if needed'
-                    document.getElementsByClassName('context-menu-tag')[2].click();
-                }
-            } else if (labelType == 'Obstacle') { // Obstacle in Path
-                if (down[82]) { // 'r' for 'trash can'
-                    document.getElementsByClassName('context-menu-tag')[0].click();
-                } else if (down[70]) { // 'f' for 'fire hydrant'
-                    document.getElementsByClassName('context-menu-tag')[1].click();
-                } else if (down[80]) { // 'p' for 'pole'
-                    document.getElementsByClassName('context-menu-tag')[2].click();
-                } else if (down[84]) { // 't' for 'tree'
-                    document.getElementsByClassName('context-menu-tag')[3].click();
-                } else if (down[86]) { // 'v' for vegetation
-                    document.getElementsByClassName('context-menu-tag')[4].click();
-                }
-            } else if (labelType == 'SurfaceProblem') { // Surface Problem
-                if (down[80]) { // 'p' for 'bumpy'
-                    document.getElementsByClassName('context-menu-tag')[0].click();
-                } else if (down[85]) { // 'u' for 'uneven'
-                    document.getElementsByClassName('context-menu-tag')[1].click();
-                } else if (down[82]) { // 'r' for 'cracks'
-                    document.getElementsByClassName('context-menu-tag')[2].click();
-                } else if (down[71]) { // 'g' for 'grass'
-                    document.getElementsByClassName('context-menu-tag')[3].click();
-                } else if (down[65]) { // 'a' for 'narrow sidewalk'
-                    document.getElementsByClassName('context-menu-tag')[4].click();
-                }
-            } else if (labelType == 'Other') { // No Sidewalk
-                if (down[73]) { // 'i' for 'missing crosswalk'
-                    document.getElementsByClassName('context-menu-tag')[0].click();
-                } else if (down[65]) { // 'a' for 'no bus stop access'
-                    document.getElementsByClassName('context-menu-tag')[1].click();
-                }
-            }
-        }
-
         // Log last keypresses
         if (e.type == 'keydown') {
             lastKeyPressed = e.keyCode;
