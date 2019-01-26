@@ -21,17 +21,17 @@
 #example-image-popup-holder {
     position: absolute;
     width: 215px;
-    height: 213px;
-    top: 175px;
-    left: 480px;
     background: black;
     visibility: hidden;
     z-index: 1;
+    overflow: auto -webkit-paged-x;
 }
 
-#example-image-title {
+#example-image-popup-description {
     color: white;
     text-align: center;
+    font-size: 11px;
+    margin: 0px 5px 2px 5px;
 }
 
 #example-image-popup {
@@ -50,10 +50,9 @@
     margin-left: 215px;
 }
 
-#example-image-description {
+#example-image-popup-title {
     color: white;
     text-align: center;
-    font-size: 11px;
 }
 
 #status-holder {

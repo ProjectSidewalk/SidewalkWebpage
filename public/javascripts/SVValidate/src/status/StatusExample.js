@@ -14,20 +14,46 @@ function StatusExample (statusUI) {
     $(".example-image").on('mouseover', _showExamplePopup);
     $(".example-image").on('mouseout', _hideExamplePopup);
 
+
+    /**
+     * Updates the images on the side of the validation interface.
+     * @param label Type of label being displayed on the interface.
+     */
+    function updateLabelImage (label) {
+        labelType = label;
+        labelName = svv.labelNames[labelType];
+
+        _updateCounterExamples();
+        _updateExamples();
+    }
+
     function _hideExamplePopup () {
         statusUI.popup.css('visibility', 'hidden');
     }
 
-    function _showExamplePopup() {
-        var imageSource = $(this).attr("src");
-        var id = $(this).attr("id");
-        statusUI.popupImage.attr('src', imageSource);
-        console.log("Showing popup for " + id + ", image source = " + imageSource);
+    function _setPopupDescription (id) {
+        var description = undefined;
 
-        _setPopupLocation(id);
-        _setPopupTitle(id);
+        switch (labelType) {
+            case "CurbRamp":
+                description = svv.statusPopupDescriptions.getCurbRampDescription(id);
+                break;
+            case "NoCurbRamp":
+                description = svv.statusPopupDescriptions.getMissingCurbRampDescription(id);
+                break;
+            case "Obstacle":
+                description = svv.statusPopupDescriptions.getObstacleDescription(id);
+                break;
+            case "SurfaceProblem":
+                description = svv.statusPopupDescriptions.getSurfaceProblemDescription(id);
+                break;
+            case "NoSidewalk":
+                description = svv.statusPopupDescriptions.getNoSidewalkDescription(id);
+                break;
+        }
 
-        statusUI.popup.css('visibility', 'visible');
+        statusUI.popupDescription.html(description);
+        console.log(statusUI.popupDescription.width());
     }
 
     /**
@@ -68,16 +94,17 @@ function StatusExample (statusUI) {
         }
     }
 
-    /**
-     * Updates the images on the side of the validation interface.
-     * @param label Type of label being displayed on the interface.
-     */
-    function updateLabelImage (label) {
-        labelType = label;
-        labelName = svv.labelNames[labelType];
+    function _showExamplePopup() {
+        var imageSource = $(this).attr("src");
+        var id = $(this).attr("id");
+        statusUI.popupImage.attr('src', imageSource);
+        console.log("Showing popup for " + id + ", image source = " + imageSource);
 
-        _updateCounterExamples();
-        _updateExamples();
+        _setPopupDescription(id);
+        _setPopupLocation(id);
+        _setPopupTitle(id);
+
+        statusUI.popup.css('visibility', 'visible');
     }
 
     /**
