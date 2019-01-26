@@ -1,12 +1,6 @@
 function Choropleth(_, $, turf, difficultRegionIds) {
     var neighborhoodPolygonLayer;
 
-// Construct a bounding box for these maps that the user cannot move out of
-// https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-    var southWest = L.latLng(38.761, -77.262);
-    var northEast = L.latLng(39.060, -76.830);
-    var bounds = L.latLngBounds(southWest, northEast);
-
 // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
     var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
     var mapboxTiles = L.tileLayer(tileUrl, {
@@ -16,24 +10,28 @@ function Choropleth(_, $, turf, difficultRegionIds) {
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var choropleth = L.mapbox.map('choropleth', "kotarohara.8e0c6890", {
-        // set that bounding box as maxBounds to restrict moving the map
-        // see full maxBounds documentation:
-        // http://leafletjs.com/reference.html#map-maxbounds
-        maxBounds: bounds,
         maxZoom: 19,
         minZoom: 9,
         zoomControl: false,
         legendControl: {
             position: 'bottomleft'
         }
-    })
-        .fitBounds(bounds)
-        .setView([38.892, -77.038], 12);
+    });
     choropleth.scrollWheelZoom.disable();
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     L.control.zoomslider().addTo(choropleth);
+
+    // Set the city-specific location and max bounding box to prevent the user from panning away.
+    $.getJSON('/cityLatLng', function(data) {
+        choropleth.setView([data.lat, data.lng]);
+        choropleth.setMaxBounds(L.latLngBounds(L.latLng(data.lat, data.lng), L.latLng(data.lat, data.lng)))
+    });
+    // Set the city-specific default zoom.
+    $.getJSON('/cityDefaultZoom', function(data) {
+        choropleth.setZoom(data.zoom);
+    });
 
 
     /**

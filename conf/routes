@@ -35,6 +35,10 @@ POST    /authenticate/credentials                            @controllers.Creden
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
 POST    /authapi/signup                                      @controllers.SignUpController.postSignUp
 
+# City config params
+GET     /cityLatLng                                          @controllers.ConfigController.getCityCenter()
+GET     /cityDefaultZoom                                     @controllers.ConfigController.getDefaultZoom()
+
 # Admin
 GET     /admin                                               @controllers.AdminController.index
 GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
