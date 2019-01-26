@@ -53,6 +53,7 @@ function StatusExample (statusUI) {
         }
 
         statusUI.popupDescription.html(description);
+        console.log(statusUI.popupDescription.width());
     }
 
     /**
@@ -64,16 +65,16 @@ function StatusExample (statusUI) {
         // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
         if (id.includes("1")) {
             statusUI.popup.css('left', '480px');
-            statusUI.popupPointer.css('margin-top', '-205px');
+            statusUI.popupPointer.css('margin-top', '-145px');
         } else if (id.includes("2")) {
             statusUI.popup.css('left', '580px');
-            statusUI.popupPointer.css('margin-top', '-205px');
+            statusUI.popupPointer.css('margin-top', '-145px');
         } else if (id.includes("3")) {
             statusUI.popup.css('left', '480px');
-            statusUI.popupPointer.css('margin-top', '-125px');
+            statusUI.popupPointer.css('margin-top', '-60px');
         } else if(id.includes("4")) {
             statusUI.popup.css('left', '580px');
-            statusUI.popupPointer.css('margin-top', '-125px');
+            statusUI.popupPointer.css('margin-top', '-60px');
         }
     }
 
@@ -86,10 +87,10 @@ function StatusExample (statusUI) {
         var prefix = svv.statusField.createPrefix(labelType);
         if (id.includes("counterexample")) {
             statusUI.popupTitle.html("Not " + prefix + labelName);
-            statusUI.popup.css('top', '375px');
+            statusUI.popup.css('top', '208px');
         } else {
             statusUI.popupTitle.html(labelName);
-            statusUI.popup.css('top', '175px');
+            statusUI.popup.css('top', '-8px');
         }
     }
 
@@ -97,6 +98,7 @@ function StatusExample (statusUI) {
         var imageSource = $(this).attr("src");
         var id = $(this).attr("id");
         statusUI.popupImage.attr('src', imageSource);
+        console.log("Showing popup for " + id + ", image source = " + imageSource);
 
         _setPopupDescription(id);
         _setPopupLocation(id);

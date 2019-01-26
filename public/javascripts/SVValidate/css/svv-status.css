@@ -19,36 +19,35 @@
 }
 
 #example-image-popup-holder {
-    position: absolute;
+    position: relative;
     width: 215px;
+    padding-bottom: 3px;
     background: black;
     visibility: hidden;
     z-index: 1;
-    overflow: auto -webkit-paged-x;
 }
 
 #example-image-popup-description {
     color: white;
     text-align: center;
     font-size: 11px;
-    margin: 0px 5px 2px 5px;
+    margin: 0px 5px 0px 5px;
 }
 
 #example-image-popup {
     width: 205px;
     height: 175px;
     margin-left: 5px;
-    background: white;
 }
 
 #example-image-popup-pointer {
-    position: fixed;
+    position:absolute;
+    left: 215px;
     width: 0;
     height: 0;
     border-top: 10px solid transparent;
     border-bottom: 10px solid transparent;
     border-left: 10px solid black;
-    margin-left: 215px;
 }
 
 #example-image-popup-title {
