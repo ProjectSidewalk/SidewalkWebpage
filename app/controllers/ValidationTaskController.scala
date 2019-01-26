@@ -102,7 +102,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     *               canvas_width, canvas_height}
     */
   def getLabelListForValidation(count: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count, 1)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
@@ -113,7 +113,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @return Label metadata containing GSV metadata and label type
     */
   def getRandomLabelData = UserAwareAction.async { implicit request =>
-    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelForValidation()
+    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelForValidation(1)
     val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
     Future.successful(Ok(labelMetadataJson))
   }

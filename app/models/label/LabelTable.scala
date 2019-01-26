@@ -443,12 +443,12 @@ object LabelTable {
     * Will keep querying for a random label until a suitable label has been found.
     * @return LabelValidationMetadata of this label.
     */
-  def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleRandomLabelForValidation(labelType: Int) : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
     var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
     while (!exists) {
       val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
-        """SELECT lb.label_id,
+        s"""SELECT lb.label_id,
         |       lt.label_type,
         |       lb.gsv_panorama_id,
         |       lp.heading,
@@ -464,8 +464,7 @@ object LabelTable {
         |     sidewalk.gsv_data AS gd
         |WHERE lp.label_id = lb.label_id
         |      AND lt.label_type_id = lb.label_type_id
-        |      AND lb.label_type_id <> 5
-        |      AND lb.label_type_id <> 6
+        |      AND lb.label_type_id = $labelType
         |      AND lb.deleted = false
         |      AND lb.tutorial = false
         |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
@@ -476,8 +475,7 @@ object LabelTable {
         |          FROM sidewalk.label AS lb
         |          WHERE lb.deleted = false
         |              AND lb.tutorial = false
-        |              AND lb.label_type_id <> 5
-        |              AND lb.label_type_id <> 6
+        |              AND lb.label_type_id = $labelType
         |      )
         |)
         |LIMIT ?""".stripMargin
@@ -504,10 +502,10 @@ object LabelTable {
     * @param count  Length of list
     * @return       Seq[LabelValidationMetadata]
     */
-  def retrieveRandomLabelListForValidation(count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveRandomLabelListForValidation(count: Int, labelType: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var labelList = new ListBuffer[LabelValidationMetadata]()
     for (a <- 1 to count) {
-      labelList += retrieveSingleRandomLabelForValidation()
+      labelList += retrieveSingleRandomLabelForValidation(labelType)
     }
     val labelSeq: Seq[LabelValidationMetadata] = labelList
     labelSeq

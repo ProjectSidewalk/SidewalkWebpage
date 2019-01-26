@@ -43,7 +43,23 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
       case None =>
-        Future.successful(Redirect("/"))
+        Future.successful(Redirect("/"));
+    }
+  }
+
+  def validateLabelType(labelTypeId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
+        val labelsProgress: Int = mission.labelsProgress.get
+        val labelsValidated: Int = mission.labelsValidated.get
+        val labelsToRetrieve: Int = labelsValidated - labelsProgress
+        val labelList: JsValue = getLabelListForValidation(labelsToRetrieve, labelTypeId)
+        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
+        // Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
+      case None =>
+        Future.successful(Redirect("/"));
+        // Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
     }
   }
 
@@ -55,7 +71,14 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     *               canvas_width, canvas_height}
     */
   def getLabelListForValidation(count: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count, 1)
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
+    labelMetadataJson
+  }
+
+  def getLabelListForValidation(count: Int, labelType: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count, labelType)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson

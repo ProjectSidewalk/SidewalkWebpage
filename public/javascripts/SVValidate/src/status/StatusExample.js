@@ -8,8 +8,8 @@ function StatusExample (statusUI) {
     var self = this;
     var labelType = undefined;
     var labelName = undefined;
-    var examplePath = 'assets/javascripts/SVValidate/img/ValidationExamples/';
-    var counterExamplePath = 'assets/javascripts/SVValidate/img/ValidationCounterexamples/';
+    var examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
+    var counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
     $(".example-image").on('mouseover', _showExamplePopup);
     $(".example-image").on('mouseout', _hideExamplePopup);
@@ -53,7 +53,6 @@ function StatusExample (statusUI) {
         }
 
         statusUI.popupDescription.html(description);
-        console.log(statusUI.popupDescription.width());
     }
 
     /**
@@ -98,7 +97,6 @@ function StatusExample (statusUI) {
         var imageSource = $(this).attr("src");
         var id = $(this).attr("id");
         statusUI.popupImage.attr('src', imageSource);
-        console.log("Showing popup for " + id + ", image source = " + imageSource);
 
         _setPopupDescription(id);
         _setPopupLocation(id);

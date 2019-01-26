@@ -73,6 +73,7 @@ POST    /audit/nostreetview                                  @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
+GET     /validate/labels/:labelTypeId                        @controllers.ValidationController.validateLabelType(labelTypeId: Int)
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
