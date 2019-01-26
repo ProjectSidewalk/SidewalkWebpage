@@ -1,5 +1,6 @@
 /**
- *
+ * Stores string descriptions for each examples and counterexample image for each label type that
+ * appears on the validation interface.
  * @returns {StatusPopupDescriptions}
  * @constructor
  */

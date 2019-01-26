@@ -65,16 +65,16 @@ function StatusExample (statusUI) {
         // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
         if (id.includes("1")) {
             statusUI.popup.css('left', '480px');
-            statusUI.popupPointer.css('margin-top', '-145px');
+            statusUI.popupPointer.css('top', '50px');
         } else if (id.includes("2")) {
             statusUI.popup.css('left', '580px');
-            statusUI.popupPointer.css('margin-top', '-145px');
+            statusUI.popupPointer.css('top', '50px');
         } else if (id.includes("3")) {
             statusUI.popup.css('left', '480px');
-            statusUI.popupPointer.css('margin-top', '-60px');
+            statusUI.popupPointer.css('top', '135px');
         } else if(id.includes("4")) {
             statusUI.popup.css('left', '580px');
-            statusUI.popupPointer.css('margin-top', '-60px');
+            statusUI.popupPointer.css('top', '135px');
         }
     }
 
