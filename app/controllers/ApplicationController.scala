@@ -2,14 +2,16 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import play.api.Play
+import play.api.Play.current
 import play.api.mvc._
 
 import scala.concurrent.Future
@@ -100,7 +102,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case Some(user) =>
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user))))
+              val cityStr: String = Play.configuration.getString("city-id").get
+              val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
+              val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
+              val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
