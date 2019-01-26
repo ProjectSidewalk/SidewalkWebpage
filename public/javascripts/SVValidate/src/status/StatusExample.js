@@ -53,7 +53,6 @@ function StatusExample (statusUI) {
         }
 
         statusUI.popupDescription.html(description);
-        console.log(statusUI.popupDescription.width());
     }
 
     /**
@@ -98,7 +97,6 @@ function StatusExample (statusUI) {
         var imageSource = $(this).attr("src");
         var id = $(this).attr("id");
         statusUI.popupImage.attr('src', imageSource);
-        console.log("Showing popup for " + id + ", image source = " + imageSource);
 
         _setPopupDescription(id);
         _setPopupLocation(id);
