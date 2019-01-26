@@ -8,13 +8,10 @@ function StatusField() {
     var self = this;
 
     function createPrefix (labelType) {
-        if (labelType === "CurbRamp" || labelType === "NoCurbRamp" ||
-            labelType === "SurfaceProblem" || labelType === "NoSidewalk") {
-            return "a ";
-        } else if (labelType === "Occlusion") {
-            return " ";
-        } else {
+        if (labelType === "Obstacle") {
             return "an ";
+        } else {
+            return "a ";
         }
     }
 

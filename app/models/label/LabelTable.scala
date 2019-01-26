@@ -465,6 +465,7 @@ object LabelTable {
         |WHERE lp.label_id = lb.label_id
         |      AND lt.label_type_id = lb.label_type_id
         |      AND lb.label_type_id <> 5
+        |      AND lb.label_type_id <> 6
         |      AND lb.deleted = false
         |      AND lb.tutorial = false
         |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
@@ -476,6 +477,7 @@ object LabelTable {
         |          WHERE lb.deleted = false
         |              AND lb.tutorial = false
         |              AND lb.label_type_id <> 5
+        |              AND lb.label_type_id <> 6
         |      )
         |)
         |LIMIT ?""".stripMargin

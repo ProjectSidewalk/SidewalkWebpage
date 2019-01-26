@@ -64,9 +64,10 @@ function Main (param) {
         svv.ui.status.examples.counterExample3 = $("#counterexample-image-3");
         svv.ui.status.examples.counterExample4 = $("#counterexample-image-4");
         svv.ui.status.examples.popup = $("#example-image-popup-holder");
-        svv.ui.status.examples.popupDescription = $("#example-image-title");
+        svv.ui.status.examples.popupDescription = $("#example-image-popup-description");
         svv.ui.status.examples.popupImage = $("#example-image-popup");
-        svv.ui.status.examples.popupTitle = $("#example-image-title");
+        svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
+        svv.ui.status.examples.popupTitle = $("#example-image-popup-title");
     }
 
     function _init() {

@@ -6,60 +6,78 @@
  */
 function StatusExample (statusUI) {
     var self = this;
-    self.labelType = undefined;
-
+    var labelType = undefined;
     var labelName = undefined;
     var examplePath = 'assets/javascripts/SVValidate/img/ValidationExamples/';
     var counterExamplePath = 'assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
-    $(".example-image").on('mouseover', showExamplePopup);
-    $(".example-image").on('mouseout', hideExamplePopup);
+    $(".example-image").on('mouseover', _showExamplePopup);
+    $(".example-image").on('mouseout', _hideExamplePopup);
 
-    function hideExamplePopup () {
+    function _hideExamplePopup () {
         statusUI.popup.css('visibility', 'hidden');
     }
 
-    function showExamplePopup() {
+    function _showExamplePopup() {
         var imageSource = $(this).attr("src");
         var id = $(this).attr("id");
-        var prefix = svv.statusField.createPrefix(self.labelType);
         statusUI.popupImage.attr('src', imageSource);
         console.log("Showing popup for " + id + ", image source = " + imageSource);
 
-        if (id.includes("2") || id.includes("4")) {
-            console.log("right image");
-            statusUI.popup.css('left', '580px');
-        } else {
-            console.log("left image");
-            statusUI.popup.css('left', '480px');
-        }
-
-        if (id.includes("counterexample")) {
-            statusUI.popupTitle.html("Not a " + prefix + labelName);
-            statusUI.popup.css('top', '375px');
-        } else {
-            statusUI.popupTitle.html(labelName);
-            statusUI.popup.css('top', '175px');
-        }
+        _setPopupLocation(id);
+        _setPopupTitle(id);
 
         statusUI.popup.css('visibility', 'visible');
     }
 
     /**
-     * Updates the images on the side of the validation interface.
-     * @param labelType Type of label being displayed on the interface.
+     * Sets the horizontal position and height of the popup based on which picture was hovered over.
+     * @param id    ID name for the label example HTML element that the user hovered over.
+     * @private
      */
-    function updateLabelImage (labelType) {
-        self.labelType = labelType;
+    function _setPopupLocation (id) {
+        // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
+        if (id.includes("1")) {
+            statusUI.popup.css('left', '480px');
+            statusUI.popupPointer.css('margin-top', '-155px');
+        } else if (id.includes("2")) {
+            statusUI.popup.css('left', '580px');
+            statusUI.popupPointer.css('margin-top', '-155px');
+        } else if (id.includes("3")) {
+            statusUI.popup.css('left', '480px');
+            statusUI.popupPointer.css('margin-top', '-80px');
+        } else if(id.includes("4")) {
+            statusUI.popup.css('left', '580px');
+            statusUI.popupPointer.css('margin-top', '-80px');
+        }
+    }
+
+    /**
+     * Sets the vertical position and title of the popup based on which picture was hovered over.
+     * @param id    ID name for the label example HTML element that the user hovered over.
+     * @private
+     */
+    function _setPopupTitle (id) {
+        var prefix = svv.statusField.createPrefix(labelType);
+        if (id.includes("counterexample")) {
+            statusUI.popupTitle.html("Not " + prefix + labelName);
+            statusUI.popup.css('top', '375px');
+        } else {
+            statusUI.popupTitle.html(labelName);
+            statusUI.popup.css('top', '175px');
+        }
+    }
+
+    /**
+     * Updates the images on the side of the validation interface.
+     * @param label Type of label being displayed on the interface.
+     */
+    function updateLabelImage (label) {
+        labelType = label;
         labelName = svv.labelNames[labelType];
 
-        // Temporary: for NoSidewalk, Other and Occlusion labels, just use curb ramp images.
-        if (labelType === "NoSidewalk" || labelType === "Occlusion") {
-            labelType = "CurbRamp";
-        }
-
-        _updateCounterExamples(labelType);
-        _updateExamples(labelType);
+        _updateCounterExamples();
+        _updateExamples();
     }
 
     /**
@@ -67,7 +85,7 @@ function StatusExample (statusUI) {
      * @param labelType Type of label being displayed on the interface.
      * @private
      */
-    function _updateCounterExamples (labelType) {
+    function _updateCounterExamples () {
         statusUI.example1.attr('src', examplePath + labelType + 'Example1.png');
         statusUI.example2.attr('src', examplePath + labelType + 'Example2.png');
         statusUI.example3.attr('src', examplePath + labelType + 'Example3.png');
@@ -79,7 +97,7 @@ function StatusExample (statusUI) {
      * @param labelType being displayed on the interface.
      * @private
      */
-    function _updateExamples (labelType) {
+    function _updateExamples () {
         statusUI.counterExample1.attr('src', counterExamplePath + labelType + 'CounterExample1.png');
         statusUI.counterExample2.attr('src', counterExamplePath + labelType + 'CounterExample2.png');
         statusUI.counterExample3.attr('src', counterExamplePath + labelType + 'CounterExample3.png');
