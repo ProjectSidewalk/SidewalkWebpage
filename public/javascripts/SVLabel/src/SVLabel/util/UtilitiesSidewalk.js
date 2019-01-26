@@ -229,19 +229,23 @@ function UtilitiesMisc (JSON) {
                 tagInfo: {
                     'narrow': {
                         keyNumber: 65,
-                        keyChar: 'A'
+                        keyChar: 'A',
+                        text: 'n<tag-underline>a</tag-underline>rrow'
                     },
                     'points into traffic': {
                         keyNumber: 80,
-                        keyChar: 'P'
+                        keyChar: 'P',
+                        text: '<tag-underline>p</tag-underline>oints into traffic'
                     },
                     'missing friction strip': {
                         keyNumber: 70,
-                        keyChar: 'F'
+                        keyChar: 'F',
+                        text: 'missing <tag-underline>f</tag-underline>riction strip'
                     },
                     'steep': {
                         keyNumber: 84,
-                        keyChar: 'T'
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>eep'
                     }
                 }
             },
@@ -255,15 +259,18 @@ function UtilitiesMisc (JSON) {
                 tagInfo: {
                     'alternate route present': {
                         keyNumber: 65,
-                        keyChar: 'A'
+                        keyChar: 'A',
+                        text: '<tag-underline>a</tag-underline>lternate route present'
                     },
                     'no alternate route': {
                         keyNumber: 76,
-                        keyChar: 'L'
+                        keyChar: 'L',
+                        text: 'no a<tag-underline>l</tag-underline>ternate route'
                     },
                     'unclear if needed': {
                         keyNumber: 85,
-                        keyChar: 'U'
+                        keyChar: 'U',
+                        text: '<tag-underline>u</tag-underline>nclear if needed'
                     }
                 }
             },
@@ -277,23 +284,28 @@ function UtilitiesMisc (JSON) {
                 tagInfo: {
                     'trash can': {
                         keyNumber: 82,
-                        keyChar: 'R'
+                        keyChar: 'R',
+                        text: 't<tag-underline>r</tag-underline>ash can'
                     },
                     'fire hydrant': {
                         keyNumber: 70,
-                        keyChar: 'F'
+                        keyChar: 'F',
+                        text: '<tag-underline>f</tag-underline>ire hydrant'
                     },
                     'pole': {
                         keyNumber: 80,
-                        keyChar: 'P'
+                        keyChar: 'P',
+                        text: '<tag-underline>p</tag-underline>ole'
                     },
                     'tree': {
                         keyNumber: 84,
-                        keyChar: 'T'
+                        keyChar: 'T',
+                        text: '<tag-underline>t</tag-underline>ree'
                     },
                     'vegetation': {
                         keyNumber: 86,
-                        keyChar: 'V'
+                        keyChar: 'V',
+                        text: '<tag-underline>v</tag-underline>egetation'
                     }
                 }
             },
@@ -303,11 +315,13 @@ function UtilitiesMisc (JSON) {
                 tagInfo: {
                     'missing crosswalk': {
                         keyNumber: 73,
-                        keyChar: 'I'
+                        keyChar: 'I',
+                        text: 'm<tag-underline>i</tag-underline>ssing crosswalk'
                     },
                     'no bus stop access': {
                         keyNumber: 65,
-                        keyChar: 'A'
+                        keyChar: 'A',
+                        text: 'no bus stop <tag-underline>a</tag-underline>ccess'
                     }
                 }
             },
@@ -337,23 +351,28 @@ function UtilitiesMisc (JSON) {
                 tagInfo: {
                     'bumpy': {
                         keyNumber: 80,
-                        keyChar: 'P'
+                        keyChar: 'P',
+                        text: 'bum<tag-underline>p</tag-underline>y'
                     },
                     'uneven': {
                         keyNumber: 85,
-                        keyChar: 'U'
+                        keyChar: 'U',
+                        text: '<tag-underline>u</tag-underline>neven'
                     },
                     'cracks': {
                         keyNumber: 82,
-                        keyChar: 'R'
+                        keyChar: 'R',
+                        text: 'c<tag-underline>r</tag-underline>acks'
                     },
                     'grass': {
                         keyNumber: 71,
-                        keyChar: 'G'
+                        keyChar: 'G',
+                        text: '<tag-underline>g</tag-underline>rass'
                     },
                     'narrow sidewalk': {
                         keyNumber: 65,
-                        keyChar: 'A'
+                        keyChar: 'A',
+                        text: 'n<tag-underline>a</tag-underline>rrow sidewalk'
                     }
                 }
             },

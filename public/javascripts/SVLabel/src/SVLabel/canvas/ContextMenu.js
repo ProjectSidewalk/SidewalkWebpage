@@ -392,68 +392,8 @@ function ContextMenu (uiContextMenu) {
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
 
-                        var tagText = tag.tag;
-
-                        // Set underlines on tags to represent hotkeys
-                        switch (tagText) {
-                            case 'narrow':
-                                tagText = 'n<tag-underline>a</tag-underline>rrow';
-                                break;
-                            case 'points into traffic':
-                                tagText = '<tag-underline>p</tag-underline>oints into traffic';
-                                break;
-                            case 'missing friction strip':
-                                tagText = 'missing <tag-underline>f</tag-underline>riction strip';
-                                break;
-                            case 'steep':
-                                tagText = 's<tag-underline>t</tag-underline>eep';
-                                break;
-                            case 'alternate route present':
-                                tagText = '<tag-underline>a</tag-underline>lternate route present';
-                                break;
-                            case 'no alternate route':
-                                tagText = 'no a<tag-underline>l</tag-underline>ternate route';
-                                break;
-                            case 'unclear if needed':
-                                tagText = '<tag-underline>u</tag-underline>nclear if needed';
-                                break;
-                            case 'trash can':
-                                tagText = 't<tag-underline>r</tag-underline>ash can';
-                                break;
-                            case 'fire hydrant':
-                                tagText = '<tag-underline>f</tag-underline>ire hydrant';
-                                break;
-                            case 'pole':
-                                tagText = '<tag-underline>p</tag-underline>ole';
-                                break;
-                            case 'tree':
-                                tagText = '<tag-underline>t</tag-underline>ree';
-                                break;
-                            case 'vegetation':
-                                tagText = '<tag-underline>v</tag-underline>egetation';
-                                break;
-                            case 'bumpy':
-                                tagText = 'bum<tag-underline>p</tag-underline>y';
-                                break;
-                            case 'uneven':
-                                tagText = '<tag-underline>u</tag-underline>neven';
-                                break;
-                            case 'cracks':
-                                tagText = 'c<tag-underline>r</tag-underline>acks';
-                                break;
-                            case 'grass':
-                                tagText = '<tag-underline>g</tag-underline>rass';
-                                break;
-                            case 'narrow sidewalk':
-                                tagText = 'n<tag-underline>a</tag-underline>rrow sidewalk';
-                                break;
-                            case 'missing crosswalk':
-                                tagText = 'm<tag-underline>i</tag-underline>ssing crosswalk';
-                                break;
-                            case 'no bus stop access':
-                                tagText = 'no bus stop <tag-underline>a</tag-underline>ccess'
-                                break;
-                        }
+                        // Set tag texts to new underlined version as defined in the util label description map
+                        var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
 
                         $("body").find("button[id=" + count + "]").html(tagText);
                         $("body").find("button[id=" + count + "]").css({
