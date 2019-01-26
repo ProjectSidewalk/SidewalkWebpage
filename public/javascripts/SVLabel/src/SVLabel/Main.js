@@ -187,7 +187,7 @@ function Main (params) {
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.map, svl.tracker, svl.ui.zoomControl);
         svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.map, svl.ribbon, svl.zoomControl);
-        loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
+        loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu, params.tutorialStreetId);
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
@@ -263,10 +263,10 @@ function Main (params) {
         });
     }
 
-    function loadData (taskContainer, missionModel, neighborhoodModel, contextMenu) {
+    function loadData (taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
         // Fetch an onboarding task.
 
-        taskContainer.fetchATask("onboarding", 15250, function () {
+        taskContainer.fetchATask("onboarding", tutorialStreetId, function () {
             loadingAnOnboardingTaskCompleted = true;
             handleDataLoadComplete();
         });
