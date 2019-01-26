@@ -464,6 +464,7 @@ object LabelTable {
         |     sidewalk.gsv_data AS gd
         |WHERE lp.label_id = lb.label_id
         |      AND lt.label_type_id = lb.label_type_id
+        |      AND lb.label_type_id <> 5
         |      AND lb.deleted = false
         |      AND lb.tutorial = false
         |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
@@ -471,9 +472,10 @@ object LabelTable {
         |OFFSET floor(random() *
         |      (
         |          SELECT COUNT(*)
-        |          FROM sidewalk.label
-        |          WHERE sidewalk.label.deleted = false
-        |              AND sidewalk.label.tutorial = false
+        |          FROM sidewalk.label AS lb
+        |          WHERE lb.deleted = false
+        |              AND lb.tutorial = false
+        |              AND lb.label_type_id <> 5
         |      )
         |)
         |LIMIT ?""".stripMargin

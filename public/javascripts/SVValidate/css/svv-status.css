@@ -16,7 +16,35 @@
     width: 95px;
     display: inline-block;
     margin-bottom: 2px;
-    /* background: blueviolet; */
+}
+
+#example-image-popup-holder {
+    position: absolute;
+    width: 215px;
+    height: 213px;
+    top: 175px;
+    left: 480px;
+    background: black;
+    visibility: hidden;
+    z-index: 1;
+}
+
+#example-image-title {
+    color: white;
+    text-align: center;
+}
+
+#example-image-popup {
+    width: 205px;
+    height: 175px;
+    margin-left: 5px;
+    background: white;
+}
+
+#example-image-description {
+    color: white;
+    text-align: center;
+    font-size: 11px;
 }
 
 #status-holder {

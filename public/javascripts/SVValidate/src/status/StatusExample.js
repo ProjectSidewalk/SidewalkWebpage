@@ -4,29 +4,57 @@
  * @returns {StatusExample}
  * @constructor
  */
-function StatusExample () {
+function StatusExample (statusUI) {
     var self = this;
+    self.labelType = undefined;
 
-    // jQuery elements for example images.
-    var example1 = $("#example-image-1");
-    var example2 = $("#example-image-2");
-    var example3 = $("#example-image-3");
-    var example4 = $("#example-image-4");
+    var labelName = undefined;
+    var examplePath = 'assets/javascripts/SVValidate/img/ValidationExamples/';
+    var counterExamplePath = 'assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
-    // jQuery elements for counter-example images.
-    var counterExample1 = $("#counterexample-image-1");
-    var counterExample2 = $("#counterexample-image-2");
-    var counterExample3 = $("#counterexample-image-3");
-    var counterExample4 = $("#counterexample-image-4");
+    $(".example-image").on('mouseover', showExamplePopup);
+    $(".example-image").on('mouseout', hideExamplePopup);
+
+    function hideExamplePopup () {
+        statusUI.popup.css('visibility', 'hidden');
+    }
+
+    function showExamplePopup() {
+        var imageSource = $(this).attr("src");
+        var id = $(this).attr("id");
+        var prefix = svv.statusField.createPrefix(self.labelType);
+        statusUI.popupImage.attr('src', imageSource);
+        console.log("Showing popup for " + id + ", image source = " + imageSource);
+
+        if (id.includes("2") || id.includes("4")) {
+            console.log("right image");
+            statusUI.popup.css('left', '580px');
+        } else {
+            console.log("left image");
+            statusUI.popup.css('left', '480px');
+        }
+
+        if (id.includes("counterexample")) {
+            statusUI.popupTitle.html("Not a " + prefix + labelName);
+            statusUI.popup.css('top', '375px');
+        } else {
+            statusUI.popupTitle.html(labelName);
+            statusUI.popup.css('top', '175px');
+        }
+
+        statusUI.popup.css('visibility', 'visible');
+    }
 
     /**
      * Updates the images on the side of the validation interface.
      * @param labelType Type of label being displayed on the interface.
      */
     function updateLabelImage (labelType) {
+        self.labelType = labelType;
+        labelName = svv.labelNames[labelType];
+
         // Temporary: for NoSidewalk, Other and Occlusion labels, just use curb ramp images.
-        // TODO: Find images for NoSidewalk, Other, and Occlusion.
-        if (labelType === "NoSidewalk" || labelType === "Other" || labelType === "Occlusion") {
+        if (labelType === "NoSidewalk" || labelType === "Occlusion") {
             labelType = "CurbRamp";
         }
 
@@ -40,10 +68,10 @@ function StatusExample () {
      * @private
      */
     function _updateCounterExamples (labelType) {
-        example1.attr('src', 'assets/javascripts/SVValidate/img/ValidationExamples/' + labelType + 'Example1.png');
-        example2.attr('src', 'assets/javascripts/SVValidate/img/ValidationExamples/' + labelType + 'Example2.png');
-        example3.attr('src', 'assets/javascripts/SVValidate/img/ValidationExamples/' + labelType + 'Example3.png');
-        example4.attr('src', 'assets/javascripts/SVValidate/img/ValidationExamples/' + labelType + 'Example4.png');
+        statusUI.example1.attr('src', examplePath + labelType + 'Example1.png');
+        statusUI.example2.attr('src', examplePath + labelType + 'Example2.png');
+        statusUI.example3.attr('src', examplePath + labelType + 'Example3.png');
+        statusUI.example4.attr('src', examplePath + labelType + 'Example4.png');
     }
 
     /**
@@ -52,10 +80,10 @@ function StatusExample () {
      * @private
      */
     function _updateExamples (labelType) {
-        counterExample1.attr('src', 'assets/javascripts/SVValidate/img/ValidationCounterexamples/' + labelType + 'CounterExample1.png');
-        counterExample2.attr('src', 'assets/javascripts/SVValidate/img/ValidationCounterexamples/' + labelType + 'CounterExample2.png');
-        counterExample3.attr('src', 'assets/javascripts/SVValidate/img/ValidationCounterexamples/' + labelType + 'CounterExample3.png');
-        counterExample4.attr('src', 'assets/javascripts/SVValidate/img/ValidationCounterexamples/' + labelType + 'CounterExample4.png');
+        statusUI.counterExample1.attr('src', counterExamplePath + labelType + 'CounterExample1.png');
+        statusUI.counterExample2.attr('src', counterExamplePath + labelType + 'CounterExample2.png');
+        statusUI.counterExample3.attr('src', counterExamplePath + labelType + 'CounterExample3.png');
+        statusUI.counterExample4.attr('src', counterExamplePath + labelType + 'CounterExample4.png');
     }
 
     self.updateLabelImage = updateLabelImage;
