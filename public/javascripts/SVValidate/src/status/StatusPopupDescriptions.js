@@ -91,8 +91,6 @@ function StatusPopupDescriptions () {
     }
 
     function getNoSidewalkDescription (id) {
-        console.log("testing");
-        console.log("id is: " + id);
         switch (id) {
             case "example-image-1":
                 return "This is an abruptly ending sidewalk";
