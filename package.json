@@ -17,5 +17,8 @@
     "debug": "grunt watch & activator -jvm-debug 9998 run",
     "start": "grunt watch & activator run",
     "test": "grunt && grunt test"
+  },
+  "dependencies": {
+    "@turf/turf": "^5.1.6"
   }
 }
