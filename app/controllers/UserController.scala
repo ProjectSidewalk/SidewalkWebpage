@@ -56,6 +56,9 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   def signOut(url: String) = SecuredAction.async { implicit request =>
 //    val result = Future.successful(Redirect(routes.UserController.index()))
 
+    // TODO: Find a better fix for issue #1026
+    // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
+    Thread.sleep(100)
     val result = Future.successful(Redirect(url))
     env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
     request.authenticator.discard(result)

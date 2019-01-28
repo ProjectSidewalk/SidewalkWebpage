@@ -231,6 +231,16 @@ function ContextMenu (uiContextMenu) {
                 self.labelTags.forEach(function (tag) {
                     if (tag.tag === tagValue) {
                         if (!labelTags.includes(tag.tag_id)) {
+                            var alternateRoutePresentStr = 'alternate route present';
+                            var noAlternateRouteStr = 'no alternate route';
+                            // Automatically deselect one of the tags above if the other one is selected
+                            if (tagValue === alternateRoutePresentStr) {
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(noAlternateRouteStr, labelTags);
+                                
+                            } else if (tagValue === noAlternateRouteStr) {
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
+                            }
+
                             labelTags.push(tag.tag_id);
                             svl.tracker.push('ContextMenu_TagAdded',
                                 { tagId: tag.tag_id, tagName: tag.tag });
@@ -247,6 +257,23 @@ function ContextMenu (uiContextMenu) {
                 e.target.blur();
             }
         });
+    }
+
+    /**
+     * Remove the alternate lable, update UI, and add the selected label.
+     * @param {*} labelName     The name of the label to be removed.
+     * @param {*} labelTags     List of tags that the current label has.
+     */
+    function autoRemoveAlternateLabelAndUpdateUI(labelName, labelTags) {
+        $tags.each((index, tag) => {if (tag.innerText === labelName) {tag.style.backgroundColor = "white"; } });
+        self.labelTags.forEach(tag => {
+            if (tag.tag === labelName && labelTags.includes(tag.tag_id)) {
+                labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
+                svl.tracker.push('ContextMenu_TagAutoRemoved',
+                    { tagId: tag.tag_id, tagName: tag.tag });
+            }
+        });
+        return labelTags;
     }
 
     /**

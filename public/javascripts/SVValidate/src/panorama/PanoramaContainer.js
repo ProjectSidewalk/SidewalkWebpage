@@ -19,6 +19,7 @@ function PanoramaContainer (labelList) {
      */
     function _init () {
         svv.panorama = new Panorama(labelList[getProperty("progress")]);
+        setProperty("progress", 1);
     }
 
     /**
