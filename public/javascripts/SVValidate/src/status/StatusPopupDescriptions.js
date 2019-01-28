@@ -52,7 +52,7 @@ function StatusPopupDescriptions () {
     function getObstacleDescription (id) {
         switch (id) {
             case "example-image-1":
-                return "These construction cones are block a pedestrian crosswalk";
+                return "These construction cones are blocking a pedestrian crosswalk";
             case "example-image-2":
                 return "This tree blocks the entire sidewalk";
             case "example-image-3":
@@ -73,9 +73,9 @@ function StatusPopupDescriptions () {
     function getSurfaceProblemDescription (id) {
         switch (id) {
             case "example-image-1":
-                return "This sidewalk is not level";
+                return "This sidewalk is very uneven";
             case "example-image-2":
-                return "This sidewalk is not level";
+                return "This sidewalk is very uneven";
             case "example-image-3":
                 return "This sidewalk is cracked";
             case "example-image-4":
@@ -98,9 +98,9 @@ function StatusPopupDescriptions () {
             case "example-image-2":
                 return "This is an abruptly ending sidewalk";
             case "example-image-3":
-                return "This is an abruptly ending sidewalk";
+                return "This street is missing a sidewalk";
             case "example-image-4":
-                return "This is an abruptly ending sidewalk";
+                return "This intersection is missing a sidewalk";
             case "counterexample-image-1":
                 return "Narrow sidewalks should not be labeled as missing sidewalks";
             case "counterexample-image-2":
