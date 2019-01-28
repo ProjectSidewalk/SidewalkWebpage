@@ -10,7 +10,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
+import models.amt.AMTAssignmentTable
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
@@ -147,15 +147,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       },
       submission => {
         val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-          // Insert assignment (if any)
-          val amtAssignmentId: Option[Int] = data.assignment match {
-            case Some(asg) =>
-              // TODO Used an empty string for volunteer_id and None for confirmationCode. Needs to be changed.
-              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None, "",None, false)
-              Some(AMTAssignmentTable.save(newAsg))
-            case _ => None
-          }
-
           val user = request.identity
           val streetEdgeId = data.auditTask.streetEdgeId
 
@@ -184,7 +175,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count
-          val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, amtAssignmentId)
+          val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, data.amtAssignmentId)
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
           // Update the MissionTable and get missionId

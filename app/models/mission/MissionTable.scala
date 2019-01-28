@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
+import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
@@ -128,6 +129,23 @@ object MissionTable {
     */
   def countCompletedMissionsByUserId(userId: UUID, includeOnboarding: Boolean): Int = db.withTransaction { implicit session =>
     selectCompletedMissionsByAUser(userId, includeOnboarding).size
+  }
+
+  /**
+    * Returns true if the user has an amt_assignment and have completed a mission during it, false o/w.
+    *
+    * @param username
+    * @return
+    */
+  def hasCompletedMissionInThisAmtAssignment(username: String): Boolean = db.withSession { implicit session =>
+    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
+    if (asmt.isEmpty) {
+      false
+    } else {
+      missions.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
+        .filter(m => m.missionEnd > asmt.get.assignmentStart && m.missionEnd < asmt.get.assignmentEnd && m.completed)
+        .list.nonEmpty
+    }
   }
 
   /**
