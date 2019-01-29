@@ -50,42 +50,6 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         );
         mission.complete();
 
-        // Survey prompt. Modal should display survey if
-        // 1. User has just completed numMissionsBeforeSurvey number of missions.
-        $.ajax({
-            async: true,
-            url: '/survey/display',
-            type: 'get',
-            success: function(data){
-                if(data.displayModal){
-                    $('#survey-modal-container').modal({
-                        backdrop: 'static',
-                        keyboard: false
-                    });
-
-                    //we will log in the webpage activity table if the survey has been shown
-                    var activity = "SurveyShown";
-                    var url = "/userapi/logWebpageActivity";
-                    var async = true;
-                    $.ajax({
-                        async: async,
-                        contentType: 'application/json; charset=utf-8',
-                        url: url,
-                        type: 'post',
-                        data: JSON.stringify(activity),
-                        dataType: 'json',
-                        success: function(result){},
-                        error: function (result) {
-                            console.error(result);
-                        }
-                    });
-                }
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        });
-
         // TODO Audio should listen to MissionProgress instead of MissionProgress telling what to do.
         _gameEffectModel.playAudio({audioType: "yay"});
         _gameEffectModel.playAudio({audioType: "applause"});
@@ -124,5 +88,47 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         statusModel.setMissionCompletionRate(completionRate);
         statusModel.setProgressBar(completionRate);
         this._checkMissionComplete(currentMission, currentRegion);
+
+        // Survey prompt. Modal should display survey if
+        // 1. User has completed numMissionsBeforeSurvey number of missions
+        // 2. The user has just completed more than 30% of the current mission
+        // 3. The user has not been shown the survey before
+        if (completionRate > 0.30 && completionRate < 0.60) {
+            $.ajax({
+                async: true,
+                url: '/survey/display',
+                type: 'get',
+                success: function (data) {
+                    if (data.displayModal) {
+                        $('#survey-modal-container').modal({
+                            backdrop: 'static',
+                            keyboard: false
+                        });
+
+                        //we will log in the webpage activity table if the survey has been shown
+                        var activity = "SurveyShown";
+                        var url = "/userapi/logWebpageActivity";
+                        var async = true;
+                        $.ajax({
+                            async: async,
+                            contentType: 'application/json; charset=utf-8',
+                            url: url,
+                            type: 'post',
+                            data: JSON.stringify(activity),
+                            dataType: 'json',
+                            success: function (result) {
+                            },
+                            error: function (result) {
+                                console.error(result);
+                            }
+                        });
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError);
+                }
+            });
+        }
+
     };
 }
