@@ -19,13 +19,16 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
         if (!svl.isOnboarding()) {
             // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
             var distance = taskContainer.getCompletedTaskDistance("kilometers");
-            if (distance >= 0.025) {
+            if (distance >= 0.1) {
                 var title = "As you walk, please remember to check both sides of the street like this:";
                 var message = "";
+                var width = '450px';
+                var height = '291px';
+                var x = '50px';
                 var image = "img/examples/lookaround-example.gif";
                 tracker.push('PopUpShow_CheckBothSides');
 
-                popUpMessage.notifyWithImage(title, message, image, function() {
+                popUpMessage.notifyWithImage(title, message, width, height, x, image, function() {
                     mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
                     mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
                 });
