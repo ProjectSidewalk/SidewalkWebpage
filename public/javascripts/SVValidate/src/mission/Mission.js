@@ -29,6 +29,7 @@ function Mission(params) {
         if ("paid" in params) setProperty("paid", params.paid);
         if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
         if ("labelsValidated" in params) setProperty("labelsValidated", params.labelsValidated);
+        if ("labelTypeId" in params) setProperty("labelTypeId", params.labelTypeId);
         if ("skipped" in params) setProperty("skipped", params.skipped);
     }
 

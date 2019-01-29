@@ -14,6 +14,7 @@ function Form(url) {
         data.missionProgress = {
             mission_id: mission.getProperty("missionId"),
             labels_progress: mission.getProperty("labelsProgress"),
+            label_type_id: mission.getProperty("labelTypeId"),
             completed: mission.getProperty("completed"),
             skipped: mission.getProperty("skipped")
         };

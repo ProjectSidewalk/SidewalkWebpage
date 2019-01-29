@@ -441,9 +441,10 @@ object LabelTable {
   /**
     * Retrieves a random label that has an existing GSVPanorama.
     * Will keep querying for a random label until a suitable label has been found.
+    * @param labelType  Label that is retrieved from the database
     * @return LabelValidationMetadata of this label.
     */
-  def retrieveSingleRandomLabelForValidation(labelType: Int) : LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleRandomLabelFromLabelTypeForValidation(labelType: Int) : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
     var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
     while (!exists) {
@@ -505,7 +506,7 @@ object LabelTable {
   def retrieveRandomLabelListForValidation(count: Int, labelType: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var labelList = new ListBuffer[LabelValidationMetadata]()
     for (a <- 1 to count) {
-      labelList += retrieveSingleRandomLabelForValidation(labelType)
+      labelList += retrieveSingleRandomLabelFromLabelTypeForValidation(labelType)
     }
     val labelSeq: Seq[LabelValidationMetadata] = labelList
     labelSeq

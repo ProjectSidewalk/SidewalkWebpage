@@ -151,6 +151,9 @@
         param.mission = @Html(mission.toJSON.toString);
         param.labelList = @Html(labelList.toString);
 
+        console.log("[validation.scala.html]");
+        console.log(param.mission);
+
         // Initializes an object of labels from label metadata.
         // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
         Object.keys(param.labelList).map(function(key, index) {

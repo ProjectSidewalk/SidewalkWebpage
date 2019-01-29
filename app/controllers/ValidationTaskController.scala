@@ -112,8 +112,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * Gets the metadata for a single random label in the database.
     * @return Label metadata containing GSV metadata and label type
     */
-  def getRandomLabelData = UserAwareAction.async { implicit request =>
-    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelForValidation(1)
+  def getRandomLabelData (labelType: Int) = UserAwareAction.async { implicit request =>
+    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(labelType)
     val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
     Future.successful(Ok(labelMetadataJson))
   }
@@ -126,15 +126,17 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     */
   def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
+    val labelTypeId: Int = missionProgress.labelTypeId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
     val role: String = user.get.role.getOrElse("")
     val labelsProgress: Int = missionProgress.labelsProgress
 
     if (missionProgress.completed) {
+
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, skipped)
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
     } else {
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }

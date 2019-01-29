@@ -28,6 +28,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Returns the validation page.
+    * TODO: Combine this with validateLabelType... and just run a match to see if we can use the
+    * labelTypeId parameter instead of trying to generate our own.
     * @return
     */
   def validate = UserAwareAction.async { implicit request =>
@@ -36,7 +38,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
+        // TODO: Need to add a query that looks for existing validation missions... this currently
+        // defaults to curb ramp missions only.
+        val labelTypeId: Int = 1
+
+        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
         val labelsProgress: Int = mission.labelsProgress.get
         val labelsValidated: Int = mission.labelsValidated.get
         val labelsToRetrieve: Int = labelsValidated - labelsProgress
@@ -50,7 +56,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   def validateLabelType(labelTypeId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
+        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
         val labelsProgress: Int = mission.labelsProgress.get
         val labelsValidated: Int = mission.labelsValidated.get
         val labelsToRetrieve: Int = labelsValidated - labelsProgress
