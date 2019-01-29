@@ -74,6 +74,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             tracker.push('PopUpMessage_ClickOk');
             enableInteractions();
             $("#pop-up-message-ok-button").remove();
+            $("#pop-up-message-image").remove();
         }
         self._appendButton(OKButton, handleClickOK);
 
@@ -174,7 +175,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             $("#sign-up-modal").addClass("hidden");
             $('#sign-in-modal-container').modal('show');
         });
-        self._setPosition(40, 260, 640);
+        self._setPosition(48, 260, 640);
         self.show(true);
         status.haveAskedToSignIn = true;
     };
@@ -187,7 +188,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      */
     this.notify = function (title, message, callback) {
         uiPopUpMessage.buttonHolder.html("");
-        self._setPosition(40, 260, 640);
+        self._setPosition(48, 260, 640);
         self.show();
         self._setTitle(title);
         self._setMessage(message);
@@ -206,7 +207,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      */
     this.notifyWithImage = function (title, message, image, callback) {
         uiPopUpMessage.buttonHolder.html("");
-        self._setPosition(40, 60, 640);
+        self._setPosition(48, 147, 640);
         self.show();
         self._setTitle(title);
         self._setMessage(message);
@@ -223,6 +224,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      */
     this.reset = function () {
         uiPopUpMessage.holder.css({ width: '', height: '' });
+        uiPopUpMessage.imageHolder.css({ width: '', height: '', left: '' });
         uiPopUpMessage.foreground.css({
                     left: '',
                     top: '',
@@ -284,7 +286,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     this._setImage = function (image) {
         var imageHtml = `<img src = ${svl.rootDirectory}` + `${image} id="pop-up-message-image" />`;
         var $img = $(imageHtml);
-        $img.css({ cursor: 'default', width: '600px', height: '388px', left: '50px' });
+        $img.css({ cursor: 'default', width: '450px', height: '291px', left: '50px' });
         $img.addClass('img');
         uiPopUpMessage.imageHolder.append($img);
     };
