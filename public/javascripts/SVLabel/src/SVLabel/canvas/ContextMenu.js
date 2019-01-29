@@ -395,7 +395,7 @@ function ContextMenu (uiContextMenu) {
                         // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
                         $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
 
-                        // Add tag name as a class so that finding the element is easier laster. For example, will add "CurbRamp-tag" as a class
+                        // Add tag name as a class so that finding the element is easier laster. For example, will add "narrowSidewalk-tag" as a class
                         var newClass = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['id'] + "-tag";
                         $("body").find("button[id=" + count + "]").addClass(newClass);
 
