@@ -326,73 +326,73 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 if (labelType == 'CurbRamp') { // Curb Ramp
                     switch (e.keyCode) {
                         case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['narrow']['keyNumber']: // 'a' for 'narrow'
-                            $("button:contains(narrow)").click();
+                            document.getElementsByClassName('context-menu-tag')[0].click();
                             break;
                         case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['points into traffic']['keyNumber']: // 'p' for 'points into traffic'
-                            $("button:contains(points into traffic)").click();
+                            document.getElementsByClassName('context-menu-tag')[1].click();
                             break;
                         case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['missing friction strip']['keyNumber']: // 'f' for 'missing friction strip'
-                            $("button:contains(missing friction strip)").click();
+                            document.getElementsByClassName('context-menu-tag')[2].click();
                             break;
                         case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['steep']['keyNumber']: // 't' for 'steep'
-                            $("button:contains(steep)").click();
+                            document.getElementsByClassName('context-menu-tag')[3].click();
                             break;
                     }
                 } else if (labelType == 'NoCurbRamp') { // Missing Curb Ramp
                     switch (e.keyCode) {
                         case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['alternate route present']['keyNumber']: // 'a' for 'alternate route present'
-                            $("button:contains(alternate route present)").click();
+                            document.getElementsByClassName('context-menu-tag')[0].click();
                             break;
                         case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['no alternate route']['keyNumber']: // 'l' for 'no alternate route'
-                            $("button:contains(no alternate route)").click();
+                            document.getElementsByClassName('context-menu-tag')[1].click();
                             break;
                         case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['unclear if needed']['keyNumber']: // 'u' for 'unclear if needed'
-                            $("button:contains(unclear if needed)").click();
+                            document.getElementsByClassName('context-menu-tag')[2].click();
                             break;
                     }
                 } else if (labelType == 'Obstacle') { // Obstacle in Path
                     switch (e.keyCode) {
                         case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash can']['keyNumber']: // 'r' for 'trash can'
-                            $("button:contains(trash can)").click();
+                            document.getElementsByClassName('context-menu-tag')[0].click();
                             break;
                         case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['fire hydrant']['keyNumber']: // 'f' for 'fire hydrant'
-                            $("button:contains(fire hydrant)").click();
+                            document.getElementsByClassName('context-menu-tag')[1].click();
                             break;
                         case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['pole']['keyNumber']: // 'p' for 'pole'
-                            $("button:contains(pole)").click();
+                            document.getElementsByClassName('context-menu-tag')[2].click();
                             break;
                         case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['tree']['keyNumber']: // 't' for 'tree'
-                            $("button:contains(tree)").click();
+                            document.getElementsByClassName('context-menu-tag')[3].click();
                             break;
                         case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['vegetation']['keyNumber']: // 'v' for 'vegetation'
-                            $("button:contains(vegetation)").click();
+                            document.getElementsByClassName('context-menu-tag')[4].click();
                             break;
                     }
                 } else if (labelType == 'SurfaceProblem') { // Surface Problem
                     switch (e.keyCode) {
                         case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['bumpy']['keyNumber']: // 'p' for 'bumpy'
-                            $("button:contains(bumpy)").click();
+                            document.getElementsByClassName('context-menu-tag')[0].click();
                             break;
                         case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['uneven']['keyNumber']: // 'u' for 'uneven'
-                            $("button:contains(uneven)").click();
+                            document.getElementsByClassName('context-menu-tag')[1].click();
                             break;
                         case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['cracks']['keyNumber']: // 'r' for 'cracks'
-                            $("button:contains(cracks)").click();
+                            document.getElementsByClassName('context-menu-tag')[2].click();
                             break;
                         case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber']: // 'g' for 'grass'
-                            $("button:contains(grass)").click();
+                            document.getElementsByClassName('context-menu-tag')[3].click();
                             break;
                         case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['narrow sidewalk']['keyNumber']  : // 'a' for 'narrow sidewalk'
-                            $("button:contains(narrow sidewalk)").click();
+                            document.getElementsByClassName('context-menu-tag')[4].click();
                             break;
                     }
                 } else if (labelType == 'Other') { // No Sidewalk
                     switch (e.keyCode) {
                         case util.misc.getLabelDescriptions('Other')['tagInfo']['missing crosswalk']['keyNumber']: // 'i' for 'missing crosswalk'
-                            $("button:contains(missing crosswalk)").click();
+                            document.getElementsByClassName('context-menu-tag')[0].click();
                             break;
                         case util.misc.getLabelDescriptions('Other')['tagInfo']['no bus stop access']['keyNumber']: // 'a' for 'no bus stop access'
-                            $("button:contains(no bus stop access)").click();
+                            document.getElementsByClassName('context-menu-tag')[1].click();
                             break;
                     }
                 }
