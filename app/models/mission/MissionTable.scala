@@ -184,9 +184,9 @@ object MissionTable {
     missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).list.headOption
   }
 
-  def getCurrentValidationMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
+  def getCurrentValidationMission(userId: UUID, labelTypeId: Int): Option[Mission] = db.withSession { implicit session =>
     val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && !m.completed).list.headOption
+    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && m.labelTypeId === labelTypeId && !m.completed).list.headOption
   }
 
   /**
@@ -394,7 +394,7 @@ object MissionTable {
       }
 
       if (actions.contains("getValidationMission")) {
-        getCurrentValidationMission(userId) match {
+        getCurrentValidationMission(userId, labelTypeId.get) match {
           case Some(incompleteMission) =>
             Some(incompleteMission)
           case _ =>
