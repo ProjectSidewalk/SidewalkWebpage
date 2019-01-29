@@ -20,5 +20,7 @@ RUN apt-get update && \
   apt-get clean
 
 WORKDIR /opt
+
 COPY package.json ./
+
 RUN npm install
