@@ -26,6 +26,9 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
+  // Valid label type ids -- excludes Other and Occlusion labels
+  val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
+
   /**
     * Returns the validation page.
     * TODO: Combine this with validateLabelType... and just run a match to see if we can use the
@@ -38,9 +41,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        // TODO: Need to add a query that looks for existing validation missions... this currently
-        // defaults to curb ramp missions only.
-        val labelTypeId: Int = 1
+        // We are currently assigning label types to missions randomly.
+        val labelTypeId: Int = labelTypeIdList(scala.util.Random.nextInt(labelTypeIdList.size))
 
         val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
         val labelsProgress: Int = mission.labelsProgress.get
@@ -62,10 +64,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         val labelsToRetrieve: Int = labelsValidated - labelsProgress
         val labelList: JsValue = getLabelListForValidation(labelsToRetrieve, labelTypeId)
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
-        // Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
       case None =>
         Future.successful(Redirect("/"));
-        // Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
     }
   }
 
@@ -84,7 +84,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   }
 
   /**
-    * This method handles a comment POST request. It parse the comment and insert it into the comment table
+    * Handles a comment POST request. It parses the comment and inserts it into the comment table
     *
     * @return
     */

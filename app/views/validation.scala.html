@@ -143,16 +143,12 @@
 
 
     <script type="text/javascript">
-        // init();
         var svv = svv || {};
         var param = {};
 
         param.dataStoreUrl = '@routes.ValidationTaskController.post';
         param.mission = @Html(mission.toJSON.toString);
         param.labelList = @Html(labelList.toString);
-
-        console.log("[validation.scala.html]");
-        console.log(param.mission);
 
         // Initializes an object of labels from label metadata.
         // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
