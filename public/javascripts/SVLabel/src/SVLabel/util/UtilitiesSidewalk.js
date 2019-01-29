@@ -230,22 +230,26 @@ function UtilitiesMisc (JSON) {
                     'narrow': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'n<tag-underline>a</tag-underline>rrow'
+                        text: 'n<tag-underline>a</tag-underline>rrow',
+                        id: 'narrow'
                     },
                     'points into traffic': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: '<tag-underline>p</tag-underline>oints into traffic'
+                        text: '<tag-underline>p</tag-underline>oints into traffic',
+                        id: 'pointIntoTraffic'
                     },
                     'missing friction strip': {
                         keyNumber: 70,
                         keyChar: 'F',
-                        text: 'missing <tag-underline>f</tag-underline>riction strip'
+                        text: 'missing <tag-underline>f</tag-underline>riction strip',
+                        id: 'missingFrictionStrip'
                     },
                     'steep': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: 's<tag-underline>t</tag-underline>eep'
+                        text: 's<tag-underline>t</tag-underline>eep',
+                        id: 'steep'
                     }
                 }
             },
@@ -260,17 +264,20 @@ function UtilitiesMisc (JSON) {
                     'alternate route present': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: '<tag-underline>a</tag-underline>lternate route present'
+                        text: '<tag-underline>a</tag-underline>lternate route present',
+                        id: 'alternateRoutePresent'
                     },
                     'no alternate route': {
                         keyNumber: 76,
                         keyChar: 'L',
-                        text: 'no a<tag-underline>l</tag-underline>ternate route'
+                        text: 'no a<tag-underline>l</tag-underline>ternate route',
+                        id: 'noAlternateRoute'
                     },
                     'unclear if needed': {
                         keyNumber: 85,
                         keyChar: 'U',
-                        text: '<tag-underline>u</tag-underline>nclear if needed'
+                        text: '<tag-underline>u</tag-underline>nclear if needed',
+                        id: 'unclearIfNeeded'
                     }
                 }
             },
@@ -285,27 +292,32 @@ function UtilitiesMisc (JSON) {
                     'trash can': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: 't<tag-underline>r</tag-underline>ash can'
+                        text: 't<tag-underline>r</tag-underline>ash can',
+                        id: 'trashCan'
                     },
                     'fire hydrant': {
                         keyNumber: 70,
                         keyChar: 'F',
-                        text: '<tag-underline>f</tag-underline>ire hydrant'
+                        text: '<tag-underline>f</tag-underline>ire hydrant',
+                        id: 'fireHydrant'
                     },
                     'pole': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: '<tag-underline>p</tag-underline>ole'
+                        text: '<tag-underline>p</tag-underline>ole',
+                        id: 'pole'
                     },
                     'tree': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: '<tag-underline>t</tag-underline>ree'
+                        text: '<tag-underline>t</tag-underline>ree',
+                        id: 'tree'
                     },
                     'vegetation': {
                         keyNumber: 86,
                         keyChar: 'V',
-                        text: '<tag-underline>v</tag-underline>egetation'
+                        text: '<tag-underline>v</tag-underline>egetation',
+                        id: 'vegetation'
                     }
                 }
             },
@@ -316,12 +328,14 @@ function UtilitiesMisc (JSON) {
                     'missing crosswalk': {
                         keyNumber: 73,
                         keyChar: 'I',
-                        text: 'm<tag-underline>i</tag-underline>ssing crosswalk'
+                        text: 'm<tag-underline>i</tag-underline>ssing crosswalk',
+                        id: 'missingCrosswalk'
                     },
                     'no bus stop access': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'no bus stop <tag-underline>a</tag-underline>ccess'
+                        text: 'no bus stop <tag-underline>a</tag-underline>ccess',
+                        id: 'noBusStopAccess'
                     }
                 }
             },
@@ -352,27 +366,32 @@ function UtilitiesMisc (JSON) {
                     'bumpy': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: 'bum<tag-underline>p</tag-underline>y'
+                        text: 'bum<tag-underline>p</tag-underline>y',
+                        id: 'bumpy'
                     },
                     'uneven': {
                         keyNumber: 85,
                         keyChar: 'U',
-                        text: '<tag-underline>u</tag-underline>neven'
+                        text: '<tag-underline>u</tag-underline>neven',
+                        id: 'uneven'
                     },
                     'cracks': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: 'c<tag-underline>r</tag-underline>acks'
+                        text: 'c<tag-underline>r</tag-underline>acks',
+                        id: 'cracks'
                     },
                     'grass': {
                         keyNumber: 71,
                         keyChar: 'G',
-                        text: '<tag-underline>g</tag-underline>rass'
+                        text: '<tag-underline>g</tag-underline>rass',
+                        id: 'grass'
                     },
                     'narrow sidewalk': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'n<tag-underline>a</tag-underline>rrow sidewalk'
+                        text: 'n<tag-underline>a</tag-underline>rrow sidewalk',
+                        id: 'narrowSidewalk'
                     }
                 }
             },
