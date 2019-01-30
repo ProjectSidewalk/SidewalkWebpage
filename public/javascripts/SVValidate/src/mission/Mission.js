@@ -11,6 +11,7 @@ function Mission(params) {
         missionType: undefined,
         completed: undefined,
         labelsProgress: undefined,
+        labelTypeId: undefined,
         labelsValidated: undefined,
         pay: undefined,
         paid: undefined,

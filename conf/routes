@@ -73,7 +73,6 @@ POST    /audit/nostreetview                                  @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
-GET     /validate/labels/:labelTypeId                        @controllers.ValidationController.validateLabelType(labelTypeId: Int)
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
@@ -90,7 +89,7 @@ GET     /rewardEarned                                        @controllers.Missio
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
-GET     /label/geo/random/:labelType                                  @controllers.ValidationTaskController.getRandomLabelData(labelType: Int)
+GET     /label/geo/random/:labelType                         @controllers.ValidationTaskController.getRandomLabelData(labelType: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods

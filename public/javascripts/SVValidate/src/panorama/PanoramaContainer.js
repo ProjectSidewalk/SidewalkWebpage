@@ -45,13 +45,12 @@ function PanoramaContainer (labelList) {
     }
 
     /**
-     * Fetches a single label from the database. Missions fetch exactly the number of labels that
-     * are needed to complete the mission. When the user clicks skip, need to get more.
-     * @param count Number of labels to append to the labels.
-     * @private
+     * Fetches a single label from the database.  When the user clicks skip, need to get more
+     * because missions fetch exactly the number of labels that are needed to complete the mission.
      */
     function fetchNewLabel () {
-        var labelUrl = "/label/geo/random";
+        var labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
+        var labelUrl = "/label/geo/random/" + labelTypeId;
         $.ajax({
             url: labelUrl,
             async: false,
