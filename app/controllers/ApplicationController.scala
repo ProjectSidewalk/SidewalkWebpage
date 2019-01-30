@@ -325,7 +325,9 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))
-        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user))))
+        val cityStr: String = Play.configuration.getString("city-id").get
+        val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user), cityShortName)))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/demo"))
     }
