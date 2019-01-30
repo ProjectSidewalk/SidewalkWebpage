@@ -36,8 +36,7 @@ POST    /authapi/authenticate                                @controllers.Creden
 POST    /authapi/signup                                      @controllers.SignUpController.postSignUp
 
 # City config params
-GET     /cityLatLng                                          @controllers.ConfigController.getCityCenter()
-GET     /cityDefaultZoom                                     @controllers.ConfigController.getDefaultZoom()
+GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
 
 # Admin
 GET     /admin                                               @controllers.AdminController.index

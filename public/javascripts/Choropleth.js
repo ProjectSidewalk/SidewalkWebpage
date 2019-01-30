@@ -23,16 +23,14 @@ function Choropleth(_, $, turf, difficultRegionIds) {
 
     L.control.zoomslider().addTo(choropleth);
 
-    // Set the city-specific location and max bounding box to prevent the user from panning away.
-    $.getJSON('/cityLatLng', function(data) {
-        choropleth.setView([data.lat, data.lng]);
-        choropleth.setMaxBounds(L.latLngBounds(L.latLng(data.lat, data.lng), L.latLng(data.lat, data.lng)))
+    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
+    $.getJSON('/cityMapParams', function(data) {
+        choropleth.setView([data.city_center.lat, data.city_center.lng]);
+        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
+        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
+        choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
+        choropleth.setZoom(data.default_zoom);
     });
-    // Set the city-specific default zoom.
-    $.getJSON('/cityDefaultZoom', function(data) {
-        choropleth.setZoom(data.zoom);
-    });
-
 
     /**
      * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.

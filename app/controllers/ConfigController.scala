@@ -15,16 +15,20 @@ import scala.concurrent.Future
 class ConfigController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  def getCityCenter() = Action.async { implicit request =>
+  def getCityMapParams() = Action.async { implicit request =>
     val cityStr: String = Play.configuration.getString("city-id").get
     val cityLat: Double = Play.configuration.getDouble("city-params.city-center-lat." + cityStr).get
     val cityLng: Double = Play.configuration.getDouble("city-params.city-center-lng." + cityStr).get
-    Future.successful(Ok(Json.obj("lat" -> cityLat, "lng" -> cityLng)))
-  }
-
-  def getDefaultZoom() = Action.async { implicit request =>
-    val cityStr: String = Play.configuration.getString("city-id").get
+    val southwestLat: Double = Play.configuration.getDouble("city-params.southwest-boundary-lat." + cityStr).get
+    val southwestLng: Double = Play.configuration.getDouble("city-params.southwest-boundary-lng." + cityStr).get
+    val northeastLat: Double = Play.configuration.getDouble("city-params.northeast-boundary-lat." + cityStr).get
+    val northeastLng: Double = Play.configuration.getDouble("city-params.northeast-boundary-lng." + cityStr).get
     val defaultZoom: Int = Play.configuration.getInt("city-params.default-map-zoom." + cityStr).get
-    Future.successful(Ok(Json.obj("zoom" -> defaultZoom)))
+    Future.successful(Ok(Json.obj(
+      "city_center" -> Json.obj("lat" -> cityLat, "lng" -> cityLng),
+      "southwest_boundary" -> Json.obj("lat" -> southwestLat, "lng" -> southwestLng),
+      "northeast_boundary" -> Json.obj("lat" -> northeastLat, "lng" -> northeastLng),
+      "default_zoom" -> defaultZoom
+    )))
   }
 }
