@@ -11,12 +11,11 @@ object TaskSubmissionFormats {
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
   case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryLabel: Option[JsBoolean], description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean])
-  case class AMTAssignmentSubmission(hitId: String, assignmentId: String, assignmentStart: String)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, skipped: Boolean)
-  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, assignment: Option[AMTAssignmentSubmission], auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission])
+  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
@@ -92,12 +91,6 @@ object TaskSubmissionFormats {
       (JsPath \ "completed").readNullable[Boolean]
     )(TaskSubmission.apply _)
 
-  implicit val amtAssignmentReads: Reads[AMTAssignmentSubmission] = (
-      (JsPath \ "amazon_hit_id").read[String] and
-      (JsPath \ "amazon_assignment_id").read[String] and
-      (JsPath \ "assignment_start").read[String]
-    )(AMTAssignmentSubmission.apply _)
-
   implicit val gsvLinkSubmissionReads: Reads[GSVLinkSubmission] = (
     (JsPath \ "target_gsv_panorama_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
@@ -120,13 +113,13 @@ object TaskSubmissionFormats {
 
   implicit val auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
     (JsPath \ "mission").read[AuditMissionProgress] and
-      (JsPath \ "assignment").readNullable[AMTAssignmentSubmission] and
       (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "labels").read[Seq[LabelSubmission]] and
       (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
-      (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]]
+      (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]] and
+      (JsPath \ "amt_assignment_id").readNullable[Int]
     )(AuditTaskSubmission.apply _)
 
   implicit val amtAssignmentCompletionReads: Reads[AMTAssignmentCompletionSubmission] = (
