@@ -26,9 +26,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
-  // Valid label type ids -- excludes Other and Occlusion labels
-  val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
-
   /**
     * Returns the validation page.
     * TODO: Combine this with validateLabelType... and just run a match to see if we can use the
@@ -41,9 +38,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        // We are currently assigning label types to missions randomly.
-        val labelTypeId: Int = labelTypeIdList(scala.util.Random.nextInt(labelTypeIdList.size))
-
+        val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
         val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
         val labelsProgress: Int = mission.labelsProgress.get
         val labelsValidated: Int = mission.labelsValidated.get
@@ -58,6 +53,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   def validateLabelType(labelTypeId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
+        val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
         val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
         val labelsProgress: Int = mission.labelsProgress.get
         val labelsValidated: Int = mission.labelsValidated.get
@@ -77,7 +73,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     *               canvas_width, canvas_height}
     */
   def getLabelListForValidation(count: Int, labelType: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count, labelType)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(count, labelType)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
@@ -85,7 +81,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Handles a comment POST request. It parses the comment and inserts it into the comment table
-    *
     * @return
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>

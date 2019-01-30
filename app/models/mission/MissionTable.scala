@@ -99,8 +99,6 @@ object MissionTable {
 
   // Number of labels for validation mission
   val validationMissionLabelCount: Int = 10
-  val validationLabelTypeIds: List[Int] = List(1, 2, 3, 4, 5)
-
 
   implicit val missionConverter = GetResult[Mission](r => {
     val missionId: Int = r.nextInt
@@ -394,13 +392,15 @@ object MissionTable {
       }
 
       if (actions.contains("getValidationMission")) {
-        getCurrentValidationMission(userId, labelTypeId.get) match {
+        // Get the label type id for the next mission.
+        val newLabelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
+        getCurrentValidationMission(userId, newLabelTypeId) match {
           case Some(incompleteMission) =>
             Some(incompleteMission)
           case _ =>
             val labelsToValidate: Int = getNextValidationMissionLabelCount(userId)
             val pay: Double = labelsToValidate.toDouble * payPerLabel.get
-            Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get))
+            Some(createNextValidationMission(userId, pay, labelsToValidate, newLabelTypeId))
         }
       } else {
         None // If we are not trying to get a mission, return None

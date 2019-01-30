@@ -129,6 +129,9 @@ object LabelTable {
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
 
+  // Valid label type ids -- excludes Other and Occlusion labels
+  val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
+
   /**
     * Find a label
     *
@@ -500,10 +503,11 @@ object LabelTable {
 
   /**
     * Retrieves a list of labels to be validated
-    * @param count  Length of list
-    * @return       Seq[LabelValidationMetadata]
+    * @param count        Length of list
+    * @param labelTypeId  Label Type of each label in the list
+    * @return             Seq[LabelValidationMetadata]
     */
-  def retrieveRandomLabelListForValidation(count: Int, labelType: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelListForValidation(count: Int, labelType: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var labelList = new ListBuffer[LabelValidationMetadata]()
     for (a <- 1 to count) {
       labelList += retrieveSingleRandomLabelFromLabelTypeForValidation(labelType)
@@ -513,6 +517,26 @@ object LabelTable {
   }
 
   /**
+    * Retrieve a list of labels for validation with a random label id
+    * @param count  Number of labels in the list
+    * @return       Seq[LabelValidationMetadata]
+    */
+  def retrieveRandomLabelListForValidation(count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    // We are currently assigning label types to missions randomly.
+    val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
+    val labelSeq: Seq[LabelValidationMetadata] = retrieveLabelListForValidation(count, labelTypeId)
+    labelSeq
+  }
+
+  /**
+    * Retrieves a random validation label type id (1, 2, 3, 4, 7)
+    * @return Integer corresponding to the label type id
+    */
+  def retrieveRandomValidationLabelTypeId(): Int = db.withSession { implicit session =>
+    val labelTypeId: Int = labelTypeIdList(scala.util.Random.nextInt(labelTypeIdList.size))
+    labelTypeId
+  }
+    /**
     * Checks if the panorama associated with a label eixsts by pinging Google Maps.
     * @param gsvPanoId  Panorama ID
     * @return           True if the panorama exists, false otherwise

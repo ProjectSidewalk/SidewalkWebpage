@@ -93,6 +93,23 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     }
   }
 
+
+  /**
+    * Gets a list of new labels to validate if the mission is complete.
+    * @param user
+    * @param missionProgress  Metadata for this mission
+    * @return                 List of label metadata (if this mission is complete).
+    */
+  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress): Option[JsValue] = {
+    val userId: UUID = user.get.userId
+    if (missionProgress.completed) {
+      val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
+      return Some(getLabelListForValidation(labelCount, labelTypeId))
+    }
+    None
+  }
+  
   /**
     * Gets a random list of labels to validate for this mission.
     * @param count  Number of labels to retrieve for this list.
@@ -102,7 +119,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     *               canvas_width, canvas_height}
     */
   def getLabelListForValidation(count: Int, labelTypeId: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count, labelTypeId)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
@@ -139,20 +156,5 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     } else {
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
-  }
-
-  /**
-    * Gets a list of new labels to validate if the mission is complete.
-    * @param user
-    * @param missionProgress  Metadata for this mission
-    * @return                 List of label metadata (if this mission is complete).
-    */
-  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress): Option[JsValue] = {
-    val userId: UUID = user.get.userId
-    if (missionProgress.completed) {
-      val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
-      return Some(getLabelListForValidation(labelCount, missionProgress.labelTypeId))
-    }
-    None
   }
 }
