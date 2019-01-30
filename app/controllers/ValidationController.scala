@@ -28,8 +28,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Returns the validation page.
-    * TODO: Combine this with validateLabelType... and just run a match to see if we can use the
-    * labelTypeId parameter instead of trying to generate our own.
     * @return
     */
   def validate = UserAwareAction.async { implicit request =>
