@@ -625,7 +625,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                 "domain": [0,100]
                             },
                             "axis": {
-                                "title": "DC Coverage (%)"
+                                "title": "City Coverage (%)"
                             }
                         }
                     },

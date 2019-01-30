@@ -176,18 +176,21 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this.start = function (neighborhood) {
         if (!svl.isOnboarding()) {
-            var title = "Let's get started!";
-            var message = "We have moved you to a street in " + neighborhood.getProperty("name") +
-                ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
-                "accessibility problems at this intersection.";
-            tracker.push('PopUpShow_LetsGetStarted');
+            $.getJSON('/cityShortNameParam', function(data) {
+                var cityShortName = data.city_short_name;
+                var title = "Let's get started!";
+                var message = "We have moved you to a street in " + neighborhood.getProperty("name") +
+                    ", " + cityShortName + "! You are currently standing at the intersection. Please find and label all " +
+                    "the curb ramps and accessibility problems at this intersection.";
+                tracker.push('PopUpShow_LetsGetStarted');
 
-            popUpMessage.notify(title, message, self._finishedInstructionToStart);
+                popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
-            initialHeading = mapService.getPov().heading;
-            // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
-            initialPanoId = mapService.getPanoId();
-            lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
+                initialHeading = mapService.getPov().heading;
+                // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
+                initialPanoId = mapService.getPanoId();
+                lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
+            });
         }
     };
 
