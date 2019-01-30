@@ -20,8 +20,8 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
             // Instruct a user to audit both sides of the streets once they have walked for 100 meters.
             var distance = taskContainer.getCompletedTaskDistance("kilometers");
             if (distance >= 0.1) {
-                var title = "As you walk, please remember to check both sides of the street like this:";
-                var message = "";
+                var title = "Please check both sides of the street";
+                var message = "As you walk, remember to check both sides of the street like this:";
                 var width = '450px';
                 var height = '291px';
                 var x = '50px';
