@@ -105,7 +105,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
       val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
-      return Some(getLabelListForValidation(labelCount, labelTypeId))
+      return Some(getLabelListForValidation(userId, labelCount, labelTypeId))
     }
     None
   }
@@ -118,8 +118,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
     *               canvas_width, canvas_height}
     */
-  def getLabelListForValidation(count: Int, labelTypeId: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
+  def getLabelListForValidation(userId: UUID, count: Int, labelTypeId: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(userId, count)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
@@ -130,7 +130,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @return Label metadata containing GSV metadata and label type
     */
   def getRandomLabelData (labelType: Int) = UserAwareAction.async { implicit request =>
-    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(labelType)
+    val userId: UUID = request.identity.get.userId
+    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType)
     val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
     Future.successful(Ok(labelMetadataJson))
   }

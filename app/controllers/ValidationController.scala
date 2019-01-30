@@ -2,6 +2,7 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -37,29 +38,23 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     request.identity match {
       case Some(user) =>
         val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
-        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
-        val labelsProgress: Int = mission.labelsProgress.get
-        val labelsValidated: Int = mission.labelsValidated.get
-        val labelsToRetrieve: Int = labelsValidated - labelsProgress
-        val labelList: JsValue = getLabelListForValidation(labelsToRetrieve, labelTypeId)
-        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
+        val hasWork: Boolean = LabelTable.hasSufficientLabels(user.userId, labelTypeId, 10)
+        println("Do we have enough labels? " + hasWork)
+        hasWork match {
+          case true => {
+            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
+            val labelsProgress: Int = mission.labelsProgress.get
+            val labelsValidated: Int = mission.labelsValidated.get
+            val labelsToRetrieve: Int = labelsValidated - labelsProgress
+            val labelList: JsValue = getLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId)
+            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
+          }
+          case false => {
+            Future.successful(Redirect("/"))
+          }
+        }
       case None =>
-        Future.successful(Redirect("/"));
-    }
-  }
-
-  def validateLabelType(labelTypeId: Int) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
-        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
-        val labelsProgress: Int = mission.labelsProgress.get
-        val labelsValidated: Int = mission.labelsValidated.get
-        val labelsToRetrieve: Int = labelsValidated - labelsProgress
-        val labelList: JsValue = getLabelListForValidation(labelsToRetrieve, labelTypeId)
-        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
-      case None =>
-        Future.successful(Redirect("/"));
+        Future.successful(Redirect(s"/anonSignUp?url=/validate"));
     }
   }
 
@@ -70,8 +65,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
     *               canvas_width, canvas_height}
     */
-  def getLabelListForValidation(count: Int, labelType: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(count, labelType)
+  def getLabelListForValidation(userId: UUID, count: Int, labelType: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelType)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
