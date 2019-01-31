@@ -2,7 +2,6 @@
 var autoAdvanceLaptop = true;
 
 
-
 function playVideo(){
     document.getElementById("vidembed").innerHTML = '<div class="video-container"><iframe id="youtubeframe" width="853" height="480" src="https://www.youtube.com/embed/wAdGXqRunQs?autoplay=1&rel=0" frameborder="0" allowfullscreen</iframe</div>';
     var vidheight = $('#youtubeframe').height();
@@ -192,4 +191,66 @@ $( document ).ready(function() {
     $(".bodyStartBtn").on("click", function(){
         logWebpageActivity("Click_module=StartMapping_location=Index");
     });
+
+    // Setup video lazyPlay
+    $(window).on("scroll", onScroll);
+
+    vidBanner = $('#vidbanner')[0];
+    bannerVid = $('#bgvid')[0];
+
+    instructVideoContainer = $('#instructionvideo')[0];
+    instructVideos = [$('#vid1')[0],
+        $('#vid2')[0],
+        $('#vid3')[0]];
 });
+
+var vidBanner, bannerVid,
+    instructVideoContainer, instructVideos;
+
+// Throttle to 1 call/second to avoid lag
+var lazyPlayVideosThrottled = _.throttle(lazyPlayVideos, 1000);
+
+// Triggered when the user scrolls
+function onScroll() {
+    lazyPlayVideosThrottled();
+}
+
+// lazyPlays our main videos
+function lazyPlayVideos() {
+    lazyPlay(vidBanner, bannerVid);
+
+    for(var i = 0; i < instructVideos.length; i++) {
+        lazyPlay(instructVideoContainer, instructVideos[i]);
+    }
+}
+
+// Pauses a video if a certain element is outside of the viewport.
+// Plays the video otherwise.
+function lazyPlay(el, video) {
+    //console.log("inView = " + isElementInViewport(el), "isPlaying = " + isVideoPlaying(video));
+
+    if(isElementVerticallyVisible(el)) {
+        if(!isVideoPlaying(video)) {
+            video.play();
+        }
+    } else {
+        if(isVideoPlaying(video)) {
+            video.pause();
+        }
+    }
+}
+
+// Returns true if the given video is playing
+function isVideoPlaying(video) {
+    return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2;
+}
+
+// Returns true if the given element is in the vertical viewport
+function isElementVerticallyVisible(el) {
+    var rect = el.getBoundingClientRect();
+
+    return (
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.bottom >= 0
+    );
+}
