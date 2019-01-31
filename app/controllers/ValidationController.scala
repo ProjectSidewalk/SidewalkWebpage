@@ -39,7 +39,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case Some(user) =>
         val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
         val hasWork: Boolean = LabelTable.hasSufficientLabels(user.userId, labelTypeId, 10)
-        println("Do we have enough labels? " + hasWork)
+
+        // Checks if there are still labels in the database for the user to validate.
         hasWork match {
           case true => {
             val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
@@ -47,10 +48,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
             val labelsValidated: Int = mission.labelsValidated.get
             val labelsToRetrieve: Int = labelsValidated - labelsProgress
             val labelList: JsValue = getLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId)
-            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
+            val missionJsObject: JsObject = mission.toJSON
+            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), true)))
           }
           case false => {
-            Future.successful(Redirect("/"))
+            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), None, None, false)))
           }
         }
       case None =>

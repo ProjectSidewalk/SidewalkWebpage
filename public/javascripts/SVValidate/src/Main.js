@@ -95,7 +95,12 @@ function Main (param) {
         svv.missionContainer.createAMission(param.mission);
     }
 
-    _initUI();
-    _init();
+    if (param.hasNextMission) {
+        _initUI();
+        _init();
+    } else {
+        console.log("Sorry! Nothing here to see :)")
+    }
+
     return this;
 }

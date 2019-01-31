@@ -449,7 +449,15 @@ object LabelTable {
     * @return   True if we have enough labels, false otherwise.
     */
   def hasSufficientLabels(userId: UUID, labelTypeId: Int, missionLabelCount: Int): Boolean = db.withSession { implicit session =>
-    val selectQuery = Q.query[(Int, String), Int](
+    val labelCount: Int = getAvailableValidationLabelsCount(userId, labelTypeId)
+    println("user id: " + userId.toString)
+    println("Number of labels: " + labelCount)
+    return labelCount >= missionLabelCount
+  }
+
+  def getAvailableValidationLabelsCount(userId: UUID, labelTypeId: Int): Int = db.withSession { implicit session =>
+    val userIdString: String = userId.toString
+    val selectQuery = Q.query[Int, Int](
       s"""SELECT COUNT(*)
          |FROM sidewalk.label AS lb,
          |     sidewalk.gsv_data AS gd,
@@ -460,13 +468,16 @@ object LabelTable {
          |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
          |      AND gd.expired = false
          |      AND ms.mission_id = lb.mission_id
-         |      AND ms.user_id NOT LIKE ?
+         |      AND ms.user_id NOT LIKE '$userIdString'
+         |      AND lb.label_id NOT IN (
+         |          SELECT label_id
+         |          FROM sidewalk.label_validation AS lv
+         |          WHERE lv.user_id LIKE '$userIdString'
+         |      )
        """.stripMargin
     )
-
-    val labelCount: Int = selectQuery((labelTypeId, userId.toString)).list.head
-    println("Number of labels: " + labelCount)
-    return labelCount >= missionLabelCount
+    val labelCount: Int = selectQuery(labelTypeId).list.head
+    labelCount
   }
 
   /**
@@ -478,7 +489,9 @@ object LabelTable {
   def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelType: Int) : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
     var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
+    // TODO: add code that also checks that we havne't already chosen this label
     val userIdString = userId.toString
+    val availableLabelCount: Int = getAvailableValidationLabelsCount(userId, labelType)
     while (!exists) {
       val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
         s"""SELECT lb.label_id,
@@ -494,6 +507,7 @@ object LabelTable {
         |FROM sidewalk.label AS lb,
         |     sidewalk.label_type AS lt,
         |     sidewalk.label_point AS lp,
+        |     sidewalk.label_validation AS lv,
         |     sidewalk.gsv_data AS gd,
         |     sidewalk.mission AS ms
         |WHERE lp.label_id = lb.label_id
@@ -501,25 +515,18 @@ object LabelTable {
         |      AND lb.label_type_id = $labelType
         |      AND lb.deleted = false
         |      AND lb.tutorial = false
+        |      AND lv.label_id = lb.label_id
+        |      AND lv.user_id NOT LIKE '$userIdString'
         |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
         |      AND gd.expired = false
         |      AND ms.mission_id = lb.mission_id
         |      AND ms.user_id NOT LIKE '$userIdString'
-        |OFFSET floor(random() *
-        |      (
-        |          SELECT COUNT(*)
-        |          FROM sidewalk.label AS lb,
-        |               sidewalk.gsv_data AS gd,
-        |               sidewalk.mission AS ms
-        |          WHERE lb.deleted = false
-        |                AND lb.tutorial = false
-        |                AND lb.label_type_id = $labelType
-        |                AND gd.gsv_panorama_id = lb.gsv_panorama_id
-        |                AND gd.expired = false
-        |                AND ms.mission_id = lb.mission_id
-        |                AND ms.user_id NOT LIKE '$userIdString'
+        |      AND lb.label_id NOT IN (
+        |           SELECT label_id
+        |           FROM sidewalk.label_validation AS lv
+        |           WHERE lv.user_id LIKE '$userIdString'
         |      )
-        |)
+        |OFFSET floor(random() * $availableLabelCount)
         |LIMIT ?""".stripMargin
       )
       val singleLabel = selectQuery(1).list

@@ -6,7 +6,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Mission, labelList: JsValue)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], hasNextMission: Boolean)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -147,26 +147,30 @@
         var param = {};
 
         param.dataStoreUrl = '@routes.ValidationTaskController.post';
-        param.mission = @Html(mission.toJSON.toString);
-        param.labelList = @Html(labelList.toString);
+        param.hasNextMission = @hasNextMission;
 
-        // Initializes an object of labels from label metadata.
-        // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-        Object.keys(param.labelList).map(function(key, index) {
-            var labelMetadata = {
-                canvasHeight: param.labelList[key].canvas_height,
-                canvasWidth: param.labelList[key].canvas_width,
-                canvasX: param.labelList[key].canvas_x,
-                canvasY: param.labelList[key].canvas_y,
-                gsvPanoramaId: param.labelList[key].gsv_panorama_id,
-                heading: param.labelList[key].heading,
-                labelId: param.labelList[key].label_id,
-                labelType: param.labelList[key].label_type,
-                pitch: param.labelList[key].pitch,
-                zoom: param.labelList[key].zoom
-            };
-            param.labelList[key] = new Label(labelMetadata);
-        });
+        if (@hasNextMission) {
+            param.mission = @Html(mission.getOrElse("").toString);
+            param.labelList = @Html(labelList.getOrElse("").toString);
+
+            // Initializes an object of labels from label metadata.
+            // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+            Object.keys(param.labelList).map(function (key, index) {
+                var labelMetadata = {
+                    canvasHeight: param.labelList[key].canvas_height,
+                    canvasWidth: param.labelList[key].canvas_width,
+                    canvasX: param.labelList[key].canvas_x,
+                    canvasY: param.labelList[key].canvas_y,
+                    gsvPanoramaId: param.labelList[key].gsv_panorama_id,
+                    heading: param.labelList[key].heading,
+                    labelId: param.labelList[key].label_id,
+                    labelType: param.labelList[key].label_type,
+                    pitch: param.labelList[key].pitch,
+                    zoom: param.labelList[key].zoom
+                };
+                param.labelList[key] = new Label(labelMetadata);
+            });
+        }
 
         svv.main = new Main(param);
 
