@@ -17,15 +17,18 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this._instructToCheckSidewalks = function () {
         if (!svl.isOnboarding()) {
-            // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
+            // Instruct a user to audit both sides of the streets once they have walked for 100 meters.
             var distance = taskContainer.getCompletedTaskDistance("kilometers");
-            if (distance >= 0.025) {
+            if (distance >= 0.1) {
                 var title = "Please check both sides of the street";
-                var message = "Remember, we would like you to check both sides of the street. " +
-                    "Please label accessibility issues like sidewalk obstacles and surface problems.";
+                var message = "As you walk, remember to check both sides of the street like this:";
+                var width = '450px';
+                var height = '291px';
+                var x = '50px';
+                var image = "img/examples/lookaround-example.gif";
                 tracker.push('PopUpShow_CheckBothSides');
 
-                popUpMessage.notify(title, message, function() {
+                popUpMessage.notifyWithImage(title, message, width, height, x, image, function() {
                     mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
                     mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
                 });
