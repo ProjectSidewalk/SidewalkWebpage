@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -21,71 +21,73 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
-    @if(user){
-        @if(user.get.role.getOrElse("") == "Turker"){
-            <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content" id="survey-modal">
-                        <div class="modal-header">
-                            <h4 class="modal-title" id="sign-in-label">Feedback Survey</h4>
-                        </div>
-                        <div class="modal-body">
 
-                            <form id="surveyForm" method="post">
-                                <ol>
-                                @for(surveyQuestion <- SurveyQuestionTable.listAll){
-                                    <li>
-                                    @if(surveyQuestion.required == true) {
-                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
-                                    } else {
-                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+    @if(Some(User)){
+        <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content" id="survey-modal">
+                    <div class="modal-header">
+                        <!-- only allow non-turkers to exit out of survey -->
+                        @if(user.get.role.getOrElse("") != "Turker") {
+                            <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
+                        }
+                        <h4 class="modal-title" id="sign-in-label">Feedback Survey</h4>
+                    </div>
+                    <div class="modal-body">
+                        <form id="surveyForm" method="post">
+                            <ol>
+                            @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                                <li>
+                                @if(surveyQuestion.required == true) {
+                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
+                                } else {
+                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                }
+                                @if(surveyQuestion.surveyInputType == "radio"){
+                                    <ul class="survey-option-holder">
+                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                        <li class="survey-option">
+                                            @if(surveyQuestion.required == true){
+                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
+                                            } else{
+                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                            }
+                                            <label>@surveyOption.surveyOptionText</label>
+                                        </li>
                                     }
-                                    @if(surveyQuestion.surveyInputType == "radio"){
+                                    </ul>
+                                }else{
+                                    @if(surveyQuestion.surveyInputType == "checkbox"){
                                         <ul class="survey-option-holder">
                                         @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
                                             <li class="survey-option">
-                                                @if(surveyQuestion.required == true){
-                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
-                                                } else{
-                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                                }
+                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                                 <label>@surveyOption.surveyOptionText</label>
                                             </li>
                                         }
                                         </ul>
-                                    }else{
-                                        @if(surveyQuestion.surveyInputType == "checkbox"){
-                                            <ul class="survey-option-holder">
-                                            @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
-                                                <li class="survey-option">
-                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                                    <label>@surveyOption.surveyOptionText</label>
-                                                </li>
-                                            }
-                                            </ul>
-                                        } else{
-                                            @if(surveyQuestion.surveyInputType == "free-text-feedback"){
-                                                @if(surveyQuestion.required == true){
-                                                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
-                                                } else{
-                                                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
-                                                }
+                                    } else{
+                                        @if(surveyQuestion.surveyInputType == "free-text-feedback"){
+                                            @if(surveyQuestion.required == true){
+                                                <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
+                                            } else{
+                                                <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
                                             }
                                         }
                                     }
-                                    </li>
                                 }
-                            </ol>
-                                <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                        </div>
-                    </div><!-- /.modal-content -->
-                </div><!-- /.modal-dialog -->
-            </div><!-- /.modal -->
-        }
-    }
+                                </li>
+                            }
+                        </ol>
+                            <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
+        </div><!-- /.modal -->
+}
 
     <div class="container toolUI" style = "visibility: hidden;">
         <div id="advanced-overlay">
@@ -129,6 +131,21 @@
                         You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.
                     </p>
                     <span class="overlay-option" id="accept-redirect">OK</span>
+                </div>
+            </div>
+        </div>
+        <div id="HIT-expiration-overlay">
+            <div class="overlay-text">
+                <div id="HIT-expiration-text">
+                    <p>
+                        <span class="overlay-header">Assignment Expired!</span>
+                    </p>
+                    <p>
+                        You should receive your bonus amount in the next day or two. If you did not submit your
+                        confirmation code on the mturk website, send us an email at
+                        <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your
+                        confirmation code (@{models.amt.AMTAssignmentTable.getMostRecentConfirmationCode(user.get.username).getOrElse("")}).
+                    </p>
                 </div>
             </div>
         </div>
@@ -389,6 +406,7 @@
                                 <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                             </div>
                             <div id="context-menu-tag-holder">
+                                <div class="add-tags-label">Add Tags:</div>
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
                                 <button class="context-menu-tag" name='tag' id="2"></button>
@@ -476,7 +494,7 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center">Mission</h1>
-                    @if(user){
+                    @if(user) {
                         @if(user.get.role.getOrElse("") == "Turker") {
                             <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
                         }
@@ -494,8 +512,8 @@
                             <div id="modal-mission-complete-map">
                             </div>
                             <div id="map-legend">
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></svg> This Mission</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></svg> Previous Missions</span>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> This Mission</span><br>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> Previous Missions</span>
                             </div>
 
                         </div>
@@ -553,7 +571,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -802,7 +820,19 @@
             svl.user = new User(userParam);
         }
         svl.userModel._user = svl.user;
-        @if(task) {
+        var hitExpired = false;
+        @if(user && user.get.role.getOrElse("") == "Turker") {
+            var asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
+            var now = new Date().getTime();
+            var timeRemaining = asmtEndTime - now;
+            if (timeRemaining < 0) {
+                hitExpired = true;
+            }
+        }
+        if(hitExpired) {
+            $(".toolUI").css({"visibility": "visible"});
+            $('#HIT-expiration-overlay').show();
+        } else @if(task) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 25;
@@ -825,6 +855,21 @@
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
+
+                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
+                    @if(panoId) {
+                        try {
+                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData){
+                                var lat = panoData.location.latLng.lat();
+                                var lng = panoData.location.latLng.lng();
+                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
+                            });
+                        } catch (e) {
+                            console.error("Invalid panorama ID");
+                        }                        
+                    } else { @if(lat && lng) {
+                        svl.map.setPosition(@lat.get, @lng.get);
+                    }}                    
                 }
                 else {
                     // no street view available in this range.
@@ -923,8 +968,9 @@
                 @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                    svl.asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0){
+                    @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");
@@ -971,7 +1017,6 @@
             mainParam.mission = @Html(mission.toJSON.toString);
 
             svl.main = new Main(mainParam);
-
         }
 
         @if(user){
@@ -1001,5 +1046,29 @@
         });
         }
 
+    </script>
+
+<!-- now we will start the logging behaviour -->
+<script>
+
+    // Log whether the survey was skipped or completed to WebpageActivityTable
+    // Log is of form: "SurveySkip"
+    $('#survey-skip-button').on('click', function(){
+        var activity = "SurveySkip";
+        var url = "/userapi/logWebpageActivity";
+        var async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(activity),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    });
     </script>
 }

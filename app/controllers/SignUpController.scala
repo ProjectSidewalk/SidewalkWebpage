@@ -1,9 +1,9 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService}
 import com.mohiva.play.silhouette.api.util.PasswordHasher
@@ -14,7 +14,6 @@ import formats.json.UserFormats._
 import forms.SignUpForm
 import models.services.UserService
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
@@ -52,8 +51,7 @@ class SignUpController @Inject() (
   def signUp(url: String) = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold (
@@ -96,8 +94,7 @@ class SignUpController @Inject() (
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
-                  val now = new DateTime(DateTimeZone.UTC)
-                  val timestamp: Timestamp = new Timestamp(now.getMillis)
+                  val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
@@ -114,8 +111,7 @@ class SignUpController @Inject() (
   def postSignUp = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold (
@@ -158,8 +154,7 @@ class SignUpController @Inject() (
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
-                  val now = new DateTime(DateTimeZone.UTC)
-                  val timestamp: Timestamp = new Timestamp(now.getMillis)
+                  val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
@@ -217,8 +212,7 @@ class SignUpController @Inject() (
           UserRoleTable.setRole(user.userId, "Anonymous")
 
           // Add Timestamp
-          val now = new DateTime(DateTimeZone.UTC)
-          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "AnonAutoSignUp", timestamp))
 
           env.eventBus.publish(SignUpEvent(user, request, request2lang))
@@ -232,8 +226,7 @@ class SignUpController @Inject() (
   def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
 
     UserTable.find(workerId) match {
@@ -285,8 +278,7 @@ class SignUpController @Inject() (
           UserCurrentRegionTable.assignEasyRegion(user.userId)
 
           // Add Timestamp
-          val now = new DateTime(DateTimeZone.UTC)
-          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
@@ -314,8 +306,7 @@ class SignUpController @Inject() (
     }
 
     // Log the sign in.
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
     // Logger.info(updatedAuthenticator.toString)

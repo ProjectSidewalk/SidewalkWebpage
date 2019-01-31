@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.util.UUID
 import java.util.Calendar
 import java.text.SimpleDateFormat
+import scala.concurrent.duration._
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
@@ -14,11 +15,12 @@ import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.postgresql.util.PSQLException
+import play.api.cache.Cache
 import play.api.Play.current
 
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: Int, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
+case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
 /**
  *
@@ -26,8 +28,6 @@ case class StreetEdge(streetEdgeId: Int, geom: LineString, source: Int, target: 
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
-  def source = column[Int]("source")
-  def target = column[Int]("target")
   def x1 = column[Float]("x1")
   def y1 = column[Float]("y1")
   def x2 = column[Float]("x2")
@@ -36,7 +36,7 @@ class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"),
   def deleted = column[Boolean]("deleted", O.Default(false))
   def timestamp = column[Option[Timestamp]]("timestamp")
 
-  def * = (streetEdgeId, geom, source, target, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((StreetEdge.apply _).tupled, StreetEdge.unapply)
+  def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((StreetEdge.apply _).tupled, StreetEdge.unapply)
 }
 
 
@@ -51,8 +51,6 @@ object StreetEdgeTable {
   implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
     val streetEdgeId = r.nextInt
     val geometry = r.nextGeometry[LineString]
-    val source = r.nextInt
-    val target = r.nextInt
     val x1 = r.nextFloat
     val y1 = r.nextFloat
     val x2 = r.nextFloat
@@ -60,7 +58,7 @@ object StreetEdgeTable {
     val wayType = r.nextString
     val deleted = r.nextBoolean
     val timestamp = r.nextTimestampOption
-    StreetEdge(streetEdgeId, geometry, source, target, x1, y1, x2, y2, wayType, deleted, timestamp)
+    StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp)
   })
 
   val db = play.api.db.slick.DB
@@ -124,7 +122,7 @@ object StreetEdgeTable {
   def countTotalStreets(): Int = db.withSession { implicit session =>
     all.size
   }
-  
+
   /**
     * This method returns the audit completion rate for the specified group of users.
     *
@@ -157,11 +155,13 @@ object StreetEdgeTable {
     * @return
     */
   def totalStreetDistance(): Float = db.withSession { implicit session =>
-    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+    Cache.getOrElse("totalStreetDistance()") {
+      // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
-    // get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
-    (distances.sum * 0.000621371).toFloat
+      // get length of each street segment, sum the lengths, and convert from meters to miles
+      val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+      (distances.sum * 0.000621371).toFloat
+    }
   }
 
   /**
@@ -172,29 +172,32 @@ object StreetEdgeTable {
     * @return
     */
   def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
+    val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
-    val auditTaskQuery = userType match {
-      case "All" => completedAuditTasks
-      case "Researcher" => researcherCompletedAuditTasks
-      case "Turker" => turkerCompletedAuditTasks
-      case "Registered" => regUserCompletedAuditTasks
-      case "Anonymous" => anonCompletedAuditTasks
-      case _ => completedAuditTasks
+    Cache.getOrElse(cacheKey, 1.hour.toSeconds.toInt) {
+      val auditTaskQuery = userType match {
+        case "All" => completedAuditTasks
+        case "Researcher" => researcherCompletedAuditTasks
+        case "Turker" => turkerCompletedAuditTasks
+        case "Registered" => regUserCompletedAuditTasks
+        case "Anonymous" => anonCompletedAuditTasks
+        case _ => completedAuditTasks
+      }
+
+      val edges = for {
+        _edges <- streetEdgesWithoutDeleted
+        _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
+      } yield _edges
+
+      // Gets tuple of (street_edge_id, num_completed_audits)
+      val edgesWithAuditCounts = edges.groupBy(x => x).map{
+        case (edge, group) => (edge.geom.transform(26918).length, group.length)
+      }
+
+      // Get length of each street segment, sum the lengths, and convert from meters to miles
+      val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
+      (distances.sum * 0.000621371).toFloat
     }
-
-    val edges = for {
-      _edges <- streetEdgesWithoutDeleted
-      _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
-    } yield _edges
-
-    // Gets tuple of (street_edge_id, num_completed_audits)
-    val edgesWithAuditCounts = edges.groupBy(x => x).map{
-      case (edge, group) => (edge.geom.transform(26918).length, group.length)
-    }
-
-    // Get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
-    (distances.sum * 0.000621371).toFloat
   }
 
   /**
@@ -311,8 +314,6 @@ object StreetEdgeTable {
     val selectAuditedStreetsQuery = Q.query[Int, StreetEdge](
       """SELECT street_edge.street_edge_id,
         |       street_edge.geom,
-        |       source,
-        |       target,
         |       x1,
         |       y1,
         |       x2,
@@ -336,8 +337,6 @@ object StreetEdgeTable {
     val selectAuditedStreetsQuery = Q.query[(String, Int), StreetEdge](
       """SELECT street_edge.street_edge_id,
         |       street_edge.geom,
-        |       source,
-        |       target,
         |       x1,
         |       y1,
         |       x2,
@@ -433,8 +432,6 @@ object StreetEdgeTable {
     val selectStreetsInARegionQuery = Q.query[Int, StreetEdge](
       """SELECT street_edge.street_edge_id,
         |       street_edge.geom,
-        |       source,
-        |       target,
         |       x1,
         |       y1,
         |       x2,
@@ -462,8 +459,6 @@ object StreetEdgeTable {
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
       """SELECT st_e.street_edge_id,
         |       st_e.geom,
-        |       st_e.source,
-        |       st_e.target,
         |       st_e.x1,
         |       st_e.y1,
         |       st_e.x2,
@@ -486,8 +481,6 @@ object StreetEdgeTable {
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
       """SELECT DISTINCT(street_edge.street_edge_id),
         |       street_edge.geom,
-        |       street_edge.source,
-        |       street_edge.target,
         |       street_edge.x1,
         |       street_edge.y1,
         |       street_edge.x2,
@@ -510,8 +503,6 @@ object StreetEdgeTable {
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
       """SELECT DISTINCT(st_e.street_edge_id),
         |       st_e.geom,
-        |       st_e.source,
-        |       st_e.target,
         |       st_e.x1,
         |       st_e.y1,
         |       st_e.x2,
@@ -532,8 +523,6 @@ object StreetEdgeTable {
     val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdge](
       """SELECT DISTINCT(street_edge.street_edge_id),
         |       street_edge.geom,
-        |       street_edge.source,
-        |       street_edge.target,
         |       street_edge.x1,
         |       street_edge.y1,
         |       street_edge.x2,

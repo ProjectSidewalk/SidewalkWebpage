@@ -1,0 +1,28 @@
+#left-column-control-pane {
+    position: relative;
+    left: -60px;
+    top: 290px;
+}
+
+#left-column-button-holder .button {
+    text-align: center;
+    width: 60px;
+    height: 90px;
+    font-size: 8pt;
+    border: 2px #ccc solid;
+    padding: 15px 0 0 0;
+}
+
+#left-column-button-holder img {
+    width: 30px;
+}
+
+#left-column-button-holder .popover-title{
+    text-align: center;
+}
+
+#left-column-button-holder .popover-content{
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}

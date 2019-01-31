@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 import javax.inject.Inject
@@ -17,7 +18,6 @@ import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
@@ -31,14 +31,20 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
+  // Helper methods
+  def isAdmin(user: Option[User]): Boolean = user match {
+    case Some(user) =>
+      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
+    case _ => false
+  }
+
   /**
     * Returns an audit page.
     *
     * @return
     */
   def audit(nextRegion: Option[String], retakeTutorial: Option[Boolean]) = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
@@ -115,8 +121,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
         val region: Option[NamedRegion] = RegionTable.selectANamedRegion(regionId)
         WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
@@ -180,6 +185,48 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
+    * Drops a researcher at a given location on the given street edge.
+    *
+    * @param streetEdgeId
+    * @param lat
+    * @param lng
+    * @param panoId
+    * @return
+    */
+  def auditLocation(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
+        val userId: UUID = user.userId
+        val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
+        val region: NamedRegion = regions.head
+
+        val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
+        val role: String = user.role.getOrElse("")
+        val payPerMeter: Double =
+          if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
+        val tutorialPay: Double =
+          if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
+        val mission: Mission =
+          MissionTable.resumeOrCreateNewAuditMission(userId, region.regionId, payPerMeter, tutorialPay).get
+
+        if(isAdmin(request.identity)){
+          panoId match {
+            case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), None, None, Some(panoId))))
+            case None =>
+              (lat, lng) match {
+                case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), Some(lat), Some(lng))))
+                case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None)))
+              }
+          }
+        } else {
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
+        }
+      case None => Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId"))
+    }    
+  }
+
+  /**
     * This method handles a comment POST request. It parse the comment and insert it into the comment table
     *
     * @return
@@ -201,8 +248,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             user.get.userId.toString
         }
         val ipAddress: String = request.remoteAddress
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
         val comment = AuditTaskComment(0, submission.auditTaskId, submission.missionId, submission.streetEdgeId, userId,
                                        ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
@@ -233,8 +279,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val user: Option[DBUser] = UserTable.find("anonymous")
             user.get.userId.toString
         }
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         val issue = StreetEdgeIssue(0, submission.streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
