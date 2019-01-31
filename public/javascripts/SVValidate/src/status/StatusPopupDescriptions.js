@@ -75,7 +75,7 @@ function StatusPopupDescriptions () {
             case "example-image-1":
                 return "This sidewalk is very uneven";
             case "example-image-2":
-                return "This sidewalk is very uneven";
+                return "Brick sidewalks are bumpy and can be difficult to pass";
             case "example-image-3":
                 return "This sidewalk is cracked";
             case "example-image-4":
