@@ -3,7 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String)
 
 @main(title) {
     @navbar(user)
@@ -211,7 +211,7 @@
                 </div>
                 <br>
                 <div class="row" id="anim-labels">
-                    <div class="col-sm-4 hidden-xs">of DC mapped</div>
+                    <div class="col-sm-4 hidden-xs">of @cityShortName mapped</div>
                     <div class="col-sm-4 hidden-xs">miles covered</div>
                     <div class="col-sm-4 hidden-xs">labels</div>
 
@@ -220,9 +220,9 @@
             </div>
             <script language="javascript">
                     if(@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))<100){
-                        document.getElementById('conditional-text').innerHTML = "Users like you have already mapped @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of Washington DC--that's nearly @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of the city!";
+                        document.getElementById('conditional-text').innerHTML = "Users like you have already mapped @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of @cityName, @stateAbbreviation--that's nearly @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of the city!";
                     } else {
-                        document.getElementById('conditional-text').innerHTML = "We did it! Users like you have mapped all @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of Washington DC. However, we are not done. The more users who contribute, the better quality data. So start mapping today!";
+                        document.getElementById('conditional-text').innerHTML = "We did it! Users like you have mapped all @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of @cityName, @stateAbbreviation. However, we are not done. The more users who contribute, the better quality data. So start mapping today!";
                     }
 
                     var percentageAnim = new CountUp("percentage", 0, @("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),0,2.5,{suffix:'%'});
