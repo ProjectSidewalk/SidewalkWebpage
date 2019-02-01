@@ -54,6 +54,7 @@ function PanoramaContainer (labelList) {
         $.ajax({
             url: labelUrl,
             async: false,
+            data: JSON.stringify(labelList),
             dataType: 'json',
             success: function (labelMetadata) {
                 labels.push(_createSingleLabel(labelMetadata));

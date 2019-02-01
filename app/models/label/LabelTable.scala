@@ -449,14 +449,25 @@ object LabelTable {
     * @return   True if we have enough labels, false otherwise.
     */
   def hasSufficientLabels(userId: UUID, labelTypeId: Int, missionLabelCount: Int): Boolean = db.withSession { implicit session =>
-    val labelCount: Int = getAvailableValidationLabelsCount(userId, labelTypeId)
+    val labelCount: Int = getAvailableValidationLabelsCount(userId, labelTypeId, None)
     println("user id: " + userId.toString)
     println("Number of labels: " + labelCount)
     return labelCount >= missionLabelCount
   }
 
-  def getAvailableValidationLabelsCount(userId: UUID, labelTypeId: Int): Int = db.withSession { implicit session =>
+  /**
+    * Returns how many labels this user can validate for a given label type. Users are not allowed
+    * to validate labels that they have already validated or labels that they have placed.
+    * @param userId       User ID.
+    * @param labelTypeId  Type of label.
+    * @return             Number of labels that the user can validate.
+    */
+  def getAvailableValidationLabelsCount(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
     val userIdString: String = userId.toString
+    val existingLabels: String = labelIdList.getOrElse(new ListBuffer[Int]).toList
+
+    // TODO: add a line that's something like
+    // AND lb.label_id NOT IN '$existingLabels' (this doesn't actually work)
     val selectQuery = Q.query[Int, Int](
       s"""SELECT COUNT(*)
          |FROM sidewalk.label AS lb,
@@ -486,12 +497,14 @@ object LabelTable {
     * @param labelType  Label that is retrieved from the database
     * @return LabelValidationMetadata of this label.
     */
-  def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelType: Int) : LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelType: Int, labelIdList: Option[ListBuffer[Int]]) : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
     var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
+    var selectedLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int]())
+
     // TODO: add code that also checks that we havne't already chosen this label
     val userIdString = userId.toString
-    val availableLabelCount: Int = getAvailableValidationLabelsCount(userId, labelType)
+    val availableLabelCount: Int = getAvailableValidationLabelsCount(userId, labelType, labelIdList)
     while (!exists) {
       val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
         s"""SELECT lb.label_id,
@@ -521,6 +534,7 @@ object LabelTable {
         |      AND gd.expired = false
         |      AND ms.mission_id = lb.mission_id
         |      AND ms.user_id NOT LIKE '$userIdString'
+        |      AND lb.label_id NOT IN '$selectedLabels'
         |      AND lb.label_id NOT IN (
         |           SELECT label_id
         |           FROM sidewalk.label_validation AS lv
@@ -554,8 +568,9 @@ object LabelTable {
     */
   def retrieveLabelListForValidation(userId: UUID, count: Int, labelType: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var labelList = new ListBuffer[LabelValidationMetadata]()
+    var labelIdList = new ListBuffer[Int]()
     for (a <- 1 to count) {
-      labelList += retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType)
+      labelList += retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
     }
     val labelSeq: Seq[LabelValidationMetadata] = labelList
     labelSeq

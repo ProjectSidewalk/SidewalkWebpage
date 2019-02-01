@@ -25,6 +25,7 @@ import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.Future
+import scala.collection.mutable.ListBuffer
 
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -129,11 +130,25 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * Gets the metadata for a single random label in the database.
     * @return Label metadata containing GSV metadata and label type
     */
-  def getRandomLabelData (labelType: Int) = UserAwareAction.async { implicit request =>
-    val userId: UUID = request.identity.get.userId
-    val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType)
-    val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
-    Future.successful(Ok(labelMetadataJson))
+  def getRandomLabelData (labelType: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[Seq[LabelValidationSubmission]]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        var labelIdList = new ListBuffer[Int]()
+        for (label: LabelValidationSubmission <- submission) {
+          labelIdList += label.labelId
+        }
+        println("Label Ids: " + labelIdList)
+
+        val userId: UUID = request.identity.get.userId
+        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
+        val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
+        Future.successful(Ok(labelMetadataJson))
+      }
+    )
   }
 
   /**
