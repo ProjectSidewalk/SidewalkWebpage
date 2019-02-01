@@ -464,7 +464,7 @@ object LabelTable {
     */
   def getAvailableValidationLabelsCount(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
     val userIdString: String = userId.toString
-    val existingLabels: String = labelIdList.getOrElse(new ListBuffer[Int]).toList
+    val existingLabels: List[Int] = labelIdList.getOrElse(new ListBuffer[Int]).toList
 
     // TODO: add a line that's something like
     // AND lb.label_id NOT IN '$existingLabels' (this doesn't actually work)
