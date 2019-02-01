@@ -21,8 +21,8 @@ trait MyPostgresDriver extends ExPostgresDriver
   def pgjson = "json" // jsonb support is in postgres 9.4.0 onward; for 9.3.x use "json"
 
   // Add back `capabilities.insertOrUpdate` to enable native `upsert` support; for postgres 9.5+
-  override protected def computeCapabilities: Set[Capability] =
-    super.computeCapabilities + JdbcProfile.capabilities.insertOrUpdate
+  //override protected def computeCapabilities: Set[Capability] =
+    //super.computeCapabilities + JdbcProfile.capabilities.insertOrUpdate
 
   override val api = new MyAPI {}
 
