@@ -134,27 +134,31 @@ function logWebpageActivity(activity){
     });
 }
 
+var vidBanner, bannerVid,
+    instructVideoContainer, instructVideos;
 
+var DEFAULT_VIDEO = 1;
+var TICK_SIZE = 500, requiredTicks = [18, 22, 17],
+    curVideo = 1, numTicks = 0;
+
+// Advances to the next instruction video if the instruction videos are in the user's viewport
+// and enough "ticks" have gone by
+function autoAdvanceLaptopVideos() {
+    numTicks++;
+
+    if(numTicks >= requiredTicks[curVideo - 1] && isElementVerticallyVisible(instructVideoContainer)) {
+        numTicks = 0;
+        curVideo++;
+
+        if(curVideo > requiredTicks.length) {
+            curVideo = DEFAULT_VIDEO;
+        }
+
+        switchToVideo(curVideo);
+    }
+}
 
 $( document ).ready(function() {
-
-    switchToVideo(1);
-    function autoAdvanceLaptopVideos(){
-        if (autoAdvanceLaptop) switchToVideo(1);
-        setTimeout(function () {
-            if (autoAdvanceLaptop) switchToVideo(2);
-            setTimeout(function () {
-                if (autoAdvanceLaptop) switchToVideo(3);
-                setTimeout(function () {
-                    autoAdvanceLaptopVideos()
-
-                }, 9000);
-
-            }, 11000);
-        }, 9660);
-    }
-    autoAdvanceLaptopVideos();
-
     // Triggered when "Watch Now" or the arrow next to it is clicked
     // Logs "Click_module=WatchNow" in WebpageActivityTable
     $("#playlink").on('click', function(e){
@@ -202,10 +206,13 @@ $( document ).ready(function() {
     instructVideos = [$('#vid1')[0],
         $('#vid2')[0],
         $('#vid3')[0]];
+
+    // Auto advance instruction videos
+    switchToVideo(DEFAULT_VIDEO);
+    setInterval(autoAdvanceLaptopVideos, 500);
 });
 
-var vidBanner, bannerVid,
-    instructVideoContainer, instructVideos;
+var pausedVideos = {};
 
 // Throttle to 1 call/second to avoid lag
 var lazyPlayVideosThrottled = _.throttle(lazyPlayVideos, 1000);
@@ -227,14 +234,16 @@ function lazyPlayVideos() {
 // Pauses a video if a certain element is outside of the viewport.
 // Plays the video otherwise.
 function lazyPlay(el, video) {
-    //console.log("inView = " + isElementInViewport(el), "isPlaying = " + isVideoPlaying(video));
+    //console.log("inView = " + isElementVerticallyVisible(el), "isPlaying = " + isVideoPlaying(video));
 
     if(isElementVerticallyVisible(el)) {
         if(!isVideoPlaying(video)) {
+            pausedVideos[video] = false;
             video.play();
         }
     } else {
         if(isVideoPlaying(video)) {
+            pausedVideos[video] = true;
             video.pause();
         }
     }
@@ -242,15 +251,13 @@ function lazyPlay(el, video) {
 
 // Returns true if the given video is playing
 function isVideoPlaying(video) {
-    return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2;
+    return !pausedVideos[video];
 }
 
 // Returns true if the given element is in the vertical viewport
 function isElementVerticallyVisible(el) {
     var rect = el.getBoundingClientRect();
+    var windowHeight = (window.innerHeight || document.documentElement.clientHeight);
 
-    return (
-        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-        rect.bottom >= 0
-    );
+    return (rect.top <= windowHeight) && ((rect.top + rect.height) >= 0);
 }
