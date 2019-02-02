@@ -13,7 +13,7 @@ import models.mission.MissionTable
 
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
-import slick.driver.JdbcProfile
+import _root_.slick.driver.JdbcProfile
 
 import scala.collection.mutable
 import scala.concurrent.Future

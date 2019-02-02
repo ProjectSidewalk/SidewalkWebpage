@@ -12,6 +12,9 @@ addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.4.11")
 // Use the Scalariform plugin to reformat the code
 addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.3.0")
 
+// Use the play enhancer plugin
+addSbtPlugin("com.typesafe.sbt" % "sbt-play-enhancer" % "1.1.0")
+
 
 // web plugins
 

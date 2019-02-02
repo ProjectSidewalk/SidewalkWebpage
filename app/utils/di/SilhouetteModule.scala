@@ -22,6 +22,7 @@ import models.user.User
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Play
 import play.api.Play.current
+import play.api.libs.ws.WSClient
 
 import scala.concurrent.duration._
 import scala.collection.immutable.ListMap
@@ -38,16 +39,23 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   def configure() {
     bind[UserService].to[UserServiceImpl]
-    bind[UserDAO].to[UserDAOImpl]
     bind[UserDAO].to[UserDAOSlick]
     bind[DelegableAuthInfoDAO[PasswordInfo]].to[PasswordInfoDAOSlick]
     bind[CacheLayer].to[PlayCacheLayer]
-    bind[HTTPLayer].to[PlayHTTPLayer]
     bind[IDGenerator].toInstance(new SecureRandomIDGenerator())
     bind[PasswordHasher].toInstance(new BCryptPasswordHasher)
     bind[FingerprintGenerator].toInstance(new DefaultFingerprintGenerator(false))
     bind[EventBus].toInstance(EventBus())
   }
+
+  /**
+      * Provides the HTTP layer implementation.
+      *
+      * @param client Play's WS client.
+      * @return The HTTP layer implementation.
+      */
+    @Provides
+    def provideHTTPLayer(client: WSClient): HTTPLayer = new PlayHTTPLayer(client)
 
   /**
    * Provides the Silhouette environment.
@@ -91,19 +99,15 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
   }
 
   /**
-   * Provides the auth info service.
-   *
-   * @param passwordInfoDAO The implementation of the delegable password auth info DAO.
-   * @return The auth info service instance.
-   */
+      * Provides the auth info repository.
+      *
+      * @param passwordInfoDAO The implementation of the delegable password auth info DAO.
+      * @return The auth info repository instance.
+      */
   @Provides
-  def provideAuthInfoRepository(
-                              passwordInfoDAO: DelegableAuthInfoDAO[PasswordInfo],
-                              oauth1InfoDAO: DelegableAuthInfoDAO[OAuth1Info],
-                              oauth2InfoDAO: DelegableAuthInfoDAO[OAuth2Info]): AuthInfoRepository = {
+  def provideAuthInfoRepository(passwordInfoDAO: DelegableAuthInfoDAO[PasswordInfo]): AuthInfoRepository =
+  new DelegableAuthInfoRepository(passwordInfoDAO)
 
-    new DelegableAuthInfoRepository(passwordInfoDAO, oauth1InfoDAO, oauth2InfoDAO)
-  }
   /**
    * Provides the avatar service.
    *
