@@ -229,6 +229,8 @@ function Main (params) {
             $(".toolUI").css('opacity', 0.5);
         });
         $('#sign-in-button').on('click', function(){
+            // refresh webpage page
+            document.location.reload();
             $("#sign-in-modal").removeClass("hidden");
             $("#sign-up-modal").addClass("hidden");
             $(".toolUI").css('opacity', 0.5);
