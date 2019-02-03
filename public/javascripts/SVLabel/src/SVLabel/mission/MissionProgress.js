@@ -93,7 +93,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         // 1. User has completed numMissionsBeforeSurvey number of missions
         // 2. The user has just completed more than 30% of the current mission
         // 3. The user has not been shown the survey before
-        if (completionRate > 0.30 && completionRate < 0.60) {
+        if (completionRate > 0.3 && completionRate < 0.9) {
             $.ajax({
                 async: true,
                 url: '/survey/display',
