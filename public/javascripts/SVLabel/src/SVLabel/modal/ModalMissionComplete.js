@@ -249,11 +249,11 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
 };
 
 ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, cumulativeAuditedDistance, remainingDistance, unit) {
-    if (!unit) unit = "kilometers";
+    if (!unit) unit = {units: 'kilometers'};
     remainingDistance = Math.max(remainingDistance, 0);
-    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
-    this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit);
-    this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
+    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit.units);
 
     // Update the reward HTML if the user is a turker.
     if (this._userModel.getUser().getProperty("role") === "Turker") {
