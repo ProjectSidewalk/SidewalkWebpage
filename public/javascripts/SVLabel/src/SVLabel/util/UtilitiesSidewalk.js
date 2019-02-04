@@ -376,15 +376,15 @@ function UtilitiesMisc (JSON) {
                         id: 'uneven'
                     },
                     'cracks': {
-                        keyNumber: 82,
-                        keyChar: 'R',
-                        text: 'c<tag-underline>r</tag-underline>acks',
+                        keyNumber: 75,
+                        keyChar: 'K',
+                        text: 'crac<tag-underline>k</tag-underline>s',
                         id: 'cracks'
                     },
                     'grass': {
-                        keyNumber: 71,
-                        keyChar: 'G',
-                        text: '<tag-underline>g</tag-underline>rass',
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'g<tag-underline>r</tag-underline>ass',
                         id: 'grass'
                     },
                     'narrow sidewalk': {
