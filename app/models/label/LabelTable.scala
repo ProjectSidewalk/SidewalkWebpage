@@ -8,9 +8,11 @@ import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
+import models.label.LabelValidationTable._
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
+
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
@@ -94,8 +96,11 @@ object LabelTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val completedAudits = auditTasks.filter(_.completed === true)
   val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
+  val gsvData = TableQuery[GSVDataTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
+  val labelValidations = TableQuery[LabelValidationTable]
+  val missions = TableQuery[MissionTable]
   val regions = TableQuery[RegionTable]
   val severities = TableQuery[LabelSeverityTable]
   val users = TableQuery[UserTable]
@@ -464,10 +469,19 @@ object LabelTable {
     */
   def getAvailableValidationLabelsCount(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
     val userIdString: String = userId.toString
-    val existingLabels: List[Int] = labelIdList.getOrElse(new ListBuffer[Int]).toList
+    val existingLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int])
 
-    // TODO: add a line that's something like
-    // AND lb.label_id NOT IN '$existingLabels' (this doesn't actually work)
+    val labelCount =  for{
+      _lb <- labels if _lb.labelTypeId === labelTypeId && _lb.deleted === false && _lb.tutorial === false
+      _lt <- labelTypes if _lt.labelTypeId === _lb.labelTypeId
+      _lp <- labelPoints if _lp.labelId === _lb.labelId
+      _lv <- labelValidations if _lb.labelId === _lv.labelId && _lv.userId =!= userIdString
+      _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
+      _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
+    } yield (_lb.labelId)
+
+    val length = labelCount.list.length
+    /*
     val selectQuery = Q.query[Int, Int](
       s"""SELECT COUNT(*)
          |FROM sidewalk.label AS lb,
@@ -480,6 +494,7 @@ object LabelTable {
          |      AND gd.expired = false
          |      AND ms.mission_id = lb.mission_id
          |      AND ms.user_id NOT LIKE '$userIdString'
+         |      AND lb.label_id NOT IN '$existingLabels'
          |      AND lb.label_id NOT IN (
          |          SELECT label_id
          |          FROM sidewalk.label_validation AS lv
@@ -489,6 +504,8 @@ object LabelTable {
     )
     val labelCount: Int = selectQuery(labelTypeId).list.head
     labelCount
+    */
+    length
   }
 
   /**
@@ -506,6 +523,7 @@ object LabelTable {
     val userIdString = userId.toString
     val availableLabelCount: Int = getAvailableValidationLabelsCount(userId, labelType, labelIdList)
     while (!exists) {
+      /*
       val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
         s"""SELECT lb.label_id,
         |       lt.label_type,
@@ -543,7 +561,23 @@ object LabelTable {
         |OFFSET floor(random() * $availableLabelCount)
         |LIMIT ?""".stripMargin
       )
+
       val singleLabel = selectQuery(1).list
+      */
+
+
+      val validationLabels = for {
+        _lb <- labels if _lb.labelTypeId === labelType && _lb.deleted === false && _lb.tutorial === false
+        _lt <- labelTypes if _lt.labelTypeId === _lb.labelTypeId
+        _lp <- labelPoints if _lb.labelId === _lp.labelId
+        _lv <- labelValidations if _lb.labelId === _lv.labelId && _lv.userId =!= userIdString
+        _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
+        _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
+      } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
+        _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
+
+      val singleLabel = validationLabels.take(1).list
+
       // Uses panorama ID to check if this panorama exists
       exists = panoExists(singleLabel(0)._3)
 
