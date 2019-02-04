@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.util.UUID
 import java.util.Calendar
 import java.text.SimpleDateFormat
+import scala.concurrent.duration._
 
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
@@ -14,6 +15,7 @@ import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import org.postgresql.util.PSQLException
+import play.api.cache.Cache
 import play.api.Play.current
 
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -120,7 +122,7 @@ object StreetEdgeTable {
   def countTotalStreets(): Int = db.withSession { implicit session =>
     all.size
   }
-  
+
   /**
     * This method returns the audit completion rate for the specified group of users.
     *
@@ -135,7 +137,7 @@ object StreetEdgeTable {
   }
 
   /**
-    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
+    * Calculate the proportion of the total miles of the city that have been audited at least auditCount times.
     *
     * @param auditCount
     * @return Float between 0 and 1
@@ -153,11 +155,13 @@ object StreetEdgeTable {
     * @return
     */
   def totalStreetDistance(): Float = db.withSession { implicit session =>
-    // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
+    Cache.getOrElse("totalStreetDistance()") {
+      // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
-    // get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
-    (distances.sum * 0.000621371).toFloat
+      // get length of each street segment, sum the lengths, and convert from meters to miles
+      val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+      (distances.sum * 0.000621371).toFloat
+    }
   }
 
   /**
@@ -168,33 +172,36 @@ object StreetEdgeTable {
     * @return
     */
   def auditedStreetDistance(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
+    val cacheKey = s"auditedStreetDistance($auditCount, $userType)"
 
-    val auditTaskQuery = userType match {
-      case "All" => completedAuditTasks
-      case "Researcher" => researcherCompletedAuditTasks
-      case "Turker" => turkerCompletedAuditTasks
-      case "Registered" => regUserCompletedAuditTasks
-      case "Anonymous" => anonCompletedAuditTasks
-      case _ => completedAuditTasks
+    Cache.getOrElse(cacheKey, 1.hour.toSeconds.toInt) {
+      val auditTaskQuery = userType match {
+        case "All" => completedAuditTasks
+        case "Researcher" => researcherCompletedAuditTasks
+        case "Turker" => turkerCompletedAuditTasks
+        case "Registered" => regUserCompletedAuditTasks
+        case "Anonymous" => anonCompletedAuditTasks
+        case _ => completedAuditTasks
+      }
+
+      val edges = for {
+        _edges <- streetEdgesWithoutDeleted
+        _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
+      } yield _edges
+
+      // Gets tuple of (street_edge_id, num_completed_audits)
+      val edgesWithAuditCounts = edges.groupBy(x => x).map{
+        case (edge, group) => (edge.geom.transform(26918).length, group.length)
+      }
+
+      // Get length of each street segment, sum the lengths, and convert from meters to miles
+      val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
+      (distances.sum * 0.000621371).toFloat
     }
-
-    val edges = for {
-      _edges <- streetEdgesWithoutDeleted
-      _tasks <- auditTaskQuery if _tasks.streetEdgeId === _edges.streetEdgeId
-    } yield _edges
-
-    // Gets tuple of (street_edge_id, num_completed_audits)
-    val edgesWithAuditCounts = edges.groupBy(x => x).map{
-      case (edge, group) => (edge.geom.transform(26918).length, group.length)
-    }
-
-    // Get length of each street segment, sum the lengths, and convert from meters to miles
-    val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
-    (distances.sum * 0.000621371).toFloat
   }
 
   /**
-    * Computes percentage of DC audited over time.
+    * Computes percentage of the city audited over time.
     *
     * author: Mikey Saugstad
     * date: 06/16/2017

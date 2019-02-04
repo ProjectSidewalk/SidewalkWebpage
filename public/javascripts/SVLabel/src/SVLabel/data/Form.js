@@ -33,6 +33,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     this.compileSubmissionData = function (task) {
         var data = {};
 
+        data.amt_assignment_id = svl.amtAssignmentId;
+
         var mission = missionContainer.getCurrentMission();
         mission.updateDistanceProgress();
         data.mission = {

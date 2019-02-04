@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -134,6 +134,21 @@
                 </div>
             </div>
         </div>
+        <div id="HIT-expiration-overlay">
+            <div class="overlay-text">
+                <div id="HIT-expiration-text">
+                    <p>
+                        <span class="overlay-header">Assignment Expired!</span>
+                    </p>
+                    <p>
+                        You should receive your bonus amount in the next day or two. If you did not submit your
+                        confirmation code on the mturk website, send us an email at
+                        <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your
+                        confirmation code (@{models.amt.AMTAssignmentTable.getMostRecentConfirmationCode(user.get.username).getOrElse("")}).
+                    </p>
+                </div>
+            </div>
+        </div>
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
                 <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
@@ -246,7 +261,7 @@
                 <div class="status-box">
                     <h1 class="status-holder-header-1">Current Neighborhood</h1>
 
-                    <h2><span id="status-holder-neighborhood-name"></span>D.C.</h2>
+                    <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
 
               <!--      <a href="" target="_blank" id="status-neighborhood-link">
                         <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
@@ -425,6 +440,7 @@
                 <div id="pop-up-message-foreground">
                     <h2 id="pop-up-message-title" class="bold">Title</h2>
                     <p id="pop-up-message-content">Content</p>
+                    <div id="pop-up-message-img-holder"></div>
                     <div id="pop-up-message-button-holder"></div>
                 </div>
             </div>
@@ -555,7 +571,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.role.getOrElse("") == "Turker" && MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0) {
+                                @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -804,7 +820,19 @@
             svl.user = new User(userParam);
         }
         svl.userModel._user = svl.user;
-        @if(task) {
+        var hitExpired = false;
+        @if(user && user.get.role.getOrElse("") == "Turker") {
+            var asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
+            var now = new Date().getTime();
+            var timeRemaining = asmtEndTime - now;
+            if (timeRemaining < 0) {
+                hitExpired = true;
+            }
+        }
+        if(hitExpired) {
+            $(".toolUI").css({"visibility": "visible"});
+            $('#HIT-expiration-overlay').show();
+        } else @if(task) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 25;
@@ -827,6 +855,21 @@
                     var newTask = svl.taskFactory.create(geojson, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
+
+                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
+                    @if(panoId) {
+                        try {
+                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData){
+                                var lat = panoData.location.latLng.lat();
+                                var lng = panoData.location.latLng.lng();
+                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
+                            });
+                        } catch (e) {
+                            console.error("Invalid panorama ID");
+                        }                        
+                    } else { @if(lat && lng) {
+                        svl.map.setPosition(@lat.get, @lng.get);
+                    }}                    
                 }
                 else {
                     // no street view available in this range.
@@ -925,8 +968,9 @@
                 @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                    svl.asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false) == 0){
+                    @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");
@@ -971,9 +1015,9 @@
             }
 
             mainParam.mission = @Html(mission.toJSON.toString);
+            mainParam.tutorialStreetId = @tutorialStreetId
 
             svl.main = new Main(mainParam);
-
         }
 
         @if(user){

@@ -33,44 +33,34 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
-    // Construct a bounding box for these maps that the user cannot move out of
-    // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-    var southWest = L.latLng(38.761, -77.262);
-    var northEast = L.latLng(39.060, -76.830);
-    var bounds = L.latLngBounds(southWest, northEast);
-
     // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
     var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
     var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
-        // set that bounding box as maxBounds to restrict moving the map
-        // see full maxBounds documentation:
-        // http://leafletjs.com/reference.html#map-maxbounds
-        maxBounds: bounds,
         maxZoom: 19,
         minZoom: 9
-    })
-        .fitBounds(bounds)
-        .setView([38.892, -77.038], 12);
+    });
 
     // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var choropleth = L.mapbox.map('admin-choropleth', "kotarohara.8e0c6890", {
-            // set that bounding box as maxBounds to restrict moving the map
-            // see full maxBounds documentation:
-            // http://leafletjs.com/reference.html#map-maxbounds
-            maxBounds: bounds,
             maxZoom: 19,
             minZoom: 9,
             legendControl: {
                 position: 'bottomleft'
             }
-        })
-            .fitBounds(bounds)
-            .setView([38.892, -77.038], 12);
+        });
     choropleth.scrollWheelZoom.disable();
+
+    // Set the city-specific default zoom and location.
+    $.getJSON('/cityMapParams', function(data) {
+        map.setView([data.city_center.lat, data.city_center.lng]);
+        map.setZoom(data.default_zoom);
+        choropleth.setView([data.city_center.lat, data.city_center.lng]);
+        choropleth.setZoom(data.default_zoom);
+    });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
@@ -625,7 +615,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                 "domain": [0,100]
                             },
                             "axis": {
-                                "title": "DC Coverage (%)"
+                                "title": "City Coverage (%)"
                             }
                         }
                     },

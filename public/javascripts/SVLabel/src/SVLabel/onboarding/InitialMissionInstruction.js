@@ -19,13 +19,16 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
         if (!svl.isOnboarding()) {
             // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
             var distance = taskContainer.getCompletedTaskDistance({units: 'kilometers'});
-            if (distance >= 0.025) {
+            if (distance >= 0.1) {
                 var title = "Please check both sides of the street";
-                var message = "Remember, we would like you to check both sides of the street. " +
-                    "Please label accessibility issues like sidewalk obstacles and surface problems.";
+                var message = "As you walk, remember to check both sides of the street like this:";
+                var width = '450px';
+                var height = '291px';
+                var x = '50px';
+                var image = "img/examples/lookaround-example.gif";
                 tracker.push('PopUpShow_CheckBothSides');
 
-                popUpMessage.notify(title, message, function() {
+                popUpMessage.notifyWithImage(title, message, width, height, x, image, function() {
                     mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
                     mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
                 });
@@ -176,18 +179,21 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this.start = function (neighborhood) {
         if (!svl.isOnboarding()) {
-            var title = "Let's get started!";
-            var message = "We have moved you to a street in " + neighborhood.getProperty("name") +
-                ", DC! You are currently standing at the intersection. Please find and label all the curb ramps and " +
-                "accessibility problems at this intersection.";
-            tracker.push('PopUpShow_LetsGetStarted');
+            $.getJSON('/cityShortNameParam', function(data) {
+                var cityShortName = data.city_short_name;
+                var title = "Let's get started!";
+                var message = "We have moved you to a street in " + neighborhood.getProperty("name") +
+                    ", " + cityShortName + "! You are currently standing at the intersection. Please find and label all " +
+                    "the curb ramps and accessibility problems at this intersection.";
+                tracker.push('PopUpShow_LetsGetStarted');
 
-            popUpMessage.notify(title, message, self._finishedInstructionToStart);
+                popUpMessage.notify(title, message, self._finishedInstructionToStart);
 
-            initialHeading = mapService.getPov().heading;
-            // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
-            initialPanoId = mapService.getPanoId();
-            lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
+                initialHeading = mapService.getPov().heading;
+                // lastHeadingTransformed = self._transformAngle(mapService.getPov().heading);
+                initialPanoId = mapService.getPanoId();
+                lookingAroundInterval = setInterval(self._pollLookingAroundHasFinished, 1);
+            });
         }
     };
 
