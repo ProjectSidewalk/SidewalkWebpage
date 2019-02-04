@@ -12,8 +12,8 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
-                         assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
-                         workerId: String, confirmationCode: Option[String], completed: Boolean)
+                         assignmentStart: Timestamp, assignmentEnd: Timestamp,
+                         workerId: String, confirmationCode: String, completed: Boolean)
 
 /**
  *
@@ -23,9 +23,9 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def hitId = column[String]("hit_id")
   def assignmentId = column[String]("assignment_id")
   def assignmentStart = column[Timestamp]("assignment_start")
-  def assignmentEnd = column[Option[Timestamp]]("assignment_end")
+  def assignmentEnd = column[Timestamp]("assignment_end")
   def workerId = column[String]("turker_id")
-  def confirmationCode = column[Option[String]]("confirmation_code")
+  def confirmationCode = column[String]("confirmation_code")
   def completed = column[Boolean]("completed")
 
   def * = (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed) <> ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
@@ -53,7 +53,7 @@ object AMTAssignmentTable {
       .filter(x => x.workerId === workerId && x.assignmentId === assignmentId)
       .sortBy(_.assignmentStart.desc)
       .map(_.confirmationCode)
-    db.run(confCodeQuery.result.headOption).map(_.flatten)
+    db.run(confCodeQuery.result.headOption)
   }
 
   def getMostRecentAssignmentId(workerId: String): Future[Option[String]] = db.run {
@@ -64,15 +64,20 @@ object AMTAssignmentTable {
     amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).result.headOption
   }
 
-  /**
-    * Update the `assignment_end` timestamp column of the specified amt_assignment row
-    *
-    * @param amtAssignmentId
-    * @param timestamp
-    * @return
-    */
-  def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp): Future[Int] = {
-    db.run(amtAssignments.filter(_.amtAssignmentId === amtAssignmentId).map(a => a.assignmentEnd).update(Some(timestamp)))
+  def getMostRecentAsmtEnd(workerId: String): Future[Option[Timestamp]] = db.run {
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).result.headOption
+  }
+
+  def getMostRecentConfirmationCode(workerId: String): Future[Option[String]] = db.run {
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).result.headOption
+  }
+
+  def getMostRecentAssignment(workerId: String): Future[Option[AMTAssignment]] = db.run {
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).result.headOption
+  }
+
+  def getAssignment(workerId: String, assignmentId: String): Future[Option[AMTAssignment]] = db.run {
+    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).result.headOption
   }
 
   /**

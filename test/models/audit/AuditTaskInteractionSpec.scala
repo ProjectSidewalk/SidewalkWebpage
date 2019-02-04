@@ -1,7 +1,8 @@
 package models.audit
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, UUID}
+import java.time.Instant
+import java.util.UUID
 
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, LineString, Polygon}
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
@@ -9,7 +10,6 @@ import models.label.{Label, LabelTable, LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable, RegionType, RegionTypeTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
-import org.joda.time.{DateTime, DateTimeZone}
 import org.specs2.mutable._
 import play.api.test._
 import play.api.test._
@@ -36,7 +36,7 @@ class AuditTaskInteractionSpec extends Specification  {
         ddl.create
 
         try {
-          lazy val timestamp: Timestamp = new Timestamp(new DateTime(DateTimeZone.UTC).getMillis)
+          lazy val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           lazy val auditTaskInteraction = AuditTaskInteraction(1, 1, "TestAction", Some("TestPanoramaId"),
             Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(1), timestamp)
 
@@ -79,7 +79,7 @@ class AuditTaskInteractionSpec extends Specification  {
 
         try {
           // Populate data
-          lazy val timestamp: Timestamp = new Timestamp(new DateTime(DateTimeZone.UTC).getMillis)
+          lazy val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           lazy val auditTaskInteraction = AuditTaskInteraction(1, 1, "TestAction", Some("TestPanoramaId"),
             Some(0.0f), Some(0.0f), Some(0.0f), Some(0.0f), Some(1), Some("TestNote"), Some(1), timestamp)
 
@@ -149,7 +149,7 @@ class AuditTaskInteractionSpec extends Specification  {
 
         try {
           // Populate data
-          lazy val timestamp: Timestamp = new Timestamp(new DateTime(DateTimeZone.UTC).getMillis)
+          lazy val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
           lazy val gf: GeometryFactory = new GeometryFactory()
           lazy val coordinates_1: Array[Coordinate] = Array(new Coordinate(0, 0), new Coordinate(1, 0))

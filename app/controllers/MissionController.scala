@@ -2,10 +2,10 @@ package controllers
 
 import javax.inject.Inject
 import java.sql.Timestamp
+import java.time.Instant
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import org.joda.time.{DateTime, DateTimeZone}
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats.AMTAssignmentCompletionSubmission
 import models.mission.{Mission, MissionTable}
@@ -67,9 +67,6 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
     val submission = request.body.validate[AMTAssignmentCompletionSubmission]
 
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
-
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
@@ -79,7 +76,6 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
         amtAssignmentId match {
           case Some(asgId) =>
             // Update the AMTAssignmentTable
-            AMTAssignmentTable.updateAssignmentEnd(asgId, timestamp)
             AMTAssignmentTable.updateCompleted(asgId, completed=true)
             Future.successful(Ok(Json.obj("success" -> true)))
           case None =>

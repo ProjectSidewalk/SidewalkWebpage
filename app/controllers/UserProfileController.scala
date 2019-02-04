@@ -7,7 +7,9 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
+import formats.json.MissionFormat._
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.mission.MissionTable
 import models.label.LabelTable
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
@@ -59,8 +61,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
             val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
             val properties = Json.obj(
               "street_edge_id" -> edge.streetEdgeId,
-              "source" -> edge.source,
-              "target" -> edge.target,
               "way_type" -> edge.wayType
             )
             Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
@@ -83,8 +83,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
         val properties = Json.obj(
           "street_edge_id" -> edge.streetEdgeId,
-          "source" -> edge.source,
-          "target" -> edge.target,
           "way_type" -> edge.wayType
         )
         Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
@@ -117,14 +115,12 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     *
     * @return
     */
-  def getSubmittedTasksWithLabels = UserAwareAction.async { implicit request =>
+  def getMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        AuditTaskTable.selectTasksWithLabels(user.userId)
-          .map(x => x.map(Json.toJson(_)))
-          .map { tasksWithLabels =>
-            Ok(JsArray(tasksWithLabels))
-          }
+        MissionTable.selectMissions(user.userId).map { missions =>
+          Ok(JsArray(missions.map(m => Json.toJson(m))))
+        }
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "Your user id could not be found."

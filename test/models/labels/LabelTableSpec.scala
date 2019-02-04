@@ -2,7 +2,8 @@ package models.labels
 
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, UUID}
+import java.time.Instant
+import java.util.UUID
 
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory}
 import controllers.helper.LabelControllerHelper
@@ -12,7 +13,6 @@ import models.label.{Label, LabelTable, LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable, RegionType, RegionTypeTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
-import org.joda.time.{DateTime, DateTimeZone}
 import org.specs2.mutable._
 import play.api.Logger._
 import play.api.test._
@@ -51,7 +51,7 @@ class LabelTableSpec extends Specification  {
 
         try {
           // Prepare data to populate the database
-          lazy val timestamp: Timestamp = new Timestamp(new DateTime(DateTimeZone.UTC).getMillis)
+          lazy val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
           lazy val gf: GeometryFactory = new GeometryFactory()
           lazy val coordinates_1: Array[Coordinate] = Array(new Coordinate(0, 0), new Coordinate(0.5, 0))
@@ -156,7 +156,7 @@ class LabelTableSpec extends Specification  {
 
         try {
           // Prepare data to populate the database
-          lazy val timestamp: Timestamp = new Timestamp(new DateTime(DateTimeZone.UTC).getMillis)
+          lazy val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
           lazy val gf: GeometryFactory = new GeometryFactory()
           lazy val coordinates_1: Array[Coordinate] = Array(new Coordinate(0, 0), new Coordinate(0.5, 0))

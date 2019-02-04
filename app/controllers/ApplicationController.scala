@@ -1,6 +1,10 @@
 package controllers
 
 import java.sql.Timestamp
+<<<<<<< HEAD
+=======
+import java.time.Instant
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
 
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -8,6 +12,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
+<<<<<<< HEAD
 import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.street.StreetEdgeTable
@@ -15,6 +20,14 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+=======
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import play.api.Play
+import play.api.Play.current
+import java.util.Calendar
+import play.api.mvc._
+
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -30,8 +43,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     * @return
     */
   def index = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
     val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
@@ -52,17 +64,32 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             val workerId: String = qString.get("workerId").get
             val assignmentId: String = qString.get("assignmentId").get
             val hitId: String = qString.get("hitId").get
+            val minutes: Int = qString.get("minutes").get.toInt
 
-            var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
+            var cal = Calendar.getInstance
+            cal.setTimeInMillis(timestamp.getTime)
+            cal.add(Calendar.MINUTE, minutes)
+            val asmtEndTime = new Timestamp(cal.getTime.getTime)
+
+            var activityLogText: String = "Referrer=" + ref + "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId + "_minutes=" + minutes.toString
             request.identity match {
               case Some(user) =>
                 // Have different cases when the user.username is the same as the workerId and when it isn't.
                 user.username match {
                   case `workerId` =>
-                    val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
                     activityLogText = activityLogText + "_reattempt=true"
+<<<<<<< HEAD
                     val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
                     val asgId: Future[Int] = AMTAssignmentTable.save(asg)
+=======
+                    // Unless they are mid-assignment, create a new assignment.
+                    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
+                    if (asmt.isEmpty) {
+                      val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
+                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
+                      val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                    }
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
                     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
                     Future.successful(Redirect("/audit"))
                   case _ =>
@@ -70,10 +97,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                     // Need to be able to login as a different user here, but the signout redirect isn't working.
                 }
               case None =>
+<<<<<<< HEAD
                 // Add an entry into the amt_assignment table.
                 val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
                 val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
                 val asgId: Future[Int] = AMTAssignmentTable.save(asg)
+=======
+                // Unless they are mid-assignment, create a new assignment.
+                val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
+                if (asmt.isEmpty) {
+                  val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
+                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
+                  val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                }
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
                 val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
                 Future.successful(Redirect(redirectTo))
@@ -104,6 +141,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case Some(user) =>
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
+<<<<<<< HEAD
               for {
                 auditedDistance <- StreetEdgeTable.auditedStreetDistance()
                 completionRate <- StreetEdgeTable.streetDistanceCompletionRate()
@@ -111,6 +149,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               } yield {
                 Ok(views.html.index("Project Sidewalk", Some(user), auditedDistance, completionRate, labelCount))
               }
+=======
+              val cityStr: String = Play.configuration.getString("city-id").get
+              val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
+              val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
+              val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName)))
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
@@ -134,8 +179,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def about = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_About", timestamp))
@@ -153,8 +197,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def mobile = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_MobileIndex", timestamp))
@@ -172,8 +215,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def developer = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
@@ -186,21 +228,20 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns an FAQ page.
+    * Returns a help  page.
     *
     * @return
     */
-  def faq = UserAwareAction.async { implicit request =>
+  def help = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_FAQ", timestamp))
-        Future.successful(Ok(views.html.faq("Project Sidewalk - FAQ", Some(user))))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Help", timestamp))
+        Future.successful(Ok(views.html.help("Project Sidewalk - Help", Some(user))))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/faq"))
+        Future.successful(Redirect("/anonSignUp?url=/help"))
     }
   }
 
@@ -210,8 +251,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     */
 
   def labelingGuide = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -224,8 +264,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideCurbRamps = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -238,8 +277,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideSurfaceProblems = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -252,8 +290,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideObstacles = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -266,8 +303,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideNoSidewalk = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -280,8 +316,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   def labelingGuideOcclusion = UserAwareAction.async { implicit request =>
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
     request.identity match {
@@ -301,8 +336,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def terms = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Terms", timestamp))
@@ -320,8 +354,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Results", timestamp))
@@ -339,12 +372,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   def demo = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))
-        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user))))
+        val cityStr: String = Play.configuration.getString("city-id").get
+        val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user), cityShortName)))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/demo"))
     }

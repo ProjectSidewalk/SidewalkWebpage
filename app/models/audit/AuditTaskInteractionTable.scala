@@ -37,8 +37,6 @@ case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, m
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
-case class UserAuditTime(userId: String, role: String, duration: Option[Float])
-
 
 class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
   def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
@@ -107,22 +105,13 @@ object AuditTaskInteractionTable {
     )
   })
 
-
-  implicit val userAuditTime = GetResult[UserAuditTime](r => {
-      UserAuditTime(
-        r.nextString,
-        r.nextString,
-        r.nextFloatOption
-      )
-    })
-
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
   val db = dbConfig.db
+
   val auditTasks = TableQuery[AuditTaskTable]
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
   val labels = TableQuery[LabelTable]
   val labelPoints = TableQuery[LabelPointTable]
-
 
 
   def save(interaction: AuditTaskInteraction): Future[Int] = db.run {
@@ -148,41 +137,6 @@ object AuditTaskInteractionTable {
       .join(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
       .map(_._2).result
   }
-
-  /**
-  * Select all audit task interaction times for non-researchers.
-    *
-  * @return
-  */
-def selectAllAuditTimes(): Future[Seq[UserAuditTime]] = {
-  val selectAuditTimesQuery =  sql"""
-      SELECT user_audit_times.user_id,
-             user_audit_times.role,
-             CAST(extract( second from SUM(diff) ) /60 +
-                  extract( minute from SUM(diff) ) +
-                  extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing
-      FROM (
-          SELECT audit_task.user_id,
-                 role.role,
-                 (timestamp - LAG(timestamp, 1) OVER(PARTITION BY audit_task.user_id ORDER BY timestamp)) AS diff
-          FROM audit_task_interaction
-          INNER JOIN audit_task
-              ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-          INNER JOIN sidewalk_user
-              ON audit_task.user_id = sidewalk_user.user_id
-          INNER JOIN user_role
-              ON audit_task.user_id = user_role.user_id
-          INNER JOIN role
-              ON user_role.role_id = role.role_id
-          WHERE action = 'ViewControl_MouseDown'
-              AND sidewalk_user.username <> 'anonymous'
-              AND role.role IN ('Registered', 'Anonymous', 'Turker')
-          ) user_audit_times
-      WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
-      GROUP BY user_id, role;""".as[UserAuditTime]
-
-  db.run(selectAuditTimesQuery)
-}
 
   def selectAuditTaskInteractionsOfAUser(regionId: Int, userId: UUID): Future[Seq[AuditTaskInteraction]] = db.run {
     sql"""SELECT audit_task_interaction.audit_task_interaction_id,

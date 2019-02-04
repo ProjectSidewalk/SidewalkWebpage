@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "4.5.0"
+version := "5.0.0"
 
 scalaVersion := "2.10.6"
 
@@ -25,6 +25,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   evolutions,
+  filters,
 //  jdbc,
 //  anorm, // change to "com.typesafe.play" %% "anorm" % "2.4.0" for Play 2.4
 //  cache,

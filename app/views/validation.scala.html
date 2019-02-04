@@ -1,0 +1,175 @@
+@import models.user.User
+@import models.mission.{MissionTable, Mission}
+@import models.label.LabelTable
+@import models.label.LabelTable.LabelValidationMetadata
+@import play.api.libs.json.Json
+@import play.api.libs.json.JsValue
+@import views.html.bootstrap._
+
+@(title: String, user: Option[User] = None, mission: Mission, labelList: JsValue)
+
+@main(title, Some("/validate")) {
+    @navbar(user, Some("/validate"))
+
+    <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
+    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+    <div class="container toolUI" style = "visibility: visible;">
+        <div id="svv-application-holder">
+            <div id="left-column-control-pane">
+                <div id="left-column-button-holder">
+                    <div id="left-column-jump-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
+                        <br>Skip
+                    </div>
+                    <div class="spacer10"></div>
+                    <div id="left-column-feedback-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                        Feedback
+                    </div>
+                </div>
+            </div>
+            <div id="upper-menu-holder">
+                <div id="upper-menu-title-bar"></div>
+                <div id="zoom-control-holder">
+                    <button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
+                        <br /><u>Z</u>oom In</button>
+                    <button id="zoom-out-button" class="button zoom-control-button" title="Press the &quot;Shift + Z&quot; keys" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>
+                </div>
+            </div>
+            <div id="svv-panorama-holder">
+                <div id="svv-panorama-outline">
+                    <div id="svv-panorama">
+
+                    </div>
+                </div>
+            </div>
+            <div id="modal-comment-holder" class="hidden">
+                <div id="modal-comment-box">
+                    <form id="comment-form">
+                        <div id="modal-comment-title" class="bold">
+                            <p>
+                                Any thoughts? Found something confusing? Spotted a bug? <br />
+                                Send us comments!
+                            </p>
+                        </div>
+                        <div id="modal-comment-content">
+                            <textarea id="modal-comment-textarea" placeholder=""></textarea>
+                        </div>
+                        <div>
+                            <button class="button" id="modal-comment-ok-button" type="button">OK</button>&nbsp;
+                            <button class="button" id="modal-comment-cancel-button" type="button">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="status-holder">
+                <div class="status-box">
+                    <div class="status-row">
+                        <span class="status-column-half">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
+                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>labels</small></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="status-box">
+                    <h1>Current Mission</h1>
+                    <h2 id="current-mission-description"></h2>
+                    <div id='status-current-mission-completion-bar'>
+                        <div id='status-current-mission-completion-bar-filler'>
+                            <div id='status-current-mission-completion-rate'></div>
+                        </div>
+                    </div>
+                    <br class="clear">
+                </div>
+                <div class="status-box">
+                    <h1 class="status-holder-header-1" id="label-type-example"></h1>
+                    <div id="example-image-holder">
+                        <img id="example-image-1" class="example-image">
+                        <img id="example-image-2" class="example-image">
+                        <img id="example-image-3" class="example-image">
+                        <img id="example-image-4" class="example-image">
+                    </div>
+                </div>
+                <div class="status-box">
+                    <h1 class="status-holder-header-2" id="label-type-counterexample"></h1>
+                    <div id="example-image-holder">
+                        <img id="counterexample-image-1" class="example-image">
+                        <img id="counterexample-image-2" class="example-image">
+                        <img id="counterexample-image-3" class="example-image">
+                        <img id="counterexample-image-4" class="example-image">
+                    </div>
+                </div>
+            </div>
+            <div id="example-image-popup-holder">
+                <div id="example-image-popup-title"></div>
+                <div id="example-image-popup-pointer"></div>
+                <img id="example-image-popup">
+                <div id="example-image-popup-description"></div>
+            </div>
+
+            <div id="validation-button-holder">
+                <button id="validation-agree-button" class="validation-button">
+                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
+                    <u>A</u>gree
+                </button>
+                <button id="validation-disagree-button" class="validation-button">
+                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
+                    <u>D</u>isagree
+                </button>
+                <button id="validation-not-sure-button" class="validation-button">
+                    <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
+                    <u>N</u>ot sure
+                </button>
+            </div>
+            <div id="modal-comment-background"></div>
+        </div>
+        <div id="mini-footer-audit">
+            Project Sidewalk is designed and operated by the
+            <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
+            <a href="http://www.umd.edu/">University of Maryland</a> and
+            <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
+            <span id="application-version"></span>
+        </div>
+    </div>
+
+
+    <script type="text/javascript">
+        // init();
+        var svv = svv || {};
+        var param = {};
+
+        param.dataStoreUrl = '@routes.ValidationTaskController.post';
+        param.mission = @Html(mission.toJSON.toString);
+        param.labelList = @Html(labelList.toString);
+
+        // Initializes an object of labels from label metadata.
+        // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+        Object.keys(param.labelList).map(function(key, index) {
+            var labelMetadata = {
+                canvasHeight: param.labelList[key].canvas_height,
+                canvasWidth: param.labelList[key].canvas_width,
+                canvasX: param.labelList[key].canvas_x,
+                canvasY: param.labelList[key].canvas_y,
+                gsvPanoramaId: param.labelList[key].gsv_panorama_id,
+                heading: param.labelList[key].heading,
+                labelId: param.labelList[key].label_id,
+                labelType: param.labelList[key].label_type,
+                pitch: param.labelList[key].pitch,
+                zoom: param.labelList[key].zoom
+            };
+            param.labelList[key] = new Label(labelMetadata);
+        });
+
+        svv.main = new Main(param);
+
+    </script>
+}

@@ -12,10 +12,17 @@ import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
+<<<<<<< HEAD
 import models.audit._
 import models.daos.UserDAOImpl
 import models.daos.slickdaos.DBTableDefinitions.UserTable
 import models.label._
+=======
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.daos.slick.DBTableDefinitions.UserTable
+import models.label.LabelTable.LabelMetadata
+import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
 import models.mission.MissionTable
 import models.region.{RegionCompletionTable, RegionPropertyTable}
 import models.street.StreetEdgeTable
@@ -210,7 +217,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
 
   /**
-    * Returns DC coverage percentage by Date
+    * Returns city coverage percentage by Date
     *
     * @return
     */
@@ -236,6 +243,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
+<<<<<<< HEAD
     RegionCompletionTable.selectAllNamedNeighborhoodCompletions.flatMap { neighborhoods =>
       val features = neighborhoods.map { neighborhood =>
         LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId).map { labelResults =>
@@ -250,6 +258,18 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       val jsonObjectList = features.map(Json.toJson(_))
       Ok(JsArray(jsonObjectList))
     }
+=======
+    // Groups by region_id... json looks like: {region_id: 123, labels: {NoCurbRamp: 5, Obstacle: 10, ...}}
+    val features: List[JsObject] = GlobalAttributeTable.selectNegativeAttributeCountsByRegion().groupBy(_._1).map {
+      case (rId, group) => Json.obj(
+        "region_id" -> rId,
+        "labels" -> Json.toJson(group.map(x => (x._2, x._3)).toMap)
+      )
+    }.toList
+
+    val jsonObjectList = features.map(x => Json.toJson(x))
+    Future.successful(Ok(JsArray(jsonObjectList)))
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
   }
 
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
@@ -281,6 +301,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       UserTable.find(username).flatMap {
         case Some(user) =>
+<<<<<<< HEAD
           val streetsFuture = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
           val features: Future[Seq[JsObject]] = streetsFuture.map { streets =>
             streets.map { edge =>
@@ -295,6 +316,18 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
               )
               Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
             }
+=======
+          val streets = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
+          val features: List[JsObject] = streets.map { edge =>
+            val coordinates: Array[Coordinate] = edge.geom.getCoordinates
+            val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
+          val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
+            val properties = Json.obj(
+              "street_edge_id" -> edge.streetEdgeId,
+              "way_type" -> edge.wayType
+            )
+            Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
           }
           features map { f => Ok(Json.obj("type" -> "FeatureCollection", "features" -> f)) }
         case _ => Future.failed(new Exception("No user found with that username."))
@@ -305,6 +338,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
+<<<<<<< HEAD
     * This method returns the onboarding interaction data
     *
     * @return
@@ -340,6 +374,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
 
   /**
+=======
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
     * This method returns the tasks and labels submitted by the given user.
     *
     * @param username Username
@@ -358,6 +394,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+<<<<<<< HEAD
   /**
     * Get records of audit task interactions of a user
     *
@@ -377,6 +414,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+=======
+>>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
   def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val auditTaskFuture: Future[Option[AuditTask]] = AuditTaskTable.find(taskId)

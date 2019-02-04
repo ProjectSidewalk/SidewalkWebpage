@@ -2,7 +2,8 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
-import java.util.{Calendar, TimeZone, UUID}
+import java.time.Instant
+import java.util.UUID
 
 import models.street._
 import models.utils.MyPostgresDriver
@@ -414,7 +415,7 @@ object AuditTaskTable {
     * @return
     */
   def selectANewTask(streetEdgeId: Int, user: Option[UUID]): Future[NewTask] = {
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Set completed to true if the user has already audited this street.
     val userCompletedFuture =
@@ -444,7 +445,7 @@ object AuditTaskTable {
    * @return
    */
   def selectANewTaskInARegion(regionId: Int, user: UUID): Future[Option[NewTask]] = {
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     streetEdgeIdsNotAuditedByUser(user, regionId).flatMap { streetEdgeIds =>
       // Get the streets that the user has not already completed.
@@ -470,7 +471,7 @@ object AuditTaskTable {
     * @return
     */
   def selectTasksInARegion(regionId: Int): Future[List[NewTask]] = {
-    val timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     db.run({
       val tasks = for {
         ser <- nonDeletedStreetEdgeRegions if ser.regionId === regionId
@@ -492,7 +493,7 @@ object AuditTaskTable {
     * @return
     */
   def selectTasksInARegion(regionId: Int, user: UUID): Future[List[NewTask]] = {
-    val timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     db.run({
       val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 

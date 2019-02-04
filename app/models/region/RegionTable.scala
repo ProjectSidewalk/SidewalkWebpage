@@ -70,6 +70,9 @@ object RegionTable {
     (_neighborhoods, _regionProperties) <- neighborhoods.joinLeft(regionProperties).on(_.regionId === _.regionId)
     if _regionProperties.map(_.key === "Neighborhood Name").isDefined
   } yield (_neighborhoods.regionId, _regionProperties.map(_.value), _neighborhoods.geom)
+  val namedNeighborhoods = for {
+    (_namedRegion, _neighborhood) <- namedRegions.joinLeft(neighborhoods).on(_._1 === _.regionId)
+  } yield _namedRegion
 
   /**
    * Returns a list of all the neighborhood regions
@@ -87,6 +90,10 @@ object RegionTable {
   def selectAllNamedNeighborhoods: Future[List[NamedRegion]] = db.run(
     namedRegions.to[List].result.map(_.map(NamedRegion.tupled))
   )
+
+  def regionIdToNeighborhoodName(regionId: Int): String = db.withSession { implicit session =>
+    namedNeighborhoods.filter(_._1 === regionId).map(_._2).list.head.get
+  }
 
   /**
     * Picks one of the regions with highest average priority.
