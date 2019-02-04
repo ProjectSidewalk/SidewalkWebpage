@@ -24,7 +24,7 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     /**
-     * This method takes a task parameters and set up the current task.
+     * This method takes a task parameters and set up the cturrent task.
      * @param geojson Description of the next task in json format.
      * @param currentLat Current latitude
      * @param currentLng Current longitude
@@ -78,7 +78,7 @@ function Task (geojson, currentLat, currentLng) {
             segment, lengthArray = [], minValue;
 
         for (var i = 0; i < lenCoord - 1; i++) {
-            segment = turf.linestring([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
+            segment = turf.lineString([ [coords[i][0], coords[i][1]], [coords[i + 1][0], coords[i + 1][1]] ]);
             lengthArray.push(_pointSegmentDistance(point, segment));
         }
         minValue = Math.min.apply(null, lengthArray);
@@ -127,7 +127,7 @@ function Task (geojson, currentLat, currentLng) {
     this._coordinatesToSegments = function (coordinates) {
         var returnSegments = [];
         for (var i = 1, len = coordinates.length; i < len; i++) {
-            returnSegments.push(turf.linestring([
+            returnSegments.push(turf.lineString([
                 [coordinates[i - 1][0], coordinates[i - 1][1]],
                 [coordinates[i][0], coordinates[i][1]]
             ]));
@@ -355,7 +355,7 @@ function Task (geojson, currentLat, currentLng) {
      * @returns {number} distance in meters
      */
     this.getDistanceFromStart = function (lat, lng, unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         var distance = 0;
         var walkedSegments = this._getSegmentsToAPoint(lat, lng);
 

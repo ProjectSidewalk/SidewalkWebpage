@@ -73,7 +73,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     function _checkEnRoute (threshold, unit) {
         var task = taskContainer.getCurrentTask();
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         if (!threshold) threshold = 0.05;  // 50 m
 
         if (task) {
