@@ -337,7 +337,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             currentLatLng = getPosition(),
             newTaskPosition = turf.point([lng, lat]),
             currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+            distance = turf.distance(newTaskPosition, currentPosition, {units: 'kilometers'});
         if (distance > 0.1) {
             self.setPosition(lat, lng, callback);
 
@@ -866,7 +866,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var currentLatLng = getPosition(),
                 currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
                 jumpPosition = turf.point([jumpLocation.lng, jumpLocation.lat]),
-                distance = turf.distance(jumpPosition, currentPosition, "kilometers");
+                distance = turf.distance(jumpPosition, currentPosition, {units: 'kilometers'});
 
             // Jump to the new location if it's really far away from his location.
             if (!status.jumpMsgShown && distance >= 0.01) {

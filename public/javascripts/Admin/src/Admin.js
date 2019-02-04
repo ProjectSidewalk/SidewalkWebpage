@@ -310,7 +310,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             // Calculate total distance audited in (km)
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.lineDistance(data.features[i]);
+                distanceAudited += turf.length(data.features[i]);
             }
             // document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
         });

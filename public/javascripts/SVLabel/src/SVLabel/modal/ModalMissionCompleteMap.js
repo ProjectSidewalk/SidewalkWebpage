@@ -216,8 +216,9 @@ ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
         "type": "FeatureCollection",
         "features": [{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [
             [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]]}}]};
+    console.log(neighborhoodGeom);
     // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
-    var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, "miles");
+    var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, {units: 'miles'});
     var bufferedCoors = bufferedGeom.features[0].geometry.coordinates[0];
     // cut out neighborhood from overlay
     this._overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);

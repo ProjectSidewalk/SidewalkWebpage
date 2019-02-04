@@ -192,7 +192,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
     this.update = function (mission, neighborhood) {
         // Update the horizontal bar chart to show how much distance the user has audited
-        var unit = "miles";
+        var unit = {units: 'miles'};
         var regionId = neighborhood.getProperty("regionId");
 
         var missionDistance = mission.getDistance("miles");

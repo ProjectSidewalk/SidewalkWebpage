@@ -42,8 +42,6 @@ function Task (geojson, currentLat, currentLng) {
 
         if (currentLat && currentLng) {
             this.setStreetEdgeDirection(currentLat, currentLng);
-        } else {
-            _furthestPoint = turf.point([currentLng, currentLat]);
         }
 
         paths = null;
@@ -340,7 +338,7 @@ function Task (geojson, currentLat, currentLng) {
 
     this.getAuditedDistance = function (unit) {
         if (typeof _furthestPoint === "undefined") return 0;
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         var latFurthest = _furthestPoint.geometry.coordinates[1];
         var lngFurthest = _furthestPoint.geometry.coordinates[0];
         return this.getDistanceFromStart(latFurthest, lngFurthest, unit);
@@ -360,7 +358,7 @@ function Task (geojson, currentLat, currentLng) {
         var walkedSegments = this._getSegmentsToAPoint(lat, lng);
 
         for (var i = 0, len = walkedSegments.length; i < len; i++) {
-            distance += turf.lineDistance(walkedSegments[i], unit);
+            distance += turf.length(walkedSegments[i], unit);
         }
         return distance;
     };
@@ -404,7 +402,7 @@ function Task (geojson, currentLat, currentLng) {
      */
     this.isConnectedTo = function (task, threshold, unit) {
         if (!threshold) threshold = 0.01;
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
 
         var lastCoordinate = self.getLastCoordinate(),
             targetCoordinate1 = task.getStartCoordinate(),
@@ -421,8 +419,8 @@ function Task (geojson, currentLat, currentLng) {
      * @returns {*}
      */
     this.lineDistance = function (unit) {
-        if (!unit) unit = "kilometers";
-        return turf.lineDistance(_geojson.features[0], unit);
+        if (!unit) unit = {units: 'kilometers'};
+        return turf.length(_geojson.features[0], unit);
     };
 
     /**
