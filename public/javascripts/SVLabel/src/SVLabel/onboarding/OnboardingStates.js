@@ -101,7 +101,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 0
             }],
             "message": {
-                "message": 'Good! Now, <span class="bold">click the curb ramp</span> ' +
+                "message": 'Good! Now <span class="bold">click the curb ramp</span> ' +
                 'beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
@@ -138,9 +138,9 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not ' +
-                'passable for a wheelchair user. ' +
-                '<span class="bold">Let’s rate it as 2, somewhat passable.</span><br> ' +
+                "message": 'Now you can rate the quality of the curb ramp where 1 is passable and 5 is not passable ' +
+                    'for a wheelchair user. Because it points into traffic a bit ' +
+                '<span class="bold">let’s rate it as 2, somewhat passable.</span><br> ' +
                 '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
                 "position": "top-right",
@@ -282,7 +282,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             }],
             "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -498,7 +498,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Now, let’s zoom out and look at the next intersection corner. ' +
+                "message": 'Now let’s zoom out and look at the next intersection corner. ' +
                 '<span class="bold">Click the “Zoom Out” button</span>.',
                 "position": "top-right",
                 "fade-direction": "fadeInUp",
@@ -628,7 +628,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 300
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on one of the curb ramps</span> to label it.',
+                "message": 'Now <span class="bold">click on one of the curb ramps</span> to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -768,7 +768,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             }],
             "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -892,7 +892,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             }],
             "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1253,7 +1253,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Great Job! We are almost done. Now, let\'s learn how to walk. ' +
+                "message": 'Great Job! We are almost done. Now let\'s learn how to walk. ' +
                 '<span class="bold">Grab and drag the Street View image</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -1277,7 +1277,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Good! Now, to figure out where to walk, you will follow the ' +
+                "message": 'Good! Now to figure out where to walk, you will follow the ' +
                 '<span class="bold" style="color: #ff0000;">red</span> line on this mini map.',
                 "position": "top-right",
                 "fade-direction": "fadeInLeft",
@@ -1339,7 +1339,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Now, let\'s actually take a step! <span class="bold">' +
+                "message": 'Now let\'s actually take a step! <span class="bold">' +
                 'Double click on the street</span> in the direction you want to move. ' +
                 'In this case, double click in the circle below.',
                 "position": "top-right",
@@ -1402,7 +1402,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Now, you can look for more issues at this ' +
+                "message": 'Now you can look for more issues at this ' +
                 'location. In this case, notice how there is a crosswalk with <span class="bold">no curb ramps</span>.',
                 "position": "top-right",
                 "width": 400,
