@@ -454,7 +454,7 @@ object LabelTable {
     * @return   True if we have enough labels, false otherwise.
     */
   def hasSufficientLabels(userId: UUID, labelTypeId: Int, missionLabelCount: Int): Boolean = db.withSession { implicit session =>
-    val labelCount: Int = getAvailableValidationLabelsCount(userId, labelTypeId, None)
+    val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
     println("user id: " + userId.toString)
     println("Number of labels: " + labelCount)
     return labelCount >= missionLabelCount
@@ -467,45 +467,28 @@ object LabelTable {
     * @param labelTypeId  Type of label.
     * @return             Number of labels that the user can validate.
     */
-  def getAvailableValidationLabelsCount(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
+  def getAvailableValidationLabels(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
     val userIdString: String = userId.toString
     val existingLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int])
+    val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
 
-    val labelCount =  for{
+    val validationLabels =  for {
       _lb <- labels if _lb.labelTypeId === labelTypeId && _lb.deleted === false && _lb.tutorial === false
       _lt <- labelTypes if _lt.labelTypeId === _lb.labelTypeId
-      _lp <- labelPoints if _lp.labelId === _lb.labelId
-      _lv <- labelValidations if _lb.labelId === _lv.labelId && _lv.userId =!= userIdString
       _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
       _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
     } yield (_lb.labelId)
 
-    val length = labelCount.list.length
+    val filterUserLabels = validationLabels.filterNot(_ inSet labelsValidatedByUser)
+
     /*
-    val selectQuery = Q.query[Int, Int](
-      s"""SELECT COUNT(*)
-         |FROM sidewalk.label AS lb,
-         |     sidewalk.gsv_data AS gd,
-         |     sidewalk.mission AS ms
-         |WHERE lb.deleted = false
-         |      AND lb.tutorial = false
-         |      AND lb.label_type_id = ?
-         |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
-         |      AND gd.expired = false
-         |      AND ms.mission_id = lb.mission_id
-         |      AND ms.user_id NOT LIKE '$userIdString'
-         |      AND lb.label_id NOT IN '$existingLabels'
-         |      AND lb.label_id NOT IN (
-         |          SELECT label_id
-         |          FROM sidewalk.label_validation AS lv
-         |          WHERE lv.user_id LIKE '$userIdString'
-         |      )
-       """.stripMargin
-    )
-    val labelCount: Int = selectQuery(labelTypeId).list.head
-    labelCount
+    println("[getAvailableValidationLabelsCount] UserId: " + userIdString)
+    println("[getAvailableValidationLabelsCount] Label Type " + labelTypeId)
+    println("[getAvailableValidationLabelsCount] Non-Filtered Length " + validationLabels.list.length)
+    println("[getAvailableValidationLabelsCount] Filtered Length: " + filterUserLabels.list.length)
     */
-    length
+
+    filterUserLabels.list.length
   }
 
   /**
@@ -521,8 +504,9 @@ object LabelTable {
 
     // TODO: add code that also checks that we havne't already chosen this label
     val userIdString = userId.toString
-    val availableLabelCount: Int = getAvailableValidationLabelsCount(userId, labelType, labelIdList)
+    val availableLabelCount: Int = getAvailableValidationLabels(userId, labelType, labelIdList)
     while (!exists) {
+
       /*
       val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
         s"""SELECT lb.label_id,
