@@ -1070,7 +1070,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             });
 
             // Creates chart showing how many audit page visits there are, how many people click via choropleth, how
-            // many click "start mapping" on navbar, and how many click "start mapping" on the landing page itself.
+            // many click "start exploring" on navbar, and how many click "start exploring" on the landing page itself.
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){

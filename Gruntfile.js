@@ -46,9 +46,9 @@ module.exports = function(grunt) {
             },
             dist_help: {
                 src: [
-                    'public/javascripts/help/src/*.js'
+                    'public/javascripts/Help/src/*.js'
                 ],
-                dest: 'public/javascripts/help/build/help.js'
+                dest: 'public/javascripts/Help/build/help.js'
             },
             validation_svl: {
                 src: [

@@ -187,9 +187,9 @@ $( document ).ready(function() {
         logWebpageActivity("Click_module=Quotes_author="+author);
     });
 
-    // Triggered when 'Start Mapping' in video container is clicked
+    // Triggered when 'Start Exploring' in video container is clicked
     // Logs "Click_module=StartMapping_location=Index"
     $(".bodyStartBtn").on("click", function(){
-        logWebpageActivity("Click_module=StartMapping_location=Index");
+        logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 });
