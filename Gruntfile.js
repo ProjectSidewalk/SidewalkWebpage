@@ -138,7 +138,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/css/*.css',
                     'public/javascripts/Progress/src/**/*.js',
                     'public/javascripts/Admin/src/**/*.js',
-                    'public/javascripts/help/src/*.js',
+                    'public/javascripts/Help/src/*.js',
                     'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/**/*.js',
                     'public/javascripts/SVValidate/css/*.css'
