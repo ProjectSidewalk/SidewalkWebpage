@@ -19,7 +19,8 @@ import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
 import models.user._
 import play.api.libs.json._
-import play.api.Logger
+import play.api.{Logger, Play}
+import play.api.Play.current
 import play.api.mvc._
 
 import scala.concurrent.Future
@@ -96,7 +97,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               if(retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
               else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
 
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user))))
+            val cityStr: String = Play.configuration.getString("city-id").get
+            val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+            val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user), cityShortName, tutorialStreetId)))
         }
       // For anonymous users.
       case None =>
@@ -138,7 +142,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
             val mission: Mission =
               MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user))))
+            val cityStr: String = Play.configuration.getString("city-id").get
+            val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+            val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user), cityShortName, tutorialStreetId)))
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
             Future.successful(Redirect("/audit"))
@@ -177,7 +184,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
           val mission: Mission =
             MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
-          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
+          val cityStr: String = Play.configuration.getString("city-id").get
+          val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+          val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId"))
@@ -210,17 +220,20 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val mission: Mission =
           MissionTable.resumeOrCreateNewAuditMission(userId, region.regionId, payPerMeter, tutorialPay).get
 
+        val cityStr: String = Play.configuration.getString("city-id").get
+        val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
+        val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
         if(isAdmin(request.identity)){
           panoId match {
-            case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), None, None, Some(panoId))))
+            case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
             case None =>
               (lat, lng) match {
-                case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), Some(lat), Some(lng))))
-                case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None)))
+                case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
+                case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, cityShortName, tutorialStreetId)))
               }
           }
         } else {
-          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user))))
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId)))
         }
       case None => Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId"))
     }    

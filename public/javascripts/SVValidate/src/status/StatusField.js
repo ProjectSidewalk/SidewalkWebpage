@@ -4,18 +4,16 @@
  * @returns {StatusField}
  * @constructor
  */
-function StatusField(missionMetadata) {
+function StatusField() {
     var self = this;
 
-    var labelNames = {
-        CurbRamp: "Curb Ramp",
-        NoCurbRamp: "Missing Curb Ramp",
-        Obstacle: "Obstacle in Path",
-        SurfaceProblem: "Surface Problem",
-        NoSidewalk: "Missing Sidewalk",
-        Occlusion: "Occlusion",
-        Other: "accessibility issue"
-    };
+    function createPrefix (labelType) {
+        if (labelType === "Obstacle") {
+            return "an ";
+        } else {
+            return "a ";
+        }
+    }
 
     /**
      * Resets the status field whenever a new mission is introduced.
@@ -44,17 +42,8 @@ function StatusField(missionMetadata) {
      * @param labelType {String} Name of label without spaces.
      */
     function updateLabelText(labelType) {
-        var labelName = labelNames[labelType];
-
-        var prefix = undefined;
-        if (labelType === "CurbRamp" || labelType === "NoCurbRamp" ||
-            labelType === "SurfaceProblem" || labelType === "NoSidewalk") {
-            prefix = "a ";
-        } else if (labelType === "Occlusion") {
-            prefix = " ";
-        } else {
-            prefix = "an "
-        }
+        var labelName = svv.labelNames[labelType];
+        var prefix = createPrefix(labelType);
 
         // Centers and updates title top of the validation interface.
         svv.ui.status.upperMenuTitle.html("Is this " + prefix + labelName.bold() + "?");
@@ -63,8 +52,8 @@ function StatusField(missionMetadata) {
         svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         // Changes text on on the status field (right side of the validation interface).
-        svv.ui.status.labelTypeExample.html(labelName);
         svv.ui.status.labelTypeCounterexample.html("NOT ".italics() + prefix + labelName);
+        svv.ui.status.labelTypeExample.html(labelName);
     }
 
     /**
@@ -103,6 +92,7 @@ function StatusField(missionMetadata) {
         svv.ui.status.progressText.html(completionRate);
     }
 
+    self.createPrefix = createPrefix;
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
     self.updateLabelCounts = updateLabelCounts;
