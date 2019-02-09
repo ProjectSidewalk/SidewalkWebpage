@@ -115,6 +115,8 @@ function switchToVideo(vidnum){
         document.getElementById("vid1").pause();
     }
 
+    // Reset auto-advance counter
+    numTicks = 0;
 }
 
 function logWebpageActivity(activity){
