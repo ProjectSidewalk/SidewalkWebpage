@@ -110,7 +110,6 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleDescriptionTextBoxBlur() {
-        console.log("blur");
         svl.tracker.push('ContextMenu_TextBoxBlur');
         svl.ribbon.enableModeSwitch();
         svl.keyboard.setStatus('focusOnTextField', false);
