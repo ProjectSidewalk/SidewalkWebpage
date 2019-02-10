@@ -216,18 +216,20 @@ $( document ).ready(function() {
 
 var pausedVideos = {};
 
-// Throttle to 1 call/second to avoid lag
-var lazyPlayVideosThrottled = _.throttle(lazyPlayVideos, 1000);
+// Wrappers around lazyPlayVideos()
+var lazyPlayVideosThrottled = _.throttle(lazyPlayVideos, 300);
+var lazyPlayVideosDebounced = _.debounce(lazyPlayVideos, 600);
 
 // Triggered when the user scrolls
 function onScroll() {
-    lazyPlayVideosThrottled();
+    lazyPlayVideosThrottled(); // While scrolling, run the check every 300ms
+    lazyPlayVideosDebounced(); // After scrolling, make sure we run the check
 }
 
 // lazyPlays our main videos
 function lazyPlayVideos() {
     lazyPlay(vidBanner, bannerVid);
-
+    return;
     for(var i = 0; i < instructVideos.length; i++) {
         lazyPlay(instructVideoContainer, instructVideos[i]);
     }
@@ -236,7 +238,7 @@ function lazyPlayVideos() {
 // Pauses a video if a certain element is outside of the viewport.
 // Plays the video otherwise.
 function lazyPlay(el, video) {
-    //console.log("inView = " + isElementVerticallyVisible(el), "isPlaying = " + isVideoPlaying(video));
+    console.log("inView = " + isElementVerticallyVisible(el), "isPlaying = " + isVideoPlaying(video));
 
     if(isElementVerticallyVisible(el)) {
         if(!isVideoPlaying(video)) {
