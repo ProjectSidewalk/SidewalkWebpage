@@ -150,9 +150,10 @@
         param.hasNextMission = @hasNextMission;
 
         if (@hasNextMission) {
-            param.mission = @Html(mission.getOrElse("").toString);
-            param.labelList = @Html(labelList.getOrElse("").toString);
+            param.mission = @Html(mission.getOrElse("\"\"").toString);
+            param.labelList = @Html(labelList.getOrElse("\"\"").toString);
 
+            console.log("Entered loop");
             // Initializes an object of labels from label metadata.
             // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
             Object.keys(param.labelList).map(function (key, index) {

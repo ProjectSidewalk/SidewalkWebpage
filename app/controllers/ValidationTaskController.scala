@@ -30,7 +30,7 @@ import scala.collection.mutable.ListBuffer
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class ValidationTaskPostReturnValue(mission: Option[Mission], labels: Option[JsValue])
+  case class ValidationTaskPostReturnValue(hasNextMission: Option[Boolean], mission: Option[Mission], labels: Option[JsValue])
 
   /**
     * Parse submitted validation data and submit to tables
@@ -65,13 +65,17 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           val missionId: Int = data.missionProgress.missionId
-          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
+          val possibleNextLabelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
+
+          val hasNextMission: Option[Boolean] = checkNextMission(user, data.missionProgress, possibleNextLabelTypeId)
+          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, possibleNextLabelTypeId)
           val labelList: Option[JsValue] = getLabelList(user, data.missionProgress)
 
-          ValidationTaskPostReturnValue(possibleNewMission, labelList)
+          ValidationTaskPostReturnValue(hasNextMission, possibleNewMission, labelList)
         }
 
         Future.successful(Ok(Json.obj(
+          "hasNextMission" -> returnValues.head.hasNextMission,
           "mission" -> returnValues.head.mission.map(_.toJSON),
           "labels" -> returnValues.head.labels
         )))
@@ -93,7 +97,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }
   }
-
 
   /**
     * Gets a list of new labels to validate if the mission is complete.
@@ -151,15 +154,23 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     )
   }
 
+  def checkNextMission (user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[Boolean] = {
+    val userId: UUID = user.get.userId
+    if (missionProgress.completed) {
+      val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      return Some(LabelTable.hasSufficientLabels(userId, labelTypeId, labelCount))
+    }
+    None
+  }
+
   /**
     * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
     * @param user
     * @param missionProgress  Metadata for this mission
     * @return
     */
-  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress): Option[Mission] = {
+  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
-    val labelTypeId: Int = missionProgress.labelTypeId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
     val role: String = user.get.role.getOrElse("")

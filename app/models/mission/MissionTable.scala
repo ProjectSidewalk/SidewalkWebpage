@@ -386,12 +386,16 @@ object MissionTable {
   }
 
   /**
-    * Accesses mission table for validation missions
-    * @param actions List containing "getValidationMission" or "getValidationOnboarding"
-    * @param userId Always required
-    * @param payPerLabel
-    * @param tutorialPay
-    * @return
+    * Provides functionality for accessing the mission table while the user is validating.
+    * @param actions            List of actions to perform.
+    * @param userId             User ID
+    * @param payPerLabel        Amount of money users receive per label validated (not fully implemented feature)
+    * @param tutorialPay        Amount of money users when completing onboarding tutorial (not implemented -- exists in case there is any onboarding)
+    * @param retakingTutorial   Indicates whether the user is retaking the turoial (not implemented -- tutorial doesn't exist).
+    * @param missionId          Mission ID of the current mission.
+    * @param labelsProgress     Numbers of labels that have been validated
+    * @param labelTypeId        Label Type ID of the next mission to be validated
+    * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
     */
   def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double],
                                           tutorialPay: Option[Double], retakingTutorial: Option[Boolean],
@@ -411,14 +415,13 @@ object MissionTable {
 
       if (actions.contains("getValidationMission")) {
         // Get the label type id for the next mission.
-        val newLabelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
-        getCurrentValidationMission(userId, newLabelTypeId) match {
+        getCurrentValidationMission(userId, labelTypeId.get) match {
           case Some(incompleteMission) =>
             Some(incompleteMission)
           case _ =>
             val labelsToValidate: Int = getNextValidationMissionLabelCount(userId)
             val pay: Double = labelsToValidate.toDouble * payPerLabel.get
-            Some(createNextValidationMission(userId, pay, labelsToValidate, newLabelTypeId))
+            Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get))
         }
       } else {
         None // If we are not trying to get a mission, return None

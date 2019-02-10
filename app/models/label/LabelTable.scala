@@ -455,7 +455,8 @@ object LabelTable {
     */
   def hasSufficientLabels(userId: UUID, labelTypeId: Int, missionLabelCount: Int): Boolean = db.withSession { implicit session =>
     val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
-    println("user id: " + userId.toString)
+    println("User Id: " + userId.toString)
+    println("Label Type: " + labelTypeId)
     println("Number of labels: " + labelCount)
     return labelCount >= missionLabelCount
   }
@@ -494,17 +495,17 @@ object LabelTable {
   /**
     * Retrieves a random label that has an existing GSVPanorama.
     * Will keep querying for a random label until a suitable label has been found.
-    * @param labelType  Label that is retrieved from the database
+    * @param labelTypeId  Label that is retrieved from the database
     * @return LabelValidationMetadata of this label.
     */
-  def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelType: Int, labelIdList: Option[ListBuffer[Int]]) : LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]) : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
     var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
     var selectedLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int]())
 
     // TODO: add code that also checks that we havne't already chosen this label
     val userIdString = userId.toString
-    val availableLabelCount: Int = getAvailableValidationLabels(userId, labelType, labelIdList)
+    val availableLabelCount: Int = getAvailableValidationLabels(userId, labelTypeId, labelIdList)
     while (!exists) {
 
       /*
@@ -549,18 +550,25 @@ object LabelTable {
       val singleLabel = selectQuery(1).list
       */
 
+      val r = new scala.util.Random
+      val labelOffset = r.nextInt(availableLabelCount - selectedLabels.length)
+      println("labelOffset is: " + labelOffset)
 
-      val validationLabels = for {
-        _lb <- labels if _lb.labelTypeId === labelType && _lb.deleted === false && _lb.tutorial === false
+
+      val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
+      var validationLabels = for {
+        _lb <- labels if _lb.labelTypeId === labelTypeId && _lb.deleted === false && _lb.tutorial === false
         _lt <- labelTypes if _lt.labelTypeId === _lb.labelTypeId
         _lp <- labelPoints if _lb.labelId === _lp.labelId
-        _lv <- labelValidations if _lb.labelId === _lv.labelId && _lv.userId =!= userIdString
         _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
         _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
       } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
         _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
 
-      val singleLabel = validationLabels.take(1).list
+      validationLabels = validationLabels.filterNot(_._1 inSet labelsValidatedByUser)
+      validationLabels = validationLabels.filterNot(_._1 inSet selectedLabels)
+
+      val singleLabel = validationLabels.drop(labelOffset).take(1).list
 
       // Uses panorama ID to check if this panorama exists
       exists = panoExists(singleLabel(0)._3)
@@ -570,6 +578,7 @@ object LabelTable {
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
         GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
+        selectedLabels += singleLabel(0)._1
       } else {
         println("Panorama " + singleLabel(0)._3 + " doesn't exist")
         GSVDataTable.markExpired(singleLabel(0)._3, true)

@@ -95,7 +95,9 @@ function Main (param) {
         svv.missionContainer.createAMission(param.mission);
     }
 
+    console.log("Has next mission? " + param.hasNextMission);
     if (param.hasNextMission) {
+        console.log("Calling init methods");
         _initUI();
         _init();
     } else {
