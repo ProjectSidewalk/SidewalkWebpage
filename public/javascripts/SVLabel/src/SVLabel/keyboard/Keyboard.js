@@ -324,11 +324,20 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             switch (e.keyCode) {
                 case 13:
                     // "Enter"
-                    _closeContextMenu(13);
+                    if(contextMenu.isOpen()) {
+                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        contextMenu.hide();
+                        contextMenu.handleSeverityPopup();
+                        svl.tracker.push("ContextMenu_ClosePressEnter");
+                    }
                     break;
                 case 27:
                     // "Escape"
-                    _closeContextMenu(27);
+                    if(contextMenu.isOpen()) {
+                        svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        contextMenu.hide();
+                        svl.tracker.push("ContextMenu_CloseKeyboardShortcut");
+                    }
 
                     if (canvas.getStatus('drawing')) {
                         canvas.cancelDrawing();
@@ -348,7 +357,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         if (contextMenu.isOpen()) {
             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
             contextMenu.hide();
-            contextMenu.handleSeverityPopup();
             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                 keyCode: key
             });
