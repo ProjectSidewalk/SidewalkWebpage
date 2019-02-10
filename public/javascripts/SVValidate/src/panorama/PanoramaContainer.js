@@ -64,6 +64,15 @@ function PanoramaContainer (labelList) {
         });
     }
 
+    /**
+     * Gets the list of labels assigned to this panorama for the current mission.
+     * NOTE: This is used for testing purposes. It does not have any functionality for the
+     * validation interface at the moment.
+     * @returns {*} Returns the label list for this panorama.
+     */
+    function getLabels () {
+        return labels;
+    }
 
     /**
      * Gets a specific property from the PanoramaContainer.
@@ -131,6 +140,7 @@ function PanoramaContainer (labelList) {
     }
 
     self.fetchNewLabel = fetchNewLabel;
+    self.getLabels = getLabels;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
     self.setProperty = setProperty;

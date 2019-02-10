@@ -49,11 +49,13 @@ function Form(url) {
             success: function (result) {
                 if (result) {
                     // If a mission was returned after posting data, create a new mission.
-                    if (result.mission) {
+                    if (result.hasNextMission && result.mission) {
                         svv.missionContainer.createAMission(result.mission);
                         svv.panoramaContainer.reset();
                         svv.panoramaContainer.setLabelList(result.labels);
                         svv.panoramaContainer.loadNewLabelOntoPanorama();
+                    } else {
+
                     }
                 }
             },
