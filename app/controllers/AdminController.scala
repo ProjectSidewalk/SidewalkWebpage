@@ -180,7 +180,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
 
   /**
-    * Returns DC coverage percentage by Date
+    * Returns city coverage percentage by Date
     *
     * @return
     */

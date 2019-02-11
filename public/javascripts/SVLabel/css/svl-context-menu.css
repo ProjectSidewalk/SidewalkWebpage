@@ -175,3 +175,7 @@
     font-size: 10px;
     outline: none;
 }
+
+tag-underline {
+    text-decoration: underline;
+}

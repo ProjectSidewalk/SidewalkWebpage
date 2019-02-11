@@ -12,6 +12,7 @@ import play.api.mvc.{ RequestHeader, Result }
 import utils.di.SilhouetteModule
 import controllers.headers._
 import play.api.libs.concurrent.Akka
+import play.filters.gzip.GzipFilter
 
 import scala.concurrent.Future
 import play.api.Play.current
@@ -20,7 +21,7 @@ import utils.actor.RecalculateStreetPriorityActor
 /**
  * The global object.
  */
-object Global extends Global {
+object Global extends WithFilters(new GzipFilter()) with Global {
   /**
    * Handling errors
    * http://alvinalexander.com/scala/handling-scala-play-framework-2-404-500-errors
