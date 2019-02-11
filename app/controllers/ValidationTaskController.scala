@@ -68,8 +68,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           val possibleNextLabelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
 
           val hasNextMission: Option[Boolean] = checkNextMission(user, data.missionProgress, possibleNextLabelTypeId)
-          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, possibleNextLabelTypeId)
-          val labelList: Option[JsValue] = getLabelList(user, data.missionProgress)
+          println("Has next mission? " + hasNextMission)
+          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, possibleNextLabelTypeId, hasNextMission)
+          val labelList: Option[JsValue] = getLabelList(user, data.missionProgress, possibleNextLabelTypeId, hasNextMission)
 
           ValidationTaskPostReturnValue(hasNextMission, possibleNewMission, labelList)
         }
@@ -104,14 +105,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress  Metadata for this mission
     * @return                 List of label metadata (if this mission is complete).
     */
-  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress): Option[JsValue] = {
+  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int, hasNextMission: Option[Boolean]): Option[JsValue] = {
     val userId: UUID = user.get.userId
-    if (missionProgress.completed) {
+    if (missionProgress.completed && hasNextMission.get) {
+      println("Getting a label list for validation")
       val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
-      val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
-      return Some(getLabelListForValidation(userId, labelCount, labelTypeId))
+      Some(getLabelListForValidation(userId, labelCount, labelTypeId))
+    } else {
+      println("Not returning a label list")
+      None
     }
-    None
   }
   
   /**
@@ -169,18 +172,20 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress  Metadata for this mission
     * @return
     */
-  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[Mission] = {
+  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int, hasNextMission: Option[Boolean]): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
     val role: String = user.get.role.getOrElse("")
     val labelsProgress: Int = missionProgress.labelsProgress
 
-    if (missionProgress.completed) {
-      // payPerLabel is currently always 0 because this is only available to volunteers.
-      val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
+    if (missionProgress.completed && hasNextMission.get) {
+        println("Getting another mission")
+        // payPerLabel is currently always 0 because this is only available to volunteers.
+        val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
+        MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
     } else {
+      println("Not returning a new mission")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }

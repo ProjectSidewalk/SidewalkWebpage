@@ -551,6 +551,7 @@ object LabelTable {
       */
 
       val r = new scala.util.Random
+      println("Available label count: " + availableLabelCount + "selected labels: " + selectedLabels.length)
       val labelOffset = r.nextInt(availableLabelCount - selectedLabels.length)
       println("labelOffset is: " + labelOffset)
 
