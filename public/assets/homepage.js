@@ -188,7 +188,7 @@ $( document ).ready(function() {
     });
 
     // Triggered when 'Start Exploring' in video container is clicked
-    // Logs "Click_module=StartMapping_location=Index"
+    // Logs "Click_module=StartExploring_location=Index"
     $(".bodyStartBtn").on("click", function(){
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });

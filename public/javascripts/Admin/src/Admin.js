@@ -1072,16 +1072,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             // Creates chart showing how many audit page visits there are, how many people click via choropleth, how
             // many click "start exploring" on navbar, and how many click "start exploring" on the landing page itself.
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Index", function(clickStartMappingMainIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Index", function(clickStartExploringMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 // TODO switch this to make use of versioning on the backend once it is implemented...
                 // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
                 var numVisitAudit = visitAuditEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
-                var numClickStartMappingMainIndex = clickStartMappingMainIndexEvents[0].filter(function(event){
+                var numClickStartMappingMainIndex = clickStartExploringMainIndexEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
                 var numChoroplethClicks = choroplethClickEvents[0].filter(function(event){
