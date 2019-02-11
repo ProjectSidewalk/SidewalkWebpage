@@ -455,10 +455,7 @@ object LabelTable {
     */
   def hasSufficientLabels(userId: UUID, labelTypeId: Int, missionLabelCount: Int): Boolean = db.withSession { implicit session =>
     val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
-    println("User Id: " + userId.toString)
-    println("Label Type: " + labelTypeId)
-    println("Number of labels: " + labelCount)
-    return labelCount >= missionLabelCount
+    labelCount >= missionLabelCount
   }
 
   /**
@@ -481,14 +478,6 @@ object LabelTable {
     } yield (_lb.labelId)
 
     val filterUserLabels = validationLabels.filterNot(_ inSet labelsValidatedByUser)
-
-    /*
-    println("[getAvailableValidationLabelsCount] UserId: " + userIdString)
-    println("[getAvailableValidationLabelsCount] Label Type " + labelTypeId)
-    println("[getAvailableValidationLabelsCount] Non-Filtered Length " + validationLabels.list.length)
-    println("[getAvailableValidationLabelsCount] Filtered Length: " + filterUserLabels.list.length)
-    */
-
     filterUserLabels.list.length
   }
 
@@ -507,54 +496,8 @@ object LabelTable {
     val userIdString = userId.toString
     val availableLabelCount: Int = getAvailableValidationLabels(userId, labelTypeId, labelIdList)
     while (!exists) {
-
-      /*
-      val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
-        s"""SELECT lb.label_id,
-        |       lt.label_type,
-        |       lb.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height
-        |FROM sidewalk.label AS lb,
-        |     sidewalk.label_type AS lt,
-        |     sidewalk.label_point AS lp,
-        |     sidewalk.label_validation AS lv,
-        |     sidewalk.gsv_data AS gd,
-        |     sidewalk.mission AS ms
-        |WHERE lp.label_id = lb.label_id
-        |      AND lt.label_type_id = lb.label_type_id
-        |      AND lb.label_type_id = $labelType
-        |      AND lb.deleted = false
-        |      AND lb.tutorial = false
-        |      AND lv.label_id = lb.label_id
-        |      AND lv.user_id NOT LIKE '$userIdString'
-        |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
-        |      AND gd.expired = false
-        |      AND ms.mission_id = lb.mission_id
-        |      AND ms.user_id NOT LIKE '$userIdString'
-        |      AND lb.label_id NOT IN '$selectedLabels'
-        |      AND lb.label_id NOT IN (
-        |           SELECT label_id
-        |           FROM sidewalk.label_validation AS lv
-        |           WHERE lv.user_id LIKE '$userIdString'
-        |      )
-        |OFFSET floor(random() * $availableLabelCount)
-        |LIMIT ?""".stripMargin
-      )
-
-      val singleLabel = selectQuery(1).list
-      */
-
       val r = new scala.util.Random
-      println("Available label count: " + availableLabelCount + "selected labels: " + selectedLabels.length)
       val labelOffset = r.nextInt(availableLabelCount - selectedLabels.length)
-      println("labelOffset is: " + labelOffset)
-
 
       val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
       var validationLabels = for {
@@ -581,7 +524,6 @@ object LabelTable {
         GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
         selectedLabels += singleLabel(0)._1
       } else {
-        println("Panorama " + singleLabel(0)._3 + " doesn't exist")
         GSVDataTable.markExpired(singleLabel(0)._3, true)
       }
     }

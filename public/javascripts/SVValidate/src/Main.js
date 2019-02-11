@@ -108,7 +108,8 @@ function Main (param) {
     if (param.hasNextMission) {
         _init();
     } else {
-        console.log("Sorry! Nothing here to see :)");
+        svv.form = new Form(param.dataStoreUrl);
+        svv.tracker = new Tracker();
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
         svv.modalNoNewMission.show();
     }

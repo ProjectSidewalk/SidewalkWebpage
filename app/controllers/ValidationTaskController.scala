@@ -68,7 +68,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           val possibleNextLabelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
 
           val hasNextMission: Option[Boolean] = checkNextMission(user, data.missionProgress, possibleNextLabelTypeId)
-          println("Has next mission? " + hasNextMission)
           val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, possibleNextLabelTypeId, hasNextMission)
           val labelList: Option[JsValue] = getLabelList(user, data.missionProgress, possibleNextLabelTypeId, hasNextMission)
 
@@ -108,11 +107,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int, hasNextMission: Option[Boolean]): Option[JsValue] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed && hasNextMission.get) {
-      println("Getting a label list for validation")
       val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
       Some(getLabelListForValidation(userId, labelCount, labelTypeId))
     } else {
-      println("Not returning a label list")
       None
     }
   }
@@ -180,12 +177,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     val labelsProgress: Int = missionProgress.labelsProgress
 
     if (missionProgress.completed && hasNextMission.get) {
-        println("Getting another mission")
         // payPerLabel is currently always 0 because this is only available to volunteers.
         val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
         MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
     } else {
-      println("Not returning a new mission")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }
