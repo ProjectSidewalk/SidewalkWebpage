@@ -7,6 +7,72 @@
     text-align: justify;
 }
 
+#modal-skip-background, #modal-comment-background, #modal-mission-background {
+    position: absolute;
+    left: 0px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
+    height: 100%;
+    width: 110%;
+}
+
+#modal-mission-foreground {
+    padding: 100px 20px 10px 20px;
+    visibility: hidden;
+}
+
+.modal-foreground {
+    top: 75px;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    height: 525px;
+    background: rgba(255, 255, 255, 1);
+    color: rgba(80, 80, 80, 1);
+    font-size: 14pt;
+    position: absolute;
+    min-height: 480px;
+    border: 5px solid black;
+
+    border-radius: 3px 3px 3px 3px;
+    z-index: 4;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+.modal-foreground .button {
+    width: 100%;
+}
+
+.modal-background {
+    position: absolute;
+    left: -55px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    height: 100%;
+    width: 110%;
+}
+
+#modal-mission-close-button {
+    font-size: 24px;
+    width: 40%;
+    margin-right: 30%;
+    margin-left: 30%;
+    margin-top: 30px;
+    float: right;
+}
+
+.modal-close-button-holder {
+    position: absolute;
+    top: 0;
+    right: 5px;
+}
+
+#modal-mission-instruction {
+    text-align: center;
+}
+
 #modal-mission-holder {
     visibility: hidden;
 }
