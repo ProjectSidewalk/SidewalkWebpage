@@ -455,6 +455,10 @@ object LabelTable {
     */
   def hasSufficientLabels(userId: UUID, labelTypeId: Int, missionLabelCount: Int): Boolean = db.withSession { implicit session =>
     val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
+    println("User ID: " + userId.toString)
+    println("labelTypeId: " + labelTypeId)
+    println("Labels remaining: " + labelCount)
+
     labelCount >= missionLabelCount
   }
 
