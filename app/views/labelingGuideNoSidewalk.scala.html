@@ -4,7 +4,7 @@
 @main(title) {
     @navbar(user)
     <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/faq.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
@@ -33,15 +33,19 @@
                 </div>
             </div>
             <div class="col-md-9 maincontent">
-                <div class="help-item">
+                <div>
                     <h2 class="question" id="no-sidewalk">No Sidewalk</h2>
-                    <div class="row">
+                    <div class="row help-item">
                         <div class="col-sm-12">
                             <p>
                                 A <i>No Sidewalk</i> label should be placed if there is a missing sidewalk where there
                                 should be one.
                             </p>
-                            <h3>Where and how should I place a No Sidewalk label?</h3>
+                            <h3 class="question" id="no-sidewalk-label">Where and how should I place a No Sidewalk label?
+                                <a href="#no-sidewalk-label" title="Permalink to this sub-section" class="permalink-anchor">
+                                    <img src='@routes.Assets.at("assets/link.png")' alt="A link" class="permalink-icon">
+                                </a>
+                            </h3>
                             <p>
                                 You should place a <i>No Sidewalk</i> label starting where the sidewalk ends, and then
                                 continue placing labels every few feet (about 1 per panorama) until you reach a place
@@ -78,9 +82,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="row help-item">
                         <div class="col-sm-12">
-                            <h3>Do I place a No Sidewalk label on a median?</h3>
+                            <h3 class="question" id="no-sidewalk-label-median">Do I place a No Sidewalk label on a median?
+                                <a href="#no-sidewalk-label-median" title="Permalink to this sub-section" class="permalink-anchor">
+                                    <img src='@routes.Assets.at("assets/link.png")' alt="A link" class="permalink-icon">
+                                </a>
+                            </h3>
                             <p>
                                 You should not place <i>No Sidewalk</i> labels on a median that separates the two directions of traffic,
                                 unless the median has a sidewalk that abruptly ends.
