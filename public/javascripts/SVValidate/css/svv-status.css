@@ -16,7 +16,43 @@
     width: 95px;
     display: inline-block;
     margin-bottom: 2px;
-    /* background: blueviolet; */
+}
+
+#example-image-popup-holder {
+    position: relative;
+    width: 215px;
+    padding-bottom: 3px;
+    background: black;
+    visibility: hidden;
+    z-index: 1;
+}
+
+#example-image-popup-description {
+    color: white;
+    text-align: center;
+    font-size: 11px;
+    margin: 0px 5px 0px 5px;
+}
+
+#example-image-popup {
+    width: 205px;
+    height: 175px;
+    margin-left: 5px;
+}
+
+#example-image-popup-pointer {
+    position:absolute;
+    left: 215px;
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 10px solid black;
+}
+
+#example-image-popup-title {
+    color: white;
+    text-align: center;
 }
 
 #status-holder {

@@ -11,6 +11,16 @@ function Main (param) {
     svv.canvasHeight = 440;
     svv.canvasWidth = 720;
 
+    // Maps label types to label names
+    svv.labelNames = {
+        CurbRamp: "Curb Ramp",
+        NoCurbRamp: "Missing Curb Ramp",
+        Obstacle: "Obstacle in Path",
+        SurfaceProblem: "Surface Problem",
+        NoSidewalk: "Missing Sidewalk",
+        Occlusion: "Occlusion"
+    };
+
     function _initUI() {
         svv.ui = {};
 
@@ -25,6 +35,7 @@ function Main (param) {
 
         svv.ui.modalSkip = {};
         svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
+
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");
         svv.ui.modalComment.feedbackButton = $("#left-column-feedback-button");
@@ -42,6 +53,21 @@ function Main (param) {
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
+
+        svv.ui.status.examples = {};
+        svv.ui.status.examples.example1 = $("#example-image-1");
+        svv.ui.status.examples.example2 = $("#example-image-2");
+        svv.ui.status.examples.example3 = $("#example-image-3");
+        svv.ui.status.examples.example4 = $("#example-image-4");
+        svv.ui.status.examples.counterExample1 = $("#counterexample-image-1");
+        svv.ui.status.examples.counterExample2 = $("#counterexample-image-2");
+        svv.ui.status.examples.counterExample3 = $("#counterexample-image-3");
+        svv.ui.status.examples.counterExample4 = $("#counterexample-image-4");
+        svv.ui.status.examples.popup = $("#example-image-popup-holder");
+        svv.ui.status.examples.popupDescription = $("#example-image-popup-description");
+        svv.ui.status.examples.popupImage = $("#example-image-popup");
+        svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
+        svv.ui.status.examples.popupTitle = $("#example-image-popup-title");
     }
 
     function _init() {
@@ -50,8 +76,9 @@ function Main (param) {
         svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl);
-        svv.statusField = new StatusField(param.mission);
-        svv.statusExample = new StatusExample();
+        svv.statusField = new StatusField();
+        svv.statusExample = new StatusExample(svv.ui.status.examples);
+        svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
 
         svv.keyboard = new Keyboard(svv.ui.validation);

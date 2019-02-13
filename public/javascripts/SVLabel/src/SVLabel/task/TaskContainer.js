@@ -374,7 +374,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
             incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
-                return t.streetCompletedByAnyUser();
+                return !t.streetCompletedByAnyUser();
             });
         }
 
