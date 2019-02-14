@@ -137,7 +137,7 @@ object StreetEdgeTable {
   }
 
   /**
-    * Calculate the proportion of the total miles of DC that have been audited at least auditCount times.
+    * Calculate the proportion of the total miles of the city that have been audited at least auditCount times.
     *
     * @param auditCount
     * @return Float between 0 and 1
@@ -201,7 +201,7 @@ object StreetEdgeTable {
   }
 
   /**
-    * Computes percentage of DC audited over time.
+    * Computes percentage of the city audited over time.
     *
     * author: Mikey Saugstad
     * date: 06/16/2017

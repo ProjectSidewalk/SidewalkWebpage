@@ -12,6 +12,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.survey._
 import models.user._
 import models.mission.MissionTable
+import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -105,10 +106,11 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
       case Some(user) =>
         val userId: UUID = user.userId
 
-        // The survey should show after the user completes their first non-tutorial mission. NOTE the number of missions
-        // before survey is actually 2, but this check is done before the next mission is updated on the back-end.
+        // The survey will show exactly once, in the middle of the 2nd mission.
+
         val numMissionsBeforeSurvey = 1
-        val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey)
+        val surveyShown = WebpageActivityTable.findUserActivity("SurveyShown", userId).length
+        val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey && (surveyShown == 0))
 
         //maps displaymodal to true in the future
         Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
