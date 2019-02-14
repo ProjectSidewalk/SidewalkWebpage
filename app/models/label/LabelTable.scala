@@ -510,7 +510,7 @@ object LabelTable {
     var labelList = new ListBuffer[LabelValidationMetadata]()
     for (a <- 1 to count) {
       labelList += retrieveSingleRandomLabelForValidation()
-  }
+    }
     val labelSeq: Seq[LabelValidationMetadata] = labelList
     labelSeq
   }
