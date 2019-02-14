@@ -215,12 +215,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                     None
                 }
 
-                var streetEdgeId = -1;
+                var calculatedStreetEdgeId = streetEdgeId;
                 for (point: LabelPointSubmission <- label.points) {
                   if(!point.lat.isEmpty && !point.lng.isEmpty){
                     val possibleStreetEdgeId = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get);
                     if(!possibleStreetEdgeId.isEmpty){
-                      streetEdgeId = possibleStreetEdgeId.get
+                      calculatedStreetEdgeId = possibleStreetEdgeId.get
                     }
                   }
                 }
@@ -228,7 +228,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                 LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
                                       label.photographerHeading, label.photographerPitch, label.panoramaLat,
                                       label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated,
-                                      label.tutorial, streetEdgeId))
+                                      label.tutorial, calculatedStreetEdgeId))
             }
 
             // Insert label points
