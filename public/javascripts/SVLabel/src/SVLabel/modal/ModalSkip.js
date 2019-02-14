@@ -84,7 +84,13 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
      * @param e
      */
     this._handleClickRadio = function (e) {
-        tracker.push("ModalSkip_ClickRadio");
+        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
+
+        var notes = {
+            option: radioValue
+        };
+
+        tracker.push("ModalSkip_ClickRadio", notes);
         self._enableClickOK();
     };
 
