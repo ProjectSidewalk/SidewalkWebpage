@@ -214,10 +214,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                     Logger.error("No timestamp given for a new label")
                     None
                 }
+
+                var streetEdgeId = -1;
+                for (point: LabelPointSubmission <- label.points) {
+                  if(!point.lat.isEmpty && !point.lng.isEmpty){
+                    val possibleStreetEdgeId = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get);
+                    if(!possibleStreetEdgeId.isEmpty){
+                      streetEdgeId = possibleStreetEdgeId.get
+                    }
+                  }
+                }
+
                 LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
                                       label.photographerHeading, label.photographerPitch, label.panoramaLat,
                                       label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated,
-                                      label.tutorial))
+                                      label.tutorial, streetEdgeId))
             }
 
             // Insert label points
