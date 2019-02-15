@@ -1,0 +1,127 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+	
+	<groupId>org.avaje</groupId>
+	<artifactId>avaje-parent</artifactId>
+	<version>1.1</version>
+	<packaging>pom</packaging>
+	<name>avaje-parent</name>
+	<description>
+		Packaging parent for Avaje projects.
+	</description>
+
+	<properties>
+      <project.build.sourceEncoding>UTF8</project.build.sourceEncoding>
+	</properties>
+	
+	<url>http://www.avaje.org</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+	<developers>
+	  <developer>
+		<id>rbygrave</id>
+		<name>Rob Bygrave</name>
+		<email>robin.bygrave@gmail.com</email>
+	  </developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git@github.com:rbygrave/avaje-parent-pom.git</connection>
+		<developerConnection>scm:git:git@github.com:rbygrave/avaje-parent-pom.git</developerConnection>
+		<url>git@github.com:rbygrave/avaje-parent-pom.git</url>
+	</scm>
+  
+  <!-- make sure source and javadocs are included in artifacts on release -->
+ <build>		
+    <plugins>
+	    <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+  
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.0-beta-1</version>
+        <!-- Invocation is defined by the release plugin goal set hence no executions -->
+        <configuration>
+          <rules>
+            <requireMavenVersion>
+              <version>[3.0.4,)</version>
+            </requireMavenVersion>
+
+            <requireReleaseDeps>
+              <!--  Don't allow releases with snapshop deps or parents -->
+              <message>No Snapshots Allowed!</message>
+              <failWhenParentIsSnapshot>true</failWhenParentIsSnapshot>
+              <searchTransitive>true</searchTransitive>
+            </requireReleaseDeps>
+
+            <!-- Don't allow accidental inclusion of commons logging -->
+            <bannedDependencies>
+              <excludes>
+                <exclude>commons-logging</exclude>
+                <exclude>commons-logging-api</exclude>
+              </excludes>
+            </bannedDependencies>
+          </rules>
+
+          <fail>true</fail>
+        </configuration>
+      </plugin>
+    </plugins>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <source>1.6</source>
+            <target>1.6</target>
+          </configuration>
+        </plugin>
+		<!--
+        <plugin>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>2.2.1</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.maven.scm</groupId>
+              <artifactId>maven-scm-provider-gitexe</artifactId>
+			  <version>1.6</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+		-->
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.5</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>2.1.2</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>	
