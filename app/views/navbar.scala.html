@@ -63,7 +63,10 @@
                 @if(url.isDefined && url.get != "/audit") {
 
                    <li class="active navbarLink">
-                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Mapping</a>
+                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Exploring</a>
+                    </li>
+                    <li class="active navbarLink">
+                        <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">Start Validating</a>
                     </li>
                     <li class="active navbarLink">
                         <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
@@ -150,10 +153,14 @@ $(document).ready(function () {
         logWebpageActivity("Click_module=SignIn");
     });
 
-    // Triggered when 'Start Mapping' in navbar is clicked
-    // Logs "Click_module=StartMapping_location=Navbar_route=</|/audit|/help|...>"
+    // Triggered when 'Start Exploring' in navbar is clicked
+    // Logs "Click_module=StartExploring_location=Navbar_route=</|/audit|/help|...>"
     $(".navbarStartBtn").on('click', function(){
-        logWebpageActivity("Click_module=StartMapping");
+        logWebpageActivity("Click_module=StartExploring");
+    });
+
+    $(".navbarValidateBtn").on('click', function(){
+        logWebpageActivity("Click_module=StartValidating");
     });
 
     $(".navbarGuideBtn").on('click', function() {

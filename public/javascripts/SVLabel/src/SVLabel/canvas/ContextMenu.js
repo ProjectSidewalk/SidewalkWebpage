@@ -45,29 +45,34 @@ function ContextMenu (uiContextMenu) {
     var down = {};
     var lastKeyPressed = 0;
     var lastKeyCmd = false;
-    onkeydown = onkeyup = function(e){
+    onkeydown = onkeyup = function (e) {
         e = e || event; // to deal with IE
         var isMac = navigator.platform.indexOf('Mac') > -1;
         down[e.keyCode] = e.type == 'keydown';
-        if (isMac){
-            if (lastKeyCmd && down[91] && isOpen() && down[65]){
+
+        // Code to highlight description box on command+A or ctrl+A (depending on OS)
+        if (isMac) {
+            if (lastKeyCmd && down[91] && isOpen() && down[65]) {
                 $descriptionTextBox.select();
                 down[65] = false; //reset A key
             }//A key, menu shown
 
         }//mac
-        else{
-            if (lastKeyPressed == 17 && isOpen() && down[65]){
+        else {
+            if (lastKeyPressed == 17 && isOpen() && down[65]) {
                 $descriptionTextBox.select();
             }//ctrl+A while context menu open
         }//windows
-        if (e.type == 'keydown'){
+
+        // Log last keypresses
+        if (e.type == 'keydown') {
             lastKeyPressed = e.keyCode;
             lastKeyCmd = e.metaKey;
-        }else{
+        } else {
             lastKeyPressed = 0;
             lastKeyCmd = false;
         }
+
     }; //handles both key down and key up events
 
     function checkRadioButton (value) {
@@ -79,9 +84,9 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
-     * Returns a status
-     * @param key
-     * @returns {null}
+     * Returns a the value in status given a key
+     * @param key The key to find in status
+     * @returns The value in status if it exists. If it doesn't, returns null
      */
     function getStatus (key) {
         return (key in status) ? status[key] : null;
@@ -122,16 +127,15 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleCloseButtonClick () {
-
-        svl.tracker.push('ContextMenu_CloseButtonClick');
         hide();
+        svl.tracker.push('ContextMenu_CloseButtonClick');
         handleSeverityPopup();
 
     }
 
     function _handleOKButtonClick () {
-        svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
+        svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
 
     }
@@ -223,7 +227,7 @@ function ContextMenu (uiContextMenu) {
         var label = getTargetLabel();
         var labelTags = label.getProperty('tagIds');
 
-        $("body").unbind('click').on('click', 'button', function(e){
+        $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
                 var tagValue = e.target.textContent || e.target.innerText;
 
@@ -243,17 +247,17 @@ function ContextMenu (uiContextMenu) {
 
                             labelTags.push(tag.tag_id);
                             svl.tracker.push('ContextMenu_TagAdded',
-                                { tagId: tag.tag_id, tagName: tag.tag });
+                                {tagId: tag.tag_id, tagName: tag.tag});
                         } else {
                             var index = labelTags.indexOf(tag.tag_id);
                             labelTags.splice(index, 1);
                             svl.tracker.push('ContextMenu_TagRemoved',
-                                { tagId: tag.tag_id, tagName: tag.tag });
+                                {tagId: tag.tag_id, tagName: tag.tag});
                         }
                         _toggleTagColor(labelTags, tag.tag_id, e.target);
                         label.setProperty('tagIds', labelTags);
                     }
-                })
+                });
                 e.target.blur();
             }
         });
@@ -295,6 +299,10 @@ function ContextMenu (uiContextMenu) {
      * @returns {hide}
      */
     function hide () {
+        if(isOpen()) {
+            $descriptionTextBox.blur(); // force the blur event before the ContextMenu close event
+        }
+
         $menuWindow.css('visibility', 'hidden');
         $connector.css('visibility', 'hidden');
         setBorderColor('black');
@@ -386,7 +394,18 @@ function ContextMenu (uiContextMenu) {
                 // Go through each label tag, modify each button to display tag.
                 labelTags.forEach(function (tag) {
                     if (tag.label_type === label.getProperty('labelType')) {
-                        $("body").find("button[id=" + count + "]").html(tag.tag);
+
+                        // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
+                        $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
+
+                        // Add tag name as a class so that finding the element is easier laster. For example, will add "narrowSidewalk-tag" as a class
+                        var newClass = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['id'] + "-tag";
+                        $("body").find("button[id=" + count + "]").addClass(newClass);
+
+                        // Set tag texts to new underlined version as defined in the util label description map
+                        var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
+                        $("body").find("button[id=" + count + "]").html(tagText);
+
                         $("body").find("button[id=" + count + "]").css({
                             visibility: 'inherit',
                             position: 'inherit'
