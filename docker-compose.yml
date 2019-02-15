@@ -10,7 +10,7 @@ services:
     depends_on:
       - db
     volumes:
-      - "./:/opt/"
+      - "./:/opt/:delegated"
     ports:
       - "127.0.0.1:9000:9000"
     environment:
