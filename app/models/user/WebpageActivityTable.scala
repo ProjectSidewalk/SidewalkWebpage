@@ -53,6 +53,16 @@ object WebpageActivityTable {
   }
 
   /**
+    * See if the user has previous logs for a specific activity.
+    * @param userId
+    * @param activity
+    * @return List[WebpageActivity]
+    */
+  def findUserActivity(activity: String, userId: UUID): List[WebpageActivity] = db.withSession { implicit session =>
+    activities.filter(a => a.userId === userId.toString && a.activity === activity).list
+  }
+
+  /**
     * Returns all WebpageActivities that contain the given string in their 'activity' field
     */
   def find(activity: String): List[WebpageActivity] = db.withSession { implicit session =>
@@ -94,4 +104,5 @@ object WebpageActivityTable {
       "timestamp" -> webpageActivity.timestamp
     )
   }
+
 }
