@@ -22,6 +22,7 @@ import play.api.Logger
 import play.api.mvc._
 
 import scala.concurrent.Future
+import scala.collection.mutable.ListBuffer
 
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -37,16 +38,18 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val labelTypeId: Int = LabelTable.retrieveRandomValidationLabelTypeId()
-        val hasWork: Boolean = LabelTable.hasSufficientLabels(user.userId, labelTypeId, 10)
+        val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, 10)
+        val hasWork: Boolean = possibleLabelTypeIds.length > 0
 
         // Checks if there are still labels in the database for the user to validate.
         hasWork match {
           case true => {
+            val labelTypeId: Int = scala.util.Random.nextInt(possibleLabelTypeIds.size)
             val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
             val labelsProgress: Int = mission.labelsProgress.get
             val labelsValidated: Int = mission.labelsValidated.get
             val labelsToRetrieve: Int = labelsValidated - labelsProgress
+
             val labelList: JsValue = getLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId)
             val missionJsObject: JsObject = mission.toJSON
             Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), true)))

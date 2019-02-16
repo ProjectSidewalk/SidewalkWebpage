@@ -570,6 +570,26 @@ object LabelTable {
     val labelTypeId: Int = labelTypeIdList(scala.util.Random.nextInt(labelTypeIdList.size))
     labelTypeId
   }
+
+  /**
+    * Query ever single label type and try to find
+    * @param userId
+    * @param count
+    * @return
+    */
+  def retrievePossibleLabelTypeIds(userId: UUID, count: Int): ListBuffer[Int] = {
+    println("Calling retreivePossibleLabelTypeIds")
+    var possibleLabelTypeIds = new ListBuffer[Int]
+    for (labelTypeId <- labelTypeIdList) {
+      if (hasSufficientLabels(userId, labelTypeId, count)) {
+        possibleLabelTypeIds += labelTypeId
+        println("Adding " + labelTypeId)
+      }
+    }
+    println("Number of possible label ids: " + possibleLabelTypeIds.length)
+    possibleLabelTypeIds
+  }
+
     /**
     * Checks if the panorama associated with a label eixsts by pinging Google Maps.
     * @param gsvPanoId  Panorama ID
