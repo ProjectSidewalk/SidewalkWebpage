@@ -33,6 +33,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * @return
     */
   def validate = UserAwareAction.async { implicit request =>
+    println("[ValidationController] validate endpoint (initial) reached")
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
 
@@ -44,17 +45,20 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         // Checks if there are still labels in the database for the user to validate.
         hasWork match {
           case true => {
+            println("[ValidationController] validate has work")
             val labelTypeId: Int = scala.util.Random.nextInt(possibleLabelTypeIds.size)
             val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
             val labelsProgress: Int = mission.labelsProgress.get
             val labelsValidated: Int = mission.labelsValidated.get
             val labelsToRetrieve: Int = labelsValidated - labelsProgress
+            println("[ValidationController] Labels to retrieve: " + labelsToRetrieve)
 
             val labelList: JsValue = getLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId)
             val missionJsObject: JsObject = mission.toJSON
             Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), true)))
           }
           case false => {
+            println("[ValidationController] validate does not have work")
             Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), None, None, false)))
           }
         }

@@ -403,10 +403,12 @@ object MissionTable {
                                           skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
     this.synchronized {
       if (actions.contains("updateProgress")) {
+        println("[MissionTable] updateProgress")
         updateValidationProgress(missionId.get, labelsProgress.get)
       }
 
       if (actions.contains("updateComplete")) {
+        println("[MissionTable] updateComplete")
         updateComplete(missionId.get)
         if (skipped.getOrElse(false)) {
           updateSkipped(missionId.get)
@@ -414,11 +416,14 @@ object MissionTable {
       }
 
       if (actions.contains("getValidationMission")) {
+        println("[MissionTable] getValidationMission")
         // Get the label type id for the next mission.
         getCurrentValidationMission(userId, labelTypeId.get) match {
           case Some(incompleteMission) =>
+            println("[MissionTable] returning incomplete mission")
             Some(incompleteMission)
           case _ =>
+            println("[MissionTable] returning new mission")
             val labelsToValidate: Int = getNextValidationMissionLabelCount(userId)
             val pay: Double = labelsToValidate.toDouble * payPerLabel.get
             Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get))

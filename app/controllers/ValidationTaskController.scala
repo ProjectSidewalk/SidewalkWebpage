@@ -38,12 +38,14 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * BodyParsers.parse.json in async
     */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    println("post request sent")
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
+        println("post submission validated")
         val user = request.identity
         val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
           for (interaction: InteractionSubmission <- data.interactions) {
@@ -144,9 +146,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
     * Gets the metadata for a single random label in the database.
-    * @return Label metadata containing GSV metadata and label type
+    * @param labelType  Label Type Id this label should have
+    * @return           Label metadata containing GSV metadata and label type
     */
   def getRandomLabelData (labelType: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    println("getRandomLabelData called")
     var submission = request.body.validate[Seq[LabelValidationSubmission]]
     submission.fold(
       errors => {
@@ -158,11 +162,13 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           labelIdList += label.labelId
         }
         println("Label Ids: " + labelIdList)
-
         val userId: UUID = request.identity.get.userId
+
+        //println("Got enough labels")
         val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
         val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
+
       }
     )
   }

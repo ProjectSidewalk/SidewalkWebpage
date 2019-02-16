@@ -451,17 +451,17 @@ object LabelTable {
   /**
     * Returns whether we have enough labels for this user to validate.
     * @param userId             User ID.
-    * @param labelType          Type of label.
-    * @param missionLabelCount  Number of labels in a mission
+    * @param labelType          Label Type ID of labels requested.
+    * @param labelsRequired     Number of labels we need to query.
     * @return   True if we have enough labels, false otherwise.
     */
-  def hasSufficientLabels(userId: UUID, labelTypeId: Int, missionLabelCount: Int): Boolean = db.withSession { implicit session =>
+  def hasSufficientLabels(userId: UUID, labelTypeId: Int, labelsRequired: Int): Boolean = db.withSession { implicit session =>
     val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
     println("User ID: " + userId.toString)
     println("labelTypeId: " + labelTypeId)
     println("Labels remaining: " + labelCount)
 
-    labelCount >= missionLabelCount
+    labelCount >= labelsRequired
   }
 
   /**
@@ -503,6 +503,7 @@ object LabelTable {
     val availableLabelCount: Int = getAvailableValidationLabels(userId, labelTypeId, labelIdList)
     while (!exists) {
       val r = new scala.util.Random
+      println("[LabelTable] offset: " + availableLabelCount + " - " + selectedLabels.length + " = " + (availableLabelCount - selectedLabels.length))
       val labelOffset = r.nextInt(availableLabelCount - selectedLabels.length)
 
       val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
