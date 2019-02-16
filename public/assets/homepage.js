@@ -136,12 +136,16 @@ function logWebpageActivity(activity){
     });
 }
 
-var vidBanner, bannerVid,
-    instructVideoContainer, instructVideos;
+var vidBanner;
+var bannerVid;
+var instructVideoContainer;
+var instructVideos;
 
 var DEFAULT_VIDEO = 1;
-var TICK_SIZE = 500, requiredTicks = [18, 22, 17],
-    curVideo = 1, numTicks = 0;
+var TICK_SIZE = 500;
+var requiredTicks = [18, 22, 17];
+var curVideo = 1;
+var numTicks = 0;
 
 // Advances to the next instruction video if the instruction videos are in the user's viewport
 // and enough "ticks" have gone by
@@ -205,13 +209,15 @@ $( document ).ready(function() {
     bannerVid = $('#bgvid')[0];
 
     instructVideoContainer = $('#instructionvideo')[0];
-    instructVideos = [$('#vid1')[0],
+    instructVideos = [
+        $('#vid1')[0],
         $('#vid2')[0],
-        $('#vid3')[0]];
+        $('#vid3')[0]
+    ];
 
     // Auto advance instruction videos
     switchToVideo(DEFAULT_VIDEO);
-    setInterval(autoAdvanceLaptopVideos, 500);
+    setInterval(autoAdvanceLaptopVideos, TICK_SIZE);
 });
 
 var pausedVideos = {};
@@ -229,8 +235,8 @@ function onScroll() {
 // lazyPlays our main videos
 function lazyPlayVideos() {
     lazyPlay(vidBanner, bannerVid);
-    return;
-    for(var i = 0; i < instructVideos.length; i++) {
+
+    for (var i = 0; i < instructVideos.length; i++) {
         lazyPlay(instructVideoContainer, instructVideos[i]);
     }
 }
@@ -238,15 +244,13 @@ function lazyPlayVideos() {
 // Pauses a video if a certain element is outside of the viewport.
 // Plays the video otherwise.
 function lazyPlay(el, video) {
-    console.log("inView = " + isElementVerticallyVisible(el), "isPlaying = " + isVideoPlaying(video));
-
-    if(isElementVerticallyVisible(el)) {
-        if(!isVideoPlaying(video)) {
+    if (isElementVerticallyVisible(el)) {
+        if (!isVideoPlaying(video)) {
             pausedVideos[video] = false;
             video.play();
         }
     } else {
-        if(isVideoPlaying(video)) {
+        if (isVideoPlaying(video)) {
             pausedVideos[video] = true;
             video.pause();
         }
