@@ -190,7 +190,7 @@ $(document).ready(function () {
                 </div>
                 <div class="modal-footer">
                     <div>
-                        Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
+                        Are you new?<a href="#" id="form-open-sign-up">Sign up!</a>
                     </div>
                 </div>
             </div><!-- /.modal-content -->
@@ -250,8 +250,11 @@ $(document).ready(function () {
                     $('#incorrect-login-modal-alert').show();
                     return;
                 }
+                
+                // otherwise, refresh the page to update
+                document.location.reload();
 
-                //otherwise, reflect login changes on user's end
+                // reflect login changes on user's end
                 var htmlString = $("#navbar-dropdown-list-signed-in").html();
                 htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
