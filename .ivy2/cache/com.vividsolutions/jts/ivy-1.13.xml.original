@@ -1,0 +1,57 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.vividsolutions</groupId>
+    <artifactId>jts</artifactId>
+    <packaging>jar</packaging>
+    <version>1.13</version>
+    <name>JTS Topology Suite</name>
+    <description>
+        The JTS Topology Suite is an API for modelling and
+        manipulating 2-dimensional linear geometry. It provides
+        numerous geometric predicates and functions. JTS
+        conforms to the Simple Features Specification for
+        SQL published by the Open GIS Consortium.
+    </description>
+
+    <url>http://sourceforge.net/projects/jts-topo-suite</url>
+    <scm>
+        <connection>scm:svn:https://jts-topo-suite.svn.sourceforge.net/svnroot/jts-topo-suite/tags/Version_1.13/jts/</connection>
+        <url>http://jts-topo-suite.svn.sourceforge.net/viewvc/jts-topo-suite/tags/Version_1.13/jts/</url>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>Lesser General Public License (LGPL)</name>
+            <url>http://www.gnu.org/copyleft/lesser.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>dr_jts</id>
+            <name>Martin Davis</name>
+            <organization>Tsusiat Software</organization>
+            <organizationUrl>http://tsusiatsoftware.net/</organizationUrl>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <mailingLists>
+        <mailingList>
+            <name>jts-topo-suite-user</name>
+            <subscribe>https://lists.sourceforge.net/lists/listinfo/jts-topo-suite-user</subscribe>
+            <archive>http://sourceforge.net/mailarchive/forum.php?forum_name=jts-topo-suite-user</archive>
+        </mailingList>
+    </mailingLists>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+</project>

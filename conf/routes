@@ -35,6 +35,10 @@ POST    /authenticate/credentials                            @controllers.Creden
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
 POST    /authapi/signup                                      @controllers.SignUpController.postSignUp
 
+# City config params
+GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
+GET     /cityShortNameParam                                  @controllers.ConfigController.getCityShortNameParam()
+
 # Admin
 GET     /admin                                               @controllers.AdminController.index
 GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
@@ -45,8 +49,6 @@ GET     /adminapi/userMissionCounts                          @controllers.AdminC
 GET     /adminapi/allSignInCounts                            @controllers.AdminController.getAllUserSignInCounts
 GET     /adminapi/completionRateByDate                       @controllers.AdminController.getCompletionRateByDate
 GET     /adminapi/tasks/:username                            @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
-GET     /adminapi/interactions/:username                     @controllers.AdminController.getAuditTaskInteractionsOfAUser(username: String)
-GET     /adminapi/onboardingInteractions                     @controllers.AdminController.getOnboardingTaskInteractions
 GET     /adminapi/auditpath/:id                              @controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreets/:username                   @controllers.AdminController.getStreetsAuditedByAUser(username: String)
 GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
@@ -55,7 +57,6 @@ GET     /adminapi/labels/panoid                              @controllers.AdminC
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
-GET     /adminapi/auditTimes                                 @controllers.AdminController.getAuditTimes()
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -69,22 +70,31 @@ PUT     /adminapi/setRole                                    @controllers.AdminC
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
 GET     /audit/region/:id                                    @controllers.AuditController.auditRegion(id: Int)
 GET     /audit/street/:id                                    @controllers.AuditController.auditStreet(id: Int)
+GET     /audit/street/:id/location                           @controllers.AuditController.auditLocation(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 GET     /audit/recalculateStreetPriority                     @controllers.AuditPriorityController.recalculateStreetPriority
 POST    /audit/comment                                       @controllers.AuditController.postComment
 POST    /audit/nostreetview                                  @controllers.AuditController.postNoStreetView
+
+# Label validation tasks
+GET     /validate                                            @controllers.ValidationController.validate
+POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
 GET     /task/street/:id                                     @controllers.TaskController.getTaskByStreetEdgeId(id: Int)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
+POST    /validationTask                                      @controllers.ValidationTaskController.post
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
+GET     /getMissions                                         @controllers.UserProfileController.getMissions()
 GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
 
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
+GET     /label/geo/random                                    @controllers.ValidationTaskController.getRandomLabelData()
+GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
@@ -97,7 +107,6 @@ GET     /map/edit                                            @controllers.MapCon
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets
-GET     /contribution/tasks                                  @controllers.UserProfileController.getSubmittedTasksWithLabels
 GET     /contribution/auditCounts                            @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
@@ -112,9 +121,14 @@ POST    /userapi/logWebpageActivity                          @controllers.UserCo
 # Geometry API
 
 # Access Feature and Access Score APIs
-GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessFeatures(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v1/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoods(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v1/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreets(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v1/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
