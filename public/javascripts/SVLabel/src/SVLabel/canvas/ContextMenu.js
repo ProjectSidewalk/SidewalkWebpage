@@ -127,16 +127,15 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleCloseButtonClick () {
-
-        svl.tracker.push('ContextMenu_CloseButtonClick');
         hide();
+        svl.tracker.push('ContextMenu_CloseButtonClick');
         handleSeverityPopup();
 
     }
 
     function _handleOKButtonClick () {
-        svl.tracker.push('ContextMenu_OKButtonClick');
         hide();
+        svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
 
     }
@@ -310,6 +309,10 @@ function ContextMenu (uiContextMenu) {
      * @returns {hide}
      */
     function hide () {
+        if(isOpen()) {
+            $descriptionTextBox.blur(); // force the blur event before the ContextMenu close event
+        }
+
         $menuWindow.css('visibility', 'hidden');
         $connector.css('visibility', 'hidden');
         setBorderColor('black');

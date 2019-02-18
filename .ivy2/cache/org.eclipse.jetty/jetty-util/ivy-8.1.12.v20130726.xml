@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+	<info organisation="org.eclipse.jetty"
+		module="jetty-util"
+		revision="8.1.12.v20130726"
+		status="release"
+		publication="20130726095535"
+	>
+		<description homepage="http://www.eclipse.org/jetty">
+		Utility classes for Jetty
+		</description>
+		<m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>2.0</m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>
+		<m:dependency.management__junit__junit__version>4.8.1</m:dependency.management__junit__junit__version>
+		<m:properties__jetty-test-policy-version>1.2</m:properties__jetty-test-policy-version>
+		<m:properties__bundle-symbolic-name>${project.groupId}.util</m:properties__bundle-symbolic-name>
+		<m:properties__slf4j-version>1.6.1</m:properties__slf4j-version>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.activation__version>1.1.0.v201105071233</m:dependency.management__org.eclipse.jetty.orbit__javax.activation__version>
+		<m:dependency.management__org.hamcrest__hamcrest-all__version>1.1</m:dependency.management__org.hamcrest__hamcrest-all__version>
+		<m:dependency.management__org.eclipse.jetty.orbit__org.objectweb.asm__version>3.1.0.v200803061910</m:dependency.management__org.eclipse.jetty.orbit__org.objectweb.asm__version>
+		<m:dependency.management__org.mockito__mockito-core__version>1.8.5</m:dependency.management__org.mockito__mockito-core__version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__org.slf4j__jcl104-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jcl104-over-slf4j__version>
+		<m:properties__build-support-version>1.1</m:properties__build-support-version>
+		<m:dependency.management__org.slf4j__log4j-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__log4j-over-slf4j__version>
+		<m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>2.0</m:dependency.management__org.apache.maven__maven-plugin-tools-api__version>
+		<m:properties__jetty.url>http://www.eclipse.org/jetty</m:properties__jetty.url>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.transaction__version>1.1.1.v201105210645</m:dependency.management__org.eclipse.jetty.orbit__javax.transaction__version>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.servlet__version>3.0.0.v201112011016</m:dependency.management__org.eclipse.jetty.orbit__javax.servlet__version>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.annotation__version>1.1.0.v201108011116</m:dependency.management__org.eclipse.jetty.orbit__javax.annotation__version>
+		<m:properties__orbit-servlet-api-version>3.0.0.v201112011016</m:properties__orbit-servlet-api-version>
+		<m:maven.plugins>org.apache.maven.plugins__maven-release-plugin__null|org.apache.maven.plugins__maven-release-plugin__null|null__maven-compiler-plugin__null|null__maven-release-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.eclipse.jetty.toolchain__jetty-version-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-pmd-plugin__null|com.mycila.maven-license-plugin__maven-license-plugin__1.10.b1|org.apache.maven.plugins__maven-release-plugin__null|org.apache.maven.plugins__maven-release-plugin__null|null__maven-compiler-plugin__null|null__maven-release-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__null|org.eclipse.jetty.toolchain__jetty-version-maven-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-pmd-plugin__null|com.mycila.maven-license-plugin__maven-license-plugin__1.10.b1|org.apache.felix__maven-bundle-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-assembly-plugin__null|org.codehaus.mojo__findbugs-maven-plugin__null</m:maven.plugins>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.mail.glassfish__version>1.4.1.v201005082020</m:dependency.management__org.eclipse.jetty.orbit__javax.mail.glassfish__version>
+		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.1</m:dependency.management__org.slf4j__slf4j-api__version>
+		<m:dependency.management__org.eclipse.jetty.orbit__javax.security.auth.message__version>1.0.0.v201108011116</m:dependency.management__org.eclipse.jetty.orbit__javax.security.auth.message__version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="jetty-util" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.eclipse.jetty.orbit" name="javax.servlet" rev="3.0.0.v201112011016" force="true" conf="provided->compile(*),provided(*),runtime(*),master(*)"/>
+		<dependency org="org.eclipse.jetty.toolchain" name="jetty-test-helper" rev="2.0" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" force="true" conf="optional->compile(*),provided(*),runtime(*),master(*)"/>
+		<dependency org="org.slf4j" name="slf4j-jdk14" rev="1.6.1" force="true" conf="test->runtime(*),master(*)"/>
+		<override org="org.eclipse.jetty.orbit" module="javax.servlet" matcher="exact" rev="3.0.0.v201112011016"/>
+		<override org="org.eclipse.jetty.orbit" module="javax.annotation" matcher="exact" rev="1.1.0.v201108011116"/>
+		<override org="org.apache.maven" module="maven-plugin-tools-api" matcher="exact" rev="2.0"/>
+		<override org="org.eclipse.jetty.toolchain" module="jetty-test-helper" matcher="exact" rev="2.0"/>
+		<override org="org.eclipse.jetty.orbit" module="javax.transaction" matcher="exact" rev="1.1.1.v201105210645"/>
+		<override org="org.hamcrest" module="hamcrest-all" matcher="exact" rev="1.1"/>
+		<override org="org.eclipse.jetty.orbit" module="org.objectweb.asm" matcher="exact" rev="3.1.0.v200803061910"/>
+		<override org="junit" module="junit" matcher="exact" rev="4.8.1"/>
+		<override org="org.slf4j" module="jcl104-over-slf4j" matcher="exact" rev="1.6.1"/>
+		<override org="org.eclipse.jetty.orbit" module="javax.security.auth.message" matcher="exact" rev="1.0.0.v201108011116"/>
+		<override org="org.slf4j" module="log4j-over-slf4j" matcher="exact" rev="1.6.1"/>
+		<override org="org.eclipse.jetty.orbit" module="javax.activation" matcher="exact" rev="1.1.0.v201105071233"/>
+		<override org="org.eclipse.jetty.orbit" module="javax.mail.glassfish" matcher="exact" rev="1.4.1.v201005082020"/>
+		<override org="org.slf4j" module="slf4j-api" matcher="exact" rev="1.6.1"/>
+		<override org="org.mockito" module="mockito-core" matcher="exact" rev="1.8.5"/>
+	</dependencies>
+</ivy-module>

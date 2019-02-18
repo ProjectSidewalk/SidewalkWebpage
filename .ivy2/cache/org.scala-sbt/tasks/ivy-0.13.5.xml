@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt" module="tasks" revision="0.13.5" status="release" publication="20140527094258">
+		<description>
+		Tasks
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="optional" visibility="public" description=""/>
+		<conf name="provided" visibility="public" description="" transitive="false"/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="tasks" type="jar" ext="jar" conf="compile"/>
+		<artifact name="tasks" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="control" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="collections" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.1" conf="test->default(compile)"/>
+		<dependency org="org.specs2" name="specs2_2.10" rev="1.12.3" conf="test->default(compile)"/>
+		<dependency org="junit" name="junit" rev="4.11" conf="test->default(compile)"/>
+	</dependencies>
+</ivy-module>

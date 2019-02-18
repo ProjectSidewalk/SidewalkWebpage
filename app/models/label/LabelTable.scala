@@ -32,7 +32,8 @@ case class Label(labelId: Int,
                  deleted: Boolean,
                  temporaryLabelId: Option[Int],
                  timeCreated: Option[Timestamp],
-                 turorial: Boolean)
+                 turorial: Boolean,
+                 streetEdgeId: Int)
 
 case class LabelLocation(labelId: Int,
                          auditTaskId: Int,
@@ -71,9 +72,10 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timeCreated = column[Option[Timestamp]]("time_created", O.Nullable)
   def tutorial = column[Boolean]("tutorial", O.NotNull)
+  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
 
   def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, photographerHeading, photographerPitch,
-    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated, tutorial) <> ((Label.apply _).tupled, Label.unapply)
+    panoramaLat, panoramaLng, deleted, temporaryLabelId, timeCreated, tutorial, streetEdgeId) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
@@ -846,5 +848,23 @@ object LabelTable {
 
     // Counts the number of labels for each user by grouping by user_id and role.
     audits.groupBy(l => (l._1, l._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
+  }
+
+
+  /**
+    * Select street_edge_id of street closest to lat/lng position
+    *
+    * @param lat
+    * @param lng
+    * @return street_edge_id
+    */
+  def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): Option[Int] = db.withSession { implicit session =>
+    val selectStreetEdgeIdQuery = Q.query[(Float, Float), Int](
+      """SELECT s.street_edge_id FROM street_edge AS s
+         |    ORDER BY ST_Distance(s.geom,ST_SetSRID(ST_MakePoint(?, ?),Find_SRID('sidewalk', 'street_edge', 'geom'))) ASC
+         |LIMIT 1""".stripMargin
+    )
+    //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
+    selectStreetEdgeIdQuery((lng, lat)).list.headOption
   }
 }
