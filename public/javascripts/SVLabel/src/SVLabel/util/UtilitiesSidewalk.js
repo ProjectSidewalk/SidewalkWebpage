@@ -356,22 +356,22 @@ function UtilitiesMisc (JSON) {
                 },
                 tagInfo: {
                     'sidewalk ends abruptly': {
-                        keyNumber: 83,
-                        keyChar: 'S',
-                        text: '<tag-underline>s</tag-underline>idewalk ends abruptly',
-                        id: 'sidewalkEndsAbruptly'
-                    },
-                    'sidewalk on other side of the street': {
-                        keyNumber: 78,
-                        keyChar: 'N',
-                        text: '<tag-underline>n</tag-underline>o sidewalk on other side of the street',
-                        id: 'noSidewalkOnOtherSideOfTheStreet'
-                    },
-                    'no sidewalk on either side of the street': {
                         keyNumber: 69,
                         keyChar: 'E',
-                        text: 'no sidewalk on <tag-underline>e</tag-underline>ither side of the street',
-                        id: 'noSidewalkOnEitherSideOfTheStreet'
+                        text: 'sidewalk <tag-underline>e</tag-underline>nds abruptly',
+                        id: 'sidewalkEndsAbruptly'
+                    },
+                    'street has one sidewalk': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>reet has one sidewalk',
+                        id: 'streetHasOneSidewalk'
+                    },
+                    'street has no sidewalks': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'st<tag-underline>r</tag-underline>eet has no sidewalks',
+                        id: 'streetHasNoSidewalks'
                     }
                 }
             },

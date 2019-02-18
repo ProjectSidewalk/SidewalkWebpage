@@ -246,6 +246,16 @@ function ContextMenu (uiContextMenu) {
                                 labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
                             }
 
+                            var streetHasOneSidewalk = 'street has one sidewalk';
+                            var streetHasNoSidewalks = 'street has no sidewalks';
+                            // Automatically deselect one of the tags above if the other one is selected
+                            if (tagValue === streetHasOneSidewalk) {
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasNoSidewalks, labelTags);
+
+                            } else if (tagValue === streetHasNoSidewalks) {
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalk, labelTags);
+                            }
+
                             labelTags.push(tag.tag_id);
                             svl.tracker.push('ContextMenu_TagAdded',
                                 {tagId: tag.tag_id, tagName: tag.tag});
