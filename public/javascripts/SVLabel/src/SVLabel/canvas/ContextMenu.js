@@ -76,7 +76,7 @@ function ContextMenu (uiContextMenu) {
     }; //handles both key down and key up events
 
     function checkRadioButton (value) {
-        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click");
+        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true)/*.trigger("click")*/;
     }
 
     function getContextMenuUI(){
@@ -159,6 +159,7 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleRadioChange (e) {
         var severity = parseInt($(this).val(), 10);
+        console.log("change severity", severity);
         var label = getTargetLabel();
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
