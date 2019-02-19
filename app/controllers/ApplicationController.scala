@@ -1,10 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
-<<<<<<< HEAD
-=======
 import java.time.Instant
->>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
 
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -12,22 +9,19 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
-<<<<<<< HEAD
-import models.daos.slickdaos.DBTableDefinitions.{DBUser, UserTable}
+
 import models.label.LabelTable
 import models.street.StreetEdgeTable
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-=======
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+
 import play.api.Play
 import play.api.Play.current
 import java.util.Calendar
 import play.api.mvc._
 
->>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
+
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -78,42 +72,34 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 user.username match {
                   case `workerId` =>
                     activityLogText = activityLogText + "_reattempt=true"
-<<<<<<< HEAD
-                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
-                    val asgId: Future[Int] = AMTAssignmentTable.save(asg)
-=======
                     // Unless they are mid-assignment, create a new assignment.
-                    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
-                    if (asmt.isEmpty) {
-                      val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
-                      val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                    val asmt: Future[Option[AMTAssignment]] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
+                    asmt.map { assignment =>
+                      if (assignment.isEmpty) {
+                        val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
+                        val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
+                        val asgId: Future[Int] = AMTAssignmentTable.save(asg)
+                      }
+                      WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+                      Redirect("/audit")
                     }
->>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
-                    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
-                    Future.successful(Redirect("/audit"))
                   case _ =>
                     Future.successful(Redirect(routes.UserController.signOut(request.uri)))
                     // Need to be able to login as a different user here, but the signout redirect isn't working.
                 }
               case None =>
-<<<<<<< HEAD
-                // Add an entry into the amt_assignment table.
-                val confirmationCode = Some(s"${Random.alphanumeric take 8 mkString("")}")
-                val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, None, workerId, confirmationCode, false)
-                val asgId: Future[Int] = AMTAssignmentTable.save(asg)
-=======
                 // Unless they are mid-assignment, create a new assignment.
-                val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
-                if (asmt.isEmpty) {
-                  val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
-                  val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+                val asmt: Future[Option[AMTAssignment]] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
+                asmt.map { assignment =>
+                  if (assignment.isEmpty) {
+                    val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
+                    val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
+                    val asgId: Future[Int] = AMTAssignmentTable.save(asg)
+                  }
+                  // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
+                  val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
+                  Redirect(redirectTo)
                 }
->>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
-                // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
-                val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
-                Future.successful(Redirect(redirectTo))
             }
 
           case _ =>
@@ -141,21 +127,17 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case Some(user) =>
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
-<<<<<<< HEAD
+              val cityStr: String = Play.configuration.getString("city-id").get
+              val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
+              val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
+              val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
               for {
                 auditedDistance <- StreetEdgeTable.auditedStreetDistance()
                 completionRate <- StreetEdgeTable.streetDistanceCompletionRate()
                 labelCount <- LabelTable.countLabels
               } yield {
-                Ok(views.html.index("Project Sidewalk", Some(user), auditedDistance, completionRate, labelCount))
+                Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, auditedDistance, completionRate, labelCount))
               }
-=======
-              val cityStr: String = Play.configuration.getString("city-id").get
-              val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
-              val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
-              val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName)))
->>>>>>> f51eb45c2145377f05d742b1bda715c371d40f7f
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
