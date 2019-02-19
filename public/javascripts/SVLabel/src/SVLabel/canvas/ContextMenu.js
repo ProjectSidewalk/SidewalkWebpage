@@ -227,6 +227,7 @@ function ContextMenu (uiContextMenu) {
         var label = getTargetLabel();
         var labelTags = label.getProperty('tagIds');
 
+        // Use position of cursor to determine whether or not the click came from the mouse, or from a keyboard shortcut
         var wasClickedByMouse = e.originalEvent.clientX != 0 && e.originalEvent.clientY != 0;
 
         $("body").unbind('click').on('click', 'button', function (e) {
