@@ -143,20 +143,20 @@ object MissionTable {
   def hasCompletedMissionInThisAmtAssignment(username: String): Future[Boolean] = {
     val asmt: Future[Option[AMTAssignment]] = AMTAssignmentTable.getMostRecentAssignment(username)
 
-    for {
+    val hasCompletedMissionFuture: Future[Future[Boolean]] = for {
       asmt <- AMTAssignmentTable.getMostRecentAssignment(username)
       onboardingTypeIds <- MissionTypeTable.onboardingTypeIds
     } yield {
       if (asmt.isEmpty) {
-        false
+        Future.successful(false)
       } else {
         db.run {
           missions.filterNot(_.missionTypeId inSet onboardingTypeIds)
             .filter(m => m.missionEnd > asmt.get.assignmentStart && m.missionEnd < asmt.get.assignmentEnd && m.completed).result
-        }.map(_nonEmpty)
+        }.map(_.nonEmpty)
       }
-    }.flatten
-
+    }
+    hasCompletedMissionFuture.flatMap(identity)
   }
 
   /**
@@ -221,9 +221,11 @@ object MissionTable {
     missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).result.headOption
   )
 
-  def getCurrentValidationMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
-    val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && !m.completed).list.headOption
+  def getCurrentValidationMission(userId: UUID): Future[Option[Mission]] = {
+    for {
+      validationMissionId <- db.run(missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).result.head)
+      currMission <- db.run(missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && !m.completed).result.headOption)
+    } yield currMission
   }
 
   /**
