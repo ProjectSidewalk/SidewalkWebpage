@@ -1,15 +1,18 @@
 package models.validation
 
 import java.util.UUID
+
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.api._
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
+
 import slick.driver.JdbcProfile
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 
+import scala.concurrent.Future
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -51,9 +54,7 @@ object ValidationTaskInteractionTable {
   val db = dbConfig.db
   val validationTaskInteractions = TableQuery[ValidationTaskInteractionTable]
 
-  def save(interaction: ValidationTaskInteraction): Int = db.withTransaction { implicit session =>
-    val interactionId: Int =
-      (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)).insert(interaction)
-    interactionId
+  def save(interaction: ValidationTaskInteraction): Future[Int] = db.run {
+    (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) += interaction
   }
 }

@@ -2,10 +2,16 @@ package models.label
 
 import java.sql.Timestamp
 import java.util.UUID
-import models.utils.MyPostgresDriver.simple._
+
+import models.utils.MyPostgresDriver.api._
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+
+import slick.driver.JdbcProfile
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
+import scala.concurrent.Future
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -55,12 +61,11 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   * Data access table for label validation table
   */
 object LabelValidationTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val labelValidationTable = TableQuery[LabelValidationTable]
 
-  def save(label: LabelValidation): Int = db.withTransaction { implicit session =>
-    val labelValidationId: Int =
-      (labelValidationTable returning labelValidationTable.map(_.labelValidationId)) += label
-    labelValidationId
+  def save(label: LabelValidation): Future[Int] = db.run {
+    (labelValidationTable returning labelValidationTable.map(_.labelValidationId)) += label
   }
 }

@@ -7,9 +7,11 @@ import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.api._
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
+
 import slick.driver.JdbcProfile
 import play.api.Play.current
 
+import scala.concurrent.Future
 import scala.slick.lifted.ForeignKeyQuery
 
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
@@ -47,9 +49,7 @@ object ValidationTaskCommentTable {
     * @param comment ValidationTaskComment object
     * @return
     */
-  def save(comment: ValidationTaskComment): Int = db.withTransaction { implicit session =>
-    val validationTaskCommentId: Int =
-      (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
-    validationTaskCommentId
+  def save(comment: ValidationTaskComment): Future[Int] = db.run {
+    (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
   }
 }

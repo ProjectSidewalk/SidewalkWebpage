@@ -2,6 +2,7 @@ package models.label
 
 import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 import models.daos.slickdaos.DBTableDefinitions.UserTable
@@ -17,12 +18,13 @@ import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
-import slick.driver.JdbcProfile
 
-import scala.concurrent.Future
+import slick.driver.JdbcProfile
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import slick.jdbc.GetResult
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.Duration
 
 case class Label(labelId: Int,
                  auditTaskId: Int,
@@ -485,14 +487,14 @@ object LabelTable {
     * @param labelId  Label ID for label to retrieve.
     * @return         LabelValidationMetadata object.
     */
-  def retrieveSingleLabelForValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleLabelForValidation(labelId: Int): Future[LabelValidationMetadata] = {
     val validationLabels = for {
       _lb <- labels if _lb.labelId === labelId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
     } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
       _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
-    validationLabels.list.map(label => LabelValidationMetadata.tupled(label)).head
+    db.run(validationLabels.result.head).map(LabelValidationMetadata.tupled(_))
   }
 
   /**
@@ -500,53 +502,51 @@ object LabelTable {
     * Will keep querying for a random label until a suitable label has been found.
     * @return LabelValidationMetadata of this label.
     */
-  def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = {
     var exists: Boolean = false
     var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
     while (!exists) {
-      val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
-        """SELECT lb.label_id,
-        |       lt.label_type,
-        |       lb.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height
-        |FROM sidewalk.label AS lb,
-        |     sidewalk.label_type AS lt,
-        |     sidewalk.label_point AS lp,
-        |     sidewalk.gsv_data AS gd
-        |WHERE lp.label_id = lb.label_id
-        |      AND lt.label_type_id = lb.label_type_id
-        |      AND lb.label_type_id <> 5
-        |      AND lb.label_type_id <> 6
-        |      AND lb.deleted = false
-        |      AND lb.tutorial = false
-        |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
-        |      AND gd.expired = false
-        |OFFSET floor(random() *
-        |      (
-        |          SELECT COUNT(*)
-        |          FROM sidewalk.label AS lb
-        |          WHERE lb.deleted = false
-        |              AND lb.tutorial = false
-        |              AND lb.label_type_id <> 5
-        |              AND lb.label_type_id <> 6
-        |      )
-        |)
-        |LIMIT ?""".stripMargin
-      )
-      val singleLabel = selectQuery(1).list
+      val selectQuery =
+        sql"""SELECT lb.label_id,
+                    lt.label_type,
+                    lb.gsv_panorama_id,
+                    lp.heading,
+                    lp.pitch,
+                    lp.zoom,
+                    lp.canvas_x,
+                    lp.canvas_y,
+                    lp.canvas_width,
+                    lp.canvas_height
+        FROM sidewalk.label AS lb,
+             sidewalk.label_type AS lt,
+             sidewalk.label_point AS lp,
+             sidewalk.gsv_data AS gd
+        WHERE lp.label_id = lb.label_id
+              AND lt.label_type_id = lb.label_type_id
+              AND lb.label_type_id <> 5
+              AND lb.label_type_id <> 6
+              AND lb.deleted = false
+              AND lb.tutorial = false
+              AND gd.gsv_panorama_id = lb.gsv_panorama_id
+              AND gd.expired = false
+        OFFSET floor(random() *
+              (
+                  SELECT COUNT(*)
+                  FROM sidewalk.label AS lb
+                  WHERE lb.deleted = false
+                      AND lb.tutorial = false
+                      AND lb.label_type_id <> 5
+                      AND lb.label_type_id <> 6
+              )
+        )
+        LIMIT 1""".as[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)]
+      val singleLabel = Await.result(db.run(selectQuery), Duration.Inf) // FIXME
       // Uses panorama ID to check if this panorama exists
       exists = panoExists(singleLabel(0)._3)
 
       if (exists) {
         labelToValidate = singleLabel
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
       } else {
         println("Panorama " + singleLabel(0)._3 + " doesn't exist")
@@ -561,7 +561,7 @@ object LabelTable {
     * @param count  Length of list
     * @return       Seq[LabelValidationMetadata]
     */
-  def retrieveRandomLabelListForValidation(count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveRandomLabelListForValidation(count: Int) : Seq[LabelValidationMetadata] = {
     var labelList = new ListBuffer[LabelValidationMetadata]()
     for (a <- 1 to count) {
       labelList += retrieveSingleRandomLabelForValidation()

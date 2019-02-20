@@ -85,12 +85,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @return Label metadata containing GSV metadata and label type
     */
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-    LabelTable.find(labelId) match {
+    LabelTable.find(labelId).map {
       case Some(labelPointObj) =>
         val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleLabelForValidation(labelId)
         val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
-        Future.successful(Ok(labelMetadataJson))
-      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+        Ok(labelMetadataJson)
+      case _ => Ok(Json.obj("error" -> "no such label"))
     }
   }
 
@@ -124,7 +124,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress  Metadata for this mission
     * @return
     */
-  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress): Option[Mission] = {
+  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress): Future[Option[Mission]] = {
     val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId

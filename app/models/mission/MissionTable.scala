@@ -522,7 +522,7 @@ object MissionTable {
      queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress), None)
    }
 
-  def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Option[Mission] = {
+  def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Future[Option[Mission]] = {
     val actions: List[String] = List("updateProgress")
     queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), Some(labelsProgress), None)
   }
@@ -553,7 +553,7 @@ object MissionTable {
      queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None)
    }
 
-  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double): Option[Mission] = {
+  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double): Future[Option[Mission]] = {
     val actions: List[String] = List("getValidationMission")
     queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, None, None)
   }
@@ -613,12 +613,12 @@ object MissionTable {
     * @param userId
     * @return
     */
-  def createNextValidationMission(userId: UUID, pay: Double, validate: Int) : Mission = db.withSession { implicit session =>
+  def createNextValidationMission(userId: UUID, pay: Double, validate: Int) : Future[Mission] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("validation")
     val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, Some(validate), Some(0.0.toInt), false)
-    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
-    missions.filter(_.missionId === missionId).list.head
+    val missionId: Future[Int] = (missions returning missions.map(_.missionId)) += newMission
+    db.run(missions.filter(_.missionId === missionId).result.head)
   }
 
   /**
@@ -707,16 +707,17 @@ object MissionTable {
     }
   }
 
-  def updateValidationProgress(missionId: Int, labelsProgress: Int): Int = db.withSession { implicit session =>
+  def updateValidationProgress(missionId: Int, labelsProgress: Int): Future[Int] = {
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionLabels: Int = missions.filter(_.missionId === missionId).map(_.labelsValidated).list.head.get
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.labelsProgress, m.missionEnd)
 
-    if (labelsProgress <= missionLabels) {
-      missionToUpdate.update((Some(labelsProgress), now))
-    } else {
-      Logger.error("[MissionTable] updateValidationProgress: Trying to update mission progress with labels greater than total mission labels.")
-      missionToUpdate.update((Some(missionLabels), now))
+    db.run(missions.filter(_.missionId === missionId).map(_.labelsValidated).result.head).flatMap { missionLabels =>
+      if (labelsProgress <= missionLabels.get) {
+        missionToUpdate.update((Some(labelsProgress), now))
+      } else {
+        Logger.error("[MissionTable] updateValidationProgress: Trying to update mission progress with labels greater than total mission labels.")
+        missionToUpdate.update((missionLabels, now))
+      }
     }
   }
 
