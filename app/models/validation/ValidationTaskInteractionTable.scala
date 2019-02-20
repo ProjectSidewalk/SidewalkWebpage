@@ -2,7 +2,10 @@ package models.validation
 
 import java.util.UUID
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
@@ -44,7 +47,8 @@ class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[Valida
 }
 
 object ValidationTaskInteractionTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val validationTaskInteractions = TableQuery[ValidationTaskInteractionTable]
 
   def save(interaction: ValidationTaskInteraction): Int = db.withTransaction { implicit session =>

@@ -52,8 +52,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         case Some(user) =>
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, requestStr, timestamp))
         case None =>
-          val anonymousUser: DBUser = UserTable.find("anonymous").get
-          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, requestStr, timestamp))
+          val anonUserId: Future[String] = UserTable.find("anonymous").map(_.get.userId.toString)
+          anonUserId.map { anonId =>
+            WebpageActivityTable.save(WebpageActivity(0, anonId, ipAddress, requestStr, timestamp))
+          }
       }
     }
   }
@@ -75,10 +77,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
 
-    val features: List[JsObject] =
-      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng).map(_.toJSON)
-
-    Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng).map { attributes =>
+      Ok(Json.obj("type" -> "FeatureCollection", "features" -> attributes.map(_.toJSON)))
+    }
   }
 
   /**
@@ -98,10 +99,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
 
-    val features: List[JsObject] =
-      GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng).map(_.toJSON)
-
-    Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng).map { attributes =>
+      Ok(Json.obj("type" -> "FeatureCollection", "features" -> attributes.map(_.toJSON)))
+    }
   }
 
   def getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
@@ -137,10 +137,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     if (request.toString == "GET /v1/access/attributes?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
       Cache.getOrElse(request.toString, 1800) {
         prepareFeatureCollection
-      }
+      }.map(Ok(_))
     } else {
-      prepareFeatureCollection
-    }.map(Ok(_))
+      prepareFeatureCollection.map(Ok(_))
+    }
   }
 
   /**
@@ -171,7 +171,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 2, request.toString).map(Ok(_))
   }
 
-  def getAccessScoreNeighborhoodsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, requestStr: String) = {
+  def getAccessScoreNeighborhoodsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, requestStr: String): Future[JsObject] = {
     // Retrieve data and cluster them by location and label type.
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
@@ -252,8 +252,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
             )
             Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
           }
-          Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
         }
+        Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
       }
     }
 
@@ -265,7 +265,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
     } else {
       prepareFeatureCollection
-    }.map(Ok(_))
+    }
+    featureCollection
   }
 
   /**
@@ -281,6 +282,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1).map(Ok(_))
+  }
 
   /**
     * AccessScore:Street V2 (using new clustering methods)
@@ -294,7 +296,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     */
   def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    Future.successful(Ok(getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2)))
+    getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2).map(Ok(_))
   }
 
   /**

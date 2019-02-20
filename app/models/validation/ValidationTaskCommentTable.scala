@@ -4,7 +4,10 @@ import java.sql.Timestamp
 
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
+import play.api.Play
+import play.api.db.slick.DatabaseConfigProvider
+import slick.driver.JdbcProfile
 import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
@@ -35,7 +38,8 @@ class ValidationTaskCommentTable(tag: Tag) extends Table[ValidationTaskComment](
 }
 
 object ValidationTaskCommentTable {
-  val db = play.api.db.slick.DB
+  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+  val db = dbConfig.db
   val validationTaskComments = TableQuery[ValidationTaskCommentTable]
 
   /**

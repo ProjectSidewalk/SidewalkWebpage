@@ -140,15 +140,23 @@ object MissionTable {
     * @param username
     * @return
     */
-  def hasCompletedMissionInThisAmtAssignment(username: String): Boolean = db.withSession { implicit session =>
-    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
-    if (asmt.isEmpty) {
-      false
-    } else {
-      missions.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
-        .filter(m => m.missionEnd > asmt.get.assignmentStart && m.missionEnd < asmt.get.assignmentEnd && m.completed)
-        .list.nonEmpty
-    }
+  def hasCompletedMissionInThisAmtAssignment(username: String): Future[Boolean] = {
+    val asmt: Future[Option[AMTAssignment]] = AMTAssignmentTable.getMostRecentAssignment(username)
+
+    for {
+      asmt <- AMTAssignmentTable.getMostRecentAssignment(username)
+      onboardingTypeIds <- MissionTypeTable.onboardingTypeIds
+    } yield {
+      if (asmt.isEmpty) {
+        false
+      } else {
+        db.run {
+          missions.filterNot(_.missionTypeId inSet onboardingTypeIds)
+            .filter(m => m.missionEnd > asmt.get.assignmentStart && m.missionEnd < asmt.get.assignmentEnd && m.completed).result
+        }.map(_nonEmpty)
+      }
+    }.flatten
+
   }
 
   /**

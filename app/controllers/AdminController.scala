@@ -239,7 +239,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
     // Groups by region_id... json looks like: {region_id: 123, labels: {NoCurbRamp: 5, Obstacle: 10, ...}}
-    GlobalAttributeTable.selectNegativeAttributeCountsByRegion().flatMap { counts =>
+    GlobalAttributeTable.selectNegativeAttributeCountsByRegion().map { counts =>
       val features: List[JsObject] = counts.groupBy(_._1).map {
         case (rId, group) => Json.obj(
           "region_id" -> rId,

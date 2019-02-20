@@ -226,7 +226,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               asmtId <- AMTAssignmentTable.getMostRecentAssignmentId(user.username)
               amtAsmtId <- AMTAssignmentTable.getMostRecentAMTAssignmentId(user.username)
               confirmationCode <- AMTAssignmentTable.getConfirmationCode(user.username, asmtId.getOrElse(""))
-              hasCompletedMissionInAmtAsmt <- MissionTable.hasCompletedMissionInThisAmtAssignment(user.userId)
+              hasCompletedMissionInAmtAsmt <- MissionTable.hasCompletedMissionInThisAmtAssignment(user.username)
             } yield {
               Ok(views.html.audit(
                 "Project Sidewalk - Audit", Some(task), mission.get, region, Some(user), cityShortName, tutorialStreetId,
@@ -268,36 +268,38 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
           for {
             task <- AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
-            mission <- MissionTable.resumeOrCreateNewAuditMission(userId, region.regionId, payPerMeter, tutorialPay).get
+            missionOption <- MissionTable.resumeOrCreateNewAuditMission(userId, region.regionId, payPerMeter, tutorialPay)
             surveyQuestions <- SurveyQuestionTable.listAll
             surveyOptions <- SurveyOptionTable.listAll
-          } yield
-          if (isAdmin(request.identity)) {
-            panoId match {
-              case Some(panoId) =>
-                Future.successful(Ok(views.html.audit(
-                  "Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId,
-                  surveyQuestions, surveyOptions, None, None, None, false, None, None, Some(panoId)
-                )))
-              case None =>
-                (lat, lng) match {
-                  case (Some(lat), Some(lng)) =>
-                    Future.successful(Ok(views.html.audit(
-                      "Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName,
-                      tutorialStreetId, surveyQuestions, surveyOptions, None, None, None, false, Some(lat), Some(lng)
-                    )))
-                  case (_, _) =>
-                    Future.successful(Ok(views.html.audit(
-                      "Project Sidewalk - Audit", Some(task), mission, region, None, cityShortName, tutorialStreetId,
-                      surveyQuestions, surveyOptions, None, None, None, false
-                    )))
-                }
+          } yield {
+            val mission: Mission = missionOption.get
+            if (isAdmin(request.identity)) {
+              panoId match {
+                case Some(panoId) =>
+                  Ok(views.html.audit(
+                    "Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId,
+                    surveyQuestions, surveyOptions, None, None, None, false, None, None, Some(panoId)
+                  ))
+                case None =>
+                  (lat, lng) match {
+                    case (Some(lat), Some(lng)) =>
+                      Ok(views.html.audit(
+                        "Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName,
+                        tutorialStreetId, surveyQuestions, surveyOptions, None, None, None, false, Some(lat), Some(lng)
+                      ))
+                    case (_, _) =>
+                      Ok(views.html.audit(
+                        "Project Sidewalk - Audit", Some(task), mission, region, None, cityShortName, tutorialStreetId,
+                        surveyQuestions, surveyOptions, None, None, None, false
+                      ))
+                  }
+              }
+            } else {
+              Ok(views.html.audit(
+                "Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId,
+                surveyQuestions, surveyOptions
+              ))
             }
-          } else {
-            Future.successful(Ok(views.html.audit(
-              "Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId,
-              surveyQuestions, surveyOptions
-            )))
           }
         }
       case None => Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId"))
@@ -348,13 +350,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       submission => {
-        val userId: String = request.identity match {
-          case Some(user) => user.userId.toString
-          case None =>
-            Logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
-            val user: Option[DBUser] = UserTable.find("anonymous")
-            user.get.userId.toString
-        }
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 

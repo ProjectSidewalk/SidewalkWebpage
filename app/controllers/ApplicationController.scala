@@ -201,9 +201,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
-        StreetEdgeTable.streetDistanceCompletionRate() map { completionRate =>
-          Ok(views.html.developer("Project Sidewalk - Developers", Some(user), completionRate))
-        }
+        Future.successful(Ok(views.html.developer("Project Sidewalk - Developers", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/developer"))
     }
