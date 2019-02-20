@@ -504,7 +504,7 @@ object MissionTable {
     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), Some(skipped))
   }
 
-  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, labelsProgress: Int, skipped: Boolean): Option[Mission] = {
+  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, labelsProgress: Int, skipped: Boolean): Future[Option[Mission]] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
     queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(labelsProgress), Some(skipped))
   }

@@ -12,7 +12,6 @@ import slick.driver.JdbcProfile
 import play.api.Play.current
 
 import scala.concurrent.Future
-import scala.slick.lifted.ForeignKeyQuery
 
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
                                  userId: String, ipAddress: String, gsvPanoramaId: String,
@@ -21,18 +20,18 @@ case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, l
 
 class ValidationTaskCommentTable(tag: Tag) extends Table[ValidationTaskComment](tag, Some("sidewalk"), "validation_task_comment") {
   def validationTaskCommentId = column[Int]("validation_task_comment_id", O.PrimaryKey, O.AutoInc)
-  def missionId = column[Int]("mission_id", O.NotNull)
-  def labelId = column[Int]("label_id", O.NotNull)
-  def userId = column[String]("user_id", O.NotNull)
-  def ipAddress = column[String]("ip_address", O.NotNull)
-  def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
-  def heading = column[Double]("heading", O.NotNull)
-  def pitch = column[Double]("pitch", O.NotNull)
-  def zoom = column[Int]("zoom", O.NotNull)
-  def lat = column[Double]("lat", O.NotNull)
-  def lng = column[Double]("lng", O.NotNull)
-  def timestamp = column[Option[Timestamp]]("timestamp", O.Nullable)
-  def comment = column[String]("comment", O.NotNull)
+  def missionId = column[Int]("mission_id")
+  def labelId = column[Int]("label_id")
+  def userId = column[String]("user_id")
+  def ipAddress = column[String]("ip_address")
+  def gsvPanoramaId = column[String]("gsv_panorama_id")
+  def heading = column[Double]("heading")
+  def pitch = column[Double]("pitch")
+  def zoom = column[Int]("zoom")
+  def lat = column[Double]("lat")
+  def lng = column[Double]("lng")
+  def timestamp = column[Option[Timestamp]]("timestamp")
+  def comment = column[String]("comment")
 
   def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, gsvPanoramaId, heading,
     pitch, zoom, lat, lng, timestamp, comment) <> ((ValidationTaskComment.apply _).tupled,

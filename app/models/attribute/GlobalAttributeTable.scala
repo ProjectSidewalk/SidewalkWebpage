@@ -9,7 +9,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import models.label._
 import models.region.RegionTable
 import play.api.Play.current
-import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 
@@ -18,6 +17,8 @@ import play.api.Play
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 import scala.language.postfixOps
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 case class GlobalAttribute(globalAttributeId: Int,
@@ -82,7 +83,7 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
 }
 
 
-class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
+class GlobalAttributeTable(tag: slick.lifted.Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
   def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.PrimaryKey, O.AutoInc)
   def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id")
   def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold")
@@ -190,11 +191,15 @@ object GlobalAttributeTable {
     */
   def selectNegativeAttributeCountsByRegion(): Future[List[(Int, String, Int)]] = {
     db.run(
-    globalAttributes
-      .filter(_.labelTypeId inSet List(2, 3, 4, 7))
-      .groupBy(a => (a.regionId, a.labelTypeId)).map { case ((rId, typeId), group) => (rId, typeId, group.length) }
-      .to[List].result
-    ).map(_.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId), count) })
+      globalAttributes
+        .filter(_.labelTypeId inSet List(2, 3, 4, 7))
+        .groupBy(a => (a.regionId, a.labelTypeId)).map { case ((rId, typeId), group) => (rId, typeId, group.length) }
+        .to[List].result
+    ).flatMap { attributes =>
+      Future.sequence(attributes.map { case (rId, typeId, count) =>
+        LabelTypeTable.labelTypeIdToLabelType(typeId).map { typeStr => (rId, typeStr, count) }
+      })
+    }
   }
 
   def save(newAttribute: GlobalAttribute): Future[Int] = {

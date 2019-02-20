@@ -41,9 +41,9 @@ object GSVDataTable {
     * @param panoramaId GSV Panorama ID.
     * @return           Boolean value of the expired column.
     */
-  def markExpired(gsvPanoramaId: String, expired: Boolean): Int = db.withTransaction { implicit session =>
+  def markExpired(gsvPanoramaId: String, expired: Boolean): Future[Int] = db.run {
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.expired
-    q.update(expired)
+    q.update(expired).transactionally
   }
 
   /**
@@ -52,9 +52,9 @@ object GSVDataTable {
     * @param timestamp      Timestamp from the last time this panorama was accessed.
     * @return
     */
-  def markLastViewedForPanorama(gsvPanoramaId: String, timestamp: Timestamp): Int = db.withTransaction { implicit session =>
+  def markLastViewedForPanorama(gsvPanoramaId: String, timestamp: Timestamp): Future[Int] = db.run {
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.lastViewed
-    q.update(Some(timestamp))
+    q.update(Some(timestamp)).transactionally
   }
 
   /**

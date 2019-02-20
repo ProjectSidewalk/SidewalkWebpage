@@ -3,6 +3,7 @@ package models.validation
 import java.util.UUID
 
 import models.mission.{Mission, MissionTable}
+import models.street.StreetEdgeTable
 import models.utils.MyPostgresDriver.api._
 import play.api.Play
 import play.api.db.slick.DatabaseConfigProvider
@@ -13,8 +14,6 @@ import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 
 import scala.concurrent.Future
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
 
 
 case class ValidationTaskInteraction(validationTaskInteractionId: Int,
@@ -31,22 +30,21 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
 
 class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, Some("sidewalk"), "validation_task_interaction") {
   def validationTaskInteractionId = column[Int]("validation_task_interaction_id", O.PrimaryKey, O.AutoInc)
-  def missionId = column[Int]("mission_id", O.NotNull)
-  def action = column[String]("action", O.NotNull)
-  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.Nullable)
-  def lat = column[Option[Float]]("lat", O.Nullable)
-  def lng = column[Option[Float]]("lng", O.Nullable)
-  def heading = column[Option[Float]]("heading", O.Nullable)
-  def pitch = column[Option[Float]]("pitch", O.Nullable)
-  def zoom = column[Option[Float]]("zoom", O.Nullable)
-  def note = column[Option[String]]("note", O.Nullable)
-  def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
+  def missionId = column[Int]("mission_id")
+  def action = column[String]("action")
+  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id")
+  def lat = column[Option[Float]]("lat")
+  def lng = column[Option[Float]]("lng")
+  def heading = column[Option[Float]]("heading")
+  def pitch = column[Option[Float]]("pitch")
+  def zoom = column[Option[Float]]("zoom")
+  def note = column[Option[String]]("note")
+  def timestamp = column[java.sql.Timestamp]("timestamp")
 
   def * = (validationTaskInteractionId, missionId, action, gsvPanoramaId, lat,
     lng, heading, pitch, zoom, note, timestamp) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
 
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+  def mission = foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 object ValidationTaskInteractionTable {

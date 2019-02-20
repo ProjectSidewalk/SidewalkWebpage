@@ -21,6 +21,7 @@ import play.api.Logger
 import play.api.mvc._
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -36,12 +37,13 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
-        val labelsProgress: Int = mission.labelsProgress.get
-        val labelsValidated: Int = mission.labelsValidated.get
-        val labelsToRetrieve: Int = labelsValidated - labelsProgress
-        val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
-        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
+        MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).map { mission =>
+          val labelsProgress: Int = mission.get.labelsProgress.get
+          val labelsValidated: Int = mission.get.labelsValidated.get
+          val labelsToRetrieve: Int = labelsValidated - labelsProgress
+          val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
+          Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission.get, labelList))
+        }
       case None =>
         Future.successful(Redirect("/"))
     }
@@ -87,8 +89,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
           ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
           submission.zoom, submission.lat, submission.lng, Some(timestamp), submission.comment)
 
-        val commentId: Int = ValidationTaskCommentTable.save(comment)
-        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
+        ValidationTaskCommentTable.save(comment).map { commentId => Ok(Json.obj("commend_id" -> commentId)) }
       }
     )
   }

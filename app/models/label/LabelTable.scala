@@ -410,7 +410,8 @@ object LabelTable {
     implicit val mkLabelMetadataWithoutTags = GetResult[LabelMetadataWithoutTags](r =>
       LabelMetadataWithoutTags(
         r.nextInt(), // labelId
-        r.nextString(),
+        r.nextString(), // panoId
+        r.nextBoolean(), // tutorial
         r.nextFloat(),
         r.nextFloat(),
         r.nextInt(),
@@ -418,9 +419,9 @@ object LabelTable {
         r.nextInt(),
         r.nextInt(),
         r.nextInt(),
-        r.nextInt(),  //auditTaskId
-        r.nextString(),
-        r.nextString(), //userId
+        r.nextInt(),  // auditTaskId
+        r.nextString(), // userId
+        r.nextString(), // username
         r.nextTimestampOption(),
         r.nextString(), //labelTypeKey
         r.nextString(),
@@ -432,8 +433,8 @@ object LabelTable {
     val selectQuery =
       sql"""SELECT lb1.label_id,
                 lb1.gsv_panorama_id,
-                lp.heading,
                 lb1.tutorial,
+                lp.heading,
                 lp.pitch,
                 lp.zoom,
                 lp.canvas_x,
@@ -504,7 +505,7 @@ object LabelTable {
     */
   def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = {
     var exists: Boolean = false
-    var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
+    var labelToValidate: (Int, String, String, Float, Float, Int, Int, Int, Int, Int) = null
     while (!exists) {
       val selectQuery =
         sql"""SELECT lb.label_id,
@@ -540,20 +541,20 @@ object LabelTable {
               )
         )
         LIMIT 1""".as[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)]
-      val singleLabel = Await.result(db.run(selectQuery), Duration.Inf) // FIXME
+      val singleLabel = Await.result(db.run(selectQuery), Duration.Inf).head // FIXME
       // Uses panorama ID to check if this panorama exists
-      exists = panoExists(singleLabel(0)._3)
+      exists = panoExists(singleLabel._3)
 
       if (exists) {
         labelToValidate = singleLabel
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
+        GSVDataTable.markLastViewedForPanorama(singleLabel._3, timestamp)
       } else {
-        println("Panorama " + singleLabel(0)._3 + " doesn't exist")
-        GSVDataTable.markExpired(singleLabel(0)._3, true)
+        println("Panorama " + singleLabel._3 + " doesn't exist")
+        GSVDataTable.markExpired(singleLabel._3, true)
       }
     }
-    labelToValidate.map(label => LabelValidationMetadata.tupled(label)).head
+    LabelValidationMetadata.tupled(labelToValidate)
   }
 
   /**
@@ -622,9 +623,10 @@ object LabelTable {
     */
   def labelAndTagsToLabelMetadata(label: LabelMetadataWithoutTags, tags: List[String]): LabelMetadata = {
       LabelMetadata(
-        label.labelId, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
-        label.canvasWidth, label.canvasHeight ,label.auditTaskId ,label.userId ,label.username, label.timestamp,
-        label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary, label.description, tags)
+        label.labelId, label.gsvPanoramaId, label.tutorial, label.heading, label.pitch, label.zoom, label.canvasX,
+        label.canvasY, label.canvasWidth, label.canvasHeight ,label.auditTaskId ,label.userId ,label.username,
+        label.timestamp, label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary, label.description,
+        tags)
   }
 
 //  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, heading: Float, pitch: Float,

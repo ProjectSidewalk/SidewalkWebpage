@@ -25,6 +25,7 @@ import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -44,7 +45,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       },
       submission => {
         val user = request.identity
-        val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
+        val returnValueFutures: Seq[Future[ValidationTaskPostReturnValue]] = for (data <- submission) yield {
           for (interaction: InteractionSubmission <- data.interactions) {
             ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
@@ -63,18 +64,21 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             }
           }
 
-          val missionId: Int = data.missionProgress.missionId
-          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
-
           // Temporary value - this is the number of labels that are in each mission.
           val labelList: Option[JsValue] = getLabelList(user, data.missionProgress)
-          ValidationTaskPostReturnValue(possibleNewMission, labelList)
+
+          val missionId: Int = data.missionProgress.missionId
+          updateMissionTable(user, data.missionProgress).map { possibleNewMission =>
+            ValidationTaskPostReturnValue(possibleNewMission, labelList)
+          }
         }
 
-        Future.successful(Ok(Json.obj(
-          "mission" -> returnValues.head.mission.map(_.toJSON),
-          "labels" -> returnValues.head.labels
-        )))
+        Future.sequence(returnValueFutures).map { returnValues =>
+          Ok(Json.obj(
+            "mission" -> returnValues.head.mission.map(_.toJSON),
+            "labels" -> returnValues.head.labels
+          ))
+        }
       }
     )
   }
@@ -85,12 +89,13 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @return Label metadata containing GSV metadata and label type
     */
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-    LabelTable.find(labelId).map {
+    LabelTable.find(labelId).flatMap {
       case Some(labelPointObj) =>
-        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleLabelForValidation(labelId)
-        val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
-        Ok(labelMetadataJson)
-      case _ => Ok(Json.obj("error" -> "no such label"))
+        LabelTable.retrieveSingleLabelForValidation(labelId).map { labelMetadata =>
+          val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
+          Ok(labelMetadataJson)
+        }
+      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }
   }
 
