@@ -1096,8 +1096,67 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
-                return "adjust-heading-angle-4";
+                return "rate-severity-6";
             }]
+        },
+        "rate-severity-6": {
+            "properties": {
+                "action": "RateSeverity",
+                "labelType": "NoSidewalk",
+                "severity": 3,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem' +
+                    ' is less severe. So <span class="bold">let’s rate it as a 3.</span> When you rate accessibility,' +
+                    ' we just ask that you <span class="bold">use your best judgment!</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
+                    '3, a slightly severe problem">',
+                "position": "top-right",
+                "parameters": null,
+                "left": 410
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 24 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6"});
+                var severity = parseInt(this.getAttribute("value"), 10);
+                return severity == 3 ? "adjust-heading-angle-4" : "redo-rate-attribute-6"
+            }
+        },
+        "redo-rate-attribute-6": {
+            "properties": {
+                "action": "RedoRateSeverity",
+                "labelType": "NoSidewalk",
+                "severity": 3,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": 'Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility ' +
+                    'problem is less severe. ' +
+                    '<span class="bold">Let’s click "3" to change the severity of the missing curb ramp.</span><br> ' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
+                    'a slightly severe problem">',
+                "position": "top-right",
+                "parameters": null,
+                "left": 410
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
+                var severity = parseInt(this.getAttribute("value"), 10);
+                return severity == 3 ? "adjust-heading-angle-4" : "redo-rate-attribute-6"
+            }
         },
         "adjust-heading-angle-4": {
             "properties": {
@@ -1117,7 +1176,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 24 / numStates;
+                var completedRate = 25 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-4" });
@@ -1151,7 +1210,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 25 / numStates;
+                var completedRate = 26 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
@@ -1188,7 +1247,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 26 / numStates;
+                var completedRate = 27 / numStates;
 
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
@@ -1216,7 +1275,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 27 / numStates;
+                var completedRate = 28 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
@@ -1269,7 +1328,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 28 / numStates;
+                var completedRate = 29 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5"});
@@ -1295,7 +1354,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "panoId": panoId,
             "transition": function () {
-                var completedRate = 29 / numStates;
+                var completedRate = 30 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
@@ -1330,7 +1389,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 30 / numStates;
+                var completedRate = 31 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
@@ -1364,7 +1423,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 31 / numStates;
+                var completedRate = 32 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-3"});
@@ -1395,7 +1454,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": null,
             // okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
-                var completedRate = 32 / numStates;
+                var completedRate = 33 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-4"});
@@ -1442,7 +1501,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             ],
             okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
-                var completedRate = 33 / numStates;
+                var completedRate = 34 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-5"});
@@ -1491,7 +1550,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 34 / numStates;
+                var completedRate = 35 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-6"});
@@ -1517,7 +1576,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 35 / numStates;
+                var completedRate = 36 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
@@ -1570,7 +1629,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 36 / numStates;
+                var completedRate = 37 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
@@ -1603,7 +1662,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 37 / numStates;
+                var completedRate = 38 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
