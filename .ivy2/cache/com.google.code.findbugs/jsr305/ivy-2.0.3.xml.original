@@ -1,0 +1,40 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.google.code.findbugs</groupId>
+	<artifactId>jsr305</artifactId>
+	<version>2.0.3</version>
+	<packaging>jar</packaging>
+	<url>https://code.google.com/p/jsr-305/</url>
+	<name>FindBugs-jsr305</name>
+	<description>JSR305 Annotations for Findbugs</description>
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<scm>
+		<connection>scm:svn:http://jsr-305.googlecode.com/svn/trunk/</connection>
+		<developerConnection>scm:svn:https://jsr-305.googlecode.com/svn/trunk/</developerConnection>
+		<url>https://code.google.com/p/jsr-305/</url>
+	</scm>
+	<developers>
+		<developer>
+			<id>bp</id>
+			<name>Bill Pugh</name>
+			<email>pugh at cs.umd.edu</email>
+			<url>http://www.cs.umd.edu/~pugh/</url>
+			<timezone>-5</timezone>
+		</developer>
+		<developer>
+			<name>David H. Hovemeyer</name>
+			<email>dhovemey@ycp.edu</email>
+			<url>http://goose.ycp.edu/~dhovemey/</url>
+			<timezone>-5</timezone>
+		</developer>
+		<developer>
+			<id>neilahart</id>
+		</developer>
+	</developers>
+</project>

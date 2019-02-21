@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt" module="sbt" revision="0.13.5" status="release" publication="20140527094603">
+		<description>
+		sbt
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="optional" visibility="public" description=""/>
+		<conf name="provided" visibility="public" description="" transitive="false"/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="sbt" type="jar" ext="jar" conf="compile"/>
+		<artifact name="sbt" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="main" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="compiler-interface" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="precompiled-2_8_2" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="precompiled-2_9_2" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="precompiled-2_9_3" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="scripted-sbt" rev="0.13.5" conf="test->test"/>
+	</dependencies>
+</ivy-module>
