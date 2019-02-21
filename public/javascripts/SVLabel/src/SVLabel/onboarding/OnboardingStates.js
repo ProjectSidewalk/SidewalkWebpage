@@ -1109,12 +1109,11 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem' +
-                    ' is less severe. So <span class="bold">let’s rate it as a 3.</span> When you rate accessibility,' +
-                    ' we just ask that you <span class="bold">use your best judgment!</span><br>' +
+                "message": 'Since there is a sidewalk on the other side of the street, this accessibility problem is ' +
+                    'less severe. So <span class="bold">let’s rate it as a 3.</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
-                    '3, a slightly severe problem">',
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
+                    'as 3, a slightly severe problem">',
                 "position": "top-right",
                 "parameters": null,
                 "left": 410
@@ -1140,12 +1139,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": 'Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility ' +
-                    'problem is less severe. ' +
-                    '<span class="bold">Let’s click "3" to change the severity of the missing curb ramp.</span><br> ' +
+                "message": 'Hmm, since there is a sidewalk on the other side of the street, this accessibility ' +
+                    'problem is less severe. <span class="bold">Let’s click "3" to change the severity of the no ' +
+                    'sidewalk label.</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
-                    'a slightly severe problem">',
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
+                    'as 3, a slightly severe problem">',
                 "position": "top-right",
                 "parameters": null,
                 "left": 410
