@@ -387,13 +387,25 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 document.getElementsByClassName('narrowSidewalk-tag')[0].click();
                                 break;
                         }
-                    } else if (labelType == 'Other') { // No Sidewalk
+                    } else if (labelType == 'Other') { // Other
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('Other')['tagInfo']['missing crosswalk']['keyNumber']: // 'i' for 'missing crosswalk'
                                 document.getElementsByClassName('missingCrosswalk-tag')[0].click();
                                 break;
                             case util.misc.getLabelDescriptions('Other')['tagInfo']['no bus stop access']['keyNumber']: // 'a' for 'no bus stop access'
                                 document.getElementsByClassName('noBusStopAccess-tag')[0].click();
+                                break;
+                        }
+                    } else if (labelType == 'NoSidewalk') { // No Sidewalk
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['ends abruptly']['keyNumber']: // 'a' for 'ends abruptly'
+                                document.getElementsByClassName('endsAbruptly-tag')[0].click();
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has a sidewalk']['keyNumber']: // 't' for 'street has a sidewalk'
+                                document.getElementsByClassName('streetHasASidewalk-tag')[0].click();
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has no sidewalks']['keyNumber']: // 'r' for 'street has no sidewalks'
+                                document.getElementsByClassName('streetHasNoSidewalks-tag')[0].click();
                                 break;
                         }
                     }
