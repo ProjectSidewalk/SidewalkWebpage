@@ -49,16 +49,23 @@ function PanoramaContainer (labelList) {
      * because missions fetch exactly the number of labels that are needed to complete the mission.
      */
     function fetchNewLabel () {
-        console.log("fetchNewLabel called... why!");
-
         var labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
         var labelUrl = "/label/geo/random/" + labelTypeId;
+
+        var data = {};
+        data.labels = svv.labelContainer.getCurrentLabels();
+
+        if (data.constructor !== Array) {
+            data = [data];
+        }
+
+        console.log("[PanoramaContainer] skip label url: " + labelUrl);
         $.ajax({
             async: false,
             contentType: 'application/json; charset=utf-8',
             url: labelUrl,
-            type: 'get',
-            data: JSON.stringify(labelList),
+            type: 'post',
+            data: JSON.stringify(data),
             dataType: 'json',
             success: function (labelMetadata) {
                 labels.push(_createSingleLabel(labelMetadata));

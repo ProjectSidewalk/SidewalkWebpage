@@ -2,7 +2,6 @@ package controllers
 
 import java.sql.Timestamp
 import java.util.UUID
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -20,8 +19,8 @@ import models.mission.{Mission, MissionTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.validation._
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
 import play.api.libs.json._
+import play.api.Logger
 import play.api.mvc._
 
 import scala.concurrent.Future
@@ -38,14 +37,14 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * BodyParsers.parse.json in async
     */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    println("post request sent")
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
+    println("[ValidationTaskController] request.body: " + request.body)
+    println("[ValidationTaskController] submission: " + submission)
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        println("post submission validated")
         val user = request.identity
         val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
           for (interaction: InteractionSubmission <- data.interactions) {
@@ -164,25 +163,28 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @return           Label metadata containing GSV metadata and label type
     */
   def getRandomLabelData (labelType: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    println("getRandomLabelData called")
-    var submission = request.body.validate[Seq[LabelValidationSubmission]]
+    println("[getRandomLabelData] request.body: " + request.body)
+    var submission = request.body.validate[Seq[SkipLabelSubmission]]
+    println("[getRandomLabelData] Submission: " + submission)
     submission.fold(
       errors => {
+        println("Errors")
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
         var labelIdList = new ListBuffer[Int]()
-        for (label: LabelValidationSubmission <- submission) {
-          labelIdList += label.labelId
+
+        val labelMetadataJson: Seq[JsObject] = for (data <- submission) yield {
+          for (label: LabelValidationSubmission <- data.labels) {
+            labelIdList += label.labelId
+          }
+          println("Label Ids: " + labelIdList)
+          val userId: UUID = request.identity.get.userId
+
+          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
+          LabelTable.validationLabelMetadataToJson(labelMetadata)
         }
-        println("Label Ids: " + labelIdList)
-        val userId: UUID = request.identity.get.userId
-
-        //println("Got enough labels")
-        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
-        val labelMetadataJson: JsObject = LabelTable.validationLabelMetadataToJson(labelMetadata)
-        Future.successful(Ok(labelMetadataJson))
-
+        Future.successful(Ok(labelMetadataJson.head))
       }
     )
   }
