@@ -31,7 +31,6 @@ function Form(url) {
      * @returns {*}
      */
     function submit(data, async) {
-        console.log("Submitting form");
         if (typeof async === "undefined") {
             async = false;
         }
@@ -49,7 +48,6 @@ function Form(url) {
             dataType: 'json',
             success: function (result) {
                 if (result) {
-                    console.log(result);
                     // If a mission was returned after posting data, create a new mission.
                     if (result.hasMissionAvailable) {
                         if (result.mission) {
@@ -59,7 +57,6 @@ function Form(url) {
                             svv.panoramaContainer.loadNewLabelOntoPanorama();
                         }
                     } else {
-                        console.log("result.mission: " + result.mission);
                         // Otherwise, display popup that says there are no more labels left.
                         svv.modalNoNewMission.show();
                     }

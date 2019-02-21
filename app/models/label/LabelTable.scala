@@ -503,7 +503,6 @@ object LabelTable {
     val availableLabelCount: Int = getAvailableValidationLabels(userId, labelTypeId, labelIdList)
     while (!exists) {
       val r = new scala.util.Random
-      println("[LabelTable] labelOffset range: " + availableLabelCount + " - " + selectedLabels.length + " = " + (availableLabelCount - selectedLabels.length))
       val labelOffset = r.nextInt(availableLabelCount - selectedLabels.length)
 
       val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
@@ -581,15 +580,12 @@ object LabelTable {
     * @return
     */
   def retrievePossibleLabelTypeIds(userId: UUID, count: Int): ListBuffer[Int] = {
-    println("Calling retreivePossibleLabelTypeIds")
     var possibleLabelTypeIds = new ListBuffer[Int]
     for (labelTypeId <- labelTypeIdList) {
       if (hasSufficientLabels(userId, labelTypeId, count)) {
         possibleLabelTypeIds += labelTypeId
-        println("Adding " + labelTypeId)
       }
     }
-    println("Number of possible label ids: " + possibleLabelTypeIds.length)
     possibleLabelTypeIds
   }
 

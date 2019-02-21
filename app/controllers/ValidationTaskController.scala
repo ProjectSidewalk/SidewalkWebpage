@@ -38,8 +38,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[ValidationTaskSubmission]]
-    println("[ValidationTaskController] request.body: " + request.body)
-    println("[ValidationTaskController] submission: " + submission)
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
@@ -68,19 +66,15 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           val missionId: Int = data.missionProgress.missionId
           val labelTypeId: Option[Int] = getLabelTypeId(user, data.missionProgress)
 
-          println("[ValidationTaskController] labelTypeId is: " + labelTypeId)
           labelTypeId match {
             case Some(labelTypeId) =>
-              println("[ValidationTaskController] labelTypeId exists")
               val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, labelTypeId)
               val labelList: Option[JsValue] = getLabelList(user, data.missionProgress, labelTypeId)
               ValidationTaskPostReturnValue(Some(true), possibleNewMission, labelList)
             case None =>
               if (data.missionProgress.completed) {
-                println("[ValidationTaskController] tried to fetch a mission but failed")
                 ValidationTaskPostReturnValue(None, None, None)
               } else {
-                println("[ValidationTaskController] incomplete mission, do nothing")
                 ValidationTaskPostReturnValue(Some(true), None, None)
               }
           }
@@ -97,14 +91,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress): Option[Int] = {
     if (missionProgress.completed) {
-      println("[ValidationTaskController] Attempting to get a labelTypeId")
       val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10)
       val hasNextMission: Boolean = possibleLabelTypeIds.length > 0
-      println("[ValidationTaskController] possibleLabelTypeIds.length: " + possibleLabelTypeIds.length)
+
       if (hasNextMission) {
         val index: Int = scala.util.Random.nextInt(possibleLabelTypeIds.size)
-        println("Index: " + index)
-        println("[ValidationTaskController] Returning: " + possibleLabelTypeIds(index))
         return Some(possibleLabelTypeIds(index))
       }
     }
@@ -158,17 +149,15 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * Gets the metadata for a single random label in the database.
+    * Gets the metadata for a single random label in the database. Excludes labels that were
+    * originally placed by the user and labels that have already appeared on the interface.
     * @param labelType  Label Type Id this label should have
     * @return           Label metadata containing GSV metadata and label type
     */
   def getRandomLabelData (labelType: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    println("[getRandomLabelData] request.body: " + request.body)
     var submission = request.body.validate[Seq[SkipLabelSubmission]]
-    println("[getRandomLabelData] Submission: " + submission)
     submission.fold(
       errors => {
-        println("Errors")
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
@@ -178,9 +167,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           for (label: LabelValidationSubmission <- data.labels) {
             labelIdList += label.labelId
           }
-          println("Label Ids: " + labelIdList)
-          val userId: UUID = request.identity.get.userId
 
+          val userId: UUID = request.identity.get.userId
           val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
           LabelTable.validationLabelMetadataToJson(labelMetadata)
         }
@@ -203,12 +191,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     val labelsProgress: Int = missionProgress.labelsProgress
 
     if (missionProgress.completed) {
-      println("[ValidationTaskController] mission is completed")
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
       MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
     } else {
-      println("[ValidationTaskController] mission is incomplete")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }

@@ -59,7 +59,6 @@ function PanoramaContainer (labelList) {
             data = [data];
         }
 
-        console.log("[PanoramaContainer] skip label url: " + labelUrl);
         $.ajax({
             async: false,
             contentType: 'application/json; charset=utf-8',
