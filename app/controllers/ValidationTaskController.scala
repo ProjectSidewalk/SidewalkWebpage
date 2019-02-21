@@ -30,7 +30,7 @@ import scala.collection.mutable.ListBuffer
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class ValidationTaskPostReturnValue(hasNextMission: Option[Boolean], mission: Option[Mission], labels: Option[JsValue])
+  case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue])
 
   /**
     * Parse submitted validation data and submit to tables
@@ -68,15 +68,27 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
           val missionId: Int = data.missionProgress.missionId
           val labelTypeId: Option[Int] = getLabelTypeId(user, data.missionProgress)
-          val hasNextMission: Option[Boolean] = Some(!labelTypeId.isEmpty)
-          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, labelTypeId, hasNextMission)
-          val labelList: Option[JsValue] = getLabelList(user, data.missionProgress, labelTypeId, hasNextMission)
 
-          ValidationTaskPostReturnValue(hasNextMission, possibleNewMission, labelList)
+          println("[ValidationTaskController] labelTypeId is: " + labelTypeId)
+          labelTypeId match {
+            case Some(labelTypeId) =>
+              println("[ValidationTaskController] labelTypeId exists")
+              val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, labelTypeId)
+              val labelList: Option[JsValue] = getLabelList(user, data.missionProgress, labelTypeId)
+              ValidationTaskPostReturnValue(Some(true), possibleNewMission, labelList)
+            case None =>
+              if (data.missionProgress.completed) {
+                println("[ValidationTaskController] tried to fetch a mission but failed")
+                ValidationTaskPostReturnValue(None, None, None)
+              } else {
+                println("[ValidationTaskController] incomplete mission, do nothing")
+                ValidationTaskPostReturnValue(Some(true), None, None)
+              }
+          }
         }
 
         Future.successful(Ok(Json.obj(
-          "hasNextMission" -> returnValues.head.hasNextMission,
+          "hasMissionAvailable" -> returnValues.head.hasMissionAvailable,
           "mission" -> returnValues.head.mission.map(_.toJSON),
           "labels" -> returnValues.head.labels
         )))
@@ -86,13 +98,15 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress): Option[Int] = {
     if (missionProgress.completed) {
+      println("[ValidationTaskController] Attempting to get a labelTypeId")
       val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10)
       val hasNextMission: Boolean = possibleLabelTypeIds.length > 0
-
+      println("[ValidationTaskController] possibleLabelTypeIds.length: " + possibleLabelTypeIds.length)
       if (hasNextMission) {
-        Some(scala.util.Random.nextInt(possibleLabelTypeIds.size))
-      } else {
-        None
+        val index: Int = scala.util.Random.nextInt(possibleLabelTypeIds.size)
+        println("Index: " + index)
+        println("[ValidationTaskController] Returning: " + possibleLabelTypeIds(index))
+        return Some(possibleLabelTypeIds(index))
       }
     }
     None
@@ -119,11 +133,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress  Metadata for this mission
     * @return                 List of label metadata (if this mission is complete).
     */
-  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Option[Int], hasNextMission: Option[Boolean]): Option[JsValue] = {
+  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[JsValue] = {
     val userId: UUID = user.get.userId
-    if (missionProgress.completed && hasNextMission.get) {
+    if (missionProgress.completed) {
       val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
-      Some(getLabelListForValidation(userId, labelCount, labelTypeId.get))
+      Some(getLabelListForValidation(userId, labelCount, labelTypeId))
     } else {
       None
     }
@@ -179,18 +193,20 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress  Metadata for this mission
     * @return
     */
-  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Option[Int], hasNextMission: Option[Boolean]): Option[Mission] = {
+  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
     val role: String = user.get.role.getOrElse("")
     val labelsProgress: Int = missionProgress.labelsProgress
 
-    if (missionProgress.completed && hasNextMission.get) {
-        // payPerLabel is currently always 0 because this is only available to volunteers.
-        val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
-        MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId.get, skipped)
+    if (missionProgress.completed) {
+      println("[ValidationTaskController] mission is completed")
+      // payPerLabel is currently always 0 because this is only available to volunteers.
+      val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
     } else {
+      println("[ValidationTaskController] mission is incomplete")
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
   }

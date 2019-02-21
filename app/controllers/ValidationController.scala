@@ -45,8 +45,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         // Checks if there are still labels in the database for the user to validate.
         hasWork match {
           case true => {
-            println("[ValidationController] validate has work")
-            val labelTypeId: Int = scala.util.Random.nextInt(possibleLabelTypeIds.size)
+            val index: Int = scala.util.Random.nextInt(possibleLabelTypeIds.size)
+            val labelTypeId: Int = possibleLabelTypeIds(index)
+            println("[ValidationController] Getting element at index: " + index)
+            println("[ValidationController] Choosing label type id: " + labelTypeId)
             val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
             val labelsProgress: Int = mission.labelsProgress.get
             val labelsValidated: Int = mission.labelsValidated.get

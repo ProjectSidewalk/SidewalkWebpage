@@ -31,6 +31,7 @@ function Form(url) {
      * @returns {*}
      */
     function submit(data, async) {
+        console.log("Submitting form");
         if (typeof async === "undefined") {
             async = false;
         }
@@ -48,13 +49,17 @@ function Form(url) {
             dataType: 'json',
             success: function (result) {
                 if (result) {
+                    console.log(result);
                     // If a mission was returned after posting data, create a new mission.
-                    if (result.hasNextMission && result.mission) {
-                        svv.missionContainer.createAMission(result.mission);
-                        svv.panoramaContainer.reset();
-                        svv.panoramaContainer.setLabelList(result.labels);
-                        svv.panoramaContainer.loadNewLabelOntoPanorama();
+                    if (result.hasMissionAvailable) {
+                        if (result.mission) {
+                            svv.missionContainer.createAMission(result.mission);
+                            svv.panoramaContainer.reset();
+                            svv.panoramaContainer.setLabelList(result.labels);
+                            svv.panoramaContainer.loadNewLabelOntoPanorama();
+                        }
                     } else {
+                        console.log("result.mission: " + result.mission);
                         // Otherwise, display popup that says there are no more labels left.
                         svv.modalNoNewMission.show();
                     }
