@@ -248,7 +248,7 @@ function ContextMenu (uiContextMenu) {
                                 labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
                             }
 
-                            var streetHasOneSidewalk = 'street has one sidewalk';
+                            var streetHasOneSidewalk = 'street has a sidewalk';
                             var streetHasNoSidewalks = 'street has no sidewalks';
                             // Automatically deselect one of the tags above if the other one is selected
                             if (tagValue === streetHasOneSidewalk) {
