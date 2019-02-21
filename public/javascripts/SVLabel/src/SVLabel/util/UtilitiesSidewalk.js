@@ -355,17 +355,17 @@ function UtilitiesMisc (JSON) {
                     keyChar: 'N'
                 },
                 tagInfo: {
-                    'sidewalk ends abruptly': {
-                        keyNumber: 69,
-                        keyChar: 'E',
-                        text: 'sidewalk <tag-underline>e</tag-underline>nds abruptly',
-                        id: 'sidewalkEndsAbruptly'
+                    'ends abruptly': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'ends <tag-underline>a</tag-underline>bruptly',
+                        id: 'endsAbruptly'
                     },
-                    'street has one sidewalk': {
+                    'street has a sidewalk': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: 's<tag-underline>t</tag-underline>reet has one sidewalk',
-                        id: 'streetHasOneSidewalk'
+                        text: 's<tag-underline>t</tag-underline>reet has a sidewalk',
+                        id: 'streetHasASidewalk'
                     },
                     'street has no sidewalks': {
                         keyNumber: 82,
