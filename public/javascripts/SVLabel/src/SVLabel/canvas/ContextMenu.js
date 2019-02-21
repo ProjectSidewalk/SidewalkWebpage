@@ -223,9 +223,12 @@ function ContextMenu (uiContextMenu) {
     /**
      * Records tag ID when clicked and updates tag color
      */
-    function _handleTagClick () {
+    function _handleTagClick (e) {
         var label = getTargetLabel();
         var labelTags = label.getProperty('tagIds');
+
+        // Use position of cursor to determine whether or not the click came from the mouse, or from a keyboard shortcut
+        var wasClickedByMouse = e.originalEvent.clientX != 0 && e.originalEvent.clientY != 0;
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
@@ -256,13 +259,23 @@ function ContextMenu (uiContextMenu) {
                             }
 
                             labelTags.push(tag.tag_id);
-                            svl.tracker.push('ContextMenu_TagAdded',
-                                {tagId: tag.tag_id, tagName: tag.tag});
+                            if (wasClickedByMouse) {
+                                svl.tracker.push('ContextMenu_TagAdded',
+                                    {tagId: tag.tag_id, tagName: tag.tag});
+                            } else {
+                                svl.tracker.push('KeyboardShortcut_TagAdded',
+                                    {tagId: tag.tag_id, tagName: tag.tag});
+                            }
                         } else {
                             var index = labelTags.indexOf(tag.tag_id);
                             labelTags.splice(index, 1);
-                            svl.tracker.push('ContextMenu_TagRemoved',
-                                {tagId: tag.tag_id, tagName: tag.tag});
+                            if (wasClickedByMouse) {
+                                svl.tracker.push('ContextMenu_TagRemoved',
+                                    {tagId: tag.tag_id, tagName: tag.tag});
+                            } else {
+                                svl.tracker.push('KeyboardShortcut_TagRemoved',
+                                    {tagId: tag.tag_id, tagName: tag.tag});
+                            }
                         }
                         _toggleTagColor(labelTags, tag.tag_id, e.target);
                         label.setProperty('tagIds', labelTags);
