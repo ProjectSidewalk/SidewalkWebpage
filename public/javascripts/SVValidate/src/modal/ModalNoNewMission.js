@@ -12,10 +12,11 @@ function ModalNoNewMission (uiModalMission) {
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Please come back later! In the meanwhile, free feel to start auditing.</p>\
+        <p>Click the button to start exploring.</p>\
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
+        svv.tracker("Click_NoMoreMissionModal_Audit");
         window.location.replace("/audit");
     }
 
@@ -24,7 +25,7 @@ function ModalNoNewMission (uiModalMission) {
         uiModalMission.instruction.html(noMissionsRemaining);
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
-        uiModalMission.closeButton.html('Start Auditing');
+        uiModalMission.closeButton.html('Start Exploring');
         uiModalMission.closeButton.on('click', _handleButtonClick);
     }
 

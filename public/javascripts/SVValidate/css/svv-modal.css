@@ -5,6 +5,7 @@
     height: 100%;
     width: 100%;
     text-align: justify;
+    visibility: hidden;
 }
 
 #modal-skip-background, #modal-comment-background, #modal-mission-background {
