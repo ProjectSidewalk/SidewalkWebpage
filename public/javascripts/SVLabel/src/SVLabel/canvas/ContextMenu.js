@@ -307,6 +307,8 @@ function ContextMenu (uiContextMenu) {
         $connector.css('visibility', 'hidden');
         setBorderColor('black');
         setStatus('visibility', 'hidden');
+
+        svl.tracker.push('ContextMenu_Close');
         return this;
     }
 
