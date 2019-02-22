@@ -95,7 +95,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       val hasNextMission: Boolean = possibleLabelTypeIds.length > 0
 
       if (hasNextMission) {
-        val index: Int = scala.util.Random.nextInt(possibleLabelTypeIds.size)
+        val index: Int = if (possibleLabelTypeIds.size > 0) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
         return Some(possibleLabelTypeIds(index))
       }
     }
