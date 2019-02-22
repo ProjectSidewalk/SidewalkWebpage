@@ -353,6 +353,26 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 78,
                     keyChar: 'N'
+                },
+                tagInfo: {
+                    'ends abruptly': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'ends <tag-underline>a</tag-underline>bruptly',
+                        id: 'endsAbruptly'
+                    },
+                    'street has a sidewalk': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>reet has a sidewalk',
+                        id: 'streetHasASidewalk'
+                    },
+                    'street has no sidewalks': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'st<tag-underline>r</tag-underline>eet has no sidewalks',
+                        id: 'streetHasNoSidewalks'
+                    }
                 }
             },
             SurfaceProblem: {
