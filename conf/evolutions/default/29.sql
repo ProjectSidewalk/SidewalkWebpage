@@ -1,8 +1,7 @@
 # --- !Ups
-ALTER TABLE mission
-  ADD COLUMN label_type_id INT,
-  ADD CONSTRAINT label_type_id FOREIGN KEY (label_type_id) REFERENCES label_type(label_type_id);
+INSERT INTO tag (label_type_id, tag) VALUES ( 7, 'ends abruptly' );
+INSERT INTO tag (label_type_id, tag) VALUES ( 7, 'street has a sidewalk' );
+INSERT INTO tag (label_type_id, tag) VALUES ( 7, 'street has no sidewalks' );
 
 # --- !Downs
-ALTER TABLE mission
-  DROP COLUMN label_type_id;
+DELETE FROM tag WHERE label_type_id = 7;

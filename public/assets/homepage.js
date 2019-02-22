@@ -2,7 +2,6 @@
 var autoAdvanceLaptop = true;
 
 
-
 function playVideo(){
     document.getElementById("vidembed").innerHTML = '<div class="video-container"><iframe id="youtubeframe" width="853" height="480" src="https://www.youtube.com/embed/wAdGXqRunQs?autoplay=1&rel=0" frameborder="0" allowfullscreen</iframe</div>';
     var vidheight = $('#youtubeframe').height();
@@ -116,6 +115,8 @@ function switchToVideo(vidnum){
         document.getElementById("vid1").pause();
     }
 
+    // Reset auto-advance counter
+    numTicks = 0;
 }
 
 function logWebpageActivity(activity){
@@ -135,27 +136,35 @@ function logWebpageActivity(activity){
     });
 }
 
+var vidBanner;
+var bannerVid;
+var instructVideoContainer;
+var instructVideos;
 
+var DEFAULT_VIDEO = 1;
+var TICK_SIZE = 500;
+var requiredTicks = [18, 22, 17];
+var curVideo = 1;
+var numTicks = 0;
+
+// Advances to the next instruction video if the instruction videos are in the user's viewport
+// and enough "ticks" have gone by
+function autoAdvanceLaptopVideos() {
+    numTicks++;
+
+    if(numTicks >= requiredTicks[curVideo - 1] && isElementVerticallyVisible(instructVideoContainer)) {
+        numTicks = 0;
+        curVideo++;
+
+        if(curVideo > requiredTicks.length) {
+            curVideo = DEFAULT_VIDEO;
+        }
+
+        switchToVideo(curVideo);
+    }
+}
 
 $( document ).ready(function() {
-
-    switchToVideo(1);
-    function autoAdvanceLaptopVideos(){
-        if (autoAdvanceLaptop) switchToVideo(1);
-        setTimeout(function () {
-            if (autoAdvanceLaptop) switchToVideo(2);
-            setTimeout(function () {
-                if (autoAdvanceLaptop) switchToVideo(3);
-                setTimeout(function () {
-                    autoAdvanceLaptopVideos()
-
-                }, 9000);
-
-            }, 11000);
-        }, 9660);
-    }
-    autoAdvanceLaptopVideos();
-
     // Triggered when "Watch Now" or the arrow next to it is clicked
     // Logs "Click_module=WatchNow" in WebpageActivityTable
     $("#playlink").on('click', function(e){
@@ -192,4 +201,71 @@ $( document ).ready(function() {
     $(".bodyStartBtn").on("click", function(){
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });
+
+    // Setup video lazyPlay
+    $(window).on("scroll", onScroll);
+
+    vidBanner = $('#vidbanner')[0];
+    bannerVid = $('#bgvid')[0];
+
+    instructVideoContainer = $('#instructionvideo')[0];
+    instructVideos = [
+        $('#vid1')[0],
+        $('#vid2')[0],
+        $('#vid3')[0]
+    ];
+
+    // Auto advance instruction videos
+    switchToVideo(DEFAULT_VIDEO);
+    setInterval(autoAdvanceLaptopVideos, TICK_SIZE);
 });
+
+var pausedVideos = {};
+
+// Wrappers around lazyPlayVideos()
+var lazyPlayVideosThrottled = _.throttle(lazyPlayVideos, 300);
+var lazyPlayVideosDebounced = _.debounce(lazyPlayVideos, 600);
+
+// Triggered when the user scrolls
+function onScroll() {
+    lazyPlayVideosThrottled(); // While scrolling, run the check every 300ms
+    lazyPlayVideosDebounced(); // After scrolling, make sure we run the check
+}
+
+// lazyPlays our main videos
+function lazyPlayVideos() {
+    lazyPlay(vidBanner, bannerVid);
+
+    for (var i = 0; i < instructVideos.length; i++) {
+        lazyPlay(instructVideoContainer, instructVideos[i]);
+    }
+}
+
+// Pauses a video if a certain element is outside of the viewport.
+// Plays the video otherwise.
+function lazyPlay(el, video) {
+    if (isElementVerticallyVisible(el)) {
+        if (!isVideoPlaying(video)) {
+            pausedVideos[video] = false;
+            video.play();
+        }
+    } else {
+        if (isVideoPlaying(video)) {
+            pausedVideos[video] = true;
+            video.pause();
+        }
+    }
+}
+
+// Returns true if the given video is playing
+function isVideoPlaying(video) {
+    return !pausedVideos[video];
+}
+
+// Returns true if the given element is in the vertical viewport
+function isElementVerticallyVisible(el) {
+    var rect = el.getBoundingClientRect();
+    var windowHeight = (window.innerHeight || document.documentElement.clientHeight);
+
+    return (rect.top <= windowHeight) && ((rect.top + rect.height) >= 0);
+}
