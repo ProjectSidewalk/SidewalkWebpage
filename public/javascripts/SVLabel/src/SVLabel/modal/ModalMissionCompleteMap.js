@@ -223,11 +223,7 @@ ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
             [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]]}}]};
     // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
     var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, {units: 'miles'});
-    if (bufferedGeom.features) {
-        var bufferedCoors = bufferedGeom.features[0].geometry.coordinates[0];
-    } else {
-        var bufferedCoors = bufferedGeom.geometry.coordinates;
-    }
+    var bufferedCoors = bufferedGeom.geometry.coordinates[0];
     // cut out neighborhood from overlay
     this._overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);
     this._overlayPolygonLayer = L.geoJson(this._overlayPolygon);

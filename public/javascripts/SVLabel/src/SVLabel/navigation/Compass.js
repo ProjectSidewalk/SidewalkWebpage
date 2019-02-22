@@ -81,7 +81,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
                 latlng = mapService.getPosition(),
                 line = geojson.features[0],
                 currentPoint = turf.point([latlng.lng, latlng.lat]),
-                snapped = turf.pointOnLine(line, currentPoint);
+                snapped = turf.nearestPointOnLine(line, currentPoint);
             return turf.distance(currentPoint, snapped, unit) < threshold;
         }
         return true;

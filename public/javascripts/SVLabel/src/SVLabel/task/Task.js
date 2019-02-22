@@ -150,7 +150,7 @@ function Task (geojson, currentLat, currentLng) {
     this._getPointsOnSegmentsToASnappedPoint = function (currentLat, currentLng) {
         var streetEdge =  _geojson.features[0];
         var currentPosition = turf.point([currentLng, currentLat]);
-        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var snappedPosition = turf.nearestPointOnLine(streetEdge, currentPosition);
         var closestSegmentIndex = self._indexOfTheClosestSegment(currentPosition, streetEdge);
         var coordinates = [];
 
@@ -166,7 +166,7 @@ function Task (geojson, currentLat, currentLng) {
     this._getPointsOnSegmentsFromASnappedPoint = function (lat, lng) {
         var streetEdge =  _geojson.features[0];
         var currentPosition = turf.point([lng, lat]);
-        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var snappedPosition = turf.nearestPointOnLine(streetEdge, currentPosition);
         var closestSegmentIndex = self._indexOfTheClosestSegment(currentPosition, streetEdge);
         var coordinates = [];
 
@@ -202,7 +202,7 @@ function Task (geojson, currentLat, currentLng) {
      * @returns {*}
      */
     function _pointSegmentDistance(point, segment) {
-        var snapped = turf.pointOnLine(segment, point),
+        var snapped = turf.nearestPointOnLine(segment, point),
             snappedLat = snapped.geometry.coordinates[1],
             snappedLng = snapped.geometry.coordinates[0],
             coords = segment.geometry.coordinates;
@@ -227,7 +227,7 @@ function Task (geojson, currentLat, currentLng) {
 
         var streetEdge =  _geojson.features[0];
         var currentPosition = turf.point([currentLng, currentLat]);
-        var snappedPosition = turf.pointOnLine(streetEdge, currentPosition);
+        var snappedPosition = turf.nearestPointOnLine(streetEdge, currentPosition);
 
         return (distanceAtTheFurthestPoint < distanceAtCurrentPoint) &&
             turf.distance(currentPosition, snappedPosition) < 0.025;
