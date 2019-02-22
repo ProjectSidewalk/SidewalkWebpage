@@ -39,14 +39,14 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     request.identity match {
       case Some(user) =>
         val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, 10)
-        val hasWork: Boolean = possibleLabelTypeIds.length > 0
+        val hasWork: Boolean = possibleLabelTypeIds.nonEmpty
 
         // Checks if there are still labels in the database for the user to validate.
         hasWork match {
           case true => {
             // possibleLabelTypeIds can contain elements [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if
             // possible, otherwise choose 7.
-            val index: Int = if (possibleLabelTypeIds.size > 0) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
+            val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
             val labelTypeId: Int = possibleLabelTypeIds(index)
             val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
             val labelsProgress: Int = mission.labelsProgress.get
