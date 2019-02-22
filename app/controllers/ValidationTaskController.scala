@@ -92,10 +92,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress): Option[Int] = {
     if (missionProgress.completed) {
       val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10)
-      val hasNextMission: Boolean = possibleLabelTypeIds.length > 0
+      val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
-        val index: Int = if (possibleLabelTypeIds.size > 0) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
+        val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
         return Some(possibleLabelTypeIds(index))
       }
     }
