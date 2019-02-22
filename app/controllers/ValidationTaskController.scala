@@ -65,7 +65,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
           val missionId: Int = data.missionProgress.missionId
           val labelTypeId: Option[Int] = getLabelTypeId(user, data.missionProgress)
-
           labelTypeId match {
             case Some(labelTypeId) =>
               val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, labelTypeId)
@@ -142,7 +141,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     *               canvas_width, canvas_height}
     */
   def getLabelListForValidation(userId: UUID, count: Int, labelTypeId: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(userId, count)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelTypeId)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
