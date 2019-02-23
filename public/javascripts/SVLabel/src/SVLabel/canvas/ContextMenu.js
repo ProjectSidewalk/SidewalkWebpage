@@ -248,6 +248,16 @@ function ContextMenu (uiContextMenu) {
                                 labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
                             }
 
+                            var streetHasOneSidewalk = 'street has a sidewalk';
+                            var streetHasNoSidewalks = 'street has no sidewalks';
+                            // Automatically deselect one of the tags above if the other one is selected
+                            if (tagValue === streetHasOneSidewalk) {
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasNoSidewalks, labelTags);
+
+                            } else if (tagValue === streetHasNoSidewalks) {
+                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalk, labelTags);
+                            }
+
                             labelTags.push(tag.tag_id);
                             if (wasClickedByMouse) {
                                 svl.tracker.push('ContextMenu_TagAdded',
@@ -454,7 +464,7 @@ function ContextMenu (uiContextMenu) {
         $descriptionTextBox.val(null);
         if (x && y && ('targetLabel' in param)) {
             var labelType = param.targetLabel.getLabelType(),
-                acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'Other', 'CurbRamp'];
+                acceptedLabelTypes = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp', 'NoSidewalk', 'Other', 'CurbRamp'];
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
