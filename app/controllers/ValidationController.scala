@@ -2,6 +2,7 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -21,6 +22,7 @@ import play.api.Logger
 import play.api.mvc._
 
 import scala.concurrent.Future
+import scala.collection.mutable.ListBuffer
 
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -36,14 +38,31 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0).get
-        val labelsProgress: Int = mission.labelsProgress.get
-        val labelsValidated: Int = mission.labelsValidated.get
-        val labelsToRetrieve: Int = labelsValidated - labelsProgress
-        val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
-        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), mission, labelList)))
+        val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, 10)
+        val hasWork: Boolean = possibleLabelTypeIds.nonEmpty
+
+        // Checks if there are still labels in the database for the user to validate.
+        hasWork match {
+          case true => {
+            // possibleLabelTypeIds can contain elements [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if
+            // possible, otherwise choose 7.
+            val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
+            val labelTypeId: Int = possibleLabelTypeIds(index)
+            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
+            val labelsProgress: Int = mission.labelsProgress.get
+            val labelsValidated: Int = mission.labelsValidated.get
+            val labelsToRetrieve: Int = labelsValidated - labelsProgress
+
+            val labelList: JsValue = getLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId)
+            val missionJsObject: JsObject = mission.toJSON
+            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), true)))
+          }
+          case false => {
+            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), None, None, false)))
+          }
+        }
       case None =>
-        Future.successful(Redirect("/"))
+        Future.successful(Redirect(s"/anonSignUp?url=/validate"));
     }
   }
 
@@ -54,16 +73,15 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
     *               canvas_width, canvas_height}
     */
-  def getLabelListForValidation(count: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveRandomLabelListForValidation(count)
+  def getLabelListForValidation(userId: UUID, count: Int, labelType: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelType)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
   }
 
   /**
-    * This method handles a comment POST request. It parse the comment and insert it into the comment table
-    *
+    * Handles a comment POST request. It parses the comment and inserts it into the comment table
     * @return
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>

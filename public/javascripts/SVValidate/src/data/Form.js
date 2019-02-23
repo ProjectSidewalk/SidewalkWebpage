@@ -14,6 +14,7 @@ function Form(url) {
         data.missionProgress = {
             mission_id: mission.getProperty("missionId"),
             labels_progress: mission.getProperty("labelsProgress"),
+            label_type_id: mission.getProperty("labelTypeId"),
             completed: mission.getProperty("completed"),
             skipped: mission.getProperty("skipped")
         };
@@ -48,11 +49,16 @@ function Form(url) {
             success: function (result) {
                 if (result) {
                     // If a mission was returned after posting data, create a new mission.
-                    if (result.mission) {
-                        svv.missionContainer.createAMission(result.mission);
-                        svv.panoramaContainer.reset();
-                        svv.panoramaContainer.setLabelList(result.labels);
-                        svv.panoramaContainer.loadNewLabelOntoPanorama();
+                    if (result.hasMissionAvailable) {
+                        if (result.mission) {
+                            svv.missionContainer.createAMission(result.mission);
+                            svv.panoramaContainer.reset();
+                            svv.panoramaContainer.setLabelList(result.labels);
+                            svv.panoramaContainer.loadNewLabelOntoPanorama();
+                        }
+                    } else {
+                        // Otherwise, display popup that says there are no more labels left.
+                        svv.modalNoNewMission.show();
                     }
                 }
             },

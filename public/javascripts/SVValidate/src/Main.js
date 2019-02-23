@@ -44,6 +44,14 @@ function Main (param) {
         svv.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svv.ui.modalComment.textarea = $("#modal-comment-textarea");
 
+        svv.ui.modalMission = {};
+        svv.ui.modalMission.holder = $("#modal-mission-holder");
+        svv.ui.modalMission.foreground = $("#modal-mission-foreground");
+        svv.ui.modalMission.background = $("#modal-mission-background");
+        svv.ui.modalMission.missionTitle = $("#modal-mission-header");
+        svv.ui.modalMission.instruction = $("#modal-mission-instruction");
+        svv.ui.modalMission.closeButton = $("#modal-mission-close-button");
+
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
         svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
@@ -89,13 +97,22 @@ function Main (param) {
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
+        svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
-        // mission stuff
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission);
     }
 
     _initUI();
-    _init();
+
+    if (param.hasNextMission) {
+        _init();
+    } else {
+        svv.form = new Form(param.dataStoreUrl);
+        svv.tracker = new Tracker();
+        svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+        svv.modalNoNewMission.show();
+    }
+
     return this;
 }

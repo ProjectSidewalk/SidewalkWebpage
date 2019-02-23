@@ -28,7 +28,7 @@ case class AuditMission(userId: String, username: String, missionId: Int, comple
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
                    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
                    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
-                   labelsProgress: Option[Int], skipped: Boolean) {
+                   labelsProgress: Option[Int], labelTypeId: Option[Int], skipped: Boolean) {
 
   def toJSON: JsObject = {
     Json.obj(
@@ -45,6 +45,7 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
       "region_id" -> regionId,
       "labels_validated" -> labelsValidated,
       "labels_progress" -> labelsProgress,
+      "label_type_id" -> labelTypeId,
       "skipped" -> skipped
     )
   }
@@ -64,9 +65,10 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
   def regionId: Column[Option[Int]] = column[Option[Int]]("region_id", O.Nullable)
   def labelsValidated: Column[Option[Int]] = column[Option[Int]]("labels_validated", O.Nullable)
   def labelsProgress: Column[Option[Int]] = column[Option[Int]]("labels_progress", O.Nullable)
+  def labelTypeId: Column[Option[Int]] = column[Option[Int]]("label_type_id", O.Nullable)
   def skipped: Column[Boolean] = column[Boolean]("skipped", O.NotNull)
 
-  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, skipped) <> ((Mission.apply _).tupled, Mission.unapply)
+  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped) <> ((Mission.apply _).tupled, Mission.unapply)
 
   def missionType: ForeignKeyQuery[MissionTypeTable, MissionType] =
     foreignKey("mission_mission_type_id_fkey", missionTypeId, TableQuery[MissionTypeTable])(_.missionTypeId)
@@ -99,7 +101,6 @@ object MissionTable {
   // Number of labels for validation mission
   val validationMissionLabelCount: Int = 10
 
-
   implicit val missionConverter = GetResult[Mission](r => {
     val missionId: Int = r.nextInt
     val missionTypeId: Int = r.nextInt
@@ -114,9 +115,10 @@ object MissionTable {
     val regionId: Option[Int] = r.nextIntOption
     val labelsValidated: Option[Int] = r.nextIntOption
     val labelsProgress: Option[Int] = r.nextIntOption
+    val labelTypeId: Option[Int] = r.nextIntOption
     val skipped: Boolean = r.nextBoolean
     Mission(missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
-            distanceProgress, regionId, labelsValidated, labelsProgress, skipped)
+            distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped)
   })
 
 
@@ -198,9 +200,9 @@ object MissionTable {
     missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).list.headOption
   }
 
-  def getCurrentValidationMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
+  def getCurrentValidationMission(userId: UUID, labelTypeId: Int): Option[Mission] = db.withSession { implicit session =>
     val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && !m.completed).list.headOption
+    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && m.labelTypeId === labelTypeId && !m.completed).list.headOption
   }
 
   /**
@@ -384,16 +386,21 @@ object MissionTable {
   }
 
   /**
-    * Accesses mission table for validation missions
-    * @param actions List containing "getValidationMission" or "getValidationOnboarding"
-    * @param userId Always required
-    * @param payPerLabel
-    * @param tutorialPay
-    * @return
+    * Provides functionality for accessing the mission table while the user is validating.
+    * @param actions            List of actions to perform.
+    * @param userId             User ID
+    * @param payPerLabel        Amount of money users receive per label validated (not fully implemented feature)
+    * @param tutorialPay        Amount of money users when completing onboarding tutorial (not implemented -- exists in case there is any onboarding)
+    * @param retakingTutorial   Indicates whether the user is retaking the turoial (not implemented -- tutorial doesn't exist).
+    * @param missionId          Mission ID of the current mission.
+    * @param labelsProgress     Numbers of labels that have been validated
+    * @param labelTypeId        Label Type ID of the next mission to be validated
+    * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
     */
   def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double],
-                                          tutorialPay: Option[Double], retakingTutorial: Option[Boolean], missionId: Option[Int],
-                                          labelsProgress: Option[Int], skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
+                                          tutorialPay: Option[Double], retakingTutorial: Option[Boolean],
+                                          missionId: Option[Int], labelsProgress: Option[Int], labelTypeId: Option[Int],
+                                          skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
     this.synchronized {
       if (actions.contains("updateProgress")) {
         updateValidationProgress(missionId.get, labelsProgress.get)
@@ -407,13 +414,14 @@ object MissionTable {
       }
 
       if (actions.contains("getValidationMission")) {
-        getCurrentValidationMission(userId) match {
+        // Get the label type id for the next mission.
+        getCurrentValidationMission(userId, labelTypeId.get) match {
           case Some(incompleteMission) =>
             Some(incompleteMission)
           case _ =>
-            val validationLabels: Int = getNextValidationMissionLabelCount(userId)
-            val pay: Double = validationLabels.toDouble * payPerLabel.get
-            Some(createNextValidationMission(userId, pay, validationLabels))
+            val labelsToValidate: Int = getNextValidationMissionLabelCount(userId)
+            val pay: Double = labelsToValidate.toDouble * payPerLabel.get
+            Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get))
         }
       } else {
         None // If we are not trying to get a mission, return None
@@ -450,9 +458,9 @@ object MissionTable {
     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), Some(skipped))
   }
 
-  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, labelsProgress: Int, skipped: Boolean): Option[Mission] = {
+  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, labelsProgress: Int, labelTypeId: Int, skipped: Boolean): Option[Mission] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(labelsProgress), Some(skipped))
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(labelsProgress), Some(labelTypeId), Some(skipped))
   }
 
   /**
@@ -470,7 +478,7 @@ object MissionTable {
 
   def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Option[Mission] = {
     val actions: List[String] = List("updateProgress")
-    queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), Some(labelsProgress), None)
+    queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), Some(labelsProgress), None, None)
   }
 
   /**
@@ -499,9 +507,9 @@ object MissionTable {
      queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None)
    }
 
-  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double): Option[Mission] = {
+  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double, labelTypeId: Int): Option[Mission] = {
     val actions: List[String] = List("getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, None, None)
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, None, Some(labelTypeId), None)
   }
 
   /**
@@ -540,20 +548,23 @@ object MissionTable {
   def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
-    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, false)
+    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, None, false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
   }
 
   /**
-    *
-    * @param userId
+    * Creates and returns a new validation mission
+    * @param userId     User ID
+    * @param pay        Amount user is paid per label
+    * @param labelsToValidate   Number of labels in this mission
+    * @param labelType  Type of labels featured in this mission
     * @return
     */
-  def createNextValidationMission(userId: UUID, pay: Double, validate: Int) : Mission = db.withSession { implicit session =>
+  def createNextValidationMission(userId: UUID, pay: Double, labelsToValidate: Int, labelTypeId: Int) : Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("validation")
-    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, Some(validate), Some(0.0.toInt), false)
+    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
   }
@@ -568,7 +579,7 @@ object MissionTable {
   def createAuditOnboardingMission(userId: UUID, pay: Double): Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
-    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, false)
+    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, None, false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMiss
     missions.filter(_.missionId === missionId).list.head
   }

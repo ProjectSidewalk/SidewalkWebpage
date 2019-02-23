@@ -8,8 +8,8 @@ function StatusExample (statusUI) {
     var self = this;
     var labelType = undefined;
     var labelName = undefined;
-    var examplePath = 'assets/javascripts/SVValidate/img/ValidationExamples/';
-    var counterExamplePath = 'assets/javascripts/SVValidate/img/ValidationCounterexamples/';
+    var examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
+    var counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
     $(".example-image").on('mouseover', _showExamplePopup);
     $(".example-image").on('mouseout', _hideExamplePopup);

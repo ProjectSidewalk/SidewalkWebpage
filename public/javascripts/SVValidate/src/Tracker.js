@@ -51,9 +51,7 @@ function Tracker() {
         var note = _notesToString(notes);
         var timestamp = new Date().getTime();
 
-        if (!svv.panorama) {
-            console.log("Panorama does not exist");
-        } else {
+        if (svv.panorama) {
             panorama = svv.panorama;
         }
 
