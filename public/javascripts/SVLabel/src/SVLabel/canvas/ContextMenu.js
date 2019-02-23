@@ -76,7 +76,7 @@ function ContextMenu (uiContextMenu) {
     }; //handles both key down and key up events
 
     function checkRadioButton (value) {
-        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true)/*.trigger("click")*/;
+        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("change");
     }
 
     function getContextMenuUI(){
