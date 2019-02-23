@@ -336,7 +336,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 document.getElementsByClassName('missingFrictionStrip-tag')[0].click();
                                 break;
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['steep']['keyNumber']: // 't' for 'steep'
-                                document.getElementsByClassName('steep-tag')[0].click();
+                                //document.getElementsByClassName('steep-tag')[0].click();
+                                $('.steep-tag').first().trigger("click", {abc123: "test"});
                                 break;
                         }
                     } else if (labelType == 'NoCurbRamp') { // Missing Curb Ramp
