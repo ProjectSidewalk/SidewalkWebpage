@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt" module="compile" revision="0.13.5" status="release" publication="20140527094306">
+		<description>
+		Compile
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="optional" visibility="public" description=""/>
+		<conf name="provided" visibility="public" description="" transitive="false"/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="compile" type="jar" ext="jar" conf="compile"/>
+		<artifact name="compile" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.scala-lang" name="scala-compiler" rev="2.10.4" conf="test->default(compile)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="launcher-interface" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="interface" rev="0.13.5" conf="compile->default(compile);test->test" e:component="xsbti"/>
+		<dependency org="org.scala-sbt" name="logging" rev="0.13.5" conf="compile->default(compile);test->test"/>
+		<dependency org="org.scala-sbt" name="io" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="classpath" rev="0.13.5" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="launcher" rev="0.13.5" conf="test->test"/>
+		<dependency org="org.scala-sbt" name="api" rev="0.13.5" conf="test->default(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.1" conf="test->default(compile)"/>
+		<dependency org="org.specs2" name="specs2_2.10" rev="1.12.3" conf="test->default(compile)"/>
+		<dependency org="junit" name="junit" rev="4.11" conf="test->default(compile)"/>
+	</dependencies>
+</ivy-module>
