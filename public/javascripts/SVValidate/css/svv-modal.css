@@ -123,8 +123,8 @@
     visibility: hidden;
 }
 
-
 #modal-mission-complete-title {
+    margin-top: 70px;
     text-align: center;
 }
 

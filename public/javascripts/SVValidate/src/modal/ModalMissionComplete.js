@@ -13,12 +13,9 @@ function ModalMissionComplete (uiModalMissionComplete) {
     }
 
     function show (mission) {
-        console.log("Agree count: " + mission.getProperty("agreeCount"));
-
         var message = "You just validated " + mission.getProperty("labelsValidated") + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
-        console.log("Showing complete mission screen");
         uiModalMissionComplete.background.css('visibility', 'visible');
         uiModalMissionComplete.missionTitle.html("Great Job!");
         uiModalMissionComplete.message.html(message);
