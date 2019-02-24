@@ -1,12 +1,5 @@
 function ModalMission (uiModalMission) {
     var self = this;
-    var labelTypeName = {
-        1: "Curb Ramp",
-        2: "Missing Curb Ramp",
-        3: "Obstacle in Path",
-        4: "Surface Problem",
-        7: "No Sidewalk"
-    };
 
     var validationMissionDescriptionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
@@ -29,9 +22,9 @@ function ModalMission (uiModalMission) {
     function setMissionMessage(mission) {
         if (mission.getProperty("labelsProgress") === 0) {
             var validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
-                + " " + labelTypeName[mission.getProperty("labelTypeId")] + " labels";
+                + " " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels";
             validationMissionDescriptionHTML = validationMissionDescriptionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
-            validationMissionDescriptionHTML = validationMissionDescriptionHTML.replace("__LABELTYPE_PLACEHOLDER__", labelTypeName[mission.getProperty("labelTypeId")]);
+            validationMissionDescriptionHTML = validationMissionDescriptionHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
             show(validationMissionStartTitle, validationMissionDescriptionHTML);
         }
     }

@@ -1,20 +1,35 @@
-function ModalMission (uiModalMission) {
+function ModalMissionComplete (uiModalMissionComplete) {
     var self = this;
 
-    function hide () {
-        uiModalMission.background.css('visibility', 'hidden');
-        uiModalMission.holder.css('visibility', 'hidden');
-        uiModalMission.foreground.css('visibility', 'hidden');
+    function _handleButtonClick() {
+        svv.tracker.push("ClickOk_MissionComplete");
+        self.hide();
     }
 
-    function show (title, instruction) {
-        uiModalMission.background.css('visibility', 'visible');
-        uiModalMission.instruction.html(instruction);
-        uiModalMission.missionTitle.html(title);
-        uiModalMission.holder.css('visibility', 'visible');
-        uiModalMission.foreground.css('visibility', 'visible');
-        uiModalMission.closeButton.html('Ok');
-        uiModalMission.closeButton.on('click', _handleButtonClick);
+    function hide () {
+        uiModalMissionComplete.background.css('visibility', 'hidden');
+        uiModalMissionComplete.holder.css('visibility', 'hidden');
+        uiModalMissionComplete.foreground.css('visibility', 'hidden');
+    }
+
+    function show (mission) {
+        console.log("Agree count: " + mission.getProperty("agreeCount"));
+
+        var message = "You just validated " + mission.getProperty("labelsValidated") + " " +
+            svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
+
+        console.log("Showing complete mission screen");
+        uiModalMissionComplete.background.css('visibility', 'visible');
+        uiModalMissionComplete.missionTitle.html("Great Job!");
+        uiModalMissionComplete.message.html(message);
+        uiModalMissionComplete.agreeCount.html(mission.getProperty("agreeCount"));
+        uiModalMissionComplete.disagreeCount.html(mission.getProperty("disagreeCount"));
+        uiModalMissionComplete.notSureCount.html(mission.getProperty("notSureCount"));
+
+        uiModalMissionComplete.holder.css('visibility', 'visible');
+        uiModalMissionComplete.foreground.css('visibility', 'visible');
+        uiModalMissionComplete.closeButton.html('Validate more labels');
+        uiModalMissionComplete.closeButton.on('click', _handleButtonClick);
     }
 
     self.hide = hide;
