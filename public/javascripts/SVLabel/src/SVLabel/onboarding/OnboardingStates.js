@@ -154,7 +154,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 2 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                return severity == 2 ? "tag-attribute-1" : "redo-rate-attribute-1"
             }
         },
         "redo-rate-attribute-1": {
@@ -181,7 +181,31 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity === 2 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                return severity === 2 ? "tag-attribute-1" : "redo-rate-attribute-1"
+            }
+        }, "tag-attribute-1": {
+            "properties": {
+                "action": "AddTag",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1],
+                "maxLabelCount": 1
+            },
+            "message": {
+                "message": 'Every label includes optional tags that add descriptive information. Choose appropriate tags for every label you place! ' +
+                    '<span class="bold">Let\'s add the “points into traffic” tag,</span> since this ramp points into the street.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                updateCompletedRate(5);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
+                var tags = contextMenu.getTargetLabel().getProperty('tagIds');
+                return severity == 4 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
             }
         },
         "adjust-heading-angle-1": {
@@ -1676,4 +1700,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
     };
 
     this.get = function () { return this.states; };
+
+    function updateCompletedRate(stateNumber) {
+        var completedRate = stateNumber / numStates;
+        statusModel.setMissionCompletionRate(completedRate);
+        statusModel.setProgressBar(completedRate);
+    }
 }

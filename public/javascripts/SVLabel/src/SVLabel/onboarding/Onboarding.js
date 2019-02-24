@@ -704,6 +704,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     _visitZoomState(state, annotationListener);
                 } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
                     _visitRateSeverity(state, annotationListener);
+                } else if (state.properties.action == "AddTag" || state.properties.action == "RedoAddTag") {
+                    _visitAddTag(state, annotationListener);
                 } else if (state.properties.action == "AdjustHeadingAngle") {
                     _visitAdjustHeadingAngle(state, annotationListener);
                 } else if (state.properties.action == "WalkTowards") {
@@ -828,6 +830,19 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();
         var $target = contextMenu.getContextMenuUI().radioButtons;
+        var callback = function () {
+            if (listener) google.maps.event.removeListener(listener);
+            $target.off("click", callback);
+            contextMenu.hide();
+            next.call(this, state.transition);
+        };
+        $target.on("click", callback);
+    }
+
+    // TODO: Lukas maybe look here
+    function _visitAddTag(state, listener) {
+        if(state.properties.action = "RedoAddTag") contextMenu.unhide();
+        var $target = contextMenu.getContextMenuUI().tags;
         var callback = function () {
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
