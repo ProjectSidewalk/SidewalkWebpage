@@ -201,10 +201,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () { // 'this' is contextMenu.getTargetLabel().getProperty('tagIds'), as called in Onboarding.js/_visitAddTag()
+            "transition": function () {
                 updateCompletedRate(5);
-                var tags = this.getProperty('tagIds');
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
+                var tags = this.getProperty('tagIds');
                 return tags.includes(2) && tags.length == 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
         }, "redo-tag-attribute-1": {
@@ -225,7 +225,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "panoId": panoId,
             "annotations": null,
-            "transition": function () { // 'this' is contextMenu.getTargetLabel(), as called in Onboarding.js/_visitAddTag()
+            "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
                 var tags = this.getProperty('tagIds');
                 return tags.includes(2) && tags.length == 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
@@ -509,7 +509,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "zoom-out" : "redo-rate-attribute-3"
+                return severity == 3 ? "tag-attribute-2" : "redo-rate-attribute-3"
             }
         },
         "redo-rate-attribute-3": {
@@ -536,7 +536,53 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "zoom-out" : "redo-rate-attribute-3"
+                return severity == 3 ? "tag-attribute-2" : "redo-rate-attribute-3"
+            }
+        }, "tag-attribute-2": {
+            "properties": {
+                "action": "AddTag",
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 3
+            },
+            "message": {
+                "message": '<span class="bold">Let\'s add the "alternate route present" tag</span> because there is a nearby curb ramp that could be used.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                updateCompletedRate(5);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(5) && tags.length == 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
+            }
+        }, "redo-tag-attribute-2": {
+            "properties": {
+                "action": "RedoAddTag",
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 3
+            },
+            "message": {
+                "message": 'The "alternate route present" tag is the only tag that applies here because there is a nearby curb ramp that could be used.' +
+                    ' So add <span class="bold">only the "alternate route present" tag.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(5) && tags.length == 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
             }
         },
         "zoom-out": {
@@ -1173,7 +1219,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "adjust-heading-angle-4" : "redo-rate-attribute-6"
+                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-6"
             }
         },
         "redo-rate-attribute-6": {
@@ -1201,7 +1247,53 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "adjust-heading-angle-4" : "redo-rate-attribute-6"
+                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-6"
+            }
+        },"tag-attribute-3": {
+            "properties": {
+                "action": "AddTag",
+                "labelType": "NoSidewalk",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": '<span class="bold">Let\'s add the "ends abruptly" and "street has a sidewalk" tags</span> because there is a sidewalk on the other side of the street.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                updateCompletedRate(5);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(20) && tags.includes(21) && tags.length == 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
+            }
+        }, "redo-tag-attribute-3": {
+            "properties": {
+                "action": "RedoAddTag",
+                "labelType": "NoSidewalk",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": 'The "ends abruptly" and "street has a sidewalk" tags are the only tags that apply here.' +
+                    ' So <span class="bold">make sure to add exclusively both of them!</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(20) && tags.includes(21) && tags.length == 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
             }
         },
         "adjust-heading-angle-4": {

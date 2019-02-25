@@ -850,6 +850,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             contextMenu.hide();
             next.call(contextMenu.getTargetLabel(), state.transition);
         };
+        // We use a custom event here to ensure that this is triggered after the tagIds array has been updated
         $target.on("tagIds-updated", callback);
     }
 
