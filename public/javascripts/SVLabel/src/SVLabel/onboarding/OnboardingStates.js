@@ -204,9 +204,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () { // 'this' is contextMenu.getTargetLabel().getProperty('tagIds'), as called in Onboarding.js/_visitAddTag()
                 updateCompletedRate(5);
                 var tags = this.getProperty('tagIds');
-                console.log(tags);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
-                return tags.length == 1 && tags.includes(2) ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
+                return tags.includes(2) && tags.length == 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
         }, "redo-tag-attribute-1": {
             "properties": {
@@ -229,8 +228,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () { // 'this' is contextMenu.getTargetLabel(), as called in Onboarding.js/_visitAddTag()
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
                 var tags = this.getProperty('tagIds');
-                console.log(tags);
-                return tags.length == 1 && tags.includes(2) ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
+                return tags.includes(2) && tags.length == 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
         },
         "adjust-heading-angle-1": {

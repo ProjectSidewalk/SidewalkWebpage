@@ -842,13 +842,15 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function _visitAddTag(state, listener) {
         if (state.properties.action = "RedoAddTag") contextMenu.unhide();
         var $target = contextMenu.getContextMenuUI().tags; // Grab tag elements
-        $target.one("tagIds-updated", function () {
+        var callback = function () {
             if (listener) {
                 google.maps.event.removeListener(listener);
             }
+            $target.off("tagIds-updated", callback);
             contextMenu.hide();
             next.call(contextMenu.getTargetLabel(), state.transition);
-        });
+        };
+        $target.on("tagIds-updated", callback);
     }
 
     function _visitInstruction(state, listener) {
