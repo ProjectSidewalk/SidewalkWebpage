@@ -25,7 +25,7 @@
 
                 function orientationCheck(){
                     if(window.innerHeight > window.innerWidth){
-                        $('html').css('padding-top','35px');
+                        $('html').css('padding-top','10px');
                     } else {
                         $('html').css('padding-top','0px');
                     }
@@ -33,11 +33,6 @@
 
                 $('html').css('position', 'fixed');
                 $('body').css({
-                    'background-image': 'url(/assets/assets/lowered-monument.png)',
-                    'background-position': 'center center',
-                    'background-repeat': 'no-repeat',
-                    'background-attachment': 'fixed',
-                    'background-size': '100% 100%',
                     'height': '100vh',
                     'width': '100vw',
                     'text-align': 'center',
@@ -80,11 +75,6 @@
             // init();
             var svv = svv || {};
             var param = {};
-            var height = window.innerHeight;
-            var width = window.innerWidth;
-            var device = 'mobile';
-            console.log("height is " + height);
-            console.log("width is " + width);
 
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.mission = @Html(mission.toJSON.toString);
@@ -108,7 +98,7 @@
                 param.labelList[key] = new Label(labelMetadata);
             });
 
-            svv.main = new Main(param, height, width, device);
+            svv.main = new Main(param);
 
     </script>
 }

@@ -45,7 +45,7 @@ class MobileController @Inject() (implicit val env: Environment[User, SessionAut
         val labelList: JsValue = getLabelListForValidation(labelsToRetrieve)
         Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), mission, labelList)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/mobile"))
+        Future.successful(Redirect("/"))
     }
   }
 
