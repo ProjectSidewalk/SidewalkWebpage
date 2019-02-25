@@ -24,6 +24,9 @@ GET     /mobile                                              @controllers.Applic
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 
+# Mobile controls
+GET     /mobileValidate                                      @controllers.MobileController.mobileValidate
+
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")

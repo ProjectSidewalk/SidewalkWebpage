@@ -1,0 +1,114 @@
+@import models.user.User
+@import models.mission.{MissionTable, Mission}
+@import models.label.LabelTable
+@import models.label.LabelTable.LabelValidationMetadata
+@import play.api.libs.json.Json
+@import play.api.libs.json.JsValue
+@import views.html.bootstrap._
+
+@(title: String, user: Option[User] = None, mission: Mission, labelList: JsValue)
+
+@main(title) {
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
+
+    <script>
+
+            $(document).ready(function() {
+
+                //raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that
+                var font = "<style> @@font-face{ font-family: 'raleway'; src: url('/assets/fonts/Raleway/Raleway-Regular.ttf');} </style>";
+                $("head").append(font);
+
+                function orientationCheck(){
+                    if(window.innerHeight > window.innerWidth){
+                        $('html').css('padding-top','35px');
+                    } else {
+                        $('html').css('padding-top','0px');
+                    }
+                }
+
+                $('html').css('position', 'fixed');
+                $('body').css({
+                    'background-image': 'url(/assets/assets/lowered-monument.png)',
+                    'background-position': 'center center',
+                    'background-repeat': 'no-repeat',
+                    'background-attachment': 'fixed',
+                    'background-size': '100% 100%',
+                    'height': '100vh',
+                    'width': '100vw',
+                    'text-align': 'center',
+                    'padding': '2vh 10vw',
+                    'font-family': 'raleway, sans-serif',
+                    'color': '#777'
+                });
+                window.addEventListener("resize", function() {
+                    orientationCheck();
+                }, false);
+                $('.filler').css('display', 'none');
+                $('#footer-container').css('display', 'none');
+                $('#info-footer').css('display', 'none');
+                orientationCheck();
+            });
+    </script>
+    <div id="mobile-content">
+        <img src="/assets/assets/logo-high-res.png"/>
+        <div id="svv-panorama-holder">
+            <div id="svv-panorama-outline">
+                <div id="svv-panorama">
+
+                </div>
+            </div>
+        </div>
+        <br />
+        <div>
+            <p id="mobile-thanks">
+                Thanks for visiting!
+            </p>
+            <br /><br />
+            <p id="mobile-message">
+                Unfortunately, Marianne is trying stuff on mobile and hasn't figured it out yet.
+            </p>
+        </div>
+        <br />
+    </div>
+
+    <script type="text/javascript">
+            // init();
+            var svv = svv || {};
+            var param = {};
+            var height = window.innerHeight;
+            var width = window.innerWidth;
+            var device = 'mobile';
+            console.log("height is " + height);
+            console.log("width is " + width);
+
+            param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            param.mission = @Html(mission.toJSON.toString);
+            param.labelList = @Html(labelList.toString);
+
+            // Initializes an object of labels from label metadata.
+            // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+            Object.keys(param.labelList).map(function(key, index) {
+                var labelMetadata = {
+                    canvasHeight: param.labelList[key].canvas_height,
+                    canvasWidth: param.labelList[key].canvas_width,
+                    canvasX: param.labelList[key].canvas_x,
+                    canvasY: param.labelList[key].canvas_y,
+                    gsvPanoramaId: param.labelList[key].gsv_panorama_id,
+                    heading: param.labelList[key].heading,
+                    labelId: param.labelList[key].label_id,
+                    labelType: param.labelList[key].label_type,
+                    pitch: param.labelList[key].pitch,
+                    zoom: param.labelList[key].zoom
+                };
+                param.labelList[key] = new Label(labelMetadata);
+            });
+
+            svv.main = new Main(param, height, width, device);
+
+    </script>
+}
