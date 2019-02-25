@@ -839,15 +839,16 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         $target.on("click", callback);
     }
 
-    // TODO: Lukas maybe look here
     function _visitAddTag(state, listener) {
         if(state.properties.action = "RedoAddTag") contextMenu.unhide();
-        var $target = contextMenu.getContextMenuUI().tags;
+        var $target = contextMenu.getContextMenuUI().tags; // Grab tag elements
         var callback = function () {
-            if (listener) google.maps.event.removeListener(listener);
+            if (listener) {
+                google.maps.event.removeListener(listener);
+            }
             $target.off("click", callback);
             contextMenu.hide();
-            next.call(this, state.transition);
+            next.call(contextMenu.getTargetLabel(), state.transition);
         };
         $target.on("click", callback);
     }
