@@ -17,6 +17,9 @@ RUN apt-get update && \
     unzip \
     python-dev \
     python-pip \
+    libblas-dev \
+    liblapack-dev \
+    gfortran \
     sbt && \
   apt-get autoremove && \
   apt-get clean
