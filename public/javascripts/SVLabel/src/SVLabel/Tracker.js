@@ -29,7 +29,13 @@ function Tracker () {
         var prefix = "LowLevelEvent_";
 
         // track all mouse related events
-        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
+        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e, extra) {
+            if(extra) {
+                if(typeof extra.lowLevelLogging !== "undefined" && !extra.lowLevelLogging) { // {lowLevelLogging: false}
+                    return;
+                }
+            }
+
             self.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
                 cursorY: 'pageY' in e ? e.pageY : null
