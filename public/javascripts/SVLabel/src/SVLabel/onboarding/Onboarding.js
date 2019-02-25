@@ -840,7 +840,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitAddTag(state, listener) {
-        if (state.properties.action = "RedoAddTag") contextMenu.unhide();
+
+        //if (state.properties.action === "RedoAddTag")
+        contextMenu.unhide();
         var $target = contextMenu.getContextMenuUI().tags; // Grab tag elements
         var callback = function () {
             if (listener) {

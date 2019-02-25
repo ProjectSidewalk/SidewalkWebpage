@@ -207,7 +207,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(2) && tags.length == 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
+                return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
         }, "redo-tag-attribute-1": {
             "properties": {
@@ -230,7 +230,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(2) && tags.length == 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
+                return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
         },
         "adjust-heading-angle-1": {
@@ -560,10 +560,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 var completedRate = 14 / states;
                 statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);;
+                statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(5) && tags.length == 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
+                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
             }
         }, "redo-tag-attribute-2": {
             "properties": {
@@ -586,7 +586,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(5) && tags.length == 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
+                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
             }
         },
         "zoom-out": {
@@ -1273,10 +1273,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 var completedRate = 28 / states;
                 statusModel.setMissionCompletionRate(completedRate);
-                statusModel.setProgressBar(completedRate);;
+                statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(20) && tags.includes(21) && tags.length == 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
+                return tags.includes(20) && tags.includes(21) && tags.length === 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
             }
         }, "redo-tag-attribute-3": {
             "properties": {
@@ -1299,7 +1299,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(20) && tags.includes(21) && tags.length == 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
+                return tags.includes(20) && tags.includes(21) && tags.length === 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
             }
         },
         "adjust-heading-angle-4": {
