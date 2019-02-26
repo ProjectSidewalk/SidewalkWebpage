@@ -554,7 +554,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": '<span class="bold">Let\'s add the "alternate route present" tag</span> because there is a nearby curb ramp that could be used.<br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -581,7 +581,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'The "alternate route present" tag is the only tag that applies here because there is a nearby curb ramp that could be used.' +
                     ' So add <span class="bold">only the "alternate route present" tag.</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1269,7 +1269,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": '<span class="bold">Let\'s add the "ends abruptly" and "street has a sidewalk" tags</span> because there is a sidewalk on the other side of the street.<br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1296,7 +1296,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'The "ends abruptly" and "street has a sidewalk" tags are the only tags that apply here.' +
                     ' So <span class="bold">make sure to add exclusively both of them!</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
-                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
                 "position": "top-right",
                 "parameters": null
             },
