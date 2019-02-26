@@ -183,7 +183,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 return severity === 2 ? "tag-attribute-1" : "redo-rate-attribute-1"
             }
-        }, "tag-attribute-1": {
+        },
+        "tag-attribute-1": {
             "properties": {
                 "action": "AddTag",
                 "labelType": "CurbRamp",
@@ -209,7 +210,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var tags = this.getProperty('tagIds');
                 return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
-        }, "redo-tag-attribute-1": {
+        },
+        "redo-tag-attribute-1": {
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "CurbRamp",
@@ -540,7 +542,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 return severity == 3 ? "tag-attribute-2" : "redo-rate-attribute-3"
             }
-        }, "tag-attribute-2": {
+        },
+        "tag-attribute-2": {
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoCurbRamp",
@@ -565,7 +568,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var tags = this.getProperty('tagIds');
                 return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
             }
-        }, "redo-tag-attribute-2": {
+        },
+        "redo-tag-attribute-2": {
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoCurbRamp",
@@ -1253,7 +1257,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var severity = parseInt(this.getAttribute("value"), 10);
                 return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-6"
             }
-        },"tag-attribute-3": {
+        },
+        "tag-attribute-3": {
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoSidewalk",
@@ -1278,7 +1283,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var tags = this.getProperty('tagIds');
                 return tags.includes(20) && tags.includes(21) && tags.length === 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
             }
-        }, "redo-tag-attribute-3": {
+        },
+        "redo-tag-attribute-3": {
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoSidewalk",
