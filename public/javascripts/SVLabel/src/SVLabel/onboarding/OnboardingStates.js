@@ -1257,8 +1257,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
                 "maxLabelCount": 6
             },
             "message": {
@@ -1282,8 +1282,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoSidewalk",
-                "minHeading": headingRanges["stage-2"][0],
-                "maxHeading": headingRanges["stage-2"][1],
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
                 "maxLabelCount": 6
             },
             "message": {
