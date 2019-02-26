@@ -30,8 +30,8 @@ function Tracker () {
 
         // track all mouse related events
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e, extra) {
-            if(extra) {
-                if(typeof extra.lowLevelLogging !== "undefined" && !extra.lowLevelLogging) { // {lowLevelLogging: false}
+            if (extra) {
+                if (typeof extra.lowLevelLogging !== "undefined" && !extra.lowLevelLogging) { // {lowLevelLogging: false}
                     return;
                 }
             }
@@ -212,7 +212,7 @@ function Tracker () {
         actions.push(item);
 
         // andrew's awesome debugging code please dont forget to remove
-        if(action.indexOf("LowLevel") == -1 && action != "TaskStart" && action != "RefreshTracker" && action != "POV_Changed" && action != "PanoId_Changed") {
+        if(/*action.indexOf("LowLevel") == -1 && */action != "TaskStart" && action != "RefreshTracker" && action != "POV_Changed" && action != "PanoId_Changed") {
             console.log("pushing", action, notes);
         }
 

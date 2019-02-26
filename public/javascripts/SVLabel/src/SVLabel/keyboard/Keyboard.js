@@ -399,13 +399,13 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     } else if (labelType === 'NoSidewalk') { // No Sidewalk
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['ends abruptly']['keyNumber']: // 'a' for 'ends abruptly'
-                                document.getElementsByClassName('endsAbruptly-tag')[0].click();
+                                $('.endsAbruptly-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has a sidewalk']['keyNumber']: // 't' for 'street has a sidewalk'
-                                document.getElementsByClassName('streetHasASidewalk-tag')[0].click();
+                                $('.streetHasASidewalk-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has no sidewalks']['keyNumber']: // 'r' for 'street has no sidewalks'
-                                document.getElementsByClassName('streetHasNoSidewalks-tag')[0].click();
+                                $('.streetHasNoSidewalks-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     }
