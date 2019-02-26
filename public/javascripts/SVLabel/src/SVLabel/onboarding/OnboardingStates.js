@@ -1048,7 +1048,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-4-after-5": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
@@ -1101,7 +1101,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-5-goto-4": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
