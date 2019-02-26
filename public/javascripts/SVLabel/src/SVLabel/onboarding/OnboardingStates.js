@@ -1,5 +1,5 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
-    var numStates = 42;
+    var numStates = 41;
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
     var afterWalkPanoId = "PTHUzZqpLdS1nTixJMoDSw";
     var headingRanges = {
@@ -558,7 +558,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 14 / states;
+                var completedRate = 14 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
@@ -1271,7 +1271,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 28 / states;
+                var completedRate = 28 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
