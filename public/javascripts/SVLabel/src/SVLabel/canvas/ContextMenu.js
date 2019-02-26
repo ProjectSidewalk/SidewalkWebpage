@@ -159,7 +159,6 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleRadioChange (e) {
         var severity = parseInt($(this).val(), 10);
-        console.log("change severity", severity);
         var label = getTargetLabel();
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 

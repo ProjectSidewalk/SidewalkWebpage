@@ -211,11 +211,6 @@ function Tracker () {
         var item = self.create(action, notes, extraData);
         actions.push(item);
 
-        // andrew's awesome debugging code please dont forget to remove
-        if(/*action.indexOf("LowLevel") == -1 && */action != "TaskStart" && action != "RefreshTracker" && action != "POV_Changed" && action != "PanoId_Changed") {
-            console.log("pushing", action, notes);
-        }
-
         var contextMenuLabel = true;
 
         if(self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')){
