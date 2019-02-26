@@ -324,7 +324,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 // Hotkeys for tag selection
                 if (contextMenu.getTargetLabel() != null && contextMenu.isOpen()) {
                     var labelType = contextMenu.getTargetLabel().getProperty('labelType');
-                    if (labelType == 'CurbRamp') { // Curb Ramp
+                    if (labelType === 'CurbRamp') { // Curb Ramp
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['narrow']['keyNumber']: // 'a' for 'narrow'
                                 $('.narrow-tag').first().trigger("click", {lowLevelLogging: false});
@@ -339,7 +339,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 $('.steep-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
-                    } else if (labelType == 'NoCurbRamp') { // Missing Curb Ramp
+                    } else if (labelType === 'NoCurbRamp') { // Missing Curb Ramp
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['alternate route present']['keyNumber']: // 'a' for 'alternate route present'
                                 $('.alternateRoutePresent-tag').first().trigger("click", {lowLevelLogging: false});
@@ -351,7 +351,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 $('.unclearIfNeeded-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
-                    } else if (labelType == 'Obstacle') { // Obstacle in Path
+                    } else if (labelType === 'Obstacle') { // Obstacle in Path
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash can']['keyNumber']: // 'r' for 'trash can'
                                 $('.trashCan-tag').first().trigger("click", {lowLevelLogging: false});
@@ -369,7 +369,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 $('.vegetation-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
-                    } else if (labelType == 'SurfaceProblem') { // Surface Problem
+                    } else if (labelType === 'SurfaceProblem') { // Surface Problem
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['bumpy']['keyNumber']: // 'p' for 'bumpy'
                                 $('.bumpy-tag').first().trigger("click", {lowLevelLogging: false});
@@ -387,13 +387,25 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 $('.narrowSidewalk-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
-                    } else if (labelType == 'Other') { // No Sidewalk
+                    } else if (labelType === 'Other') { // Other
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('Other')['tagInfo']['missing crosswalk']['keyNumber']: // 'i' for 'missing crosswalk'
                                 $('.missingCrosswalk-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Other')['tagInfo']['no bus stop access']['keyNumber']: // 'a' for 'no bus stop access'
                                 $('.noBusStopAccess-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    } else if (labelType === 'NoSidewalk') { // No Sidewalk
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['ends abruptly']['keyNumber']: // 'a' for 'ends abruptly'
+                                document.getElementsByClassName('endsAbruptly-tag')[0].click();
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has a sidewalk']['keyNumber']: // 't' for 'street has a sidewalk'
+                                document.getElementsByClassName('streetHasASidewalk-tag')[0].click();
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has no sidewalks']['keyNumber']: // 'r' for 'street has no sidewalks'
+                                document.getElementsByClassName('streetHasNoSidewalks-tag')[0].click();
                                 break;
                         }
                     }
