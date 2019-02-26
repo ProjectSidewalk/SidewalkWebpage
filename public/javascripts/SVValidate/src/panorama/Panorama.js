@@ -286,7 +286,7 @@ function Panorama (label) {
             isMobile = true;
         }
         if (isMobile) {
-            var h = window.innerHeight - 20;
+            var h = window.innerHeight - 250;
             var w = window.innerWidth - 10;
             var outline_h = h + 10;
             var outline_w = w + 10;
@@ -297,7 +297,6 @@ function Panorama (label) {
             document.getElementById("svv-panorama").style.width = w + "px";
             document.getElementById("svv-panorama-holder").style.width = w + "px";
             document.getElementById("svv-panorama-outline").style.width = outline_w + "px";
-            document.getElementById("svv-panorama-holder").style.top = "10px";
             document.getElementById("svv-panorama").style.left = left + "px";
             document.getElementById("svv-panorama-holder").style.left = left + "px";
             document.getElementById("svv-panorama-outline").style.left = left + "px";

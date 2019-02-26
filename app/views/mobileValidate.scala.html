@@ -14,6 +14,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
 
     <script>
 
@@ -49,13 +50,56 @@
                 orientationCheck();
             });
     </script>
-        <div id="svv-panorama-holder">
+
+    <div class="status-box">
+        <div id='status-current-mission-completion-bar'>
+            <div id='status-current-mission-completion-bar-filler'>
+                <div id='status-current-mission-completion-rate'></div>
+            </div>
+        </div>
+        <br class="clear">
+    </div>
+
+    <div id="svv-panorama-holder">
             <div id="svv-panorama-outline">
                 <div id="svv-panorama">
 
                 </div>
             </div>
     </div>
+
+    <div id="upper-menu-holder">
+        <div id="upper-menu-title-bar"></div>
+
+    </div>
+
+    <div id="validation-button-holder">
+        <button id="validation-disagree-button" class="validation-button">
+            <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
+            <u>D</u>isagree
+        </button>
+        <button id="validation-not-sure-button" class="validation-button">
+            <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
+            <u>N</u>ot sure
+        </button>
+        <button id="validation-agree-button" class="validation-button">
+            <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
+            <u>A</u>gree
+        </button>
+    </div>
+
+    <!-- resize elements based on phone size -->
+    <script>
+            var h = window.innerHeight;
+            var w = window.innerWidth;
+            document.getElementById("validation-button-holder").style.top = h - 200 + "px";
+            document.getElementById("validation-button-holder").style.width = w + "px";
+            document.getElementById("validation-agree-button").style.width = w/3-10 + "px";
+            document.getElementById("validation-disagree-button").style.width = w/3-10 + "px";
+            document.getElementById("validation-not-sure-button").style.width = w/3-10 + "px";
+            document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
+            document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
+    </script>
 
     <script type="text/javascript">
             // init();

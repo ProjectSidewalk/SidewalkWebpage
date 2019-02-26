@@ -1,0 +1,71 @@
+#upper-menu-holder {
+    position: absolute;
+    top: 0px;
+    width: 730px;
+    height: 70px;
+}
+#upper-menu-title-bar {
+    position: center;
+    top: 50px;
+    font-size: 50px;
+}
+
+#svv-panorama-holder {
+    position: absolute;
+    top: 120px;
+    width: 730px;
+    height: 390px;
+}
+
+#validation-button-holder {
+    position: relative;
+    left: -100px;
+    height: 90px;
+    width: 730px;
+}
+
+/* Put buttons here */
+.validation-button {
+    height: 70px;
+    background-color: white;
+    margin-right: 2px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+    width: 243px;
+    font-size: 40px;
+}
+
+#validation-agree-button {
+    background-color: #78C8AB;
+    text-color: white;
+}
+
+#validation-disagree-button {
+    background-color: #EB7350;
+    text-color: white;
+}
+
+#validation-not-sure-button {
+    background-color: #FDD68D;
+    margin-right: 0px;
+    text-color: white;
+}
+
+#status-current-mission-completion-bar {
+    height: 40px;
+    width: 190px;
+    left: 0px;
+    top: 0px;
+}
+
+#status-current-mission-completion-bar-filler {
+    border-width: 0;
+    height: 40px;
+    position: absolute;
+    width: 190px;
+}
+
+#status-current-mission-completion-rate {
+    font-size: 20pt;
+}
