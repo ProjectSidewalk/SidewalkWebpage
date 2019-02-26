@@ -73,7 +73,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      */
     function _checkEnRoute (threshold, unit) {
         var task = taskContainer.getCurrentTask();
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         if (!threshold) threshold = 0.05;  // 50 m
 
         if (task) {
@@ -81,7 +81,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
                 latlng = mapService.getPosition(),
                 line = geojson.features[0],
                 currentPoint = turf.point([latlng.lng, latlng.lat]),
-                snapped = turf.pointOnLine(line, currentPoint);
+                snapped = turf.nearestPointOnLine(line, currentPoint);
             return turf.distance(currentPoint, snapped, unit) < threshold;
         }
         return true;
