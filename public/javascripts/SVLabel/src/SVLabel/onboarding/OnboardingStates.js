@@ -141,7 +141,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Now you can rate the quality of the curb ramp where 1 is passable and 5 is not passable ' +
                     'for a wheelchair user. Because it points into traffic a bit ' +
                 '<span class="bold">let’s rate it as 2, somewhat passable.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -170,7 +170,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. It is a high quality curb ' +
                     'ramp but points into traffic a bit. ' +
                 '<span class="bold">Let’s click "2" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
@@ -194,7 +194,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'Every label includes optional tags that add descriptive information. Choose appropriate tags for every label you place! ' +
                     '<span class="bold">Let\'s add the “points into traffic” tag,</span> since this ramp points into the street.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -220,7 +220,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'The "points into traffic" tag is the only tag that applies here, since the curb ramp has a ' +
                     'friction strip, is not too narrow, and is not too steep. So add <span class="bold">only the "points into traffic" tag.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -368,7 +368,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Good, now <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + '" ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" + '" ' +
                 'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
                 "parameters": null
@@ -397,7 +397,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. It is a high quality curb ' +
                     'ramp but it has no landing space at the top of the ramp for making turns. ' +
                 '<span class="bold">Let’s click "2" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
                 'somewhat passable">',
                 "position": "top-right",
@@ -497,7 +497,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem' +
                     ' is less severe. So <span class="bold">let’s rate it as a 3.</span> When you rate accessibility,' +
                     ' we just ask that you <span class="bold">use your best judgment!</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
                     '3, a slightly severe problem">',
                 "position": "top-right",
@@ -527,7 +527,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility ' +
                     'problem is less severe. ' +
                 '<span class="bold">Let’s click "3" to change the severity of the missing curb ramp.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
                 'a slightly severe problem">',
                 "position": "top-right",
@@ -550,7 +550,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": '<span class="bold">Let\'s add the "alternate route present" tag</span> because there is a nearby curb ramp that could be used.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -576,7 +576,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'The "alternate route present" tag is the only tag that applies here because there is a nearby curb ramp that could be used.' +
                     ' So add <span class="bold">only the "alternate route present" tag.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -781,7 +781,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
                 'Use your best judgment. You can also write notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -810,7 +810,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
                     'friction strip, and doesn\'t point into traffic. ' +
                 '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -905,7 +905,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -934,7 +934,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
                     'friction strip, and doesn\'t point into traffic. ' +
                 '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1031,7 +1031,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
                 'Use your best judgment. You can also write notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1059,7 +1059,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
                     'friction strip, and doesn\'t point into traffic. ' +
                 '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1083,7 +1083,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1112,7 +1112,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
                     'friction strip, and doesn\'t point into traffic. ' +
                 '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1208,7 +1208,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'Since there is a sidewalk on the other side of the street, this accessibility problem is ' +
                     'less severe. So <span class="bold">let’s rate it as a 3.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
                 "position": "top-right",
@@ -1239,7 +1239,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, since there is a sidewalk on the other side of the street, this accessibility ' +
                     'problem is less severe. <span class="bold">Let’s click "3" to change the severity of the no ' +
                     'sidewalk label.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
                 "position": "top-right",
@@ -1263,7 +1263,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": '<span class="bold">Let\'s add the "ends abruptly" and "street has a sidewalk" tags</span> because there is a sidewalk on the other side of the street.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -1289,7 +1289,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "message": {
                 "message": 'The "ends abruptly" and "street has a sidewalk" tags are the only tags that apply here.' +
                     ' So <span class="bold">make sure to add exclusively both of them!</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + //TODO: Update GIF
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -1410,7 +1410,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
@@ -1440,7 +1440,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
                     'friction strip, and doesn\'t point into traffic. ' +
                 '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
