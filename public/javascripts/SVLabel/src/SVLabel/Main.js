@@ -380,7 +380,7 @@ function Main (params) {
                 svl.labelCounter.set('Other', counter['Other']);
             });
 
-        var unit = "miles";
+        var unit = {units: 'miles'};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
     }

@@ -59,7 +59,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setView([data.city_center.lat, data.city_center.lng]);
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
-        choropleth.setZoom(data.default_zoom);
     });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
@@ -300,7 +299,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             // Calculate total distance audited in (km)
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.lineDistance(data.features[i]);
+                distanceAudited += turf.length(data.features[i]);
             }
             // document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
         });

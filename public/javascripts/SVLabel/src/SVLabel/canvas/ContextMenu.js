@@ -324,6 +324,7 @@ function ContextMenu (uiContextMenu) {
     function hide () {
         if(isOpen()) {
             $descriptionTextBox.blur(); // force the blur event before the ContextMenu close event
+            svl.tracker.push('ContextMenu_Close');
         }
 
         $menuWindow.css('visibility', 'hidden');
