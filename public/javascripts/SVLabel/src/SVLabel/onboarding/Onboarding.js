@@ -834,6 +834,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
             contextMenu.hide();
+            tracker.push("ContextMenu_CloseOnboarding");
             next.call(this, state.transition);
         };
         $target.on("click", callback);
