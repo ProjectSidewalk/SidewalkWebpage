@@ -23,4 +23,4 @@ psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
     ALTER DEFAULT PRIVILEGES IN SCHEMA sidewalk GRANT ALL ON SEQUENCES TO sidewalk;
 EOSQL
 
-pg_restore -U sidewalk -d sidewalk /opt/dump
+pg_restore -U sidewalk -d sidewalk /opt/$1
