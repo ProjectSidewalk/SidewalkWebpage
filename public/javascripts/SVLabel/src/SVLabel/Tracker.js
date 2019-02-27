@@ -59,7 +59,7 @@ function Tracker () {
     };
 
     this._isContextMenuClose = function (action) {
-        return action.indexOf("ContextMenu_Close") >= 0 || action.indexOf("ContextMenu_OKButtonClick") >= 0;
+        return action === "ContextMenu_Close";
     };
 
     this._isDeleteLabelAction = function (action) {

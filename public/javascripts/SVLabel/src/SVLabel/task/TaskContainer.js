@@ -121,10 +121,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
 
         // Update the total distance across neighborhoods that the user has audited
-        updateAuditedDistance("miles");
+        updateAuditedDistance({units: 'miles'});
 
         if (!('user' in svl) || (svl.user.getProperty('role') === "Anonymous" &&
-            getCompletedTaskDistance("kilometers") > 0.15 &&
+            getCompletedTaskDistance({units: 'kilometers'}) > 0.15 &&
             !svl.popUpMessage.haveAskedToSignIn())) {
             svl.popUpMessage.promptSignIn();
         }
@@ -237,7 +237,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (tasks) {
             var connectedTasks = [];
             if (!threshold) threshold = 0.01;  // 0.01 km.
-            if (!unit) unit = "kilometers";
+            if (!unit) unit = {units: 'kilometers'};
 
             tasks = tasks.filter(function (t) { return !t.isComplete(); });
 
@@ -264,7 +264,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {number} distance in meters
      */
     function getCompletedTaskDistance (unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         var completedTasks = getCompletedTasks(),
             geojson,
             feature,
@@ -274,7 +274,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             for (var i = 0, len = completedTasks.length; i < len; i++) {
                 geojson = completedTasks[i].getGeoJSON();
                 feature = geojson.features[0];
-                distance += turf.lineDistance(feature, unit);
+                distance += turf.length(feature, unit);
             }
         }
         if (!currentTask.isComplete()) distance += getCurrentTaskDistance(unit);
@@ -288,7 +288,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {*}
      */
     function getCurrentTaskDistance(unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
 
         if (currentTask) {
             var currentLatLng = navigationModel.getPosition();
@@ -540,7 +540,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param unit {string} Distance unit
      */
     function totalLineDistanceInNeighborhood(unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         var tasks = self.getTasks();
 
         if (tasks) {
@@ -574,7 +574,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @returns {updateAuditedDistance}
      */
     function updateAuditedDistance (unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         var distance = 0;
         var sessionDistance = 0;
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();

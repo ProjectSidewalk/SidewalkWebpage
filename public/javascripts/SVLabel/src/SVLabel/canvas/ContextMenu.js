@@ -282,6 +282,7 @@ function ContextMenu (uiContextMenu) {
                     }
                 });
                 e.target.blur();
+                getContextMenuUI().tags.trigger('tagIds-updated'); // For events that depend on tagIds to be up-to-date
             }
         });
     }
@@ -324,14 +325,13 @@ function ContextMenu (uiContextMenu) {
     function hide () {
         if(isOpen()) {
             $descriptionTextBox.blur(); // force the blur event before the ContextMenu close event
+            svl.tracker.push('ContextMenu_Close');
         }
 
         $menuWindow.css('visibility', 'hidden');
         $connector.css('visibility', 'hidden');
         setBorderColor('black');
         setStatus('visibility', 'hidden');
-
-        svl.tracker.push('ContextMenu_Close');
         return this;
     }
 
