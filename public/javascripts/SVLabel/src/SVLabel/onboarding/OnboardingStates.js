@@ -230,7 +230,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-1"});
                 var tags = this.getProperty('tagIds');
                 return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
@@ -588,7 +588,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
                 var tags = this.getProperty('tagIds');
                 return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
             }
@@ -1271,17 +1271,30 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
                 "position": "top-right",
-                "parameters": null
+                "parameters": null,
+                "left": 410
             },
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 28 / numStates;
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+
+                var tags = this.getProperty('tagIds');
+
+                var completedRate = 27 / numStates;
+                if (!tags.includes(22)) {
+                    completedRate = 28 / numStates;
+                }
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
-                var tags = this.getProperty('tagIds');
-                return tags.includes(20) && tags.includes(21) && tags.length === 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
+
+                if (tags.includes(22)) { // Where 22 is the tag_id of the "street has no sidewalks" tag
+                    return "redo-tag-attribute-3"; // We have selected the wrong tag here, so we move to the redo state
+                } else if (tags.length < 2) {
+                    return "tag-attribute-3"; // Keep this state, since we have one right tag, but not both
+                } else {
+                    return "adjust-heading-angle-4"; // We have both right tags, so lets continue
+                }
             }
         },
         "redo-tag-attribute-3": {
@@ -1294,18 +1307,37 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'The "ends abruptly" and "street has a sidewalk" tags are the only tags that apply here.' +
-                    ' So <span class="bold">make sure to add exclusively both of them!</span><br>' +
+                    ' So <span class="bold">make sure to add only those two tags.</span><br>' +
                     '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
                 "position": "top-right",
-                "parameters": null
+                "parameters": null,
+                "left": 410
             },
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(20) && tags.includes(21) && tags.length === 2 ? "adjust-heading-angle-4" : "redo-tag-attribute-3" // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
+
+                var completedRate;
+                var returnValue;
+                // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
+                if (tags.includes(20) && tags.includes(21) && tags.length === 2) { // We are done
+                    completedRate = 29 / numStates;
+                    returnValue = "adjust-heading-angle-4";
+                } else if (tags.includes(20) && !tags.includes(21) || !tags.includes(20) && tags.includes(21)) { // We have at least one correct tag
+                    completedRate = 28 / numStates;
+                    returnValue = "redo-tag-attribute-3";
+                } else { // We don't have any correct tags
+                    completedRate = 27 / numStates;
+                    returnValue = "redo-tag-attribute-3";
+                }
+
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+
+                return returnValue;
             }
         },
         "adjust-heading-angle-4": {
@@ -1326,7 +1358,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 29 / numStates;
+                var completedRate = 30 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-4" });
