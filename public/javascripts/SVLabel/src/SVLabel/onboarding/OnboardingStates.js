@@ -1281,20 +1281,22 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
                 var tags = this.getProperty('tagIds');
 
-                var completedRate = 26 / numStates;
-                if (!tags.includes(22)) {
+                var completedRate;
+                var nextState;
+
+                if (tags.includes(22)) { // Where 22 is the tag_id of the "street has no sidewalks" tag
+                    completedRate = 26 / numStates;
+                    nextState = "redo-tag-attribute-3"; // We have selected the wrong tag here, so we move to the redo state
+                } else if (tags.length < 2) {
                     completedRate = 27 / numStates;
+                    nextState = "tag-attribute-3"; // Keep this state, since we have one right tag, but not both
+                } else {
+                    completedRate = 28 / numStates;
+                    nextState = "adjust-heading-angle-4"; // We have both right tags, so lets continue
                 }
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-
-                if (tags.includes(22)) { // Where 22 is the tag_id of the "street has no sidewalks" tag
-                    return "redo-tag-attribute-3"; // We have selected the wrong tag here, so we move to the redo state
-                } else if (tags.length < 2) {
-                    return "tag-attribute-3"; // Keep this state, since we have one right tag, but not both
-                } else {
-                    return "adjust-heading-angle-4"; // We have both right tags, so lets continue
-                }
+                return nextState;
             }
         },
         "redo-tag-attribute-3": {
