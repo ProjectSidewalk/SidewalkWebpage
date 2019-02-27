@@ -1280,7 +1280,6 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
 
                 var tags = this.getProperty('tagIds');
-
                 var completedRate;
                 var nextState;
 
@@ -1323,23 +1322,23 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var tags = this.getProperty('tagIds');
 
                 var completedRate;
-                var returnValue;
+                var nextState;
                 // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
                 if (tags.includes(20) && tags.includes(21) && tags.length === 2) { // We are done
                     completedRate = 28 / numStates;
-                    returnValue = "adjust-heading-angle-4";
+                    nextState = "adjust-heading-angle-4";
                 } else if (tags.includes(20) && !tags.includes(21) || !tags.includes(20) && tags.includes(21)) { // We have at least one correct tag
                     completedRate = 27 / numStates;
-                    returnValue = "redo-tag-attribute-3";
+                    nextState = "redo-tag-attribute-3";
                 } else { // We don't have any correct tags
                     completedRate = 26 / numStates;
-                    returnValue = "redo-tag-attribute-3";
+                    nextState = "redo-tag-attribute-3";
                 }
 
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
 
-                return returnValue;
+                return nextState;
             }
         },
         "adjust-heading-angle-4": {
@@ -1861,5 +1860,5 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
     };
 
     this.get = function () { return this.states; };
-
 }
+
