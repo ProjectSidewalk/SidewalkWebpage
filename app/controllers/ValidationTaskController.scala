@@ -3,6 +3,7 @@ package controllers
 import java.sql.Timestamp
 import java.util.UUID
 import javax.inject.Inject
+
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
@@ -51,31 +52,45 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
               interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
           }
 
-          for (label: LabelValidationSubmission <- data.labels) {
-            user match {
-              case Some(user) =>
-                LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
-                  user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
-                  label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
-                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
-              case None =>
-                Logger.warn("User without user_id validated a label, but every user should have a user_id.")
-            }
+          // We aren't always submitting labels, so check if data.labels exists.
+          data.labels match {
+            case Some(_) =>
+              for (label: LabelValidationSubmission <- data.labels.get) {
+                user match {
+                  case Some(user) =>
+                    LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
+                      user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
+                      label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+                      new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
+                  case None =>
+                    Logger.warn("User without user_id validated a label, but every user should have a user_id.")
+                }
+              }
+            case None => false
           }
 
-          val missionId: Int = data.missionProgress.missionId
-          val labelTypeId: Option[Int] = getLabelTypeId(user, data.missionProgress)
-          labelTypeId match {
-            case Some(labelTypeId) =>
-              val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, labelTypeId)
-              val labelList: Option[JsValue] = getLabelList(user, data.missionProgress, labelTypeId)
-              ValidationTaskPostReturnValue(Some(true), possibleNewMission, labelList)
-            case None =>
-              if (data.missionProgress.completed) {
-                ValidationTaskPostReturnValue(None, None, None)
-              } else {
-                ValidationTaskPostReturnValue(Some(true), None, None)
+          // We aren't always submitting mission progress, so check if data.missionProgress exists.
+          data.missionProgress match {
+            case Some(_) =>
+              println("has mission progress")
+              val missionProgress: ValidationMissionProgress = data.missionProgress.get
+              val missionId: Int = missionProgress.missionId
+              val labelTypeId: Option[Int] = getLabelTypeId (user, missionProgress)
+              labelTypeId match {
+                case Some (labelTypeId) =>
+                  val possibleNewMission: Option[Mission] = updateMissionTable (user, missionProgress, labelTypeId)
+                  val labelList: Option[JsValue] = getLabelList (user, missionProgress, labelTypeId)
+                  ValidationTaskPostReturnValue (Some (true), possibleNewMission, labelList)
+                case None =>
+                  if (missionProgress.completed) {
+                    ValidationTaskPostReturnValue (None, None, None)
+                  } else {
+                    ValidationTaskPostReturnValue (Some (true), None, None)
+                  }
               }
+            case None =>
+              println("no mission progress")
+              ValidationTaskPostReturnValue (None, None, None)
           }
         }
 

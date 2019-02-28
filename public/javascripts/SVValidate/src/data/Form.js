@@ -3,24 +3,38 @@ function Form(url) {
         dataStoreUrl : url
     };
 
+    /**
+     * Compiles data into a format that can be parsed by our backend.
+     * @returns {{}}
+     */
     function compileSubmissionData() {
         var data = {};
-        var mission = svv.missionContainer.getCurrentMission();
+        var missionContainer = svv.missionContainer;
+        var mission = missionContainer ? missionContainer.getCurrentMission() : null;
+
+        var labelContainer = svv.labelContainer;
+        var labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
+
+        // Only submit mission progress if there is a mission when we're compiling submission data.
+        if (mission) {
+            // Add the current mission
+            data.missionProgress = {
+                mission_id: mission.getProperty("missionId"),
+                labels_progress: mission.getProperty("labelsProgress"),
+                label_type_id: mission.getProperty("labelTypeId"),
+                completed: mission.getProperty("completed"),
+                skipped: mission.getProperty("skipped")
+            };
+        }
+
+        // Only label list if there is a label list when we're compiling submission data.
+        if (labelList) {
+            data.labels = svv.labelContainer.getCurrentLabels();
+            svv.labelContainer.refresh();
+        }
 
         data.interactions = svv.tracker.getActions();
-        data.labels = svv.labelContainer.getCurrentLabels();
-
-        // Add the current mission
-        data.missionProgress = {
-            mission_id: mission.getProperty("missionId"),
-            labels_progress: mission.getProperty("labelsProgress"),
-            label_type_id: mission.getProperty("labelTypeId"),
-            completed: mission.getProperty("completed"),
-            skipped: mission.getProperty("skipped")
-        };
-
         svv.tracker.refresh();
-        svv.labelContainer.refresh();
         return data;
     }
 
@@ -31,6 +45,7 @@ function Form(url) {
      * @returns {*}
      */
     function submit(data, async) {
+        console.log(data);
         if (typeof async === "undefined") {
             async = false;
         }
@@ -62,7 +77,8 @@ function Form(url) {
                     }
                 }
             },
-            error: function (result) {
+            error: function (xhr, status, result) {
+                console.error(xhr.responseText);
                 console.error(result);
             }
         });
