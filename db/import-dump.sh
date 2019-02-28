@@ -7,15 +7,13 @@ psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
     AND pid <> pg_backend_pid();
 
     DROP DATABASE IF EXISTS "$1";
-    DROP SCHEMA IF EXISTS $1;
-    DROP USER IF EXISTS sidewalk;
+    DROP SCHEMA IF EXISTS sidewalk;
 
-    CREATE USER sidewalk WITH PASSWORD 'sidewalk';
     CREATE DATABASE "$1" WITH OWNER=sidewalk TEMPLATE template0;
-    GRANT ALL PRIVILEGES ON DATABASE $1 to sidewalk;
+    GRANT ALL PRIVILEGES ON DATABASE "$1" to sidewalk;
 
     ALTER USER sidewalk SUPERUSER;
-    GRANT ALL PRIVILEGES ON DATABASE $1 TO sidewalk;
+    GRANT ALL PRIVILEGES ON DATABASE "$1" TO sidewalk;
 
     CREATE SCHEMA sidewalk;
     GRANT ALL ON ALL TABLES IN SCHEMA sidewalk TO sidewalk;
@@ -23,4 +21,4 @@ psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
     ALTER DEFAULT PRIVILEGES IN SCHEMA sidewalk GRANT ALL ON SEQUENCES TO sidewalk;
 EOSQL
 
-pg_restore -U sidewalk -d sidewalk /opt/$1-dump
+pg_restore -U sidewalk -d $1 /opt/$1-dump
