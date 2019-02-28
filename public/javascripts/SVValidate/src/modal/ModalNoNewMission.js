@@ -16,7 +16,7 @@ function ModalNoNewMission (uiModalMission) {
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
-        svv.tracker("Click_NoMoreMissionModal_Audit");
+        svv.tracker.push("Click_NoMoreMissionModal_Audit");
         window.location.replace("/audit");
     }
 

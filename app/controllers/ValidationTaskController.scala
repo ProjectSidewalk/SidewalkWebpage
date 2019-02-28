@@ -3,6 +3,7 @@ package controllers
 import java.sql.Timestamp
 import java.util.UUID
 import javax.inject.Inject
+
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
@@ -51,31 +52,45 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
               interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
           }
 
-          for (label: LabelValidationSubmission <- data.labels) {
-            user match {
-              case Some(user) =>
-                LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
-                  user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
-                  label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
-                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
-              case None =>
-                Logger.warn("User without user_id validated a label, but every user should have a user_id.")
-            }
+          // We aren't always submitting labels, so check if data.labels exists.
+          data.labels match {
+            case Some(_) =>
+              for (label: LabelValidationSubmission <- data.labels.get) {
+                user match {
+                  case Some(user) =>
+                    LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
+                      user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
+                      label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+                      new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
+                  case None =>
+                    Logger.warn("User without user_id validated a label, but every user should have a user_id.")
+                }
+              }
+            case None => false
           }
 
-          val missionId: Int = data.missionProgress.missionId
-          val labelTypeId: Option[Int] = getLabelTypeId(user, data.missionProgress)
-          labelTypeId match {
-            case Some(labelTypeId) =>
-              val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress, labelTypeId)
-              val labelList: Option[JsValue] = getLabelList(user, data.missionProgress, labelTypeId)
-              ValidationTaskPostReturnValue(Some(true), possibleNewMission, labelList)
-            case None =>
-              if (data.missionProgress.completed) {
-                ValidationTaskPostReturnValue(None, None, None)
-              } else {
-                ValidationTaskPostReturnValue(Some(true), None, None)
+          // We aren't always submitting mission progress, so check if data.missionProgress exists.
+          data.missionProgress match {
+            case Some(_) =>
+              val missionProgress: ValidationMissionProgress = data.missionProgress.get
+              val missionId: Int = missionProgress.missionId
+              val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
+              val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(user, missionProgress, Some(currentMissionLabelTypeId))
+              nextMissionLabelTypeId match {
+                case Some (nextMissionLabelTypeId) =>
+                  val possibleNewMission: Option[Mission] = updateMissionTable (user, missionProgress, Some(nextMissionLabelTypeId))
+                  val labelList: Option[JsValue] = getLabelList (user, missionProgress, nextMissionLabelTypeId)
+                  ValidationTaskPostReturnValue (Some (true), possibleNewMission, labelList)
+                case None =>
+                  updateMissionTable (user, missionProgress, None)
+                  if (missionProgress.completed) {
+                    ValidationTaskPostReturnValue (None, None, None)
+                  } else {
+                    ValidationTaskPostReturnValue (Some (true), None, None)
+                  }
               }
+            case None =>
+              ValidationTaskPostReturnValue (None, None, None)
           }
         }
 
@@ -88,9 +103,15 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     )
   }
 
-  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress): Option[Int] = {
+  /**
+    * Returns the label type id for the next validation mission
+    * @param user
+    * @param missionProgress
+    * @return
+    */
+  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
     if (missionProgress.completed) {
-      val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10)
+      val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
@@ -178,11 +199,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
     * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
-    * @param user
-    * @param missionProgress  Metadata for this mission
+    * @param user                     User ID
+    * @param missionProgress          Metadata for this mission
+    * @param nextMissionLabelTypeId   Label Type ID for the next mission
     * @return
     */
-  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[Mission] = {
+  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
@@ -192,7 +214,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, nextMissionLabelTypeId, skipped)
     } else {
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }

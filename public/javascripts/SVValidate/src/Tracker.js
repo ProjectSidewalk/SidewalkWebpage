@@ -30,7 +30,7 @@ function Tracker() {
                 keyCode: 'keyCode' in e ? e.keyCode : null
             });
         });
-    };
+    }
 
     /**
      *
@@ -51,25 +51,25 @@ function Tracker() {
         var note = _notesToString(notes);
         var timestamp = new Date().getTime();
 
-        if (svv.panorama) {
-            panorama = svv.panorama;
-        }
+        panorama = svv.panorama ? svv.panorama : null;
+        var panoId = panorama ? panorama.getPanoId() : null;
+        var position = panorama? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
+        var pov = panorama ? panorama.getPov() : null;
 
-        var panoId = panorama.getPanoId();
-        var position = panorama.getPosition();  // sometimes buggy, so position will be null.
-        var pov = panorama.getPov();
+        var missionContainer = svv.missionContainer ? svv.missionContainer : null;
+        var currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
         var data = {
             action: action,
             gsv_panorama_id: panoId,
             lat: position ? position.lat : null,
             lng: position ? position.lng : null,
-            heading: pov.heading,
-            mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
+            heading: pov ? pov.heading : null,
+            mission_id: currentMission ? currentMission.getProperty("missionId") : null,
             note: note,
-            pitch: pov.pitch,
+            pitch: pov ? pov.pitch : null,
             timestamp: timestamp,
-            zoom: pov.zoom
+            zoom: pov ? pov.zoom : null
         };
 
         return data;
