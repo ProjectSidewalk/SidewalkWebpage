@@ -206,6 +206,16 @@ object MissionTable {
   }
 
   /**
+    * Gets the list of in progress validation missions from a user
+    * @param userId   User ID
+    * @return         List of validation missions available
+    */
+  def getInProgressValidationMissions(userId: UUID): List[Int] = db.withSession { implicit session =>
+    val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
+    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && !m.labelTypeId.isEmpty && !m.completed).map(_.labelTypeId.get).list
+  }
+
+  /**
     * Get the user's incomplete auditOnboarding mission if there is one.
     * @param userId
     * @return
@@ -414,7 +424,7 @@ object MissionTable {
       }
 
       if (actions.contains("getValidationMission")) {
-        // Get the label type id for the next mission.
+        // Create or retrieve a mission with the passed in label type id
         getCurrentValidationMission(userId, labelTypeId.get) match {
           case Some(incompleteMission) =>
             Some(incompleteMission)

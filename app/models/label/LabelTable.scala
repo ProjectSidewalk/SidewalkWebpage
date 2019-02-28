@@ -574,15 +574,16 @@ object LabelTable {
   }
 
   /**
-    * Query ever single label type and try to find
+    * Query ever single label type and try to find which labels can be validated.
     * @param userId
     * @param count
     * @return
     */
   def retrievePossibleLabelTypeIds(userId: UUID, count: Int): ListBuffer[Int] = {
+    val inProgress: List[Int] = MissionTable.getInProgressValidationMissions(userId)
     var possibleLabelTypeIds = new ListBuffer[Int]
     for (labelTypeId <- labelTypeIdList) {
-      if (hasSufficientLabels(userId, labelTypeId, count)) {
+      if (hasSufficientLabels(userId, labelTypeId, count) || inProgress.contains(labelTypeId)) {
         possibleLabelTypeIds += labelTypeId
       }
     }

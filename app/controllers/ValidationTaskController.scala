@@ -72,16 +72,17 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           // We aren't always submitting mission progress, so check if data.missionProgress exists.
           data.missionProgress match {
             case Some(_) =>
-              println("has mission progress")
               val missionProgress: ValidationMissionProgress = data.missionProgress.get
               val missionId: Int = missionProgress.missionId
-              val labelTypeId: Option[Int] = getLabelTypeId (user, missionProgress)
-              labelTypeId match {
-                case Some (labelTypeId) =>
-                  val possibleNewMission: Option[Mission] = updateMissionTable (user, missionProgress, labelTypeId)
-                  val labelList: Option[JsValue] = getLabelList (user, missionProgress, labelTypeId)
+              val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
+              val nextMissionLabelTypeId: Option[Int] = getLabelTypeId (user, missionProgress)
+              nextMissionLabelTypeId match {
+                case Some (nextMissionLabelTypeId) =>
+                  val possibleNewMission: Option[Mission] = updateMissionTable (user, missionProgress, Some(nextMissionLabelTypeId))
+                  val labelList: Option[JsValue] = getLabelList (user, missionProgress, nextMissionLabelTypeId)
                   ValidationTaskPostReturnValue (Some (true), possibleNewMission, labelList)
                 case None =>
+                  updateMissionTable (user, missionProgress, None)
                   if (missionProgress.completed) {
                     ValidationTaskPostReturnValue (None, None, None)
                   } else {
@@ -89,7 +90,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
                   }
               }
             case None =>
-              println("no mission progress")
               ValidationTaskPostReturnValue (None, None, None)
           }
         }
@@ -103,6 +103,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     )
   }
 
+  /**
+    * Returns the label type id for the next validation mission
+    * @param user
+    * @param missionProgress
+    * @return
+    */
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress): Option[Int] = {
     if (missionProgress.completed) {
       val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10)
@@ -193,11 +199,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
     * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
-    * @param user
-    * @param missionProgress  Metadata for this mission
+    * @param user                     User ID
+    * @param missionProgress          Metadata for this mission
+    * @param nextMissionLabelTypeId   Label Type ID for the next mission
     * @return
     */
-  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[Mission] = {
+  def updateMissionTable(user: Option[User], missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Option[Mission] = {
     val missionId: Int = missionProgress.missionId
     val skipped: Boolean = missionProgress.skipped
     val userId: UUID = user.get.userId
@@ -207,7 +214,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, labelTypeId, skipped)
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, nextMissionLabelTypeId.get, skipped)
     } else {
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
