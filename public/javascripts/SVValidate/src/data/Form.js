@@ -31,6 +31,8 @@ function Form(url) {
         if (labelList) {
             data.labels = svv.labelContainer.getCurrentLabels();
             svv.labelContainer.refresh();
+        } else {
+            data.labels = [];
         }
 
         data.interactions = svv.tracker.getActions();
@@ -45,7 +47,6 @@ function Form(url) {
      * @returns {*}
      */
     function submit(data, async) {
-        console.log(data);
         if (typeof async === "undefined") {
             async = false;
         }

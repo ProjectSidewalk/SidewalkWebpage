@@ -68,10 +68,12 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * This gets a random list of labels to validate for this mission.
-    * @param count  Number of labels to retrieve for this list.
-    * @return       JsValue containing a list of labels with the following attributes:
-    *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
-    *               canvas_width, canvas_height}
+    * @param userId     User ID for current user.
+    * @param count      Number of labels to retrieve for this list.
+    * @param labelType  Label type id of labels to retrieve.
+    * @return           JsValue containing a list of labels with the following attributes:
+    *                   {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x,
+    *                   canvas_y, canvas_width, canvas_height}
     */
   def getLabelListForValidation(userId: UUID, count: Int, labelType: Int): JsValue = {
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelType)

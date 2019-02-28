@@ -457,10 +457,6 @@ object LabelTable {
     */
   def hasSufficientLabels(userId: UUID, labelTypeId: Int, labelsRequired: Int): Boolean = db.withSession { implicit session =>
     val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
-    println("User ID: " + userId.toString)
-    println("labelTypeId: " + labelTypeId)
-    println("Labels remaining: " + labelCount)
-
     labelCount >= labelsRequired
   }
 
@@ -469,6 +465,7 @@ object LabelTable {
     * to validate labels that they have already validated or labels that they have placed.
     * @param userId       User ID.
     * @param labelTypeId  Type of label.
+    * @param labelIdList  List of labels to exclude (i.e., labels that have already been selected)
     * @return             Number of labels that the user can validate.
     */
   def getAvailableValidationLabels(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
@@ -490,7 +487,10 @@ object LabelTable {
   /**
     * Retrieves a random label that has an existing GSVPanorama.
     * Will keep querying for a random label until a suitable label has been found.
-    * @param labelTypeId  Label that is retrieved from the database
+    * @param userId       User ID for the current user.
+    * @param labelTypeId  Label that is retrieved from the database.
+    * @param labelIdList  List of labels that we do not want to select (i.e., labels that have
+    *                     already been selected in the current mission).
     * @return LabelValidationMetadata of this label.
     */
   def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]) : LabelValidationMetadata = db.withSession { implicit session =>
@@ -498,7 +498,6 @@ object LabelTable {
     var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
     var selectedLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int]())
 
-    // TODO: add code that also checks that we havne't already chosen this label
     val userIdString = userId.toString
     val availableLabelCount: Int = getAvailableValidationLabels(userId, labelTypeId, labelIdList)
     while (!exists) {
@@ -537,9 +536,10 @@ object LabelTable {
   }
 
   /**
-    * Retrieves a list of labels to be validated
-    * @param count        Length of list
-    * @param labelTypeId  Label Type of each label in the list
+    * Retrieves a list of labels to be validated.
+    * @param userId       User ID of the current user.
+    * @param count        Length of list.
+    * @param labelTypeId  Label Type of each label in the list.
     * @return             Seq[LabelValidationMetadata]
     */
   def retrieveLabelListForValidation(userId: UUID, count: Int, labelType: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
@@ -548,25 +548,24 @@ object LabelTable {
     for (a <- 1 to count) {
       labelList += retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
     }
-    val labelSeq: Seq[LabelValidationMetadata] = labelList
-    labelSeq
+    labelList
   }
 
-  /**
+  /**.
     * Retrieve a list of labels for validation with a random label id
-    * @param count  Number of labels in the list
+    * @param userId User ID of the current user.
+    * @param count  Number of labels in the list.
     * @return       Seq[LabelValidationMetadata]
     */
   def retrieveRandomLabelListForValidation(userId: UUID, count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // We are currently assigning label types to missions randomly.
     val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
-    val labelSeq: Seq[LabelValidationMetadata] = retrieveLabelListForValidation(userId, count, labelTypeId)
-    labelSeq
+    retrieveLabelListForValidation(userId, count, labelTypeId)
   }
 
   /**
-    * Retrieves a random validation label type id (1, 2, 3, 4, 7)
-    * @return Integer corresponding to the label type id
+    * Retrieves a random validation label type id (1, 2, 3, 4, 7).
+    * @return Integer corresponding to the label type id.
     */
   def retrieveRandomValidationLabelTypeId(): Int = db.withSession { implicit session =>
     val labelTypeId: Int = labelTypeIdList(scala.util.Random.nextInt(labelTypeIdList.size))
@@ -574,9 +573,11 @@ object LabelTable {
   }
 
   /**
-    * Query ever single label type and try to find which labels can be validated.
-    * @param userId
-    * @param count
+    * Retrieves a list of possible label types that the user can validate. This is determined by how
+    * many labels are in the database and how many labels the user has validated.
+    * @param userId               User ID of the current user.
+    * @param count                Number of labels for this mission.
+    * @param currentLabelTypeId   Label ID of the current mission
     * @return
     */
   def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): ListBuffer[Int] = {

@@ -53,7 +53,7 @@ function Tracker() {
 
         panorama = svv.panorama ? svv.panorama : null;
         var panoId = panorama ? panorama.getPanoId() : null;
-        var position = panorama? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
+        var position = panorama ? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
         var pov = panorama ? panorama.getPov() : null;
 
         var missionContainer = svv.missionContainer ? svv.missionContainer : null;

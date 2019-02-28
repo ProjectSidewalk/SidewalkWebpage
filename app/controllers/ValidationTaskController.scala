@@ -53,20 +53,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           // We aren't always submitting labels, so check if data.labels exists.
-          data.labels match {
-            case Some(_) =>
-              for (label: LabelValidationSubmission <- data.labels.get) {
-                user match {
-                  case Some(user) =>
-                    LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
-                      user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
-                      label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
-                      new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
-                  case None =>
-                    Logger.warn("User without user_id validated a label, but every user should have a user_id.")
-                }
-              }
-            case None => false
+          for (label: LabelValidationSubmission <- data.labels) {
+            user match {
+              case Some(user) =>
+                LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
+                  user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
+                  label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
+              case None =>
+                Logger.warn("User without user_id validated a label, but every user should have a user_id.")
+            }
           }
 
           // We aren't always submitting mission progress, so check if data.missionProgress exists.
@@ -105,13 +101,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
     * Returns the label type id for the next validation mission
-    * @param user
-    * @param missionProgress
+    * @param user               UserId of the current user.
+    * @param missionProgress    Progress of the current validation mission.
+    * @param currentLabelTypeId Label Type ID of the current mission
     * @return
     */
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
+    val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10, currentLabelTypeId)
+      val labelsToRetrieve: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
@@ -155,11 +154,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   
   /**
     * Gets a random list of labels to validate for this mission.
-    * @param count  Number of labels to retrieve for this list.
-    * @param labelTypeId Label Type to retrieve
-    * @return       JsValue containing a list of labels with the following attributes:
-    *               {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x, canvas_y,
-    *               canvas_width, canvas_height}
+    * @param userId       User ID of the current user.
+    * @param count        Number of labels to retrieve for this list.
+    * @param labelTypeId  Label Type to retrieve
+    * @return             JsValue containing a list of labels with the following attributes:
+    *                     {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x,
+    *                     canvas_y, canvas_width, canvas_height}
     */
   def getLabelListForValidation(userId: UUID, count: Int, labelTypeId: Int): JsValue = {
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelTypeId)
