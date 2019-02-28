@@ -60,7 +60,7 @@
                         }, 1000);
                     </script>
                 }
-                @if(url.isDefined && url.get != "/audit") {
+                @if(url.isDefined && url.get != "/audit" && url.get != "/validate") {
 
                    <li class="active navbarLink">
                         <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Exploring</a>
@@ -75,7 +75,7 @@
                         <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
                     </li>
 
-                } else {
+                } else { @if(url.isDefined && url.get != "/validate") {
 
                     <li class="navbarLink">
                         <a class="navbarBtn" href="#" id="toolbar-onboarding-link">Retake Tutorial</a>
@@ -89,7 +89,20 @@
                     <li class = "navbarLink">
                       <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">Help</a>
                     </li>
-                }
+
+                } else {
+
+                    <li class="navbarLink">
+                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Exploring</a>
+                    </li>
+                    <li class="navbarLink">
+                        <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
+                    </li>
+                    <li class="navbarLink">
+                        <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
+                    </li>
+
+                }}
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="dropdown navbarLink" id="navbar-dropdown-list">
