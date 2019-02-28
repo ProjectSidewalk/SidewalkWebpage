@@ -1,5 +1,7 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import
 
+db ?= sidewalk
+
 dev: | docker-up-db docker-run
 
 docker-up:
@@ -19,4 +21,4 @@ ssh:
 	@docker exec -it projectsidewalk-$${target} /bin/bash
 
 import-dump:
-	@docker exec -it projectsidewalk-db /opt/import-dump.sh
+	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
