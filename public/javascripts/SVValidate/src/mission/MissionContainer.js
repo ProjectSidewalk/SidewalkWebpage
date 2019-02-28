@@ -65,7 +65,6 @@ function MissionContainer () {
         };
         var mission = new Mission(metadata);
         addAMission(mission);
-        svv.modalMissionComplete.show(mission);
         svv.modalMission.setMissionMessage(mission);
     }
 
