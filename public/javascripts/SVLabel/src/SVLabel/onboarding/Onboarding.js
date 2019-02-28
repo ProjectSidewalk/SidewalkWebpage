@@ -704,6 +704,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     _visitZoomState(state, annotationListener);
                 } else if (state.properties.action == "RateSeverity" || state.properties.action == "RedoRateSeverity") {
                     _visitRateSeverity(state, annotationListener);
+                } else if (state.properties.action == "AddTag" || state.properties.action == "RedoAddTag") {
+                    _visitAddTag(state, annotationListener);
                 } else if (state.properties.action == "AdjustHeadingAngle") {
                     _visitAdjustHeadingAngle(state, annotationListener);
                 } else if (state.properties.action == "WalkTowards") {
@@ -832,9 +834,26 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             if (listener) google.maps.event.removeListener(listener);
             $target.off("click", callback);
             contextMenu.hide();
+            tracker.push("ContextMenu_CloseOnboarding");
             next.call(this, state.transition);
         };
         $target.on("click", callback);
+    }
+
+    function _visitAddTag(state, listener) {
+
+        contextMenu.unhide();
+        var $target = contextMenu.getContextMenuUI().tags; // Grab tag elements
+        var callback = function () {
+            if (listener) {
+                google.maps.event.removeListener(listener);
+            }
+            $target.off("tagIds-updated", callback);
+            contextMenu.hide();
+            next.call(contextMenu.getTargetLabel(), state.transition);
+        };
+        // We use a custom event here to ensure that this is triggered after the tagIds array has been updated
+        $target.on("tagIds-updated", callback);
     }
 
     function _visitInstruction(state, listener) {

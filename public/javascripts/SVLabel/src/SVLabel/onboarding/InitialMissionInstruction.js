@@ -17,8 +17,8 @@ function InitialMissionInstruction(compass, mapService, neighborhoodContainer, p
 
     this._instructToCheckSidewalks = function () {
         if (!svl.isOnboarding()) {
-            // Instruct a user to audit both sides of the streets once they have walked for 100 meters.
-            var distance = taskContainer.getCompletedTaskDistance("kilometers");
+            // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
+            var distance = taskContainer.getCompletedTaskDistance({units: 'kilometers'});
             if (distance >= 0.1) {
                 var title = "Please check both sides of the street";
                 var message = "As you walk, remember to check both sides of the street like this:";
