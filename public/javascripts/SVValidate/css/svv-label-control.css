@@ -1,0 +1,25 @@
+.button.label-control-button {
+    color: rgba(0,0,0,1);
+    font-size: 9px;
+    height: 36px;
+    width: 65px;
+    margin-right: 2px;
+}
+
+.button.label-control-button:focus {
+    outline: none;
+}
+
+.label-button-icon {
+    height: 18px;
+    width: 18px;
+}
+
+#label-control-holder {
+    background: transparent;
+    position: absolute;
+    left: 555px;
+    top: 30px;
+    height: 55px;
+    width: 185px;
+}

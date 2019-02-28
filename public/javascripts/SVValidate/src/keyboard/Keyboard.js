@@ -69,20 +69,10 @@ function Keyboard(menuUI) {
                     break;
                 // "z" key
                 case 90:
-                    // Zoom out when shift + z keys are pressed.
-                    if (status.shiftDown || (e.timeStamp - lastShiftKeyDownTimestamp) < 100) {
-                        // Zoom out
-                        svv.zoomControl.zoomOut();
-                        svv.tracker.push("KeyboardShortcut_ZoomOut", {
-                            keyCode: e.keyCode
-                        });
-                    // Zoom in when just the z key is pressed.
-                    } else {
-                        svv.zoomControl.zoomIn();
-                        svv.tracker.push("KeyboardShortcut_ZoomIn", {
-                            keyCode: e.keyCode
-                        });
-                    }
+                    svv.labelControl.hideLabel();
+                    svv.tracker.push("KeyboardShortcut_HideLabel", {
+                        keyCode: e.keyCode
+                    });
                     break;
             }
         }

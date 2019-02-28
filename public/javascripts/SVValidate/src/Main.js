@@ -85,6 +85,7 @@ function Main (param) {
         svv.labelContainer = new LabelContainer();
         svv.panoramaContainer = new PanoramaContainer(param.labelList);
         svv.zoomControl = new ZoomControl();
+        svv.labelControl = new LabelControl();
 
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
