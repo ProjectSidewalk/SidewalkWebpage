@@ -464,7 +464,7 @@ object MissionTable {
     * @param distanceProgress
     * @return
     */
-  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Ingit, distanceProgress: Float, skipped: Boolean): Option[Mission] = {
+  def updateCompleteAndGetNextMission(userId: UUID, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float, skipped: Boolean): Option[Mission] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getMission")
     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), Some(skipped))
   }
