@@ -8,7 +8,7 @@
 function LabelControl () {
     var self = this;
     var visible = true;
-    var hideLabelButton = $("#hide-label-button");
+    var labelControlButton = $("#label-control-button");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -19,8 +19,7 @@ function LabelControl () {
     }
 
     /**
-     * Increases zoom for the Google StreetView Panorama.
-     * Zoom levels: {1.1, 2.1, 3.1}
+     * Hides label in Google StreetView Panorama.
      */
     function hideLabel () {
         if (visible) {
@@ -32,7 +31,7 @@ function LabelControl () {
         }
     }
 
-    hideLabelButton.on('click', clickHideLabel);
+    labelControlButton.on('click', clickHideLabel);
 
     self.hideLabel = hideLabel;
 

@@ -60,6 +60,10 @@ function Keyboard(menuUI) {
                     break;
                 // "h" key
                 case 72:
+                    svv.labelControl.hideLabel();
+                    svv.tracker.push("KeyboardShortcut_HideLabel", {
+                        keyCode: e.keyCode
+                    });
                     break;
                 // "n" key
                 case 78:
@@ -69,10 +73,20 @@ function Keyboard(menuUI) {
                     break;
                 // "z" key
                 case 90:
-                    svv.labelControl.hideLabel();
-                    svv.tracker.push("KeyboardShortcut_HideLabel", {
-                        keyCode: e.keyCode
-                    });
+                    // Zoom out when shift + z keys are pressed.
+                    if (status.shiftDown || (e.timeStamp - lastShiftKeyDownTimestamp) < 100) {
+                        // Zoom out
+                        svv.zoomControl.zoomOut();
+                        svv.tracker.push("KeyboardShortcut_ZoomOut", {
+                            keyCode: e.keyCode
+                        });
+                    // Zoom in when just the z key is pressed.
+                    } else {
+                        svv.zoomControl.zoomIn();
+                        svv.tracker.push("KeyboardShortcut_ZoomIn", {
+                            keyCode: e.keyCode
+                        });
+                    }
                     break;
             }
         }
