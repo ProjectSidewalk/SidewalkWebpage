@@ -76,7 +76,7 @@ function ContextMenu (uiContextMenu) {
     }; //handles both key down and key up events
 
     function checkRadioButton (value) {
-        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click");
+        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click", {lowLevelLogging: false});
     }
 
     function getContextMenuUI(){
@@ -228,7 +228,7 @@ function ContextMenu (uiContextMenu) {
         var labelTags = label.getProperty('tagIds');
 
         // Use position of cursor to determine whether or not the click came from the mouse, or from a keyboard shortcut
-        var wasClickedByMouse = e.originalEvent.clientX != 0 && e.originalEvent.clientY != 0;
+        var wasClickedByMouse = e.hasOwnProperty("originalEvent") && e.originalEvent.clientX != 0 && e.originalEvent.clientY != 0;
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
