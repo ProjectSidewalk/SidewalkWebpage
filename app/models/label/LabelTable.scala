@@ -579,8 +579,8 @@ object LabelTable {
     * @param count
     * @return
     */
-  def retrievePossibleLabelTypeIds(userId: UUID, count: Int): ListBuffer[Int] = {
-    val inProgress: List[Int] = MissionTable.getInProgressValidationMissions(userId)
+  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): ListBuffer[Int] = {
+    val inProgress: List[Int] = MissionTable.getInProgressValidationMissions(userId, currentLabelTypeId)
     var possibleLabelTypeIds = new ListBuffer[Int]
     for (labelTypeId <- labelTypeIdList) {
       if (hasSufficientLabels(userId, labelTypeId, count) || inProgress.contains(labelTypeId)) {

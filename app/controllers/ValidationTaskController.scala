@@ -75,7 +75,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
               val missionProgress: ValidationMissionProgress = data.missionProgress.get
               val missionId: Int = missionProgress.missionId
               val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
-              val nextMissionLabelTypeId: Option[Int] = getLabelTypeId (user, missionProgress)
+              val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(user, missionProgress, Some(currentMissionLabelTypeId))
               nextMissionLabelTypeId match {
                 case Some (nextMissionLabelTypeId) =>
                   val possibleNewMission: Option[Mission] = updateMissionTable (user, missionProgress, Some(nextMissionLabelTypeId))
@@ -109,9 +109,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param missionProgress
     * @return
     */
-  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress): Option[Int] = {
+  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
     if (missionProgress.completed) {
-      val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10)
+      val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.get.userId, 10, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
@@ -214,7 +214,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.VOLUNTEER_PAY
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, nextMissionLabelTypeId.get, skipped)
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, nextMissionLabelTypeId, skipped)
     } else {
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
