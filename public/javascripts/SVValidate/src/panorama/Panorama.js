@@ -277,6 +277,20 @@ function Panorama (label) {
         svv.panoramaContainer.fetchNewLabel();
     }
 
+    /**
+     * Hides the current label on this panorama.
+     */
+    function hideLabel () {
+        self.labelMarker.setVisible(false);
+    }
+
+    /**
+     * Shows the current label on this panorama.
+     */
+    function showLabel () {
+        self.labelMarker.setVisible(true);
+    }
+
     _init();
 
     self.getCurrentLabel = getCurrentLabel;
@@ -292,6 +306,8 @@ function Panorama (label) {
     self.setProperty = setProperty;
     self.setZoom = setZoom;
     self.skipLabel = skipLabel;
+    self.hideLabel = hideLabel;
+    self.showLabel = showLabel;
 
     return this;
 }

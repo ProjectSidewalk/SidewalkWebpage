@@ -461,7 +461,7 @@ function Main (params) {
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
         svl.ui.statusMessage.holder = $("#current-status-holder");
-        svl.ui.statusMessage.title = $("#current-status-title");
+        svl.ui.statusMessage.title = $("#current-status-title")
         svl.ui.statusMessage.description = $("#current-status-description");
 
         // OverlayMessage
@@ -553,6 +553,13 @@ function Main (params) {
         svl.ui.modalMissionComplete.noSidewalk = $("#modal-mission-complete-no-sidewalk-count");
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
         svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
+
+        svl.ui.labelControl = {};
+        svl.ui.labelControl.holder = $("#label-control-holder");
+        svl.ui.labelControl.holder.append('<button id="hide-label-button" class="button hide-label-button" title="Press the &quot;H&quot; key" data-toggle="tooltip" data-placement="top">' +
+            '<img src="' + svl.rootDirectory + 'img/icons/ZoomIn.svg" class="zoom-button-icon" alt="Hide label">' +
+            '<br /><u>H</u>ide Label</button>');
+        svl.ui.labelControl.hideLabel = $("#hide-label-button");
 
         // Zoom control
         svl.ui.zoomControl = {};

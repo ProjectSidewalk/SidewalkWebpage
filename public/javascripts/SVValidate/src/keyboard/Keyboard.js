@@ -58,6 +58,9 @@ function Keyboard(menuUI) {
                     menuUI.agreeButton.removeClass("validate");
                     menuUI.notSureButton.removeClass("validate");
                     break;
+                // "h" key
+                case 72:
+                    break;
                 // "n" key
                 case 78:
                     validateLabel(menuUI.notSureButton, "NotSure");
