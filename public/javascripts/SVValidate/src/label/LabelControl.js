@@ -22,18 +22,34 @@ function LabelControl () {
      * Hides label in Google StreetView Panorama.
      */
     function hideLabel () {
+        var backgroundColor;
         if (visible) {
             svv.panorama.hideLabel();
+            backgroundColor = "#808080";
             visible = false;
         } else {
             svv.panorama.showLabel();
+            backgroundColor = "";
             visible = true;
         }
+        $("#label-control-button").css({
+            "background": backgroundColor
+        });
+    }
+
+    /**
+     * Refreshes label visual state
+     */
+    function refreshLabel () {
+        $("#label-control-button").css({
+            "background": ""
+        });
     }
 
     labelControlButton.on('click', clickHideLabel);
 
     self.hideLabel = hideLabel;
+    self.refreshLabel = refreshLabel;
 
     return this;
 }
