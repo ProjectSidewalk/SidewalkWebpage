@@ -4,6 +4,7 @@ import java.sql.Timestamp
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import java.text.SimpleDateFormat
 
 case class Version(versionId: String, versionStartTime: Timestamp, description: Option[String])
 
@@ -28,6 +29,17 @@ object VersionTable {
 
   def all: List[Version] = db.withSession { implicit session =>
     versions.list
+  }
+
+  /**
+    * Formats the current version of the code in the format "Version <version_number> | Last Updated: <version_time>"
+    *
+    * @return
+    */
+  def currentVersionStr(): String = db.withSession { implicit session =>
+    val currentVersion = versions.sortBy(_.versionStartTime.desc).list.head
+    val timestampAsDate: String = new SimpleDateFormat("yyyy-MM-dd").format(currentVersion.versionStartTime)
+    s"Version ${currentVersion.versionId} | Last Updated: $timestampAsDate"
   }
 }
 

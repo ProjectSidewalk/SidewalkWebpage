@@ -1,4 +1,5 @@
 @import models.user.User
+@import models.user.VersionTable
 @(title: String, url: Option[String] = Some("/"))(content: Html)
 
 
@@ -78,7 +79,7 @@
           <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
           <a href="http://www.umd.edu/">University of Maryland</a> and
               <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-          <span id="application-version"></span>
+          <span id="application-version">@VersionTable.currentVersionStr()</span>
         </div>
 
     } else{
@@ -143,7 +144,7 @@
         <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
         <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
         <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-        <span id="application-version"></span>
+        <span id="application-version">@VersionTable.currentVersionStr()</span>
     </div>
 
   }
