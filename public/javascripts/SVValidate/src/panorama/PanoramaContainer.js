@@ -45,16 +45,26 @@ function PanoramaContainer (labelList) {
     }
 
     /**
-     * Fetches a single label from the database. Missions fetch exactly the number of labels that
-     * are needed to complete the mission. When the user clicks skip, need to get more.
-     * @param count Number of labels to append to the labels.
-     * @private
+     * Fetches a single label from the database.  When the user clicks skip, need to get more
+     * because missions fetch exactly the number of labels that are needed to complete the mission.
      */
     function fetchNewLabel () {
-        var labelUrl = "/label/geo/random";
+        var labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
+        var labelUrl = "/label/geo/random/" + labelTypeId;
+
+        var data = {};
+        data.labels = svv.labelContainer.getCurrentLabels();
+
+        if (data.constructor !== Array) {
+            data = [data];
+        }
+
         $.ajax({
-            url: labelUrl,
             async: false,
+            contentType: 'application/json; charset=utf-8',
+            url: labelUrl,
+            type: 'post',
+            data: JSON.stringify(data),
             dataType: 'json',
             success: function (labelMetadata) {
                 labels.push(_createSingleLabel(labelMetadata));
@@ -64,6 +74,15 @@ function PanoramaContainer (labelList) {
         });
     }
 
+    /**
+     * Gets the list of labels assigned to this panorama for the current mission.
+     * NOTE: This is used for testing purposes. It does not have any functionality for the
+     * validation interface at the moment.
+     * @returns {*} Returns the label list for this panorama.
+     */
+    function getLabels () {
+        return labels;
+    }
 
     /**
      * Gets a specific property from the PanoramaContainer.
@@ -132,6 +151,7 @@ function PanoramaContainer (labelList) {
     }
 
     self.fetchNewLabel = fetchNewLabel;
+    self.getLabels = getLabels;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
     self.setProperty = setProperty;

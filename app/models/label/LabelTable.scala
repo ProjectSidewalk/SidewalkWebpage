@@ -8,9 +8,11 @@ import com.vividsolutions.jts.geom.LineString
 import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
+import models.label.LabelValidationTable._
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
+
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
@@ -96,8 +98,11 @@ object LabelTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val completedAudits = auditTasks.filter(_.completed === true)
   val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
+  val gsvData = TableQuery[GSVDataTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
+  val labelValidations = TableQuery[LabelValidationTable]
+  val missions = TableQuery[MissionTable]
   val regions = TableQuery[RegionTable]
   val severities = TableQuery[LabelSeverityTable]
   val users = TableQuery[UserTable]
@@ -130,6 +135,9 @@ object LabelTable {
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
+
+  // Valid label type ids -- excludes Other and Occlusion labels
+  val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
 
   /**
     * Find a label
@@ -441,81 +449,150 @@ object LabelTable {
   }
 
   /**
+    * Returns whether we have enough labels for this user to validate.
+    * @param userId             User ID.
+    * @param labelType          Label Type ID of labels requested.
+    * @param labelsRequired     Number of labels we need to query.
+    * @return   True if we have enough labels, false otherwise.
+    */
+  def hasSufficientLabels(userId: UUID, labelTypeId: Int, labelsRequired: Int): Boolean = db.withSession { implicit session =>
+    val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
+    labelCount >= labelsRequired
+  }
+
+  /**
+    * Returns how many labels this user can validate for a given label type. Users are not allowed
+    * to validate labels that they have already validated or labels that they have placed.
+    * @param userId       User ID.
+    * @param labelTypeId  Type of label.
+    * @param labelIdList  List of labels to exclude (i.e., labels that have already been selected)
+    * @return             Number of labels that the user can validate.
+    */
+  def getAvailableValidationLabels(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
+    val userIdString: String = userId.toString
+    val existingLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int])
+    val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
+
+    val validationLabels =  for {
+      _lb <- labels if _lb.labelTypeId === labelTypeId && _lb.deleted === false && _lb.tutorial === false
+      _lt <- labelTypes if _lt.labelTypeId === _lb.labelTypeId
+      _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
+      _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
+    } yield (_lb.labelId)
+
+    val filterUserLabels = validationLabels.filterNot(_ inSet labelsValidatedByUser)
+    filterUserLabels.list.length
+  }
+
+  /**
     * Retrieves a random label that has an existing GSVPanorama.
     * Will keep querying for a random label until a suitable label has been found.
+    * @param userId       User ID for the current user.
+    * @param labelTypeId  Label that is retrieved from the database.
+    * @param labelIdList  List of labels that we do not want to select (i.e., labels that have
+    *                     already been selected in the current mission).
     * @return LabelValidationMetadata of this label.
     */
-  def retrieveSingleRandomLabelForValidation() : LabelValidationMetadata = db.withSession { implicit session =>
+  def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]) : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
-    var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
+    var labelToValidate: LabelValidationMetadata = null;
+    var selectedLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int]())
+
+    val userIdString = userId.toString
+    val availableLabelCount: Int = getAvailableValidationLabels(userId, labelTypeId, labelIdList)
     while (!exists) {
-      val selectQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int)](
-        """SELECT lb.label_id,
-        |       lt.label_type,
-        |       lb.gsv_panorama_id,
-        |       lp.heading,
-        |       lp.pitch,
-        |       lp.zoom,
-        |       lp.canvas_x,
-        |       lp.canvas_y,
-        |       lp.canvas_width,
-        |       lp.canvas_height
-        |FROM sidewalk.label AS lb,
-        |     sidewalk.label_type AS lt,
-        |     sidewalk.label_point AS lp,
-        |     sidewalk.gsv_data AS gd
-        |WHERE lp.label_id = lb.label_id
-        |      AND lt.label_type_id = lb.label_type_id
-        |      AND lb.label_type_id <> 5
-        |      AND lb.label_type_id <> 6
-        |      AND lb.deleted = false
-        |      AND lb.tutorial = false
-        |      AND gd.gsv_panorama_id = lb.gsv_panorama_id
-        |      AND gd.expired = false
-        |OFFSET floor(random() *
-        |      (
-        |          SELECT COUNT(*)
-        |          FROM sidewalk.label AS lb
-        |          WHERE lb.deleted = false
-        |              AND lb.tutorial = false
-        |              AND lb.label_type_id <> 5
-        |              AND lb.label_type_id <> 6
-        |      )
-        |)
-        |LIMIT ?""".stripMargin
-      )
-      val singleLabel = selectQuery(1).list
+      val r = new scala.util.Random
+      val labelOffset = r.nextInt(availableLabelCount - selectedLabels.length)
+
+      val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
+      var validationLabels = for {
+        _lb <- labels if _lb.labelTypeId === labelTypeId && _lb.deleted === false && _lb.tutorial === false
+        _lt <- labelTypes if _lt.labelTypeId === _lb.labelTypeId
+        _lp <- labelPoints if _lb.labelId === _lp.labelId
+        _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
+        _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
+      } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
+        _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
+
+      validationLabels = validationLabels.filterNot(_._1 inSet labelsValidatedByUser)
+      validationLabels = validationLabels.filterNot(_._1 inSet selectedLabels)
+
+      val singleLabel: LabelValidationMetadata =
+        LabelValidationMetadata.tupled(validationLabels.drop(labelOffset).take(1).list.head)
+
       // Uses panorama ID to check if this panorama exists
-      exists = panoExists(singleLabel(0)._3)
+      exists = panoExists(singleLabel.gsvPanoramaId)
 
       if (exists) {
         labelToValidate = singleLabel
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
-        GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
+        GSVDataTable.markLastViewedForPanorama(singleLabel.gsvPanoramaId, timestamp)
+        selectedLabels += singleLabel.labelId
       } else {
-        println("Panorama " + singleLabel(0)._3 + " doesn't exist")
-        GSVDataTable.markExpired(singleLabel(0)._3, true)
+        GSVDataTable.markExpired(singleLabel.gsvPanoramaId, true)
       }
     }
-    labelToValidate.map(label => LabelValidationMetadata.tupled(label)).head
+    labelToValidate
   }
 
   /**
-    * Retrieves a list of labels to be validated
-    * @param count  Length of list
+    * Retrieves a list of labels to be validated.
+    * @param userId       User ID of the current user.
+    * @param count        Length of list.
+    * @param labelTypeId  Label Type of each label in the list.
+    * @return             Seq[LabelValidationMetadata]
+    */
+  def retrieveLabelListForValidation(userId: UUID, count: Int, labelType: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    var labelList = new ListBuffer[LabelValidationMetadata]()
+    var labelIdList = new ListBuffer[Int]()
+    for (a <- 1 to count) {
+      labelList += retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
+    }
+    labelList
+  }
+
+  /**.
+    * Retrieve a list of labels for validation with a random label id
+    * @param userId User ID of the current user.
+    * @param count  Number of labels in the list.
     * @return       Seq[LabelValidationMetadata]
     */
-  def retrieveRandomLabelListForValidation(count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    var labelList = new ListBuffer[LabelValidationMetadata]()
-    for (a <- 1 to count) {
-      labelList += retrieveSingleRandomLabelForValidation()
-    }
-    val labelSeq: Seq[LabelValidationMetadata] = labelList
-    labelSeq
+  def retrieveRandomLabelListForValidation(userId: UUID, count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    // We are currently assigning label types to missions randomly.
+    val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
+    retrieveLabelListForValidation(userId, count, labelTypeId)
   }
 
   /**
+    * Retrieves a random validation label type id (1, 2, 3, 4, 7).
+    * @return Integer corresponding to the label type id.
+    */
+  def retrieveRandomValidationLabelTypeId(): Int = db.withSession { implicit session =>
+    val labelTypeId: Int = labelTypeIdList(scala.util.Random.nextInt(labelTypeIdList.size))
+    labelTypeId
+  }
+
+  /**
+    * Retrieves a list of possible label types that the user can validate. This is determined by how
+    * many labels are in the database and how many labels the user has validated.
+    * @param userId               User ID of the current user.
+    * @param count                Number of labels for this mission.
+    * @param currentLabelTypeId   Label ID of the current mission
+    * @return
+    */
+  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): ListBuffer[Int] = {
+    val inProgress: List[Int] = MissionTable.getInProgressValidationMissions(userId, currentLabelTypeId)
+    var possibleLabelTypeIds = new ListBuffer[Int]
+    for (labelTypeId <- labelTypeIdList) {
+      if (hasSufficientLabels(userId, labelTypeId, count) || inProgress.contains(labelTypeId)) {
+        possibleLabelTypeIds += labelTypeId
+      }
+    }
+    possibleLabelTypeIds
+  }
+
+    /**
     * Checks if the panorama associated with a label eixsts by pinging Google Maps.
     * @param gsvPanoId  Panorama ID
     * @return           True if the panorama exists, false otherwise
