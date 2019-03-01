@@ -517,19 +517,19 @@ object LabelTable {
       validationLabels = validationLabels.filterNot(_._1 inSet labelsValidatedByUser)
       validationLabels = validationLabels.filterNot(_._1 inSet selectedLabels)
 
-      val singleLabel = validationLabels.drop(labelOffset).take(1).list
+      val singleLabel: LabelValidationMetadata =
+        LabelValidationMetadata.tupled(validationLabels.drop(labelOffset).take(1).list.head)
 
       // Uses panorama ID to check if this panorama exists
-      exists = panoExists(singleLabel(0)._3)
+      exists = panoExists(singleLabel.gsvPanoramaId)
 
       if (exists) {
-        labelToValidate = singleLabel
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
-        GSVDataTable.markLastViewedForPanorama(singleLabel(0)._3, timestamp)
-        selectedLabels += singleLabel(0)._1
+        GSVDataTable.markLastViewedForPanorama(singleLabel.gsvPanoramaId, timestamp)
+        selectedLabels += singleLabel.labelId
       } else {
-        GSVDataTable.markExpired(singleLabel(0)._3, true)
+        GSVDataTable.markExpired(singleLabel.gsvPanoramaId, true)
       }
     }
     labelToValidate.map(label => LabelValidationMetadata.tupled(label)).head
