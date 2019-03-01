@@ -60,10 +60,17 @@ function Keyboard(menuUI) {
                     break;
                 // "h" key
                 case 72:
-                    svv.labelControl.hideLabel();
-                    svv.tracker.push("KeyboardShortcut_HideLabel", {
-                        keyCode: e.keyCode
-                    });
+                    if (svv.labelControl.isVisible()) {
+                        svv.labelControl.hideLabel();
+                        svv.tracker.push("KeyboardShortcut_HideLabel", {
+                            keyCode: e.keyCode
+                        });
+                    } else {
+                        svv.labelControl.unhideLabel()
+                        svv.tracker.push("KeyboardShortcut_UnhideLabel", {
+                            keyCode: e.keyCode
+                        });
+                    }
                     break;
                 // "n" key
                 case 78:

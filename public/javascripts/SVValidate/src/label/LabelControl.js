@@ -8,31 +8,39 @@
 function LabelControl () {
     var self = this;
     var visible = true;
-    var labelControlButton = $("#label-control-button");
+    var labelControlButton = $("#label-visibility-control-button");
 
     /**
      * Logs interaction when the hide label button is clicked.
      */
-    function clickHideLabel () {
-        svv.tracker.push("Click_HideLabel");
-        hideLabel();
+    function clickAdjustLabel () {
+        if (visible) {
+            svv.tracker.push("Click_HideLabel");
+            hideLabel();
+        } else {
+            svv.tracker.push("Click_UnhideLabel");
+            unhideLabel();
+        }
+    }
+
+    /**
+     * Unhides label in Google StreetView Panorama
+     * depending on current state.
+     */
+    function unhideLabel () {
+        svv.panorama.showLabel();
+        backgroundColor = "";
+        visible = true;
     }
 
     /**
      * Hides label in Google StreetView Panorama.
      */
     function hideLabel () {
-        var backgroundColor;
-        if (visible) {
-            svv.panorama.hideLabel();
-            backgroundColor = "#808080";
-            visible = false;
-        } else {
-            svv.panorama.showLabel();
-            backgroundColor = "";
-            visible = true;
-        }
-        $("#label-control-button").css({
+        svv.panorama.hideLabel();
+        var backgroundColor = "#808080";
+        visible = false;
+        $("#label-visibility-control-button").css({
             "background": backgroundColor
         });
     }
@@ -41,15 +49,22 @@ function LabelControl () {
      * Refreshes label visual state
      */
     function refreshLabel () {
-        $("#label-control-button").css({
+        $("#label-visibility-control-button").css({
             "background": ""
         });
     }
 
-    labelControlButton.on('click', clickHideLabel);
+    function isVisible () {
+        return visible;
+    }
+
+    labelControlButton.on('click', clickAdjustLabel);
 
     self.hideLabel = hideLabel;
+    self.unhideLabel = unhideLabel;
     self.refreshLabel = refreshLabel;
+    self.isVisible = isVisible;
 
     return this;
+
 }

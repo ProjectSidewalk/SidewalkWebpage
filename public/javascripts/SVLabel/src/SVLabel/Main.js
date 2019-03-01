@@ -461,7 +461,7 @@ function Main (params) {
         // MissionDescription DOMs
         svl.ui.statusMessage = {};
         svl.ui.statusMessage.holder = $("#current-status-holder");
-        svl.ui.statusMessage.title = $("#current-status-title")
+        svl.ui.statusMessage.title = $("#current-status-title");
         svl.ui.statusMessage.description = $("#current-status-description");
 
         // OverlayMessage
