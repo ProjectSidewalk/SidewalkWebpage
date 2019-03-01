@@ -23,6 +23,7 @@ function ModalNoNewMission (uiModalMission) {
     function show () {
         uiModalMission.background.css('visibility', 'visible');
         uiModalMission.instruction.html(noMissionsRemaining);
+        uiModalMission.missionTitle.html("No more validation missions left");
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.closeButton.html('Start Exploring');

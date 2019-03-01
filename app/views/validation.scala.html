@@ -74,9 +74,36 @@
             <div id="modal-mission-holder">
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
-                    <h1 id="modal-mission-header" class="text-center">No more validation missions left</h1>
+                    <h1 id="modal-mission-header" class="text-center"></h1>
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
+                </div>
+            </div>
+            <div id="modal-mission-complete-holder">
+                <div id="modal-mission-complete-background" class="modal-background"></div>
+                <div id="modal-mission-complete-foreground" class="modal-foreground">
+                    <h1 class="normal" id="modal-mission-complete-title"></h1>
+                    <p><div id="modal-mission-complete-message"></div></p>
+                    <div id="modal-mission-complete-table">
+                        <div class="col-sm-8">
+                            <h3>Category</h3>
+                            <table class="table">
+                                <tr>
+                                    <th>Agree</th>
+                                    <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>Disagree</th>
+                                    <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>Not Sure</th>
+                                    <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                                </tr>
+                            </table>
+                            <button class="btn blue-btn" id="modal-mission-complete-close-button">Validate more labels</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="status-holder">

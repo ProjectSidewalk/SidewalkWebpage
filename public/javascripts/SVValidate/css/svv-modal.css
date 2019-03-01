@@ -114,3 +114,32 @@
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
 }
+
+#modal-mission-complete-holder {
+    visibility: hidden;
+}
+
+#modal-mission-complete-foreground {
+    visibility: hidden;
+}
+
+#modal-mission-complete-title {
+    margin-top: 70px;
+    text-align: center;
+}
+
+#modal-mission-complete-message {
+    text-align: center;
+}
+
+#modal-mission-complete-table {
+    height: 190px;
+    padding-left: 215px;
+}
+
+.modal-foreground .blue-btn {
+    background: rgba(49,130,189,1);
+    color: white;
+    font-size: 14pt;
+    width: 100%;
+}

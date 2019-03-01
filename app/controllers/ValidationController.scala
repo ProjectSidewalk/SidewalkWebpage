@@ -38,6 +38,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Validate", timestamp))
         val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, 10, None)
         val hasWork: Boolean = possibleLabelTypeIds.nonEmpty
 

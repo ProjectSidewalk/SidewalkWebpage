@@ -7,12 +7,15 @@
 function Mission(params) {
     var self = this;
     var properties = {
+        agreeCount: 0,
+        disagreeCount: 0,
         missionId: undefined,
         missionType: undefined,
         completed: undefined,
         labelsProgress: undefined,
         labelTypeId: undefined,
         labelsValidated: undefined,
+        notSureCount: 0,
         pay: undefined,
         paid: undefined,
         skipped: undefined
@@ -92,11 +95,31 @@ function Mission(params) {
         svv.statusField.setProgressText(completionRate);
     }
 
+    /**
+     * Updates the validation result for this mission by incrementing agree, disagree and not sure
+     * counts collected in this mission. (Only persists for current session)
+     * @param result Validation result - can either be agree, disagree, or not sure.
+     */
+    function updateValidationResult(result) {
+        switch (result) {
+            case 1:
+                setProperty("agreeCount", getProperty("agreeCount") + 1);
+                break;
+            case 2:
+                setProperty("disagreeCount", getProperty("disagreeCount") + 1);
+                break;
+            case 3:
+                setProperty("notSureCount", getProperty("notSureCount") + 1);
+                break;
+        }
+    }
+
     self.isComplete = isComplete;
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     self.updateMissionProgress = updateMissionProgress;
+    self.updateValidationResult = updateValidationResult;
 
     _init();
     return self;

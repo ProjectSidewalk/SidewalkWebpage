@@ -185,18 +185,21 @@ function Label(params) {
             // Agree option selected.
             case "Agree":
                 setValidationProperty("validationResult", 1);
+                svv.missionContainer.getCurrentMission().updateValidationResult(1);
                 svv.labelContainer.push(getValidationProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
                 setValidationProperty("validationResult", 2);
+                svv.missionContainer.getCurrentMission().updateValidationResult(2);
                 svv.labelContainer.push(getValidationProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Not sure option selected.
             case "NotSure":
                 setValidationProperty("validationResult", 3);
+                svv.missionContainer.getCurrentMission().updateValidationResult(3);
                 svv.labelContainer.push(getValidationProperties());
                 svv.missionContainer.updateAMission();
                 break;

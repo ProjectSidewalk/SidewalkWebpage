@@ -21,6 +21,14 @@ function Main (param) {
         Occlusion: "Occlusion"
     };
 
+    svv.labelTypeNames = {
+        1: "Curb Ramp",
+        2: "Missing Curb Ramp",
+        3: "Obstacle in Path",
+        4: "Surface Problem",
+        7: "Missing Sidewalk"
+    };
+
     function _initUI() {
         svv.ui = {};
 
@@ -51,6 +59,17 @@ function Main (param) {
         svv.ui.modalMission.missionTitle = $("#modal-mission-header");
         svv.ui.modalMission.instruction = $("#modal-mission-instruction");
         svv.ui.modalMission.closeButton = $("#modal-mission-close-button");
+
+        svv.ui.modalMissionComplete = {};
+        svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
+        svv.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
+        svv.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
+        svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
+        svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
+        svv.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
+        svv.ui.modalMissionComplete.agreeCount = $("#modal-mission-complete-agree-count");
+        svv.ui.modalMissionComplete.disagreeCount = $("#modal-mission-complete-disagree-count");
+        svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");
 
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
@@ -96,6 +115,8 @@ function Main (param) {
 
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
+        svv.modalMission = new ModalMission(svv.ui.modalMission);
+        svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
