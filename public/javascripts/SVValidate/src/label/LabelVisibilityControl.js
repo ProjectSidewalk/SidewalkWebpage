@@ -31,11 +31,12 @@ function LabelVisibilityControl () {
         svv.panorama.showLabel();
         backgroundColor = "";
         visible = true;
+        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        <br /><u>H</u>ide Label</button>`;
+        $("#label-visibility-control-button").html(htmlString);
         $("#label-visibility-control-button").css({
             "background": backgroundColor
         });
-        var htmlString = '<img src="/assets/javascripts/SVValidate/img/HideLabel.svg")" class="label-visibility-control-button-icon" alt="Hide Label">';
-        ("#label-visibility-control-button-icon").html(htmlString);
     }
 
     /**
@@ -43,24 +44,26 @@ function LabelVisibilityControl () {
      */
     function hideLabel () {
         svv.panorama.hideLabel();
+        var htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        <br />S<u>h</u>ow Label</button>`;
+        $("#label-visibility-control-button").html(htmlString);
         var backgroundColor = "#808080";
         visible = false;
         $("#label-visibility-control-button").css({
             "background": backgroundColor
         });
-        var htmlString = '<img src="/assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">';
-        ("#label-visibility-control-button-icon").html(htmlString);
     }
 
     /**
      * Refreshes label visual state
      */
     function refreshLabel () {
+        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        <br /><u>H</u>ide Label</button>`;
+        $("#label-visibility-control-button").html(htmlString);
         $("#label-visibility-control-button").css({
             "background": ""
         });
-        var htmlString = '<img src="/assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">';
-        ("#label-visibility-control-button-icon").html(htmlString);
     }
 
     function isVisible () {
