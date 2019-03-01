@@ -495,7 +495,7 @@ object LabelTable {
     */
   def retrieveSingleRandomLabelFromLabelTypeForValidation(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]) : LabelValidationMetadata = db.withSession { implicit session =>
     var exists: Boolean = false
-    var labelToValidate: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int)] = null
+    var labelToValidate: LabelValidationMetadata = null;
     var selectedLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int]())
 
     val userIdString = userId.toString
@@ -524,6 +524,7 @@ object LabelTable {
       exists = panoExists(singleLabel.gsvPanoramaId)
 
       if (exists) {
+        labelToValidate = singleLabel
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
         GSVDataTable.markLastViewedForPanorama(singleLabel.gsvPanoramaId, timestamp)
@@ -532,7 +533,7 @@ object LabelTable {
         GSVDataTable.markExpired(singleLabel.gsvPanoramaId, true)
       }
     }
-    labelToValidate.map(label => LabelValidationMetadata.tupled(label)).head
+    labelToValidate
   }
 
   /**
