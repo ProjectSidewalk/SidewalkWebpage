@@ -300,8 +300,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         break;
                     case 90:
                         if (contextMenu.isOpen()) {
-                            contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                            contextMenu.hide();
                         }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
                         // if shift was down w/in 100 ms of the z up, then it will also zoom out. 
@@ -421,17 +421,17 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     // "Enter"
                     if(contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                        contextMenu.hide();
                         contextMenu.handleSeverityPopup();
                         svl.tracker.push("ContextMenu_ClosePressEnter");
+                        contextMenu.hide();
                     }
                     break;
                 case 27:
                     // "Escape"
                     if(contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                        contextMenu.hide();
                         svl.tracker.push("ContextMenu_CloseKeyboardShortcut");
+                        contextMenu.hide();
                     }
 
                     if (canvas.getStatus('drawing')) {
@@ -451,10 +451,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     function _closeContextMenu(key) {
         if (contextMenu.isOpen()) {
             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-            contextMenu.hide();
             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                 keyCode: key
             });
+            contextMenu.hide();
         }
     }
 
