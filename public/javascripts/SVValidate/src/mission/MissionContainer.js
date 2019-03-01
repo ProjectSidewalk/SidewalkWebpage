@@ -57,6 +57,7 @@ function MissionContainer () {
             completed : missionMetadata.completed,
             labelsProgress : missionMetadata.labels_progress,
             labelsValidated : missionMetadata.labels_validated,
+            labelTypeId : missionMetadata.label_type_id,
             missionId : missionMetadata.mission_id,
             missionType : missionMetadata.mission_type,
             skipped : missionMetadata.skipped
