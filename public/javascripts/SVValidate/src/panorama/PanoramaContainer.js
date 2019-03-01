@@ -96,7 +96,7 @@ function PanoramaContainer (labelList) {
     function loadNewLabelOntoPanorama () {
         svv.panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
-        svv.labelControl.refreshLabel();
+        svv.labelVisibilityControl.refreshLabel();
     }
 
     /**

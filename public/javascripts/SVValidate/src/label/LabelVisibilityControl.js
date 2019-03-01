@@ -2,13 +2,13 @@
  * Handles the hiding and showing of labels in the Google StreetView panorama.
  * This is also called by the Keyboard class to deal with hiding the label
  * via keyboard shortcuts.
- * @returns {LabelControl}
+ * @returns {LabelVisibilityControl}
  * @constructor
  */
-function LabelControl () {
+function LabelVisibilityControl () {
     var self = this;
     var visible = true;
-    var labelControlButton = $("#label-visibility-control-button");
+    var labelVisibilityControlButton = $("#label-visibility-control-button");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -67,7 +67,7 @@ function LabelControl () {
         return visible;
     }
 
-    labelControlButton.on('click', clickAdjustLabel);
+    labelVisibilityControlButton.on('click', clickAdjustLabel);
 
     self.hideLabel = hideLabel;
     self.unhideLabel = unhideLabel;
