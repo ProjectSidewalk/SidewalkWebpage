@@ -202,7 +202,12 @@ object MissionTable {
 
   def getCurrentValidationMission(userId: UUID, labelTypeId: Int): Option[Mission] = db.withSession { implicit session =>
     val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && m.labelTypeId === labelTypeId && !m.completed).list.headOption
+    missions.filter(m =>
+      m.userId === userId.toString
+        && m.missionTypeId === validationMissionId
+        && m.labelTypeId === labelTypeId
+        && !m.completed
+    ).list.headOption
   }
 
   /**
@@ -213,7 +218,12 @@ object MissionTable {
     */
   def getInProgressValidationMissions(userId: UUID, currentLabelTypeId: Option[Int]): List[Int] = db.withSession { implicit session =>
     val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === validationMissionId && !m.completed && !m.labelTypeId.isEmpty && m.labelTypeId =!= currentLabelTypeId.getOrElse(0)).map(_.labelTypeId.get).list
+    missions.filter(m =>
+      m.userId === userId.toString
+        && m.missionTypeId === validationMissionId
+        && !m.completed && !m.labelTypeId.isEmpty
+        && m.labelTypeId =!= currentLabelTypeId.getOrElse(0)
+    ).map(_.labelTypeId.get).list
   }
 
   /**

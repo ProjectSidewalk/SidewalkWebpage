@@ -21,11 +21,11 @@ function ContextMenu (uiContextMenu) {
         //event.stopPropagation();
         var clicked_out = !(context_menu_el.contains(event.target));
         if (isOpen()){
-            hide();
             if (clicked_out) {
              svl.tracker.push('ContextMenu_CloseClickOut');
             handleSeverityPopup();
             }
+            hide();
         }
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
@@ -76,7 +76,7 @@ function ContextMenu (uiContextMenu) {
     }; //handles both key down and key up events
 
     function checkRadioButton (value) {
-        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click");
+        uiContextMenu.radioButtons.filter(function() {return this.value == value}).prop("checked", true).trigger("click", {lowLevelLogging: false});
     }
 
     function getContextMenuUI(){
@@ -127,16 +127,16 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleCloseButtonClick () {
-        hide();
         svl.tracker.push('ContextMenu_CloseButtonClick');
         handleSeverityPopup();
+        hide();
 
     }
 
     function _handleOKButtonClick () {
-        hide();
         svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
+        hide();
 
     }
 
@@ -228,7 +228,7 @@ function ContextMenu (uiContextMenu) {
         var labelTags = label.getProperty('tagIds');
 
         // Use position of cursor to determine whether or not the click came from the mouse, or from a keyboard shortcut
-        var wasClickedByMouse = e.originalEvent.clientX != 0 && e.originalEvent.clientY != 0;
+        var wasClickedByMouse = e.hasOwnProperty("originalEvent") && e.originalEvent.clientX != 0 && e.originalEvent.clientY != 0;
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
@@ -282,6 +282,7 @@ function ContextMenu (uiContextMenu) {
                     }
                 });
                 e.target.blur();
+                getContextMenuUI().tags.trigger('tagIds-updated'); // For events that depend on tagIds to be up-to-date
             }
         });
     }
@@ -324,6 +325,7 @@ function ContextMenu (uiContextMenu) {
     function hide () {
         if(isOpen()) {
             $descriptionTextBox.blur(); // force the blur event before the ContextMenu close event
+            svl.tracker.push('ContextMenu_Close');
         }
 
         $menuWindow.css('visibility', 'hidden');

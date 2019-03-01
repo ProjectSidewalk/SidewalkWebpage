@@ -11,7 +11,7 @@ object ValidationTaskSubmissionFormats {
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Option[Seq[LabelValidationSubmission]], missionProgress: Option[ValidationMissionProgress])
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress])
 
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
@@ -51,7 +51,7 @@ object ValidationTaskSubmissionFormats {
 
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
     (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
-      (JsPath \ "labels").readNullable[Seq[LabelValidationSubmission]] and
+      (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "missionProgress").readNullable[ValidationMissionProgress]
     )(ValidationTaskSubmission.apply _) // .map(ValidationTaskSubmission(_))
 
