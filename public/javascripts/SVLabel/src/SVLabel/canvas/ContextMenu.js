@@ -282,6 +282,7 @@ function ContextMenu (uiContextMenu) {
                     }
                 });
                 e.target.blur();
+                getContextMenuUI().tags.trigger('tagIds-updated'); // For events that depend on tagIds to be up-to-date
             }
         });
     }
