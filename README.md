@@ -4,7 +4,7 @@ The Project Sidewalk webpage.
 ## Development Instructions
 
 ### Setting up the development environment
-The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary.
+The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows PowerShell users may also need to install `make`.
 
 ### Running the Application Locally
 To run the web server locally, from the root of the SidewalkWebpage directory:
@@ -42,7 +42,7 @@ Waiting...
 3. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
 
 ### Additional Tools
-1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, get the dump as per [instructions](https://github.com/ProjectSidewalk/Instructions), rename the file `dump`, place it in the `db` folder, and run `make import-dump` from the base folder. Note: Restart the server once the dump is complete.
+1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, get the dump as per [instructions](https://github.com/ProjectSidewalk/Instructions), rename the file `[database]-dump`, place it in the `db` folder, and run `make import-dump db=[database]` from the base folder. Note: Restart the server once the dump is complete.
 
 2. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
 

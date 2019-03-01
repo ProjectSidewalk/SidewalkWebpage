@@ -15,6 +15,11 @@ RUN apt-get update && \
   apt-get install -y \
     oracle-java8-installer \
     unzip \
+    python-dev \
+    python-pip \
+    libblas-dev \
+    liblapack-dev \
+    gfortran \
     sbt && \
   apt-get autoremove && \
   apt-get clean
@@ -22,5 +27,9 @@ RUN apt-get update && \
 WORKDIR /opt
 
 COPY package.json ./
+COPY requirements.txt ./
 
-RUN npm install
+RUN npm install && \
+  pip install --upgrade setuptools && \
+  pip install --upgrade pip && \
+  pip install -r requirements.txt

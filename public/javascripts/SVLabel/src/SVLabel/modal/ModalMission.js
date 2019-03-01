@@ -184,7 +184,8 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             e = e || window.event;
             //enter key
             if (e.keyCode == 13 && self._status.isOpen){
-                $("#modal-mission-close-button").click();
+                svl.tracker.push("KeyboardShortcut_ModalMissionOk");
+                $("#modal-mission-close-button").trigger("click", {lowLevelLogging: false});
             }
         });
     };
