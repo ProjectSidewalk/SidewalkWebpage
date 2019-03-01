@@ -31,6 +31,11 @@ function LabelControl () {
         svv.panorama.showLabel();
         backgroundColor = "";
         visible = true;
+        $("#label-visibility-control-button").css({
+            "background": backgroundColor
+        });
+        var htmlString = '<img src="/assets/javascripts/SVValidate/img/HideLabel.svg")" class="label-visibility-control-button-icon" alt="Hide Label">';
+        ("#label-visibility-control-button-icon").html(htmlString);
     }
 
     /**
@@ -43,6 +48,8 @@ function LabelControl () {
         $("#label-visibility-control-button").css({
             "background": backgroundColor
         });
+        var htmlString = '<img src="/assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">';
+        ("#label-visibility-control-button-icon").html(htmlString);
     }
 
     /**
@@ -52,6 +59,8 @@ function LabelControl () {
         $("#label-visibility-control-button").css({
             "background": ""
         });
+        var htmlString = '<img src="/assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">';
+        ("#label-visibility-control-button-icon").html(htmlString);
     }
 
     function isVisible () {
