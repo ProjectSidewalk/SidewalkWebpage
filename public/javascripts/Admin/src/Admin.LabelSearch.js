@@ -18,7 +18,7 @@ function AdminLabelSearch() {
     /**
      * Pull information from the Label information box when the submit button is clicked.
      */
-    $('#form-control-input').submit(function(e) {
+    $('#submit').on('click', function(e) {
         var labelId = $('#form-control-input').val();
         adminGSVLabelView.showLabel(labelId);
     });
