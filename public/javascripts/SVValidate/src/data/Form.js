@@ -3,23 +3,40 @@ function Form(url) {
         dataStoreUrl : url
     };
 
+    /**
+     * Compiles data into a format that can be parsed by our backend.
+     * @returns {{}}
+     */
     function compileSubmissionData() {
         var data = {};
-        var mission = svv.missionContainer.getCurrentMission();
+        var missionContainer = svv.missionContainer;
+        var mission = missionContainer ? missionContainer.getCurrentMission() : null;
+
+        var labelContainer = svv.labelContainer;
+        var labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
+
+        // Only submit mission progress if there is a mission when we're compiling submission data.
+        if (mission) {
+            // Add the current mission
+            data.missionProgress = {
+                mission_id: mission.getProperty("missionId"),
+                labels_progress: mission.getProperty("labelsProgress"),
+                label_type_id: mission.getProperty("labelTypeId"),
+                completed: mission.getProperty("completed"),
+                skipped: mission.getProperty("skipped")
+            };
+        }
+
+        // Only label list if there is a label list when we're compiling submission data.
+        if (labelList) {
+            data.labels = svv.labelContainer.getCurrentLabels();
+            svv.labelContainer.refresh();
+        } else {
+            data.labels = [];
+        }
 
         data.interactions = svv.tracker.getActions();
-        data.labels = svv.labelContainer.getCurrentLabels();
-
-        // Add the current mission
-        data.missionProgress = {
-            mission_id: mission.getProperty("missionId"),
-            labels_progress: mission.getProperty("labelsProgress"),
-            completed: mission.getProperty("completed"),
-            skipped: mission.getProperty("skipped")
-        };
-
         svv.tracker.refresh();
-        svv.labelContainer.refresh();
         return data;
     }
 
@@ -48,15 +65,21 @@ function Form(url) {
             success: function (result) {
                 if (result) {
                     // If a mission was returned after posting data, create a new mission.
-                    if (result.mission) {
-                        svv.missionContainer.createAMission(result.mission);
-                        svv.panoramaContainer.reset();
-                        svv.panoramaContainer.setLabelList(result.labels);
-                        svv.panoramaContainer.loadNewLabelOntoPanorama();
+                    if (result.hasMissionAvailable) {
+                        if (result.mission) {
+                            svv.missionContainer.createAMission(result.mission);
+                            svv.panoramaContainer.reset();
+                            svv.panoramaContainer.setLabelList(result.labels);
+                            svv.panoramaContainer.loadNewLabelOntoPanorama();
+                        }
+                    } else {
+                        // Otherwise, display popup that says there are no more labels left.
+                        svv.modalNoNewMission.show();
                     }
                 }
             },
-            error: function (result) {
+            error: function (xhr, status, result) {
+                console.error(xhr.responseText);
                 console.error(result);
             }
         });
