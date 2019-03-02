@@ -9,37 +9,39 @@ The development environment is set up using Docker containers. Hence, in order t
 ### Running the Application Locally
 To run the web server locally, from the root of the SidewalkWebpage directory:
 
+1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. You will need the database dump later on. You can continue with the rest of the instructions here, but the website will not work fully until you've received these three files from Mikey.
+
 1. Run `make dev`. This will download the docker images and spin up the containers. The containers will have all the necessary packages and tools so no installation is necessary. Though, the container executes a bash shell running Ubuntu Jessie, which allows you to install whatever tool you prefer that can run on this flavor of linux (vi, etc.). This command also sets up the `sidewalk` database with the schema (just the schema, not the data - see Importing SQL dump in Additional Tools section) from the production dump, which lives in `db/schema.sql`. Successful output of this command will look like:
 
-```
-Successfully built [container-id]
-Successfully tagged projectsidewalk/web:latest
-WARNING: Image for service web was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
-root@[container-id]:/opt#
-```
+    ```
+    Successfully built [container-id]
+    Successfully tagged projectsidewalk/web:latest
+    WARNING: Image for service web was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
+    root@[container-id]:/opt#
+    ```
 
-2. Run `npm start`. The result of this command is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (`~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
+1. Run `npm start`. The result of this command is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (`~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
 
-```
-> grunt watch & sbt clean "~ run"
+    ```
+    > grunt watch & sbt clean "~ run"
 
-Running "watch" task
-Waiting...
-[info] Loading project definition from /opt/project
-[info] Set current project to sidewalk-webpage (in build file:/opt/)
-[success] Total time: 78 s, completed Dec 20, 2018 8:06:19 AM
-[info] Updating {file:/opt/}root...
-[info] Resolving it.geosolutions.jaiext.errordiffusion#jt-errordiffusion;1.0.8 .[info] Resolving org.fusesource.jansi#jansi;1.4 ...
-[info] Done updating.
+    Running "watch" task
+    Waiting...
+    [info] Loading project definition from /opt/project
+    [info] Set current project to sidewalk-webpage (in build file:/opt/)
+    [success] Total time: 78 s, completed Dec 20, 2018 8:06:19 AM
+    [info] Updating {file:/opt/}root...
+    [info] Resolving it.geosolutions.jaiext.errordiffusion#jt-errordiffusion;1.0.8 .[info] Resolving org.fusesource.jansi#jansi;1.4 ...
+    [info] Done updating.
 
---- (Running the application, auto-reloading is enabled) ---
+    --- (Running the application, auto-reloading is enabled) ---
 
-[info] play - Listening for HTTP on /0.0.0.0:9000
+    [info] play - Listening for HTTP on /0.0.0.0:9000
 
-(Server started, use Ctrl+D to stop and go back to the console...)
-```
+    (Server started, use Ctrl+D to stop and go back to the console...)
+    ```
 
-3. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
+4. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
 
 ### Additional Tools
 1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, get the dump as per [instructions](https://github.com/ProjectSidewalk/Instructions), rename the file `[database]-dump`, place it in the `db` folder, and run `make import-dump db=[database]` from the base folder. Note: Restart the server once the dump is complete.
