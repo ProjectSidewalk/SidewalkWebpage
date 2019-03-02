@@ -362,8 +362,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /** Returns all records in the webpage_interactions table as a JSON array. */
   def getAllWebpageActivities = UserAwareAction.async{implicit request =>
     if (isAdmin(request.identity)){
-      val x = WebpageActivityTable.getAllActivities
-      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(x))))
+      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
     }else{
       Future.successful(Redirect("/"))
     }

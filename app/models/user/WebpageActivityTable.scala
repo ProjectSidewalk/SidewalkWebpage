@@ -83,7 +83,6 @@ object WebpageActivityTable {
     for(keyVal <- keyVals) yield {
       filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_"++keyVal++"_") >= 0) || x.activity.endsWith("_"+keyVal))
     }
-
     filteredActivities.list
   }
 
