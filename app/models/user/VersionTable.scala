@@ -6,6 +6,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.text.SimpleDateFormat
 
+import scala.io.Source
+
 case class Version(versionId: String, versionStartTime: Timestamp, description: Option[String])
 
 class VersionTable(tag: Tag) extends Table[Version](tag, Some("sidewalk"), "version") {
@@ -40,6 +42,19 @@ object VersionTable {
     val currentVersion = versions.sortBy(_.versionStartTime.desc).list.head
     val timestampAsDate: String = new SimpleDateFormat("yyyy-MM-dd").format(currentVersion.versionStartTime)
     s"Version ${currentVersion.versionId} | Last Updated: $timestampAsDate"
+  }
+
+  /**
+    * Reads in Google Maps API key from google_maps_api_key.txt (ask Mikey Saugstad for the file if you don't have it)
+    *
+    * @return
+    */
+  def getGoogleMapsAPIKey(): String = {
+    val bufferedSource = Source.fromFile("google_maps_api_key.txt")
+    val lines = bufferedSource.getLines()
+    val key: String = lines.next()
+    bufferedSource.close
+    key
   }
 }
 
