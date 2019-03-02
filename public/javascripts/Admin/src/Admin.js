@@ -1077,7 +1077,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Index", function(clickStartExploringMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartExploringNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 // TODO switch this to make use of versioning on the backend once it is implemented...
                 // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
@@ -1090,7 +1091,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var numChoroplethClicks = choroplethClickEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
-                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].filter(function(event){
+                console.log("its this", clickStartMappingNavIndexEvents);
+                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].concat(clickStartExploringNavIndexEvents[0]).filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
 
@@ -1127,6 +1129,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         '100.0%'+
                     '</td>'
                 );
+            });
             });
             });
             });

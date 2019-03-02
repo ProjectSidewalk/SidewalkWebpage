@@ -79,11 +79,15 @@ object WebpageActivityTable {
     * @return
     */
   def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = db.withSession { implicit session =>
+    println("findKeyVals, activity = " + activity + ", keyVals = " + keyVals.mkString(","))
     var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
     for(keyVal <- keyVals) yield {
       filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_"++keyVal++"_") >= 0) || x.activity.endsWith("_"+keyVal))
     }
-    filteredActivities.list
+
+    val x = filteredActivities.list
+    println("list: " + x.take(10).mkString(","))
+    x
   }
 
   // Returns all webpage activities
