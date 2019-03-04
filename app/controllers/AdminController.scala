@@ -346,24 +346,20 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     *
     * @param activity
     */
-  def getWebpageActivities(activity: String) = UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getWebpageActivities(activity: String) = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)) {
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
-      if(activities.length == 0){
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name")))
-      } else {
-        Future.successful(Ok(Json.arr(activities)))
-      }
-    }else{
+      Future.successful(Ok(Json.arr(activities)))
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns all records in the webpage_interactions table as a JSON array. */
-  def getAllWebpageActivities = UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getAllWebpageActivities = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)) {
       Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
@@ -375,38 +371,38 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @param keyValPairs
     * @return
     */
-  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)){
+  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(Json.arr(activities)))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns number of records in webpage_activity table containing the specified activity. */
-  def getNumWebpageActivities(activity: String) =   UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getNumWebpageActivities(activity: String) =   UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
       Future.successful(Ok(activities.length + ""))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
-  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)){
+  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(activities.length + ""))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
-  def setUserRole = UserAwareAction.async(BodyParsers.parse.json){ implicit request =>
+  def setUserRole = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
 
     submission.fold(
@@ -417,7 +413,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId = UUID.fromString(submission.userId)
         val newRole = submission.roleId
 
-        if(isAdmin(request.identity)){
+        if(isAdmin(request.identity)) {
           UserTable.findById(userId) match {
             case Some(user) =>
               if(UserRoleTable.getRole(userId) == "Owner") {
