@@ -37,6 +37,7 @@
             <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
             <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
             <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
+            <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
         </ul>
         </div>
         <div class="col-lg-10">
@@ -453,6 +454,9 @@
                                 <tr id="audit-access-table-choro">
                                     <td style="text-align: right;">Click Via Choropleth</td>
                                 </tr>
+                                <tr id="audit-access-table-turker">
+                                    <td style="text-align: right;">Turker Redirect</td>
+                                </tr>
                                 <tr id="audit-access-table-total">
                                     <td style="text-align: right;">Total <i>(Visit Audit)</i></td>
                                 </tr>
@@ -557,6 +561,16 @@
                         </table>
                     </div>
                 </div>
+            </div>
+            <div id="tabs-6" class="tab-pane">
+                <h1>Label Search</h1>
+                <form onSubmit="return false;">
+                    <div class="form-group">
+                        <label for="form-control-input">Label ID</label>
+                        <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
+                    </div>
+                </form>
+                <button type="submit" id="submit" class="btn btn-primary">Submit</button>
             </div>
             </div>
         </div>

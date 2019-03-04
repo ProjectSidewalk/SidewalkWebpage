@@ -111,7 +111,7 @@ function Mission(parameters) {
             if (isComplete()) {
                 currentMissionCompletedDistance = getDistance("meters");
             } else {
-                var taskDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance("kilometers"));
+                var taskDistance = util.math.kilometersToMeters(svl.taskContainer.getCompletedTaskDistance({units: 'kilometers'}));
                 var offset = svl.missionContainer.getTasksMissionsOffset();
                 offset = offset ? offset : 0;
 

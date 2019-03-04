@@ -12,7 +12,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 
 case class ValidationTaskInteraction(validationTaskInteractionId: Int,
-                                     missionId: Int,
+                                     missionId: Option[Int],
                                      action: String,
                                      gsvPanoramaId: Option[String],
                                      lat: Option[Float],
@@ -25,7 +25,7 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
 
 class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, Some("sidewalk"), "validation_task_interaction") {
   def validationTaskInteractionId = column[Int]("validation_task_interaction_id", O.PrimaryKey, O.AutoInc)
-  def missionId = column[Int]("mission_id", O.NotNull)
+  def missionId = column[Option[Int]]("mission_id", O.Nullable)
   def action = column[String]("action", O.NotNull)
   def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.Nullable)
   def lat = column[Option[Float]]("lat", O.Nullable)

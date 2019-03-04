@@ -7,14 +7,15 @@ import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
 object ValidationTaskSubmissionFormats {
-  case class InteractionSubmission(action: String, missionId: Int, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long)
+  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long)
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long)
-  case class ValidationMissionProgress(missionId: Int, labelsProgress: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: ValidationMissionProgress)
+  case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
+  case class ValidationMissionProgress(missionId: Int, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress])
 
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
-      (JsPath \ "mission_id").read[Int] and
+      (JsPath \ "mission_id").readNullable[Int] and
       (JsPath \ "gsv_panorama_id").readNullable[String] and
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float] and
@@ -43,6 +44,7 @@ object ValidationTaskSubmissionFormats {
   implicit val validationMissionReads: Reads[ValidationMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "labels_progress").read[Int] and
+      (JsPath \ "label_type_id").read[Int] and
       (JsPath \ "completed").read[Boolean] and
       (JsPath \ "skipped").read[Boolean]
     )(ValidationMissionProgress.apply _)
@@ -50,6 +52,10 @@ object ValidationTaskSubmissionFormats {
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
     (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
-      (JsPath \ "missionProgress").read[ValidationMissionProgress]
+      (JsPath \ "missionProgress").readNullable[ValidationMissionProgress]
     )(ValidationTaskSubmission.apply _) // .map(ValidationTaskSubmission(_))
+
+  implicit val skipLabelReads: Reads[SkipLabelSubmission] = (
+    (JsPath \ "labels").read[Seq[LabelValidationSubmission]]
+  ).map(SkipLabelSubmission(_))
 }

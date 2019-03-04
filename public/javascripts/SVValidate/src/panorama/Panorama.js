@@ -6,7 +6,6 @@
  */
 function Panorama (label) {
     var currentLabel = label;
-    var init = true;
     var panoCanvas = document.getElementById("svv-panorama");
     var panorama = undefined;
     var properties = {
@@ -30,6 +29,7 @@ function Panorama (label) {
      */
     function _init () {
         _createNewPanorama();
+        _addListeners();
         setLabel(currentLabel);
     }
 
@@ -213,27 +213,16 @@ function Panorama (label) {
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
 
-        if (init) {
+        // Adding in callback function because there are some issues with Google Maps
+        // setPano function. Will start to running an infinite loop if panorama does not
+        // load in time.
+        function changePano() {
             panorama.setPano(panoId);
             panorama.set('pov', {heading: heading, pitch: pitch});
             panorama.set('zoom', zoomLevel[zoom]);
-            _addListeners();
-            init = false;
-        } else {
-
-            // Adding in callback function because there are some issues with Google Maps
-            // setPano function. Will start to running an infinite loop if panorama does not
-            // load in time.
-            function changePano() {
-                _createNewPanorama();
-                _addListeners();
-                panorama.setPano(panoId);
-                panorama.set('pov', {heading: heading, pitch: pitch});
-                panorama.set('zoom', zoomLevel[zoom]);
-                renderLabel();
-            }
-            setTimeout(changePano, 300);
+            renderLabel();
         }
+        setTimeout(changePano, 300);
         return this;
     }
 
@@ -277,6 +266,20 @@ function Panorama (label) {
         svv.panoramaContainer.fetchNewLabel();
     }
 
+    /**
+     * Hides the current label on this panorama.
+     */
+    function hideLabel () {
+        self.labelMarker.setVisible(false);
+    }
+
+    /**
+     * Shows the current label on this panorama.
+     */
+    function showLabel () {
+        self.labelMarker.setVisible(true);
+    }
+
     _init();
 
     self.getCurrentLabel = getCurrentLabel;
@@ -292,6 +295,8 @@ function Panorama (label) {
     self.setProperty = setProperty;
     self.setZoom = setZoom;
     self.skipLabel = skipLabel;
+    self.hideLabel = hideLabel;
+    self.showLabel = showLabel;
 
     return this;
 }

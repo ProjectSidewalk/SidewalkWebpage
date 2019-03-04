@@ -88,6 +88,7 @@ project/.sbtserver.lock
 public/javascripts/SVLabel/build/*
 public/javascripts/Admin/build/*
 public/javascripts/Help/build/*
+public/javascripts/help/build/*
 public/javascripts/Progress/build/*
 public/javascripts/SVValidate/build/*
 download
@@ -95,6 +96,7 @@ download
 # Keys
 rootkey.csv
 special_api_key.txt
+google_maps_api_key.txt
 
 # sidewalk-webpage-binary directory
 sidewalk-webpage/

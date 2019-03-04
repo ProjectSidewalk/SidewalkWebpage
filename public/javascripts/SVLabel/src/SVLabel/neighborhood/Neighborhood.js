@@ -36,7 +36,7 @@ function Neighborhood (parameters) {
     }
     
     function completedLineDistance (unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         if ("taskContainer" in svl && svl.taskContainer) {
             return svl.taskContainer.getCompletedTaskDistance(unit);
         } else {
@@ -57,7 +57,7 @@ function Neighborhood (parameters) {
     }
 
     function totalLineDistanceInNeighborhood (unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         if ("taskContainer" in svl && svl.taskContainer) {
             return svl.taskContainer.totalLineDistanceInNeighborhood(unit);
         } else {
