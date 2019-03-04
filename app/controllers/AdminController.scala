@@ -347,14 +347,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @param activity
     */
   def getWebpageActivities(activity: String) = UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+    if (isAdmin(request.identity)) {
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
-      if(activities.length == 0){
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name")))
-      } else {
-        Future.successful(Ok(Json.arr(activities)))
-      }
-    }else{
+      Future.successful(Ok(Json.arr(activities)))
+    } else {
       Future.successful(Redirect("/"))
     }
   }
