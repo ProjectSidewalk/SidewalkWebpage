@@ -16,8 +16,8 @@ object RegionTypeTable {
   val regionTypes = TableQuery[RegionTypeTable]
 
   /**
-   * Returns a list of all the sidewalk edges
-   * @return A list of SidewalkEdge objects.
+   * Returns a list of all the region types
+   * @return A list of regionType objects.
    */
   def all: List[RegionType] = db.withSession { implicit session =>
     regionTypes.list

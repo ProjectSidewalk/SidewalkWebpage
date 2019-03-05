@@ -1,4 +1,5 @@
 @import models.user.User
+@import models.user.VersionTable
 @(title: String, url: Option[String] = Some("/"))(content: Html)
 
 
@@ -32,7 +33,7 @@
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=3.31&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@VersionTable.getGoogleMapsAPIKey()&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
@@ -75,10 +76,10 @@
 
         <div id="mini-footer-audit">
           Project Sidewalk is designed and operated by the
-          <a href="https://makeabilitylab.umiacs.umd.edu/">Makeability Lab</a> at the
+          <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
           <a href="http://www.umd.edu/">University of Maryland</a> and
               <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-          <span id="application-version"></span>
+          <span id="application-version">@VersionTable.currentVersionStr()</span>
         </div>
 
     } else{
@@ -92,7 +93,7 @@
                 <!-- Back to top<br>-->
                 <a href='@routes.ApplicationController.about' id="sidewalk-about-link">About Us</a> <br/>
                 <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
-                <a href='@routes.ApplicationController.faq' id="sidewalk-faq-link">FAQ</a> <br/>
+                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
                 <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
             </div>
             <div class="col-sm-4 footerlink">
@@ -140,10 +141,10 @@
         </div>
 
         Project Sidewalk is designed and operated by the
-        <a href="https://makeabilitylab.umiacs.umd.edu/" id="makeability-link">Makeability Lab</a> at the
+        <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
         <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
         <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-        <span id="application-version"></span>
+        <span id="application-version">@VersionTable.currentVersionStr()</span>
     </div>
 
   }
@@ -196,7 +197,7 @@
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
-            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/faq|...>"
+            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/audit|/help|...>"
             $('#info-footer').on('click','a', function(e){
                 var currentRoute = window.location.pathname;
                 var link = e.currentTarget.id.split("-")[0];

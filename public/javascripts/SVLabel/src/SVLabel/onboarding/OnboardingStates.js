@@ -1,5 +1,5 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
-    var numStates = 37;
+    var numStates = 41;
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
     var afterWalkPanoId = "PTHUzZqpLdS1nTixJMoDSw";
     var headingRanges = {
@@ -101,7 +101,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 0
             }],
             "message": {
-                "message": 'Good! Now, <span class="bold">click the curb ramp</span> ' +
+                "message": 'Good! Now <span class="bold">click the curb ramp</span> ' +
                 'beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
@@ -138,10 +138,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Now, you can rate the quality of the curb ramp where 1 is passable and 5 is not ' +
-                'passable for a wheelchair user. ' +
-                '<span class="bold">Let’s rate it as 2, somewhat passable.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                "message": 'Now you can rate the quality of the curb ramp where 1 is passable and 5 is not passable ' +
+                    'for a wheelchair user. Because it points into traffic a bit ' +
+                '<span class="bold">let’s rate it as 2, somewhat passable.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -154,7 +154,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 2 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                return severity == 2 ? "tag-attribute-1" : "redo-rate-attribute-1"
             }
         },
         "redo-rate-attribute-1": {
@@ -167,9 +167,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. ' +
-                '<span class="bold">Let\s click "2" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. It is a high quality curb ' +
+                    'ramp but points into traffic a bit. ' +
+                '<span class="bold">Let’s click "2" to set its quality.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
@@ -180,7 +181,58 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-1"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity === 2 ? "adjust-heading-angle-1" : "redo-rate-attribute-1"
+                return severity === 2 ? "tag-attribute-1" : "redo-rate-attribute-1"
+            }
+        },
+        "tag-attribute-1": {
+            "properties": {
+                "action": "AddTag",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1],
+                "maxLabelCount": 1
+            },
+            "message": {
+                "message": 'Every label includes optional tags that add descriptive information. Choose appropriate tags for every label you place! ' +
+                    '<span class="bold">Let\'s add the “points into traffic” tag,</span> since this ramp points into the street.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 5 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-1"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
+            }
+        },
+        "redo-tag-attribute-1": {
+            "properties": {
+                "action": "RedoAddTag",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-1"][0],
+                "maxHeading": headingRanges["stage-1"][1],
+                "maxLabelCount": 1
+            },
+            "message": {
+                "message": 'The "points into traffic" tag is the only tag that applies here, since the curb ramp has a ' +
+                    'friction strip, is not too narrow, and is not too steep. So add <span class="bold">only the "points into traffic" tag.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-1"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(2) && tags.length === 1 ? "adjust-heading-angle-1" : "redo-tag-attribute-1" // Where 2 is the tag_id of the "points into traffic" tag
             }
         },
         "adjust-heading-angle-1": {
@@ -201,7 +253,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 5 / numStates;
+                var completedRate = 6 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-1"});
@@ -228,7 +280,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 6 / numStates;
+                var completedRate = 7 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-in"});
@@ -263,7 +315,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 7 / numStates;
+                var completedRate = 8 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-2"});
@@ -282,7 +334,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             }],
             "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -300,7 +352,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 8 / numStates;
+                var completedRate = 9 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-2"});
@@ -318,7 +370,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Good, now <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" + '" ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2.gif" + '" ' +
                 'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
                 "parameters": null
@@ -326,7 +378,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 9 / numStates;
+                var completedRate = 10 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
@@ -344,9 +396,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 2
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. ' +
-                '<span class="bold">Let\s click "2" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. It is a high quality curb ' +
+                    'ramp but it has no landing space at the top of the ramp for making turns. ' +
+                '<span class="bold">Let’s click "2" to set its quality.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
                 'somewhat passable">',
                 "position": "top-right",
@@ -388,7 +441,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 10 / numStates;
+                var completedRate = 11 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
@@ -426,7 +479,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 11 / numStates;
+                var completedRate = 12 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
@@ -443,24 +496,24 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem ' +
-                'is less severe. So, let’s <span class="bold">rate it as a 3.</span> ' +
-                'When you rate accessibility, we just ask that you use <span class="bold">your best judgment!</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
-                'a slightly severe problem">',
+                "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem' +
+                    ' is less severe. So <span class="bold">let’s rate it as a 3.</span> When you rate accessibility,' +
+                    ' we just ask that you <span class="bold">use your best judgment!</span><br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
+                    '3, a slightly severe problem">',
                 "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 12 / numStates;
+                var completedRate = 13 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "zoom-out" : "redo-rate-attribute-3"
+                return severity == 3 ? "tag-attribute-2" : "redo-rate-attribute-3"
             }
         },
         "redo-rate-attribute-3": {
@@ -473,9 +526,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Hmm, this is a slightly severe problem. ' +
-                '<span class="bold">Let\s click "3" to change the severity of the missing curb ramp.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity.gif" +
+                "message": 'Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility ' +
+                    'problem is less severe. ' +
+                '<span class="bold">Let’s click "3" to change the severity of the missing curb ramp.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
                 'a slightly severe problem">',
                 "position": "top-right",
@@ -486,7 +540,57 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "zoom-out" : "redo-rate-attribute-3"
+                return severity == 3 ? "tag-attribute-2" : "redo-rate-attribute-3"
+            }
+        },
+        "tag-attribute-2": {
+            "properties": {
+                "action": "AddTag",
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 3
+            },
+            "message": {
+                "message": '<span class="bold">Let\'s add the "alternate route present" tag</span> because there is a nearby curb ramp that could be used.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 14 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
+            }
+        },
+        "redo-tag-attribute-2": {
+            "properties": {
+                "action": "RedoAddTag",
+                "labelType": "NoCurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 3
+            },
+            "message": {
+                "message": 'The "alternate route present" tag is the only tag that applies here because there is a nearby curb ramp that could be used.' +
+                    ' So add <span class="bold">only the "alternate route present" tag.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
             }
         },
         "zoom-out": {
@@ -498,7 +602,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Now, let’s zoom out and look at the next intersection corner. ' +
+                "message": 'Now let’s zoom out and look at the next intersection corner. ' +
                 '<span class="bold">Click the “Zoom Out” button</span>.',
                 "position": "top-right",
                 "fade-direction": "fadeInUp",
@@ -509,7 +613,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 13 / numStates;
+                var completedRate = 15 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out"});
@@ -533,7 +637,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 14 / numStates;
+                var completedRate = 16 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
@@ -557,7 +661,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 15 / numStates;
+                var completedRate = 17 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
@@ -603,7 +707,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 16 / numStates;
+                var completedRate = 18 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
@@ -628,7 +732,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 300
             }],
             "message": {
-                "message": 'Now, <span class="bold">click on one of the curb ramps</span> to label it.',
+                "message": 'Now <span class="bold">click on one of the curb ramps</span> to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -656,13 +760,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 17 / numStates;
+                var completedRate = 19 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs"});
                 return "rate-severity-4";
             }, function () {
-                var completedRate = 17 / numStates;
+                var completedRate = 19 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs"});
@@ -680,8 +784,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
-                'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                'Use your best judgment. You can also write notes in the <span class="bold">Description Box.</span><br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -689,7 +793,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 18 / numStates;
+                var completedRate = 20 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
@@ -707,9 +811,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
+                    'friction strip, and doesn\'t point into traffic. ' +
+                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -749,7 +854,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 19 / numStates;
+                var completedRate = 21 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
@@ -768,7 +873,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             }],
             "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -786,7 +891,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 20 / numStates;
+                var completedRate = 22 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
@@ -803,8 +908,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2.gif" +
+                "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -812,7 +917,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 21 / numStates;
+                var completedRate = 23 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
@@ -830,9 +935,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
+                    'friction strip, and doesn\'t point into traffic. ' +
+                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -873,7 +979,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 19 / numStates;
+                var completedRate = 21 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5"});
@@ -892,7 +998,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             }],
             "message": {
-                "message": 'Now, <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
                 "position": "top-right",
                 "parameters": null
             },
@@ -910,7 +1016,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 20 / numStates;
+                var completedRate = 22 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
@@ -928,15 +1034,15 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "message": {
                 "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
-                'Use your best judgment. You can also write in notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                'Use your best judgment. You can also write notes in the <span class="bold">Description Box.</span><br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
             },
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 21 / numStates;
+                var completedRate = 23 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4-after-5"});
@@ -946,7 +1052,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-4-after-5": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
@@ -954,9 +1060,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
+                    'friction strip, and doesn\'t point into traffic. ' +
+                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -979,8 +1086,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -988,7 +1095,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 18 / numStates;
+                var completedRate = 20 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5-goto-4"});
@@ -998,7 +1105,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         },
         "redo-rate-attribute-5-goto-4": {
             "properties": {
-                "action": "RateSeverity",
+                "action": "RedoRateSeverity",
                 "labelType": "CurbRamp",
                 "severity": 1,
                 "minHeading": headingRanges["stage-3"][0],
@@ -1006,9 +1113,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
+                    'friction strip, and doesn\'t point into traffic. ' +
+                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1049,7 +1157,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 22 / numStates;
+                var completedRate = 24 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
@@ -1085,12 +1193,153 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 23 / numStates;
+                var completedRate = 25 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
-                return "adjust-heading-angle-4";
+                return "rate-severity-6";
             }]
+        },
+        "rate-severity-6": {
+            "properties": {
+                "action": "RateSeverity",
+                "labelType": "NoSidewalk",
+                "severity": 3,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": 'Since there is a sidewalk on the other side of the street, this accessibility problem is ' +
+                    'less severe. So <span class="bold">let’s rate it as a 3.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
+                    'as 3, a slightly severe problem">',
+                "position": "top-right",
+                "parameters": null,
+                "left": 410
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 26 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6"});
+                var severity = parseInt(this.getAttribute("value"), 10);
+                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-6"
+            }
+        },
+        "redo-rate-attribute-6": {
+            "properties": {
+                "action": "RedoRateSeverity",
+                "labelType": "NoSidewalk",
+                "severity": 3,
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": 'Hmm, since there is a sidewalk on the other side of the street, this accessibility ' +
+                    'problem is less severe. <span class="bold">Let’s click "3" to change the severity of the no ' +
+                    'sidewalk label.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
+                    'as 3, a slightly severe problem">',
+                "position": "top-right",
+                "parameters": null,
+                "left": 410
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
+                var severity = parseInt(this.getAttribute("value"), 10);
+                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-6"
+            }
+        },
+        "tag-attribute-3": {
+            "properties": {
+                "action": "AddTag",
+                "labelType": "NoSidewalk",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": '<span class="bold">Let\'s add the "ends abruptly" and "street has a sidewalk" tags</span> because there is a sidewalk on the other side of the street.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
+                "position": "top-right",
+                "parameters": null,
+                "left": 410
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+
+                var tags = this.getProperty('tagIds');
+                var completedRate;
+                var nextState;
+
+                if (tags.includes(22)) { // Where 22 is the tag_id of the "street has no sidewalks" tag
+                    completedRate = 26 / numStates;
+                    nextState = "redo-tag-attribute-3"; // We have selected the wrong tag here, so we move to the redo state
+                } else if (tags.length < 2) {
+                    completedRate = 27 / numStates;
+                    nextState = "tag-attribute-3"; // Keep this state, since we have one right tag, but not both
+                } else {
+                    completedRate = 28 / numStates;
+                    nextState = "adjust-heading-angle-4"; // We have both right tags, so lets continue
+                }
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                return nextState;
+            }
+        },
+        "redo-tag-attribute-3": {
+            "properties": {
+                "action": "RedoAddTag",
+                "labelType": "NoSidewalk",
+                "minHeading": headingRanges["stage-3"][0],
+                "maxHeading": headingRanges["stage-3"][1],
+                "maxLabelCount": 6
+            },
+            "message": {
+                "message": 'The "ends abruptly" and "street has a sidewalk" tags are the only tags that apply here.' +
+                    ' So <span class="bold">make sure to add only those two tags.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
+                "position": "top-right",
+                "parameters": null,
+                "left": 410
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
+                var tags = this.getProperty('tagIds');
+
+                var completedRate;
+                var nextState;
+                // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
+                if (tags.includes(20) && tags.includes(21) && tags.length === 2) { // We are done
+                    completedRate = 28 / numStates;
+                    nextState = "adjust-heading-angle-4";
+                } else if (tags.includes(20) && !tags.includes(21) || !tags.includes(20) && tags.includes(21)) { // We have at least one correct tag
+                    completedRate = 27 / numStates;
+                    nextState = "redo-tag-attribute-3";
+                } else { // We don't have any correct tags
+                    completedRate = 26 / numStates;
+                    nextState = "redo-tag-attribute-3";
+                }
+
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+
+                return nextState;
+            }
         },
         "adjust-heading-angle-4": {
             "properties": {
@@ -1110,7 +1359,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 24 / numStates;
+                var completedRate = 29 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-4" });
@@ -1144,7 +1393,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 25 / numStates;
+                var completedRate = 29 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
@@ -1181,7 +1430,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 26 / numStates;
+                var completedRate = 30 / numStates;
 
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
@@ -1199,8 +1448,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Let’s <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
@@ -1209,7 +1458,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 27 / numStates;
+                var completedRate = 31 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
@@ -1227,9 +1476,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. ' +
-                '<span class="bold">Let\s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality.gif" +
+                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
+                    'friction strip, and doesn\'t point into traffic. ' +
+                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
+                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
@@ -1253,7 +1503,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Great Job! We are almost done. Now, let\'s learn how to walk. ' +
+                "message": 'Great Job! We are almost done. Now let’s learn how to walk. ' +
                 '<span class="bold">Grab and drag the Street View image</span>.',
                 "position": "top-right",
                 "parameters": null
@@ -1261,7 +1511,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 28 / numStates;
+                var completedRate = 32 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5"});
@@ -1277,7 +1527,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Good! Now, to figure out where to walk, you will follow the ' +
+                "message": 'Good! Now to figure out where to walk, you will follow the ' +
                 '<span class="bold" style="color: #ff0000;">red</span> line on this mini map.',
                 "position": "top-right",
                 "fade-direction": "fadeInLeft",
@@ -1287,7 +1537,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "panoId": panoId,
             "transition": function () {
-                var completedRate = 29 / numStates;
+                var completedRate = 33 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
@@ -1322,7 +1572,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 30 / numStates;
+                var completedRate = 34 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
@@ -1339,7 +1589,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Now, let\'s actually take a step! <span class="bold">' +
+                "message": 'Now let’s actually take a step! <span class="bold">' +
                 'Double click on the street</span> in the direction you want to move. ' +
                 'In this case, double click in the circle below.',
                 "position": "top-right",
@@ -1356,7 +1606,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 31 / numStates;
+                var completedRate = 35 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-3"});
@@ -1387,7 +1637,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": null,
             // okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
-                var completedRate = 32 / numStates;
+                var completedRate = 36 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-4"});
@@ -1402,7 +1652,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Now, you can look for more issues at this ' +
+                "message": 'Now you can look for more issues at this ' +
                 'location. In this case, notice how there is a crosswalk with <span class="bold">no curb ramps</span>.',
                 "position": "top-right",
                 "width": 400,
@@ -1434,7 +1684,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             ],
             okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
-                var completedRate = 33 / numStates;
+                var completedRate = 37 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-5"});
@@ -1452,7 +1702,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "message": 'Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ' +
                 '<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
                 '" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
-                'However, we want to get you started on actual missions, so let\'s <span class="bold">finish this ' +
+                'However, we want to get you started on actual missions, so let’s <span class="bold">finish this ' +
                 'tutorial!</span>',
                 "position": "top-right",
                 "width": 400,
@@ -1483,7 +1733,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 34 / numStates;
+                var completedRate = 38 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-6"});
@@ -1509,7 +1759,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 35 / numStates;
+                var completedRate = 39 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
@@ -1562,7 +1812,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 36 / numStates;
+                var completedRate = 40 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
@@ -1595,7 +1845,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 37 / numStates;
+                var completedRate = 41 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
@@ -1611,3 +1861,4 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
     this.get = function () { return this.states; };
 }
+

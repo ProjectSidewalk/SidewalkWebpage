@@ -32,7 +32,9 @@ object LabelFormats {
       (__ \ "panorama_lng").write[Float] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").writeNullable[Int] and
-      (__ \ "time_created").writeNullable[Timestamp]
+      (__ \ "time_created").writeNullable[Timestamp] and
+      (__ \ "tutorial").write[Boolean] and
+      (__ \ "street_edge_id").write[Int]
     )(unlift(Label.unapply _))
 
 }

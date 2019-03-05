@@ -122,12 +122,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * @private
      */
     this._documentKeyDown = function (e) {
-        // The callback method that is triggered with a keyUp event.
-        //equal button || - button
-        if (e.keyCode == 187 || e.keyCode == 189) {
-            svl.contextMenu.hide();
-            return;
-        } else if (!status.focusOnTextField && !status.disableKeyboard) {
+        if (!status.focusOnTextField && !status.disableKeyboard) {
             //only set shift if the event was made after the keyup.
             if (e.timeStamp > lastShiftKeyUpTimestamp) {
                 status.shiftDown = e.shiftKey;
@@ -232,6 +227,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
                 switch (e.keyCode) {
+                    // Label selection hotkeys
                     case util.misc.getLabelDescriptions('Occlusion')['shortcut']['keyNumber']:
                         // "b" for a blocked view.
                         // Context menu may be open for a different label.
@@ -269,6 +265,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                         break;
                     case util.misc.getLabelDescriptions('NoSidewalk')['shortcut']['keyNumber']:
+                        // "n" for NoSidewalk
                         _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch("NoSidewalk");
                         svl.tracker.push("KeyboardShortcut_ModeSwitch_NoSidewalk", {
@@ -286,6 +283,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                         break;
                     case util.misc.getLabelDescriptions('SurfaceProblem')['shortcut']['keyNumber']:
+                        // "s" for surface problem
                         _closeContextMenu(e.keyCode);
                         if (!contextMenu.isOpen()) {
                             ribbon.modeSwitch("SurfaceProblem");
@@ -294,14 +292,16 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             });
                         }
                         break;
+                        
+                    // Zoom Hotkeys
                     case 16: //shift
                         // store the timestamp here so that we can check if the z-up event is in the buffer range
                         lastShiftKeyUpTimestamp = e.timeStamp;
                         break;
                     case 90:
                         if (contextMenu.isOpen()) {
-                            contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                            contextMenu.hide();
                         }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
                         // if shift was down w/in 100 ms of the z up, then it will also zoom out. 
@@ -320,6 +320,96 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             });
                         }
                 }
+
+                // Hotkeys for tag selection
+                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen()) {
+                    var labelType = contextMenu.getTargetLabel().getProperty('labelType');
+                    if (labelType === 'CurbRamp') { // Curb Ramp
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['narrow']['keyNumber']: // 'a' for 'narrow'
+                                $('.narrow-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['points into traffic']['keyNumber']: // 'p' for 'points into traffic'
+                                $('.pointIntoTraffic-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['missing friction strip']['keyNumber']: // 'f' for 'missing friction strip'
+                                $('.missingFrictionStrip-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['steep']['keyNumber']: // 't' for 'steep'
+                                $('.steep-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    } else if (labelType === 'NoCurbRamp') { // Missing Curb Ramp
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['alternate route present']['keyNumber']: // 'a' for 'alternate route present'
+                                $('.alternateRoutePresent-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['no alternate route']['keyNumber']: // 'l' for 'no alternate route'
+                                $('.noAlternateRoute-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['unclear if needed']['keyNumber']: // 'u' for 'unclear if needed'
+                                $('.unclearIfNeeded-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    } else if (labelType === 'Obstacle') { // Obstacle in Path
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash can']['keyNumber']: // 'r' for 'trash can'
+                                $('.trashCan-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['fire hydrant']['keyNumber']: // 'f' for 'fire hydrant'
+                                $('.fireHydrant-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['pole']['keyNumber']: // 'p' for 'pole'
+                                $('.pole-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['tree']['keyNumber']: // 't' for 'tree'
+                                $('.tree-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['vegetation']['keyNumber']: // 'v' for 'vegetation'
+                                $('.vegetation-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    } else if (labelType === 'SurfaceProblem') { // Surface Problem
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['bumpy']['keyNumber']: // 'p' for 'bumpy'
+                                $('.bumpy-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['uneven']['keyNumber']: // 'u' for 'uneven'
+                                $('.uneven-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['cracks']['keyNumber']: // 'r' for 'cracks'
+                                $('.cracks-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber']: // 'g' for 'grass'
+                                $('.grass-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['narrow sidewalk']['keyNumber']  : // 'a' for 'narrow sidewalk'
+                                $('.narrowSidewalk-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    } else if (labelType === 'Other') { // Other
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('Other')['tagInfo']['missing crosswalk']['keyNumber']: // 'i' for 'missing crosswalk'
+                                $('.missingCrosswalk-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Other')['tagInfo']['no bus stop access']['keyNumber']: // 'a' for 'no bus stop access'
+                                $('.noBusStopAccess-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    } else if (labelType === 'NoSidewalk') { // No Sidewalk
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['ends abruptly']['keyNumber']: // 'a' for 'ends abruptly'
+                                $('.endsAbruptly-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has a sidewalk']['keyNumber']: // 't' for 'street has a sidewalk'
+                                $('.streetHasASidewalk-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has no sidewalks']['keyNumber']: // 'r' for 'street has no sidewalks'
+                                $('.streetHasNoSidewalks-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    }
+                }
             }
 
             /*
@@ -329,18 +419,19 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             switch (e.keyCode) {
                 case 13:
                     // "Enter"
-                    if (contextMenu.isOpen()) {
-                        contextMenu.hide();
-                        contextMenu.handleSeverityPopup();
-                        svl.tracker.push('ContextMenu_ClosePressEnter');
+                    if(contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        contextMenu.handleSeverityPopup();
+                        svl.tracker.push("ContextMenu_ClosePressEnter");
+                        contextMenu.hide();
                     }
                     break;
                 case 27:
                     // "Escape"
-                    if (contextMenu.isOpen()) {
-                        contextMenu.hide();
+                    if(contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                        svl.tracker.push("ContextMenu_CloseKeyboardShortcut");
+                        contextMenu.hide();
                     }
 
                     if (canvas.getStatus('drawing')) {
@@ -359,11 +450,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
 
     function _closeContextMenu(key) {
         if (contextMenu.isOpen()) {
-            contextMenu.hide();
+            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                 keyCode: key
             });
-            svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+            contextMenu.hide();
         }
     }
 

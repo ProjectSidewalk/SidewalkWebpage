@@ -209,11 +209,11 @@ function UtilitiesMisc (JSON) {
         }
     }
 
-    function getLabelDescriptions (category) {
+    function getLabelDescriptions(category) {
         var descriptions = {
-            'Walk' : {
-                'id' : 'Walk',
-                'text' : 'Walk',
+            'Walk': {
+                'id': 'Walk',
+                'text': 'Walk',
                 shortcut: {
                     keyNumber: 69,
                     keyChar: 'E'
@@ -225,6 +225,32 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 67,
                     keyChar: 'C'
+                },
+                tagInfo: {
+                    'narrow': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'n<tag-underline>a</tag-underline>rrow',
+                        id: 'narrow'
+                    },
+                    'points into traffic': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: '<tag-underline>p</tag-underline>oints into traffic',
+                        id: 'pointIntoTraffic'
+                    },
+                    'missing friction strip': {
+                        keyNumber: 70,
+                        keyChar: 'F',
+                        text: 'missing <tag-underline>f</tag-underline>riction strip',
+                        id: 'missingFrictionStrip'
+                    },
+                    'steep': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>eep',
+                        id: 'steep'
+                    }
                 }
             },
             NoCurbRamp: {
@@ -233,6 +259,26 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 77,
                     keyChar: 'M'
+                },
+                tagInfo: {
+                    'alternate route present': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: '<tag-underline>a</tag-underline>lternate route present',
+                        id: 'alternateRoutePresent'
+                    },
+                    'no alternate route': {
+                        keyNumber: 76,
+                        keyChar: 'L',
+                        text: 'no a<tag-underline>l</tag-underline>ternate route',
+                        id: 'noAlternateRoute'
+                    },
+                    'unclear if needed': {
+                        keyNumber: 85,
+                        keyChar: 'U',
+                        text: '<tag-underline>u</tag-underline>nclear if needed',
+                        id: 'unclearIfNeeded'
+                    }
                 }
             },
             Obstacle: {
@@ -241,11 +287,57 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 79,
                     keyChar: 'O'
+                },
+                tagInfo: {
+                    'trash can': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 't<tag-underline>r</tag-underline>ash can',
+                        id: 'trashCan'
+                    },
+                    'fire hydrant': {
+                        keyNumber: 70,
+                        keyChar: 'F',
+                        text: '<tag-underline>f</tag-underline>ire hydrant',
+                        id: 'fireHydrant'
+                    },
+                    'pole': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: '<tag-underline>p</tag-underline>ole',
+                        id: 'pole'
+                    },
+                    'tree': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: '<tag-underline>t</tag-underline>ree',
+                        id: 'tree'
+                    },
+                    'vegetation': {
+                        keyNumber: 86,
+                        keyChar: 'V',
+                        text: '<tag-underline>v</tag-underline>egetation',
+                        id: 'vegetation'
+                    }
                 }
             },
             Other: {
                 id: 'Other',
-                text: 'Other'
+                text: 'Other',
+                tagInfo: {
+                    'missing crosswalk': {
+                        keyNumber: 73,
+                        keyChar: 'I',
+                        text: 'm<tag-underline>i</tag-underline>ssing crosswalk',
+                        id: 'missingCrosswalk'
+                    },
+                    'no bus stop access': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'no bus stop <tag-underline>a</tag-underline>ccess',
+                        id: 'noBusStopAccess'
+                    }
+                }
             },
             Occlusion: {
                 id: 'Occlusion',
@@ -261,6 +353,26 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 78,
                     keyChar: 'N'
+                },
+                tagInfo: {
+                    'ends abruptly': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'ends <tag-underline>a</tag-underline>bruptly',
+                        id: 'endsAbruptly'
+                    },
+                    'street has a sidewalk': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>reet has a sidewalk',
+                        id: 'streetHasASidewalk'
+                    },
+                    'street has no sidewalks': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'st<tag-underline>r</tag-underline>eet has no sidewalks',
+                        id: 'streetHasNoSidewalks'
+                    }
                 }
             },
             SurfaceProblem: {
@@ -269,6 +381,38 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 83,
                     keyChar: 'S'
+                },
+                tagInfo: {
+                    'bumpy': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: 'bum<tag-underline>p</tag-underline>y',
+                        id: 'bumpy'
+                    },
+                    'uneven': {
+                        keyNumber: 85,
+                        keyChar: 'U',
+                        text: '<tag-underline>u</tag-underline>neven',
+                        id: 'uneven'
+                    },
+                    'cracks': {
+                        keyNumber: 75,
+                        keyChar: 'K',
+                        text: 'crac<tag-underline>k</tag-underline>s',
+                        id: 'cracks'
+                    },
+                    'grass': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'g<tag-underline>r</tag-underline>ass',
+                        id: 'grass'
+                    },
+                    'narrow sidewalk': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'n<tag-underline>a</tag-underline>rrow sidewalk',
+                        id: 'narrowSidewalk'
+                    }
                 }
             },
             Void: {

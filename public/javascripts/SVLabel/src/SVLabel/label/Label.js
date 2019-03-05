@@ -40,6 +40,7 @@ function Label (svl, pathIn, params) {
         tagX: -1,
         tagY: -1,
         severity: null,
+        tutorial: null,
         temporary_label_id: null,
         temporaryLabel: null,
         description: null
@@ -474,7 +475,7 @@ function Label (svl, pathIn, params) {
                 path.render2(ctx, pov);
 
                 // Only render severity label if there's a severity option.
-                if (properties.labelType !== 'NoSidewalk' && properties.labelType !== 'Occlusion') {
+                if (properties.labelType !== 'Occlusion') {
                     if (properties.severity == undefined) {
                         showSeverityAlert(ctx);
                     }
@@ -544,7 +545,7 @@ function Label (svl, pathIn, params) {
         // labelCoordinate represents the upper left corner of the tag.
         var labelCoordinate = getCoordinate(),
             cornerRadius = 3,
-            hasSeverity = (properties.labelType !== 'NoSidewalk' && properties.labelType !== 'Occlusion'),
+            hasSeverity = (properties.labelType !== 'Occlusion'),
             i, height,
             width = 0,
             labelRows = 1,

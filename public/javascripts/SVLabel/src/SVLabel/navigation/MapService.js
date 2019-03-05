@@ -219,6 +219,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('linksControl', true);
             svl.panorama.set('navigationControl', false);
             svl.panorama.set('panControl', false);
+            svl.panorama.set('scrollwheel', false);
             svl.panorama.set('zoomControl', false);
             svl.panorama.set('keyboardShortcuts', true);
         }
@@ -336,7 +337,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             currentLatLng = getPosition(),
             newTaskPosition = turf.point([lng, lat]),
             currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
-            distance = turf.distance(newTaskPosition, currentPosition, "kilometers");
+            distance = turf.distance(newTaskPosition, currentPosition, {units: 'kilometers'});
         if (distance > 0.1) {
             self.setPosition(lat, lng, callback);
 
@@ -865,7 +866,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var currentLatLng = getPosition(),
                 currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
                 jumpPosition = turf.point([jumpLocation.lng, jumpLocation.lat]),
-                distance = turf.distance(jumpPosition, currentPosition, "kilometers");
+                distance = turf.distance(jumpPosition, currentPosition, {units: 'kilometers'});
 
             // Jump to the new location if it's really far away from his location.
             if (!status.jumpMsgShown && distance >= 0.01) {
@@ -1220,12 +1221,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.clear();
             _canvas.render2();
         } else if (item && item.className === "Label") {
-            console.log("On a label");
             var selectedLabel = item;
             _canvas.setCurrentLabel(selectedLabel);
             _canvas.showLabelTag(selectedLabel);
         } else if (item && item.className === "Path") {
-            //console.log("On a Path");
             var label = item.belongsTo();
             _canvas.clear();
             _canvas.render2();
@@ -1462,6 +1461,23 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 });
         }
 
+        return this;
+    };
+
+    // For setting the position when the exact panorama is known
+    self.setPositionByIdAndLatLng = function(panoId, lat, lng) {
+        // Only set the location if walking is enabled
+        if (!status.disableWalking) {
+            var gLatLng = new google.maps.LatLng(lat, lng);
+
+            self.enableWalking();
+
+            self.setPano(panoId);
+            map.setCenter(gLatLng);
+
+            self.disableWalking();
+            window.setTimeout(function() { self.enableWalking(); }, 1000);
+        }
         return this;
     };
 

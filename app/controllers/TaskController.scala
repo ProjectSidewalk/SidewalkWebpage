@@ -1,6 +1,7 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 import javax.inject.Inject
@@ -9,7 +10,7 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
+import models.amt.AMTAssignmentTable
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
@@ -18,7 +19,6 @@ import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.StreetEdgePriorityTable
 import models.user.{User, UserCurrentRegionTable}
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -69,14 +69,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     if (auditTask.auditTaskId.isDefined) {
       // Update the existing audit task row
       val id = auditTask.auditTaskId.get
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       AuditTaskTable.updateTaskEnd(id, timestamp)
       id
     } else {
       // Insert audit task
-      val now = new DateTime(DateTimeZone.UTC)
-      val timestamp: Timestamp = new Timestamp(now.getMillis)
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val auditTaskObj = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
           Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false)
@@ -142,24 +140,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
-
     var submission = request.body.validate[Seq[AuditTaskSubmission]]
-
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
         val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-          // Insert assignment (if any)
-          val amtAssignmentId: Option[Int] = data.assignment match {
-            case Some(asg) =>
-              // TODO Used an empty string for volunteer_id and None for confirmationCode. Needs to be changed.
-              val newAsg = AMTAssignment(0, asg.hitId, asg.assignmentId, Timestamp.valueOf(asg.assignmentStart), None, "",None, false)
-              Some(AMTAssignmentTable.save(newAsg))
-            case _ => None
-          }
-
           val user = request.identity
           val streetEdgeId = data.auditTask.streetEdgeId
 
@@ -188,7 +175,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Update the AuditTaskTable and get auditTaskId
           // Set the task to be completed and increment task completion count
-          val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, amtAssignmentId)
+          val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, data.amtAssignmentId)
           updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
           // Update the MissionTable and get missionId
@@ -227,9 +214,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                     Logger.error("No timestamp given for a new label")
                     None
                 }
+
+                var calculatedStreetEdgeId = streetEdgeId;
+                for (point: LabelPointSubmission <- label.points) {
+                  if(!point.lat.isEmpty && !point.lng.isEmpty){
+                    val possibleStreetEdgeId = LabelTable.getStreetEdgeIdClosestToLatLng(point.lat.get, point.lng.get);
+                    if(!possibleStreetEdgeId.isEmpty){
+                      calculatedStreetEdgeId = possibleStreetEdgeId.get
+                    }
+                  }
+                }
+
                 LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
                                       label.photographerHeading, label.photographerPitch, label.panoramaLat,
-                                      label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated))
+                                      label.panoramaLng, label.deleted.value, label.temporaryLabelId, timeCreated,
+                                      label.tutorial, calculatedStreetEdgeId))
             }
 
             // Insert label points
@@ -298,7 +297,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           for (panorama <- data.gsvPanoramas) {
             // Check the presence of the data
             if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
-              val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "")
+              val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+              val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "", false, Some(timestamp))
               GSVDataTable.save(gsvData)
 
               for (link <- panorama.links) {

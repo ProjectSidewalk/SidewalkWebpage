@@ -4,7 +4,7 @@
     .faq ul#questions-list #subtopics li
 }*/
 
-.faq ul#questions-list #subtopics li {
+.help ul#questions-list #subtopics li {
     padding-left: 40px;
 }
 
@@ -44,4 +44,24 @@
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.2s ease-out;
+}
+
+.permalink-icon {
+    height: 18px;
+    opacity: 0;
+    -webkit-transition: opacity 200ms ease-in-out;
+    transition: opacity 200ms ease-in-out;
+}
+
+.help-item {
+    padding-bottom: 25px;
+}
+
+.question {
+    padding-top: 100px;
+    margin-top: -100px;
+}
+
+.question:hover .permalink-icon {
+    opacity: 1;
 }

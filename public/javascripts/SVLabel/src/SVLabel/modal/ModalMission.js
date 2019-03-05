@@ -51,6 +51,12 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
+    var returningToMissionHTML = ' <figure> \
+        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        </figure> \
+        <div class="spacer10"></div>\
+        <p>Continue auditing __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!</p>\
+        <div class="spacer10"></div>';
 
     this._handleBackgroundClick = function () {
         self.hide();
@@ -99,9 +105,30 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             var distanceString;
             templateHTML = distanceMissionHTML;
 
-            if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
+            if (mission.getProperty("distanceProgress") > 0) { // In-progress mission
+                missionTitle = "Return to your mission";
+                templateHTML = returningToMissionHTML;
+
+                // Set returning-to-mission specific css
+                uiModalMission.closeButton.html('Resume Mission!');
+                uiModalMission.instruction.css('text-align', 'center');
+                uiModalMission.closeButton.css('font-size', '24px');
+                uiModalMission.closeButton.css('width', '40%');
+                uiModalMission.closeButton.css('margin-right', '30%');
+                uiModalMission.closeButton.css('margin-left', '30%');
+                uiModalMission.closeButton.css('margin-top', '30px');
+            } else if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) { // First mission
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
+            } else {
+                // We have to reset the css from the resuming screen, otherwise the button will remain as set
+                uiModalMission.closeButton.html('OK');
+                uiModalMission.instruction.css('text-align', 'left');
+                uiModalMission.closeButton.css('font-size', '');
+                uiModalMission.closeButton.css('width', '');
+                uiModalMission.closeButton.css('margin-right', '');
+                uiModalMission.closeButton.css('margin-left', '');
+                uiModalMission.closeButton.css('margin-top', '');
             }
 
             distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
@@ -157,7 +184,8 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             e = e || window.event;
             //enter key
             if (e.keyCode == 13 && self._status.isOpen){
-                $("#modal-mission-close-button").click();
+                svl.tracker.push("KeyboardShortcut_ModalMissionOk");
+                $("#modal-mission-close-button").trigger("click", {lowLevelLogging: false});
             }
         });
     };

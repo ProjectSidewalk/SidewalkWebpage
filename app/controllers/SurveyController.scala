@@ -1,9 +1,9 @@
 package controllers
 
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
@@ -12,7 +12,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.survey._
 import models.user._
 import models.mission.MissionTable
-import org.joda.time.{DateTime, DateTimeZone}
+import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -45,8 +45,12 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
             user.get.userId.toString
         }
 
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.toInstant.getMillis)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
+        //this will log when a user submits a survey response
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "SurveySubmit", timestamp))
+
         val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
 
         val allSurveyQuestions = SurveyQuestionTable.listAll
@@ -101,15 +105,16 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val userRole: String = UserRoleTable.getRole(userId)
 
-        // NOTE the number of missions before survey is actually 3, but this check is done before the next mission is
-        // updated on the back-end.
+        // The survey will show exactly once, in the middle of the 2nd mission.
+
         val numMissionsBeforeSurvey = 1
-        val userRoleForSurvey = "Turker"
+        val surveyShown = WebpageActivityTable.findUserActivity("SurveyShown", userId).length
+        val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey && (surveyShown == 0))
 
-        val displaySurvey = userRole == userRoleForSurvey && MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey
+        //maps displaymodal to true in the future
         Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
+
 
       case None => Future.successful(Redirect(s"/anonSignUp?url=/survey/display"))
     }

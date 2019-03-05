@@ -2,15 +2,20 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     // Map visualization
     L.mapbox.accessToken = 'pk.eyJ1IjoicHJvamVjdHNpZGV3YWxrIiwiYSI6ImNpdmZtODFobjAxcjEydHBkbmg0Y2F0MGgifQ.tDBFPXecLVjgJA0Z1LFhhw';
     var self = this;
-    this._southWest = L.latLng(38.761, -77.262);
-    this._northEast = L.latLng(39.060, -76.830);
-    this._bound = L.latLngBounds(this._southWest, this._northEast);
     this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), "kotarohara.8e0c6890", {
-        maxBounds: this._bound,
         maxZoom: 19,
         minZoom: 10,
         style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj'
-    }).fitBounds(this._bound);
+    });
+
+    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
+    $.getJSON('/cityMapParams', function(data) {
+        self._map.setView([data.city_center.lat, data.city_center.lng]);
+        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
+        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
+        self._map.setMaxBounds(L.latLngBounds(southWest, northEast));
+        self._map.setZoom(data.default_zoom);
+    });
 
     L.tileLayer('https://api.mapbox.com/styles/v1/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoicHJvamVjdHNpZGV3YWxrIiwiYSI6ImNpdmZtODFobjAxcjEydHBkbmg0Y2F0MGgifQ.tDBFPXecLVjgJA0Z1LFhhw', {
         attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
@@ -217,8 +222,8 @@ ModalMissionCompleteMap.prototype.update = function (mission, neighborhood) {
         "features": [{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [
             [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]]}}]};
     // expand the neighborhood border because sometimes streets slightly out of bounds are in the mission
-    var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, "miles");
-    var bufferedCoors = bufferedGeom.features[0].geometry.coordinates[0];
+    var bufferedGeom = turf.buffer(neighborhoodGeom, 0.04, {units: 'miles'});
+    var bufferedCoors = bufferedGeom.geometry.coordinates[0];
     // cut out neighborhood from overlay
     this._overlayPolygon.features[0].geometry.coordinates.push(bufferedCoors);
     this._overlayPolygonLayer = L.geoJson(this._overlayPolygon);

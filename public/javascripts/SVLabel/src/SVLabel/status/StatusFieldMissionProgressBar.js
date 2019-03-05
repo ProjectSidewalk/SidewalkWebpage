@@ -31,7 +31,11 @@ function StatusFieldMissionProgressBar (modalModel, statusModel, uiStatusField) 
 
     this.setCompletionRate = function (completionRate) {
         completionRate *= 100;
+        // if check exists since the user could audit more than the
+        // expected amount for the mission (e.g. the user audits 503 ft
+        // even though the mission is to audit 500 ft)
         if (completionRate > 100) completionRate = 100;
+        else if (completionRate < 100 && completionRate >= 99.5) completionRate = 99;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% complete";
         $completionRate.html(completionRate);

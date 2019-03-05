@@ -2,7 +2,8 @@ package models.audit
 
 import com.vividsolutions.jts.geom.{Coordinate, LineString}
 import java.sql.Timestamp
-import java.util.{Calendar, TimeZone, UUID}
+import java.time.Instant
+import java.util.UUID
 
 import models.street._
 import models.utils.MyPostgresDriver
@@ -410,7 +411,7 @@ object AuditTaskTable {
     * @return
     */
   def selectANewTask(streetEdgeId: Int, user: Option[UUID]): NewTask = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Set completed to true if the user has already audited this street.
     val userCompleted: Boolean = if (user.isDefined) userHasAuditedStreet(streetEdgeId, user.get) else false
@@ -433,7 +434,7 @@ object AuditTaskTable {
    * @return
    */
   def selectANewTaskInARegion(regionId: Int, user: UUID): Option[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     // Get the streets that the user has not already completed.
     val edgesInRegion = streetEdges.filter(_.streetEdgeId inSet streetEdgeIdsNotAuditedByUser(user, regionId))
@@ -456,7 +457,7 @@ object AuditTaskTable {
     * @return
     */
   def selectTasksInARegion(regionId: Int): List[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     val tasks = for {
       ser <- nonDeletedStreetEdgeRegions if ser.regionId === regionId
@@ -476,7 +477,7 @@ object AuditTaskTable {
     * @return
     */
   def selectTasksInARegion(regionId: Int, user: UUID): List[NewTask] = db.withSession { implicit session =>
-    val timestamp: Timestamp = new Timestamp(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime.getTime)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 

@@ -27,28 +27,24 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
-    // Construct a bounding box for this map that the user cannot move out of
-    // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-    var southWest = L.latLng(38.761, -77.262),
-        northEast = L.latLng(39.060, -76.830),
-        bounds = L.latLngBounds(southWest, northEast),
-
     // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-        tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA",
-        mapboxTiles = L.tileLayer(tileUrl, {
-            attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-        }),
-        map = L.mapbox.map('map', "kotarohara.8e0c6890", {
-            // set that bounding box as maxBounds to restrict moving the map
-            // see full maxBounds documentation:
-            // http://leafletjs.com/reference.html#map-maxbounds
-            maxBounds: bounds,
-            maxZoom: 19,
-            minZoom: 9
-        })
-        // .addLayer(mapboxTiles)
-            .fitBounds(bounds)
-            .setView([38.892, -77.038], 12);
+    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
+    var mapboxTiles = L.tileLayer(tileUrl, {
+        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    });
+    var map = L.mapbox.map('map', "kotarohara.8e0c6890", {
+        maxZoom: 19,
+        minZoom: 9
+    });
+
+    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
+    $.getJSON('/cityMapParams', function(data) {
+        map.setView([data.city_center.lat, data.city_center.lng]);
+        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
+        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
+        map.setMaxBounds(L.latLngBounds(southWest, northEast));
+        map.setZoom(data.default_zoom);
+    });
 
     var popup = L.popup().setContent('<p>Hello!</p>');
 
@@ -305,7 +301,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
             // Calculate total distance audited in (km)
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.lineDistance(data.features[i], "miles");
+                distanceAudited += turf.length(data.features[i], {units: 'miles'});
             }
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
 
@@ -421,64 +417,117 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         });
     }
 
-    function initializeSubmittedTasks(map) {
-        $.getJSON("/contribution/tasks", function (data) {
+    /**
+     * This method appends all the missions a user has to the task
+     * contribution table in the user dashboard
+     *
+     * @param map
+     */
+    function initializeSubmittedMissions(map) {
+        $.getJSON("/getMissions", function (data) {
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
 
             // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
             var monthNames = [
-                "January", "February", "March",
-                "April", "May", "June", "July",
-                "August", "September", "October",
-                "November", "December"
+                "Jan.", "Feb.", "Mar.",
+                "Apr.", "May", "June", "July",
+                "Aug.", "Sept.", "Oct.",
+                "Nov.", "Dec."
             ];
 
 
-
-            var grouped = _.groupBy(_data.tasks, function (o) { return o.audit_task_id});
-            var auditTaskId;
-            var auditTaskIds = Object.keys(grouped);
+            // sorts all labels the user has completed by mission
+            var grouped = _.groupBy(_data.tasks, function (o) { return o.mission_id });
+            var missionId;
+            var missionTaskIds = Object.keys(grouped);
+            var missionNumber = 0;
             var tableRows = "";
             var labelCounter;
             var i;
-            var auditTaskIdsLength = auditTaskIds.length;
+            var missionTaskIdsLength = missionTaskIds.length;
             var j;
             var labelsLength;
             var labelType;
-            auditTaskIds.sort(function (id1, id2) {
-                var timestamp1 = grouped[id1][0].task_start;
-                var timestamp2 = grouped[id2][0].task_start;
-                if (timestamp1 < timestamp2) { return -1; }
-                else if (timestamp1 > timestamp2) { return 1; }
-                else { return 0; }
+            // sorts missions by putting completed missions first then
+            // uncompleted missions, each in chronological order
+            missionTaskIds.sort(function (id1, id2) {
+                var timestamp1 = grouped[id1][0].mission_end;
+                var timestamp2 = grouped[id2][0].mission_end;
+                var firstCompleted = grouped[id1][0].completed;
+                var secondCompleted = grouped[id2][0].completed;
+                if (firstCompleted && secondCompleted) {
+                    if (timestamp1 < timestamp2) { return 1; }
+                    else if (timestamp1 > timestamp2) { return -1; }
+                    else { return 0; }
+                } else if (firstCompleted && !secondCompleted) {
+                    return 1;
+                } else if (!firstCompleted && secondCompleted) {
+                    return -1;
+                } else {
+                    var startstamp1 = grouped[id1][0].mission_start;
+                    var startstamp2 = grouped[id2][0].mission_start;
+                    if (startstamp1 < startstamp2) { return 1; }
+                    else if (startstamp1 > startstamp2) { return -1; }
+                    else { return 0; }
+                }
             });
 
-            for (i = auditTaskIdsLength - 1; i >= 0; i--) {
+            // counts the type of label for each mission to display the
+            // numbers in the missions table
+            for (i = missionTaskIdsLength - 1; i >= 0; i--) {
                 labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
-                auditTaskId = auditTaskIds[i];
-                labelsLength = grouped[auditTaskId].length;
+                missionId = missionTaskIds[i];
+                labelsLength = grouped[missionId].length;
                 for (j = 0; j < labelsLength; j++) {
-                    labelType = grouped[auditTaskId][j]["label_type"];
-                    if (!(labelType in labelCounter)) {
-                        labelType = "Other";
+                    labelType = grouped[missionId][j]["label_type"];
+                    // missions with no labels have an undefined labelType
+                    if (labelType === undefined) {
+                        break;
+                    } else {
+                        if (!(labelType in labelCounter)) {
+                            labelType = "Other";
+                        }
+                        labelCounter[labelType] += 1;
                     }
-                    labelCounter[labelType] += 1;
                 }
 
-                var date = new Date(grouped[auditTaskId][0]["task_end"]);
+                var date = new Date(grouped[missionId][0]["mission_end"]);
                 var day = date.getDate();
                 var monthIndex = date.getMonth();
                 var year = date.getFullYear();
 
+
+                var neighborhood;
+                // neighborhood name is tutorial if there is no neighborhood
+                // assigned for that mission
+                if (grouped[missionId][0]["neighborhood"]) {
+                    neighborhood = grouped[missionId][0]["neighborhood"];
+                } else {
+                    neighborhood = "Tutorial";
+                }
+
+                var dateString;
+                // Date is "In Progress" if the mission has not yet been completed
+                if (grouped[missionId][0]["completed"]) {
+                    dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
+                } else {
+                    dateString = "In Progress";
+                }
+
+                missionNumber++;
+
+                // adds all the mission information to a row in the table
                 tableRows += "<tr>" +
-                    "<td class='col-xs-1'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
-                    "<td class='col-xs-1'>" + labelCounter["Other"] + "</td>" +
+                    "<td class='col-xxs-1'>" + missionNumber + "</td>" +
+                    "<td class='col-date'>" + dateString + "</td>" +
+                    "<td class='col-neighborhood'>" + neighborhood + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["CurbRamp"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["Obstacle"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["SurfaceProblem"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["NoSidewalk"] + "</td>" +
+                    "<td class='col-xxs-1'>" + labelCounter["Other"] + "</td>" +
                     "</tr>";
             }
 
@@ -495,7 +544,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);
         initializeAuditCountChart(c3, map);
-        initializeSubmittedTasks(map);
+        initializeSubmittedMissions(map);
     });
 
     self.data = _data;
