@@ -8,11 +8,11 @@ describe("GameEffectModel module.", function () {
     describe("`play` method", function() {
         beforeEach(function () {
             spyOn(model, 'trigger');
-            model.play({audioType: "yay"});
+            model.play({audioType: "success"});
         });
 
         it("to have been called", function() {
-            expect(model.trigger).toHaveBeenCalledWith("play", {audioType: "yay"})
+            expect(model.trigger).toHaveBeenCalledWith("play", {audioType: "success"})
         });
     });
 });
