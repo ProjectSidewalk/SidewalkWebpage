@@ -4,10 +4,6 @@ function ModalModel () {
 
 _.extend(ModalModel.prototype, Backbone.Events);
 
-ModalModel.prototype.setModalMissionMessage = function (mission, neighborhood, parameters, callback) {
-    this.trigger("ModalMission:setMission", { mission: mission, neighborhood: neighborhood, parameters: parameters, callback: callback })
-};
-
 ModalModel.prototype.showModalExample = function (labelType) {
     this.trigger("ModalExample:show", labelType);
 };

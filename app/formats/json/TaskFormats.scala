@@ -3,11 +3,9 @@ package formats.json
 import java.sql.Timestamp
 
 import models.audit.AuditTaskTable.AuditTaskWithALabel
-import models.mission.Mission
 import models.audit.{AuditTask, AuditTaskInteraction}
 import play.api.libs.json._
 
-import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
 object TaskFormats {
@@ -23,12 +21,13 @@ object TaskFormats {
       (__ \ "completed").write[Boolean]
     )(unlift(AuditTask.unapply _))
 
-  // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],
+  // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, mission_id: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],
   // pitch: Option[Float], zoom: Option[Int],note: Option[String], temporaryLabelId: Option[Int], timestamp: java.sql.Timestamp)
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
     (__ \ "audit_task_interaction_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
+      (__ \ "mission_id").write[Int] and
       (__ \ "action").write[String] and
       (__ \ "gsv_panorama_id").writeNullable[String] and
       (__ \ "lat").writeNullable[Float] and

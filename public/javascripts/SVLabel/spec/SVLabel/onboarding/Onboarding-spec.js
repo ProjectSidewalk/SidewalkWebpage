@@ -2,7 +2,6 @@ describe("Onboarding module", function () {
     var onboarding;
     var statusModelMock;
     var svl;
-    var actionStack;
     var audioEffect;
     var compass;
     var form;
@@ -64,7 +63,7 @@ describe("Onboarding module", function () {
         uiOnboarding.canvas = $uiOnboardingFixture.find("#onboarding-canvas");
         uiOnboarding.handGestureHolder = $uiOnboardingFixture.find("#hand-gesture-holder");
 
-        onboarding = new Onboarding(svl, actionStack, audioEffect, compass, form, handAnimation, mapService, missionContainer, missionModel,
+        onboarding = new Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, missionContainer, missionModel,
             modalComment, modalMission, modalSkip, neighborhoodContainer, neighborhoodModel, onboardingModel, onboardingStates, ribbon, statusField, statusModel,
             storage, taskContainer, tracker, uiCanvas, uiContextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl)
     });
@@ -116,8 +115,8 @@ describe("Onboarding module", function () {
     }
 
     function MissionMock () {
-        this._isCompleted = false;
-        this.isCompleted = function () { return this._isCompleted; }
+        this._isComplete = false;
+        this.isComplete = function () { return this._isComplete; }
     }
 
     function ModalMissionMock () {

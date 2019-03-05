@@ -1,0 +1,576 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user)
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Help/build/help.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
+
+    <div class="spacer20"></div>
+
+    <div class="container help">
+        <div class="row">
+            <div class="col-md-3">
+                <div id="help-panel" class="panel panel-default">
+                    <div class="panel-heading">
+                        Help
+                    </div>
+                    <div class="panel-body">
+                        <ul id="questions-list">
+                                <!--This list will be automatically filled-->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 maincontent">
+                <div class="help-item">
+                    <h2 class="question" id="how-can-i-help">How can I help?</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Thanks for chipping in! You can help us out by using our tool to <i>audit the accessibility of neighborhoods.</i>
+                                By accessibility audit, we mean:
+                            </p>
+                            <ol>
+                                <li>
+                                    Click <a href='@routes.AuditController.audit()'>Start Exploring</a>.
+                                </li>
+                                <li>
+                                    Take an interactive tutorial to learn how to use our tool (if you haven't taken it before).
+                                </li>
+                                <li>
+                                    Walk along the streets and explore the neighborhood to find and label accessibility features.
+                                </li>
+                            </ol>
+                            <p>
+                                Please watch the following video to see a demo of how an accessibility audit works:
+                            </p>
+                        </div>
+                        <div class="video col-sm-12" style="text-align:center">
+                            <iframe width="560" height="315" src="https://www.youtube.com/embed/-kXeX230WNI?rel=0" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="can-i-select-a-neighborhood-to-audit">Can I pick which neighborhood I audit?</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Yes! Just follow these steps:
+                            </p>
+                            <ol>
+                                <li>
+                                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Sign in with your account</a> (if you don't have an account, please sign up!)
+                                </li>
+                                <li>
+                                    Go to your dashboard
+                                </li>
+                                <li>
+                                    Select the neighborhood that you want to audit on the map
+                                </li>
+                            </ol>
+                        </div>
+                        <div class="video col-sm-12" style="text-align:center">
+                            <iframe width="560" height="315" src="https://www.youtube.com/embed/Hgd8akPnkSM?rel=0" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="how-recent-is-google-street-views-data">
+                        Is Google Street View a reliable data source?
+                    </h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Google Street View provides a rich visual data source to inspect a city without
+                                leaving your home. However, the images shown are collected periodically every few years.
+                                Hence, they might be out of date. Indeed, some users have reported that problems shown in
+                                our interface have recently been resolved. Generally, however, street-level infrastructure
+                                does not change very often. We have conducted two studies of our own that compare audit
+                                data from our online interfaces to audit data collected via traditional, in-person walk-around
+                                audits [1,2]. In both cases, we found high agreement--in other words, the images in Google Street
+                                View are a good representation of the state of the physical world. This is consistent with
+                                findings from previous studies [3, 4, 5].
+                            </p>
+                            <p>
+                                Moreover, with the advancement of GSV technology, imagery is likely to become even more
+                                accurate than it is already.
+                            </p>
+
+                            <br/>
+                            <h3>References</h3>
+                            <div class="spacer10"></div>
+                            <ul class="reference">
+                                <li>
+                                    <div class="title">
+                                        [1] &nbsp;
+                                        <a href="@routes.Assets.at("documents/papers/Hara_TohmeDetectingCurbRampsInGoogleStreetViewUsingCrowdsourcingComputerVisionAndMachineLearning_UIST2014.pdf")">
+                                            Tohme: Detecting Curb Ramps in Google Street View Using Crowdsourcing, Computer Vision, and Machine Learning
+                                        </a>
+                                    </div>
+                                    <div class="desc">
+                                        Hara, K., Sun, J., Moore, R., Jacobs, D., and Froehlich, J.
+                                        <i>Proceedings of UIST 2014</i> <br/>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="title">
+                                        [2] &nbsp;
+                                        <a href="@routes.Assets.at("documents/papers/Hara_ImprovingPublicTransitAccessibilityForBlindRidersByCrowdsourcingBusStopLandmarkLocationsWithGoogleStreetViewAnExtendedAnalysis_TACCESS2015.pdf")">
+                                            Improving Public Transit Accessibility for Blind Riders by Crowdsourcing Bus Stop Landmark Locations with Google Street View: An Extended Analysis
+                                        </a>
+                                    </div>
+                                    <div class="desc">
+                                        Hara, K., Azenkot, S., Campbell, M., Bennett, C., Le, V., Pannella, S., Moore, R., Minckler, K., Ng, R., and
+                                        Froehlich, J.
+                                        <i>ACM Transactions on Accessibility.</i> <br/>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="title">
+                                        [3] &nbsp;
+                                        <a href="http://link.springer.com/article/10.1007/s11524-010-9505-x">
+                                            Can virtual streetscape audits reliably
+                                            replace physical streetscape audits?
+                                        </a>
+                                    </div>
+                                    <div class="desc">
+                                        Badland, H.M., Opit, S., Witten, K., Kearns, R.A. and
+                                        Mavoa, S.
+                                        <i>Journal of urban health : bulletin of the New York Academy of Medicine.</i>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="title">
+                                        [4] &nbsp;
+                                        <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2952684/">
+                                            Using Google Earth to conduct a
+                                            neighborhood audit: reliability of a virtual audit
+                                            instrument.
+                                        </a>
+                                    </div>
+                                    <div class="desc">
+                                        Clarke, P., Ailshire, J., Melendez, R., Bader, M. and
+                                        Morenoff, J.
+                                        <i>Health & place.</i>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="title">
+                                        [5] &nbsp;
+                                        <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3031144/">
+                                        Using Google
+                                        Street View to audit neighborhood environments.
+                                        </a>
+                                    </div>
+                                    <div class="desc">
+                                        Rundle, A.G., Bader, M.D.M., Richards, C.A.,
+                                        Neckerman, K.M. and Teitler, J.O.
+                                        <i>American journal of preventive medicine.</i>
+                                    </div>
+                                </li>
+                            </ul>
+
+                            @*4, 9, 21, 25, 40*@
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="what-to-do-when-navigation-arrow-disappears">What to do when the navigation arrow disappears?</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Sometimes while auditing, you may have noticed that the navigation arrows go missing, especially while walking straight.
+                                Worry not, there is a simple solution! <br/><br/>
+                                Just double click on the street to move ahead and you are all set! <br/><br/>
+                                And if you are still stuck, you can always use the Jump button on the left.
+
+                            </p>
+                        </div>
+                        <div class="video col-sm-12" style="text-align:center">
+                            <iframe width="560" height="315" src="https://www.youtube.com/embed/eqnoAcqgNrw?rel=0" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="what-should-i-do-when-i-find-conflicting-street-view-images">What should I do when I find conflicting Street View images?</h2>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/help/Timeshot1_Cropped.png")' alt="An older Street View image without a curb ramp at the end of crosswalk" class="img-responsive" align="">
+                                <figcaption>An older Street View image without a curb ramp at the end of crosswalk. You should label the problem as a "Missing Curb Ramp."</figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-sm-6">
+                            <figure class="text-center">
+                                <img src='@routes.Assets.at("images/help/Timeshot2_Cropped.png")' alt="A newer Street View image of the same location. The problem is fixed." class="img-responsive" align="">
+                                <figcaption>A newer Street View image of the same location. The problem is fixed and there is a curb ramp, so you should label this as a "Curb Ramp."</figcaption>
+                            </figure>
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="spacer10"></div>
+                            <p class="text-justify">
+                                From time to time, you'd observe <span class="bold">Street View images taken at the same location at different time</span>, and
+                                the environment in the images may be conflicting--just like the pair of the Street View images shown above.
+                                In the older image on the left, there is no curb ramp at the end of the crosswalk, but the problem is fixed
+                                in the newer image on the right. If you find a similar case, please <span class="bold">label the accessibility features in both images so we can keep track
+                                of how the environment has changed over time!</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="why-do-my-labels-disappear">Why do my labels disappear?</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Yes, you're right, labels do disappear after you take a step in the Google Street View interface
+                                but <strong>don't worry</strong>, we store all of your labels.
+                            </p>
+                            <p>
+                                So, <i>why</i> does it work like this? Well, the answer is kind of complicated but the short answer is:
+                                    the Google Street View interface is akin to a 3-dimensional interface, similar to walking in the real world.
+                                    When you place a label, we convert the 3D position of the label to a 2D lat/long position. However, once you take a
+                                    step to a new location, we cannot accurately recompute the label's position in 3D for that new view. See, we told
+                                    you it was kind of complicated. :)
+
+                                    Rest assured, you can always see your applied labels in the top-down map in the bottom-right hand corner of your screen.
+                            </p>
+                        </div>
+                        <div class="video col-sm-12" style="text-align:center">
+                            <iframe width="560" height="315" src="https://www.youtube.com/embed/5a9t8f7Qws4?rel=0" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="are-there-keyboard-shortcuts-for-the-image-labeling-interface">Are there keyboard shortcuts?</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="spacer10"></div>
+                            <p class="text-justify">
+                                Yes. Here is the list of keyboard shortcuts:
+                            </p>
+                            <div class="panel panel-default">
+                                <table class="table table-striped table-condensed">
+                                    <tr>
+                                        <th class="col-sm-3"></th>
+                                        <th class="col-sm-3.5">Key</th>
+                                        <th>What it does</th>
+                                    </tr>
+                                    <tr>
+                                        <th>Mode Switch</th>
+                                        <th><kbd>E</kbd></th>
+                                        <td>Switch to the Exploration mode</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>C</kbd></th>
+                                        <td>Switch to the Curb Ramp mode</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>M</kbd></th>
+                                        <td>Switch to the Missing Curb Ramp mode</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>O</kbd></th>
+                                        <td>Switch to the Obstacle in Path mode</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>S</kbd></th>
+                                        <td>Switch to the Surface Problem mode</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>B</kbd></th>
+                                        <td>Switch to the "Can't see the sidewalk" mode</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>N</kbd></th>
+                                        <td>Switch to the "No Sidewalk" mode</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Label Rating</th>
+                                        <th><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd></th>
+                                        <td>Set corresponding rating</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>Enter</kbd> or <kbd>Esc</kbd></th>
+                                        <td>Close label rating</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Interface Control</th>
+                                        <th><kbd>Z</kbd></th>
+                                        <td>Zoom in</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>Shift + Z</kbd></th>
+                                        <td>Zoom out</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>Up</kbd></th>
+                                        <td>Move Forward</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>Down</kbd></th>
+                                        <td>Move Back</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>Left</kbd></th>
+                                        <td>Rotate point of view left</td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><kbd>Right</kbd></th>
+                                        <td>Rotate point of view right</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="the-street-view-images-are-not-showing-up-what-should-i-do">The Street View images are not showing up, what should I do?</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="spacer10"></div>
+                            <p class="text-justify">
+                                Sometimes the Street View window images could not be correctly loaded and
+                                you see nothing but a grey window even if you move around. This could happen
+                                for various reasons, e.g., you could be in a location where Google Street View
+                                images are not available. To fix this, you can reload your page. Note that all
+                                of your previous labels will be saved and you can continue your current mission
+                                after reloading.
+                            </p>
+                        </div>
+                        <div class="video col-sm-12" style="text-align:center">
+                            <iframe width="560" height="315" src="https://www.youtube.com/embed/a93XPAe_54c?rel=0" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="are-there-any-severity-rating-examples">Are there any severity rating examples?</h2>
+
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Yes, here are some examples:
+                            </p>
+                        </div>
+
+                        <div class="col-sm-12">
+                            <div id="curb-ramp-example">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <h3>Curb Ramp</h3>
+                                        <div class="spacer10"></div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_Passable.png")' class="img-responsive" alt="Two good curb ramps" />
+                                            <figcaption>
+                                                <p class="bold">Rating 1: Passable</p>
+                                                <p>Clean curb ramps that are aligned with crosswalks.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_HardToPass.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
+                                            <figcaption>
+                                                <p class="bold">Rating 3: Neutral</p>
+                                                <p>A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs
+                                                may have trouble using this curb ramp.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_NotPassable.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
+                                            <figcaption>
+                                                <p class="bold">Rating 5: Not passable</p>
+                                                <p>Water has accumulated in this curb ramp due to poor drainage. It is hard for manual wheelchair users to use this curb ramp.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12">
+                            <div id="no-curb-ramp-example">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <h3>No Curb Ramp</h3>
+                                        <div class="spacer10"></div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/NoCurbRamp_Passable.png")' class="img-responsive" alt="Curb ramp is not aligned to the crosswalk" />
+                                            <figcaption>
+                                                <p class="bold">Rating 1: Passable</p>
+                                                <p>Although there is no curb ramp, the level difference is small and
+                                                wheelchair users would be able to get on or off the sidewalk.
+                                                There is also a curb ramp at the same corner that people could use,
+                                                although it is not aligned to the path.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/NoCurbRamp_HardToPass.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
+                                            <figcaption>
+                                                <p class="bold">Rating 3: Neutral</p>
+                                                <p>There is no curb ramp at the end of the crosswalk.
+                                                Wheelchair users are forced to used the curb ramp that is not aligned with the crosswalk.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/NoCurbRamp_NotPassable.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
+                                            <figcaption>
+                                            <p class="bold">Rating 5: Not passable</p>
+                                            <p>No curb ramp at the end of the crosswalk. Wheelchair users cannot get on or off the sidewalk and cross the street here.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12">
+                            <div id="obstacle-example">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <h3>Obstacle</h3>
+                                        <div class="spacer10"></div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_Passable.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
+                                            <figcaption>
+                                                <p class="bold">Rating 1: Passable</p>
+                                                <p>A traffic light standing in the middle of the sidewalk. There seems to be enough space
+                                                    for wheelchair users to pass, but those who are using larger chairs
+                                                    could have trouble navigating.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_HardToPass.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
+                                            <figcaption>
+                                                <p class="bold">Rating 3: Neutral</p>
+                                                <p>The plant is obstructing the path, making it hard for wheelchair users to use this sidewalk.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
+                                            <figcaption>
+                                                <p class="bold">Rating 5: Not passable</p>
+                                                <p>The tree is completely blocking the path, making it not passable for wheelchair users.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-12">
+                            <div id="surface-problem-example">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <h3>Surface Problem</h3>
+                                        <div class="spacer10"></div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_Passable.png")' class="img-responsive" alt="A partially damaged sidewalk." />
+                                            <figcaption>
+                                                <p class="bold">Rating 1: Passable</p>
+                                                <p>Partially damaged sidewalk. Because there is enough space next to the damaged part of
+                                                the sidewalk, wheelchair users would be able to pass. </p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_HardToPass.png")' class="img-responsive" alt="Cobblestone sidewalks and crosswalks." />
+                                            <figcaption>
+                                                <p class="bold">Rating 3: Neutral</p>
+                                                <p>Wheelchair users would have difficulty navigating on the cobblestone
+                                                    sidewalks and crosswalks.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <figure>
+                                            <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
+                                            <figcaption>
+                                                <p class="bold">Rating 5: Not passable</p>
+                                                <p>Wheelchair users cannot pass severely degraded sidewalk surfaces
+                                                    due to the over-grown vegetation.</p>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h2 class="question" id="contact-us-item">How to contact us?</h2>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="spacer10"></div>
+                            <p class="text-justify">
+                                You have more questions? Email us (sidewalk@@cs.uw.edu),
+                                post a <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues">GitHub issue</a>, or follow and talk to us
+                                on <a href="https://twitter.com/projsidewalk">Twitter (@@projsidewalk)!</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+  }
+        <!-- <div class="spacer30"></div>
+        <h1>Contact Us</h1>
+        <div class="row">
+            <div class="col-sm-12">
+                <p class="text-justify">
+                    You have more questions? Email us (sidewalk@@cs.uw.edu),
+                    post a <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues">GitHub issue</a>, or follow and talk to us
+                    on <a href="https://twitter.com/projsidewalk">Twitter (@@projsidewalk)!</a>
+                </p>
+            </div>
+        </div> -->

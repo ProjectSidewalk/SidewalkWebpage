@@ -1,5 +1,6 @@
 /**
  * Path module. A Path instance holds and array of Point instances.
+ * @param svl
  * @param points
  * @param params
  * @returns {{className: string, points: undefined}}
@@ -313,7 +314,7 @@ function Path (svl, points, params) {
      * @returns {*}
      */
     function isOn (x, y) {
-        var boundingBox, i, j, point, pointsLen, result;
+        var boundingBox, j, point, pointsLen, result;
 
         // Check if the passed point (x, y) is on any of points.
         pointsLen = self.points.length;

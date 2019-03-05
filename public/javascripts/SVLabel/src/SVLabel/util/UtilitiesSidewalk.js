@@ -65,7 +65,7 @@ function UtilitiesMisc (JSON) {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_Other.png'
+                cursorImagePath: svl.rootDirectory + 'img/cursors/Cursor_NoSidewalk.png'
             }
         }
     }
@@ -110,8 +110,8 @@ function UtilitiesMisc (JSON) {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_Other.svg',
-                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_Other.png'
+                iconImagePath: svl.rootDirectory + 'img/icons/Sidewalk/Icon_NoSidewalk.png',
+                googleMapsIconImagePath: svl.rootDirectory + '/img/icons/Sidewalk/GMapsStamp_NoSidewalk.png'
             },
             Void: {
                 id: 'Void',
@@ -209,11 +209,11 @@ function UtilitiesMisc (JSON) {
         }
     }
 
-    function getLabelDescriptions (category) {
+    function getLabelDescriptions(category) {
         var descriptions = {
-            'Walk' : {
-                'id' : 'Walk',
-                'text' : 'Walk',
+            'Walk': {
+                'id': 'Walk',
+                'text': 'Walk',
                 shortcut: {
                     keyNumber: 69,
                     keyChar: 'E'
@@ -225,6 +225,32 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 67,
                     keyChar: 'C'
+                },
+                tagInfo: {
+                    'narrow': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'n<tag-underline>a</tag-underline>rrow',
+                        id: 'narrow'
+                    },
+                    'points into traffic': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: '<tag-underline>p</tag-underline>oints into traffic',
+                        id: 'pointIntoTraffic'
+                    },
+                    'missing friction strip': {
+                        keyNumber: 70,
+                        keyChar: 'F',
+                        text: 'missing <tag-underline>f</tag-underline>riction strip',
+                        id: 'missingFrictionStrip'
+                    },
+                    'steep': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>eep',
+                        id: 'steep'
+                    }
                 }
             },
             NoCurbRamp: {
@@ -233,6 +259,26 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 77,
                     keyChar: 'M'
+                },
+                tagInfo: {
+                    'alternate route present': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: '<tag-underline>a</tag-underline>lternate route present',
+                        id: 'alternateRoutePresent'
+                    },
+                    'no alternate route': {
+                        keyNumber: 76,
+                        keyChar: 'L',
+                        text: 'no a<tag-underline>l</tag-underline>ternate route',
+                        id: 'noAlternateRoute'
+                    },
+                    'unclear if needed': {
+                        keyNumber: 85,
+                        keyChar: 'U',
+                        text: '<tag-underline>u</tag-underline>nclear if needed',
+                        id: 'unclearIfNeeded'
+                    }
                 }
             },
             Obstacle: {
@@ -241,11 +287,57 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 79,
                     keyChar: 'O'
+                },
+                tagInfo: {
+                    'trash can': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 't<tag-underline>r</tag-underline>ash can',
+                        id: 'trashCan'
+                    },
+                    'fire hydrant': {
+                        keyNumber: 70,
+                        keyChar: 'F',
+                        text: '<tag-underline>f</tag-underline>ire hydrant',
+                        id: 'fireHydrant'
+                    },
+                    'pole': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: '<tag-underline>p</tag-underline>ole',
+                        id: 'pole'
+                    },
+                    'tree': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: '<tag-underline>t</tag-underline>ree',
+                        id: 'tree'
+                    },
+                    'vegetation': {
+                        keyNumber: 86,
+                        keyChar: 'V',
+                        text: '<tag-underline>v</tag-underline>egetation',
+                        id: 'vegetation'
+                    }
                 }
             },
             Other: {
                 id: 'Other',
-                text: 'Other'
+                text: 'Other',
+                tagInfo: {
+                    'missing crosswalk': {
+                        keyNumber: 73,
+                        keyChar: 'I',
+                        text: 'm<tag-underline>i</tag-underline>ssing crosswalk',
+                        id: 'missingCrosswalk'
+                    },
+                    'no bus stop access': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'no bus stop <tag-underline>a</tag-underline>ccess',
+                        id: 'noBusStopAccess'
+                    }
+                }
             },
             Occlusion: {
                 id: 'Occlusion',
@@ -261,6 +353,26 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 78,
                     keyChar: 'N'
+                },
+                tagInfo: {
+                    'ends abruptly': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'ends <tag-underline>a</tag-underline>bruptly',
+                        id: 'endsAbruptly'
+                    },
+                    'street has a sidewalk': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>reet has a sidewalk',
+                        id: 'streetHasASidewalk'
+                    },
+                    'street has no sidewalks': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'st<tag-underline>r</tag-underline>eet has no sidewalks',
+                        id: 'streetHasNoSidewalks'
+                    }
                 }
             },
             SurfaceProblem: {
@@ -269,6 +381,38 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 83,
                     keyChar: 'S'
+                },
+                tagInfo: {
+                    'bumpy': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: 'bum<tag-underline>p</tag-underline>y',
+                        id: 'bumpy'
+                    },
+                    'uneven': {
+                        keyNumber: 85,
+                        keyChar: 'U',
+                        text: '<tag-underline>u</tag-underline>neven',
+                        id: 'uneven'
+                    },
+                    'cracks': {
+                        keyNumber: 75,
+                        keyChar: 'K',
+                        text: 'crac<tag-underline>k</tag-underline>s',
+                        id: 'cracks'
+                    },
+                    'grass': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'g<tag-underline>r</tag-underline>ass',
+                        id: 'grass'
+                    },
+                    'narrow sidewalk': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'n<tag-underline>a</tag-underline>rrow sidewalk',
+                        id: 'narrowSidewalk'
+                    }
                 }
             },
             Void: {
@@ -281,6 +425,41 @@ function UtilitiesMisc (JSON) {
             }
         };
         return category ? descriptions[category] : descriptions;
+    }
+
+    /**
+     * Gets the severity message and severity image location that is displayed on a label tag
+     * @returns {{1: {message: string, severityImage: string}, 2: {message: string, severityImage: string},
+     *              3: {message: string, severityImage: string}, 4: {message: string, severityImage: string},
+     *              5: {message: string, severityImage: string}}}
+     */
+    function getSeverityDescription() {
+        return {
+            1: {
+                message: 'Passable',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
+            },
+
+            2: {
+                message: 'Somewhat Passable',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
+            },
+
+            3: {
+                message: 'Difficult to pass',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
+            },
+
+            4: {
+                message: 'Very difficult to pass',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png'
+            },
+
+            5: {
+                message: 'Not passable',
+                severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
+            }
+        };
     }
 
     /**
@@ -302,6 +481,7 @@ function UtilitiesMisc (JSON) {
     self.getLabelInstructions = getLabelInstructions;
     self.getRibbonConnectionPositions = getRibbonConnectionPositions;
     self.getLabelDescriptions = getLabelDescriptions;
+    self.getSeverityDescription = getSeverityDescription;
     self.getLabelColors = ColorScheme.SidewalkColorScheme2;
     self.reportNoStreetView = reportNoStreetView;
 
@@ -326,6 +506,10 @@ var ColorScheme = (function () {
             Obstacle: {
                 id: 'Obstacle',
                 fillStyle: 'rgba(0, 161, 203, 0.9)'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                fillStyle: 'rgba(153, 131, 239, 0.9)'
             },
             Other: {
                 id: 'Other',
@@ -381,8 +565,8 @@ var ColorScheme = (function () {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                fillStyle: 'rgba(179, 179, 179, 1)',
-                strokeStyle: '#ff0000'
+                fillStyle: 'rgba(153, 131, 239, 1)',
+                strokeStyle: '#ffffff'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
@@ -431,7 +615,7 @@ var ColorScheme = (function () {
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                fillStyle: 'rgba(179, 179, 179, 1)'
+                fillStyle: 'rgba(153, 131, 239, 1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
@@ -447,64 +631,6 @@ var ColorScheme = (function () {
             }
         };
         return category ? colors[category].fillStyle : colors;
-    }
-    /**
-     * http://www.colourlovers.com/business/trends/branding/7880/Papeterie_Haute-Ville_Logo
-     * @returns {{Walk: {id: string, fillStyle: string}, CurbRamp: {id: string, fillStyle: string}, NoCurbRamp: {id: string, fillStyle: string}, StopSign: {id: string, fillStyle: string}, StopSign_OneLeg: {id: string, fillStyle: string}, StopSign_TwoLegs: {id: string, fillStyle: string}, StopSign_Column: {id: string, fillStyle: string}, Landmark_Shelter: {id: string, fillStyle: string}, Landmark_Bench: {id: string, fillStyle: string}, Landmark_TrashCan: {id: string, fillStyle: string}, Landmark_MailboxAndNewsPaperBox: {id: string, fillStyle: string}, Landmark_OtherPole: {id: string, fillStyle: string}}}
-     */
-    function colorScheme2 () {
-        return {
-            'Walk' : {
-                'id' : 'Walk',
-                'fillStyle' : 'rgba(0, 0, 0, 0.9)'
-            },
-            CurbRamp: {
-                id: 'CurbRamp',
-                fillStyle: 'rgba(106, 230, 36, 0.9)'
-            },
-            NoCurbRamp: {
-                id: 'NoCurbRamp',
-                fillStyle: 'rgba(215, 0, 96, 0.9)'
-            },
-            'StopSign' : {
-                'id' : 'StopSign',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'StopSign_OneLeg' : {
-                'id' : 'StopSign_OneLeg',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'StopSign_TwoLegs' : {
-                'id' : 'StopSign_TwoLegs',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'StopSign_Column' : {
-                'id' : 'StopSign_Column',
-                'fillStyle' : 'rgba(0, 161, 203, 0.9)'
-            },
-            'Landmark_Shelter' : {
-                'id' : 'Landmark_Shelter',
-                'fillStyle' : 'rgba(215, 0, 96, 0.9)'
-            },
-            'Landmark_Bench' : {
-                'id' : 'Landmark_Bench',
-                // 'fillStyle' : 'rgba(229, 64, 40, 0.9)' // Kind of hard to distinguish from pink
-                // 'fillStyle' : 'rgba(209, 209, 2, 0.9)' // Puke-y
-                'fillStyle' : 'rgba(252, 217, 32, 0.9)'
-            },
-            'Landmark_TrashCan' : {
-                'id' : 'Landmark_TrashCan',
-                'fillStyle' : 'rgba(97, 174, 36, 0.9)'
-            },
-            'Landmark_MailboxAndNewsPaperBox' : {
-                'id' : 'Landmark_MailboxAndNewsPaperBox',
-                'fillStyle' : 'rgba(67, 113, 190, 0.9)'
-            },
-            'Landmark_OtherPole' : {
-                'id' : 'Landmark_OtherPole',
-                'fillStyle' : 'rgba(249, 79, 101, 0.9)'
-            }
-        }
     }
 
     return {

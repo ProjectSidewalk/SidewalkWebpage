@@ -1,18 +1,20 @@
 package models.audit
 
-import java.sql.Timestamp
 import java.util.UUID
 
 import models.label._
+import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import scala.slick.lifted.ForeignKeyQuery
 
 case class AuditTaskInteraction(auditTaskInteractionId: Int,
                                 auditTaskId: Int,
+                                missionId: Int,
                                 action: String,
                                 gsvPanoramaId: Option[String],
                                 lat: Option[Float],
@@ -24,19 +26,18 @@ case class AuditTaskInteraction(auditTaskInteractionId: Int,
                                 temporaryLabelId: Option[Int],
                                 timestamp: java.sql.Timestamp)
 
-case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, action: String,
+case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, missionId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
                                 note: Option[String], timestamp: java.sql.Timestamp,
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
-case class UserAuditTime(userId: String, duration: Option[Float], ipAddress: Option[String])
 
-
-class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
+class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, Some("sidewalk"), "audit_task_interaction") {
   def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
+  def missionId = column[Int]("mission_id", O.NotNull)
   def action = column[String]("action", O.NotNull)
   def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.Nullable)
   def lat = column[Option[Float]]("lat", O.Nullable)
@@ -48,8 +49,11 @@ class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](ta
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
 
-  def * = (auditTaskInteractionId, auditTaskId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
+  def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
+
+  def mission: ForeignKeyQuery[MissionTable, Mission] =
+    foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 /**
@@ -58,44 +62,52 @@ class AuditTaskInteractionTable(tag: Tag) extends Table[AuditTaskInteraction](ta
 object AuditTaskInteractionTable {
   implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(
-      r.nextInt, r.nextInt, r.nextString, r.nextStringOption, r.nextFloatOption, r.nextFloatOption,
-      r.nextFloatOption, r.nextFloatOption, r.nextIntOption, r.nextStringOption, r.nextTimestamp,
-      r.nextStringOption, r.nextFloatOption, r.nextFloatOption, r.nextInt, r.nextInt, r.nextInt, r.nextInt)
+      r.nextInt, // audit_task_interaction_id
+      r.nextInt, // audit_task_id
+      r.nextInt, // mission_id
+      r.nextString, // action
+      r.nextStringOption, // gsv_panorama_id
+      r.nextFloatOption, // lat
+      r.nextFloatOption, // lng
+      r.nextFloatOption, // heading
+      r.nextFloatOption, // pitch
+      r.nextIntOption, // zoom
+      r.nextStringOption, // note
+      r.nextTimestamp, // timestamp
+      r.nextStringOption, // label_type
+      r.nextFloatOption, // label_lat
+      r.nextFloatOption, // label_lng
+      r.nextInt, // canvas_x
+      r.nextInt, // canvas_y
+      r.nextInt, // canvas_width
+      r.nextInt // canvas_height
+    )
   })
 
   implicit val auditTaskInteraction = GetResult[AuditTaskInteraction](r => {
     AuditTaskInteraction(
-      r.nextInt,
-      r.nextInt,
-      r.nextString,  // action
-      r.nextStringOption, // gsvPanoramaId
-      r.nextFloatOption,  // lat
+      r.nextInt, // audit_task_interaction_id
+      r.nextInt, // audit_task_id
+      r.nextInt, // mission_id
+      r.nextString, // action
+      r.nextStringOption, // gsv_panorama_id
+      r.nextFloatOption, // lat
       r.nextFloatOption, // lng
       r.nextFloatOption, // heading
       r.nextFloatOption, // pitch
-      r.nextIntOption, // zoom,
+      r.nextIntOption, // zoom
       r.nextStringOption, // note
-      r.nextIntOption,  // timestamp
-      r.nextTimestamp
+      r.nextIntOption, // temporary_label_id
+      r.nextTimestamp // timestamp
     )
   })
 
-
-  implicit val userAuditTime = GetResult[UserAuditTime](r => {
-      UserAuditTime(
-        r.nextString,
-        r.nextFloatOption,
-        r.nextStringOption
-      )
-    })
 
   val db = play.api.db.slick.DB
   val auditTasks = TableQuery[AuditTaskTable]
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
   val labels = TableQuery[LabelTable]
   val labelPoints = TableQuery[LabelPointTable]
-
-  val anonUserId = "97760883-8ef0-4309-9a5e-0c086ef27573"
 
 
 
@@ -127,145 +139,42 @@ object AuditTaskInteractionTable {
     _auditTaskInteractions.list
   }
 
-  /**
-  * Select all audit task interaction times
-  * @return
-  */
-def selectAllAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
-  val selectAuditTimesQuery = Q.query[String, UserAuditTime](
-    """SELECT user_audit_times.user_id,
-      |       CAST(extract( second from SUM(diff) ) /60 +
-      |            extract( minute from SUM(diff) ) +
-      |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing,
-      |       NULL
-      |FROM (
-      |    SELECT audit_task.user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-      |    FROM audit_task_interaction
-      |    LEFT JOIN audit_task
-      |       ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-      |    WHERE action = 'ViewControl_MouseDown'
-      |        AND audit_task.user_id <> ?
-      |        AND audit_task.user_id NOT IN (SELECT user_id FROM user_role WHERE role_id > 1)
-      |    ) user_audit_times
-      |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
-      |GROUP BY user_id;""".stripMargin
-    )
-    val auditTimes: List[UserAuditTime] = selectAuditTimesQuery(anonUserId).list
-    auditTimes
-}
-
-  /**
-    * Select all audit task interaction times for Turker users
-    * @return
-    */
-  def selectAllTurkerAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
-    val selectAuditTimesQuery = Q.query[String, UserAuditTime](
-      """SELECT user_audit_times.user_id,
-        |  CAST(extract( second from SUM(diff) ) /60 +
-        |       extract( minute from SUM(diff) ) +
-        |       extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing,
-        |  NULL
-        |FROM (
-        |       SELECT audit_task.user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY audit_task.user_id ORDER BY timestamp)) AS diff
-        |       FROM audit_task_interaction
-        |         LEFT JOIN audit_task
-        |           ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-        |         INNER JOIN user_role
-        |           ON audit_task.user_id = user_role.user_id
-        |         INNER JOIN sidewalk.role
-        |           ON user_role.role_id = sidewalk.role.role_id
-        |       WHERE action = 'ViewControl_MouseDown'
-        |             AND sidewalk.role.role = ?
-        |     ) user_audit_times
-        |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
-        |GROUP BY user_id;""".stripMargin
-    )
-    val auditTimes: List[UserAuditTime] = selectAuditTimesQuery("Turker").list
-    auditTimes
-  }
-
-/**
-  * Select all audit task interaction times for anonymous users
-  *
-  * @return
-  */
-def selectAllAnonAuditTimes(): List[UserAuditTime] = db.withSession { implicit session =>
-  val selectAnonAuditTimesQuery = Q.query[(String, String), UserAuditTime](
-    """SELECT ?,
-      |       CAST(extract( second from SUM(diff) ) /60 +
-      |            extract( minute from SUM(diff) ) +
-      |            extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) AS total_time_spent_auditing,
-      |       user_audit_times.ip_address
-      |FROM
-      |(
-      |    SELECT user_id, ip_address, (timestamp - Lag(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-      |    FROM audit_task_interaction
-      |    LEFT JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-      |    LEFT JOIN audit_task_environment ON audit_task.audit_task_id = audit_task_environment.audit_task_id
-      |    WHERE action = 'ViewControl_MouseDown'
-      |    AND audit_task.user_id = ?
-      |    AND ip_address IN
-      |    (
-      |        SELECT ip_address
-      |        FROM audit_task_environment
-      |        INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_environment.audit_task_id
-      |        WHERE completed = true
-      |    )
-      |) user_audit_times
-      |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
-      |GROUP BY ip_address;""".stripMargin
-  )
-  val auditTimes: List[UserAuditTime] = selectAnonAuditTimesQuery((anonUserId, anonUserId)).list
-  auditTimes
-}
-
-
   def selectAuditTaskInteractionsOfAUser(regionId: Int, userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
     val selectInteractionQuery = Q.query[(Int, String), AuditTaskInteraction](
-      """SELECT
-        |  audit_task_interaction.audit_task_interaction_id,
-        |  audit_task_interaction.audit_task_id,
-        |  audit_task_interaction.action,
-        |  audit_task_interaction.gsv_panorama_id,
-        |  audit_task_interaction.lat,
-        |  audit_task_interaction.lng,
-        |  audit_task_interaction.heading,
-        |  audit_task_interaction.pitch,
-        |  audit_task_interaction.zoom,
-        |  audit_task_interaction.note,
-        |  audit_task_interaction.temporary_label_id,
-        |  audit_task_interaction.timestamp
+      """SELECT audit_task_interaction.audit_task_interaction_id,
+        |       audit_task_interaction.audit_task_id,
+        |       audit_task_interaction.mission_id,
+        |       audit_task_interaction.action,
+        |       audit_task_interaction.gsv_panorama_id,
+        |       audit_task_interaction.lat,
+        |       audit_task_interaction.lng,
+        |       audit_task_interaction.heading,
+        |       audit_task_interaction.pitch,
+        |       audit_task_interaction.zoom,
+        |       audit_task_interaction.note,
+        |       audit_task_interaction.temporary_label_id,
+        |       audit_task_interaction.timestamp
         |FROM "sidewalk"."audit_task"
         |INNER JOIN "sidewalk"."street_edge"
-        |  ON street_edge.street_edge_id = audit_task.street_edge_id
+        |    ON street_edge.street_edge_id = audit_task.street_edge_id
         |INNER JOIN "sidewalk"."region"
-        |  ON region.region_id = ?
-        |  AND ST_Intersects(region.geom, street_edge.geom)
+        |    ON region.region_id = ?
+        |    AND ST_Intersects(region.geom, street_edge.geom)
         |INNER JOIN "sidewalk"."audit_task_interaction"
-        |  ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
+        |    ON audit_task_interaction.audit_task_id = audit_task.audit_task_id
         |WHERE "audit_task".user_id = ?
-        |  AND (
-        |    audit_task_interaction.action = 'MissionComplete'
-        |    OR (
-        |      audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
-        |      AND audit_task.completed = TRUE
+        |    AND (
+        |        audit_task_interaction.action = 'MissionComplete'
+        |        OR (
+        |            audit_task_interaction.action = 'LabelingCanvas_FinishLabeling'
+        |            AND audit_task.completed = TRUE
+        |        )
         |    )
-        |  )
         |ORDER BY audit_task_interaction.audit_task_interaction_id""".stripMargin
     )
 
     val result: List[AuditTaskInteraction] = selectInteractionQuery((regionId, userId.toString)).list
     result
-  }
-
-  /**
-   * Get a list of audit task interaction
-    *
-    * @param auditTaskId
-   * @return
-   */
-  def selectAuditTaskInteractions(auditTaskId: Int): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    auditTaskInteractions.filter(_.auditTaskId === auditTaskId).list
   }
 
   /**
@@ -277,20 +186,30 @@ def selectAllAnonAuditTimes(): List[UserAuditTime] = db.withSession { implicit s
     */
   def selectAuditInteractionsWithLabels(auditTaskId: Int): List[InteractionWithLabel] = db.withSession { implicit session =>
     val selectInteractionWithLabelQuery = Q.query[Int, InteractionWithLabel](
-      """SELECT interaction.audit_task_interaction_id, interaction.audit_task_id, interaction.action,
-        |interaction.gsv_panorama_id, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-        |interaction.zoom, interaction. note, interaction.timestamp, label_type.label_type,
-        |label_point.lat AS label_lat, label_point.lng AS label_lng, label_point.canvas_x as canvas_x,
-        |label_point.canvas_y as canvas_y, label_point.canvas_width as canvas_width,
-        |label_point.canvas_height as canvas_height
+      """SELECT interaction.audit_task_interaction_id,
+        |       interaction.audit_task_id,
+        |       interaction.mission_id,
+        |       interaction.action,
+        |       interaction.gsv_panorama_id,
+        |       interaction.lat,
+        |       interaction.lng,
+        |       interaction.heading,
+        |       interaction.pitch,
+        |       interaction.zoom,
+        |       interaction.note,
+        |       interaction.timestamp,
+        |       label_type.label_type,
+        |       label_point.lat AS label_lat,
+        |       label_point.lng AS label_lng,
+        |       label_point.canvas_x AS canvas_x,
+        |       label_point.canvas_y AS canvas_y,
+        |       label_point.canvas_width AS canvas_width,
+        |       label_point.canvas_height AS canvas_height
         |FROM sidewalk.audit_task_interaction AS interaction
-        |LEFT JOIN sidewalk.label
-        |ON interaction.temporary_label_id = label.temporary_label_id
-        |AND interaction.audit_task_id = label.audit_task_id
-        |LEFT JOIN sidewalk.label_type
-        |ON label.label_type_id = label_type.label_type_id
-        |LEFT JOIN sidewalk.label_point
-        |ON label.label_id = label_point.label_id
+        |LEFT JOIN sidewalk.label ON interaction.temporary_label_id = label.temporary_label_id
+        |                         AND interaction.audit_task_id = label.audit_task_id
+        |LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
+        |LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
         |WHERE interaction.audit_task_id = ?
         |ORDER BY interaction.timestamp""".stripMargin
     )

@@ -1,12 +1,11 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone}
+import java.time.Instant
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.exceptions.{ConfigurationException, ProviderException}
-import com.mohiva.play.silhouette.api.services.AuthInfoService
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
@@ -15,8 +14,6 @@ import formats.json.UserFormats._
 import forms.SignInForm
 import models.services.UserService
 import models.user._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
@@ -35,8 +32,7 @@ import scala.concurrent.Future
   */
 class CredentialsAuthController @Inject() (
                                             implicit val env: Environment[User, SessionAuthenticator],
-                                            val userService: UserService,
-                                            val authInfoService: AuthInfoService)
+                                            val userService: UserService)
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
   /**
@@ -108,12 +104,11 @@ class CredentialsAuthController @Inject() (
     val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
 
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-      UserCurrentRegionTable.assignEasyRegion(user.userId)
+      UserCurrentRegionTable.assignRegion(user.userId)
     }
 
     // Add Timestamp
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
     // Logger.info(updatedAuthenticator.toString)

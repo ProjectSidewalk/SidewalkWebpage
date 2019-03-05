@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="com.typesafe.sbt" module="sbt-js-engine" revision="1.0.1" status="release" publication="20140625112539" e:scalaVersion="2.10" e:sbtVersion="0.13">
+		<description>
+		sbt-js-engine
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+		
+		
+	</configurations>
+	<publications>
+		<artifact name="sbt-js-engine" type="jar" ext="jar" conf="compile"/>
+		<artifact name="sbt-js-engine" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+		<artifact name="sbt-js-engine" type="doc" ext="jar" conf="docs" e:classifier="javadoc"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" conf="provided->default(compile)"/>
+		<dependency org="org.scala-sbt" name="sbt" rev="0.13.5" conf="provided->default(compile)"/>
+		<dependency org="com.typesafe" name="jse_2.10" rev="1.0.0" conf="compile->default(compile)"/>
+		<dependency org="com.typesafe" name="npm_2.10" rev="1.0.0" conf="compile->default(compile)"/>
+		<dependency org="org.specs2" name="specs2_2.10" rev="2.3.11" conf="test->default(compile)"/>
+		<dependency org="junit" name="junit" rev="4.11" conf="test->default(compile)"/>
+		<dependency org="com.typesafe.sbt" name="sbt-web" rev="1.0.2" conf="compile->default(compile)" e:scalaVersion="2.10" e:sbtVersion="0.13"/>
+		
+		
+	</dependencies>
+</ivy-module>

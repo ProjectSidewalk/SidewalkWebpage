@@ -6,8 +6,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
-                         assignmentStart: Timestamp, assignmentEnd: Option[Timestamp],
-                         workerId: String, confirmationCode: Option[String], completed: Boolean)
+                         assignmentStart: Timestamp, assignmentEnd: Timestamp,
+                         workerId: String, confirmationCode: String, completed: Boolean)
 
 /**
  *
@@ -17,9 +17,9 @@ class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidew
   def hitId = column[String]("hit_id", O.NotNull)
   def assignmentId = column[String]("assignment_id", O.NotNull)
   def assignmentStart = column[Timestamp]("assignment_start", O.NotNull)
-  def assignmentEnd = column[Option[Timestamp]]("assignment_end")
+  def assignmentEnd = column[Timestamp]("assignment_end")
   def workerId = column[String]("turker_id", O.NotNull)
-  def confirmationCode = column[Option[String]]("confirmation_code")
+  def confirmationCode = column[String]("confirmation_code")
   def completed = column[Boolean]("completed", O.NotNull)
 
   def * = (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed) <> ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
@@ -32,6 +32,11 @@ object AMTAssignmentTable {
   val db = play.api.db.slick.DB
   val amtAssignments = TableQuery[AMTAssignmentTable]
 
+  val TURKER_TUTORIAL_PAY: Double = 0.43D
+  val TURKER_PAY_PER_MILE: Double = 4.17D
+  val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
+  val VOLUNTEER_PAY: Double = 0.0D
+
   def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
     val asgId: Int =
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
@@ -39,7 +44,7 @@ object AMTAssignmentTable {
   }
 
   def getConfirmationCode(workerId: String, assignmentId: String): String = db.withTransaction { implicit session =>
-    amtAssignments.filter( x => x.workerId === workerId && x.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).list.head.getOrElse("")
+    amtAssignments.filter( x => x.workerId === workerId && x.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).list.head
   }
 
   def getMostRecentAssignmentId(workerId: String): String = db.withTransaction { implicit session =>
@@ -50,16 +55,20 @@ object AMTAssignmentTable {
     amtAssignments.filter( x => x.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).list.head
   }
 
-  /**
-    * Update the `assignment_end` timestamp column of the specified amt_assignment row
-    *
-    * @param amtAssignmentId
-    * @param timestamp
-    * @return
-    */
-  def updateAssignmentEnd(amtAssignmentId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
-    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.assignmentEnd
-    q.update(Some(timestamp))
+  def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = db.withSession { implicit session =>
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).list.headOption
+  }
+
+  def getMostRecentConfirmationCode(workerId: String): Option[String] = db.withSession { implicit session =>
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).list.headOption
+  }
+
+  def getMostRecentAssignment(workerId: String): Option[AMTAssignment] = db.withSession { implicit session =>
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).list.headOption
+  }
+
+  def getAssignment(workerId: String, assignmentId: String): Option[AMTAssignment] = db.withSession { implicit session =>
+    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).list.headOption
   }
 
   /**

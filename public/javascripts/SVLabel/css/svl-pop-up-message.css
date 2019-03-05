@@ -24,6 +24,7 @@
     left: 0;
     visibility: visible;
     width: 730px;
+    text-align: center;
 }
 
 #pop-up-message-foreground p {

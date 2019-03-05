@@ -1,5 +1,9 @@
 /**
  * Todo. Separate the UI component and the logic component
+ * @param canvas
+ * @param mapService
+ * @param canvas
+ * @param mapService
  * @param tracker
  * @param uiZoomControl
  * @returns {{className: string}}
@@ -190,7 +194,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             var povChange = mapService.getPovChangeStatus();
 
             setZoom(pov.zoom + 1);
-            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
@@ -212,7 +215,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         if (!status.disableZoomOut) {
             var povChange = mapService.getPovChangeStatus();
-
             setZoom(pov.zoom - 1);
             povChange["status"] = true;
             canvas.clear();
@@ -233,7 +235,6 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
             var pov = mapService.getPov();
 
             setZoom(pov.zoom + 1);
-            enableZoomOut();
             povChange["status"] = true;
             canvas.clear();
             canvas.render2();
@@ -266,7 +267,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
     /**
      * This method takes a (x, y) canvas point and zoom in to that point.
-     * @param x canvaz x coordinate
+     * @param x canvas x coordinate
      * @param y canvas y coordinate
      * @returns {*}
      */
@@ -315,12 +316,18 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
         // Set the zoom level and change the panorama properties.
         var zoomLevel = undefined;
         zoomLevelIn = parseInt(zoomLevelIn);
-        if (zoomLevelIn < properties.minZoomLevel) {
+        if (zoomLevelIn <= properties.minZoomLevel) {
             zoomLevel = properties.minZoomLevel;
-        } else if (zoomLevelIn > properties.maxZoomLevel) {
+            enableZoomIn();
+            disableZoomOut();
+        } else if (zoomLevelIn >= properties.maxZoomLevel) {
             zoomLevel = properties.maxZoomLevel;
+            disableZoomIn();
+            enableZoomOut();
         } else {
             zoomLevel = zoomLevelIn;
+            enableZoomIn();
+            enableZoomOut();
         }
         mapService.setZoom(zoomLevel);
         var i,

@@ -1,5 +1,6 @@
 /**
  *
+ * @param svl
  * @param x
  * @param y
  * @param pov
@@ -34,7 +35,7 @@ function Point (svl, x, y, pov, params) {
         strokeStyleOuterCircle: 'rgba(255,255,255,1)',
         storedInDatabase: false
     };
-    var unnessesaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
+    var unnecessaryProperties = ['originalFillStyleInnerCircle', 'originalStrokeStyleOuterCircle'];
     var status = {
             'deleted' : false,
             'visibility' : 'visible',
@@ -122,7 +123,7 @@ function Point (svl, x, y, pov, params) {
                 properties[propName] = params[propName];
             } else {
                 // See if this property must be set.
-                if (unnessesaryProperties.indexOf(propName) === -1) {
+                if (unnecessaryProperties.indexOf(propName) === -1) {
                     // throw self.className + ': "' + propName + '" is not defined.';
                 }
             }
@@ -132,10 +133,6 @@ function Point (svl, x, y, pov, params) {
         properties.originalStrokeStyleOuterCircle = properties.strokeStyleOuterCircle;
         return true;
     }
-
-
-    /** Deprecated */
-    function _init2 () { return true; }
 
     /** Get x canvas coordinate */
     function getCanvasX () { return self.canvasCoordinate.x; }
@@ -201,7 +198,7 @@ function Point (svl, x, y, pov, params) {
     }
 
     /**
-     * Renders this point
+     * Renders label image icon
      * @param pov
      * @param ctx
      */

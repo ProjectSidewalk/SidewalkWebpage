@@ -70,7 +70,7 @@ describe("ModalComment.", function () {
         modalModel = _.clone(Backbone.Events);
         onboardingModel = _.clone(Backbone.Events);
 
-        modalComment = new ModalComment(svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, modalModel, onboardingModel);
+        modalComment = new ModalComment(svl, tracker, ribbon, taskContainer, uiLeftColumn, uiModalComment, onboardingModel);
     });
 
     describe("`_prepareCommentData` method", function () {

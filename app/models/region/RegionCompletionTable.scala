@@ -3,7 +3,7 @@ package models.region
 import java.util.UUID
 
 import math._
-import models.street.{StreetEdgeAssignmentCountTable, StreetEdgeRegionTable, StreetEdgeTable, StreetEdge}
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable, StreetEdge}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._

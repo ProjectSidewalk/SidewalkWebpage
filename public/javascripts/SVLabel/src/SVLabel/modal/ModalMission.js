@@ -5,14 +5,16 @@
  * @param uiModalMission
  * @param modalModel
  * @param onboardingModel
+ * @param userModel
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, modalModel, onboardingModel) {
+function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, modalModel, onboardingModel, userModel) {
     var self = this;
     var _missionContainer = missionContainer;
     var _neighborhoodContainer = neighborhoodContainer;
     var _modalModel = modalModel;
+    var _userModel = userModel;
 
     this._status = {
         isOpen: false
@@ -34,12 +36,6 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         self.hide();
     });
 
-    // Mission titles. Keys are mission labels.
-    var missionTitles = {
-        "initial-mission": "Initial Mission",
-        "distance-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
-        "coverage-mission": "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__"
-    };
 
     var initialMissionHTML = '<figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
@@ -55,13 +51,12 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
-    var areaCoverageMissionHTML = '<figure> \
+    var returningToMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your goal is to <span class="bold">audit <var id="modal-mission-area-coverage-rate">[x]</var> of the entire streets in this neighborhood</span> and find the accessibility attributes!</p>\
+        <p>Continue auditing __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!</p>\
         <div class="spacer10"></div>';
-
 
     this._handleBackgroundClick = function () {
         self.hide();
@@ -101,22 +96,42 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     this.setMissionMessage = function (mission, neighborhood, parameters, callback) {
         // Set the title and the instruction of this mission.
 
-        var label = mission.getProperty("label"),
-            templateHTML,
-            missionTitle = label in missionTitles ? missionTitles[label] : "Mission";
+        var missionType = mission.getProperty("missionType");
+        var missionTitle = "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__";
+        var templateHTML;
 
         svl.popUpMessage.disableInteractions();
-        if (label == "distance-mission") {
-            var auditDistance,
-                distanceString;
-                templateHTML = distanceMissionHTML;
+        if (missionType === "audit") {
+            var distanceString;
+            templateHTML = distanceMissionHTML;
 
-            if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) {
+            if (mission.getProperty("distanceProgress") > 0) { // In-progress mission
+                missionTitle = "Return to your mission";
+                templateHTML = returningToMissionHTML;
+
+                // Set returning-to-mission specific css
+                uiModalMission.closeButton.html('Resume Mission!');
+                uiModalMission.instruction.css('text-align', 'center');
+                uiModalMission.closeButton.css('font-size', '24px');
+                uiModalMission.closeButton.css('width', '40%');
+                uiModalMission.closeButton.css('margin-right', '30%');
+                uiModalMission.closeButton.css('margin-left', '30%');
+                uiModalMission.closeButton.css('margin-top', '30px');
+            } else if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) { // First mission
                 missionTitle = "First Mission: " + missionTitle;
                 templateHTML = initialMissionHTML;
+            } else {
+                // We have to reset the css from the resuming screen, otherwise the button will remain as set
+                uiModalMission.closeButton.html('OK');
+                uiModalMission.instruction.css('text-align', 'left');
+                uiModalMission.closeButton.css('font-size', '');
+                uiModalMission.closeButton.css('width', '');
+                uiModalMission.closeButton.css('margin-right', '');
+                uiModalMission.closeButton.css('margin-left', '');
+                uiModalMission.closeButton.css('margin-top', '');
             }
 
-            distanceString = this._auditDistanceToString(mission.getProperty("auditDistanceMi"), "miles");
+            distanceString = this._distanceToString(mission.getDistance("miles"), "miles");
 
             missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", distanceString);
             missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
@@ -127,80 +142,33 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             uiModalMission.missionTitle.html(missionTitle);
             uiModalMission.instruction.html(templateHTML);
             $("#mission-target-distance").html(distanceString);
-        } else if (label == "area-coverage-mission") {
-            // Set the title
-            var coverage = (mission.getProperty("coverage") * 100).toFixed(0) + "%";
-            templateHTML = areaCoverageMissionHTML;
-
-            missionTitle = missionTitle.replace("__DISTANCE_PLACEHOLDER__", coverage);
-            missionTitle = missionTitle.replace("__NEIGHBORHOOD_PLACEHOLDER__", neighborhood.getProperty("name"));
-
-            uiModalMission.missionTitle.html(missionTitle);
-            uiModalMission.instruction.html(templateHTML);
-            $("#modal-mission-area-coverage-rate").html(coverage);
+            // TODO check for this using tasks
         } else {
             templateHTML = initialMissionHTML;
             uiModalMission.instruction.html(templateHTML);
             uiModalMission.missionTitle.html(missionTitle);
         }
 
-        //Check if the user is associated with the "Turker" role and update the reward HTML
-        var url = '/isTurker';
-        $.ajax({
-            async: true,
-            url: url,//endpoint that checks above conditions
-            type: 'get',
-            success: function (data) {
-                if (data.isTurker) {
-                    var url = '/rewardPerMile';
-                    $.ajax({
-                        async: true,
-                        url: url,//endpoint that checks above conditions
-                        type: 'get',
-                        success: function (data) {
-                            var auditDistanceMi = mission.getProperty("auditDistanceMi");
-                            var missionReward = auditDistanceMi * data.rewardPerMile;
-                            // Mission Rewards.
-                            var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
-                            missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
-                            svl.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
-                            uiModalMission.rewardText.html(missionRewardText);
+        // Update the reward HTML if the user is a turker.
+        if (_userModel.getUser().getProperty("role") === "Turker") {
+            var missionReward = mission.getProperty("pay");
+            var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+            missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
+            svl.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
+            uiModalMission.rewardText.html(missionRewardText);
 
-                            //Calculate the total earned reward
-                            var completedMissionJson = svl.missionContainer.getCompletedMissions()
-                                .filter(function (el) {
-                                    return el.isCompleted() && el.getProperty("regionId") != null
-                                })
-                                .reduce(function (region_groups, el) {
-                                        region_groups[el.getProperty("regionId")] = region_groups[el.getProperty("regionId")] || 0.0;
-                                        region_groups[el.getProperty("regionId")] += el.getProperty("auditDistanceMi");
-                                        return region_groups;
-                                    }
-                                    , {});
-                            var totalMissionCompleteDistance = Object.values(completedMissionJson).reduce(function (sum, el) {
-                                return sum + el;
-                            }, 0.0);
-
-                            var missionReward = totalMissionCompleteDistance * data.rewardPerMile;
-                            // Mission Rewards.
-                            //document.getElementById("td-total-reward-earned").innerHTML = "$" + missionReward.toPrecision(2);
-                            svl.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                            console.log(thrownError);
-                        }
-                    });
-                    //console.log('Survey displayed');
+            $.ajax({
+                async: true,
+                url: '/rewardEarned',
+                type: 'get',
+                success: function(rewardData) {
+                    svl.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError);
                 }
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        });
-
-        var badge = "<img src='" + mission.getProperty("badgeURL") + "' class='img-responsive center-block' alt='badge'/>";
-        $("#mission-badge-holder").html(badge);
-
+            })
+        }
 
         if (callback) {
             $("#modal-mission-close-button").one("click", function () {
@@ -216,7 +184,8 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             e = e || window.event;
             //enter key
             if (e.keyCode == 13 && self._status.isOpen){
-                $("#modal-mission-close-button").click();
+                svl.tracker.push("KeyboardShortcut_ModalMissionOk");
+                $("#modal-mission-close-button").trigger("click", {lowLevelLogging: false});
             }
         });
     };
@@ -225,32 +194,30 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     uiModalMission.closeButton.on("click", this._handleCloseButtonClick);
 }
 
-ModalMission.prototype._auditDistanceToString = function  (distance, unit) {
+ModalMission.prototype._distanceToString = function  (distance, unit) {
     if (!unit) unit = "kilometers";
 
-    if (unit == "miles") {
-        if (distance <= 0.12){
-            return "500ft";
-        }
-        else if (distance <= 0.20) {
-            return "1000ft";
-        } else if (distance <= 0.25) {
-            return "&frac14;mi";
-        } else if (distance <= 0.39) {
-            return "2000ft";
-        } else if (distance <= 0.5) {
-            return "&frac12;mi";
-        } else if (distance <= 0.75) {
-            return "&frac34;mi";
-        } else {
-            return distance.toFixed(0, 10) + "";
-        }
-    } else if (unit == "feet") {
-        // Todo.
-        return distance + "";
+    // Convert to miles and round to 4 decimal places.
+    if (unit === "feet") distance = util.math.feetToMiles(distance);
+    else if (unit === "meters") distance = util.math.metersToMiles(distance);
+    else if (unit === "kilometers") distance = util.math.kilometersToMiles(distance);
+
+    distance = distance.toPrecision(4);
+
+    if (distance === "0.0947"){
+        return "500ft";
+    } else if (distance === "0.1894") {
+        return "1000ft";
+    } else if (distance === "0.2500") {
+        return "&frac14;mi";
+    } else if (distance === "0.3788") {
+        return "2000ft";
+    } else if (distance === "0.5000") {
+        return "&frac12;mi";
+    } else if (distance === "0.7500") {
+        return "&frac34;mi";
     } else {
-        // Todo.
-        return distance + "";
+        return (util.math.milesToFeet(distance)).toFixed(0) + "ft";
     }
 };
 

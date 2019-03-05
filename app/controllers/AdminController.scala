@@ -2,27 +2,27 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
-import java.sql.Time
 import java.net.URLDecoder
 
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
 import formats.json.UserRoleSubmissionFormats._
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
+import models.attribute.{GlobalAttribute, GlobalAttributeTable}
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
-import models.label.{LabelPointTable, LabelTable}
+import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
 import models.mission.MissionTable
-import models.region.{RegionCompletionTable, RegionTable}
-import models.street.{StreetEdge, StreetEdgeTable}
+import models.region.RegionCompletionTable
+import models.street.StreetEdgeTable
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.daos.UserDAOImpl
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
-import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
+import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
 
@@ -102,6 +102,30 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
+    * Get a list of all global attributes
+    *
+    * @return
+    */
+  def getAllAttributes = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
+      val features: List[JsObject] = attributes.map { attribute =>
+        val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
+        val properties = Json.obj(
+          "attribute_id" -> attribute.globalAttributeId,
+          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId),
+          "severity" -> attribute.severity
+        )
+        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+      }
+      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Future.successful(Ok(featureCollection))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
     * Returns audit coverage of each neighborhood
     *
     * @return
@@ -123,15 +147,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
+    * Gets count of completed missions for each user.
     *
     * @return
     */
-  def getAllAnonUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
+  def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val counts: List[(Option[String], Int)] = UserDAOImpl.getAnonUserCompletedMissionCounts
-      val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false)
+      val missionCounts: List[(String, String, Int)] = MissionTable.selectMissionCountsPerUser
+      val jsonArray = Json.arr(missionCounts.map(x => {
+        Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
       }))
       Future.successful(Ok(jsonArray))
     } else {
@@ -146,10 +170,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getAllUserSignInCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val counts: List[(String, Int)] = WebpageActivityTable.selectAllSignInCounts
-      val jsonArray = Json.arr(counts.map(x => {
-        Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
-      }))
+      val counts: List[(String, String, Int)] = WebpageActivityTable.selectAllSignInCounts
+      val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
       Future.successful(Ok(jsonArray))
     } else {
       Future.successful(Redirect("/"))
@@ -158,7 +180,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
 
   /**
-    * Returns DC coverage percentage by Date
+    * Returns city coverage percentage by Date
     *
     * @return
     */
@@ -183,20 +205,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
-    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions
-
-    val features: List[JsObject] = neighborhoods.map {neighborhood =>
-      val labelResults = LabelTable.selectNegativeLabelCountsByRegionId(neighborhood.regionId)
-      Json.obj(
-        "region_id" -> neighborhood.regionId,
-        "labels" -> Json.toJson(labelResults.toMap)
+    // Groups by region_id... json looks like: {region_id: 123, labels: {NoCurbRamp: 5, Obstacle: 10, ...}}
+    val features: List[JsObject] = GlobalAttributeTable.selectNegativeAttributeCountsByRegion().groupBy(_._1).map {
+      case (rId, group) => Json.obj(
+        "region_id" -> rId,
+        "labels" -> Json.toJson(group.map(x => (x._2, x._3)).toMap)
       )
-    }
+    }.toList
 
     val jsonObjectList = features.map(x => Json.toJson(x))
-
     Future.successful(Ok(JsArray(jsonObjectList)))
-
   }
 
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
@@ -234,8 +252,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
             val properties = Json.obj(
               "street_edge_id" -> edge.streetEdgeId,
-              "source" -> edge.source,
-              "target" -> edge.target,
               "way_type" -> edge.wayType
             )
             Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
@@ -250,68 +266,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * This method returns the onboarding interaction data
-    *
-    * @return
-    */
-  def getOnboardingTaskInteractions = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val onboardingTransitions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAnActionType("Onboarding_Transition")
-      val jsonObjectList = onboardingTransitions.map(x => Json.toJson(x))
-
-      Future.successful(Ok(JsArray(jsonObjectList)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get all auditing times
-    *
-    * @return
-    */
-  def getAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val auditTimes = AuditTaskInteractionTable.selectAllAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
-      Future.successful(Ok(JsArray(auditTimes)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get all auditing times for Turkers
-    *
-    * @return
-    */
-  def getTurkerAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val auditTimes = AuditTaskInteractionTable.selectAllTurkerAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
-      Future.successful(Ok(JsArray(auditTimes)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get all anonymous auditing times
-    *
-    * @return
-    */
-  def getAnonAuditTimes() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val anonAuditTimes = AuditTaskInteractionTable.selectAllAnonAuditTimes().map(auditTime =>
-        Json.obj("user_id" -> auditTime.userId, "time" -> auditTime.duration, "ip_address" -> auditTime.ipAddress))
-      Future.successful(Ok(JsArray(anonAuditTimes)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-
-  /**
     * This method returns the tasks and labels submitted by the given user.
     *
     * @param username Username
@@ -324,59 +278,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
         case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
-      }
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  def getMissionsCompletedByUsers = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val missionsCompleted = MissionTable.selectMissionsCompletedByUsers.map(x =>
-        Json.obj("username" -> x.username, "label" -> x.label, "level" -> x.level, "distance_m" -> x.distance_m,
-          "distance_ft" -> x.distance_ft, "distance_mi" -> x.distance_mi)
-      )
-      Future.successful(Ok(JsArray(missionsCompleted)))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  def completedTasks = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-
-      Future.successful(Ok(JsArray()))
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  /**
-    * Get records of audit task interactions of a user
-    *
-    * @param username
-    * @return
-    */
-  def getAuditTaskInteractionsOfAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(UUID.fromString(user.userId)).map(interaction => Json.toJson(interaction))
-          Future.successful(Ok(JsArray(interactions)))
-        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
-      }
-    } else {
-      Future.successful(Redirect("/"))
-    }
-  }
-
-  def auditTaskInteractions(taskId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      AuditTaskTable.find(taskId) match {
-        case Some(user) =>
-          val interactions = AuditTaskInteractionTable.selectAuditTaskInteractions(taskId).map(x => Json.toJson(x))
-          Future.successful(Ok(JsArray(interactions)))
-        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -431,26 +332,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * USER CENTRIC ANALYTICS
     */
 
-  def getAllRegisteredUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerRegisteredUser
+  def getAllUserLabelCounts = UserAwareAction.async { implicit request =>
+    val labelCounts = LabelTable.getLabelCountsPerUser
     val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1))
-    )))
-    Future.successful(Ok(json))
-  }
-
-  def getAllTurkerUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerTurkerUser
-    val json = Json.arr(labelCounts.map(x => Json.obj(
-      "user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1))
-    )))
-    Future.successful(Ok(json))
-  }
-
-  def getAllAnonUserLabelCounts = UserAwareAction.async { implicit request =>
-    val labelCounts = LabelTable.getLabelCountsPerAnonUser
-    val json = Json.arr(labelCounts.map(x => Json.obj(
-      "ip_address" -> x._1, "count" -> x._2, "is_researcher" -> false
+      "user_id" -> x._1, "role" -> x._2, "count" -> x._3
     )))
     Future.successful(Ok(json))
   }
@@ -461,24 +346,20 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     *
     * @param activity
     */
-  def getWebpageActivities(activity: String) = UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getWebpageActivities(activity: String) = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)) {
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
-      if(activities.length == 0){
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Invalid activity name")))
-      } else {
-        Future.successful(Ok(Json.arr(activities)))
-      }
-    }else{
+      Future.successful(Ok(Json.arr(activities)))
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns all records in the webpage_interactions table as a JSON array. */
-  def getAllWebpageActivities = UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getAllWebpageActivities = UserAwareAction.async{ implicit request =>
+    if (isAdmin(request.identity)) {
       Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
@@ -490,38 +371,38 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @param keyValPairs
     * @return
     */
-  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)){
+  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(Json.arr(activities)))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns number of records in webpage_activity table containing the specified activity. */
-  def getNumWebpageActivities(activity: String) =   UserAwareAction.async{implicit request =>
-    if (isAdmin(request.identity)){
+  def getNumWebpageActivities(activity: String) =   UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
       Future.successful(Ok(activities.length + ""))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
   /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
-  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)){
+  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
       val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(activities.length + ""))
-    }else{
+    } else {
       Future.successful(Redirect("/"))
     }
   }
 
-  def setUserRole = UserAwareAction.async(BodyParsers.parse.json){ implicit request =>
+  def setUserRole = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
 
     submission.fold(
@@ -532,7 +413,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val userId = UUID.fromString(submission.userId)
         val newRole = submission.roleId
 
-        if(isAdmin(request.identity)){
+        if(isAdmin(request.identity)) {
           UserTable.findById(userId) match {
             case Some(user) =>
               if(UserRoleTable.getRole(userId) == "Owner") {

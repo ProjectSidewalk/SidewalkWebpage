@@ -1,12 +1,6 @@
 function Choropleth(_, $, turf, difficultRegionIds) {
     var neighborhoodPolygonLayer;
 
-// Construct a bounding box for these maps that the user cannot move out of
-// https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-    var southWest = L.latLng(38.761, -77.262);
-    var northEast = L.latLng(39.060, -76.830);
-    var bounds = L.latLngBounds(southWest, northEast);
-
 // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
     var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
     var mapboxTiles = L.tileLayer(tileUrl, {
@@ -16,25 +10,27 @@ function Choropleth(_, $, turf, difficultRegionIds) {
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var choropleth = L.mapbox.map('choropleth', "kotarohara.8e0c6890", {
-        // set that bounding box as maxBounds to restrict moving the map
-        // see full maxBounds documentation:
-        // http://leafletjs.com/reference.html#map-maxbounds
-        maxBounds: bounds,
         maxZoom: 19,
         minZoom: 9,
         zoomControl: false,
         legendControl: {
             position: 'bottomleft'
         }
-    })
-        .fitBounds(bounds)
-        .setView([38.892, -77.038], 12);
+    });
     choropleth.scrollWheelZoom.disable();
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     L.control.zoomslider().addTo(choropleth);
 
+    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
+    $.getJSON('/cityMapParams', function(data) {
+        choropleth.setView([data.city_center.lat, data.city_center.lng]);
+        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
+        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
+        choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
+        choropleth.setZoom(data.default_zoom);
+    });
 
     /**
      * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.
@@ -44,16 +40,18 @@ function Choropleth(_, $, turf, difficultRegionIds) {
      */
 
     function getColor(p) {
-        return p > 90 ? '#08306b' :
-            p > 80 ? '#08519c' :
-                p > 70 ? '#08719c' :
-                    p > 60 ? '#2171b5' :
-                        p > 50 ? '#4292c6' :
-                            p > 40 ? '#6baed6' :
-                                p > 30 ? '#9ecae1' :
-                                    p > 20 ? '#c6dbef' :
-                                        p > 10 ? '#deebf7' :
-                                            '#f7fbff';
+        //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
+        return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
+                 p > 90 ? '#08306b' :
+                    p > 80 ? '#08519c' :
+                        p > 70 ? '#08719c' :
+                            p > 60 ? '#2171b5' :
+                                p > 50 ? '#4292c6' :
+                                    p > 40 ? '#6baed6' :
+                                        p > 30 ? '#9ecae1' :
+                                            p > 20 ? '#c6dbef' :
+                                                p > 10 ? '#deebf7' :
+                                                    '#f7fbff';
     }
 
     /**
@@ -191,7 +189,7 @@ function Choropleth(_, $, turf, difficultRegionIds) {
             var regionId = $(this).attr('regionId');
             var ratesEl = rates.find(function(x){
                 return regionId == x.region_id;
-            })
+            });
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";

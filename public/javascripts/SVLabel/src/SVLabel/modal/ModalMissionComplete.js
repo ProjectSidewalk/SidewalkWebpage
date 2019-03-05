@@ -2,18 +2,35 @@
  *
  * @param svl. Todo. Get rid of this dependency eventually.
  * @param missionContainer
+ * @param taskContainer
+ * @param taskContainer
+ * @param modalMissionProgressBar
+ * @param taskContainer
+ * @param modalMissionProgressBar
+ * @param statusModel
+ * @param onboardingModel
+ * @param taskContainer
+ * @param modalMissionProgressBar
+ * @param statusModel
+ * @param onboardingModel
  * @param modalMissionCompleteMap
+ * @param modalMissionProgressBar
+ * @param statusModel
+ * @param onboardingModel
  * @param uiModalMissionComplete
  * @param modalModel
+ * @param userModel
+ * @param statusModel
+ * @param onboardingModel
  * @returns {{className: string}}
  * @constructor
  */
 function ModalMissionComplete (svl, missionContainer, taskContainer,
                                modalMissionCompleteMap, modalMissionProgressBar,
-                               uiModalMissionComplete, modalModel, statusModel, onboardingModel) {
+                               uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
     var self = this;
     var _modalModel = modalModel;
-    var nextMission;
+    this._userModel = userModel;
 
     this._properties = {
         boxTop: 180,
@@ -23,6 +40,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     this._status = {
         isOpen: false
     };
+    this._closeModalClicked = false;
 
     this._uiModalMissionComplete = uiModalMissionComplete;
     this._modalMissionCompleteMap = modalMissionCompleteMap;
@@ -44,26 +62,32 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     });
 
     svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
-        var neighborhood = svl.neighborhoodContainer.get(parameters.completedRegionId);
+        var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
         uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
     });
 
+    // TODO maybe deal with lost connection causing modal to not close
     this._handleBackgroundClick = function (e) {
+        self._closeModalClicked = true;
+        // self._handleLoadNextMission();
         self._closeModal();
     };
 
+    // TODO maybe deal with lost connection causing modal to not close
     this._handleCloseButtonClick = function (e) {
+        self._closeModalClicked = true;
+        // self._handleLoadNextMission();
         self._closeModal();
     };
 
     this._closeModal = function (e) {
-        svl.actionStack.reset();
         if (svl.neighborhoodModel.isNeighborhoodCompleted) {
             // reload the page to load another neighborhood
             window.location.replace('/audit');
         } else {
+            // TODO can we require that we have a new mission before doing this?
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
             self.hide();
@@ -99,6 +123,14 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
+        // Start GET request for next mission. If this req is complete and the user clicks continue/next button, the
+        // next mission shows up. So clicking continue does nothing until the mission is received from the back-end.
+        // This should never happen, unless we completely lose connection to the back-end anyway.
+        // missionContainer.nextMission(function() {
+        //     self._gotNextMission = true;
+        //     self._handleLoadNextMission();
+        // });
+
         /*If the user has completed his first mission then hide the continue button.
          Display the generate confirmation button. When clicked, remove this button completely
          and make the Continue button visible again.
@@ -125,7 +157,6 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
                 }
             });
 
-            //console.log("Reached modal mission complete");
             var confirmationCodeElement = document.createElement("h3");
             confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
                 "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
@@ -161,16 +192,17 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
     this.update = function (mission, neighborhood) {
         // Update the horizontal bar chart to show how much distance the user has audited
-        var unit = "miles";
+        var unit = {units: 'miles'};
         var regionId = neighborhood.getProperty("regionId");
 
-        var missionDistance = mission.getProperty("auditDistanceMi");
+        var missionDistance = mission.getDistance("miles");
+        var missionPay = mission.getProperty("pay");
         var auditedDistance = neighborhood.completedLineDistance(unit);
-        var remainingDistance = neighborhood.totalLineDistance(unit) - auditedDistance;
+        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
 
         var completedTasks = taskContainer.getCompletedTasks(regionId);
         var missionTasks = mission.getRoute();
-        var totalLineDistance = taskContainer.totalLineDistanceInARegion(regionId, unit);
+        var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
         var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
 
@@ -179,6 +211,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             noCurbRampCount = labelCount ? labelCount["NoCurbRamp"] : 0 ,
             obstacleCount = labelCount ? labelCount["Obstacle"] : 0,
             surfaceProblemCount = labelCount ? labelCount["SurfaceProblem"] : 0,
+            noSidewalkCount = labelCount ? labelCount["NoSidewalk"] : 0,
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
@@ -188,9 +221,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
         modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, auditedDistance, remainingDistance, unit);
-        this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount);
-
+        this._updateMissionProgressStatistics(missionDistance, missionPay, auditedDistance, remainingDistance, unit);
+        this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
     uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
@@ -216,76 +248,24 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, cumulativeAuditedDistance, remainingDistance, unit) {
-    if (!unit) unit = "kilometers";
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, cumulativeAuditedDistance, remainingDistance, unit) {
+    if (!unit) unit = {units: 'kilometers'};
     remainingDistance = Math.max(remainingDistance, 0);
-    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit);
-    this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit);
-    this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit);
-    //Check if the user is associated with the "Turker" role and update the reward HTML
-    var url = '/isTurker';
-    $.ajax({
-        async: true,
-        url: url,//endpoint that checks above conditions
-        type: 'get',
-        success: function(data){
-            if(data.isTurker){
-                var url = '/rewardPerMile';
-                $.ajax({
-                    async: true,
-                    url: url,//endpoint that checks above conditions
-                    type: 'get',
-                    success: function(data){
-                        var missionReward = missionDistance*data.rewardPerMile;
-                        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
-                    },
-                    error: function (xhr, ajaxOptions, thrownError) {
-                        console.log(thrownError);
-                    }
-                });
-                //console.log('Survey displayed');
-            }
-        },
-        error: function (xhr, ajaxOptions, thrownError) {
-            console.log(thrownError);
-        }
-    });
+    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit.units);
+
+    // Update the reward HTML if the user is a turker.
+    if (this._userModel.getUser().getProperty("role") === "Turker") {
+        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
+    }
 };
 
-ModalMissionComplete.prototype._updateTheMissionCompleteMessage = function () {
-    var unusedMessages = [
-        'You\'re one lightning bolt away from being a greek diety. Keep on going!',
-        'Gold star. You can wear it proudly on your forehead all day if you\'d like. </br>We won\'t judge.',
-        '"Great job. Every accomplishment starts with the decision to try."</br> - That inspirational poster in your office',
-        'Wow you did really well. You also did good! Kind of like superman.'
-    ];
-    var messages = [
-            'Couldn’t have done it better myself.',
-            'Aren’t you proud of yourself? We are!',
-            'WOWZA. Even the sidewalks are impressed. Keep labeling!',
-            'Your auditing is out of this world.',
-            'Incredible. You\'re a machine! ...no wait, I am.',
-            'Ooh la la! Those accessibility labels are to die for.',
-            'We knew you had it in you all along. Great work!',
-            'The [mass x acceleration] is strong with this one. (Physics + Star Wars, get it?)',
-            'Hey, check out the reflection in your computer screen. That\'s what awesome looks like.',
-            'You. Are. Unstoppable. Keep it up!',
-            'Today you are Harry Potter\'s golden snitch. Your wings are made of awesome.',
-            'They say unicorns don\'t exist, but hey! We found you. Keep on keepin\' on.',
-            '"Uhhhhhhrr Ahhhhrrrrrrrrgggg " Translation: Awesome job! Keep going. - Chewbacca',
-            'You\'re seriously talented. You could go pro at this.',
-            'Forget Frodo, I would have picked you to take the one ring to Mordor. Great work!',
-            'You might actually be a wizard. These sidewalks are better because of you.'
-        ],
-        emojis = [' :D', ' :)', ' ;-)'],
-        message = messages[Math.floor(Math.random() * messages.length)] + emojis[Math.floor(Math.random() * emojis.length)];
-    this._uiModalMissionComplete.message.html(message);
-};
-
-ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, otherCount) {
+ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount) {
     this._uiModalMissionComplete.curbRampCount.html(curbRampCount);
     this._uiModalMissionComplete.noCurbRampCount.html(noCurbRampCount);
     this._uiModalMissionComplete.obstacleCount.html(obstacleCount);
     this._uiModalMissionComplete.surfaceProblemCount.html(surfaceProblemCount);
+    this._uiModalMissionComplete.noSidewalk.html(noSidewalkCount);
     this._uiModalMissionComplete.otherCount.html(otherCount);
 };

@@ -57,39 +57,19 @@ describe("StatusFieldMission module", function () {
         mission1 = new MissionMock();
         mission1.properties.label = "distance-mission";
         mission1.properties.distance = 304.8;
-        mission1.properties.distanceFt = 1000;
-        mission1.properties.distanceMi = 0.189394;
-        mission1.properties.auditDistance = 304.8;
-        mission1.properties.auditDistanceFt = 1000;
-        mission1.properties.auditDistanceMi = 0.189394;
 
         mission2 = new MissionMock();
         mission2.properties.label = "distance-mission";
         mission2.properties.distance = 609.6;
-        mission2.properties.distanceFt = 2000;
-        mission2.properties.distanceMi = 0.378787878787879;
-        mission2.properties.auditDistance =   mission2.properties.distance   - mission1.properties.distance;
-        mission2.properties.auditDistanceFt = mission2.properties.distanceFt - mission1.properties.distanceFt;
-        mission2.properties.auditDistanceMi = mission2.properties.distanceMi - mission1.properties.distanceMi;
 
 
         mission3 = new MissionMock();
         mission3.properties.label = "distance-mission";
         mission3.properties.distance = 1219.2;
-        mission3.properties.distanceFt = 4000;
-        mission3.properties.distanceMi = 0.757575757575757;
-        mission3.properties.auditDistance =   mission3.properties.distance   - mission2.properties.distance;
-        mission3.properties.auditDistanceFt = mission3.properties.distanceFt - mission2.properties.distanceFt;
-        mission3.properties.auditDistanceMi = mission3.properties.distanceMi - mission2.properties.distanceMi;
 
         mission4 = new MissionMock();
         mission4.properties.label = "distance-mission";
         mission4.properties.distance = 1609.344;
-        mission4.properties.distanceFt = 5280;
-        mission4.properties.distanceMi = 1;
-        mission4.properties.auditDistance =   mission4.properties.distance   - mission3.properties.distance;
-        mission4.properties.auditDistanceFt = mission4.properties.distanceFt - mission3.properties.distanceFt;
-        mission4.properties.auditDistanceMi = mission4.properties.distanceMi - mission3.properties.distanceMi;
     });
 
     describe("`setMessage` method", function () {
@@ -126,14 +106,9 @@ describe("StatusFieldMission module", function () {
 
     function MissionMock () {
         this.properties = {
-            auditDistance: null,
-            auditDistanceFt: null,
-            auditDistanceMi: null,
-            coverrage: null,
+            coverage: null,
             distance: null,
-            distanceFt: null,
-            distanceMi: null,
-            isCompleted: false,
+            isComplete: false,
             label: null,
             missionId: null
         };
@@ -147,7 +122,7 @@ describe("StatusFieldMission module", function () {
         this.properties[key] = value;
     };
 
-    MissionMock.prototype.isCompleted = function () {
-        return this.properties.isCompleted;
+    MissionMock.prototype.isComplete = function () {
+        return this.properties.isComplete;
     };
 });

@@ -2,6 +2,7 @@
  *
  * @param labelContainer
  * @param missionModel
+ * @param missionContainer
  * @param navigationModel
  * @param neighborhoodModel
  * @param panoramaContainer
@@ -13,7 +14,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function Form (labelContainer, missionModel, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
+function Form (labelContainer, missionModel, missionContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
     var properties = {
         dataStoreUrl : undefined
@@ -32,11 +33,22 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
     this.compileSubmissionData = function (task) {
         var data = {};
 
+        data.amt_assignment_id = svl.amtAssignmentId;
+
+        var mission = missionContainer.getCurrentMission();
+        mission.updateDistanceProgress();
+        data.mission = {
+            mission_id: mission.getProperty("missionId"),
+            distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
+            completed: mission.getProperty("isComplete"),
+            skipped: mission.getProperty("skipped")
+        };
+
         data.audit_task = {
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
             audit_task_id: task.getAuditTaskId(),
-            completed: task.isCompleted()
+            completed: task.isComplete()
         };
 
         data.environment = {
@@ -84,9 +96,11 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                 gsv_panorama_id : prop.panoId,
                 label_points : [],
                 severity: label.getProperty('severity'),
-                temporary_problem: label.getProperty('temporaryProblem'),
+                temporary_label: label.getProperty('temporaryLabel'),
+                tag_ids: label.getProperty('tagIds'),
                 description: label.getProperty('description'),
-                time_created: timeCreated
+                time_created: timeCreated,
+                tutorial: prop.tutorial
             };
 
             for (var j = 0, pathLen = points.length; j < pathLen; j += 1) {
@@ -152,32 +166,6 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
         return data;
     };
 
-
-    /**
-     * Post a json object
-     * @param url
-     * @param data
-     * @param callback
-     * @param async
-     */
-    this.postJSON = function (url, data, callback, async) {
-        if (!async) async = true;
-        $.ajax({
-            async: async,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            type: 'post',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function (result) {
-                if (callback) callback(result);
-            },
-            error: function (result) {
-                console.error(result);
-            }
-        });
-    };
-
     this._prepareSkipData = function (issueDescription) {
         var position = navigationModel.getPosition();
         return {
@@ -191,9 +179,13 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
         var data = self._prepareSkipData(skipReasonLabel);
 
         if (skipReasonLabel === "GSVNotAvailable") {
-            task.complete();
-            taskContainer.push(task);
+            taskContainer.endTask(task);
             util.misc.reportNoStreetView(task.getStreetEdgeId());
+        } else {
+            // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
+            var currTaskDist = util.math.kilometersToMeters(taskContainer.getCurrentTaskDistance());
+            var oldOffset = missionContainer.getTasksMissionsOffset();
+            missionContainer.setTasksMissionsOffset(oldOffset + currTaskDist);
         }
 
         task.eraseFromGoogleMaps();
@@ -215,6 +207,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
      * Submit the data collected so far and move to another location.
      *
      * @param dataIn An object that has issue_description, lat, and lng as fields.
+     * @param task
      * @returns {boolean}
      */
     this.skipSubmit = function (dataIn, task) {
@@ -257,6 +250,7 @@ function Form (labelContainer, missionModel, navigationModel, neighborhoodModel,
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
+                    if (result.mission) missionModel.createAMission(result.mission);
                 }
             },
             error: function (result) {

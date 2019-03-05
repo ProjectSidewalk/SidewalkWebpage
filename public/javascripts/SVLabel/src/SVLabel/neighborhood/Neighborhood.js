@@ -6,15 +6,12 @@
  * @memberof svl
  */
 function Neighborhood (parameters) {
-    var self = { className: "Neighborhood"},
-        properties = {
-            layer: null,
-            name: null,
-            regionId: null
-        },
-        status = {
-            layerAdded: false
-        };
+    var self = { className: "Neighborhood"};
+    var properties = {
+        layer: null,
+        name: null,
+        regionId: null
+    };
 
     /**
      * Initialize
@@ -31,19 +28,6 @@ function Neighborhood (parameters) {
     }
 
     /**
-     * Add a layer to the map
-     * @param map
-     */
-    function addTo(map, layerStyle) {
-        if (map && properties.layer && !status.layerAdded) {
-            layerStyle = {"color":"rgb(200,200,200)", "fill": false, "weight": 2 } || layerStyle;
-            status.layerAdded = true;
-            properties.layer.addTo(map);
-            properties.layer.setStyle(layerStyle);
-        }
-    }
-
-    /**
      * Return the center of this polygon
      * @returns {null}
      */
@@ -52,9 +36,9 @@ function Neighborhood (parameters) {
     }
     
     function completedLineDistance (unit) {
-        if (!unit) unit = "kilometers";
+        if (!unit) unit = {units: 'kilometers'};
         if ("taskContainer" in svl && svl.taskContainer) {
-            return svl.taskContainer.getCompletedTaskDistance(getProperty("regionId"), unit);
+            return svl.taskContainer.getCompletedTaskDistance(unit);
         } else {
             return null;
         }
@@ -72,10 +56,10 @@ function Neighborhood (parameters) {
         return this;
     }
 
-    function totalLineDistanceInARegion (unit) {
-        if (!unit) unit = "kilometers";
+    function totalLineDistanceInNeighborhood (unit) {
+        if (!unit) unit = {units: 'kilometers'};
         if ("taskContainer" in svl && svl.taskContainer) {
-            return svl.taskContainer.totalLineDistanceInARegion(getProperty("regionId"), unit);
+            return svl.taskContainer.totalLineDistanceInNeighborhood(unit);
         } else {
             return null;
         }
@@ -92,12 +76,11 @@ function Neighborhood (parameters) {
     }
     _init(parameters);
 
-    self.addTo = addTo;
     self.center = center;
     self.completedLineDistance = completedLineDistance;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
-    self.totalLineDistance = totalLineDistanceInARegion;
+    self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.getGeoJSON = getGeoJSON;
     return self;
 }

@@ -1,23 +1,19 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.{Calendar, Date, TimeZone, UUID}
+import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService}
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
 import formats.json.UserFormats._
 import forms.SignUpForm
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.daos.slick.UserDAOSlick
 import models.services.UserService
 import models.user._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
@@ -52,11 +48,11 @@ class SignUpController @Inject() (
    *
    * @return The result to display.
    */
-  def signUp(url: String) = Action.async { implicit request =>
+  def signUp(url: String) = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
@@ -65,21 +61,20 @@ class SignUpController @Inject() (
         // Check presence of user by username
         UserTable.find(data.username) match {
           case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
+            WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
           case None =>
 
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
-                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
+                WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
               case None =>
-                val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
                 val authInfo = passwordHasher.hash(data.password)
                 val user = User(
-                  userId = UUID.randomUUID(),
-                  loginInfo = loginInfo,
+                  userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
+                  loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
                   username = data.username,
                   email = data.email,
                   role = None
@@ -87,7 +82,7 @@ class SignUpController @Inject() (
 
                 for {
                   user <- userService.save(user)
-                  authInfo <- authInfoService.save(loginInfo, authInfo)
+                  authInfo <- authInfoService.save(user.loginInfo, authInfo)
                   authenticator <- env.authenticatorService.create(user.loginInfo)
                   value <- env.authenticatorService.init(authenticator)
                   result <- env.authenticatorService.embed(value, Future.successful(
@@ -95,12 +90,11 @@ class SignUpController @Inject() (
                   ))
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
-                  UserRoleTable.setRole(user.userId, "User")
+                  UserRoleTable.setRole(user.userId, "Registered")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
-                  val now = new DateTime(DateTimeZone.UTC)
-                  val timestamp: Timestamp = new Timestamp(now.getMillis)
+                  val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
@@ -114,11 +108,11 @@ class SignUpController @Inject() (
     )
   }
 
-  def postSignUp = Action.async { implicit request =>
+  def postSignUp = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.signUp(form))),
@@ -126,20 +120,20 @@ class SignUpController @Inject() (
         // Check presence of user by username
         UserTable.find(data.username) match {
           case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Username_Error", timestamp))
+            WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
             Future.successful(Status(409)("Username already exists"))
           case None =>
 
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
-                WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, "Duplicate_Email_Error", timestamp))
+                WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Status(409)("Email already exists"))
               case None =>
                 val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
                 val authInfo = passwordHasher.hash(data.password)
                 val user = User(
-                  userId = UUID.randomUUID(),
+                  userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
                   loginInfo = loginInfo,
                   username = data.username,
                   email = data.email,
@@ -156,12 +150,11 @@ class SignUpController @Inject() (
                   ))
                 } yield {
                   // Set the user role and assign the neighborhood to audit.
-                  UserRoleTable.setRole(user.userId, "User")
+                  UserRoleTable.setRole(user.userId, "Registered")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
 
                   // Add Timestamp
-                  val now = new DateTime(DateTimeZone.UTC)
-                  val timestamp: Timestamp = new Timestamp(now.getMillis)
+                  val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
@@ -176,11 +169,64 @@ class SignUpController @Inject() (
     )
   }
 
+  /**
+    * If there is no user signed in, an anon user with randomly generated username/password is created.
+    *
+    * @param url
+    * @return
+    */
+  def signUpAnon(url: String) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) => Future.successful(Redirect(url))
+      case None =>
+        val ipAddress: String = request.remoteAddress
+
+        // Generate random strings for anonymous username/email/password (keep trying if we make a duplicate).
+        var randomUsername: String = Random.alphanumeric take 16 mkString ""
+        while (UserTable.find(randomUsername).isDefined) randomUsername = Random.alphanumeric take 16 mkString ""
+        var randomEmail: String = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+        while (UserTable.findEmail(randomEmail).isDefined)
+          randomEmail = "anonymous@" + s"${Random.alphanumeric take 16 mkString ""}" + ".com"
+        val randomPassword: String = Random.alphanumeric take 16 mkString ""
+
+        val loginInfo = LoginInfo(CredentialsProvider.ID, randomEmail)
+        val authInfo = passwordHasher.hash(randomPassword)
+        val user = User(
+          userId = UUID.randomUUID(),
+          loginInfo = loginInfo,
+          username = randomUsername,
+          email = randomEmail,
+          role = None
+        )
+
+        for {
+          user <- userService.save(user)
+          authInfo <- authInfoService.save(loginInfo, authInfo)
+          authenticator <- env.authenticatorService.create(user.loginInfo)
+          value <- env.authenticatorService.init(authenticator)
+          result <- env.authenticatorService.embed(value, Future.successful(
+            Redirect(url)
+          ))
+        } yield {
+          // Set the user role.
+          UserRoleTable.setRole(user.userId, "Anonymous")
+
+          // Add Timestamp
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "AnonAutoSignUp", timestamp))
+
+          env.eventBus.publish(SignUpEvent(user, request, request2lang))
+          env.eventBus.publish(LoginEvent(user, request, request2lang))
+
+          result
+        }
+    }
+  }
+
   def turkerSignUp (hitId: String, workerId: String, assignmentId: String) = Action.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val anonymousUser: DBUser = UserTable.find("anonymous").get
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     var activityLogText: String = "Referrer=mturk"+ "_workerId=" + workerId + "_assignmentId=" + assignmentId + "_hitId=" + hitId
 
     UserTable.find(workerId) match {
@@ -232,8 +278,7 @@ class SignUpController @Inject() (
           UserCurrentRegionTable.assignEasyRegion(user.userId)
 
           // Add Timestamp
-          val now = new DateTime(DateTimeZone.UTC)
-          val timestamp: Timestamp = new Timestamp(now.getMillis)
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
@@ -260,9 +305,8 @@ class SignUpController @Inject() (
       UserCurrentRegionTable.assignEasyRegion(user.userId)
     }
 
-    // Add Timestamp
-    val now = new DateTime(DateTimeZone.UTC)
-    val timestamp: Timestamp = new Timestamp(now.getMillis)
+    // Log the sign in.
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
     // Logger.info(updatedAuthenticator.toString)

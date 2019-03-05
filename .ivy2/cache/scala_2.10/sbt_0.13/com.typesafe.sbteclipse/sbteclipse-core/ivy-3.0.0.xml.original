@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="com.typesafe.sbteclipse" module="sbteclipse-core" revision="3.0.0" status="release" publication="20150113171801" e:scalaVersion="2.10" e:sbtVersion="0.13">
+		<description>
+		sbteclipse-core
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+		
+		
+	</configurations>
+	<publications>
+		<artifact name="sbteclipse-core" type="jar" ext="jar" conf="compile"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.3" conf="provided->default(compile)"/>
+		<dependency org="org.scala-sbt" name="sbt" rev="0.13.0" conf="provided->default(compile)"/>
+		
+		
+		<dependency org="org.scalaz" name="scalaz-core_2.10" rev="7.0.2" conf="compile->default(compile)"/>
+		<dependency org="org.scalaz" name="scalaz-effect_2.10" rev="7.0.2" conf="compile->default(compile)"/>
+	</dependencies>
+</ivy-module>

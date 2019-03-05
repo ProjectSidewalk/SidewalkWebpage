@@ -29,7 +29,13 @@ function Tracker () {
         var prefix = "LowLevelEvent_";
 
         // track all mouse related events
-        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
+        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e, extra) {
+            if (extra) {
+                if (typeof extra.lowLevelLogging !== "undefined" && !extra.lowLevelLogging) { // {lowLevelLogging: false}
+                    return;
+                }
+            }
+
             self.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
                 cursorY: 'pageY' in e ? e.pageY : null
@@ -53,7 +59,7 @@ function Tracker () {
     };
 
     this._isContextMenuClose = function (action) {
-        return action.indexOf("ContextMenu_Close") >= 0 || action.indexOf("ContextMenu_OKButtonClick") >= 0;
+        return action === "ContextMenu_Close";
     };
 
     this._isDeleteLabelAction = function (action) {
@@ -153,11 +159,9 @@ function Tracker () {
             panoId = null;
         }
 
-        var now = new Date(),
-            timestamp = new Date().getTime();
-        // timestamp = now.getUTCFullYear() + "-" + (now.getUTCMonth() + 1) + "-" + now.getUTCDate() + " " + now.getUTCHours() + ":" + now.getUTCMinutes() + ":" + now.getUTCSeconds() + "." + now.getUTCMilliseconds();
+        var timestamp = new Date().getTime();
 
-        var item = {
+        return {
             action : action,
             gsv_panorama_id: panoId,
             lat: latlng.lat,
@@ -170,7 +174,6 @@ function Tracker () {
             audit_task_id: audit_task_id,
             timestamp: timestamp
         };
-        return item;
     };
 
     /**
@@ -179,10 +182,7 @@ function Tracker () {
      * @param extraData: (optional) extra data that should not be stored in the notes field in db
      */
     this.push = function (action, notes, extraData) {
-
-        //console.log("Task ID: " + currentAuditTask +" Current Label: " + currentLabel + " Action: " + action);
         if(self._isContextMenuAction(action) || self._isSeverityShortcutAction(action)) {
-
             var labelProperties = svl.contextMenu.getTargetLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);
@@ -193,10 +193,8 @@ function Tracker () {
             } else {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
-            //console.log("Current Label: " + currentLabel + " " + action);
 
         } else if (self._isDeleteLabelAction(action)){
-
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);

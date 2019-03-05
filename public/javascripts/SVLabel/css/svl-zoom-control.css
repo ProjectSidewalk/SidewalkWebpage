@@ -2,17 +2,18 @@
     background: transparent;
 
     position: absolute;
-    left: 453px;
-    top: 54px;
-    height: 50px;
-    width: 200px;
+    left: 558px;
+    top: 58px;
+    height: 55px;
+    width: 185px;
 }
 
 .zoom-control-button {
     color: rgba(0,0,0,1);
-    font-size: 11px;
-    height: 40px;
-    width: 72px;
+    font-size: 9px;
+    height: 36px;
+    width: 65px;
+    margin-right: 2px;
 }
 
 .zoom-button-icon {

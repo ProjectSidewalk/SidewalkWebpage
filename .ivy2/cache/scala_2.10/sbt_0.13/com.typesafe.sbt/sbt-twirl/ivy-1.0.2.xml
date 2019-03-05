@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="com.typesafe.sbt" module="sbt-twirl" revision="1.0.2" status="release" publication="20140615121249" e:scalaVersion="2.10" e:sbtVersion="0.13">
+		<description>
+		sbt-twirl
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+		
+		
+	</configurations>
+	<publications>
+		<artifact name="sbt-twirl" type="jar" ext="jar" conf="compile"/>
+		<artifact name="sbt-twirl" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+		<artifact name="sbt-twirl" type="doc" ext="jar" conf="docs" e:classifier="javadoc"/>
+	</publications>
+	<dependencies>
+		
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" conf="provided->default(compile)"/>
+		<dependency org="org.scala-sbt" name="sbt" rev="0.13.5" conf="provided->default(compile)"/>
+		<dependency org="com.typesafe.play" name="twirl-compiler_2.10" rev="1.0.2" conf="compile->default(compile)"/>
+		
+		
+		<dependency org="org.specs2" name="specs2_2.10" rev="2.3.11" conf="test->default(compile)"/>
+	</dependencies>
+</ivy-module>

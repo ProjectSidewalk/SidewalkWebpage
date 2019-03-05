@@ -1,0 +1,28 @@
+version: '3.5'
+
+services:
+
+  web:
+    image: projectsidewalk/web
+    container_name: projectsidewalk-web
+    build:
+      context: ./
+    depends_on:
+      - db
+    volumes:
+      - "./:/opt/"
+    ports:
+      - "127.0.0.1:9000:9000"
+    environment:
+      - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
+
+  db:
+    image: projectsidewalk/db
+    container_name: projectsidewalk-db
+    build:
+      context: ./db/
+    volumes:
+      - "./db/init.sh:/docker-entrypoint-initdb.d/init.sh"
+      - "./db:/opt"
+    ports:
+      - "5432:5432"

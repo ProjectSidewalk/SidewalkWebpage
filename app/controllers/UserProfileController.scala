@@ -1,22 +1,18 @@
 package controllers
 
 import javax.inject.Inject
-import java.util.UUID
 
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
+import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import formats.json.UserFormats._
 import formats.json.TaskFormats._
-import forms._
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
-import models.label.LabelTable
+import formats.json.MissionFormat._
+import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.mission.MissionTable
+import models.label.LabelTable
 import models.user.User
-import models.user.UserRoleTable
 import play.api.libs.json.{JsArray, JsObject, Json}
-import play.api.mvc.{BodyParsers, RequestHeader, Result}
 import play.extras.geojson
 
 
@@ -36,7 +32,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val username: String = user.username
         Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user))))
-      case None => Future.successful(Redirect("/"))
+      case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }
   }
 
@@ -45,7 +41,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val username: String = user.username
         Future.successful(Ok(views.html.previousAudit(s"Project Sidewalk - $username", Some(user))))
-      case None => Future.successful(Redirect("/"))
+      case None => Future.successful(Redirect("/anonSignUp?url=/contribution/previousAudit"))
     }
   }
 
@@ -64,8 +60,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
           val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
           val properties = Json.obj(
             "street_edge_id" -> edge.streetEdgeId,
-            "source" -> edge.source,
-            "target" -> edge.target,
             "way_type" -> edge.wayType
           )
           Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
@@ -87,8 +81,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
       val properties = Json.obj(
         "street_edge_id" -> edge.streetEdgeId,
-        "source" -> edge.source,
-        "target" -> edge.target,
         "way_type" -> edge.wayType
       )
       Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
@@ -117,10 +109,10 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     *
     * @return
     */
-  def getSubmittedTasksWithLabels = UserAwareAction.async { implicit request =>
+  def getMissions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(user.userId).map(x => Json.toJson(x))
+        val tasksWithLabels = MissionTable.selectMissions(user.userId).map(x => Json.toJson(x))
         Future.successful(Ok(JsArray(tasksWithLabels)))
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",
@@ -256,31 +248,5 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       "date" -> x.date, "count" -> x.count
     )))
     Future.successful(Ok(json))
-  }
-
-  def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
-    val missionCounts = MissionTable.selectMissionCountsPerUser
-    val json = Json.arr(missionCounts.map(x =>
-      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
-    ))
-    Future.successful(Ok(json))
-  }
-
-  def getTurkerCompletedMissionCounts = UserAwareAction.async { implicit request =>
-    val missionCounts = MissionTable.selectMissionCountsPerTurkerUser
-    val json = Json.arr(missionCounts.map(x =>
-      Json.obj("user_id" -> x._1, "count" -> x._2, "is_researcher" -> UserRoleTable.isResearcher(UUID.fromString(x._1)))
-    ))
-    Future.successful(Ok(json))
-  }
-
-  def isTurker = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val isTurker = user.role.getOrElse("") == "Turker"
-        Future.successful(Ok(Json.obj("isTurker" -> isTurker) ))
-      case _ =>
-        Future.successful(Ok(Json.obj("isTurker" -> false)))
-    }
   }
 }
