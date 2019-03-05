@@ -289,10 +289,10 @@ function UtilitiesMisc (JSON) {
                     keyChar: 'O'
                 },
                 tagInfo: {
-                    'trash can': {
+                    'trash/recycling can': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: 't<tag-underline>r</tag-underline>ash can',
+                        text: 't<tag-underline>r</tag-underline>ash/recycling can',
                         id: 'trashCan'
                     },
                     'fire hydrant': {
