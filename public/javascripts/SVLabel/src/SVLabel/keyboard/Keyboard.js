@@ -335,11 +335,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['missing friction strip']['keyNumber']: // 'f' for 'missing friction strip'
                                 $('.missingFrictionStrip-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['steep']['keyNumber']: // 't' for 'steep'
-                                $('.steep-tag').first().trigger("click", {lowLevelLogging: false});
-                                break;
-                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['not enough landing space']['keyNumber']: // 'l' for 'not enough landing space'
-                                $('.notEnoughLandingSpace-tag').first().trigger("click", {lowLevelLogging: false});
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['no landing space']['keyNumber']: // 'l' for 'no landing space'
+                                $('.noLandingSpace-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'NoCurbRamp') { // Missing Curb Ramp
