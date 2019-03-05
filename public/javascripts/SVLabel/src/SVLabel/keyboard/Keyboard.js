@@ -353,7 +353,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                     } else if (labelType === 'Obstacle') { // Obstacle in Path
                         switch (e.keyCode) {
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash can']['keyNumber']: // 'r' for 'trash can'
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash/recycling can']['keyNumber']: // 'r' for 'trash can'
                                 $('.trashCan-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['fire hydrant']['keyNumber']: // 'f' for 'fire hydrant'
