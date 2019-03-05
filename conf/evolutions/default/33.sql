@@ -1,6 +1,5 @@
 # --- !Ups
-
-UPDATE tag SET tag = 'trash/recycling can' WHERE tag = 'trash can';
+INSERT INTO tag (label_type_id, tag) VALUES ( 1, 'not enough landing space' );
 
 # --- !Downs
-UPDATE tag SET tag = 'trash can' WHERE tag = 'trash/recycling can';
+DELETE FROM tag WHERE tag = 'not enough landing space';
