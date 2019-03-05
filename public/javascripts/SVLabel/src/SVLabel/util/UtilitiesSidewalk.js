@@ -250,6 +250,12 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'T',
                         text: 's<tag-underline>t</tag-underline>eep',
                         id: 'steep'
+                    },
+                    'not enough landing space': {
+                        keyNumber: 76,
+                        keyChar: 'L',
+                        text: 'not enough <tag-underline>l</tag-underline>anding space',
+                        id: 'notEnoughLandingSpace'
                     }
                 }
             },
