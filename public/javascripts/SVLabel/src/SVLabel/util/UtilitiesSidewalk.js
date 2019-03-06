@@ -245,11 +245,11 @@ function UtilitiesMisc (JSON) {
                         text: 'missing <tag-underline>f</tag-underline>riction strip',
                         id: 'missingFrictionStrip'
                     },
-                    'no landing space': {
+                    'not enough landing space': {
                         keyNumber: 76,
                         keyChar: 'L',
-                        text: 'no <tag-underline>l</tag-underline>anding space',
-                        id: 'noLandingSpace'
+                        text: 'not enough <tag-underline>l</tag-underline>anding space',
+                        id: 'notEnoughLandingSpace'
                     }
                 }
             },
