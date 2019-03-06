@@ -46,9 +46,16 @@ function StatusField() {
         var prefix = createPrefix(labelType);
 
         // Centers and updates title top of the validation interface.
-        svv.ui.status.upperMenuTitle.html("Is this " + prefix + labelName.bold() + "?");
-        var offset = svv.ui.status.upperMenuTitle.width();
-        var width = (svv.canvasWidth - offset) / 2;
+        if (labelName === "No Sidewalk") {
+            svv.ui.status.upperMenuTitle.html("Should there be a " + "No Sidewalk".bold() + " label here?");
+        } else {
+            svv.ui.status.upperMenuTitle.html("Is this " + prefix + labelName.bold() + "?");
+        }
+        var offset = svv.ui.status.upperMenuTitle.width()
+            + $("#zoom-in-button").width()
+            + $("#zoom-out-button").width()
+            + $("#label-visibility-control-button").width();
+        var width = (svv.canvasWidth - offset) / 2 + $("#label-visibility-control-button").width();
         svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         // Changes text on on the status field (right side of the validation interface).
