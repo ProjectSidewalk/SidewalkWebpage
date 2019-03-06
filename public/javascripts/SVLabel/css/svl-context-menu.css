@@ -168,7 +168,7 @@
 #context-menu-tag-holder button {
     display: inline-block;
     position: inherit;
-    margin: 0px 0px 0px 0px;
+    margin: 0px 0px 3px 0px;
     padding: 2px 3px 2px 3px;
     border-radius: 5px;
     border: 1px solid rgb(200, 200, 200);
