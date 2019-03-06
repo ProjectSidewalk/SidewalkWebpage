@@ -1,5 +1,5 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
-    var numStates = 41;
+    var numStates = 42;
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
     var afterWalkPanoId = "PTHUzZqpLdS1nTixJMoDSw";
     var headingRanges = {
@@ -383,7 +383,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-2"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity === 2 ? "select-label-type-3" : "redo-rate-attribute-2"
+                return severity === 2 ? "tag-attribute-2" : "redo-rate-attribute-2"
             }
         },
         "redo-rate-attribute-2": {
@@ -410,7 +410,59 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-2"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity === 2 ? "select-label-type-3" : "redo-rate-attribute-2"
+                return severity === 2 ? "tag-attribute-2" : "redo-rate-attribute-2"
+            }
+        },
+        "tag-attribute-2": {
+            "properties": {
+                "action": "AddTag",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 2
+            },
+            "message": {
+                "message": 'Let\'s add the <span class="bold">"not enough landing space tag"</span> because there is ' +
+                    'not enough space for a wheelchair user to turn when they get to the top of the ramp.<br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                var completedRate = 11 / numStates;
+                statusModel.setMissionCompletionRate(completedRate);
+                statusModel.setProgressBar(completedRate);
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(23) && tags.length === 1 ? "select-label-type-3" : "redo-tag-attribute-2" // Where 23 is the tag_id of the "not enough landing space" tag
+            }
+        },
+        "redo-tag-attribute-2": {
+            "properties": {
+                "action": "RedoAddTag",
+                "labelType": "CurbRamp",
+                "minHeading": headingRanges["stage-2"][0],
+                "maxHeading": headingRanges["stage-2"][1],
+                "maxLabelCount": 1
+            },
+            "message": {
+                "message": 'Only the "not enough landing space" tag applies here, since the curb ramp has a ' +
+                    'friction strip, is not too narrow nor steep, and does not point into traffic. ' +
+                    'So add <span class="bold">only the "not enough landing space" tag.</span><br>' +
+                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2.gif" +
+                    '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
+                "position": "top-right",
+                "parameters": null
+            },
+            "panoId": panoId,
+            "annotations": null,
+            "transition": function () {
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
+                var tags = this.getProperty('tagIds');
+                return tags.includes(23) && tags.length === 1 ? "select-label-type-3" : "redo-tag-attribute-2" // Where 23 is the tag_id of the "not enough landing space" tag
             }
         },
         "select-label-type-3": {
@@ -441,7 +493,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 11 / numStates;
+                var completedRate = 12 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-3"});
@@ -479,7 +531,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 12 / numStates;
+                var completedRate = 13 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-3"});
@@ -508,12 +560,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 13 / numStates;
+                var completedRate = 14 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-3"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "tag-attribute-2" : "redo-rate-attribute-3"
+                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-3"
             }
         },
         "redo-rate-attribute-3": {
@@ -540,10 +592,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-3"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "tag-attribute-2" : "redo-rate-attribute-3"
+                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-3"
             }
         },
-        "tag-attribute-2": {
+        "tag-attribute-3": {
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoCurbRamp",
@@ -561,7 +613,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 14 / numStates;
+                var completedRate = 15 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
@@ -569,7 +621,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
             }
         },
-        "redo-tag-attribute-2": {
+        "redo-tag-attribute-3": {
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoCurbRamp",
@@ -590,7 +642,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
+                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-3" // Where 5 is the tag_id of the "alternate route present" tag
             }
         },
         "zoom-out": {
@@ -613,7 +665,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 15 / numStates;
+                var completedRate = 16 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "zoom-out"});
@@ -637,7 +689,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 16 / numStates;
+                var completedRate = 17 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-2"});
@@ -661,7 +713,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 17 / numStates;
+                var completedRate = 18 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-3"});
@@ -707,7 +759,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 18 / numStates;
+                var completedRate = 19 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4"});
@@ -760,13 +812,13 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 19 / numStates;
+                var completedRate = 20 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs"});
                 return "rate-severity-4";
             }, function () {
-                var completedRate = 19 / numStates;
+                var completedRate = 20 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-both-curbs"});
@@ -793,7 +845,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 20 / numStates;
+                var completedRate = 21 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4"});
@@ -854,7 +906,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 21 / numStates;
+                var completedRate = 22 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-5"});
@@ -891,7 +943,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 22 / numStates;
+                var completedRate = 23 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-5"});
@@ -917,7 +969,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 23 / numStates;
+                var completedRate = 24 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5"});
@@ -979,7 +1031,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 21 / numStates;
+                var completedRate = 22 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-4-after-5"});
@@ -1016,7 +1068,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 22 / numStates;
+                var completedRate = 23 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-4"});
@@ -1042,7 +1094,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 23 / numStates;
+                var completedRate = 24 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-4-after-5"});
@@ -1095,7 +1147,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 20 / numStates;
+                var completedRate = 21 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-5-goto-4"});
@@ -1157,7 +1209,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 24 / numStates;
+                var completedRate = 25 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-6"});
@@ -1193,7 +1245,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 25 / numStates;
+                var completedRate = 26 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "label-attribute-6"});
@@ -1222,12 +1274,12 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 26 / numStates;
+                var completedRate = 27 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-6"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-6"
+                return severity == 3 ? "tag-attribute-6" : "redo-rate-attribute-6"
             }
         },
         "redo-rate-attribute-6": {
@@ -1255,10 +1307,10 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "transition": function () {
                 tracker.push('Onboarding_Transition', {onboardingTransition: "redo-rate-attribute-6"});
                 var severity = parseInt(this.getAttribute("value"), 10);
-                return severity == 3 ? "tag-attribute-3" : "redo-rate-attribute-6"
+                return severity == 3 ? "tag-attribute-6" : "redo-rate-attribute-6"
             }
         },
-        "tag-attribute-3": {
+        "tag-attribute-6": {
             "properties": {
                 "action": "AddTag",
                 "labelType": "NoSidewalk",
@@ -1277,20 +1329,20 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-6"});
 
                 var tags = this.getProperty('tagIds');
                 var completedRate;
                 var nextState;
 
                 if (tags.includes(22)) { // Where 22 is the tag_id of the "street has no sidewalks" tag
-                    completedRate = 26 / numStates;
-                    nextState = "redo-tag-attribute-3"; // We have selected the wrong tag here, so we move to the redo state
-                } else if (tags.length < 2) {
                     completedRate = 27 / numStates;
-                    nextState = "tag-attribute-3"; // Keep this state, since we have one right tag, but not both
-                } else {
+                    nextState = "redo-tag-attribute-6"; // We have selected the wrong tag here, so we move to the redo state
+                } else if (tags.length < 2) {
                     completedRate = 28 / numStates;
+                    nextState = "tag-attribute-6"; // Keep this state, since we have one right tag, but not both
+                } else {
+                    completedRate = 29 / numStates;
                     nextState = "adjust-heading-angle-4"; // We have both right tags, so lets continue
                 }
                 statusModel.setMissionCompletionRate(completedRate);
@@ -1298,7 +1350,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 return nextState;
             }
         },
-        "redo-tag-attribute-3": {
+        "redo-tag-attribute-6": {
             "properties": {
                 "action": "RedoAddTag",
                 "labelType": "NoSidewalk",
@@ -1318,21 +1370,21 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-6"});
                 var tags = this.getProperty('tagIds');
 
                 var completedRate;
                 var nextState;
                 // Where 20 is the tag_id of the "ends abruptly" tag, and 21 is "street has sidewalk"
                 if (tags.includes(20) && tags.includes(21) && tags.length === 2) { // We are done
-                    completedRate = 28 / numStates;
+                    completedRate = 29 / numStates;
                     nextState = "adjust-heading-angle-4";
                 } else if (tags.includes(20) && !tags.includes(21) || !tags.includes(20) && tags.includes(21)) { // We have at least one correct tag
-                    completedRate = 27 / numStates;
-                    nextState = "redo-tag-attribute-3";
+                    completedRate = 28 / numStates;
+                    nextState = "redo-tag-attribute-6";
                 } else { // We don't have any correct tags
-                    completedRate = 26 / numStates;
-                    nextState = "redo-tag-attribute-3";
+                    completedRate = 27 / numStates;
+                    nextState = "redo-tag-attribute-6";
                 }
 
                 statusModel.setMissionCompletionRate(completedRate);
@@ -1359,7 +1411,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 29 / numStates;
+                var completedRate = 30 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', { onboardingTransition: "adjust-heading-angle-4" });
@@ -1393,7 +1445,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 29 / numStates;
+                var completedRate = 30 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "select-label-type-7"});
@@ -1430,7 +1482,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": [function () {
-                var completedRate = 30 / numStates;
+                var completedRate = 31 / numStates;
 
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
@@ -1458,7 +1510,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 31 / numStates;
+                var completedRate = 32 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "rate-severity-7"});
@@ -1511,7 +1563,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 32 / numStates;
+                var completedRate = 33 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "adjust-heading-angle-5"});
@@ -1537,7 +1589,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             },
             "panoId": panoId,
             "transition": function () {
-                var completedRate = 33 / numStates;
+                var completedRate = 34 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-1"});
@@ -1572,7 +1624,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 34 / numStates;
+                var completedRate = 35 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-2"});
@@ -1606,7 +1658,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
             ],
             "transition": function () {
-                var completedRate = 35 / numStates;
+                var completedRate = 36 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-3"});
@@ -1637,7 +1689,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "annotations": null,
             // okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
-                var completedRate = 36 / numStates;
+                var completedRate = 37 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-4"});
@@ -1684,7 +1736,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             ],
             okButtonText: "Yes! I see the missing curb ramps.",
             "transition": function () {
-                var completedRate = 37 / numStates;
+                var completedRate = 38 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-5"});
@@ -1733,7 +1785,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
 
             ],
             "transition": function () {
-                var completedRate = 38 / numStates;
+                var completedRate = 39 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "walk-6"});
@@ -1759,7 +1811,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 39 / numStates;
+                var completedRate = 40 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-1"});
@@ -1812,7 +1864,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 40 / numStates;
+                var completedRate = 41 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "instruction-2"});
@@ -1845,7 +1897,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": afterWalkPanoId,
             "annotations": null,
             "transition": function () {
-                var completedRate = 41 / numStates;
+                var completedRate = 42 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
                 tracker.push('Onboarding_Transition', {onboardingTransition: "outro"});
