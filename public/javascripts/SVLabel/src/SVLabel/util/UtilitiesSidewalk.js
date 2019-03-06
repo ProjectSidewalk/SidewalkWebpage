@@ -245,6 +245,12 @@ function UtilitiesMisc (JSON) {
                         text: 'missing <tag-underline>f</tag-underline>riction strip',
                         id: 'missingFrictionStrip'
                     },
+                    'steep': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>eep',
+                        id: 'steep'
+                    },
                     'not enough landing space': {
                         keyNumber: 76,
                         keyChar: 'L',
