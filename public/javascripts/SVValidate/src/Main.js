@@ -17,7 +17,7 @@ function Main (param) {
         NoCurbRamp: "Missing Curb Ramp",
         Obstacle: "Obstacle in Path",
         SurfaceProblem: "Surface Problem",
-        NoSidewalk: "Missing Sidewalk",
+        NoSidewalk: "No Sidewalk",
         Occlusion: "Occlusion"
     };
 
@@ -26,7 +26,7 @@ function Main (param) {
         2: "Missing Curb Ramp",
         3: "Obstacle in Path",
         4: "Surface Problem",
-        7: "Missing Sidewalk"
+        7: "No Sidewalk"
     };
 
     function _initUI() {
