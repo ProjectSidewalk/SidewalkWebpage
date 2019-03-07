@@ -91,7 +91,7 @@
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
-                <a href='@routes.ApplicationController.about' id="sidewalk-about-link">About Us</a> <br/>
+                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">About Us</a> <br/>
                 <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
                 <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
                 <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
@@ -194,6 +194,23 @@
                         console.error(result);
                     }
                 });
+
+                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+                if (link === "about") {
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify("Visit_About"),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                }
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
