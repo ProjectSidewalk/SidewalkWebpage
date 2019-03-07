@@ -20,6 +20,10 @@ RUN apt-get update && \
     libblas-dev \
     liblapack-dev \
     gfortran \
+    python-numpy \
+    python-pandas \
+    python-requests \
+    python-socksipy \
     sbt && \
   apt-get autoremove && \
   apt-get clean
