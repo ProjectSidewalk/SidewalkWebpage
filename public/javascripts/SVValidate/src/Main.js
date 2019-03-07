@@ -80,6 +80,9 @@ function Main (param) {
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
+        svv.ui.status.zoomInButton = $("#zoom-in-button");
+        svv.ui.status.zoomOutButton = $("#zoom-out-button");
+        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
 
         svv.ui.status.examples = {};
         svv.ui.status.examples.example1 = $("#example-image-1");

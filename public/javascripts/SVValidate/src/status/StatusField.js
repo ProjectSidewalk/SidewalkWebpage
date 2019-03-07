@@ -52,10 +52,10 @@ function StatusField() {
             svv.ui.status.upperMenuTitle.html("Is this " + prefix + labelName.bold() + "?");
         }
         var offset = svv.ui.status.upperMenuTitle.width()
-            + $("#zoom-in-button").width()
-            + $("#zoom-out-button").width()
-            + $("#label-visibility-control-button").width();
-        var width = (svv.canvasWidth - offset) / 2 + $("#label-visibility-control-button").width();
+            + svv.ui.status.zoomInButton.width()
+            + svv.ui.status.zoomOutButton.width()
+            + svv.ui.status.labelVisibilityControlButton.width();
+        var width = (svv.canvasWidth - offset) / 2 + svv.ui.status.labelVisibilityControlButton.width();
         svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         // Changes text on on the status field (right side of the validation interface).
