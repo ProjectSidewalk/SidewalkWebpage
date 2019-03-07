@@ -194,6 +194,23 @@
                         console.error(result);
                     }
                 });
+
+                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+                if (link === "about") {
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify("Visit_About"),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                }
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
