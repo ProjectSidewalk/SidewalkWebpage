@@ -137,24 +137,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns an about page.
-    *
-    * @return
-    */
-  def about = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_About", timestamp))
-        Future.successful(Ok(views.html.about("Project Sidewalk - About", Some(user))))
-      case None =>
-        Future.successful(Redirect("/anonSignUp?url=/about"))
-    }
-  }
-
-  /**
     * Returns a page saying that we do not yet support mobile devices.
     *
     * @return
