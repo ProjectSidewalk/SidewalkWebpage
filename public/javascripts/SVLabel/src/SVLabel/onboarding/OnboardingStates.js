@@ -616,9 +616,9 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 var completedRate = 15 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);
                 statusModel.setProgressBar(completedRate);
-                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "tag-attribute-3"});
                 var tags = this.getProperty('tagIds');
-                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-2" // Where 5 is the tag_id of the "alternate route present" tag
+                return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-3" // Where 5 is the tag_id of the "alternate route present" tag
             }
         },
         "redo-tag-attribute-3": {
@@ -640,7 +640,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
             "panoId": panoId,
             "annotations": null,
             "transition": function () {
-                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-2"});
+                tracker.push('Onboarding_Transition', {onboardingTransition: "redo-tag-attribute-3"});
                 var tags = this.getProperty('tagIds');
                 return tags.includes(5) && tags.length === 1 ? "zoom-out" : "redo-tag-attribute-3" // Where 5 is the tag_id of the "alternate route present" tag
             }
