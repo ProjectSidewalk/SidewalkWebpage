@@ -338,6 +338,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['steep']['keyNumber']: // 't' for 'steep'
                                 $('.steep-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['not enough landing space']['keyNumber']: // 'l' for 'not enough landing space'
+                                $('.notEnoughLandingSpace-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
                         }
                     } else if (labelType === 'NoCurbRamp') { // Missing Curb Ramp
                         switch (e.keyCode) {
@@ -353,7 +356,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         }
                     } else if (labelType === 'Obstacle') { // Obstacle in Path
                         switch (e.keyCode) {
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash can']['keyNumber']: // 'r' for 'trash can'
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash/recycling can']['keyNumber']: // 'r' for 'trash can'
                                 $('.trashCan-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['fire hydrant']['keyNumber']: // 'f' for 'fire hydrant'

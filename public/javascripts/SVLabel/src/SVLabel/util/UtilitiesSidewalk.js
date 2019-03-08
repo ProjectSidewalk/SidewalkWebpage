@@ -250,6 +250,12 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'T',
                         text: 's<tag-underline>t</tag-underline>eep',
                         id: 'steep'
+                    },
+                    'not enough landing space': {
+                        keyNumber: 76,
+                        keyChar: 'L',
+                        text: 'not enough <tag-underline>l</tag-underline>anding space',
+                        id: 'notEnoughLandingSpace'
                     }
                 }
             },
@@ -289,10 +295,10 @@ function UtilitiesMisc (JSON) {
                     keyChar: 'O'
                 },
                 tagInfo: {
-                    'trash can': {
+                    'trash/recycling can': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: 't<tag-underline>r</tag-underline>ash can',
+                        text: 't<tag-underline>r</tag-underline>ash/recycling can',
                         id: 'trashCan'
                     },
                     'fire hydrant': {

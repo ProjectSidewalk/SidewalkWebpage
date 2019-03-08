@@ -98,17 +98,17 @@ function StatusPopupDescriptions () {
             case "example-image-2":
                 return "This is an abruptly ending sidewalk";
             case "example-image-3":
-                return "This street is missing a sidewalk";
+                return "This street is has no sidewalk";
             case "example-image-4":
-                return "This intersection is missing a sidewalk";
+                return "This intersection is has no sidewalk";
             case "counterexample-image-1":
-                return "Narrow sidewalks should not be labeled as missing sidewalks";
+                return "Narrow sidewalks should not be labeled as no sidewalk";
             case "counterexample-image-2":
-                return "Driveways should not be labeled as missing sidewalks";
+                return "Driveways should not be labeled as no sidewalk";
             case "counterexample-image-3":
-                return "Traffic medians should not be labeled as missing sidewalks";
+                return "Traffic medians should not be labeled as no sidewalk";
             case "counterexample-image-4":
-                return "Alleyways and side streets should not be labeled as missing sidewalks";
+                return "Alleyways and side streets should not be labeled as no sidewalk";
         }
     }
 

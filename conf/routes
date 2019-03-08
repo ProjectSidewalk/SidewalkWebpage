@@ -7,7 +7,6 @@ GET     /                                                    @controllers.Applic
 POST    /                                                    controllers.TeaserController.teaserPost
 
 GET     /home                                                @controllers.ApplicationController.index
-GET     /about                                               @controllers.ApplicationController.about
 GET     /api                                                 @controllers.ApplicationController.developer
 GET     /developer                                           @controllers.ApplicationController.developer
 GET     /terms                                               @controllers.ApplicationController.terms

@@ -39,7 +39,7 @@ def cluster(labels, curr_type, thresholds, single_user):
     cluster_list = [] # list of tuples (label_type, cluster_num, lat, lng, severity, temporary).
     for clust_num, clust in clusters:
         ave_pos = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
-        ave_sev = None if pd.isnull(clust['severity']).all() else int(round(np.nanmedian(clust['severity'])))
+        ave_sev = None if pd.isnull(clust['severity']).all() else int(round(np.median(clust['severity'][~np.isnan(clust['severity'])])))
         ave_temp = None if pd.isnull(clust['temporary']).all() else bool(round(np.mean(clust['temporary'])))
 
         cluster_list.append((curr_type, clust_num, ave_pos[0], ave_pos[1], ave_sev, ave_temp))
@@ -204,10 +204,10 @@ if __name__ == '__main__':
                   " -> " + str(cluster_output[cluster_output.label_type == label_type].cluster.nunique())
 
     # Convert to JSON.
-    cluster_json = cluster_output.to_json(orient='records', lines=False)
-    label_json = label_output.to_json(orient='records', lines=False)
+    cluster_json = cluster_output.to_json(orient='records')
+    label_json = label_output.to_json(orient='records')
     threshold_json = pd.DataFrame({'label_type': thresholds.keys(),
-                                   'threshold': thresholds.values()}).to_json(orient='records', lines=False)
+                                   'threshold': thresholds.values()}).to_json(orient='records')
     output_json = json.dumps({'thresholds': json.loads(threshold_json),
                               'labels': json.loads(label_json),
                               'clusters': json.loads(cluster_json)})
