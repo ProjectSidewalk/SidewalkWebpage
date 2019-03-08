@@ -59,7 +59,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setView([data.city_center.lat, data.city_center.lng]);
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
-        choropleth.setZoom(data.default_zoom);
     });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
@@ -300,7 +299,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             // Calculate total distance audited in (km)
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.lineDistance(data.features[i]);
+                distanceAudited += turf.length(data.features[i]);
             }
             // document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
         });
@@ -461,7 +460,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabel();
+        self.adminGSVLabelView = AdminGSVLabelView();
+    }
+
+    function initializeAdminLabelSearch() {
+        self.adminLabelSearch = AdminLabelSearch();
     }
 
     function initializeLabelTable() {
@@ -1074,7 +1077,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Index", function(clickStartExploringMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Referrer=mturk", function(turkerRedirectEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartExploringNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 // TODO switch this to make use of versioning on the backend once it is implemented...
                 // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
@@ -1087,7 +1092,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var numChoroplethClicks = choroplethClickEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
-                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].filter(function(event){
+                var numTurkerRedirects = turkerRedirectEvents[0].filter(function(event){
+                    return event.timestamp > 1500584520000;
+                }).length;
+                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].concat(clickStartExploringNavIndexEvents[0]).filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
 
@@ -1110,10 +1118,18 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 );
                 $("#audit-access-table-choro").append(
                     '<td style="text-align: right;">'+
-                        numChoroplethClicks+
+                    numChoroplethClicks+
                     '</td>'+
                     '<td style="text-align: right;">'+
-                        (parseInt(numChoroplethClicks)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
+                    (parseInt(numChoroplethClicks)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
+                    '</td>'
+                );
+                $("#audit-access-table-turker").append(
+                    '<td style="text-align: right;">'+
+                    numTurkerRedirects+
+                    '</td>'+
+                    '<td style="text-align: right;">'+
+                    (parseInt(numTurkerRedirects)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
                     '</td>'
                 );
                 $("#audit-access-table-total").append(
@@ -1124,6 +1140,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         '100.0%'+
                     '</td>'
                 );
+            });
+            });
             });
             });
             });
@@ -1166,6 +1184,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     initializeLabelTable();
     initializeAdminGSVLabelView();
+    initializeAdminLabelSearch();
 
     self.clearMap = clearMap;
     self.redrawLabels = redrawLabels;

@@ -1,4 +1,4 @@
-function AdminGSVLabel() {
+function AdminGSVLabelView() {
     var self = {};
 
     var _init = function() {

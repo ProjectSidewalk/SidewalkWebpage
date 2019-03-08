@@ -1,4 +1,5 @@
 @import models.user.User
+@import models.user.VersionTable
 @(title: String, url: Option[String] = Some("/"))(content: Html)
 
 
@@ -32,7 +33,7 @@
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=3.31&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@VersionTable.getGoogleMapsAPIKey()&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
@@ -78,7 +79,7 @@
           <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
           <a href="http://www.umd.edu/">University of Maryland</a> and
               <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-          <span id="application-version"></span>
+          <span id="application-version">@VersionTable.currentVersionStr()</span>
         </div>
 
     } else{
@@ -90,7 +91,7 @@
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
-                <a href='@routes.ApplicationController.about' id="sidewalk-about-link">About Us</a> <br/>
+                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">About Us</a> <br/>
                 <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
                 <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
                 <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
@@ -143,7 +144,7 @@
         <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
         <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
         <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-        <span id="application-version"></span>
+        <span id="application-version">@VersionTable.currentVersionStr()</span>
     </div>
 
   }
@@ -193,6 +194,23 @@
                         console.error(result);
                     }
                 });
+
+                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+                if (link === "about") {
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify("Visit_About"),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                }
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable

@@ -34,13 +34,13 @@ function Label(params) {
     };
 
     var icons = {
-        CurbRamp : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png',
-        NoCurbRamp : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
-        Obstacle : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png',
-        SurfaceProblem : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png',
-        Other : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        Occlusion : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        NoSidewalk : 'assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
+        CurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png',
+        NoCurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
+        Obstacle : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png',
+        SurfaceProblem : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png',
+        Other : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
+        Occlusion : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
+        NoSidewalk : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
     };
 
     // Labels are circles with a 10px radius.
@@ -185,18 +185,21 @@ function Label(params) {
             // Agree option selected.
             case "Agree":
                 setValidationProperty("validationResult", 1);
+                svv.missionContainer.getCurrentMission().updateValidationResult(1);
                 svv.labelContainer.push(getValidationProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
                 setValidationProperty("validationResult", 2);
+                svv.missionContainer.getCurrentMission().updateValidationResult(2);
                 svv.labelContainer.push(getValidationProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Not sure option selected.
             case "NotSure":
                 setValidationProperty("validationResult", 3);
+                svv.missionContainer.getCurrentMission().updateValidationResult(3);
                 svv.labelContainer.push(getValidationProperties());
                 svv.missionContainer.updateAMission();
                 break;
