@@ -17,7 +17,7 @@ function Main (param) {
         NoCurbRamp: "Missing Curb Ramp",
         Obstacle: "Obstacle in Path",
         SurfaceProblem: "Surface Problem",
-        NoSidewalk: "Missing Sidewalk",
+        NoSidewalk: "No Sidewalk",
         Occlusion: "Occlusion"
     };
 
@@ -26,7 +26,7 @@ function Main (param) {
         2: "Missing Curb Ramp",
         3: "Obstacle in Path",
         4: "Surface Problem",
-        7: "Missing Sidewalk"
+        7: "No Sidewalk"
     };
 
     function _initUI() {
@@ -80,6 +80,9 @@ function Main (param) {
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
+        svv.ui.status.zoomInButton = $("#zoom-in-button");
+        svv.ui.status.zoomOutButton = $("#zoom-out-button");
+        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
 
         svv.ui.status.examples = {};
         svv.ui.status.examples.example1 = $("#example-image-1");
