@@ -66,7 +66,7 @@ function Keyboard(menuUI) {
                             keyCode: e.keyCode
                         });
                     } else {
-                        svv.labelVisibilityControl.unhideLabel()
+                        svv.labelVisibilityControl.unhideLabel();
                         svv.tracker.push("KeyboardShortcut_UnhideLabel", {
                             keyCode: e.keyCode
                         });
