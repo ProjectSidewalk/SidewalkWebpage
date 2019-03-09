@@ -822,10 +822,8 @@
         svl.userModel._user = svl.user;
         var hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-            var asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
-            var now = new Date().getTime();
-            var timeRemaining = asmtEndTime - now;
-            if (timeRemaining < 0) {
+            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            if (msRemaining < 0) {
                 hitExpired = true;
             }
         }
@@ -968,7 +966,6 @@
                 @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                    svl.asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                     @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
