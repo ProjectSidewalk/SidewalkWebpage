@@ -1,13 +1,13 @@
-#upper-menu-holder {
-    position: absolute;
-    top: 0px;
-    width: 730px;
-    height: 70px;
-}
 #upper-menu-title-bar {
-    position: center;
-    top: 50px;
-    font-size: 50px;
+    font-size: 40px;
+    color: white;
+    top: -10px;
+    width: 700px;
+}
+
+#title-bar-holder {
+    position: absolute;
+    left: 0px;
 }
 
 #svv-panorama-holder {
@@ -22,6 +22,7 @@
     left: -100px;
     height: 90px;
     width: 730px;
+    z-index: 1;
 }
 
 /* Put buttons here */
@@ -38,22 +39,21 @@
 
 #validation-agree-button {
     background-color: #78C8AB;
-    text-color: white;
+    color: #2C293E;
 }
 
 #validation-disagree-button {
     background-color: #EB7350;
-    text-color: white;
+    color: #2C293E;
 }
 
 #validation-not-sure-button {
     background-color: #FDD68D;
-    margin-right: 0px;
-    text-color: white;
+    color: #2C293E;
 }
 
 #status-current-mission-completion-bar {
-    height: 40px;
+    height: 50px;
     width: 190px;
     left: 0px;
     top: 0px;
@@ -61,11 +61,47 @@
 
 #status-current-mission-completion-bar-filler {
     border-width: 0;
-    height: 40px;
+    height: 50px;
     position: absolute;
     width: 190px;
 }
 
 #status-current-mission-completion-rate {
-    font-size: 20pt;
+    font-size: 25pt;
+    width: 190px;
+}
+
+body {
+    background-color: #2C293E;
+}
+
+#info-button {
+    background: transparent;
+    position: absolute;
+    left: 750px;
+    top: -10px;
+    height: 50px;
+    width: 70px;
+}
+
+#back-button {
+    background: transparent;
+    position: absolute;
+    left: -20px;
+    top: -20px;
+    height: 55px;
+    width: 120px;
+}
+
+#skip-button {
+    background: transparent;
+    position: absolute;
+    left: 900px;
+    top: -20px;
+    height: 55px;
+    width: 100px;
+}
+
+.validation-button {
+    height: 100px;
 }

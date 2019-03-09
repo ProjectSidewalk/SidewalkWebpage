@@ -6,7 +6,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Mission, labelList: JsValue)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], hasNextMission: Boolean)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
@@ -51,41 +51,42 @@
             });
     </script>
 
-    <div class="status-box">
-        <div id='status-current-mission-completion-bar'>
-            <div id='status-current-mission-completion-bar-filler'>
-                <div id='status-current-mission-completion-rate'></div>
-            </div>
+    <div id='status-current-mission-completion-bar'>
+        <div id='status-current-mission-completion-bar-filler'>
+            <div id='status-current-mission-completion-rate'></div>
         </div>
-        <br class="clear">
     </div>
+    <br class="clear">
 
-    <div id="svv-panorama-holder">
-            <div id="svv-panorama-outline">
-                <div id="svv-panorama">
-
-                </div>
-            </div>
-    </div>
-
-    <div id="upper-menu-holder">
+    <div id="title-bar-holder">
+        <button id="back-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>
         <div id="upper-menu-title-bar"></div>
+        <button id="info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
+        <button id="skip-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'></button>
 
     </div>
 
-    <div id="validation-button-holder">
-        <button id="validation-disagree-button" class="validation-button">
-            <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
-            <u>D</u>isagree
-        </button>
-        <button id="validation-not-sure-button" class="validation-button">
-            <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
-            <u>N</u>ot sure
-        </button>
-        <button id="validation-agree-button" class="validation-button">
-            <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
-            <u>A</u>gree
-        </button>
+    <div id="mobile-viewer">
+        <div id="svv-panorama-holder">
+                <div id="svv-panorama-outline">
+                    <div id="svv-panorama">
+                    </div>
+                </div>
+        </div>
+        <div id="validation-button-holder">
+            <button id="validation-disagree-button" class="validation-button">
+                <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
+                <u>D</u>isagree
+            </button>
+            <button id="validation-not-sure-button" class="validation-button">
+                <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
+                <u>N</u>ot sure
+            </button>
+            <button id="validation-agree-button" class="validation-button">
+                <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
+                <u>A</u>gree
+            </button>
+        </div>
     </div>
 
     <!-- resize elements based on phone size -->
@@ -94,39 +95,43 @@
             var w = window.innerWidth;
             document.getElementById("validation-button-holder").style.top = h - 200 + "px";
             document.getElementById("validation-button-holder").style.width = w + "px";
-            document.getElementById("validation-agree-button").style.width = w/3-10 + "px";
-            document.getElementById("validation-disagree-button").style.width = w/3-10 + "px";
-            document.getElementById("validation-not-sure-button").style.width = w/3-10 + "px";
+            document.getElementById("validation-agree-button").style.width = w/3-30 + "px";
+            document.getElementById("validation-disagree-button").style.width = w/3-30 + "px";
+            document.getElementById("validation-not-sure-button").style.width = w/3-30 + "px";
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
+            document.getElementById("status-current-mission-completion-rate").style.width = w + "px";
     </script>
 
     <script type="text/javascript">
-            // init();
             var svv = svv || {};
             var param = {};
 
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
-            param.mission = @Html(mission.toJSON.toString);
-            param.labelList = @Html(labelList.toString);
+            param.hasNextMission = @hasNextMission;
 
-            // Initializes an object of labels from label metadata.
-            // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-            Object.keys(param.labelList).map(function(key, index) {
-                var labelMetadata = {
-                    canvasHeight: param.labelList[key].canvas_height,
-                    canvasWidth: param.labelList[key].canvas_width,
-                    canvasX: param.labelList[key].canvas_x,
-                    canvasY: param.labelList[key].canvas_y,
-                    gsvPanoramaId: param.labelList[key].gsv_panorama_id,
-                    heading: param.labelList[key].heading,
-                    labelId: param.labelList[key].label_id,
-                    labelType: param.labelList[key].label_type,
-                    pitch: param.labelList[key].pitch,
-                    zoom: param.labelList[key].zoom
-                };
-                param.labelList[key] = new Label(labelMetadata);
-            });
+            if (@hasNextMission) {
+                param.mission = @Html(mission.getOrElse("\"\"").toString);
+                param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+
+                // Initializes an object of labels from label metadata.
+                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+                Object.keys(param.labelList).map(function (key, index) {
+                    var labelMetadata = {
+                        canvasHeight: param.labelList[key].canvas_height,
+                        canvasWidth: param.labelList[key].canvas_width,
+                        canvasX: param.labelList[key].canvas_x,
+                        canvasY: param.labelList[key].canvas_y,
+                        gsvPanoramaId: param.labelList[key].gsv_panorama_id,
+                        heading: param.labelList[key].heading,
+                        labelId: param.labelList[key].label_id,
+                        labelType: param.labelList[key].label_type,
+                        pitch: param.labelList[key].pitch,
+                        zoom: param.labelList[key].zoom
+                    };
+                    param.labelList[key] = new Label(labelMetadata);
+                });
+            }
 
             svv.main = new Main(param);
 
