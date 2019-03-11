@@ -371,9 +371,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @param keyValPairs
     * @return
     */
-  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async { implicit request =>
+  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)) {
-      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8"))
+      // YES, we decode twice. This solves an issue with routing on the test/production server. Admin.js encodes twice.
+      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
       val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
       Future.successful(Ok(Json.arr(activities)))
     } else {
