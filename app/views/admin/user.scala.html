@@ -153,10 +153,10 @@
                     <tr>
                         <td class="col-md-2">@mission.missionId</td>
                         <td class="col-md-2">@mission.missionType</td>
-                        <td class="col-md-1">@mission.regionId</td>
-                        <td class="col-md-2">@mission.regionName</td>
-                        <td class="col-md-3">@("%1.1f".format(mission.distanceMeters.getOrElse(0))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
-                        <th class="col-md-2">@mission.labelsValidated.getOrElse(0)</th>
+                        <td class="col-md-1">@mission.regionId.map(_.toString).getOrElse("N/A")</td>
+                        <td class="col-md-2">@mission.regionName.getOrElse("N/A")</td>
+                        <td class="col-md-3">@("%1.1f".format(mission.distanceMeters.getOrElse(0F))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
+                        <td class="col-md-2">@mission.labelsValidated.getOrElse(0)</td>
                     </tr>
                 }
                 </tbody>
