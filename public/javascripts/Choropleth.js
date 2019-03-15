@@ -48,10 +48,10 @@ function Choropleth(_, $, turf, difficultRegionIds) {
                             p > 60 ? '#2171b5' :
                                 p > 50 ? '#4292c6' :
                                     p > 40 ? '#6baed6' :
-                                        p > 30 ? '#9ecae1' :
-                                            p > 20 ? '#c6dbef' :
-                                                p > 10 ? '#deebf7' :
-                                                    '#f7fbff';
+                                        p > 30 ? '#82badb' :
+                                            p > 20 ? '#9ecae1' :
+                                                p > 10 ? '#b3d3e8' :
+                                                    '#c6dbef';
     }
 
     /**
