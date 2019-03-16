@@ -61,7 +61,7 @@
     <div id="title-bar-holder">
         <button id="back-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>
         <div id="upper-menu-title-bar"></div>
-        <button id="info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
+        <button id="info-button" class="button info-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
         <!---<button id="skip-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'></button>-->
         <button id="left-column-jump-button">
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
@@ -98,6 +98,13 @@
                 <button class="button" id="modal-mission-close-button">OK</button>
             </div>
         </div>
+        <div id="modal-info-holder">
+            <div id="modal-info-background" class="modal-background"></div>
+            <div id="modal-info-foreground" class="modal-foreground">
+                <h1 id="modal-info-header" class="text-center"></h1>
+                <button class="button" id="modal-info-close-button">OK</button>
+            </div>
+        </div>
     </div>
 
     <!-- resize elements based on phone size -->
@@ -122,6 +129,9 @@
             //resize mission start popup
             document.getElementById("modal-mission-foreground").style.width = w + "px";
             document.getElementById("modal-mission-foreground").style.height = h + "px";
+            //resize modal info panel
+            document.getElementById("modal-info-foreground").style.width = w + "px";
+            document.getElementById("modal-info-foreground").style.height = h + "px";
 
     </script>
 
