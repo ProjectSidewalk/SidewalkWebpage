@@ -62,7 +62,10 @@
         <button id="back-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>
         <div id="upper-menu-title-bar"></div>
         <button id="info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
-        <button id="skip-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'></button>
+        <!---<button id="skip-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'></button>-->
+        <button id="left-column-jump-button">
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
+        </button>
 
     </div>
 
@@ -87,20 +90,39 @@
                 <u>A</u>gree
             </button>
         </div>
+        <div id="modal-mission-holder">
+            <div id="modal-mission-background" class="modal-background"></div>
+            <div id="modal-mission-foreground" class="modal-foreground">
+                <h1 id="modal-mission-header" class="text-center"></h1>
+                <div id="modal-mission-instruction"></div>
+                <button class="button" id="modal-mission-close-button">OK</button>
+            </div>
+        </div>
     </div>
 
     <!-- resize elements based on phone size -->
     <script>
             var h = window.innerHeight;
             var w = window.innerWidth;
+
+            //change validation button position
             document.getElementById("validation-button-holder").style.top = h - 200 + "px";
             document.getElementById("validation-button-holder").style.width = w + "px";
             document.getElementById("validation-agree-button").style.width = w/3-30 + "px";
             document.getElementById("validation-disagree-button").style.width = w/3-30 + "px";
             document.getElementById("validation-not-sure-button").style.width = w/3-30 + "px";
+            //scale progress bar
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
             document.getElementById("status-current-mission-completion-rate").style.width = w + "px";
+            //resize button elements
+            document.getElementById("title-bar-holder").style.width = w + "px";
+            document.getElementById("left-column-jump-button").style.left = w - 75 + "px";
+            document.getElementById("info-button").style.left = w - 150 + "px";
+            //resize mission start popup
+            document.getElementById("modal-mission-foreground").style.width = w + "px";
+            document.getElementById("modal-mission-foreground").style.height = h + "px";
+
     </script>
 
     <script type="text/javascript">
