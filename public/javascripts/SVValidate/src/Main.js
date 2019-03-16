@@ -56,7 +56,7 @@ function Main (param) {
         svv.ui.modalInfo.holder = $("#modal-info-holder");
         svv.ui.modalInfo.foreground = $("#modal-info-foreground");
         svv.ui.modalInfo.background = $("#modal-info-background");
-        svv.ui.modalInfo.missionTitle = $("#modal-info-header");
+        svv.ui.modalInfo.infoHeader = $("#modal-info-header");
         svv.ui.modalInfo.closeButton = $("#modal-info-close-button");
         svv.ui.modalInfo.infoButton = $("#info-button");
 
@@ -131,7 +131,6 @@ function Main (param) {
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo);
-        console.log(svv.modalInfo);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
         svv.missionContainer = new MissionContainer();
