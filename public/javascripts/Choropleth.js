@@ -78,7 +78,7 @@ function Choropleth(_, $, turf, difficultRegionIds) {
                         weight: 1,
                         opacity: 0.25,
                         fillColor: getColor(100.0 * rates[i].rate),
-                        fillOpacity: 0.25 + (0.5 * rates[i].rate)
+                        fillOpacity: 0.35 + (0.4 * rates[i].rate)
                     }
                 }
             }
