@@ -142,16 +142,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function getColor(p) {
         //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
         return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
-                p > 90 ? '#08306b' :
-                    p > 80 ? '#08519c' :
-                        p > 70 ? '#08719c' :
-                            p > 60 ? '#2171b5' :
-                                p > 50 ? '#4292c6' :
-                                    p > 40 ? '#6baed6' :
-                                        p > 30 ? '#9ecae1' :
-                                            p > 20 ? '#c6dbef' :
-                                                p > 10 ? '#deebf7' :
-                                                    '#f7fbff';
+            p > 90 ? '#08306b' :
+                p > 80 ? '#08519c' :
+                    p > 70 ? '#08719c' :
+                        p > 60 ? '#2171b5' :
+                            p > 50 ? '#4292c6' :
+                                p > 40 ? '#6baed6' :
+                                    p > 30 ? '#82badb' :
+                                        p > 20 ? '#9ecae1' :
+                                            p > 10 ? '#b3d3e8' :
+                                                '#c6dbef';
     }
 
     /**
@@ -177,7 +177,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         weight: 1,
                         opacity: 0.25,
                         fillColor: getColor(rates[i].rate),
-                        fillOpacity: 0.25 + (0.5 * rates[i].rate / 100.0)
+                        fillOpacity: 0.35 + (0.4 * rates[i].rate / 100.0)
                     }
                 }
             }
