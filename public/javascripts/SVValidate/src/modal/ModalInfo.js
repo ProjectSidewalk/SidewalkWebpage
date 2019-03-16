@@ -9,11 +9,13 @@ function ModalInfo (uiModal) {
     var self = this;
 
     var infoHeaderHTML = '<p>What is a __LABELTYPE_PLACEHOLDER__?</p>';
+    var descriptionHTML = '<p>__DESCRIPTION_PLACEHOLDER__</p>';
 
     function _handleButtonClick() {
         svv.tracker.push("ModalInfo_ClickOK");
         hide();
     }
+
 
     function hide () {
         uiModal.background.css('visibility', 'hidden');
@@ -23,6 +25,8 @@ function ModalInfo (uiModal) {
 
     function setMissionInfo(mission) {
         infoHeaderHTML = infoHeaderHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
+        descriptionHTML = descriptionHTML.replace("__DESCRIPTION_PLACEHOLDER__", mission.getLabelTypeDescription(mission.getProperty("labelTypeId")));
+        console.log(mission.getLabelTypeDescription(mission.getProperty("labelTypeId")));
     }
 
     function show () {
@@ -30,7 +34,8 @@ function ModalInfo (uiModal) {
         uiModal.holder.css('visibility', 'visible');
         uiModal.foreground.css('visibility', 'visible');
         uiModal.infoHeader.html(infoHeaderHTML);
-        uiModal.closeButton.html('Ok');
+        uiModal.description.html(descriptionHTML);
+        uiModal.closeButton.html('X');
         uiModal.closeButton.on('click', _handleButtonClick);
     }
 

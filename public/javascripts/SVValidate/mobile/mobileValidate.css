@@ -114,7 +114,7 @@ body {
     top: 0px;
     left: 0;
     right: 0;
-    padding: 10px;
+    padding: 0px;
     height: 525px;
     background: rgba(255, 255, 255, 1);
     color: rgba(80, 80, 80, 1);
@@ -142,12 +142,17 @@ body {
     width: 40%;
     margin-right: 30%;
     margin-left: 30%;
-    margin-top: 30px;
+    margin-top: 200px;
     float: right;
 }
 
 #modal-info-holder {
     visibility: hidden;
+}
+
+#modal-info-header {
+    background: #2C293E;
+    color: white;
 }
 
 #modal-info-background {
@@ -158,4 +163,11 @@ body {
     visibility: hidden;
     height: 100%;
     width: 110%;
+}
+
+#modal-info-description {
+    height: 250px;
+    color: #2C293E;
+    font-size: 30pt;
+    text-align: left;
 }

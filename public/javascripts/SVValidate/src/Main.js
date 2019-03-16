@@ -57,6 +57,7 @@ function Main (param) {
         svv.ui.modalInfo.foreground = $("#modal-info-foreground");
         svv.ui.modalInfo.background = $("#modal-info-background");
         svv.ui.modalInfo.infoHeader = $("#modal-info-header");
+        svv.ui.modalInfo.description = $("#modal-info-description");
         svv.ui.modalInfo.closeButton = $("#modal-info-close-button");
         svv.ui.modalInfo.infoButton = $("#info-button");
 
