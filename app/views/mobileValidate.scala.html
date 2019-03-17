@@ -108,8 +108,6 @@
                     <div id="example-image-holder">
                         <img id="example-image-1" class="example-image">
                         <img id="example-image-2" class="example-image">
-                        <img id="example-image-3" class="example-image">
-                        <img id="example-image-4" class="example-image">
                     </div>
                 </div>
                 <div class="status-box">
@@ -117,8 +115,6 @@
                     <div id="example-image-holder">
                         <img id="counterexample-image-1" class="example-image">
                         <img id="counterexample-image-2" class="example-image">
-                        <img id="counterexample-image-3" class="example-image">
-                        <img id="counterexample-image-4" class="example-image">
                     </div>
                 </div>
                 <button class="button" id="modal-info-close-button">OK</button>
@@ -146,11 +142,11 @@
             document.getElementById("left-column-jump-button").style.left = w - 75 + "px";
             document.getElementById("info-button").style.left = w - 150 + "px";
             //resize mission start popup
-            document.getElementById("modal-mission-foreground").style.width = w + "px";
-            document.getElementById("modal-mission-foreground").style.height = h + "px";
-            //resize modal info panel
-            document.getElementById("modal-info-foreground").style.width = w + "px";
-            document.getElementById("modal-info-foreground").style.height = h + "px";
+            var modalForegrounds = document.getElementsByClassName("modal-foreground");
+            for (var i = 0; i < modalForegrounds.length; i++) {
+                modalForegrounds[i].style.width = w + "px";
+                modalForegrounds[i].style.height = h + "px";
+            }
 
     </script>
 
