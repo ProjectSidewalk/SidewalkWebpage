@@ -139,11 +139,12 @@ body {
 
 #modal-info-close-button {
     font-size: 50pt;
-    width: 40%;
-    margin-right: 30%;
-    margin-left: 30%;
-    margin-top: 200px;
-    float: right;
+    position: absolute;
+    width: 75px;
+    height: 75px;
+    background: transparent;
+    color: white;
+    top: -25px;
 }
 
 #modal-info-holder {
@@ -166,8 +167,34 @@ body {
 }
 
 #modal-info-description {
+    padding-left: 25px;
     height: 400px;
     color: #2C293E;
     font-size: 30pt;
     text-align: left;
+}
+
+#label-type-example {
+    font-size: 30pt;
+    padding-left: 25px;
+}
+
+#label-type-counterexample {
+    font-size: 30pt;
+    padding-left: 25px;
+}
+
+.example-image {
+    padding-left: 25px;
+    height: 249px;
+    width: 285px;
+    margin-top: 20px;
+}
+
+.status-box {
+    height: 500px;
+}
+
+#modal-mission-complete-title {
+    font-size: 50pt;
 }

@@ -35,7 +35,7 @@ function ModalInfo (uiModal) {
         uiModal.foreground.css('visibility', 'visible');
         uiModal.infoHeader.html(infoHeaderHTML);
         uiModal.description.html(descriptionHTML);
-        uiModal.closeButton.html('X');
+        uiModal.closeButton.html('x');
         uiModal.closeButton.on('click', _handleButtonClick);
     }
 

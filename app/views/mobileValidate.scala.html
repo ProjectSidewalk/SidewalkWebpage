@@ -147,6 +147,15 @@
                 modalForegrounds[i].style.width = w + "px";
                 modalForegrounds[i].style.height = h + "px";
             }
+            var exampleImages = document.getElementsByClassName("example-image");
+            for (i = 0; i < 2; i++) {
+                exampleImages[i].style.width = w/2 - 50 + "px";
+                exampleImages[i].style.height = (w/2 - 50)*(83/95) + "px";
+            }
+            var statusBoxes = document.getElementsByClassName("status-box");
+            for (i = 0; i < statusBoxes; i++) {
+                statusBoxes[i].style.height = w*(83/95)/2 + 20 + "px";
+            }
 
     </script>
 
