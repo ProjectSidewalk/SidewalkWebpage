@@ -198,3 +198,44 @@ body {
 #modal-mission-complete-title {
     font-size: 50pt;
 }
+
+#modal-mission-complete-close-button {
+    font-size: 30pt;
+    width: 500px;
+}
+
+#ps-logo {
+    width: 500px;
+}
+
+#left-column-feedback-button {
+ font-size: 30pt;
+}
+
+#modal-comment-holder {
+    z-index: 5;
+}
+
+#modal-comment-box {
+    top: 0px;
+}
+
+#modal-comment-title {
+    font-size: 30pt;
+}
+
+#modal-comment-ok-button {
+    font-size: 30pt;
+    width: 45%;
+    float: left;
+}
+
+#modal-comment-cancel-button {
+    font-size: 30pt;
+    width: 45%;
+    float: right;
+}
+
+#modal-comment-textarea {
+    font-size: 30pt;
+}
