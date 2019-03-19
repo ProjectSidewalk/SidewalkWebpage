@@ -19,21 +19,21 @@
                     <li><p id="navbarTimer" style="width:75px;margin-top:19px;">Loading...</p></li>
                     <script>
                         // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
-                        var asmtEndTime = new Date("@{models.amt.AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)}");
                         var expired = true;
+                        var msRemaining = @{models.amt.AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username)};
 
                         // Update the count down every 1 second
                         var timerInterval = setInterval(function() {
                             var now = new Date().getTime();
-                            var timeRemaining = asmtEndTime - now;
+                            msRemaining -= 1000;
 
                             // Time calculations for days, hours, minutes and seconds
-                            var hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-                            var minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                            var seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                            var hours = Math.floor(msRemaining / (1000 * 60 * 60));
+                            var minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                            var seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
 
                             // Output the result in an element with id="navbarTimer"
-                            if (timeRemaining < 0) {
+                            if (msRemaining < 0) {
                                 clearInterval(timerInterval);
                                 document.getElementById("navbarTimer").innerHTML = "EXPIRED";
 
@@ -54,7 +54,7 @@
                             }
                             // If there are less than 15 minutes remaining, color the text red.
                             var fifteenMinutes = 1000 * 60 * 15;
-                            if (timeRemaining < fifteenMinutes) {
+                            if (msRemaining < fifteenMinutes) {
                                 document.getElementById('navbarTimer').style.color = 'red'
                             }
                         }, 1000);

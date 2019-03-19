@@ -250,6 +250,12 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'T',
                         text: 's<tag-underline>t</tag-underline>eep',
                         id: 'steep'
+                    },
+                    'not enough landing space': {
+                        keyNumber: 76,
+                        keyChar: 'L',
+                        text: 'not enough <tag-underline>l</tag-underline>anding space',
+                        id: 'notEnoughLandingSpace'
                     }
                 }
             },
@@ -362,15 +368,15 @@ function UtilitiesMisc (JSON) {
                         id: 'endsAbruptly'
                     },
                     'street has a sidewalk': {
-                        keyNumber: 84,
-                        keyChar: 'T',
-                        text: 's<tag-underline>t</tag-underline>reet has a sidewalk',
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'st<tag-underline>r</tag-underline>eet has a sidewalk',
                         id: 'streetHasASidewalk'
                     },
                     'street has no sidewalks': {
-                        keyNumber: 82,
-                        keyChar: 'R',
-                        text: 'st<tag-underline>r</tag-underline>eet has no sidewalks',
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>reet has no sidewalks',
                         id: 'streetHasNoSidewalks'
                     }
                 }

@@ -16,7 +16,7 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
 import models.region._
-import models.street.{StreetEdgeIssue, StreetEdgeIssueTable}
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgeRegionTable}
 import models.user._
 import play.api.libs.json._
 import play.api.{Logger, Play}
@@ -166,7 +166,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
-        val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
+        val regions: List[NamedRegion] = StreetEdgeRegionTable.selectByStreetEdgeId(streetEdgeId).flatMap {
+          edgeRegion => RegionTable.selectANamedRegion(edgeRegion.regionId)
+        }
 
         if (regions.isEmpty) {
           Logger.error(s"Either there is no region associated with street edge $streetEdgeId, or it is not a valid id.")
@@ -206,9 +208,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   def auditLocation(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        // val regions: List[Region] = RegionTable.getRegionsIntersectingAStreet(streetEdgeId)
         val userId: UUID = user.userId
-        val regions: List[NamedRegion] = RegionTable.selectNamedRegionsIntersectingAStreet(streetEdgeId)
+        val regions: List[NamedRegion] = StreetEdgeRegionTable.selectByStreetEdgeId(streetEdgeId).flatMap {
+          edgeRegion => RegionTable.selectANamedRegion(edgeRegion.regionId)
+        }
         val region: NamedRegion = regions.head
 
         val task: NewTask = AuditTaskTable.selectANewTask(streetEdgeId, Some(userId))
