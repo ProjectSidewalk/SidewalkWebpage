@@ -63,7 +63,7 @@ class MobileController @Inject() (implicit val env: Environment[User, SessionAut
           }
         }
       case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/mobileValidate"));
+        Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
     }
   }
 

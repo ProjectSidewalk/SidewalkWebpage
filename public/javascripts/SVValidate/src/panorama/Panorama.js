@@ -181,30 +181,17 @@ function Panorama (label) {
      */
     function renderLabel() {
         var url = currentLabel.getIconUrl();
-        console.log(url);
         var pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
-            if (isMobile()) {
-                self.labelMarker = new PanoMarker({
-                    container: panoCanvas,
-                    pano: panorama,
-                    position: {heading: pos.heading, pitch: pos.pitch},
-                    icon: url,
-                    size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
-                    anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius())
-                });
-            }
-            else {
-                self.labelMarker = new PanoMarker({
-                    container: panoCanvas,
-                    pano: panorama,
-                    position: {heading: pos.heading, pitch: pos.pitch},
-                    icon: url,
-                    size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
-                    anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius())
-                });
-            }
+            self.labelMarker = new PanoMarker({
+                container: panoCanvas,
+                pano: panorama,
+                position: {heading: pos.heading, pitch: pos.pitch},
+                icon: url,
+                size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
+                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius())
+            });
         } else {
             self.labelMarker.setPano(panorama, panoCanvas);
             self.labelMarker.setPosition({
