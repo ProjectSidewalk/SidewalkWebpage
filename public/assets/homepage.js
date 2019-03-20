@@ -246,12 +246,12 @@ function lazyPlayVideos() {
 function lazyPlay(el, video) {
     if (isElementVerticallyVisible(el)) {
         if (!isVideoPlaying(video)) {
-            pausedVideos[video] = false;
+            pausedVideos[video.id] = false;
             video.play();
         }
     } else {
         if (isVideoPlaying(video)) {
-            pausedVideos[video] = true;
+            pausedVideos[video.id] = true;
             video.pause();
         }
     }
@@ -259,7 +259,7 @@ function lazyPlay(el, video) {
 
 // Returns true if the given video is playing
 function isVideoPlaying(video) {
-    return !pausedVideos[video];
+    return !pausedVideos[video.id];
 }
 
 // Returns true if the given element is in the vertical viewport

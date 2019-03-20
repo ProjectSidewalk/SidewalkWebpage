@@ -324,6 +324,12 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'V',
                         text: '<tag-underline>v</tag-underline>egetation',
                         id: 'vegetation'
+                    },
+                    'parked car': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'p<tag-underline>a</tag-underline>rked car',
+                        id: 'parkedCar'
                     }
                 }
             },
@@ -368,15 +374,15 @@ function UtilitiesMisc (JSON) {
                         id: 'endsAbruptly'
                     },
                     'street has a sidewalk': {
-                        keyNumber: 84,
-                        keyChar: 'T',
-                        text: 's<tag-underline>t</tag-underline>reet has a sidewalk',
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: 'st<tag-underline>r</tag-underline>eet has a sidewalk',
                         id: 'streetHasASidewalk'
                     },
                     'street has no sidewalks': {
-                        keyNumber: 82,
-                        keyChar: 'R',
-                        text: 'st<tag-underline>r</tag-underline>eet has no sidewalks',
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 's<tag-underline>t</tag-underline>reet has no sidewalks',
                         id: 'streetHasNoSidewalks'
                     }
                 }

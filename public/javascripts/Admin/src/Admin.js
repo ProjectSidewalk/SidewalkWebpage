@@ -142,16 +142,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function getColor(p) {
         //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
         return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
-                p > 90 ? '#08306b' :
-                    p > 80 ? '#08519c' :
-                        p > 70 ? '#08719c' :
-                            p > 60 ? '#2171b5' :
-                                p > 50 ? '#4292c6' :
-                                    p > 40 ? '#6baed6' :
-                                        p > 30 ? '#9ecae1' :
-                                            p > 20 ? '#c6dbef' :
-                                                p > 10 ? '#deebf7' :
-                                                    '#f7fbff';
+            p > 90 ? '#08306b' :
+                p > 80 ? '#08519c' :
+                    p > 70 ? '#08719c' :
+                        p > 60 ? '#2171b5' :
+                            p > 50 ? '#4292c6' :
+                                p > 40 ? '#6baed6' :
+                                    p > 30 ? '#82badb' :
+                                        p > 20 ? '#9ecae1' :
+                                            p > 10 ? '#b3d3e8' :
+                                                '#c6dbef';
     }
 
     /**
@@ -177,7 +177,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         weight: 1,
                         opacity: 0.25,
                         fillColor: getColor(rates[i].rate),
-                        fillOpacity: 0.25 + (0.5 * rates[i].rate / 100.0)
+                        fillOpacity: 0.35 + (0.4 * rates[i].rate / 100.0)
                     }
                 }
             }
@@ -1078,8 +1078,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Index", function(clickStartExploringMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
             $.getJSON("/adminapi/webpageActivity/Referrer=mturk", function(turkerRedirectEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartExploringNavIndexEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent("route=/"), function(clickStartMappingNavIndexEvents){
+            // YES, we encode twice. This solves an issue with routing on the test/production server. AdminController.scala decodes twice.
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartExploringNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 // TODO switch this to make use of versioning on the backend once it is implemented...
                 // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653

@@ -212,20 +212,6 @@ object RegionTable {
       _regions.list.headOption.map(x => NamedRegion.tupled(x))
   }
 
-  def selectNamedRegionsIntersectingAStreet(streetEdgeId: Int): List[NamedRegion] = db.withSession { implicit session =>
-    val selectRegionQuery = Q.query[Int, NamedRegion](
-      """SELECT region.region_id, region_property.value, region.geom
-        |FROM sidewalk.region
-        |INNER JOIN sidewalk.street_edge ON ST_Intersects(region.geom, street_edge.geom)
-        |LEFT JOIN sidewalk.region_property ON region.region_id = region_property.region_id
-        |WHERE street_edge.street_edge_id = ?
-        |    AND region_property.key = 'Neighborhood Name'
-        |    AND region.deleted = FALSE
-      """.stripMargin
-    )
-    selectRegionQuery(streetEdgeId).list
-  }
-
   /**
     * Returns a list of neighborhoods intersecting the given bounding box
     * @param lat1

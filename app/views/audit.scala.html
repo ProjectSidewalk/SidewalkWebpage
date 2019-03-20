@@ -31,7 +31,7 @@
                         @if(user.get.role.getOrElse("") != "Turker") {
                             <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
                         }
-                        <h4 class="modal-title" id="sign-in-label">Feedback Survey</h4>
+                        <h4 class="modal-title" id="sign-in-label">Please take this one-time survey about Project Sidewalk</h4>
                     </div>
                     <div class="modal-body">
                         <form id="surveyForm" method="post">
@@ -412,6 +412,11 @@
                                 <button class="context-menu-tag" name='tag' id="2"></button>
                                 <button class="context-menu-tag" name='tag' id="3"></button>
                                 <button class="context-menu-tag" name='tag' id="4"></button>
+                                <button class="context-menu-tag" name='tag' id="5"></button>
+                                <button class="context-menu-tag" name='tag' id="6"></button>
+                                <button class="context-menu-tag" name='tag' id="7"></button>
+                                <button class="context-menu-tag" name='tag' id="8"></button>
+                                <button class="context-menu-tag" name='tag' id="9"></button>
                             </div>
                             <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
                                 <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
@@ -822,10 +827,8 @@
         svl.userModel._user = svl.user;
         var hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-            var asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
-            var now = new Date().getTime();
-            var timeRemaining = asmtEndTime - now;
-            if (timeRemaining < 0) {
+            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            if (msRemaining < 0) {
                 hitExpired = true;
             }
         }
@@ -874,8 +877,9 @@
                 else {
                     // no street view available in this range.
                     console.error("Error loading Street View imagery: " + status);
-                    svl.tracker.push("PanoId_NotFound_Onload", {'Location': JSON.stringify(latLng)});
-                    // Reload page (May need a better solution than this one)
+                    console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
+                    svl.tracker.push("PanoId_NotFound_Onload", {'Location': JSON.stringify(latLng), 'StreetEdgeId': @task.map(_.edgeId).getOrElse(-1)});
+                    // Reload page (May need a better solution than this one, issue #1570)
                     window.location.href = window.location.origin + "/audit";
 //                  throw "Error loading Street View imagery.";
 
@@ -968,7 +972,6 @@
                 @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                    svl.asmtEndTime = new Date("@AMTAssignmentTable.getMostRecentAsmtEnd(user.get.username)");
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
                     @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
