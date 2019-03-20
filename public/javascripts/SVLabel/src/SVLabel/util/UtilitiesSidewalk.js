@@ -324,6 +324,12 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'V',
                         text: '<tag-underline>v</tag-underline>egetation',
                         id: 'vegetation'
+                    },
+                    'parked car': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: 'p<tag-underline>a</tag-underline>rked car',
+                        id: 'parkedCar'
                     }
                 }
             },
