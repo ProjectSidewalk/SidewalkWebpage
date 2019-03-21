@@ -558,7 +558,7 @@
                                 <td>@u.completedAudits</td>
                                 <td>@u.labels</td>
                                 <td>@u.ownValidated</td>
-                                <td>@u.ownValidatedAgreed</td>
+                                <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
                             </tr>
                             }
                             </tbody>
