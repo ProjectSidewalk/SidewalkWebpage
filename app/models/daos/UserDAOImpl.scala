@@ -8,6 +8,7 @@ import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.audit._
+import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
 import play.api.Play.current
@@ -19,7 +20,8 @@ import scala.slick.jdbc.{StaticQuery => Q}
 
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
-                                 completedMissions: Int, completedAudits: Int, labels: Int)
+                                 completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
+                                 ownValidatedAgreed: Int)
 
 class UserDAOImpl extends UserDAO {
 
@@ -69,6 +71,7 @@ object UserDAOImpl {
   val auditTaskTable = TableQuery[AuditTaskTable]
   val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
   val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
+  val labelValidations = TableQuery[LabelValidationTable]
 
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
@@ -260,6 +263,30 @@ object UserDAOImpl {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
+    // Map(user_id: String -> ownValidated: Int)
+    val ownValidated = labelValidations.innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
+      .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
+
+    val ownValidatedCounts =
+      ownValidated.groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+
+    val ownValidatedAgreedCounts =
+      ownValidated.filter()
+        .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+//    val ownValidatedCounts =
+//      labelValidations.innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
+//        .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
+//        .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+
+    // _2.userId is the userId from "audit"
+//    val num = xownValidatedCounts(0)._2.userId
+//    val num = xownValidatedCounts.mapValues(_)
+    val num = xownValidatedCounts
+    println("testData: " + num)
+
+    // Map(user_id: String -> ownValidatedAgreed: Int)
+    val ownValidatedAgreedCounts = ownValidatedCounts
+
     // Now left join them all together and put into UserStatsForAdminPage objects.
     userTable.list.map{ u =>
       UserStatsForAdminPage(
@@ -269,7 +296,9 @@ object UserDAOImpl {
         signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
-        labelCounts.getOrElse(u.userId, 0)
+        labelCounts.getOrElse(u.userId, 0),
+        ownValidatedCounts.getOrElse(u.userId, 0),
+        ownValidatedAgreedCounts.getOrElse(u.userId, 0)
       )
     }
   }
