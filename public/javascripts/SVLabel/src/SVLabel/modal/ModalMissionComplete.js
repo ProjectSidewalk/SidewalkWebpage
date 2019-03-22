@@ -202,7 +202,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - otherAuditedDistance;
 
-        var completedTasks = taskContainer.getCompletedTasks(regionId);
+        var userCompletedTasks = taskContainer.getCompletedTasks(regionId);
+        var allCompletedTasks = taskContainer.getCompletedTasksAllUsers();
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
@@ -221,7 +222,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         this.setMissionTitle(neighborhoodName + ": Mission Complete!");
 
         modalMissionCompleteMap.update(mission, neighborhood);
-        modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
+        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
         this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance, unit);

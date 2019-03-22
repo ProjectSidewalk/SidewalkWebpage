@@ -325,13 +325,27 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * This method returns the completed tasks.
      * @returns {Array}
      */
-    function getCompletedTasks () {
+    function getCompletedTasks() {
         if (!Array.isArray(self._tasks)) {
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             return null;
         }
         return self._tasks.filter(function (task) {
             return task.isComplete();
+        });
+    }
+
+    /**
+     * Return list of tasks completed by any user.
+     * @returns {Array of tasks}
+     */
+    function getCompletedTasksAllUsers() {
+        if (!Array.isArray(self._tasks)) {
+            console.error("_tasks is not an array. Probably the data is not loaded yet.");
+            return null;
+        }
+        return self._tasks.filter(function (task) {
+            return task.streetCompletedByAnyUser();
         });
     }
 
@@ -614,6 +628,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
+    self.getCompletedTasksAllUsers = getCompletedTasksAllUsers;
     self.getCurrentTaskDistance = getCurrentTaskDistance;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
     self.getCompletedTaskDistanceAcrossAllUsers = getCompletedTaskDistanceAcrossAllUsers;
