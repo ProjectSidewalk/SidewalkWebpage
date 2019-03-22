@@ -198,12 +198,12 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var missionDistance = mission.getDistance("miles");
         var missionPay = mission.getProperty("pay");
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
-        var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsers(unit);
+        var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority(unit);
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
 
         var userCompletedTasks = taskContainer.getCompletedTasks(regionId);
-        var allCompletedTasks = taskContainer.getCompletedTasksAllUsers();
+        var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;

@@ -288,9 +288,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * @param {unit} String can be degrees, radians, miles, or kilometers.
      * @returns {number} distance in unit.
      */
-    function getCompletedTaskDistanceAcrossAllUsers(unit) {
+    function getCompletedTaskDistanceAcrossAllUsersUsingPriority(unit) {
         if (!unit) unit = {units: 'kilometers'};
-        var tasks = self.getTasks().filter(function(t) { return t.streetCompletedByAnyUser(); });
+        var tasks = self.getTasks().filter(function(t) { return t.getStreetPriority() < 1; });
         var geojson;
         var feature;
         var distance = 0;
@@ -339,13 +339,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * Return list of tasks completed by any user.
      * @returns {Array of tasks}
      */
-    function getCompletedTasksAllUsers() {
+    function getCompletedTasksAllUsersUsingPriority() {
         if (!Array.isArray(self._tasks)) {
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             return null;
         }
         return self._tasks.filter(function (task) {
-            return task.streetCompletedByAnyUser();
+            return task.getStreetPriority() < 1;
         });
     }
 
@@ -628,10 +628,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
-    self.getCompletedTasksAllUsers = getCompletedTasksAllUsers;
+    self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;
     self.getCurrentTaskDistance = getCurrentTaskDistance;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
-    self.getCompletedTaskDistanceAcrossAllUsers = getCompletedTaskDistanceAcrossAllUsers;
+    self.getCompletedTaskDistanceAcrossAllUsersUsingPriority = getCompletedTaskDistanceAcrossAllUsersUsingPriority;
     self.getCurrentTask = getCurrentTask;
     self.getBeforeJumpNewTask = getBeforeJumpTask;
     self.isFirstTask = isFirstTask;
