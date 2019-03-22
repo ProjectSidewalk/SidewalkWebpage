@@ -200,7 +200,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
         var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsers(unit);
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
-        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - otherAuditedDistance;
+        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
 
         var userCompletedTasks = taskContainer.getCompletedTasks(regionId);
         var allCompletedTasks = taskContainer.getCompletedTasksAllUsers();
