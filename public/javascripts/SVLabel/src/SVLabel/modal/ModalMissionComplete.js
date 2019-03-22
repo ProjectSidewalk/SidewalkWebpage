@@ -197,14 +197,16 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         var missionDistance = mission.getDistance("miles");
         var missionPay = mission.getProperty("pay");
-        var auditedDistance = neighborhood.completedLineDistance(unit);
-        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
+        var userAuditedDistance = neighborhood.completedLineDistance(unit);
+        var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsers(unit);
+        var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
+        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - otherAuditedDistance;
 
         var completedTasks = taskContainer.getCompletedTasks(regionId);
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
-        var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+        var auditedDistanceRate = Math.max(0, userAuditedDistance / totalLineDistance - missionDistanceRate);
 
         var labelCount = mission.getLabelCount(),
             curbRampCount = labelCount ? labelCount["CurbRamp"] : 0,
@@ -221,7 +223,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
         modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, missionPay, auditedDistance, remainingDistance, unit);
+        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
@@ -248,11 +250,12 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, cumulativeAuditedDistance, remainingDistance, unit) {
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance, unit) {
     if (!unit) unit = {units: 'kilometers'};
     remainingDistance = Math.max(remainingDistance, 0);
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.othersAuditedDistance.html(othersAuditedDistance.toFixed(1) + " " + unit.units);
     this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit.units);
 
     // Update the reward HTML if the user is a turker.

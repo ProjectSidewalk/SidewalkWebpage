@@ -261,7 +261,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Get the total distance of completed segments
      * @params {unit} String can be degrees, radians, miles, or kilometers
-     * @returns {number} distance in meters
+     * @returns {number} distance in unit.
      */
     function getCompletedTaskDistance (unit) {
         if (!unit) unit = {units: 'kilometers'};
@@ -279,6 +279,29 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
         if (!currentTask.isComplete()) distance += getCurrentTaskDistance(unit);
 
+        return distance;
+    }
+
+    /**
+     * Get the total distance of segments completed by any user.
+     *
+     * @param {unit} String can be degrees, radians, miles, or kilometers.
+     * @returns {number} distance in unit.
+     */
+    function getCompletedTaskDistanceAcrossAllUsers(unit) {
+        if (!unit) unit = {units: 'kilometers'};
+        var tasks = self.getTasks().filter(function(t) { return t.streetCompletedByAnyUser(); });
+        var geojson;
+        var feature;
+        var distance = 0;
+
+        if (tasks) {
+            for (var i = 0; i < tasks.length; i++) {
+                geojson = tasks[i].getGeoJSON();
+                feature = geojson.features[0];
+                distance += turf.length(feature, unit);
+            }
+        }
         return distance;
     }
 
@@ -593,6 +616,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getCompletedTasks = getCompletedTasks;
     self.getCurrentTaskDistance = getCurrentTaskDistance;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
+    self.getCompletedTaskDistanceAcrossAllUsers = getCompletedTaskDistanceAcrossAllUsers;
     self.getCurrentTask = getCurrentTask;
     self.getBeforeJumpNewTask = getBeforeJumpTask;
     self.isFirstTask = isFirstTask;

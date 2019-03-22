@@ -35,14 +35,22 @@ function Neighborhood (parameters) {
         return properties.layer ? turf.center(parameters.layer.toGeoJSON()) : null;
     }
     
-    function completedLineDistance (unit) {
+    function completedLineDistance(unit) {
         if (!unit) unit = {units: 'kilometers'};
         if ("taskContainer" in svl && svl.taskContainer) {
             return svl.taskContainer.getCompletedTaskDistance(unit);
         } else {
             return null;
         }
-        
+    }
+
+    function completedLineDistanceAcrossAllUsers(unit) {
+        if (!unit) unit = {units: 'kilometers'};
+        if ("taskContainer" in svl && svl.taskContainer) {
+            return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsers(unit);
+        } else {
+            return null;
+        }
     }
 
     /** Get property */
@@ -78,6 +86,7 @@ function Neighborhood (parameters) {
 
     self.center = center;
     self.completedLineDistance = completedLineDistance;
+    self.completedLineDistanceAcrossAllUsers = completedLineDistanceAcrossAllUsers;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
