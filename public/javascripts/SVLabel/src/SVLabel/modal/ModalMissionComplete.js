@@ -206,7 +206,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
-        var auditedDistanceRate = Math.max(0, userAuditedDistance / totalLineDistance - missionDistanceRate);
+        var userAuditedDistanceRate = Math.max(0, userAuditedDistance / totalLineDistance - missionDistanceRate);
+        var otherAuditedDistanceRate = Math.max(0, otherAuditedDistance / totalLineDistance);
 
         var labelCount = mission.getLabelCount(),
             curbRampCount = labelCount ? labelCount["CurbRamp"] : 0,
@@ -221,7 +222,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         modalMissionCompleteMap.update(mission, neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
-        modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
+        modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
         this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
