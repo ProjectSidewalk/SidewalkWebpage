@@ -397,7 +397,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      *
      * @returns {*}
      */
-    self.getIncompleteTasksAcrossAllUsers = function () {
+    self.getIncompleteTasksAcrossAllUsersUsingPriority = function () {
         if (!Array.isArray(self._tasks)) {
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             self.fetchTasks(null, false);
@@ -411,7 +411,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
             incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
-                return !t.streetCompletedByAnyUser();
+                return t.getStreetPriority() === 1;
             });
         }
 
@@ -448,7 +448,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         // Only run this code if the neighborhood was set as incomplete
         if (!wasNeighborhoodCompleteAcrossAllUsers) {
-            var candidateTasks = self.getIncompleteTasksAcrossAllUsers().filter(function (t) {
+            var candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
             });
             // Indicates neighborhood is complete

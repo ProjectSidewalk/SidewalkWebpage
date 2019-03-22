@@ -193,9 +193,9 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        // Mark neighborhood as complete if the initial task's completion count > 0
-        // Proxy for knowing if the neighborhood is complete across all users
-        if(task.streetCompletedByAnyUser()) {
+        // Mark neighborhood as complete if the initial task's priority < 1.
+        // Proxy for knowing if the neighborhood is complete across all users.
+        if(task.getStreetPriority() < 1) {
             svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
