@@ -71,7 +71,6 @@ object UserDAOImpl {
   val auditTaskTable = TableQuery[AuditTaskTable]
   val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
   val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
-  val labelValidations = TableQuery[LabelValidationTable]
 
   val users: mutable.HashMap[UUID, User] = mutable.HashMap()
 
@@ -264,22 +263,11 @@ object UserDAOImpl {
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> ownValidated: Int)
-    val ownValidatedCounts = labelValidations
-      .innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
-      .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
-      .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap // _2.userId is the userId from "audit_task"
+    val ownValidatedCounts = LabelValidationTable.getOwnValidationCounts
 
     // Map(user_id: String -> ownValidatedAgreed: Int)
-    val ownValidatedAgreedCounts = labelValidations.filter(_.validationResult === 1)
-      .innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
-      .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
-      .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+    val ownValidatedAgreedCounts = LabelValidationTable.getOwnValidationAgreedCounts
 
-//    val num = ownValidatedCounts
-//    println("testData: " + num)
-//
-//    val num2 = ownValidatedAgreedCounts
-//    println("otherData: " + num2)
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
     userTable.list.map{ u =>
