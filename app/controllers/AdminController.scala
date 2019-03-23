@@ -14,7 +14,7 @@ import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.LabelMetadata
-import models.label.{LabelPointTable, LabelTable, LabelTypeTable}
+import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
@@ -27,6 +27,7 @@ import play.extras.geojson
 import play.api.mvc.BodyParsers
 
 import scala.concurrent.Future
+import scala.collection.mutable.ListBuffer
 
 /**
   * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
@@ -144,6 +145,29 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     Future.successful(Ok(JsArray(completionRates)))
+  }
+
+  /**
+    * Gets validation totals & agrees for each user.
+    *
+    * @return
+    */
+  def getValidationCounts = UserAwareAction.async { implicit request =>
+    val ownValidatedCounts = LabelValidationTable.getOwnValidationCounts
+    val ownValidatedAgreedCounts = LabelValidationTable.getOwnValidationAgreedCounts
+
+    var validationCounts = new ListBuffer[JsObject]()
+
+    for ((user, allCounts) <- ownValidatedCounts) {
+      val agreed = ownValidatedAgreedCounts(user)
+
+      validationCounts += Json.obj(
+        "total" -> allCounts,
+        "agreed" -> agreed
+      )
+    }
+
+    Future.successful(Ok(JsArray(validationCounts.toList)))
   }
 
   /**

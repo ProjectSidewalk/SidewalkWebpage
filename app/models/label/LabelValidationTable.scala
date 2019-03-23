@@ -1,8 +1,9 @@
 package models.label
 
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.{Calendar, UUID}
 import models.utils.MyPostgresDriver.simple._
+import models.audit.AuditTaskTable
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -58,9 +59,51 @@ object LabelValidationTable {
   val db = play.api.db.slick.DB
   val labelValidationTable = TableQuery[LabelValidationTable]
 
+  case class ValidationCountPerDay(date: String, count: Int)
+
   def save(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val labelValidationId: Int =
       (labelValidationTable returning labelValidationTable.map(_.labelValidationId)) += label
     labelValidationId
+  }
+
+  def getOwnValidationCounts: Map[String, Int] = db.withSession { implicit session =>
+    LabelValidationTable.labelValidationTable
+      .innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
+      .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
+      .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap // _2.userId is the userId from "audit_task"
+  }
+
+  def getOwnValidationAgreedCounts: Map[String, Int] = db.withSession { implicit session =>
+    LabelValidationTable.labelValidationTable.filter(_.validationResult === 1)
+      .innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
+      .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
+      .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+  }
+
+  def getValidationsByDate: List[ValidationCountPerDay] = db.withSession { implicit session =>
+    val selectValidationCountQuery = Q.queryNA[(String, Int)](
+      """SELECT calendar_date::date, COUNT(label_id)
+        |FROM
+        |(
+        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
+        |    FROM generate_series(0, current_date - '12/17/2018') n
+        |) AS calendar
+        |LEFT JOIN sidewalk.label_validation ON label_validation.end_timestamp::date = calendar_date::date
+        |GROUP BY calendar_date
+        |ORDER BY calendar_date""".stripMargin
+    )
+
+    selectValidationCountQuery.list.map(x => ValidationCountPerDay.tupled(x))
+
+    /*labelValidationTable.groupBy(x => {
+      var c : Calendar = Calendar.getInstance()
+      c.setTimeInMillis(x.endTimestamp.getTime)
+      c.set(Calendar.HOUR_OF_DAY, 0)
+      c.set(Calendar.MINUTE, 0)
+      c.set(Calendar.SECOND, 0)
+      c.set(Calendar.MILLISECOND, 0)
+      c
+    }).map { case (_date, group) => (_date, group.length) }.list*/
   }
 }

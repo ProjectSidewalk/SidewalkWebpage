@@ -778,6 +778,24 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
 
             });
+            $.getJSON('/adminapi/validationCounts', function (data) {
+                var pcts = data.filter(function(x) { // Must have 10+ labels validated
+                    return x.total >= 0; // TODO: change to 10
+                }).map(function(x) { // Convert to percentages
+                    return {
+                        count: (x.agreed / x.total) * 100,
+                        role: "Registered", // TODO: use actual role
+                    };
+                });
+
+                var stats = getSummaryStats(pcts, "count");
+                $("#validation-agreed-std").html((stats.std).toFixed(2) + " %");
+
+                var histOpts = {xAxisTitle:"Labels Placed Agreed With (%)", xDomain:[0, 100], binStep:5};
+                var coverageRateHist = getVegaLiteHistogram(pcts, stats.mean, stats.median, histOpts);
+                vega.embed("#validation-agreed", coverageRateHist, opt, function(error, results) {});
+
+            });
             $.getJSON("/contribution/auditCounts/all", function (data) {
                 var stats = getSummaryStats(data[0], "count");
 
@@ -876,7 +894,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                 },
                                 { // creates lines marking summary statistics
                                     "data": {"values": [
-                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
+                                            {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                                     },
                                     "mark": "rule",
                                     "encoding": {
@@ -906,6 +924,70 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     }
                 };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
+            });
+            $.getJSON("/userapi/validationCounts/all", function (data) {
+                var stats = getSummaryStats(data[0], "count");
+                $("#validation-std").html((stats.std).toFixed(2) + " Validations");
+
+                var histOpts = {xAxisTitle:"# Validations per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
+                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+
+                var chart = {
+                    "data": {"values": data[0]},
+                    "hconcat": [
+                        {
+                            "height": 300,
+                            "width": 550,
+                            "layer": [
+                                {
+                                    "mark": "bar",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "date",
+                                            "type": "temporal",
+                                            "axis": {"title": "Date", "labelAngle": 0}
+                                        },
+                                        "y": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "# Validations per Day"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                            {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "y": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, stats.max]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": false
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"y": {"scale": "independent"}}
+                        },
+                        hist
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                vega.embed("#validation-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/adminapi/userMissionCounts", function (data) {
                 var allData = data[0];
@@ -1050,7 +1132,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/allSignInCounts", function (data) {
                 var stats = getSummaryStats(data[0], "count");
                 var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
-
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};
