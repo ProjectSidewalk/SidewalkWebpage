@@ -29,6 +29,7 @@ function MissionContainer (statusFieldMission, missionModel) {
             self._completedMissions.push(mission);
         } else {
             self.setCurrentMission(mission);
+            self.notifyMissionLoaded(mission);
         }
     });
 
@@ -111,4 +112,8 @@ function MissionContainer (statusFieldMission, missionModel) {
     self.setTasksMissionsOffset = setTasksMissionsOffset;
     self.getTasksMissionsOffset = getTasksMissionsOffset;
 }
+_.extend(MissionContainer.prototype, Backbone.Events);
 
+MissionContainer.prototype.notifyMissionLoaded = function(mission) {
+    this.trigger("MissionContainer:missionLoaded", mission);
+};
