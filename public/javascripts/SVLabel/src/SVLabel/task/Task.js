@@ -37,7 +37,7 @@ function Task (geojson, currentLat, currentLng) {
         self.setProperty("priority", _geojson.features[0].properties.priority);
 
         if (_geojson.features[0].properties.completed) {
-            self.complete();
+            status.isComplete = true;
         }
 
         if (currentLat && currentLng) {
@@ -234,11 +234,13 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     /**
-     * Set the isComplete status to true and change the color of the street into green.
+     * Set the isComplete status to true.
      * @returns {complete}
      */
     this.complete = function () {
         status.isComplete = true;
+        properties.completedByAnyUser = true;
+        properties.priority = 1 / (1 + (1 / properties.priority));
         return this;
     };
 
@@ -307,11 +309,11 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     this.streetCompletedByAnyUser = function () {
-        return _geojson.features[0].properties.completed_by_any_user;
+        return properties.completedByAnyUser;
     };
 
     this.getStreetPriority = function () {
-        return _geojson.features[0].properties.priority;
+        return properties.priority;
     };
 
     /**
