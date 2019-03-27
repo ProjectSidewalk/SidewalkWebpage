@@ -80,8 +80,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     _missionContainer.on("MissionContainer:missionLoaded", function(mission) {
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
-            uiModalMissionComplete.closeButton.css('visibility', "visible");
-            uiModalMissionComplete.continueButtonLoadingGif.css('visibility', "hidden");
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
+            uiModalMissionComplete.closeButton.css("cursor", "default");
         }
     });
 
@@ -137,13 +137,13 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
+        uiModalMissionComplete.closeButton.css('visibility', "visible");
         self.showingMissionCompleteScreen = true;
         if (self._canShowContinueButton) {
-            uiModalMissionComplete.closeButton.css('visibility', "visible");
-            uiModalMissionComplete.continueButtonLoadingGif.css('visibility', "hidden");
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
         } else {
-            uiModalMissionComplete.closeButton.css('visibility', "hidden");
-            uiModalMissionComplete.continueButtonLoadingGif.css('visibility', "visible");
+            uiModalMissionComplete.closeButton.css('opacity', "0.5");
+            uiModalMissionComplete.closeButton.css("cursor", "progress");
         }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
