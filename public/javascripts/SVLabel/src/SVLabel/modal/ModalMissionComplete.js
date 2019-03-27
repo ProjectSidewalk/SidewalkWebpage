@@ -81,6 +81,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
             uiModalMissionComplete.closeButton.css('visibility', "visible");
+            uiModalMissionComplete.continueButtonLoadingGif.css('visibility', "hidden");
         }
     });
 
@@ -139,6 +140,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self.showingMissionCompleteScreen = true;
         if (self._canShowContinueButton) {
             uiModalMissionComplete.closeButton.css('visibility', "visible");
+            uiModalMissionComplete.continueButtonLoadingGif.css('visibility', "hidden");
+        } else {
+            uiModalMissionComplete.closeButton.css('visibility', "hidden");
+            uiModalMissionComplete.continueButtonLoadingGif.css('visibility', "visible");
         }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();

@@ -104,6 +104,12 @@
     width: 100%;
 }
 
+.modal-foreground .loading-gif-small {
+    position: relative;
+    left: 125px;
+    top: -40px;
+}
+
 .modal-foreground .button {
     width: 100%;
 }

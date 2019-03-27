@@ -542,6 +542,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
         svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
+        svl.ui.modalMissionComplete.continueButtonLoadingGif = $("#continue-button-loading-gif");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
         svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
