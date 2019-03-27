@@ -81,7 +81,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
             uiModalMissionComplete.closeButton.css('opacity', "1.0");
-            uiModalMissionComplete.closeButton.css("cursor", "default");
+            uiModalMissionComplete.closeButton.css("cursor", "pointer");
         }
     });
 
