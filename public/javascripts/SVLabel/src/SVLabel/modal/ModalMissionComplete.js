@@ -81,6 +81,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
             uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
+            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
             uiModalMissionComplete.closeButton.css('opacity', "1.0"); // un-gray out button
             uiModalMissionComplete.closeButton.css("cursor", "pointer");
         }
@@ -142,10 +143,12 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self.showingMissionCompleteScreen = true;
         if (self._canShowContinueButton) {
             uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
+            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
             uiModalMissionComplete.closeButton.css('opacity', "1.0"); // un-gray out button
             uiModalMissionComplete.closeButton.css("cursor", "pointer");
         } else {
             uiModalMissionComplete.closeButton.off('click'); // disable clicking
+            uiModalMissionComplete.background.off("click");
             uiModalMissionComplete.closeButton.css('opacity', "0.5"); // gray out button
             uiModalMissionComplete.closeButton.css("cursor", "wait");
         }
