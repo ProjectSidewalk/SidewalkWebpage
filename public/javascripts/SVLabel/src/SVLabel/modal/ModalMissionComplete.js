@@ -82,8 +82,11 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         if (self.showingMissionCompleteScreen) {
             uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
             uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
-            uiModalMissionComplete.closeButton.css('opacity', "1.0"); // un-gray out button
-            uiModalMissionComplete.closeButton.css("cursor", "pointer");
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
+
+            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
         }
     });
 
@@ -144,13 +147,19 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         if (self._canShowContinueButton) {
             uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
             uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
-            uiModalMissionComplete.closeButton.css('opacity', "1.0"); // un-gray out button
-            uiModalMissionComplete.closeButton.css("cursor", "pointer");
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
+
+            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
         } else {
             uiModalMissionComplete.closeButton.off('click'); // disable clicking
             uiModalMissionComplete.background.off("click");
-            uiModalMissionComplete.closeButton.css('opacity', "0.5"); // gray out button
-            uiModalMissionComplete.closeButton.css("cursor", "wait");
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(100,100,100,1)'); // gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "0.35");
+
+            uiModalMissionComplete.closeButton.css("cursor", "wait"); // update cursor to waiting
         }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
