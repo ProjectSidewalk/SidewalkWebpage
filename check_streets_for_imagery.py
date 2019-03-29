@@ -1,7 +1,6 @@
 import requests
 import pandas as pd
 from pandas.io.json import json_normalize
-import time
 import sys
 
 # Create CSV from street_edge table with street_edge_id, x1, y1, x2, y2
@@ -21,9 +20,8 @@ if __name__ == '__main__':
     # Read street edge data from CSV.
     street_data = pd.read_csv('street_edge_endpoints.csv')
 
-    # Create dataframes that will hold output data.
-    one_endpoint_data = pd.DataFrame(columns=['street_edge_id','problem_endpoint'])
-    both_endpoints_data = pd.DataFrame(columns=['street_edge_id'])
+    # Create dataframe that will hold output data.
+    streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id'])
 
     n_rows = len(street_data)
     for index, street in street_data.iterrows():
@@ -40,21 +38,13 @@ if __name__ == '__main__':
         first_endpoint_status = json_normalize(first_endpoint.json()).status[0]
         second_endpoint_status = json_normalize(second_endpoint.json()).status[0]
 
-        # If there is no GSV data at either endpoint, add to both_endpoints_data. If only one endpoint is missing GSV
-        # imagery, add to one_endpoint_data.
-        if first_endpoint_status == 'ZERO_RESULTS' and second_endpoint_status == 'ZERO_RESULTS':
-            both_endpoints_data = both_endpoints_data.append({'street_edge_id': street.street_edge_id}, ignore_index=True)
-        elif first_endpoint_status == 'ZERO_RESULTS':
-            one_endpoint_data = one_endpoint_data.append({'street_edge_id': street.street_edge_id, 'problem_endpoint': 1}, ignore_index=True)
-        elif second_endpoint_status == 'ZERO_RESULTS':
-            one_endpoint_data = one_endpoint_data.append({'street_edge_id': street.street_edge_id, 'problem_endpoint': 2}, ignore_index=True)
+        # If there is no GSV data at either endpoint, add to streets_with_no_imagery.
+        if first_endpoint_status == 'ZERO_RESULTS' or second_endpoint_status == 'ZERO_RESULTS':
+            both_endpoints_data = streets_with_no_imagery.append({'street_edge_id': street.street_edge_id}, ignore_index=True)
     print # Adds newline after the progress percentage.
 
-    # Convert street_edge_id columns from float to int.
-    one_endpoint_data.street_edge_id = one_endpoint_data.street_edge_id.astype('int32')
-    one_endpoint_data.problem_endpoint = one_endpoint_data.problem_endpoint.astype('int32')
-    both_endpoints_data.street_edge_id = both_endpoints_data.street_edge_id.astype('int32')
+    # Convert street_edge_id column from float to int.
+    streets_with_no_imagery.street_edge_id = streets_with_no_imagery.street_edge_id.astype('int32')
 
     # Output both_endpoints_data and one_endpoint_data as CSVs.
-    one_endpoint_data.to_csv('streets_with_partial_imagery.csv', index=False)
-    both_endpoints_data.to_csv('streets_with_no_imagery.csv', index=False)
+    streets_with_no_imagery.to_csv('streets_with_no_imagery.csv', index=False)
