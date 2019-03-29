@@ -45,7 +45,7 @@ object VersionTable {
   }
 
   /**
-    * Reads in Google Maps API key from google_maps_api_key.txt (ask Mikey Saugstad for the file if you don't have it)
+    * Read in Google Maps API key from google_maps_api_key.txt (ask Mikey Saugstad for the file if you don't have it).
     *
     * @return
     */

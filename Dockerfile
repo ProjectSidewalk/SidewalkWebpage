@@ -23,8 +23,6 @@ RUN apt-get -o Acquire::Check-Valid-Until=false update && \
     gfortran \
     python-numpy \
     python-pandas \
-    python-requests \
-    python-socksipy \
     sbt && \
   apt-get autoremove && \
   apt-get clean

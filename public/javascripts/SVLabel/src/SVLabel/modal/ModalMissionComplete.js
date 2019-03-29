@@ -2,6 +2,7 @@
  *
  * @param svl. Todo. Get rid of this dependency eventually.
  * @param missionContainer
+ * @param missionModel
  * @param taskContainer
  * @param taskContainer
  * @param modalMissionProgressBar
@@ -25,10 +26,12 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, taskContainer,
+function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer,
                                modalMissionCompleteMap, modalMissionProgressBar,
                                uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
     var self = this;
+    var _missionModel = missionModel;
+    var _missionContainer = missionContainer;
     var _modalModel = modalModel;
     this._userModel = userModel;
 
@@ -41,6 +44,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         isOpen: false
     };
     this._closeModalClicked = false;
+    this.showingMissionCompleteScreen = false;
+    this._canShowContinueButton = false;
 
     this._uiModalMissionComplete = uiModalMissionComplete;
     this._modalMissionCompleteMap = modalMissionCompleteMap;
@@ -66,6 +71,23 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
         uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+    });
+
+    _missionModel.on("MissionProgress:complete", function (parameters) {
+        self._canShowContinueButton = false;
+    });
+
+    _missionContainer.on("MissionContainer:missionLoaded", function(mission) {
+        self._canShowContinueButton = true;
+        if (self.showingMissionCompleteScreen) {
+            uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
+            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
+
+            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+        }
     });
 
     // TODO maybe deal with lost connection causing modal to not close
@@ -112,6 +134,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             svl.ui.leftColumn.confirmationCode.css('visibility', '');
             svl.ui.leftColumn.confirmationCode.popover();
         }
+        self.showingMissionCompleteScreen = false;
     };
 
     this.show = function () {
@@ -120,6 +143,24 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
         uiModalMissionComplete.closeButton.css('visibility', "visible");
+        self.showingMissionCompleteScreen = true;
+        if (self._canShowContinueButton) {
+            uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
+            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
+
+            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+        } else {
+            uiModalMissionComplete.closeButton.off('click'); // disable clicking
+            uiModalMissionComplete.background.off("click");
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(100,100,100,1)'); // gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "0.35");
+
+            uiModalMissionComplete.closeButton.css("cursor", "wait"); // update cursor to waiting
+        }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
@@ -197,14 +238,18 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
 
         var missionDistance = mission.getDistance("miles");
         var missionPay = mission.getProperty("pay");
-        var auditedDistance = neighborhood.completedLineDistance(unit);
-        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
+        var userAuditedDistance = neighborhood.completedLineDistance(unit);
+        var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority(unit);
+        var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
+        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
 
-        var completedTasks = taskContainer.getCompletedTasks(regionId);
+        var userCompletedTasks = taskContainer.getCompletedTasks(regionId);
+        var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
-        var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+        var userAuditedDistanceRate = Math.max(0, userAuditedDistance / totalLineDistance - missionDistanceRate);
+        var otherAuditedDistanceRate = Math.max(0, otherAuditedDistance / totalLineDistance);
 
         var labelCount = mission.getLabelCount(),
             curbRampCount = labelCount ? labelCount["CurbRamp"] : 0,
@@ -218,10 +263,10 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         this.setMissionTitle(neighborhoodName + ": Mission Complete!");
 
         modalMissionCompleteMap.update(mission, neighborhood);
-        modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
-        modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
+        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);
+        modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, missionPay, auditedDistance, remainingDistance, unit);
+        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance, unit);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
@@ -248,11 +293,12 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, cumulativeAuditedDistance, remainingDistance, unit) {
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance, unit) {
     if (!unit) unit = {units: 'kilometers'};
     remainingDistance = Math.max(remainingDistance, 0);
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.othersAuditedDistance.html(othersAuditedDistance.toFixed(1) + " " + unit.units);
     this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit.units);
 
     // Update the reward HTML if the user is a turker.

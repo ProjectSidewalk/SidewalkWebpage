@@ -172,9 +172,9 @@ function Main (params) {
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
-        svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.taskContainer,
-            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel,
-            svl.statusModel, svl.onboardingModel, svl.userModel);
+        svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.missionModel,
+            svl.taskContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete,
+            svl.modalModel, svl.statusModel, svl.onboardingModel, svl.userModel);
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
@@ -193,9 +193,9 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        // Mark neighborhood as complete if the initial task's completion count > 0
-        // Proxy for knowing if the neighborhood is complete across all users
-        if(task.streetCompletedByAnyUser()) {
+        // Mark neighborhood as complete if the initial task's priority < 1.
+        // Proxy for knowing if the neighborhood is complete across all users.
+        if(task.getStreetPriority() < 1) {
             svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
@@ -543,6 +543,7 @@ function Main (params) {
         svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
         svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
+        svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
         svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
         svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");

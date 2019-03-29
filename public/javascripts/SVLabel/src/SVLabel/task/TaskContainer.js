@@ -261,7 +261,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Get the total distance of completed segments
      * @params {unit} String can be degrees, radians, miles, or kilometers
-     * @returns {number} distance in meters
+     * @returns {number} distance in unit.
      */
     function getCompletedTaskDistance (unit) {
         if (!unit) unit = {units: 'kilometers'};
@@ -279,6 +279,29 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
         if (!currentTask.isComplete()) distance += getCurrentTaskDistance(unit);
 
+        return distance;
+    }
+
+    /**
+     * Get the total distance of segments completed by any user.
+     *
+     * @param {unit} String can be degrees, radians, miles, or kilometers.
+     * @returns {number} distance in unit.
+     */
+    function getCompletedTaskDistanceAcrossAllUsersUsingPriority(unit) {
+        if (!unit) unit = {units: 'kilometers'};
+        var tasks = self.getTasks().filter(function(t) { return t.getStreetPriority() < 1; });
+        var geojson;
+        var feature;
+        var distance = 0;
+
+        if (tasks) {
+            for (var i = 0; i < tasks.length; i++) {
+                geojson = tasks[i].getGeoJSON();
+                feature = geojson.features[0];
+                distance += turf.length(feature, unit);
+            }
+        }
         return distance;
     }
 
@@ -302,13 +325,27 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      * This method returns the completed tasks.
      * @returns {Array}
      */
-    function getCompletedTasks () {
+    function getCompletedTasks() {
         if (!Array.isArray(self._tasks)) {
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             return null;
         }
         return self._tasks.filter(function (task) {
             return task.isComplete();
+        });
+    }
+
+    /**
+     * Return list of tasks completed by any user.
+     * @returns {Array of tasks}
+     */
+    function getCompletedTasksAllUsersUsingPriority() {
+        if (!Array.isArray(self._tasks)) {
+            console.error("_tasks is not an array. Probably the data is not loaded yet.");
+            return null;
+        }
+        return self._tasks.filter(function (task) {
+            return task.getStreetPriority() < 1;
         });
     }
 
@@ -360,7 +397,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      *
      * @returns {*}
      */
-    self.getIncompleteTasksAcrossAllUsers = function () {
+    self.getIncompleteTasksAcrossAllUsersUsingPriority = function () {
         if (!Array.isArray(self._tasks)) {
             console.error("_tasks is not an array. Probably the data is not loaded yet.");
             self.fetchTasks(null, false);
@@ -374,7 +411,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         var incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
             incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
-                return !t.streetCompletedByAnyUser();
+                return t.getStreetPriority() === 1;
             });
         }
 
@@ -411,7 +448,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         // Only run this code if the neighborhood was set as incomplete
         if (!wasNeighborhoodCompleteAcrossAllUsers) {
-            var candidateTasks = self.getIncompleteTasksAcrossAllUsers().filter(function (t) {
+            var candidateTasks = self.getIncompleteTasksAcrossAllUsersUsingPriority().filter(function (t) {
                 return (t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null));
             });
             // Indicates neighborhood is complete
@@ -591,8 +628,10 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
+    self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;
     self.getCurrentTaskDistance = getCurrentTaskDistance;
     self.getCompletedTaskDistance = getCompletedTaskDistance;
+    self.getCompletedTaskDistanceAcrossAllUsersUsingPriority = getCompletedTaskDistanceAcrossAllUsersUsingPriority;
     self.getCurrentTask = getCurrentTask;
     self.getBeforeJumpNewTask = getBeforeJumpTask;
     self.isFirstTask = isFirstTask;
