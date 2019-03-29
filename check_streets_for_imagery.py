@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
         # If there is no GSV data at either endpoint, add to streets_with_no_imagery.
         if first_endpoint_status == 'ZERO_RESULTS' or second_endpoint_status == 'ZERO_RESULTS':
-            both_endpoints_data = streets_with_no_imagery.append({'street_edge_id': street.street_edge_id}, ignore_index=True)
+            streets_with_no_imagery = streets_with_no_imagery.append({'street_edge_id': street.street_edge_id}, ignore_index=True)
     print # Adds newline after the progress percentage.
 
     # Convert street_edge_id column from float to int.
