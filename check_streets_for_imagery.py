@@ -9,9 +9,12 @@ from pandas.io.json import json_normalize
 if __name__ == '__main__':
 
     # Read google maps API key from file.
-    api_key_file = open("google_maps_api_key.txt", "r")
-    api_key = api_key_file.readline().strip()
-    api_key_file.close()
+    try:
+        with open("google_maps_api_key.txt", "r") as api_key_file:
+            api_key = api_key_file.readline().strip()
+    except IOError:
+        print "Couldn't read google_maps_api_key.txt file"
+        exit(1)
 
     # Read street edge data from CSV.
     street_data = pd.read_csv('street_edge_endpoints.csv')
