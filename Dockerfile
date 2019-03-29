@@ -22,8 +22,6 @@ RUN apt-get update && \
     gfortran \
     python-numpy \
     python-pandas \
-    python-requests \
-    python-socksipy \
     sbt && \
   apt-get autoremove && \
   apt-get clean
