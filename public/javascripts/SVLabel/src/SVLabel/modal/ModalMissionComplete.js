@@ -2,6 +2,7 @@
  *
  * @param svl. Todo. Get rid of this dependency eventually.
  * @param missionContainer
+ * @param missionModel
  * @param taskContainer
  * @param taskContainer
  * @param modalMissionProgressBar
@@ -25,10 +26,12 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, taskContainer,
+function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer,
                                modalMissionCompleteMap, modalMissionProgressBar,
                                uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
     var self = this;
+    var _missionModel = missionModel;
+    var _missionContainer = missionContainer;
     var _modalModel = modalModel;
     this._userModel = userModel;
 
@@ -41,6 +44,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         isOpen: false
     };
     this._closeModalClicked = false;
+    this.showingMissionCompleteScreen = false;
+    this._canShowContinueButton = false;
 
     this._uiModalMissionComplete = uiModalMissionComplete;
     this._modalMissionCompleteMap = modalMissionCompleteMap;
@@ -66,6 +71,23 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
         uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+    });
+
+    _missionModel.on("MissionProgress:complete", function (parameters) {
+        self._canShowContinueButton = false;
+    });
+
+    _missionContainer.on("MissionContainer:missionLoaded", function(mission) {
+        self._canShowContinueButton = true;
+        if (self.showingMissionCompleteScreen) {
+            uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
+            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
+
+            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+        }
     });
 
     // TODO maybe deal with lost connection causing modal to not close
@@ -112,6 +134,7 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             svl.ui.leftColumn.confirmationCode.css('visibility', '');
             svl.ui.leftColumn.confirmationCode.popover();
         }
+        self.showingMissionCompleteScreen = false;
     };
 
     this.show = function () {
@@ -120,6 +143,24 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
         uiModalMissionComplete.closeButton.css('visibility', "visible");
+        self.showingMissionCompleteScreen = true;
+        if (self._canShowContinueButton) {
+            uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
+            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "1.0");
+
+            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+        } else {
+            uiModalMissionComplete.closeButton.off('click'); // disable clicking
+            uiModalMissionComplete.background.off("click");
+
+            uiModalMissionComplete.closeButton.css('background', 'rgba(100,100,100,1)'); // gray out button
+            uiModalMissionComplete.closeButton.css('opacity', "0.35");
+
+            uiModalMissionComplete.closeButton.css("cursor", "wait"); // update cursor to waiting
+        }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
