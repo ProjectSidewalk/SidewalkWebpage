@@ -880,13 +880,9 @@
                     }}                    
                 }
                 else {
-                    // no street view available in this range.
+                    // No street view available in this range.
                     console.error("Error loading Street View imagery: " + status);
                     console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
-                    svl.tracker.push("PanoId_NotFound_Onload", {'Location': JSON.stringify(latLng), 'StreetEdgeId': @task.map(_.edgeId).getOrElse(-1)});
-                    // Reload page (May need a better solution than this one, issue #1570)
-                    window.location.href = window.location.origin + "/audit";
-//                  throw "Error loading Street View imagery.";
 
                 }
             });
