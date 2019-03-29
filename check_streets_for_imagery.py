@@ -1,6 +1,8 @@
 import requests
 import pandas as pd
 from pandas.io.json import json_normalize
+import time
+import sys
 
 # Create CSV from street_edge table with street_edge_id, x1, y1, x2, y2
 # Name it street_edge_endpoints.csv and put it in the root directory, then run this script.
@@ -23,7 +25,13 @@ if __name__ == '__main__':
     one_endpoint_data = pd.DataFrame(columns=['street_edge_id','problem_endpoint'])
     both_endpoints_data = pd.DataFrame(columns=['street_edge_id'])
 
+    n_rows = len(street_data)
     for index, street in street_data.iterrows():
+        # Print a progress percentage.
+        percent_complete = 100 * round(float(index + 1) / n_rows, 3)
+        sys.stdout.write("\r%.1f%% complete" % percent_complete)
+        sys.stdout.flush()
+
         # Check if there is imagery at each endpoint
         gsv_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&radius=25&key=' + api_key
         first_endpoint = requests.get(gsv_url + '&location=' + str(street.y1) + ',' + str(street.x1))
@@ -40,6 +48,7 @@ if __name__ == '__main__':
             one_endpoint_data = one_endpoint_data.append({'street_edge_id': street.street_edge_id, 'problem_endpoint': 1}, ignore_index=True)
         elif second_endpoint_status == 'ZERO_RESULTS':
             one_endpoint_data = one_endpoint_data.append({'street_edge_id': street.street_edge_id, 'problem_endpoint': 2}, ignore_index=True)
+    print # Adds newline after the progress percentage.
 
     # Convert street_edge_id columns from float to int.
     one_endpoint_data.street_edge_id = one_endpoint_data.street_edge_id.astype('int32')
