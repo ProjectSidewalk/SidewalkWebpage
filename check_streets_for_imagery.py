@@ -22,8 +22,9 @@ if __name__ == '__main__':
 
     for index, street in street_data.iterrows():
         # Check if there is imagery at each endpoint
-        first_endpoint = requests.get('https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&radius=25&location=' + str(street.y1) + ',' + str(street.x1) + '&key=' + api_key)
-        second_endpoint = requests.get('https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&radius=25&location=' + str(street.y2) + ',' + str(street.x2) + '&key=' + api_key)
+        gsv_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&radius=25&key=' + api_key
+        first_endpoint = requests.get(gsv_url + '&location=' + str(street.y1) + ',' + str(street.x1))
+        second_endpoint = requests.get(gsv_url + '&location=' + str(street.y2) + ',' + str(street.x2))
 
         first_endpoint_status = json_normalize(first_endpoint.json()).status[0]
         second_endpoint_status = json_normalize(second_endpoint.json()).status[0]
