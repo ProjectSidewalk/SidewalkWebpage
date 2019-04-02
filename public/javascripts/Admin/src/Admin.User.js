@@ -13,7 +13,8 @@ function AdminUser(params) {
     });
     var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
         maxZoom: 19,
-        minZoom: 9
+        minZoom: 9,
+        zoomSnap: 0.5
     });
     var popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 

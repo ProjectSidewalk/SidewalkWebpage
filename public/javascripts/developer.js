@@ -15,17 +15,19 @@ $(document).ready(function () {
 
     // Maps
     var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', "kotarohara.8e0c6890", {
-            maxBounds: bounds,
-            maxZoom: 19,
-            minZoom: 9
-        })
+        maxBounds: bounds,
+        maxZoom: 19,
+        minZoom: 9,
+        zoomSnap: 0.5
+    })
         .fitBounds(bounds)
         .setView([38.910, -76.984], 15);
     var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', "kotarohara.8e0c6890", {
-            maxBounds: bounds,
-            maxZoom: 19,
-            minZoom: 9
-        })
+        maxBounds: bounds,
+        maxZoom: 19,
+        minZoom: 9,
+        zoomSnap: 0.5
+    })
         .fitBounds(bounds)
         .setView([38.9195, -77.019], 14);
     var mapAccesScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "kotarohara.8e0c6890", {
