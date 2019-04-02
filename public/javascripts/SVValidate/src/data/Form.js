@@ -71,6 +71,7 @@ function Form(url) {
                             svv.panoramaContainer.reset();
                             svv.panoramaContainer.setLabelList(result.labels);
                             svv.panoramaContainer.loadNewLabelOntoPanorama();
+                            svv.modalMissionComplete.setProperty('clickable', true);
                         }
                     } else {
                         // Otherwise, display popup that says there are no more labels left.
