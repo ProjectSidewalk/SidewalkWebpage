@@ -22,7 +22,8 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         zoomControl: false,
         legendControl: {
             position: 'topright'
-        }
+        },
+        zoomSnap: 0.5
     });
     choropleth.scrollWheelZoom.disable();
 

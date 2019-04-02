@@ -5,8 +5,9 @@ $(document).ready(function () {
 
     tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
     map = L.mapbox.map('map', "kotarohara.8e0c6890", {
-            maxZoom: 19,
-            minZoom: 9
+        maxZoom: 19,
+        minZoom: 9,
+        zoomSnap: 0.5
     });
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.

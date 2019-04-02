@@ -5,7 +5,8 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), "kotarohara.8e0c6890", {
         maxZoom: 19,
         minZoom: 10,
-        style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj'
+        style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj',
+        zoomSnap: 0.5
     });
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.

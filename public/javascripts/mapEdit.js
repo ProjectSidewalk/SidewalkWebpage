@@ -18,7 +18,8 @@ $(document).ready(function () {
             // http://leafletjs.com/reference.html#map-maxbounds
             maxBounds: bounds,
             maxZoom: 19,
-            minZoom: 9
+            minZoom: 9,
+            zoomSnap: 0.5
         })
         // .addLayer(mapboxTiles)
         .fitBounds(bounds)
