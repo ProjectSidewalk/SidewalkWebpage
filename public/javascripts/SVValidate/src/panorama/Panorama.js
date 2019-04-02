@@ -212,17 +212,10 @@ function Panorama (label) {
     function setPanorama (panoId, heading, pitch, zoom) {
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
-
-        // Adding in callback function because there are some issues with Google Maps
-        // setPano function. Will start to running an infinite loop if panorama does not
-        // load in time.
-        function changePano() {
-            panorama.setPano(panoId);
-            panorama.set('pov', {heading: heading, pitch: pitch});
-            panorama.set('zoom', zoomLevel[zoom]);
-            renderLabel();
-        }
-        setTimeout(changePano, 300);
+        panorama.setPano(panoId);
+        panorama.set('pov', {heading: heading, pitch: pitch});
+        panorama.set('zoom', zoomLevel[zoom]);
+        renderLabel();
         return this;
     }
 

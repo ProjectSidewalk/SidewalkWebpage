@@ -34,7 +34,8 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     });
     var map = L.mapbox.map('map', "kotarohara.8e0c6890", {
         maxZoom: 19,
-        minZoom: 9
+        minZoom: 9,
+        zoomSnap: 0.5
     });
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
