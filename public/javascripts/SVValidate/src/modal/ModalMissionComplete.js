@@ -28,9 +28,30 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         uiModalMissionComplete.closeButton.html('Validate more labels');
         uiModalMissionComplete.closeButton.on('click', _handleButtonClick);
 
-        // If this is a turker and the confirmation code button hasn't been shown yet, reveal it.
-        console.log(confirmationCode.css('visibility'));
+        // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
+        // and reveal the confirmation code.
         if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
+
+            // Mark amt_assignment as complete.
+            var data = {
+                amt_assignment_id: svv.amtAssignmentId,
+                completed: true
+            };
+            $.ajax({
+                async: true,
+                contentType: 'application/json; charset=utf-8',
+                url: "/amtAssignment",
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                },
+                error: function (result) {
+                    console.error(result);
+                }
+            });
+
+            // Show confirmation code.
             confirmationCode.css('visibility', "");
             confirmationCode.attr('data-toggle','popover');
             confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
