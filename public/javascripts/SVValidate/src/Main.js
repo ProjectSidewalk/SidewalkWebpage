@@ -41,6 +41,9 @@ function Main (param) {
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
 
+        svv.ui.modalConfirmation = {};
+        svv.ui.modalConfirmation.confirmationCode = $("#left-column-confirmation-code-button");
+
         svv.ui.modalSkip = {};
         svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
 
