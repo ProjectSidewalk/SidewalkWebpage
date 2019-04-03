@@ -95,8 +95,8 @@ object MissionTable {
 
   // Distances for first few missions: 500ft, 500ft, 1000ft, 1000ft, then 1/4 mile for all remaining. This is just a
   // temporary setup for that sake of testing the new missions infrastructure.
-  val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 304.8F, 304.8F)
-  val distanceForLaterMissions: Float = 402.336F // 1/4 mile
+  val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 228.6F)
+  val distanceForLaterMissions: Float = 304.8F // 1/4 mile
 
   // Number of labels for validation mission
   val validationMissionLabelCount: Int = 10
