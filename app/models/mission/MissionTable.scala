@@ -93,10 +93,9 @@ object MissionTable {
   val labelTypes = TableQuery[LabelTypeTable]
   val regionProperties = TableQuery[RegionPropertyTable]
 
-  // Distances for first few missions: 500ft, 500ft, 1000ft, 1000ft, then 1/4 mile for all remaining. This is just a
-  // temporary setup for that sake of testing the new missions infrastructure.
+  // Distances for first few missions: 500 ft, 500 ft, 750 ft, then 1,000 ft for all remaining.
   val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 228.6F)
-  val distanceForLaterMissions: Float = 304.8F // 1/4 mile
+  val distanceForLaterMissions: Float = 304.8F // 1,000 ft
 
   // Number of labels for validation mission
   val validationMissionLabelCount: Int = 10
