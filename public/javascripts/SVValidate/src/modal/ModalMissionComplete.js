@@ -31,46 +31,50 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
         // and reveal the confirmation code.
         if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
-
-            // Mark amt_assignment as complete.
-            var data = {
-                amt_assignment_id: svv.amtAssignmentId,
-                completed: true
-            };
-            $.ajax({
-                async: true,
-                contentType: 'application/json; charset=utf-8',
-                url: "/amtAssignment",
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
-
-            // Show confirmation code.
-            confirmationCode.css('visibility', "");
-            confirmationCode.attr('data-toggle','popover');
-            confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
-            confirmationCode.attr('data-content', svv.confirmationCode);
-            confirmationCode.popover();
-
-            //Hide the confirmation popover on clicking the background
-            //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
-            $(document).on('click', function(e) {
-                confirmationCode.each(function () {
-                    // The 'is' for buttons that trigger popups.
-                    // The 'has' for icons within a button that triggers a popup.
-                    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                        (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
-                    }
-
-                });
-            });
+            _markAmtAssignmentAsComplete();
+            _showConfirmationCode();
         }
+    }
+
+    function _markAmtAssignmentAsComplete() {
+        var data = {
+            amt_assignment_id: svv.amtAssignmentId,
+            completed: true
+        };
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/amtAssignment",
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    function _showConfirmationCode() {
+        confirmationCode.css('visibility', "");
+        confirmationCode.attr('data-toggle','popover');
+        confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+        confirmationCode.attr('data-content', svv.confirmationCode);
+        confirmationCode.popover();
+
+        //Hide the confirmation popover on clicking the background
+        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+        $(document).on('click', function(e) {
+            confirmationCode.each(function () {
+                // The 'is' for buttons that trigger popups.
+                // The 'has' for icons within a button that triggers a popup.
+                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                }
+
+            });
+        });
     }
 
     self.hide = hide;
