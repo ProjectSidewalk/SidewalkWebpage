@@ -33,6 +33,14 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
             _markAmtAssignmentAsComplete();
             _showConfirmationCode();
+            var confirmationCodeElement = document.createElement("h3");
+            confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
+                "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
+                "Confirmation Code: " +
+                svv.confirmationCode +
+                "<p></p>";
+            confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
+            uiModalMissionComplete.message.append(confirmationCodeElement);
         }
     }
 
