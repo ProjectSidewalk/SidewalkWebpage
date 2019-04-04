@@ -20,8 +20,10 @@ function ModalMissionComplete (uiModalMissionComplete) {
      */
     function hide () {
         clearInterval(watch);
+        uiModalMissionComplete.loader.css('visibility', 'visible');
         watch = window.setInterval(function () {
             if (getProperty('clickable')) {
+                uiModalMissionComplete.loader.css('visibility', 'hidden');
                 uiModalMissionComplete.background.css('visibility', 'hidden');
                 uiModalMissionComplete.holder.css('visibility', 'hidden');
                 uiModalMissionComplete.foreground.css('visibility', 'hidden');

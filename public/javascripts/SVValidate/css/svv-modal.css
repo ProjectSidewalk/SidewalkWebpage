@@ -143,3 +143,10 @@
     font-size: 14pt;
     width: 100%;
 }
+
+.loader {
+    visibility: hidden;
+    height: 25px;
+    margin-left: 50%;
+    margin-top: 5px;
+}

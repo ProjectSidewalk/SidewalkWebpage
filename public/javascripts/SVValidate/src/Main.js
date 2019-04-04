@@ -61,14 +61,15 @@ function Main (param) {
         svv.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
         svv.ui.modalMissionComplete = {};
-        svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
-        svv.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
-        svv.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
-        svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
-        svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
-        svv.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svv.ui.modalMissionComplete.agreeCount = $("#modal-mission-complete-agree-count");
+        svv.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
+        svv.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svv.ui.modalMissionComplete.disagreeCount = $("#modal-mission-complete-disagree-count");
+        svv.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
+        svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
+        svv.ui.modalMissionComplete.loader = $("img.loader");
+        svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
+        svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");
 
         svv.ui.status = {};
