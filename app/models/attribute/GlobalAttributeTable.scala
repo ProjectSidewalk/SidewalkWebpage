@@ -54,6 +54,11 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
                                           labelId: Int,
                                           labelLat: Float, labelLng: Float,
                                           gsvPanoramaId: String,
+                                          heading: Float,
+                                          pitch: Float,
+                                          zoom: Int,
+                                          canvasX: Int, canvasY: Int,
+                                          canvasWidth: Int, canvasHeight: Int,
                                           labelSeverity: Option[Int],
                                           labelTemporary: Boolean) {
   def toJSON: JsObject = {
@@ -69,6 +74,13 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
         "is_temporary" -> attributeTemporary,
         "label_id" -> labelId,
         "gsv_panorama_id" -> gsvPanoramaId,
+        "heading" -> heading,
+        "pitch" -> pitch,
+        "zoom" -> zoom,
+        "canvas_x" -> canvasX,
+        "canvas_y" -> canvasY,
+        "canvas_width" -> canvasWidth,
+        "canvas_height" -> canvasHeight,
         "label_severity" -> labelSeverity,
         "label_is_temporary" -> labelTemporary
       )
@@ -157,18 +169,22 @@ object GlobalAttributeTable {
       _lab <- LabelTable.labels if _ual.labelId === _lab.labelId
       _labPnt <- LabelTable.labelPoints if _lab.labelId === _labPnt.labelId
       if _labType.labelType =!= "Problem"
-    } yield (_att.globalAttributeId, _labType.labelType, _att.lat, _att.lng, _att.severity, _att.temporary, _nbhd._2, _lab.labelId, _labPnt.lat, _labPnt.lng, _lab.gsvPanoramaId)
+    } yield (
+      _att.globalAttributeId, _labType.labelType, _att.lat, _att.lng, _att.severity, _att.temporary, _nbhd._2,
+      _lab.labelId, _labPnt.lat, _labPnt.lng, _lab.gsvPanoramaId, _labPnt.heading, _labPnt.pitch, _labPnt.zoom,
+      _labPnt.canvasX, _labPnt.canvasY, _labPnt.canvasWidth, _labPnt.canvasHeight
+    )
 
     val withSeverity = for {
       (_l, _s) <- attributesWithLabels.leftJoin(LabelSeverityTable.labelSeverities).on(_._8 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _s.severity.?)
+    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _s.severity.?)
 
     val withTemporary = for {
       (_l, _t) <- withSeverity.leftJoin(LabelTemporarinessTable.labelTemporarinesses).on(_._8 === _.labelId)
-    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _t.temporary.?)
+    } yield (_l._1, _l._2, _l._3, _l._4, _l._5, _l._6, _l._7, _l._8, _l._9, _l._10, _l._11, _l._12, _l._13, _l._14, _l._15, _l._16, _l._17, _l._18, _l._19, _t.temporary.?)
 
     withTemporary.list.map(a =>
-      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7.get, a._8, a._9.get, a._10.get, a._11, a._12, a._13.getOrElse(false))
+      GlobalAttributeWithLabelForAPI(a._1, a._2, a._3, a._4, a._5, a._6, a._7.get, a._8, a._9.get, a._10.get, a._11, a._12, a._13, a._14, a._15, a._16, a._17, a._18, a._19, a._20.getOrElse(false))
     )
   }
 
