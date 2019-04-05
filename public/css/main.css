@@ -82,7 +82,7 @@ footer {
 .navbar-logo {
     width: 150px;
     float: left;
-    margin: 7px 0 0 0;
+    margin-top: 7px;
 }
 
 .navbar.navbar-fixed-top.fixed-theme {
