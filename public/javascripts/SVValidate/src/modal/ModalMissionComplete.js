@@ -19,18 +19,10 @@ function ModalMissionComplete (uiModalMissionComplete) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-        clearInterval(watch);
-        uiModalMissionComplete.loader.css('visibility', 'visible');
-        watch = window.setInterval(function () {
-            if (getProperty('clickable')) {
-                uiModalMissionComplete.loader.css('visibility', 'hidden');
-                uiModalMissionComplete.background.css('visibility', 'hidden');
-                uiModalMissionComplete.holder.css('visibility', 'hidden');
-                uiModalMissionComplete.foreground.css('visibility', 'hidden');
-                setProperty('clickable', false);
-                clearInterval(watch);
-            }
-        }, 100);
+        uiModalMissionComplete.loader.css('visibility', 'hidden');
+        uiModalMissionComplete.background.css('visibility', 'hidden');
+        uiModalMissionComplete.holder.css('visibility', 'hidden');
+        uiModalMissionComplete.foreground.css('visibility', 'hidden');
     }
 
     function setProperty(key, value) {
@@ -46,6 +38,22 @@ function ModalMissionComplete (uiModalMissionComplete) {
         var message = "You just validated " + mission.getProperty("labelsValidated") + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
+        // Disable user from clicking the "Validate next mission" button and set background go gray
+        uiModalMissionComplete.closeButton.css('background', '#7f7f7f');
+        uiModalMissionComplete.closeButton.prop('disabled', true);
+
+        // Wait until next mission has been loaded before allowing the user to click the button
+        clearInterval(watch);
+        watch = window.setInterval(function () {
+            if (getProperty('clickable')) {
+                // Enable button clicks, change the background to blue
+                uiModalMissionComplete.closeButton.css('background', '#3182bd');
+                uiModalMissionComplete.closeButton.prop('disabled', false);
+                setProperty('clickable', false);
+                clearInterval(watch);
+            }
+        }, 100);
+
         uiModalMissionComplete.background.css('visibility', 'visible');
         uiModalMissionComplete.missionTitle.html("Great Job!");
         uiModalMissionComplete.message.html(message);
@@ -56,6 +64,7 @@ function ModalMissionComplete (uiModalMissionComplete) {
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
         uiModalMissionComplete.closeButton.html('Validate more labels');
+
         uiModalMissionComplete.closeButton.on('click', _handleButtonClick);
     }
 
