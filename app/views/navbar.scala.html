@@ -37,10 +37,12 @@
                                 clearInterval(timerInterval);
                                 document.getElementById("navbarTimer").innerHTML = "EXPIRED";
 
-                                // If on the audit page and the timer has just expired, refresh page to show HIT
-                                // expiration overlay so they are unable to audit.
+                                // If on the audit or validation page and the timer has just expired, refresh page to
+                                // show HIT expiration overlay so they are unable to audit.
                                 if("@url.get" === "/audit" && !expired) {
                                     window.location.href = window.location.origin + "/audit";
+                                } else if ("@url.get" === "/validate" && !expired) {
+                                    window.location.href = window.location.origin + "/validate"
                                 }
                             } else if (hours > 0) {
                                 document.getElementById("navbarTimer").innerHTML = hours + "h " + minutes + "m ";

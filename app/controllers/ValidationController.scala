@@ -3,13 +3,14 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.CommentSubmissionFormats._
+import models.amt.AMTAssignmentTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.label.LabelTable.LabelValidationMetadata
@@ -49,7 +50,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
             // possible, otherwise choose 7.
             val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
             val labelTypeId: Int = possibleLabelTypeIds(index)
-            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
+            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, labelTypeId).get
             val labelsProgress: Int = mission.labelsProgress.get
             val labelsValidated: Int = mission.labelsValidated.get
             val labelsToRetrieve: Int = labelsValidated - labelsProgress
