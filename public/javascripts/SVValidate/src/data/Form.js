@@ -76,6 +76,7 @@ function Form(url) {
                         // Otherwise, display popup that says there are no more labels left.
                         svv.modalNoNewMission.show();
                     }
+                    svv.modalMissionComplete.setProperty('clickable', true);
                 }
             },
             error: function (xhr, status, result) {
