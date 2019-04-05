@@ -61,7 +61,8 @@ function MissionContainer () {
             labelTypeId : missionMetadata.label_type_id,
             missionId : missionMetadata.mission_id,
             missionType : missionMetadata.mission_type,
-            skipped : missionMetadata.skipped
+            skipped : missionMetadata.skipped,
+            pay: missionMetadata.pay
         };
         var mission = new Mission(metadata);
         addAMission(mission);

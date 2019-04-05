@@ -60,6 +60,7 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/modal/*.js',
                     'public/javascripts/SVValidate/src/panorama/*.js',
                     'public/javascripts/SVValidate/src/status/*.js',
+                    'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
                     'public/javascripts/SVValidate/src/*.js',
