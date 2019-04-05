@@ -447,7 +447,7 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, sc._2, sp.priority, false)
 
     // Get the priority of the highest priority task.
-    val highestPriority: Option[Double] = possibleTasks.map(_._9).min.run
+    val highestPriority: Option[Double] = possibleTasks.map(_._9).max.run
 
     // Get list of tasks that have this priority.
     val highestPriorityTasks: Option[List[NewTask]] = highestPriority.map { highPriority =>
