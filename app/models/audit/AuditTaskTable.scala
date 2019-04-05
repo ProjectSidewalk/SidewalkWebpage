@@ -446,8 +446,16 @@ object AuditTaskTable {
       sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, sc._2, sp.priority, false)
 
-    // Get the highest priority task.
-    possibleTasks.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
+    // Get the priority of the highest priority task.
+    val highestPriority: Option[Double] = possibleTasks.map(_._9).max.run
+
+    // Get list of tasks that have this priority.
+    val highestPriorityTasks: Option[List[NewTask]] = highestPriority.map { highPriority =>
+      possibleTasks.filter(_._9 === highPriority).list.map(NewTask.tupled)
+    }
+
+    // Choose one of the highest priority tasks at random.
+    highestPriorityTasks.flatMap(scala.util.Random.shuffle(_).headOption)
   }
 
   /**
