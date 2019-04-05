@@ -71,12 +71,12 @@ function Form(url) {
                             svv.panoramaContainer.reset();
                             svv.panoramaContainer.setLabelList(result.labels);
                             svv.panoramaContainer.loadNewLabelOntoPanorama();
-                            svv.modalMissionComplete.setProperty('clickable', true);
                         }
                     } else {
                         // Otherwise, display popup that says there are no more labels left.
                         svv.modalNoNewMission.show();
                     }
+                    svv.modalMissionComplete.setProperty('clickable', true);
                 }
             },
             error: function (xhr, status, result) {
