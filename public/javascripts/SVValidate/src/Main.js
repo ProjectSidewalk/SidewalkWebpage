@@ -67,7 +67,6 @@ function Main (param) {
         svv.ui.modalMissionComplete.disagreeCount = $("#modal-mission-complete-disagree-count");
         svv.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
         svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
-        svv.ui.modalMissionComplete.loader = $("img.loader");
         svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");

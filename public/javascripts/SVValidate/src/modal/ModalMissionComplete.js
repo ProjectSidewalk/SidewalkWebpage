@@ -19,7 +19,7 @@ function ModalMissionComplete (uiModalMissionComplete) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-        uiModalMissionComplete.loader.css('visibility', 'hidden');
+        uiModalMissionComplete.closeButton.on('click', null);
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
         uiModalMissionComplete.foreground.css('visibility', 'hidden');
@@ -40,7 +40,7 @@ function ModalMissionComplete (uiModalMissionComplete) {
 
         // Disable user from clicking the "Validate next mission" button and set background go gray
         uiModalMissionComplete.closeButton.css('background', '#7f7f7f');
-        uiModalMissionComplete.closeButton.prop('disabled', true);
+        uiModalMissionComplete.closeButton.css('cursor', 'wait');
 
         // Wait until next mission has been loaded before allowing the user to click the button
         clearInterval(watch);
@@ -48,7 +48,8 @@ function ModalMissionComplete (uiModalMissionComplete) {
             if (getProperty('clickable')) {
                 // Enable button clicks, change the background to blue
                 uiModalMissionComplete.closeButton.css('background', '#3182bd');
-                uiModalMissionComplete.closeButton.prop('disabled', false);
+                uiModalMissionComplete.closeButton.css('cursor', 'pointer');
+                uiModalMissionComplete.closeButton.on('click', _handleButtonClick);
                 setProperty('clickable', false);
                 clearInterval(watch);
             }
@@ -64,8 +65,6 @@ function ModalMissionComplete (uiModalMissionComplete) {
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
         uiModalMissionComplete.closeButton.html('Validate more labels');
-
-        uiModalMissionComplete.closeButton.on('click', _handleButtonClick);
     }
 
     self.getProperty = getProperty;
