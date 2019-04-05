@@ -204,8 +204,10 @@ ModalMission.prototype._distanceToString = function  (distance, unit) {
 
     distance = distance.toPrecision(4);
 
-    if (distance === "0.0947"){
+    if (distance === "0.0947") {
         return "500ft";
+    } else if (distance === "0.1420") {
+        return "750ft";
     } else if (distance === "0.1894") {
         return "1000ft";
     } else if (distance === "0.2500") {
