@@ -41,6 +41,9 @@ function Main (param) {
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
 
+        svv.ui.modalConfirmation = {};
+        svv.ui.modalConfirmation.confirmationCode = $("#left-column-confirmation-code-button");
+
         svv.ui.modalSkip = {};
         svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
 
@@ -57,18 +60,19 @@ function Main (param) {
         svv.ui.modalMission.foreground = $("#modal-mission-foreground");
         svv.ui.modalMission.background = $("#modal-mission-background");
         svv.ui.modalMission.missionTitle = $("#modal-mission-header");
+        svv.ui.modalMission.rewardText = $("#modal-mission-reward-text");
         svv.ui.modalMission.instruction = $("#modal-mission-instruction");
         svv.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
         svv.ui.modalMissionComplete = {};
-        svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
-        svv.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
-        svv.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
-        svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
-        svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
-        svv.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svv.ui.modalMissionComplete.agreeCount = $("#modal-mission-complete-agree-count");
+        svv.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
+        svv.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
         svv.ui.modalMissionComplete.disagreeCount = $("#modal-mission-complete-disagree-count");
+        svv.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
+        svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
+        svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
+        svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");
 
         svv.ui.status = {};
@@ -76,6 +80,8 @@ function Main (param) {
         svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
         svv.ui.status.labelTypeExample = $("#label-type-example");
         svv.ui.status.missionDescription = $("#current-mission-description");
+        svv.ui.status.currentMissionReward = $("#current-mission-reward");
+        svv.ui.status.totalMissionReward = $("#total-mission-reward");
         svv.ui.status.progressBar = $("#status-current-mission-completion-bar");
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
@@ -119,8 +125,8 @@ function Main (param) {
 
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
-        svv.modalMission = new ModalMission(svv.ui.modalMission);
-        svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete);
+        svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
+        svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 

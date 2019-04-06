@@ -48,7 +48,7 @@
 
 .modal-background {
     position: absolute;
-    left: -55px;
+    left: -60px;
     top: 0;
     background: rgba(255, 255, 255, 0.5);
     height: 100%;
@@ -138,8 +138,11 @@
 }
 
 .modal-foreground .blue-btn {
-    background: rgba(49,130,189,1);
     color: white;
     font-size: 14pt;
     width: 100%;
+}
+
+.modal-foreground .blue-btn:focus {
+    outline: none;
 }

@@ -172,7 +172,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         //     self._handleLoadNextMission();
         // });
 
-        /*If the user has completed his first mission then hide the continue button.
+        /*If the user has completed their first mission then hide the continue button.
          Display the generate confirmation button. When clicked, remove this button completely
          and make the Continue button visible again.
          */
