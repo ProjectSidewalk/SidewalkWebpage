@@ -93,7 +93,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
     }
 
     /**
-     * Enable zoom out
+     * Disables zoom out
      */
     function disableZoomOut () {
         if (!lock.disableZoomOut) {
