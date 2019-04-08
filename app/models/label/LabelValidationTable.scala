@@ -56,11 +56,41 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   */
 object LabelValidationTable {
   val db = play.api.db.slick.DB
-  val labelValidationTable = TableQuery[LabelValidationTable]
+  val validationLabels = TableQuery[LabelValidationTable]
+
+  /**
+    * Returns how many agree, disagree, or unsure validations a user entered for a given mission
+    * @param missionId  Mission ID of mission
+    * @param result     Validation result (1 - agree, 2 - disagree, 3 - unsure)
+    * @return           Number of labels that were
+    */
+  def countResultsFromValidationMission(missionId: Int, result: Int): Int = db.withSession { implicit session =>
+    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).list.size
+  }
+
+  /**
+    * Gets a JSON object that holds additional information about the number of label validation
+    * results for the current mission
+    * @param missionId  Mission ID of the current mission
+    * @return
+    */
+  def getValidationProgress (missionId: Int): JsObject = {
+    // We should probably move this somewhere else later...
+    val agreeCount: Int = countResultsFromValidationMission(missionId, 1)
+    val disagreeCount: Int = countResultsFromValidationMission(missionId, 2)
+    val unsureCount: Int = countResultsFromValidationMission(missionId, 3)
+    println("Agree Count: " + agreeCount + ", disagreeCount: " + disagreeCount + ", unsureCount: " + unsureCount)
+
+    Json.obj(
+      "agree_count" -> agreeCount,
+      "disagree_count" -> disagreeCount,
+      "unsure_count" -> unsureCount
+    )
+  }
 
   def save(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val labelValidationId: Int =
-      (labelValidationTable returning labelValidationTable.map(_.labelValidationId)) += label
+      (validationLabels returning validationLabels.map(_.labelValidationId)) += label
     labelValidationId
   }
 }
