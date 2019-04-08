@@ -1133,69 +1133,71 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             });
             $.getJSON("/adminapi/validationCounts2temp", function (data) {
                 var allData = data[0];
-                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
-                var turkerData = allData.filter(user => user.role === 'Turker');
-                var anonData = allData.filter(user => user.role === 'Anonymous');
+                // var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                // var turkerData = allData.filter(user => user.role === 'Turker');
+                // var anonData = allData.filter(user => user.role === 'Anonymous');
 
                 var allStats = getSummaryStats(allData, "count");
-                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
-                var regStats = getSummaryStats(regData, "count");
-                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
-                var turkerStats = getSummaryStats(turkerData, "count");
-                var anonStats = getSummaryStats(anonData, "count");
+                // var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
+                // var regStats = getSummaryStats(regData, "count");
+                // var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
+                // var turkerStats = getSummaryStats(turkerData, "count");
+                // var anonStats = getSummaryStats(anonData, "count");
 
                 var allHistOpts = {
                     xAxisTitle: "# Validations per User (all)", xDomain: [0, allStats.max], width: 187,
-                    binStep: 500, legendOffset: -80
+                    binStep: 50, legendOffset: -80
                 };
-                var allFilteredHistOpts = {
-                    xAxisTitle: "# Validations per User (all)", xDomain: [0, allFilteredStats.max],
-                    width: 187, binStep: 500, legendOffset: -80, excludeResearchers: true
-                };
-                var regHistOpts = {
-                    xAxisTitle: "# Validations per Registered User", xDomain: [0, regStats.max], width: 187,
-                    binStep: 500, legendOffset: -80
-                };
-                var regFilteredHistOpts = {
-                    xAxisTitle: "# Validations per Registered User", width: 187, legendOffset: -80,
-                    xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 500
-                };
-                var turkerHistOpts = {
-                    xAxisTitle: "# Validations per Turker User", xDomain: [0, turkerStats.max], width: 187,
-                    binStep: 500, legendOffset: -80
-                };
-                var anonHistOpts = {
-                    xAxisTitle: "# Validations per Anon User", xDomain: [0, anonStats.max],
-                    width: 187, legendOffset: -80, binStep: 2
-                };
+                // var allFilteredHistOpts = {
+                //     xAxisTitle: "# Validations per User (all)", xDomain: [0, allFilteredStats.max],
+                //     width: 187, binStep: 500, legendOffset: -80, excludeResearchers: true
+                // };
+                // var regHistOpts = {
+                //     xAxisTitle: "# Validations per Registered User", xDomain: [0, regStats.max], width: 187,
+                //     binStep: 500, legendOffset: -80
+                // };
+                // var regFilteredHistOpts = {
+                //     xAxisTitle: "# Validations per Registered User", width: 187, legendOffset: -80,
+                //     xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 500
+                // };
+                // var turkerHistOpts = {
+                //     xAxisTitle: "# Validations per Turker User", xDomain: [0, turkerStats.max], width: 187,
+                //     binStep: 500, legendOffset: -80
+                // };
+                // var anonHistOpts = {
+                //     xAxisTitle: "# Validations per Anon User", xDomain: [0, anonStats.max],
+                //     width: 187, legendOffset: -80, binStep: 2
+                // };
 
                 var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
-                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
-                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
-                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
+                // var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                // var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                // var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                // var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                // var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Labels");
-                $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Labels");
-                $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Labels");
+                $("#all-validation-std").html((allStats.std).toFixed(2) + " Labels");
+                // $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                // $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                // $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Labels");
+                // $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Labels");
 
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                var combinedChart = {"hconcat": [allChart/*, turkerChart, regChart, anonChart*/]};
+                // var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
 
-                vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
+                vega.embed("#validation-count-hist", combinedChart/*combinedChartFiltered*/, opt, function (error, results) {
                 });
 
                 var checkbox = document.getElementById("validation-count-include-researchers-checkbox").addEventListener("click", function (cb) {
                     if (cb.srcElement.checked) {
-                        $("#all-validation-std").html((allStats.std).toFixed(2) + " Labels");
-                        $("#reg-validation-std").html((regStats.std).toFixed(2) + " Labels");
+                        $("#all-validation-std").html((allStats.std).toFixed(2) + " Validations");
+                        // $("#reg-validation-std").html((regStats.std).toFixed(2) + " Validations");
                         vega.embed("#validation-count-hist", combinedChart, opt, function (error, results) {
                         });
                     } else {
-                        $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Labels");
-                        $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                        $("#all-validation-std").html((allStats.std).toFixed(2) + " Validations");
+                        // $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
+                        // $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
                         vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
                         });
                     }

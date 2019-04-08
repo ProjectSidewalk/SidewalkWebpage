@@ -123,20 +123,67 @@ object LabelValidationTable {
   /**
     * Select label counts per user.
     *
-    * @return list of tuples of (user_id, role, validation_count, validation_agreed)
+    * @return list of tuples of (labeler_id, validator_role, validation_count, validation_agreed)
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
       _validation <- labelValidationTable
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
       _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
-      _user <- users if _user.username =!= "anonymous" && _user.userId === _validation.userId
-      _userRole <- userRoles if _user.userId === _userRole.userId
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
+      _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
+      _userRole <- userRoles if _validationUser.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
     } yield (_user.userId, _role.role, _validation.labelId, _validation.validationResult)
 
     // Counts the number of labels for each user by grouping by user_id and role.
     audits.groupBy(l => (l._1, l._2, l._4)).map{ case ((uId, role, result), group) => (uId, role, result, group.length) }.list
+  }
+
+  def countValidations: Int = db.withTransaction(implicit session =>
+    labelValidationTable.list.size
+  )
+
+  def countValidationsBasedOnResult(result: Int): Int = db.withTransaction(implicit session =>
+    labelValidationTable.filter(_.validationResult === result).list.size
+  )
+
+  def countTodayValidations: Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT v.label_id
+        |FROM sidewalk.label_validation v
+        |WHERE v.end_timestamp::date = now()::date""".stripMargin
+    )
+    countQuery.list.size
+  }
+
+  def countYesterdayValidations: Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[(Int)](
+      """SELECT v.label_id
+        |FROM sidewalk.label_validation v
+        |WHERE v.end_timestamp::date = now()::date - interval '1' day""".stripMargin
+    )
+    countQuery.list.size
+  }
+
+  def countTodayValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[(Int)](
+      s"""SELECT v.label_id
+        |FROM sidewalk.label_validation v
+        |WHERE v.end_timestamp::date = now()::date
+        |   AND v.validation_result = $result""".stripMargin
+    )
+    countQuery.list.size
+  }
+
+  def countYesterdayValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[(Int)](
+      s"""SELECT v.label_id
+         |FROM sidewalk.label_validation v
+         |WHERE v.end_timestamp::date = now()::date - interval '1' day
+         |   AND v.validation_result = $result""".stripMargin
+    )
+    countQuery.list.size
   }
 
   def getValidationsByDate: List[ValidationCountPerDay] = db.withSession { implicit session =>
@@ -153,15 +200,5 @@ object LabelValidationTable {
     )
 
     selectValidationCountQuery.list.map(x => ValidationCountPerDay.tupled(x))
-
-    /*labelValidationTable.groupBy(x => {
-      var c : Calendar = Calendar.getInstance()
-      c.setTimeInMillis(x.endTimestamp.getTime)
-      c.set(Calendar.HOUR_OF_DAY, 0)
-      c.set(Calendar.MINUTE, 0)
-      c.set(Calendar.SECOND, 0)
-      c.set(Calendar.MILLISECOND, 0)
-      c
-    }).map { case (_date, group) => (_date, group.length) }.list*/
   }
 }

@@ -132,6 +132,34 @@
                                 <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
                             </tr>
 
+                            <tr style="font-size: 90%;">
+                                <th>Total Validations</th>
+                                <td>@LabelValidationTable.countValidations</td>
+                                <td>@LabelValidationTable.countTodayValidations</td>
+                                <td>@LabelValidationTable.countYesterdayValidations</td>
+                            </tr>
+
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Agreed</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(1)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(1)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(1)</td>
+                            </tr>
+
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Disgreed</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(2)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(2)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(2)</td>
+                            </tr>
+
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Not Sure</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(3)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3)</td>
+                            </tr>
+
                             <tr>
                                 <th>Audits</th>
                                 <th>@AuditTaskTable.countCompletedAudits</th>
@@ -464,7 +492,7 @@
                         </table>
                     </div>
 
-                    <h2 class="d-block">Validation Agreed Percentages</h2>
+                    <h2 class="d-block">User Performance (validation agreement)</h2>
                     <div class="col-lg-12">
                         <p>
                             <span>Standard Deviation: </span><span id="validation-agreed-std"></span><br>
@@ -488,9 +516,9 @@
                     <div class="col-lg-12">
                         <p>
                             <span>Standard Deviation (all users): </span><span id="all-validation-std"></span><br>
-                            <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>
-                            <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>
-                            <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>
+@*                            <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>*@
+@*                            <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>*@
+@*                            <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>*@
                             <span>
                                 Note: We only consider anonymous users who have completed at least one validation task.
                             </span>
