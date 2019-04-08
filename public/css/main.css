@@ -79,6 +79,12 @@ footer {
     padding: 20px 0 20px 0;
 }
 
+.navbar-logo {
+    width: 150px;
+    float: left;
+    margin-top: 7px;
+}
+
 .navbar.navbar-fixed-top.fixed-theme {
     background-color: #fff;
     /* border-color: #080808; */
@@ -368,13 +374,6 @@ video#bgvid {
     min-width:700px;
 
     text-align: center;
-}
-
-
-
-#biglogo {
-    position: relative;
-    top: -5px;
 }
 
 #smalllogo {
