@@ -1019,6 +1019,34 @@ video#bgvid {
     top:1px;
 }
 
+.otherCityStartBtn {
+    background-color:rgba(251, 215, 139, 1);
+    -moz-border-radius:15px;
+    -webkit-border-radius:15px;
+    border-radius:10px;
+    border:0px solid #fbd78b;
+    display:inline-block;
+    cursor:pointer;
+    color:#2d2a3f;
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+    font-family: 'Raleway', sans-serif;
+    font-size:14px;
+    padding:10px 30px;
+
+    text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+.otherCityStartBtn:hover {
+    background-color:#FCECBE;
+    border:0px solid #eb734d;
+    color:#2d2a3f;
+    text-shadow: none;
+}
+.otherCityStartBtn:active{
+    position:relative;
+    top:1px;
+}
+
 #exploremaplink {
     color: #fff;
     text-decoration:underline;
