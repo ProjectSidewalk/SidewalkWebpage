@@ -2,8 +2,12 @@ package models.label
 
 import java.sql.Timestamp
 import java.util.{Calendar, UUID}
+
 import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
+import models.daos.slick.DBTableDefinitions.UserTable
+import models.label.LabelTable.{auditTasks, db, labelsWithoutDeleted, roleTable, userRoles, users}
+import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -34,7 +38,7 @@ case class LabelValidation(validationId: Int,
 class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, Some("sidewalk"), "label_validation") {
   def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
-  def validationResult = column[Int]("validation_result", O.NotNull)
+  def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Unsure
   def userId = column[String]("user_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
   def canvasX = column[Int]("canvas_x", O.NotNull)
@@ -58,6 +62,12 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
 object LabelValidationTable {
   val db = play.api.db.slick.DB
   val labelValidationTable = TableQuery[LabelValidationTable]
+  val users = TableQuery[UserTable]
+  val userRoles = TableQuery[UserRoleTable]
+  val roleTable = TableQuery[RoleTable]
+  val auditTasks = TableQuery[AuditTaskTable]
+  val labels = TableQuery[LabelTable]
+  val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
   case class ValidationCountPerDay(date: String, count: Int)
 
@@ -79,6 +89,25 @@ object LabelValidationTable {
       .innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
       .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
       .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+  }
+
+  /**
+    * Select label counts per user.
+    *
+    * @return list of tuples of (user_id, role, validation_count, validation_agreed)
+    */
+  def getValidationCountsPerUser: List[(String, String, Int, Int)] = db.withSession { implicit session =>
+    val audits = for {
+      _validation <- labelValidationTable
+      _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
+      _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _validation.userId
+      _userRole <- userRoles if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_user.userId, _role.role, _validation.labelId, _validation.validationResult)
+
+    // Counts the number of labels for each user by grouping by user_id and role.
+    audits.groupBy(l => (l._1, l._2, l._4)).map{ case ((uId, role, result), group) => (uId, role, result, group.length) }.list
   }
 
   def getValidationsByDate: List[ValidationCountPerDay] = db.withSession { implicit session =>

@@ -58,6 +58,7 @@ GET     /adminapi/labelCounts                                @controllers.AdminC
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 
 GET     /adminapi/validationCounts                           @controllers.AdminController.getValidationCounts
+GET     /adminapi/validationCounts2temp                      @controllers.AdminController.getAllUserValidationCounts
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)

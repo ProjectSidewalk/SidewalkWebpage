@@ -364,6 +364,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     Future.successful(Ok(json))
   }
 
+  def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
+    val validationCounts = LabelValidationTable.getValidationCountsPerUser
+    val json = Json.arr(validationCounts.map(x => Json.obj(
+      "user_id" -> x._1, "role" -> x._2, "result" -> x._3, "count" -> x._4
+    )))
+    Future.successful(Ok(json))
+  }
+
   /**
     * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
     * If the activity provided doesn't exist, returns 400 (Bad Request).
