@@ -1047,17 +1047,34 @@ video#bgvid {
     top:1px;
 }
 
-#exploremaplink {
+.header-text {
     color: #fff;
+    font-family: raleway;
+    font-size: 15px;
+    line-height:2.8em;
+    text-align:center;
+    position:relative;
+    cursor: default;
+    /*left: -30px;*/
+}
+
+.exploremaplink {
+    color: rgba(251, 215, 139, 1);
     text-decoration:underline;
     font-family: raleway;
-    font-size: 10px;
-    line-height:1.8em;
+    font-size: 15px;
+    font-weight: bolder;
+    line-height:2.8em;
     text-align:center;
     position:relative;
     cursor: pointer;
-    left: -30px;
+    /*left: -30px;*/
 }
+.exploremaplink:hover {
+    color: #fff;
+}
+
+
 
 #menubutton {
     position: relative;
