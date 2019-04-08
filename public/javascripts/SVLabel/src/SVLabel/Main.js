@@ -392,6 +392,7 @@ function Main (params) {
             loadDifficultNeighborhoodsCompleted && loadLabelTags) {
             // Check if the user has completed the onboarding tutorial..
             var mission = svl.missionContainer.getCurrentMission();
+            svl.loadComplete = true;
             $("#page-loading").css({"visibility": "hidden"});
             $(".toolUI").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
@@ -609,7 +610,6 @@ function Main (params) {
         svl.ui.onboarding.canvas = $("#onboarding-canvas");
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
-
     if(params.init !== "noInit") {
         _initUI();
         _init(params);
