@@ -72,19 +72,17 @@ object LabelValidationTable {
     * Gets a JSON object that holds additional information about the number of label validation
     * results for the current mission
     * @param missionId  Mission ID of the current mission
-    * @return
+    * @return           JSON Object with information about agree/disagree/not sure counts
     */
   def getValidationProgress (missionId: Int): JsObject = {
-    // We should probably move this somewhere else later...
     val agreeCount: Int = countResultsFromValidationMission(missionId, 1)
     val disagreeCount: Int = countResultsFromValidationMission(missionId, 2)
-    val unsureCount: Int = countResultsFromValidationMission(missionId, 3)
-    println("Agree Count: " + agreeCount + ", disagreeCount: " + disagreeCount + ", unsureCount: " + unsureCount)
+    val notSureCount: Int = countResultsFromValidationMission(missionId, 3)
 
     Json.obj(
       "agree_count" -> agreeCount,
       "disagree_count" -> disagreeCount,
-      "unsure_count" -> unsureCount
+      "not_sure_count" -> notSureCount
     )
   }
 

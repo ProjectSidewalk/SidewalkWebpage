@@ -286,7 +286,6 @@
                 param.labelList = @Html(labelList.getOrElse("\"\"").toString);
                 param.progress = @Html(progress.getOrElse("\"\"").toString);
 
-                console.log(param.progress);
                 // Initializes an object of labels from label metadata.
                 // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
                 Object.keys(param.labelList).map(function (key, index) {

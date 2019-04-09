@@ -67,7 +67,7 @@ function Form(url) {
                     // If a mission was returned after posting data, create a new mission.
                     if (result.hasMissionAvailable) {
                         if (result.mission) {
-                            svv.missionContainer.createAMission(result.mission);
+                            svv.missionContainer.createAMission(result.mission, result.progress);
                             svv.panoramaContainer.reset();
                             svv.panoramaContainer.setLabelList(result.labels);
                             svv.panoramaContainer.loadNewLabelOntoPanorama();
