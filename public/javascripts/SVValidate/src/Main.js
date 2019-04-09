@@ -61,6 +61,15 @@ function Main (param) {
         svv.ui.modalInfo.closeButton = $("#modal-info-close-button");
         svv.ui.modalInfo.infoButton = $("#info-button");
 
+        svv.ui.modalLandscape = {};
+        svv.ui.modalLandscape.holder = $("#modal-landscape-holder");
+        svv.ui.modalLandscape.foreground = $("#modal-landscape-foreground");
+        svv.ui.modalLandscape.background = $("#modal-landscape-background");
+        svv.ui.modalLandscape.landscapeHeader = $("#modal-landscape-header");
+        svv.ui.modalLandscape.description = $("#modal-landscape-description");
+        svv.ui.modalLandscape.closeButton = $("#modal-landscape-close-button");
+        svv.ui.modalLandscape.infoButton = $("#back-button");
+
         svv.ui.modalMission = {};
         svv.ui.modalMission.holder = $("#modal-mission-holder");
         svv.ui.modalMission.foreground = $("#modal-mission-foreground");
@@ -132,6 +141,7 @@ function Main (param) {
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo);
+        svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
         svv.missionContainer = new MissionContainer();

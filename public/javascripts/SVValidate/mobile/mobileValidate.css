@@ -239,3 +239,7 @@ body {
 #modal-comment-textarea {
     font-size: 30pt;
 }
+
+#modal-landscape-holder {
+    visibility: hidden;
+}
