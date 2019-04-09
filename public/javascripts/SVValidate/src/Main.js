@@ -131,7 +131,7 @@ function Main (param) {
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
         svv.missionContainer = new MissionContainer();
-        svv.missionContainer.createAMission(param.mission);
+        svv.missionContainer.createAMission(param.mission, param.progress);
     }
 
     _initUI();
