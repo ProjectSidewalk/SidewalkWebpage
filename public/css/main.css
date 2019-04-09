@@ -1039,7 +1039,6 @@ video#bgvid {
     text-align:center;
     position:relative;
     cursor: pointer;
-    /*left: -30px;*/
 }
 .exploremaplink:hover {
     color: #fff;
