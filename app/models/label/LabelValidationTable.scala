@@ -68,6 +68,7 @@ object LabelValidationTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val labels = TableQuery[LabelTable]
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
+
   val validationLabels = TableQuery[LabelValidationTable]
 
   /**
