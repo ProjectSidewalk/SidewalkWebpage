@@ -15,6 +15,7 @@
 }
 
 #userTable_wrapper {
+    width: 110%;
     overflow-x: scroll;
 }
 
