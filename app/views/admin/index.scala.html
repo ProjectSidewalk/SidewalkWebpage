@@ -141,23 +141,23 @@
 
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Agreed</td>
-                                <td>@LabelValidationTable.countValidationsBasedOnResult(1)</td>
-                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(1)</td>
-                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(1)</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
                             </tr>
 
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Disgreed</td>
-                                <td>@LabelValidationTable.countValidationsBasedOnResult(2)</td>
-                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(2)</td>
-                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(2)</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
                             </tr>
 
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Not Sure</td>
-                                <td>@LabelValidationTable.countValidationsBasedOnResult(3)</td>
-                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3)</td>
-                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3)</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
                             </tr>
 
                             <tr>
@@ -582,14 +582,14 @@
                                 <th class="col-md-2">User Id</th>
                                 <th class="col-md-1">Email</th>
                                 <th class="col-md-1">Role</th>
-                                <th class="col-md-2">Date Registered</th>
-                                <th class="col-md-2" data-class-name="priority">Last Login</th>
-                                <th class="col-md-1">Login Count</th>
                                 <th class="col-md-1">Mission Count</th>
                                 <th class="col-md-1">Audit Count</th>
                                 <th class="col-md-1">Label Count</th>
                                 <th class="col-md-1">Own Labels Validated</th>
                                 <th class="col-md-1">% Own Labels Agree</th>
+                                <th class="col-md-2">Date Registered</th>
+                                <th class="col-md-2" data-class-name="priority">Last Login</th>
+                                <th class="col-md-1">Login Count</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -616,14 +616,14 @@
                                     } else {
                                         @u.role
                                     }</td>
-                                <td>@u.signUpTime</td>
-                                <td>@u.lastSignInTime</td>
-                                <td>@u.signInCount</td>
                                 <td>@u.completedMissions</td>
                                 <td>@u.completedAudits</td>
                                 <td>@u.labels</td>
                                 <td>@u.ownValidated</td>
                                 <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
+                                <td>@u.signUpTime</td>
+                                <td>@u.lastSignInTime</td>
+                                <td>@u.signInCount</td>
                             </tr>
                             }
                             </tbody>
