@@ -67,7 +67,6 @@ function Main (param) {
         svv.ui.modalLandscape.background = $("#modal-landscape-background");
         svv.ui.modalLandscape.landscapeHeader = $("#modal-landscape-header");
         svv.ui.modalLandscape.description = $("#modal-landscape-description");
-        svv.ui.modalLandscape.closeButton = $("#modal-landscape-close-button");
         svv.ui.modalLandscape.infoButton = $("#back-button");
 
         svv.ui.modalMission = {};

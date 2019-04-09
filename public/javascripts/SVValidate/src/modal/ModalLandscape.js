@@ -24,8 +24,6 @@ function ModalLandscape (uiModal) {
         uiModal.background.css('visibility', 'visible');
         uiModal.holder.css('visibility', 'visible');
         uiModal.foreground.css('visibility', 'visible');
-        uiModal.closeButton.html('x');
-        uiModal.closeButton.on('click', _handleButtonClick);
     }
 
     uiModal.infoButton.on("click", show);
