@@ -121,9 +121,9 @@ object LabelValidationTable {
   }
 
   /**
-    * Select label counts per user.
+    * Select validation counts per user.
     *
-    * @return list of tuples of (labeler_id, validator_role, validation_count, validation_agreed)
+    * @return list of tuples of (labeler_id, validator_role, validation_result, count)
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
@@ -138,6 +138,42 @@ object LabelValidationTable {
 
     // Counts the number of labels for each user by grouping by user_id and role.
     audits.groupBy(l => (l._1, l._2, l._4)).map{ case ((uId, role, result), group) => (uId, role, result, group.length) }.list
+  }
+
+  /**
+    * Select validation counts per user, split into agreed and total
+    *
+    * @return map of labeler_id -> (validator_role, total, agreed)
+    */
+  def getCategorizedValidationCountsPerUser: scala.collection.mutable.HashMap[String, (String, Int, Int)] = db.withSession { implicit session =>
+    val validationCounts = getValidationCountsPerUser
+
+    // Map userId -> (role, total, agreed)
+    // Ignore role for now because we need to figure out what to do with the role
+    // There's 2 roles, the labeler and the validator, and it's unclear how to filter by "Include researchers"
+    val validations = new scala.collection.mutable.HashMap[String, (String, Int, Int)]
+
+    validationCounts.foreach{ x =>
+      var total = 0
+      var agreed = 0
+
+      val role = x._2
+
+      if (validations.contains(x._1)) {
+        val current = validations(x._1)
+        total = current._2
+        agreed = current._3
+      }
+
+      if (x._3 == 1) { // Agreed
+        agreed += x._4
+      }
+
+      total += x._4
+      validations.put(x._1, (role, total, agreed))
+    }
+
+    return validations
   }
 
   def countValidations: Int = db.withTransaction(implicit session =>
