@@ -24,6 +24,7 @@ function ModalMission (uiModalMission, user) {
      * Hides the new/continuing mission screen
      */
     function hide () {
+        svv.keyboard.enableKeyboard();
         uiModalMission.background.css('visibility', 'hidden');
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');
@@ -71,6 +72,7 @@ function ModalMission (uiModalMission, user) {
     }
 
     function show (title, instruction) {
+        svv.keyboard.disableKeyboard();
         if (instruction) {
             uiModalMission.instruction.html(instruction);
         }
