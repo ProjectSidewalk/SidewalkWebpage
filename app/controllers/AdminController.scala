@@ -153,21 +153,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def getValidationCounts = UserAwareAction.async { implicit request =>
-    val ownValidatedCounts = LabelValidationTable.getOwnValidationCounts
-    val ownValidatedAgreedCounts = LabelValidationTable.getOwnValidationAgreedCounts
+    val validationCounts = LabelValidationTable.getCategorizedValidationCountsPerUser
 
-    var validationCounts = new ListBuffer[JsObject]()
+    val json = Json.arr(validationCounts.map{ case(userId, data) => Json.obj(
+      "role" -> data._1, "total" -> data._2, "agreed" -> data._3
+    )})
 
-    for ((user, allCounts) <- ownValidatedCounts) {
-      val agreed = ownValidatedAgreedCounts(user)
-
-      validationCounts += Json.obj(
-        "total" -> allCounts,
-        "agreed" -> agreed
-      )
-    }
-
-    Future.successful(Ok(JsArray(validationCounts.toList)))
+    Future.successful(Ok(json))
   }
 
   /**
@@ -365,38 +357,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
-    val validationCounts = LabelValidationTable.getValidationCountsPerUser
-
-    // Map userId -> (total, agreed)
+    // Map userId -> (role, total, agreed)
     // Ignore role for now because we need to figure out what to do with the role
     // There's 2 roles, the labeler and the validator, and it's unclear how to filter by "Include researchers"
-    val validations = new scala.collection.mutable.HashMap[String, (Int, Int)]
+    val validations = LabelValidationTable.getCategorizedValidationCountsPerUser
 
-    validationCounts.foreach{ x =>
-      var total = 0
-      var agreed = 0
-
-      if (validations.contains(x._1)) {
-        val current = validations(x._1)
-        total = current._1
-        agreed = current._2
-      }
-
-      if (x._3 == 1) { // Agreed
-        agreed += x._4
-      }
-
-      total += x._4
-      validations.put(x._1, (total, agreed))
-    }
-
-    val json = Json.arr(validations.map{ case(userId, counts) => Json.obj(
-      "user_id" -> userId, "count" -> counts._1, "agreed" -> counts._2
+    val json = Json.arr(validations.map{ case(userId, data) => Json.obj(
+      "user_id" -> userId, "role" -> data._1, "count" -> data._2, "agreed" -> data._3
     )})
 
-//    val json = Json.arr(validationCounts.map(x => Json.obj(
-//      "user_id" -> x._1, "role" -> x._2, "result" -> x._3, "count" -> x._4
-//    )))
     Future.successful(Ok(json))
   }
 

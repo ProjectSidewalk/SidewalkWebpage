@@ -262,19 +262,19 @@ object UserDAOImpl {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
-    // Map(user_id: String -> ownValidated: Int)
-    val ownValidatedCounts = LabelValidationTable.getOwnValidationCounts
-
-    // Map(user_id: String -> ownValidatedAgreed: Int)
-    val ownValidatedAgreedCounts = LabelValidationTable.getOwnValidationAgreedCounts
+    // Map(user_id: String -> (role: String, total: Int, agreed: Int))
+    val validatedCounts = LabelValidationTable.getCategorizedValidationCountsPerUser
 
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
     userTable.list.map{ u =>
-      val ownValidatedCountsMin = ownValidatedCounts.getOrElse(u.userId, 0);
+      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0))
+      val ownValidatedTotal = ownValidatedCounts._2
+      val ownValidatedAgreed = ownValidatedCounts._3
+
       val ownValidatedAgreedPct =
-        if (ownValidatedCountsMin == 0) 0f
-        else ownValidatedAgreedCounts.getOrElse(u.userId, 0) * 1.0 / ownValidatedCountsMin
+        if (ownValidatedTotal == 0) 0f
+        else ownValidatedAgreed * 1.0 / ownValidatedTotal
 
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
@@ -284,7 +284,7 @@ object UserDAOImpl {
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
         labelCounts.getOrElse(u.userId, 0),
-        ownValidatedCountsMin,
+        ownValidatedTotal,
         ownValidatedAgreedPct
       )
     }
