@@ -59,7 +59,7 @@
     <br class="clear">
 
     <div id="title-bar-holder">
-        <button id="back-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>
+        <!--<button id="back-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>-->
         <div id="upper-menu-title-bar"></div>
         <button id="info-button" class="button info-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
         <!---<button id="skip-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'></button>-->
@@ -210,6 +210,14 @@
             }
             document.getElementById("modal-info-close-button").style.left = w - 75 + "px";
             //resize comment panel
+
+            //if you need to do functional testing without a phone, enable this code to test using Chrome's inspection tool
+            document.getElementById("validation-button-holder").style.top = h - 1500 + "px";
+            document.getElementById("validation-button-holder").style.width = w + "px";
+            document.getElementById("validation-agree-button").style.width = w/5-30 + "px";
+            document.getElementById("validation-disagree-button").style.width = w/5-30 + "px";
+            document.getElementById("validation-not-sure-button").style.width = w/5-30 + "px";
+            document.getElementById("left-column-jump-button").style.left = w - 600 + "px";
 
 
     </script>
