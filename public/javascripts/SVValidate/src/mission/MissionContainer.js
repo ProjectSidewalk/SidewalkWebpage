@@ -51,17 +51,23 @@ function MissionContainer () {
     /**
      * Creates a mission by parsing a JSON file
      * @param missionMetadata   JSON metadata for mission (from backend)
+     * @param progressMetadata  JSON metadata about mission progress
+     *                          (counts of agree/disagree/unsure labels for this mission)
      * @private
      */
-    function createAMission(missionMetadata) {
+    function createAMission(missionMetadata, progressMetadata) {
         var metadata = {
+            agreeCount: progressMetadata.agree_count,
             completed : missionMetadata.completed,
+            disagreeCount: progressMetadata.disagree_count,
             labelsProgress : missionMetadata.labels_progress,
             labelsValidated : missionMetadata.labels_validated,
             labelTypeId : missionMetadata.label_type_id,
             missionId : missionMetadata.mission_id,
             missionType : missionMetadata.mission_type,
-            skipped : missionMetadata.skipped
+            notSureCount: progressMetadata.not_sure_count,
+            skipped : missionMetadata.skipped,
+            pay: missionMetadata.pay
         };
         var mission = new Mission(metadata);
         addAMission(mission);
