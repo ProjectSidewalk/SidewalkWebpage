@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -284,6 +284,7 @@
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
                 param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+                param.progress = @Html(progress.getOrElse("\"\"").toString);
 
                 // Initializes an object of labels from label metadata.
                 // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
