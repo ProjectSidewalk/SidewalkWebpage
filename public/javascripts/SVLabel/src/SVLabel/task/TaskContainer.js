@@ -453,10 +453,20 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             });
             // Indicates neighborhood is complete
             if (candidateTasks.length === 0) {
+
+                // TODO: Remove the console.log statements if issue #1449 has been resolved.
+                console.log('finished neighborhood screen has appeared, logging debug info');
+                console.log('incompleteTasks.length:' +
+                    self.getIncompleteTasksAcrossAllUsersUsingPriority().length());
+                console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
+
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
                 $('#neighborhood-completion-overlay').show();
                 var currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
                 var currentNeighborhoodId = currentNeighborhood.getProperty("regionId");
+
+                console.log('neighborhood: ' + currentNeighborhoodId + ": " + currentNeighborhood);
+
                 tracker.push("NeighborhoodComplete_AcrossAllUsers", {'RegionId': currentNeighborhoodId})
             }
         }
@@ -582,6 +592,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
         if (tasks) {
             var distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
+            console.log('triggered distanceArray');
             return distanceArray.sum();
         } else {
             return null;

@@ -35,7 +35,10 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * @param mission   Object for the mission that was just completed.
      */
     function show (mission) {
-        var message = "You just validated " + mission.getProperty("labelsValidated") + " " +
+        svv.keyboard.disableKeyboard();
+        var totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
+            + mission.getProperty("notSureCount");
+        var message = "You just validated " + totalLabels + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
         // Disable user from clicking the "Validate next mission" button and set background go gray
