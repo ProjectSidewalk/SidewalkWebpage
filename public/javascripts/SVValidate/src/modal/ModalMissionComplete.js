@@ -35,6 +35,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * @param mission   Object for the mission that was just completed.
      */
     function show (mission) {
+        svv.keyboard.disableKeyboard();
         var totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
         var message = "You just validated " + totalLabels + " " +
