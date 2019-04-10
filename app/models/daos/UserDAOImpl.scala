@@ -263,7 +263,10 @@ object UserDAOImpl {
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> (role: String, total: Int, agreed: Int))
-    val validatedCounts = LabelValidationTable.getCategorizedValidationCountsPerUser
+    val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
+      (valCount._1, (valCount._2, valCount._3, valCount._4))
+    }.toMap
+
 
 
     // Now left join them all together and put into UserStatsForAdminPage objects.

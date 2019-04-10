@@ -148,19 +148,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Gets validation totals & agrees for each user.
-    */
-  def getValidationCounts = UserAwareAction.async { implicit request =>
-    val validationCounts = LabelValidationTable.getCategorizedValidationCountsPerUser
-
-    val json = Json.arr(validationCounts.map{ case(userId, data) => Json.obj(
-      "role" -> data._1, "total" -> data._2, "agreed" -> data._3
-    )})
-
-    Future.successful(Ok(json))
-  }
-
-  /**
     * Gets count of completed missions for each user.
     *
     * @return
@@ -359,13 +346,11 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     * number of their labels that were validated, and the number of their labels that were validated & agreed with
     */
   def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
-    // Map userId -> (role, total, agreed)
-    val validations = LabelValidationTable.getCategorizedValidationCountsPerUser
+    val validationCounts = LabelValidationTable.getValidationCountsPerUser
 
-    val json = Json.arr(validations.map{ case(userId, data) => Json.obj(
-      "user_id" -> userId, "role" -> data._1, "count" -> data._2, "agreed" -> data._3
-    )})
-
+    val json = Json.arr(validationCounts.map(x => Json.obj(
+      "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
+    )))
     Future.successful(Ok(json))
   }
 

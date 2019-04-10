@@ -110,7 +110,7 @@ object LabelValidationTable {
   /**
     * Select validation counts per user.
     *
-    * @return list of tuples of (labeler_id, validator_role, validation_result, count)
+    * @return list of tuples of (labeler_id, validator_role, validation_count, validation_agreed_count)
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
@@ -124,43 +124,17 @@ object LabelValidationTable {
     } yield (_user.userId, _role.role, _validation.labelId, _validation.validationResult)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => (l._1, l._2, l._4)).map{ case ((uId, role, result), group) => (uId, role, result, group.length) }.list
-  }
+    audits.groupBy(l => (l._1, l._2)).map{
+      case ((uId, role), group) => {
+        // Sum up the agreed results
+        val agreed = group.map{ r =>
+          Case.If(r._4 === 1).Then(1).Else(0) // Only count it if the result was "agree"
+        }.sum.getOrElse(0)
 
-  /**
-    * Select validation counts per user, split into agreed and total
-    *
-    * @return map of labeler_id -> (validator_role, total, agreed)
-    */
-  def getCategorizedValidationCountsPerUser: scala.collection.mutable.HashMap[String, (String, Int, Int)] = db.withSession { implicit session =>
-    val validationCounts = getValidationCountsPerUser
-
-    // Map userId -> (role, total, agreed)
-    val validations = new scala.collection.mutable.HashMap[String, (String, Int, Int)]
-
-    // Aggregate agreed & total per user
-    validationCounts.foreach{ valCount =>
-      var total = 0
-      var agreed = 0
-
-      val role = valCount._2
-
-      // Fetch current total & agreed if the user already has an entry
-      if (validations.contains(valCount._1)) {
-        val current = validations(valCount._1)
-        total = current._2
-        agreed = current._3
+        // group.length is the total # of validations
+        (uId, role, group.length, agreed)
       }
-
-      if (valCount._3 == 1) { // The result was agree, so add to the agreed count
-        agreed += valCount._4
-      }
-
-      total += valCount._4 // Always add to the total
-      validations.put(valCount._1, (role, total, agreed)) // Update the user's entry
-    }
-
-    return validations
+    }.list
   }
 
   /**
