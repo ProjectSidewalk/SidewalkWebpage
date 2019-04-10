@@ -107,20 +107,6 @@ object LabelValidationTable {
     labelValidationId
   }
 
-  def getOwnValidationCounts: Map[String, Int] = db.withSession { implicit session =>
-    LabelValidationTable.labelValidationTable
-      .innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
-      .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
-      .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap // _2.userId is the userId from "audit_task"
-  }
-
-  def getOwnValidationAgreedCounts: Map[String, Int] = db.withSession { implicit session =>
-    LabelValidationTable.labelValidationTable.filter(_.validationResult === 1)
-      .innerJoin(LabelTable.labels).on(_.labelId === _.labelId)
-      .innerJoin(AuditTaskTable.auditTasks).on(_._2.auditTaskId === _.auditTaskId)
-      .groupBy(_._2.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
-  }
-
   /**
     * Select validation counts per user.
     *
@@ -150,41 +136,50 @@ object LabelValidationTable {
     val validationCounts = getValidationCountsPerUser
 
     // Map userId -> (role, total, agreed)
-    // Ignore role for now because we need to figure out what to do with the role
-    // There's 2 roles, the labeler and the validator, and it's unclear how to filter by "Include researchers"
     val validations = new scala.collection.mutable.HashMap[String, (String, Int, Int)]
 
-    validationCounts.foreach{ x =>
+    // Aggregate agreed & total per user
+    validationCounts.foreach{ valCount =>
       var total = 0
       var agreed = 0
 
-      val role = x._2
+      val role = valCount._2
 
-      if (validations.contains(x._1)) {
-        val current = validations(x._1)
+      // Fetch current total & agreed if the user already has an entry
+      if (validations.contains(valCount._1)) {
+        val current = validations(valCount._1)
         total = current._2
         agreed = current._3
       }
 
-      if (x._3 == 1) { // Agreed
-        agreed += x._4
+      if (valCount._3 == 1) { // The result was agree, so add to the agreed count
+        agreed += valCount._4
       }
 
-      total += x._4
-      validations.put(x._1, (role, total, agreed))
+      total += valCount._4 // Always add to the total
+      validations.put(valCount._1, (role, total, agreed)) // Update the user's entry
     }
 
     return validations
   }
 
+  /**
+    * @return total number of validations
+    */
   def countValidations: Int = db.withTransaction(implicit session =>
     labelValidationTable.list.size
   )
 
+  /**
+    * @return total number of validations with a given result
+    */
   def countValidationsBasedOnResult(result: Int): Int = db.withTransaction(implicit session =>
     labelValidationTable.filter(_.validationResult === result).list.size
   )
 
+  /**
+    * @return total number of today's validations
+    */
   def countTodayValidations: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT v.label_id
@@ -194,6 +189,9 @@ object LabelValidationTable {
     countQuery.list.size
   }
 
+  /**
+    * @return total number of yesterday's validations
+    */
   def countYesterdayValidations: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       """SELECT v.label_id
@@ -203,6 +201,9 @@ object LabelValidationTable {
     countQuery.list.size
   }
 
+  /**
+    * @return total number of today's validations with a given result
+    */
   def countTodayValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT v.label_id
@@ -213,6 +214,9 @@ object LabelValidationTable {
     countQuery.list.size
   }
 
+  /**
+    * @return total number of yesterday's validations with a given result
+    */
   def countYesterdayValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT v.label_id
@@ -223,6 +227,9 @@ object LabelValidationTable {
     countQuery.list.size
   }
 
+  /**
+    * @return number of validations per date
+    */
   def getValidationsByDate: List[ValidationCountPerDay] = db.withSession { implicit session =>
     val selectValidationCountQuery = Q.queryNA[(String, Int)](
       """SELECT calendar_date::date, COUNT(label_id)

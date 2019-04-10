@@ -149,8 +149,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Gets validation totals & agrees for each user.
-    *
-    * @return
     */
   def getValidationCounts = UserAwareAction.async { implicit request =>
     val validationCounts = LabelValidationTable.getCategorizedValidationCountsPerUser
@@ -356,10 +354,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     Future.successful(Ok(json))
   }
 
+  /**
+    * Outputs a list of validation counts for all users with the user's role, the
+    * number of their labels that were validated, and the number of their labels that were validated & agreed with
+    */
   def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
     // Map userId -> (role, total, agreed)
-    // Ignore role for now because we need to figure out what to do with the role
-    // There's 2 roles, the labeler and the validator, and it's unclear how to filter by "Include researchers"
     val validations = LabelValidationTable.getCategorizedValidationCountsPerUser
 
     val json = Json.arr(validations.map{ case(userId, data) => Json.obj(
