@@ -5,7 +5,7 @@ function CVGroundTruthMission(mission) {
      * If an existing ground truth CV audit mission is available, initialize the mission. Otherwise, display
      * form to create a new CV ground truth audit mission.
      */
-    function _init(mission) {
+    function _init() {
         loadFirstPanoWhenReady();
         self.cvGroundTruthNextPano = cvGroundTruthNextPano;
     }
@@ -16,7 +16,7 @@ function CVGroundTruthMission(mission) {
      */
     function loadFirstPanoWhenReady() {
         if (typeof svl.loadComplete !== "undefined" && svl.loadComplete === true) {
-            // Hide any irrelevant overlays
+            // Hide any irrelevant overlays.
             $('#compass-message-holder').hide();
             $('#cvgroundtruth-panoid-entry-form-overlay').hide();
             $('#modal-mission-foreground').hide();
@@ -25,7 +25,7 @@ function CVGroundTruthMission(mission) {
             $('#modal-mission-background').hide();
             $('#modal-mission-complete-holder').hide();
             $('#next-pano-button-holder').show();
-            // Fetch list of panos to complete and jump to first pano
+            // Fetch list of panos to complete and jump to first pano.
             $.ajax({
                 async: true,
                 url: '/audit/groundtruth/panos_todo',
@@ -59,7 +59,7 @@ function CVGroundTruthMission(mission) {
             num_remaining: self.remainingPanos.length - 1,
             mission_id: mission.mission_id
         };
-        // Mark the current pano as complete
+        // Mark the current pano as complete.
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
@@ -72,7 +72,7 @@ function CVGroundTruthMission(mission) {
             }
         });
 
-        // Jump to the next panoId, and fetch a new task from the server for the next panoId
+        // Jump to the next panoId, and fetch a new task from the server for the next panoId.
         if (self.remainingPanos.length > 0) {
             self.currentPano = self.remainingPanos.shift();
             svl.panorama.setPano(self.currentPano);
@@ -92,11 +92,11 @@ function CVGroundTruthMission(mission) {
                 }
             });
         } else {
-            // No more panos to audit, mission complete!
+            // No more panos to audit, mission complete.
             $("#cvgroundtruth-complete-overlay").show();
             $("#next-pano-button-holder").hide();
         }
     }
 
-    _init(mission)
+    _init()
 }

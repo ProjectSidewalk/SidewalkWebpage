@@ -36,7 +36,7 @@
                                 panoIds_json['panos'][cntr].lng = panoData.location.latLng.lng();
 
                             } else {
-                                // Invalid panoId found
+                                // An invalid panoId was found.
                                 let shouldProceed = confirm("PanoId " + panoIds_json['panos'][cntr].panoId + " is invalid and will be skipped. Proceed?");
                                 panoIds_json['panos'][cntr] = null;
                                 if (!shouldProceed) {
@@ -45,7 +45,7 @@
                             }
 
                             numPanosValidated++;
-                            // Once all panos have been checked, submit the list and reload page
+                            // Once all panos have been checked, submit the list and reload page.
                             if (numPanosValidated === panoIds_json['panos'].length) {
                                 panoIds_json['panos'] = panoIds_json['panos'].filter(Boolean);
                                 let url = '/audit/groundtruth/create';

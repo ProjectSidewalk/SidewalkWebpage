@@ -862,7 +862,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // This is a callback function that is called each time the user moves
         // before jumping and checks if too far
 
-        // Don't auto-jump in CV ground truth audits
+        // Don't auto-jump in CV ground truth audits.
         if(svl.isCVGroundTruthAudit) {
             return;
         }
