@@ -610,7 +610,7 @@ function Main (params) {
         svl.ui.onboarding.canvas = $("#onboarding-canvas");
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
-    
+
     if(params.init !== "noInit") {
         _initUI();
         _init(params);
