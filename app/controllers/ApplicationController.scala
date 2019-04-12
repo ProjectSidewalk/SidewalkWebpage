@@ -2,6 +2,7 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
+import scala.collection.JavaConverters._
 
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -116,11 +117,21 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case Some(user) =>
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
+              // Get city configs.
               val cityStr: String = Play.configuration.getString("city-id").get
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName)))
+              // Get names and URLs for other cities so we can link to them on landing page.
+              val otherCities: List[String] =
+                Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == cityStr)
+              val otherCityUrls: List[(String, String)] = otherCities.map { otherCity =>
+                val otherName: String = Play.configuration.getString("city-params.city-name." + otherCity).get
+                val otherState: String = Play.configuration.getString("city-params.state-abbreviation." + otherCity).get
+                val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + otherCity).get
+                (otherName + ", " + otherState, otherURL)
+              }
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, otherCityUrls)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))

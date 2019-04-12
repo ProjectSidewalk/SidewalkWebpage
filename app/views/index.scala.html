@@ -3,7 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String)
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, otherCityURLs: List[(String, String)])
 
 @main(title) {
     @navbar(user)
@@ -31,8 +31,12 @@
                         <span class="tagline">Let's create a path for everyone</span>
                     </p>
                     <br>
-                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Exploring</a>
+                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Exploring @cityShortName</a>
                     <br><br>
+                    <span class="header-text">We are also in:</span>
+                    @for((cityName, cityURL) <- otherCityURLs) {
+                        <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
+                    }
 
                 </div>
                 <div class="col-sm-3"></div>
