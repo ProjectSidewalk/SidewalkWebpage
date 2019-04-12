@@ -25,6 +25,8 @@ function Mission(params) {
      * Initializes a front-end mission object from metadata.
      */
     function _init() {
+        if ("agreeCount" in params) setProperty("agreeCount", params.agreeCount);
+        if ("disagreeCount" in params) setProperty("disagreeCount", params.disagreeCount);
         if ("missionId" in params) setProperty("missionId", params.missionId);
         if ("missionType" in params) setProperty("missionType", params.missionType);
         if ("regionId" in params) setProperty("regionId", params.regionId);
@@ -34,6 +36,7 @@ function Mission(params) {
         if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
         if ("labelsValidated" in params) setProperty("labelsValidated", params.labelsValidated);
         if ("labelTypeId" in params) setProperty("labelTypeId", params.labelTypeId);
+        if ("notSureCount" in params) setProperty("notSureCount", params.notSureCount);
         if ("skipped" in params) setProperty("skipped", params.skipped);
     }
 
@@ -84,7 +87,7 @@ function Mission(params) {
             setProperty("labelsProgress", labelsProgress);
 
             // Submit mission if mission is complete
-            if (labelsProgress == getProperty("labelsValidated")) {
+            if (labelsProgress === getProperty("labelsValidated")) {
                 setProperty("completed", true);
                 svv.missionContainer.completeAMission();
             }

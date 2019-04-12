@@ -30,7 +30,7 @@ import scala.collection.mutable.ListBuffer
 class ValidationTaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue])
+  case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue], progress: Option[JsValue])
 
   /**
     * Parse submitted validation data and submit to tables
@@ -73,27 +73,32 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
               val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
               val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(user, missionProgress, Some(currentMissionLabelTypeId))
               nextMissionLabelTypeId match {
+                // Load new mission, generate label list for validation
                 case Some (nextMissionLabelTypeId) =>
-                  val possibleNewMission: Option[Mission] = updateMissionTable (user, missionProgress, Some(nextMissionLabelTypeId))
-                  val labelList: Option[JsValue] = getLabelList (user, missionProgress, nextMissionLabelTypeId)
-                  ValidationTaskPostReturnValue (Some (true), possibleNewMission, labelList)
+                  val possibleNewMission: Option[Mission] = updateMissionTable(user, missionProgress, Some(nextMissionLabelTypeId))
+                  val labelList: Option[JsValue] = getLabelList(user, missionProgress, nextMissionLabelTypeId)
+                  val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
+                  ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
                 case None =>
-                  updateMissionTable (user, missionProgress, None)
+                  updateMissionTable(user, missionProgress, None)
+                  // No more validation missions available
                   if (missionProgress.completed) {
-                    ValidationTaskPostReturnValue (None, None, None)
+                    ValidationTaskPostReturnValue(None, None, None, None)
                   } else {
-                    ValidationTaskPostReturnValue (Some (true), None, None)
+                    // Validation mission is still in progress
+                    ValidationTaskPostReturnValue(Some(true), None, None, None)
                   }
               }
             case None =>
-              ValidationTaskPostReturnValue (None, None, None)
+              ValidationTaskPostReturnValue (None, None, None, None)
           }
         }
 
         Future.successful(Ok(Json.obj(
           "hasMissionAvailable" -> returnValues.head.hasMissionAvailable,
           "mission" -> returnValues.head.mission.map(_.toJSON),
-          "labels" -> returnValues.head.labels
+          "labels" -> returnValues.head.labels,
+          "progress" -> returnValues.head.progress
         )))
       }
     )
