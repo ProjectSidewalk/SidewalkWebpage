@@ -60,7 +60,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     request.identity match {
       case Some(user) =>
         if (isAdmin(request.identity)) {
-          val task = AuditTaskTable.createCVGroundTruthTaskByPanoId(user, panoid)
+          val task: Option[NewTask] = AuditTaskTable.createCVGroundTruthTaskByPanoId(user, panoid)
           task match {
             case Some(t) => Future.successful(Ok(t.toJSON))
             case None =>
@@ -214,7 +214,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Update the MissionTable and get missionId
           val missionId: Int = data.missionProgress.missionId
 
-          val isCVGroundTruthMission = MissionTable.isCVGroundTruthMission(missionId)
+          val isCVGroundTruthMission: Boolean = MissionTable.isCVGroundTruthMission(missionId)
 
           val possibleNewMission: Option[Mission] = if (!isCVGroundTruthMission) {
             updateMissionTable(user, data.missionProgress)

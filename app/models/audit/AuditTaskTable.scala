@@ -438,7 +438,7 @@ object AuditTaskTable {
     * @return street segment id closest to pano
     */
   def getStreetEdgeIdClosestToCVPanoId(user: User, panoid:String): Option[Int] = {
-    val (panoLat, panoLng) = MissionProgressCVGroundtruthTable.getPanoLatLng(user.userId, panoid)
+    val (panoLat, panoLng): (Option[Float], Option[Float]) = MissionProgressCVGroundtruthTable.getPanoLatLng(user.userId, panoid)
     (panoLat, panoLng) match {
       case (Some(lat), Some(lng)) =>
         LabelTable.getStreetEdgeIdClosestToLatLng(lat, lng)
@@ -453,7 +453,7 @@ object AuditTaskTable {
     * @return
     */
   def createCVGroundTruthTaskByPanoId(user: User, panoid:String): Option[NewTask] = {
-    val closestStreetEdgeId = getStreetEdgeIdClosestToCVPanoId(user, panoid)
+    val closestStreetEdgeId: Option[Int] = getStreetEdgeIdClosestToCVPanoId(user, panoid)
     closestStreetEdgeId match {
       case Some(id) => Some(AuditTaskTable.selectANewTask(id, None))
       case None => None

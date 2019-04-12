@@ -16,7 +16,8 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
-import scala.slick.lifted.ForeignKeyQuery
+import scala.collection.immutable
+import scala.slick.lifted.{ForeignKeyQuery, QueryBase}
 import scala.slick.jdbc.GetResult
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
@@ -150,6 +151,16 @@ object MissionTable {
   }
 
   /**
+    * Checks whether a particular missionId belongs to a particular userId.
+    * @param userId
+    * @param missionId
+    * @return true if the mission belongs to the user, false otherwise
+    */
+  def userOwnsMission(userId: UUID, missionId: Int): Boolean = db.withSession{ implicit session =>
+    missions.filter(m => m.userId === userId.toString && m.missionId === missionId).list.nonEmpty
+  }
+
+  /**
     * Check if the user has completed onboarding.
     *
     * @param userId
@@ -209,6 +220,15 @@ object MissionTable {
     missions.filter(m => m.userId === userId.toString && m.regionId === regionId && !m.completed).list.headOption
   }
 
+  /**
+    * Returns the mission with the provided ID, if it exists.
+    * @param missionId
+    * @return
+    */
+  def getMissionById(missionId: Int): Option[Mission] = db.withSession { implicit session =>
+    missions.filter(m => m.missionId === missionId).list.headOption
+  }
+
   def getCurrentValidationMission(userId: UUID, labelTypeId: Int): Option[Mission] = db.withSession { implicit session =>
     val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
     missions.filter(m =>
@@ -242,7 +262,8 @@ object MissionTable {
     */
   def getIncompleteCVGroundTruthMission(userId: UUID): Option[Mission] = db.withSession { implicit session =>
     val cvGroundTruthId: Int = missionTypes.filter(_.missionType === "cvGroundTruth").map(_.missionTypeId).list.head
-    missions.filter(m => m.userId === userId.toString && m.missionTypeId === cvGroundTruthId && !m.completed).list.headOption
+    missions.filter(m => m.userId === userId.toString && m.missionTypeId === cvGroundTruthId && !m.completed)
+      .sortBy(_.missionId).list.headOption
   }
 
   /**
@@ -617,7 +638,7 @@ object MissionTable {
   def createNextCVGroundtruthMission(userId: UUID) : Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId("cvGroundTruth")
-    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, 0, false, None, None, None, None, None, None, false)
+    val newMission: Mission = Mission(0, missionTypeId, userId.toString, now, now, false, 0, false, None, None, None, None, None, None, false)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
   }
@@ -673,22 +694,22 @@ object MissionTable {
     */
   def updateAuditProgress(missionId: Int, distanceProgress: Float): Int = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionList = missions.filter(_.missionId === missionId).map(_.distanceMeters).list
+    val missionList: List[Option[Float]] = missions.filter(_.missionId === missionId).map(_.distanceMeters).list
 
     (missionList, missionList.head) match {
       case (x :: _, Some(_)) =>
         val missionDistance: Float = missionList.head.get
-        val missionToUpdate = for {
-        m <- missions if m.missionId === missionId
+        val missionToUpdate: Query[(Column[Option[Float]], Column[Timestamp]), (Option[Float], Timestamp), Seq] = for {
+          m <- missions if m.missionId === missionId
         } yield (m.distanceProgress, m.missionEnd)
 
         if (~= (distanceProgress, missionDistance, precision = 0.00001F) ) {
-        missionToUpdate.update ((Some (missionDistance), now) )
+          missionToUpdate.update ((Some (missionDistance), now) )
         } else if (distanceProgress < missionDistance) {
-        missionToUpdate.update ((Some (distanceProgress), now) )
+          missionToUpdate.update ((Some (distanceProgress), now) )
         } else {
-        Logger.error ("Trying to update mission progress with distance greater than total mission distance.")
-        missionToUpdate.update ((Some (missionDistance), now) )
+          Logger.error ("Trying to update mission progress with distance greater than total mission distance.")
+          missionToUpdate.update ((Some (missionDistance), now) )
         }
       case _ => 0
     }

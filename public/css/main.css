@@ -1189,8 +1189,7 @@ kbd {
 #advanced-overlay,
 #neighborhood-completion-overlay,
 #already-completed-neighborhood-overlay,
-#HIT-expiration-overlay,
-#cvgroundtruth-panoid-entry-form-overlay{
+#HIT-expiration-overlay {
     display:none;
 }
 #panoid-textarea {
@@ -1346,3 +1345,17 @@ kbd {
     width:100%;
     font-weight:normal;
 }
+#next-pano-button-holder {
+    display:none;
+    position:absolute;
+    left: 735px;
+    top: 380px;
+    width: 200px;
+}
+#groundtruth-info-panel {
+    position:absolute;
+    right:0; bottom:0;
+    height:50px;
+    background-color: white
+}
+

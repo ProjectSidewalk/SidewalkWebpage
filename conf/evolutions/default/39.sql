@@ -10,3 +10,45 @@ CREATE TABLE mission_progress_cvgroundtruth (
 
 INSERT INTO "mission_type" ( "mission_type") VALUES ( 'cvGroundTruth' );
 
+# --- !Downs
+DROP TABLE mission_progress_cvgroundtruth;
+
+DELETE
+FROM audit_task_interaction
+WHERE mission_id in
+      (
+        SELECT mission_id
+        from mission
+               inner join mission_type
+                          on mission.mission_type_id = mission_type.mission_type_id
+        WHERE mission_type.mission_type = 'cvGroundTruth');
+
+DELETE
+FROM audit_task_environment
+WHERE mission_id in
+      (
+        SELECT mission_id
+        from mission
+               inner join mission_type
+                          on mission.mission_type_id = mission_type.mission_type_id
+        WHERE mission_type.mission_type = 'cvGroundTruth');
+
+DELETE
+FROM label
+WHERE mission_id in (
+        SELECT mission_id
+        from mission
+               inner join mission_type
+                          on mission.mission_type_id = mission_type.mission_type_id
+        WHERE mission_type.mission_type = 'cvGroundTruth');
+
+DELETE
+FROM mission
+WHERE mission_type_id in
+      (SELECT mission_type_id
+       from mission_type
+       where mission_type = 'cvGroundTruth');
+
+DELETE
+FROM "sidewalk"."mission_type"
+WHERE "mission_type" = 'cvGroundTruth'

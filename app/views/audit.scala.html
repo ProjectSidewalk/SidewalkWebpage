@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Option[Mission], region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -118,21 +118,6 @@
                     </p>
                     <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
                     <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
-                </div>
-            </div>
-        </div>
-        <div id="cvgroundtruth-panoid-entry-form-overlay">
-            <div class="overlay-text">
-                <div id="cvgroundtruth-panoid-entry-form-text">
-                    <p>
-                        <span class="overlay-header">CV Ground Truth Audit Tool</span>
-                    </p>
-                    <p>
-                        Enter PanoIDs to audit below:<br>
-                            <textarea id="panoid-textarea" rows="25" cols="50"></textarea>
-                    </p>
-                    <span class="overlay-option" onClick="svl.cvGroundTruthMission.verifyAndSubmitCVGroundTruthAuditPanoids()">Start</span>
-
                 </div>
             </div>
         </div>
@@ -318,6 +303,12 @@
                     <div id="label-counter"></div>
                 </div>
             </div>
+            <div id="next-pano-button-holder">
+                <div id="groundtruth-info-panel">
+                    <button type="button" class="button" id="next-pano-btn" onClick="svl.cvGroundTruthMission.cvGroundTruthNextPano();">Next Pano</button>
+                    <p id="remaining-pano-text">50 remaining</p>
+                </div>
+            </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="alert-holder" style="display: none">
                     <div id="alert">
@@ -449,12 +440,6 @@
                         </div>
                     </div>
                     <div id="context-menu-vertical-connector"></div>
-                </div>
-                <div id="next-pano-button-holder" style="display:none; position:absolute; z-index:1000; right:0; bottom:0; width:100px;">
-                    <div id="groundtruth-info-panel" style="position:absolute; right:0; bottom:0; height:50px; background-color: white">
-                        <button type="button" id="next-pano-btn" onClick="svl.cvGroundTruthMission.cvGroundTruthNextPano();">Next Pano</button>
-                        <p id="remaining-pano-text">50 remaining</p>
-                    </div>
                 </div>
             </div>
             <div id="google-maps-holder">
@@ -954,8 +939,7 @@
             @* If this is a CV ground truth audit, initialize a CVGroundTruthMission object. If mission is null,
              the create ground truth mission form will be displayed, otherwise the ground truth audit will start. *@
             @if(enableCVGroundTruthLabelingMode) {
-            let missionString = "@mission".length > 0 ? "@mission" : null
-            svl.cvGroundTruthMission = new CVGroundTruthMission(missionString);
+                svl.cvGroundTruthMission = new CVGroundTruthMission(@Html(mission.toJSON.toString));
             }
 
         });
@@ -1055,10 +1039,8 @@
                    mainParam.advancedOverlay = true
             }
 
-            @for(m <- mission){
-            mainParam.mission = @Html(m.toJSON.toString);
+            mainParam.mission = @Html(mission.toJSON.toString);
             mainParam.tutorialStreetId = @tutorialStreetId
-            }
 
             svl.main = new Main(mainParam);
         }

@@ -16,7 +16,7 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
-import scala.slick.lifted.ForeignKeyQuery
+import scala.slick.lifted.{ForeignKeyQuery, QueryBase}
 import scala.slick.jdbc.GetResult
 
 case class CVMissionPanoStatus(itemId: Int, linkedMissionId: Int, panoId: String, completed: Boolean, lat: Float, lng: Float)
@@ -34,29 +34,28 @@ class MissionProgressCVGroundtruthTable(tag: Tag) extends Table[CVMissionPanoSta
   def lng: Column[Float] = column[Float]("lng", O.NotNull)
   def * = (itemId, linkedMissionId, panoId, completed, lat, lng) <> ((CVMissionPanoStatus.apply _).tupled,
     CVMissionPanoStatus.unapply)
+  def linkedMission: ForeignKeyQuery[MissionTable, Mission] =
+    foreignKey("mission_progress_cvgroundtruth_linked_mission_id_fkey", linkedMissionId, TableQuery[MissionTable])(_.missionId)
 }
 
 object MissionProgressCVGroundtruthTable {
-  val db = play.api.db.slick.DB
-  val cvMissionPanoStatuses = TableQuery[MissionProgressCVGroundtruthTable]
+  val db: Database = play.api.db.slick.DB
+  val cvMissionPanoStatuses: TableQuery[MissionProgressCVGroundtruthTable] = TableQuery[MissionProgressCVGroundtruthTable]
 
   /**
-    * Fetches that remaining panos that still need to be audited for a particular user and ground truth audit mission.
+    * Fetches the remaining panos that still need to be audited for a particular user and ground truth audit mission.
     * @param userId a user id
     * @param missionId the id of a ground truth audit mission that belongs to this user
     * @return a list of panoIds that still need to be audited in this mission
     */
   def getRemainingPanos(userId:UUID, missionId: Int): List[String] = db.withSession { implicit session =>
-    val statusesWithMission = for {
-    (_panostatuses, _missions) <- cvMissionPanoStatuses.innerJoin(MissionTable.missions).on(_.linkedMissionId === _.missionId)
-    } yield (_panostatuses.panoId, _panostatuses.completed, _panostatuses.linkedMissionId,_missions.userId)
+    val remaining: Query[Column[String], String, Seq] = for {
+      _panostatuses <- cvMissionPanoStatuses
+      _missions <- MissionTable.missions if _panostatuses.linkedMissionId === _missions.missionId
+      if  _panostatuses.linkedMissionId === missionId && !_panostatuses.completed && _missions.userId === userId.toString
+    } yield _panostatuses.panoId
 
-    val remaining = statusesWithMission.filter(panoStatus =>
-      panoStatus._3 === missionId &&
-      !panoStatus._2 &&
-      panoStatus._4 === userId.toString
-    )
-    remaining.list.map(x => x._1)
+    remaining.list
   }
 
   /**
@@ -74,12 +73,10 @@ object MissionProgressCVGroundtruthTable {
       panoStatus.panoId === panoId
     ).map(c => c.completed).update(true)
 
-    // Count number of remaining incomplete panos for this mission. If 0, mark mission complete.
-    val remaining = getRemainingPanos(userId, missionId)
-    remaining match {
-      case List() =>
-        MissionTable.updateComplete(missionId)
-      case _ =>
+    // Get remaining incomplete panos for this mission. If none left, mark mission complete.
+    val remaining: List[String] = getRemainingPanos(userId, missionId)
+    if (remaining.isEmpty) {
+      MissionTable.updateComplete(missionId)
     }
   }
 
@@ -91,10 +88,10 @@ object MissionProgressCVGroundtruthTable {
     * @return a lat/lng tuple specifing the location of the pano
     */
   def getPanoLatLng(userId: UUID, panoId: String):(Option[Float],Option[Float]) = db.withSession { implicit session =>
-    val activeMission = MissionTable.getIncompleteCVGroundTruthMission(userId)
+    val activeMission: Option[Mission] = MissionTable.getIncompleteCVGroundTruthMission(userId)
     activeMission match {
       case Some(mission) =>
-        val result = cvMissionPanoStatuses.filter(statusEntry =>
+        val result: CVMissionPanoStatus = cvMissionPanoStatuses.filter(statusEntry =>
           statusEntry.linkedMissionId === mission.missionId &&
           statusEntry.panoId === panoId
         ).take(1).list.head

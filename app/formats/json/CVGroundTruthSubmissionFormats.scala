@@ -9,7 +9,7 @@ import play.api.libs.functional.syntax._
   */
 object CVGroundTruthSubmissionFormats {
   case class CVGroundTruthPanoidListSubmission(panos: Seq[PanoData], numPanos: Int)
-  case class CVGroundTruthPanoIdSubmission(pano: String, numRemaining: Int)
+  case class CVGroundTruthPanoIdSubmission(pano: String, numRemaining: Int, missionId: Int)
   case class PanoData(panoId: String, lat: Float, lng: Float)
 
   implicit val panoDataSubmission: Reads[PanoData] = (
@@ -25,7 +25,8 @@ object CVGroundTruthSubmissionFormats {
 
   implicit val groundTruthPanoCompleteSubmission: Reads[CVGroundTruthPanoIdSubmission] = (
     (JsPath \ "pano").read[String] and
-      (JsPath \ "num_remaining").read[Int]
+      (JsPath \ "num_remaining").read[Int] and
+      (JsPath \ "mission_id").read[Int]
     )(CVGroundTruthPanoIdSubmission.apply _)
 }
 

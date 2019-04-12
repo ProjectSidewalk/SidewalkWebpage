@@ -101,7 +101,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val cityStr: String = Play.configuration.getString("city-id").get
             val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
             val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, Some(mission), region.get, Some(user), cityShortName, tutorialStreetId)))
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, region.get, Some(user), cityShortName, tutorialStreetId)))
         }
       // For anonymous users.
       case None =>
@@ -146,7 +146,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val cityStr: String = Play.configuration.getString("city-id").get
             val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
             val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, Some(mission), namedRegion, Some(user), cityShortName, tutorialStreetId)))
+            Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", task, mission, namedRegion, Some(user), cityShortName, tutorialStreetId)))
           case None =>
             Logger.error(s"Tried to audit region $regionId, but there is no neighborhood with that id.")
             Future.successful(Redirect("/audit"))
@@ -172,24 +172,28 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       case Some(user) =>
         if(isAdmin(request.identity)) {
           val userId: UUID = user.userId
-          // See if this user already has an incomplete ground truth auditing mission
-          val lastIncompleteCVMission = MissionTable.getIncompleteCVGroundTruthMission(userId)
-          // Assign a dummy region
-          val region = UserCurrentRegionTable.assignRegion(user.userId)
+          // See if this user already has an incomplete ground truth auditing mission.
+          val lastIncompleteCVMission: Option[Mission] = MissionTable.getIncompleteCVGroundTruthMission(userId)
+
+          // Get user's assigned region or assign new region if none is assigned.
+          val region: Option[NamedRegion] = UserCurrentRegionTable.currentRegion(user.userId) match {
+            case Some(r) => RegionTable.selectANamedRegion(r)
+            case None => UserCurrentRegionTable.assignRegion(user.userId)
+          }
 
           (region, lastIncompleteCVMission) match {
             case (Some(r), Some(m)) =>
-              // Create a task from the first incomplete pano in this mission
-              val incompletePanos = MissionProgressCVGroundtruthTable.getRemainingPanos(user.userId, m.missionId)
-              val firstIncompletePanoId = incompletePanos.reverse.head
+              // Create a task from the first incomplete pano in this mission.
+              val incompletePanos: List[String] = MissionProgressCVGroundtruthTable.getRemainingPanos(user.userId, m.missionId)
+              val firstIncompletePanoId: String = incompletePanos.reverse.head
 
               // Create a task from the street edge closest to the pano
               val task: Option[NewTask] = AuditTaskTable.createCVGroundTruthTaskByPanoId(user, firstIncompletePanoId)
-              Future.successful(Ok(views.html.audit("Project Sidewalk - CV Audit", task, Some(m), r, Some(user), cityShortName, tutorialStreetId, enableCVGroundTruthLabelingMode = true)))
+              Future.successful(Ok(views.html.audit("Project Sidewalk - CV Audit", task, m, r, Some(user), cityShortName, tutorialStreetId, enableCVGroundTruthLabelingMode = true)))
             case (Some(r), None) =>
-              // If no mission is provided, the audit page will display an overlay allowing the user to submit
-              // a list of panoIds and create a new mission.
-              Future.successful(Ok(views.html.audit("Project Sidewalk - CV Audit", None, None, r, Some(user), cityShortName, tutorialStreetId, enableCVGroundTruthLabelingMode = true)))
+              // If no mission is provided, we render a different page containing a form allowing user to enter
+              // panoIds to create a new CV audit mission.
+              Future.successful(Ok(views.html.auditCreateCVMissionForm("Project Sidewalk - CV Audit", Some(user))))
             case _ =>
               Logger.error(s"Could not get a region.")
               Future.successful(Redirect("/audit"))
@@ -213,11 +217,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         if(isAdmin(request.identity)) {
-          val activeMission = MissionTable.getIncompleteCVGroundTruthMission(user.userId)
+          val activeMission: Option[Mission] = MissionTable.getIncompleteCVGroundTruthMission(user.userId)
           activeMission match {
             case Some(mission) =>
-              val remainingPanoList = MissionProgressCVGroundtruthTable.getRemainingPanos(user.userId, mission.missionId)
-              val json_response = Json.obj(
+              val remainingPanoList: List[String] = MissionProgressCVGroundtruthTable.getRemainingPanos(user.userId, mission.missionId)
+              val json_response: JsObject = Json.obj(
                 "remaining_panos" -> remainingPanoList
               )
               Future.successful(Ok(json_response))
@@ -250,22 +254,21 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
       submission => {
         request.identity match {
           case Some(user) =>
-            if(isAdmin(request.identity)) {
-              // Get the ongoing CV ground truth mission for this user
-              val currentCVMission = MissionTable.getIncompleteCVGroundTruthMission(user.userId)
-              // Mark the pano complete
+            if(isAdmin(request.identity) && MissionTable.userOwnsMission(user.userId, submission.missionId)) {
+              // Get the ongoing CV ground truth mission for this user.
+              val currentCVMission: Option[Mission] = MissionTable.getMissionById(submission.missionId)
+
+              // Mark the pano complete.
               currentCVMission match {
                 case Some(mission) =>
                   MissionProgressCVGroundtruthTable.markPanoComplete(user.userId, mission.missionId, submission.pano)
                   Future.successful(Ok(Json.obj("success" -> true)))
                 case None =>
                   Future.successful(BadRequest(Json.obj("success" -> false, "message" -> "Attempted to mark CV pano as complete, but there is no active CV mission.")))
-
               }
             } else {
-              Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "Only admin users can mark CV ground truth panos as completed.")))
+              Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "You are not an admin or an invalid mission id was provided.")))
             }
-
           case None =>
             Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "An unknown user attempted to mark a CV ground truth pano as completed")))
 
@@ -290,12 +293,11 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         request.identity match {
           case Some(user) =>
             if(isAdmin(request.identity)) {
-              // create a new ground truth auditing mission
-              var newMission = MissionTable.createNextCVGroundtruthMission(user.userId)
-
-              // insert a row into the mission_progress_cvgroundtruth table for each pano that needs to be audited
+              // Create a new ground truth auditing mission.
+              val newMission: Mission = MissionTable.createNextCVGroundtruthMission(user.userId)
+              // Insert a row into the mission_progress_cvgroundtruth table for each pano that needs to be audited.
               submission.panos.foreach { panoData =>
-                val newPanoStatus = CVMissionPanoStatus(0, newMission.missionId, panoData.panoId, completed = false, panoData.lat, panoData.lng)
+                val newPanoStatus: CVMissionPanoStatus = CVMissionPanoStatus(0, newMission.missionId, panoData.panoId, completed = false, panoData.lat, panoData.lng)
                 MissionProgressCVGroundtruthTable.save(newPanoStatus)
               }
               Future.successful(Ok(Json.obj("success" -> true)))
@@ -342,7 +344,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
           val cityStr: String = Play.configuration.getString("city-id").get
           val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
           val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(mission), region, Some(user), cityShortName, tutorialStreetId)))
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId"))
@@ -381,15 +383,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
         if(isAdmin(request.identity)){
           panoId match {
-            case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(mission), region, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
+            case Some(panoId) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
             case None =>
               (lat, lng) match {
-                case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(mission), region, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
-                case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(mission), region, None, cityShortName, tutorialStreetId)))
+                case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
+                case (_, _) => Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, None, cityShortName, tutorialStreetId)))
               }
           }
         } else {
-          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), Some(mission), region, Some(user), cityShortName, tutorialStreetId)))
+          Future.successful(Ok(views.html.audit("Project Sidewalk - Audit", Some(task), mission, region, Some(user), cityShortName, tutorialStreetId)))
         }
       case None => Future.successful(Redirect(s"/anonSignUp?url=/audit/street/$streetEdgeId/location%3Flat=$lat%lng=$lng%3FpanoId=$panoId"))
     }    
