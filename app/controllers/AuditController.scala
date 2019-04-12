@@ -187,7 +187,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               val incompletePanos: List[String] = MissionProgressCVGroundtruthTable.getRemainingPanos(user.userId, m.missionId)
               val firstIncompletePanoId: String = incompletePanos.reverse.head
 
-              // Create a task from the street edge closest to the pano
+              // Create a task from the street edge closest to the pano.
               val task: Option[NewTask] = AuditTaskTable.createCVGroundTruthTaskByPanoId(user, firstIncompletePanoId)
               Future.successful(Ok(views.html.audit("Project Sidewalk - CV Audit", task, m, r, Some(user), cityShortName, tutorialStreetId, enableCVGroundTruthLabelingMode = true)))
             case (Some(r), None) =>

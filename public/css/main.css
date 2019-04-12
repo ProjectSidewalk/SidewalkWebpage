@@ -1188,6 +1188,7 @@ kbd {
 #advanced-overlay,
 #neighborhood-completion-overlay,
 #already-completed-neighborhood-overlay,
+#cvgroundtruth-complete-overlay
 #HIT-expiration-overlay {
     display:none;
 }
