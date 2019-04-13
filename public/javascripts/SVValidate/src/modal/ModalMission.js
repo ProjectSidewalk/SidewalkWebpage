@@ -17,9 +17,6 @@ function ModalMission (uiModalMission, user) {
 
     function _handleButtonClick() {
         svv.tracker.push("ModalMission_ClickOK");
-        if (svv.zoomControl) {
-            svv.zoomControl.updateZoomAvailability();
-        }
         hide();
     }
 
@@ -27,6 +24,9 @@ function ModalMission (uiModalMission, user) {
      * Hides the new/continuing mission screen
      */
     function hide () {
+        if (svv.zoomControl) {
+            svv.zoomControl.updateZoomAvailability();
+        }
         svv.keyboard.enableKeyboard();
         uiModalMission.background.css('visibility', 'hidden');
         uiModalMission.holder.css('visibility', 'hidden');
