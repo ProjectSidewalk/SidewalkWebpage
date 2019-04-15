@@ -21,9 +21,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
-        var task = taskContainer.getCurrentTask();
-        var data = self.compileSubmissionData(task);
-        self.submit(data, task);
+        self.submitData(true);
     });
 
     /**
@@ -221,14 +219,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     /**
-     * Submit the data
+     * Submit the data via an AJAX post request.
      * @param data
      * @param task
      * @param async
      */
     this.submit = function (data, task, async) {
         if (typeof async === "undefined") { async = true; }
-
         if (data.constructor !== Array) { data = [data]; }
 
         if ('interactions' in data[0] && data[0].constructor === Array) {
@@ -263,8 +260,18 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");
+        self.submitData(false);
+    });
+
+    /**
+     * Manually triggers form submission from other functions.
+     * @param async     Whether data should be submitted asynchronously or not (if undefined,
+     *                  then submits asynchronously by default)
+     */
+    this.submitData = function (async) {
+        if (typeof async === "undefined") { async = true; }
         var task = taskContainer.getCurrentTask();
         var data = self.compileSubmissionData(task);
-        self.submit(data, task, false);
-    });
+        self.submit(data, task, async);
+    }
 }
