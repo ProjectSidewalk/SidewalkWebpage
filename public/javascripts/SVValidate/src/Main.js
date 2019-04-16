@@ -65,9 +65,7 @@ function Main (param) {
         svv.ui.modalLandscape.holder = $("#modal-landscape-holder");
         svv.ui.modalLandscape.foreground = $("#modal-landscape-foreground");
         svv.ui.modalLandscape.background = $("#modal-landscape-background");
-        svv.ui.modalLandscape.landscapeHeader = $("#modal-landscape-header");
-        svv.ui.modalLandscape.description = $("#modal-landscape-description");
-        svv.ui.modalLandscape.infoButton = $("#back-button");
+        svv.ui.modalLandscape.backButton = $("#back-button");
 
         svv.ui.modalMission = {};
         svv.ui.modalMission.holder = $("#modal-mission-holder");

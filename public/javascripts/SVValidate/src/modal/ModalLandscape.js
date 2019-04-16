@@ -8,11 +8,6 @@
 function ModalLandscape (uiModal) {
     var self = this;
 
-    function _handleButtonClick() {
-        svv.tracker.push("ModalInfo_ClickOK");
-        hide();
-    }
-
 
     function hide () {
         uiModal.background.css('visibility', 'hidden');
@@ -24,9 +19,10 @@ function ModalLandscape (uiModal) {
         uiModal.background.css('visibility', 'visible');
         uiModal.holder.css('visibility', 'visible');
         uiModal.foreground.css('visibility', 'visible');
+        console.log("I am showing");
     }
 
-    uiModal.infoButton.on("click", show);
+    uiModal.backButton.on("click", show);
 
     self.hide = hide;
     self.show = show;
