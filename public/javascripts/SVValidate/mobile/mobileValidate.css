@@ -208,6 +208,14 @@ body {
     width: 500px;
 }
 
+#ps-logo-landscape {
+    width: 350px;
+}
+
+#modal-landscape-description {
+    font-size: 20pt;
+}
+
 #left-column-feedback-button {
  font-size: 30pt;
 }

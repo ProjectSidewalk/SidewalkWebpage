@@ -8,6 +8,17 @@
 function ModalLandscape (uiModal) {
     var self = this;
 
+    $(document).ready(function() {
+        $(window).on('orientationchange', function(event) {
+            console.log(orientation);
+            if (orientation != 0) {
+                self.show();
+            }
+            else {
+                self.hide();
+            }
+        });
+    });
 
     function hide () {
         uiModal.background.css('visibility', 'hidden');
