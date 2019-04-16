@@ -105,7 +105,7 @@
          * @private
          * @type {function(StreetViewPov, StreetViewPov, number, Element): Object}
          */
-        this.povToPixel_ = !!window.chrome ? PanoMarker.povToPixel3d :
+        this.povToPixel_ = (!!window.chrome || isMobile()) ? PanoMarker.povToPixel3d :
             PanoMarker.povToPixel2d;
 
         /** @private @type {google.maps.Point} */
@@ -215,8 +215,10 @@
         var height = viewport.offsetHeight;
 
         //the correction for mobile phones will go here
-        // if (isMobile()) {
-        // }
+         if (isMobile()) {
+            width = window.innerWidth;
+            height = window.innerHeight;
+         }
 
         var target = {
             left: width / 2,
@@ -350,6 +352,7 @@
         // Gather required variables
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
+        
         var target = {
             left: width / 2,
             top: height / 2

@@ -33,8 +33,6 @@ function ModalLandscape (uiModal) {
         console.log("I am showing");
     }
 
-    uiModal.backButton.on("click", show);
-
     self.hide = hide;
     self.show = show;
 
