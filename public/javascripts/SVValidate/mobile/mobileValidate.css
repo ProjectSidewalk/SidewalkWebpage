@@ -32,11 +32,10 @@
 .validation-button {
     height: 70px;
     background-color: white;
-    margin-right: 2px;
-    border-radius: 5px;
-    border-width: 2px;
-    border-color: lightgrey;
-    width: 243px;
+    border-radius: 25px;
+    border-width: 3px;
+    border-color: #2C293E;
+    width: 260px;
     font-size: 40px;
 }
 
