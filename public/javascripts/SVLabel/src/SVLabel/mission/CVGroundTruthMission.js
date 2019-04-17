@@ -28,7 +28,7 @@ function CVGroundTruthMission(mission) {
             // Fetch list of panos to complete and jump to first pano.
             $.ajax({
                 async: true,
-                url: '/audit/groundtruth/panos_todo',
+                url: '/audit/groundtruth/panosTodo',
                 type: 'get',
                 success: function (result) {
                     self.remainingPanos = result['remaining_panos'];
@@ -53,7 +53,7 @@ function CVGroundTruthMission(mission) {
      * Moves to the next pano to be audited.
      */
     function cvGroundTruthNextPano() {
-        var url = '/audit/groundtruth/mark_complete';
+        var url = '/audit/groundtruth/markComplete';
         var payload = {
             pano: self.currentPano,
             num_remaining: self.remainingPanos.length - 1,
