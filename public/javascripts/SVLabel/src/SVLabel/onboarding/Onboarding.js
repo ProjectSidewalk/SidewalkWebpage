@@ -499,12 +499,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             missionContainer.getCurrentMission().setProperty("skipped", true);
         }
         tracker.push('Onboarding_End');
-        console.log("[Onboarding.js] Before setting property");
-        console.log(missionContainer.getCurrentMission().getProperty("isComplete"));
-
         missionContainer.getCurrentMission().setProperty("isComplete", true);
-        console.log("[Onboarding.js] After setting complete property");
-        console.log(missionContainer.getCurrentMission().getProperty("isComplete"));
 
         // Redirects to the audit page and submits all data through Form.js.
         svl.form.submitData(false);
