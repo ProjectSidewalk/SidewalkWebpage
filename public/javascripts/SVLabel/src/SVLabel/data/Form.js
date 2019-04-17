@@ -260,16 +260,19 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");
-        var task = taskContainer.getCurrentTask();
+
+        // Old code: this does not work on the newest versions of Google Chrome.
+        // TODO: Replace with beacon (or some ajax alternative) asap. Starter code below.
+        self.submitData(false);
+
+        // // April 17, 2019
+        // // What we want here is type: 'application/json'. Can't do that quite yet because the
+        // // feature has been disabled, but we should switch back when we can.
+        //
+        // // Source for fix and ongoing discussion is here:
+        // // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
         var data = self.compileSubmissionData(task);
         var jsonData = JSON.stringify(data);
-
-        // April 17, 2019
-        // What we want here is type: 'appilcation/json'. Can't do that quite yet because the
-        // feature has been disabled, but we should switch back when we can.
-
-        // Source for fix and ongoing discussion is here:
-        // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
         var headers = {
             type: 'application/x-www-form-urlencoded'
         };
