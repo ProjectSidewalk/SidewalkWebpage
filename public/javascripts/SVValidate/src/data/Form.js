@@ -90,7 +90,20 @@ function Form(url) {
     $(window).on('beforeunload', function () {
         svv.tracker.push("Unload");
         var data = compileSubmissionData();
-        self.submit(data, false);
+        var jsonData = JSON.stringify(data);
+
+        // April 17, 2019
+        // What we want here is type: 'appilcation/json'. Can't do that quite yet because the
+        // feature has been disabled, but we should switch back when we can.
+
+        // Source for fix and ongoing discussion is here:
+        // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
+        var headers = {
+            type: 'application/x-www-form-urlencoded'
+        };
+
+        var blob = new Blob([jsonData], headers);
+        navigator.sendBeacon(properties.dataStoreUrl, blob);
     });
 
     self.compileSubmissionData = compileSubmissionData;
