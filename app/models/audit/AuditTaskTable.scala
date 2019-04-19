@@ -10,7 +10,9 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
+import models.mission.MissionProgressCVGroundtruthTable
 import models.street.StreetEdgePriorityTable
+import models.user.User
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -427,6 +429,38 @@ object AuditTaskTable {
   }
 
   /**
+    * Helper method for creating a task for computer vision ground truth auditing. In CV ground truth auditing, we create
+    * a task for *each* pano that needs to be audited, corresponding to the street segment closest to the pano. This method
+    * fetches the id of the pano closest to the provided panoid. This panoid *must* be part of an active CV groundtruth
+    * mission for the provided user.
+    * @param user the user performing a CV ground truth audit
+    * @param panoid panoId to query
+    * @return street segment id closest to pano
+    */
+  def getStreetEdgeIdClosestToCVPanoId(user: User, panoid:String): Option[Int] = {
+    val (panoLat, panoLng): (Option[Float], Option[Float]) = MissionProgressCVGroundtruthTable.getPanoLatLng(user.userId, panoid)
+    (panoLat, panoLng) match {
+      case (Some(lat), Some(lng)) =>
+        LabelTable.getStreetEdgeIdClosestToLatLng(lat, lng)
+      case _ =>  None
+    }
+  }
+
+  /**
+    * Creates a computer vision ground truth audit task and inserts it into the database
+    * @param user user performing the CV ground truth audit
+    * @param panoid panoId that corresponds to the task
+    * @return
+    */
+  def createCVGroundTruthTaskByPanoId(user: User, panoid:String): Option[NewTask] = {
+    val closestStreetEdgeId: Option[Int] = getStreetEdgeIdClosestToCVPanoId(user, panoid)
+    closestStreetEdgeId match {
+      case Some(id) => Some(AuditTaskTable.selectANewTask(id, None))
+      case None => None
+    }
+  }
+
+  /**
    * Get a task that is in a given region. Used if a user has already been assigned a region, or from /audit/region.
    *
    * @param regionId region id
@@ -446,8 +480,16 @@ object AuditTaskTable {
       sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, sc._2, sp.priority, false)
 
-    // Get the highest priority task.
-    possibleTasks.sortBy(_._9.desc).firstOption.map(NewTask.tupled)
+    // Get the priority of the highest priority task.
+    val highestPriority: Option[Double] = possibleTasks.map(_._9).max.run
+
+    // Get list of tasks that have this priority.
+    val highestPriorityTasks: Option[List[NewTask]] = highestPriority.map { highPriority =>
+      possibleTasks.filter(_._9 === highPriority).list.map(NewTask.tupled)
+    }
+
+    // Choose one of the highest priority tasks at random.
+    highestPriorityTasks.flatMap(scala.util.Random.shuffle(_).headOption)
   }
 
   /**

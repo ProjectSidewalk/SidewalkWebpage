@@ -23,7 +23,7 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
     val southwestLng: Double = Play.configuration.getDouble("city-params.southwest-boundary-lng." + cityStr).get
     val northeastLat: Double = Play.configuration.getDouble("city-params.northeast-boundary-lat." + cityStr).get
     val northeastLng: Double = Play.configuration.getDouble("city-params.northeast-boundary-lng." + cityStr).get
-    val defaultZoom: Int = Play.configuration.getInt("city-params.default-map-zoom." + cityStr).get
+    val defaultZoom: Double = Play.configuration.getDouble("city-params.default-map-zoom." + cityStr).get
     Future.successful(Ok(Json.obj(
       "city_center" -> Json.obj("lat" -> cityLat, "lng" -> cityLng),
       "southwest_boundary" -> Json.obj("lat" -> southwestLat, "lng" -> southwestLng),

@@ -15,7 +15,8 @@ function Choropleth(_, $, turf, difficultRegionIds) {
         zoomControl: false,
         legendControl: {
             position: 'bottomleft'
-        }
+        },
+        zoomSnap: 0.5
     });
     choropleth.scrollWheelZoom.disable();
 

@@ -21,6 +21,7 @@ function ModalNoNewMission (uiModalMission) {
     }
 
     function show () {
+        svv.disableKeyboard();
         uiModalMission.background.css('visibility', 'visible');
         uiModalMission.instruction.html(noMissionsRemaining);
         uiModalMission.missionTitle.html("No more validation missions left");

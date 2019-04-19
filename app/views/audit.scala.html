@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -118,6 +118,15 @@
                     </p>
                     <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
                     <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
+                </div>
+            </div>
+        </div>
+        <div id="cvgroundtruth-complete-overlay">
+            <div class="overlay-text">
+                <div id="cvgroundtruth-complete-overlay-text">
+                    <p>
+                        <span class="overlay-header">CV Ground Truth Audit Complete!</span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -294,6 +303,12 @@
                     <div id="label-counter"></div>
                 </div>
             </div>
+            <div id="next-pano-button-holder">
+                <div id="groundtruth-info-panel">
+                    <button type="button" class="button" id="next-pano-btn" onClick="svl.cvGroundTruthMission.cvGroundTruthNextPano();">Next Pano</button>
+                    <p id="remaining-pano-text">50 remaining</p>
+                </div>
+            </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="alert-holder" style="display: none">
                     <div id="alert">
@@ -412,6 +427,11 @@
                                 <button class="context-menu-tag" name='tag' id="2"></button>
                                 <button class="context-menu-tag" name='tag' id="3"></button>
                                 <button class="context-menu-tag" name='tag' id="4"></button>
+                                <button class="context-menu-tag" name='tag' id="5"></button>
+                                <button class="context-menu-tag" name='tag' id="6"></button>
+                                <button class="context-menu-tag" name='tag' id="7"></button>
+                                <button class="context-menu-tag" name='tag' id="8"></button>
+                                <button class="context-menu-tag" name='tag' id="9"></button>
                             </div>
                             <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
                                 <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
@@ -513,7 +533,8 @@
                             </div>
                             <div id="map-legend">
                                 <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> This Mission</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> Previous Missions</span>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> Previous Missions</span><br>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg> Other Users' Missions</span>
                             </div>
 
                         </div>
@@ -558,12 +579,16 @@
                                     }
                                 }
                                 <tr>
-                                    <th>Audited in this mission</th>
+                                    <th>You audited in this mission</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Audited in this neighborhood</th>
+                                    <th>You audited in this neighborhood</th>
                                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>Others audited in this neighborhood</th>
+                                    <td id="modal-mission-complete-others-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
                                     <th>Remaining in this neighborhood</th>
@@ -867,16 +892,12 @@
                         }                        
                     } else { @if(lat && lng) {
                         svl.map.setPosition(@lat.get, @lng.get);
-                    }}                    
+                    }}
                 }
                 else {
-                    // no street view available in this range.
+                    // No street view available in this range.
                     console.error("Error loading Street View imagery: " + status);
-                    svl.tracker.push("PanoId_NotFound_Onload", {'Location': JSON.stringify(latLng)});
-                    // Reload page (May need a better solution than this one)
-                    window.location.href = window.location.origin + "/audit";
-//                  throw "Error loading Street View imagery.";
-
+                    console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
                 }
             });
         } else {
@@ -914,6 +935,13 @@
             $('#accept-redirect').on('click', function(){
                 $(location).attr('href', '/audit');
             });
+
+            @* If this is a CV ground truth audit, initialize a CVGroundTruthMission object. If mission is null,
+             the create ground truth mission form will be displayed, otherwise the ground truth audit will start. *@
+            @if(enableCVGroundTruthLabelingMode) {
+                svl.cvGroundTruthMission = new CVGroundTruthMission(@Html(mission.toJSON.toString));
+            }
+
         });
 
         function enableTouchSupport() {

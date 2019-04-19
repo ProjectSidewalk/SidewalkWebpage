@@ -155,7 +155,8 @@
                     m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
             })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
-            ga('create', 'UA-76528208-1', 'auto');
+            var analyticsStr = "@{Play.configuration.getString("city-params.google-analytics-id." + Play.configuration.getString("city-id").get)}";
+            ga('create', analyticsStr, 'auto');
             ga('send', 'pageview');
 
 
