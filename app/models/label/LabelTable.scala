@@ -924,7 +924,7 @@ object LabelTable {
     } yield (_user.userId, _role.role, _label.labelId)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => (l._1, l._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
+    audits.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.list
   }
 
 
