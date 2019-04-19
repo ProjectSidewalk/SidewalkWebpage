@@ -56,6 +56,7 @@ GET     /adminapi/labels/panoid                              @controllers.AdminC
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
+GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -119,6 +120,7 @@ GET     /contribution/:username                              @controllers.UserPr
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
+GET     /userapi/validationCounts/all                        @controllers.UserProfileController.getAllValidationCounts
 
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
