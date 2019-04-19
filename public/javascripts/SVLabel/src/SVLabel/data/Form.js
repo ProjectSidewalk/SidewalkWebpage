@@ -21,9 +21,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
-        var task = taskContainer.getCurrentTask();
-        var data = self.compileSubmissionData(task);
-        self.submit(data, task);
+        self.submitData(true);
     });
 
     /**
@@ -221,14 +219,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     /**
-     * Submit the data
+     * Submit the data via an AJAX post request.
      * @param data
      * @param task
      * @param async
      */
     this.submit = function (data, task, async) {
         if (typeof async === "undefined") { async = true; }
-
         if (data.constructor !== Array) { data = [data]; }
 
         if ('interactions' in data[0] && data[0].constructor === Array) {
@@ -263,8 +260,36 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");
+
+        // Old code: this does not work on the newest versions of Google Chrome.
+        // TODO: Replace with beacon (or some ajax alternative) asap. Starter code below.
+        self.submitData(false);
+
+        // // April 17, 2019
+        // // What we want here is type: 'application/json'. Can't do that quite yet because the
+        // // feature has been disabled, but we should switch back when we can.
+        //
+        // // Source for fix and ongoing discussion is here:
+        // // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
+        var data = self.compileSubmissionData(task);
+        var jsonData = JSON.stringify(data);
+        var headers = {
+            type: 'application/x-www-form-urlencoded'
+        };
+
+        var blob = new Blob([jsonData], headers);
+        navigator.sendBeacon(properties.dataStoreUrl, blob);
+    });
+
+    /**
+     * Manually triggers form submission from other functions.
+     * @param async     Whether data should be submitted asynchronously or not (if undefined,
+     *                  then submits asynchronously by default)
+     */
+    this.submitData = function (async) {
+        if (typeof async === "undefined") { async = true; }
         var task = taskContainer.getCurrentTask();
         var data = self.compileSubmissionData(task);
-        self.submit(data, task, false);
-    });
+        self.submit(data, task, async);
+    }
 }
