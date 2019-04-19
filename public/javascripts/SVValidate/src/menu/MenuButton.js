@@ -31,9 +31,6 @@ function MenuButton(menuUI) {
             svv.panorama.getCurrentLabel().validate(action);
             svv.panorama.setProperty('validationTimestamp', timestamp);
         }
-        if (svv.zoomControl) {
-            svv.zoomControl.updateZoomAvailability();
-        }
     }
 
     return self;
