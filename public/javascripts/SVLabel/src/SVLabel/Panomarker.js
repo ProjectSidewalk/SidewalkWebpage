@@ -352,7 +352,7 @@
         // Gather required variables
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
-        
+
         var target = {
             left: width / 2,
             top: height / 2
