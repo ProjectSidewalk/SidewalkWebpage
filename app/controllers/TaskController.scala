@@ -34,6 +34,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission])
 
+  def isAdmin(user: Option[User]): Boolean = user match {
+    case Some(user) =>
+      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
+    case _ => false
+  }
 
   /**
     * This method returns a task definition specified by the streetEdgeId.
@@ -43,6 +48,32 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     val task = AuditTaskTable.selectANewTask(streetEdgeId, None)
     Future.successful(Ok(task.toJSON))
   }
+
+  /**
+    * This endpoint accepts a panoId from the client and returns a JSON payload representing a task created from
+    * the street edge closest to the panoId. Note this method *only* works for panoIds that are part of an active CV
+    * Ground truth mission for the logged-in user.
+    * @param panoid
+    * @return
+    */
+  def getCVGroundTruthTaskByPanoId(panoid: String) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        if (isAdmin(request.identity)) {
+          val task: Option[NewTask] = AuditTaskTable.createCVGroundTruthTaskByPanoId(user, panoid)
+          task match {
+            case Some(t) => Future.successful(Ok(t.toJSON))
+            case None =>
+              Future.successful(BadRequest(Json.obj("success" -> false, "message" -> "Bad request: Could not create a task from the panoId submitted.")))
+          }
+        } else {
+          Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "Must be admin to fetch ground truth task")))
+        }
+      case None =>
+        Future.successful(Unauthorized(Json.obj("success" -> false, "message" -> "Cannot get ground truth task for anonymous user.")))
+    }
+  }
+
 
   /**
     *
@@ -109,7 +140,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       } else {
         None
       }
-    } else {
+    } else if (!MissionTable.isCVGroundTruthMission(missionId)){
       if (missionProgress.distanceProgress.isEmpty) Logger.error("Received null distance progress for audit mission.")
       val distProgress: Float = missionProgress.distanceProgress.get
 
@@ -118,6 +149,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       } else {
         MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
       }
+    } else {
+      None
     }
   }
 
@@ -180,7 +213,14 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
           // Update the MissionTable and get missionId
           val missionId: Int = data.missionProgress.missionId
-          val possibleNewMission: Option[Mission] = updateMissionTable(user, data.missionProgress)
+
+          val isCVGroundTruthMission: Boolean = MissionTable.isCVGroundTruthMission(missionId)
+
+          val possibleNewMission: Option[Mission] = if (!isCVGroundTruthMission) {
+            updateMissionTable(user, data.missionProgress)
+          } else {
+            None
+          }
           // val missionId: Int = updateMissionTable() -- same as updateAuditTaskTable()
 
           // Insert the skip information or update task street_edge_assignment_count.completion_count

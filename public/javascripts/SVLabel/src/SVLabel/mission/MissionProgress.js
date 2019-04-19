@@ -17,7 +17,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     _missionModel.on("MissionProgress:update", function (parameters) {
         var mission = parameters.mission;
         var neighborhood = parameters.neighborhood;
-        self.update(mission, neighborhood);
+        // We track mission progress separately for CV ground truth missions.
+        if (!svl.isCVGroundTruthAudit) {
+            self.update(mission, neighborhood);
+        }
     });
 
     _neighborhoodModel.on("Neighborhood:completed", function (parameters) {

@@ -105,8 +105,19 @@
          * @private
          * @type {function(StreetViewPov, StreetViewPov, number, Element): Object}
          */
-        this.povToPixel_ = !!window.chrome ? PanoMarker.povToPixel3d :
-            PanoMarker.povToPixel2d;
+
+        // Original code:
+        // this.povToPixel_ = !!window.chrome ? PanoMarker.povToPixel3d :
+        //     PanoMarker.povToPixel2d;
+
+        // New code (April 17, 2019) -- modified by Aileen
+        // Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
+        this.povToPixel_ = PanoMarker.povToPixel2d;
+        var pixelCanvas = document.createElement("canvas");
+
+        if (pixelCanvas && (pixelCanvas.getContext("experimental-webgl") || pixelCanvas.getContext("webgl"))) {
+            this.povToPixel_ = PanoMarker.povToPixel3d;
+        }
 
         /** @private @type {google.maps.Point} */
         this.anchor_ = opts.anchor || new google.maps.Point(16, 16);
