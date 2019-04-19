@@ -20,6 +20,9 @@ import models.user._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
+import models.amt.AMTAssignmentTable
+import models.label.LabelValidationTable
+
 
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
@@ -49,17 +52,18 @@ class MobileController @Inject() (implicit val env: Environment[User, SessionAut
             // possible, otherwise choose 7.
             val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
             val labelTypeId: Int = possibleLabelTypeIds(index)
-            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, 0.0, 0.0, labelTypeId).get
+            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, labelTypeId).get
             val labelsProgress: Int = mission.labelsProgress.get
             val labelsValidated: Int = mission.labelsValidated.get
             val labelsToRetrieve: Int = labelsValidated - labelsProgress
 
             val labelList: JsValue = getLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId)
             val missionJsObject: JsObject = mission.toJSON
-            Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), true)))
+            val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
+            Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), Some(progressJsObject), true)))
           }
           case false => {
-            Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), None, None, false)))
+            Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), None, None, None, false)))
           }
         }
       case None =>
