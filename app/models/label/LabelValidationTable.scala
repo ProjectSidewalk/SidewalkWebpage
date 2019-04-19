@@ -124,10 +124,10 @@ object LabelValidationTable {
     } yield (_user.userId, _role.role, _validation.labelId, _validation.validationResult)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => (l._1, l._2)).map{
+    audits.groupBy(l => (l._1, l._2)).map {
       case ((uId, role), group) => {
         // Sum up the agreed results
-        val agreed = group.map{ r =>
+        val agreed = group.map { r =>
           Case.If(r._4 === 1).Then(1).Else(0) // Only count it if the result was "agree"
         }.sum.getOrElse(0)
 
