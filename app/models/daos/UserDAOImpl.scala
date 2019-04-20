@@ -8,6 +8,7 @@ import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.audit._
+import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
 import play.api.Play.current
@@ -19,7 +20,8 @@ import scala.slick.jdbc.{StaticQuery => Q}
 
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
-                                 completedMissions: Int, completedAudits: Int, labels: Int)
+                                 completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
+                                 ownValidatedAgreedPct: Double)
 
 class UserDAOImpl extends UserDAO {
 
@@ -260,8 +262,23 @@ object UserDAOImpl {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
+    // Map(user_id: String -> (role: String, total: Int, agreed: Int))
+    val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
+      (valCount._1, (valCount._2, valCount._3, valCount._4))
+    }.toMap
+
+
+
     // Now left join them all together and put into UserStatsForAdminPage objects.
     userTable.list.map{ u =>
+      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0))
+      val ownValidatedTotal = ownValidatedCounts._2
+      val ownValidatedAgreed = ownValidatedCounts._3
+
+      val ownValidatedAgreedPct =
+        if (ownValidatedTotal == 0) 0f
+        else ownValidatedAgreed * 1.0 / ownValidatedTotal
+
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
@@ -269,7 +286,9 @@ object UserDAOImpl {
         signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
-        labelCounts.getOrElse(u.userId, 0)
+        labelCounts.getOrElse(u.userId, 0),
+        ownValidatedTotal,
+        ownValidatedAgreedPct
       )
     }
   }

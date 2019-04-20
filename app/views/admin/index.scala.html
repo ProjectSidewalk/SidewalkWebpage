@@ -133,6 +133,34 @@
                                 <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
                             </tr>
 
+                            <tr style="font-size: 90%;">
+                                <th>Total Validations</th>
+                                <td>@LabelValidationTable.countValidations</td>
+                                <td>@LabelValidationTable.countTodayValidations</td>
+                                <td>@LabelValidationTable.countYesterdayValidations</td>
+                            </tr>
+
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Agreed</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(1) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
+                            </tr>
+
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Disgreed</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(2) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
+                            </tr>
+
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Not Sure</td>
+                                <td>@LabelValidationTable.countValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
+                                <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
+                                <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
+                            </tr>
+
                             <tr>
                                 <th>Audits</th>
                                 <th>@AuditTaskTable.countCompletedAudits</th>
@@ -436,7 +464,7 @@
                     <label><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
 
                     <h2>How users access Audit Page from Landing Page:</h2>
-                    <div class="col-lg-8 col-md-4" style="align:left">
+                    <div class="col-lg-12 col-md-4" style="align:left">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -464,6 +492,43 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <h2 class="d-block">User Performance (validation agreement)</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation: </span><span id="validation-agreed-std"></span><br>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="validation-agreed"></div>
+                    </div>
+
+                    <h2>Daily Validation Counts</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation: </span><span id="validation-std"></span><br>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="validation-count-chart"></div>
+                    </div>
+
+                    <h2>Validations per User</h2>
+                    <div class="col-lg-12">
+                        <p>
+                            <span>Standard Deviation (all users): </span><span id="all-validation-std"></span><br>
+                            <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>
+                            <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>
+                            <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>
+                            <span>
+                                Note: We only consider anonymous users who have completed at least one validation task.
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-lg-12">
+                        <div id="validation-count-hist"></div>
+                    </div>
+                    <label><input type="checkbox" id="validation-count-include-researchers-checkbox"> Include researchers</label>
 
                 </div>
             </div>
@@ -518,12 +583,14 @@
                                 <th class="col-md-2">User Id</th>
                                 <th class="col-md-1">Email</th>
                                 <th class="col-md-1">Role</th>
-                                <th class="col-md-2">Date Registered</th>
-                                <th class="col-md-2" data-class-name="priority">Last Login</th>
-                                <th class="col-md-1">Login Count</th>
                                 <th class="col-md-1">Mission Count</th>
                                 <th class="col-md-1">Audit Count</th>
                                 <th class="col-md-1">Label Count</th>
+                                <th class="col-md-1">Own Labels Validated</th>
+                                <th class="col-md-1">% Own Labels Agree</th>
+                                <th class="col-md-2">Date Registered</th>
+                                <th class="col-md-2" data-class-name="priority">Last Login</th>
+                                <th class="col-md-1">Login Count</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -550,12 +617,14 @@
                                     } else {
                                         @u.role
                                     }</td>
-                                <td>@u.signUpTime</td>
-                                <td>@u.lastSignInTime</td>
-                                <td>@u.signInCount</td>
                                 <td>@u.completedMissions</td>
                                 <td>@u.completedAudits</td>
                                 <td>@u.labels</td>
+                                <td>@u.ownValidated</td>
+                                <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
+                                <td>@u.signUpTime</td>
+                                <td>@u.lastSignInTime</td>
+                                <td>@u.signInCount</td>
                             </tr>
                             }
                             </tbody>

@@ -33,8 +33,8 @@ object AMTAssignmentTable {
   val db = play.api.db.slick.DB
   val amtAssignments = TableQuery[AMTAssignmentTable]
 
-  val TURKER_TUTORIAL_PAY: Double = 0.43D
-  val TURKER_PAY_PER_MILE: Double = 4.17D
+  val TURKER_TUTORIAL_PAY: Double = 1.00D
+  val TURKER_PAY_PER_MILE: Double = 5.00D
   val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
   val TURKER_PAY_PER_LABEL_VALIDATION = 0.0D
   val VOLUNTEER_PAY: Double = 0.0D
