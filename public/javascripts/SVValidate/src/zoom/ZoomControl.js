@@ -10,12 +10,6 @@ function ZoomControl () {
     var zoomOutButton = $("#zoom-out-button");
 
     /**
-     * When ZoomControl is called, it initializes the zoom in/out buttons to either be enabled
-     * or disabled based on zoom level.
-     */
-    updateZoomAvailability();
-
-    /**
      * Logs interaction when the zoom in button is clicked.
      */
     function clickZoomIn () {
@@ -89,6 +83,7 @@ function ZoomControl () {
 
     self.zoomIn = zoomIn;
     self.zoomOut = zoomOut;
+    self.updateZoomAvailability = updateZoomAvailability;
 
     return this;
 }
