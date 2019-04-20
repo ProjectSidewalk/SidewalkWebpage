@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -118,6 +118,15 @@
                     </p>
                     <span class="overlay-option" id="continue-current">Continue in this neighborhood</span>
                     <span class="overlay-option" id="redirect-new">Go to a new neighborhood</span>
+                </div>
+            </div>
+        </div>
+        <div id="cvgroundtruth-complete-overlay">
+            <div class="overlay-text">
+                <div id="cvgroundtruth-complete-overlay-text">
+                    <p>
+                        <span class="overlay-header">CV Ground Truth Audit Complete!</span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -292,6 +301,12 @@
                 </div>
                 <div class="status-box">
                     <div id="label-counter"></div>
+                </div>
+            </div>
+            <div id="next-pano-button-holder">
+                <div id="groundtruth-info-panel">
+                    <button type="button" class="button" id="next-pano-btn" onClick="svl.cvGroundTruthMission.cvGroundTruthNextPano();">Next Pano</button>
+                    <p id="remaining-pano-text">50 remaining</p>
                 </div>
             </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
@@ -877,13 +892,12 @@
                         }                        
                     } else { @if(lat && lng) {
                         svl.map.setPosition(@lat.get, @lng.get);
-                    }}                    
+                    }}
                 }
                 else {
                     // No street view available in this range.
                     console.error("Error loading Street View imagery: " + status);
                     console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
-
                 }
             });
         } else {
@@ -921,6 +935,13 @@
             $('#accept-redirect').on('click', function(){
                 $(location).attr('href', '/audit');
             });
+
+            @* If this is a CV ground truth audit, initialize a CVGroundTruthMission object. If mission is null,
+             the create ground truth mission form will be displayed, otherwise the ground truth audit will start. *@
+            @if(enableCVGroundTruthLabelingMode) {
+                svl.cvGroundTruthMission = new CVGroundTruthMission(@Html(mission.toJSON.toString));
+            }
+
         });
 
         function enableTouchSupport() {

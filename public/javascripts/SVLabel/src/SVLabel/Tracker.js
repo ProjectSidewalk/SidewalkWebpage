@@ -230,9 +230,11 @@ function Tracker () {
     };
 
     this.submitForm = function() {
-        var task = svl.taskContainer.getCurrentTask();
-        var data = svl.form.compileSubmissionData(task);
-        svl.form.submit(data, task);
+        if (svl.hasOwnProperty('taskContainer')) {
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task);
+            svl.form.submit(data, task);
+        }
     };
 
     this.initTaskId = function() {

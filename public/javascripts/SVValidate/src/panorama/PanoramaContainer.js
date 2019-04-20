@@ -99,6 +99,7 @@ function PanoramaContainer (labelList) {
         if (!svv.labelVisibilityControl.isVisible()) {
             svv.labelVisibilityControl.unhideLabel();
         }
+        svv.zoomControl.updateZoomAvailability();
     }
 
     /**
