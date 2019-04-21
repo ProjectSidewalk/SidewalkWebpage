@@ -36,7 +36,7 @@ function CVGroundTruthMission(mission) {
                     svl.panorama.setPano(self.currentPano);
                     svl.popUpMessage.enableInteractions();
                     $("#remaining-pano-text").text((self.remainingPanos.length + 1) + " remaining")
-
+                    $("#current-panoid-text").text("Current Pano: " + self.currentPano);
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
                     console.log(thrownError);
@@ -76,7 +76,8 @@ function CVGroundTruthMission(mission) {
         if (self.remainingPanos.length > 0) {
             self.currentPano = self.remainingPanos.shift();
             svl.panorama.setPano(self.currentPano);
-            $("#remaining-pano-text").text((self.remainingPanos.length + 1) + " remaining")
+            $("#remaining-pano-text").text((self.remainingPanos.length + 1) + " remaining");
+            $("#current-panoid-text").text("Current Pano: " + self.currentPano);
             $.ajax({
                 async: true,
                 contentType: 'application/json; charset=utf-8',
