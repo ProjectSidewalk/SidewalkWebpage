@@ -219,7 +219,7 @@
                 svv.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                 svv.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                 svv.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)) {
+                @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                     $("#left-column-confirmation-code-button").css('visibility', "hidden");
                 } else {
                     $("#left-column-confirmation-code-button").css('visibility', "");

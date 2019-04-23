@@ -71,7 +71,9 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
         // and reveal the confirmation code.
-        if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
+        // TODO add this back in when we start doing validation missions for turkers.
+        // if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
+        if (false) {
             _markAmtAssignmentAsComplete();
             _showConfirmationCode();
             var confirmationCodeElement = document.createElement("h3");
