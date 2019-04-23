@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
+import models.amt.AMTAssignmentTable.db
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -167,6 +168,20 @@ object MissionTable {
         && m.missionEnd < asmt.get.assignmentEnd
         && m.completed
       ).list.nonEmpty
+    }
+  }
+
+  /**
+    * Returns Some(confirmationCode) if the worker finished an audit mission, None o/w.
+    *
+    * @param username
+    * @return
+    */
+  def getMostRecentConfirmationCodeIfCompletedAuditMission(username: String): Option[String] = db.withSession { implicit session =>
+    if (hasCompletedAuditMissionInThisAmtAssignment(username)) {
+      AMTAssignmentTable.getMostRecentConfirmationCode(username)
+    } else {
+      None
     }
   }
 
