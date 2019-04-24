@@ -588,6 +588,9 @@
                                 <th class="col-md-1">Label Count</th>
                                 <th class="col-md-1">Own Labels Validated</th>
                                 <th class="col-md-1">% Own Labels Agree</th>
+                                <th class="col-md-1">% Own Labels Disagree</th>
+                                <th class="col-md-1">% Own Labels Unsure</th>
+                                <th class="col-md-1">Others' Labels Validated</th>
                                 <th class="col-md-2">Date Registered</th>
                                 <th class="col-md-2" data-class-name="priority">Last Login</th>
                                 <th class="col-md-1">Login Count</th>
@@ -622,6 +625,9 @@
                                 <td>@u.labels</td>
                                 <td>@u.ownValidated</td>
                                 <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
+                                <td>@("%.0f".format(u.ownValidatedDisagreedPct * 100))%</td>
+                                <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
+                                <td>@u.othersValidated</td>
                                 <td>@u.signUpTime</td>
                                 <td>@u.lastSignInTime</td>
                                 <td>@u.signInCount</td>
