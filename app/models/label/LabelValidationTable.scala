@@ -7,6 +7,7 @@ import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.{auditTasks, db, labelsWithoutDeleted, roleTable, userRoles, users}
+import models.user.UserCurrentRegionTable.{neighborhoods, userCurrentRegions}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -135,6 +136,32 @@ object LabelValidationTable {
         (uId, role, group.length, agreed)
       }
     }.list
+  }
+
+  /**
+    * @return count of validations for the given label type
+    */
+  def countValidationsByLabelType(labelType: String): Int = db.withSession { implicit session =>
+    val typeID = LabelTypeTable.labelTypeToId(labelType)
+
+    val lv = for {
+      (v, l) <- labelValidationTable.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+    } yield l.labelTypeId
+
+    lv.list.count(x => x == typeID)
+  }
+
+  /**
+    * @return count of validations for the given validation result and label type
+    */
+  def countValidationsByResultAndLabelType(result: Int, labelType: String): Int = db.withSession { implicit session =>
+    val typeID = LabelTypeTable.labelTypeToId(labelType)
+
+    val lv = for {
+      (v, l) <- labelValidationTable.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+    } yield (l.labelTypeId, v.validationResult)
+
+    lv.list.count(x => x._1 == typeID && x._2 == result)
   }
 
   /**
