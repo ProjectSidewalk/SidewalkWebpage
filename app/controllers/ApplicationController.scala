@@ -131,7 +131,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + otherCity).get
                 (otherName + ", " + otherState, otherURL)
               }
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, otherCityUrls)))
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, cityStr, otherCityUrls)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
