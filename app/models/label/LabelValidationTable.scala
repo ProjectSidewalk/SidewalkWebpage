@@ -7,6 +7,7 @@ import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.{auditTasks, db, labelsWithoutDeleted, roleTable, userRoles, users}
+import models.user.UserCurrentRegionTable.{neighborhoods, userCurrentRegions}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -175,6 +176,29 @@ object LabelValidationTable {
         (uId, group.length, agreed)
       }
     }.list
+  }
+
+  /**
+    * @return count of validations for the given label type
+    */
+  def countValidationsByLabelType(labelType: String): Int = db.withSession { implicit session =>
+    val typeID = LabelTypeTable.labelTypeToId(labelType)
+
+    validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+      .filter(_._2.labelTypeId === typeID)
+      .size.run
+  }
+
+  /**
+    * @return count of validations for the given validation result and label type
+    */
+  def countValidationsByResultAndLabelType(result: Int, labelType: String): Int = db.withSession { implicit session =>
+    val typeID = LabelTypeTable.labelTypeToId(labelType)
+
+    validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+      .filter(_._2.labelTypeId === typeID)
+      .filter(_._1.validationResult === result)
+      .size.run
   }
 
   /**
