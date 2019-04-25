@@ -8,6 +8,7 @@
 @import models.mission.MissionTable
 @import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
+@import models.utils.DataFormatter
 @import java.util.UUID
 @import play.api.libs.json.Json
 
@@ -544,44 +545,44 @@
                                 <tr>
                                     <th>Overall</th>
                                     <th>@LabelValidationTable.countValidations</th>
-                                    <th>@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations))%</th>
-                                    <th>@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations))%</th>
-                                    <th>@("%.0f".format(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations))%</th>
+                                    <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(1) * 100.0 / LabelValidationTable.countValidations)))%</th>
+                                    <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(2) * 100.0 / LabelValidationTable.countValidations)))%</th>
+                                    <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countValidations)))%</th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Curb Ramp</td>
                                     <td>@LabelValidationTable.countValidationsByLabelType("CurbRamp")</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp")))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("CurbRamp"))))%</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Missing Curb Ramp</td>
                                     <td>@LabelValidationTable.countValidationsByLabelType("NoCurbRamp")</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp")))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoCurbRamp"))))%</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Obstacle in Path</td>
                                     <td>@LabelValidationTable.countValidationsByLabelType("Obstacle")</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(1, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(2, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(3, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle")))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "Obstacle") * 100.0 / LabelValidationTable.countValidationsByLabelType("Obstacle"))))%</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Surface Problem</td>
                                     <td>@LabelValidationTable.countValidationsByLabelType("SurfaceProblem")</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem")))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidationsByLabelType("SurfaceProblem"))))%</td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">No Sidewalk</td>
                                     <td>@LabelValidationTable.countValidationsByLabelType("NoSidewalk")</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk")))%</td>
-                                    <td>@("%.0f".format(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk")))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
+                                    <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResultAndLabelType(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidationsByLabelType("NoSidewalk"))))%</td>
                                 </tr>
                             </table>
                         </div>
