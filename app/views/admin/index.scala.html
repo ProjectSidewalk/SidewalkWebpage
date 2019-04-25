@@ -609,7 +609,7 @@
                             </thead>
                             <!-- using this id to locate the labelTags so we can insert the tags-->
                             <tbody id = 'labelRows'>
-                                @LabelTable.selectTopLabelsAndMetadata(1000).map { label =>
+                                @LabelTable.selectTopLabelsAndMetadata(5000).map { label =>
                                     <tr>
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
@@ -645,6 +645,10 @@
                                 <th class="col-md-1">Label Count</th>
                                 <th class="col-md-1">Own Labels Validated</th>
                                 <th class="col-md-1">% Own Labels Agree</th>
+                                <th class="col-md-1">% Own Labels Disagree</th>
+                                <th class="col-md-1">% Own Labels Unsure</th>
+                                <th class="col-md-1">Others' Labels Validated</th>
+                                <th class="col-md-1">% Others' Labels Validated & Agreed</th>
                                 <th class="col-md-2">Date Registered</th>
                                 <th class="col-md-2" data-class-name="priority">Last Login</th>
                                 <th class="col-md-1">Login Count</th>
@@ -679,6 +683,10 @@
                                 <td>@u.labels</td>
                                 <td>@u.ownValidated</td>
                                 <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
+                                <td>@("%.0f".format(u.ownValidatedDisagreedPct * 100))%</td>
+                                <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
+                                <td>@u.othersValidated</td>
+                                <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
                                 <td>@u.signUpTime</td>
                                 <td>@u.lastSignInTime</td>
                                 <td>@u.signInCount</td>
