@@ -154,7 +154,7 @@ object LabelValidationTable {
     */
   def getValidatedCountsPerUser: List[(String, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
-      _validation <- labelValidationTable
+      _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
       _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
