@@ -184,11 +184,9 @@ object LabelValidationTable {
   def countValidationsByLabelType(labelType: String): Int = db.withSession { implicit session =>
     val typeID = LabelTypeTable.labelTypeToId(labelType)
 
-    val lv = for {
-      (v, l) <- labelValidationTable.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
-    } yield l.labelTypeId
-
-    lv.list.count(x => x == typeID)
+    labelValidationTable.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+      .filter(_._2.labelTypeId === typeID)
+      .size.run
   }
 
   /**
@@ -197,11 +195,10 @@ object LabelValidationTable {
   def countValidationsByResultAndLabelType(result: Int, labelType: String): Int = db.withSession { implicit session =>
     val typeID = LabelTypeTable.labelTypeToId(labelType)
 
-    val lv = for {
-      (v, l) <- labelValidationTable.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
-    } yield (l.labelTypeId, v.validationResult)
-
-    lv.list.count(x => x._1 == typeID && x._2 == result)
+    labelValidationTable.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+      .filter(_._2.labelTypeId === typeID)
+      .filter(_._1.validationResult === result)
+      .size.run
   }
 
   /**
