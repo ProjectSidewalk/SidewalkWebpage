@@ -150,9 +150,9 @@ object LabelValidationTable {
   /**
     * Count number of labels the user has validated per user.
     *
-    * @return list of tuples of (labeler_id, validation_count)
+    * @return list of tuples of (labeler_id, validation_count, validation_agreed_count)
     */
-  def getValidatedCountsPerUser: List[(String, Int)] = db.withSession { implicit session =>
+  def getValidatedCountsPerUser: List[(String, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
       _validation <- labelValidationTable
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
@@ -161,13 +161,18 @@ object LabelValidationTable {
       _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
       _userRole <- userRoles if _validationUser.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-    } yield (_validationUser.userId)
+    } yield (_validationUser.userId, _validation.validationResult)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => l).map {
+    audits.groupBy(l => l._1).map {
       case (uId, group) => {
+        // Sum up the agreed results
+        val agreed = group.map { r =>
+          Case.If(r._2 === 1).Then(1).Else(0) // Only count it if the result was "agree"
+        }.sum.getOrElse(0)
+
         // group.length is the total # of validations
-        (uId, group.length)
+        (uId, group.length, agreed)
       }
     }.list
   }

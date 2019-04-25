@@ -22,7 +22,7 @@ case class UserStatsForAdminPage(userId: String, username: String, email: String
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
                                  completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
                                  ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedUnsurePct: Double,
-                                 othersValidated: Int)
+                                 othersValidated: Int, othersValidatedAgreedPct: Double)
 
 class UserDAOImpl extends UserDAO {
 
@@ -268,9 +268,9 @@ object UserDAOImpl {
       (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
     }.toMap
 
-    // Map(user_id: String -> count: Int)
+    // Map(user_id: String -> (count: Int, agreed: Int))
     val othersValidatedCounts = LabelValidationTable.getValidatedCountsPerUser.map { valCount =>
-      (valCount._1, valCount._2)
+      (valCount._1, (valCount._2, valCount._3))
     }.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
@@ -280,6 +280,10 @@ object UserDAOImpl {
       val ownValidatedAgreed = ownValidatedCounts._3
       val ownValidatedDisagreed = ownValidatedCounts._4
       val ownValidatedUnsure = ownValidatedCounts._5
+
+      val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
+      val otherValidatedTotal = otherValidatedCounts._1
+      val otherValidatedAgreed = otherValidatedCounts._2
 
       val ownValidatedAgreedPct =
         if (ownValidatedTotal == 0) 0f
@@ -293,6 +297,10 @@ object UserDAOImpl {
         if (ownValidatedTotal == 0) 0f
         else ownValidatedUnsure * 1.0 / ownValidatedTotal
 
+      val otherValidatedAgreedPct =
+        if (otherValidatedTotal == 0) 0f
+        else otherValidatedAgreed * 1.0 / otherValidatedTotal
+
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
@@ -305,7 +313,8 @@ object UserDAOImpl {
         ownValidatedAgreedPct,
         ownValidatedDisagreedPct,
         ownValidatedUnsurePct,
-        othersValidatedCounts.getOrElse(u.userId, -27)
+        otherValidatedTotal,
+        otherValidatedAgreedPct
       )
     }
   }
