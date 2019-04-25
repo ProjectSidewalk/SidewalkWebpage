@@ -155,6 +155,9 @@ function Label(params) {
     /**
      * Updates validation status for Label, StatusField and logs interactions into Tracker. Occurs
      * when a validation button is clicked.
+     *
+     * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
+     *
      * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
      */
     function validate(validationResult) {
@@ -174,9 +177,24 @@ function Label(params) {
         var pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov,
             zoom, svv.canvasWidth, svv.canvasHeight);
 
+        // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
+        // We add/subtract the radius of the label so that we still record these values when only a fraction of the
+        // labe is still visible.
+        let labelCanvasX = null;
+        let labelCanvasY = null;
+        if (pixelCoordinates
+            && pixelCoordinates.left + getRadius() > 0
+            && pixelCoordinates.left - getRadius() < svv.canvasWidth
+            && pixelCoordinates.top + getRadius() > 0
+            && pixelCoordinates.top - getRadius() < svv.canvasHeight) {
+
+            labelCanvasX = pixelCoordinates.left - getRadius();
+            labelCanvasY = pixelCoordinates.top - getRadius();
+        }
+
         setValidationProperty("endTimestamp", new Date().getTime());
-        setValidationProperty("canvasX", pixelCoordinates.left - getRadius());
-        setValidationProperty("canvasY", pixelCoordinates.top - getRadius());
+        setValidationProperty("canvasX", labelCanvasX);
+        setValidationProperty("canvasY", labelCanvasY);
         setValidationProperty("heading", userPov.heading);
         setValidationProperty("pitch", userPov.pitch);
         setValidationProperty("zoom", userPov.zoom);
