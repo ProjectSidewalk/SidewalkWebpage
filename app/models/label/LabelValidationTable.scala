@@ -20,8 +20,9 @@ case class LabelValidation(validationId: Int,
                            labelValidationId: Int,
                            userId: String,
                            missionId: Int,
-                           canvasX: Int,
-                           canvasY: Int,
+                           // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
+                           canvasX: Option[Int],
+                           canvasY: Option[Int],
                            heading: Float,
                            pitch: Float,
                            zoom: Float,
@@ -42,8 +43,8 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Unsure
   def userId = column[String]("user_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
-  def canvasX = column[Int]("canvas_x", O.NotNull)
-  def canvasY = column[Int]("canvas_y", O.NotNull)
+  def canvasX = column[Option[Int]]("canvas_x", O.Nullable)
+  def canvasY = column[Option[Int]]("canvas_y", O.Nullable)
   def heading = column[Float]("heading", O.NotNull)
   def pitch = column[Float]("pitch", O.NotNull)
   def zoom = column[Float]("zoom", O.NotNull)
@@ -62,7 +63,6 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   */
 object LabelValidationTable {
   val db = play.api.db.slick.DB
-  val labelValidationTable = TableQuery[LabelValidationTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
@@ -115,7 +115,7 @@ object LabelValidationTable {
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
-      _validation <- labelValidationTable
+      _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
       _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
@@ -155,7 +155,7 @@ object LabelValidationTable {
     */
   def getValidatedCountsPerUser: List[(String, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
-      _validation <- labelValidationTable
+      _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
       _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
@@ -205,14 +205,14 @@ object LabelValidationTable {
     * @return total number of validations
     */
   def countValidations: Int = db.withTransaction(implicit session =>
-    labelValidationTable.list.size
+    validationLabels.list.size
   )
 
   /**
     * @return total number of validations with a given result
     */
   def countValidationsBasedOnResult(result: Int): Int = db.withTransaction(implicit session =>
-    labelValidationTable.filter(_.validationResult === result).list.size
+    validationLabels.filter(_.validationResult === result).list.size
   )
 
   /**
