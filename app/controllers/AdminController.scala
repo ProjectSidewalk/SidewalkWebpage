@@ -121,7 +121,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           "heading" -> label.heading,
           "user_type" -> label.userRole,
           "username" -> label.username,
-          "mission_type" -> label.missionType
+          "mission_type" -> label.missionType,
+          "label_id" -> label.labelId
         )
       }
       val featureCollection: JsObject = Json.obj("labels" -> jsonList)

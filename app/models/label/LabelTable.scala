@@ -133,7 +133,7 @@ object LabelTable {
 
   case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
-                             userRole: String, username: String, missionType: String)
+                             userRole: String, username: String, missionType: String, labelId: Int)
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -303,7 +303,8 @@ object LabelTable {
       _labelPoint.heading,
       _rolename.role,
       _user.username,
-      _missionType.missionType
+      _missionType.missionType,
+      _labels.labelId
     )
     labelsWithCVMetadata.list.map(label => LabelCVMetadata.tupled(label))
   }
