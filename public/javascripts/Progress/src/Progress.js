@@ -44,7 +44,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
-        map.setZoom(data.default_zoom);
+        map.setZoom(Math.floor(data.default_zoom));
     });
 
     var popup = L.popup().setContent('<p>Hello!</p>');
