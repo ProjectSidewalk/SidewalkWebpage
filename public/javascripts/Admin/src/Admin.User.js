@@ -21,7 +21,7 @@ function AdminUser(params) {
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
         map.setView([data.city_center.lat, data.city_center.lng]);
-        map.setZoom(data.default_zoom);
+        map.setZoom(Math.floor(data.default_zoom));
     });
 
     // Visualize audited streets
