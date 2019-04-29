@@ -103,6 +103,36 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
+    * Admin API endpoint that produces JSON output of all labels with sufficient metadata to produce crops
+    * for computer vision applications.
+    *
+    * @return
+    */
+  def getAllLabelCVMetadata = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val labels: List[LabelTable.LabelCVMetadata] = LabelTable.retrieveCVMetadata
+      val jsonList: List[JsObject] = labels.map { label =>
+        Json.obj(
+          "gsv_panorama_id" -> label.gsvPanoramaId,
+          "sv_image_x" -> label.svImageX,
+          "sv_image_y" -> label.svImageY,
+          "label_type_id" -> label.labelTypeId,
+          "photographer_heading" -> label.photographerHeading,
+          "heading" -> label.heading,
+          "user_type" -> label.userRole,
+          "username" -> label.username,
+          "mission_type" -> label.missionType,
+          "label_id" -> label.labelId
+        )
+      }
+      val featureCollection: JsObject = Json.obj("labels" -> jsonList)
+      Future.successful(Ok(featureCollection))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
     * Get a list of all global attributes
     *
     * @return
