@@ -19,7 +19,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-        uiModalMissionComplete.closeButton.on('click', null);
+        uiModalMissionComplete.closeButton.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
         uiModalMissionComplete.foreground.css('visibility', 'hidden');
@@ -41,7 +41,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         var message = "You just validated " + totalLabels + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
-        // Disable user from clicking the "Validate next mission" button and set background go gray
+        // Disable user from clicking the "Validate next mission" button and set background to gray
         uiModalMissionComplete.closeButton.css('background', '#7f7f7f');
         uiModalMissionComplete.closeButton.css('cursor', 'wait');
 
