@@ -29,7 +29,6 @@ function LabelVisibilityControl () {
      */
     function unhideLabel () {
         svv.panorama.showLabel();
-        backgroundColor = "";
         visible = true;
         var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
