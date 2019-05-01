@@ -61,6 +61,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setView([data.city_center.lat, data.city_center.lng]);
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
+        choropleth.setZoom(data.default_zoom);
     });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
