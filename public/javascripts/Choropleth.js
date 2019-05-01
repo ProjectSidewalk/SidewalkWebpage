@@ -1,4 +1,4 @@
-function Choropleth(_, $, turf, difficultRegionIds) {
+function Choropleth(_, $, difficultRegionIds) {
     var neighborhoodPolygonLayer;
 
 // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
