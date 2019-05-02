@@ -25,7 +25,7 @@ class ClusterLabelAttributesActor extends Actor {
     val currentTime: Calendar = Calendar.getInstance
     var timeOfNextUpdate: Calendar = Calendar.getInstance
     timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 3)
-    timeOfNextUpdate.set(Calendar.MINUTE, 0)
+    timeOfNextUpdate.set(Calendar.MINUTE, 30)
     timeOfNextUpdate.set(Calendar.SECOND, 0)
 
 //    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH))
