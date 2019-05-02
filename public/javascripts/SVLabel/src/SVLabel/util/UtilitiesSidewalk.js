@@ -414,8 +414,8 @@ function UtilitiesMisc (JSON) {
                         id: 'cracks'
                     },
                     'grass': {
-                        keyNumber: 82,
-                        keyChar: 'R',
+                        keyNumber: [71, 82],
+                        keyChar: ['G', 'R'],
                         text: 'g<tag-underline>r</tag-underline>ass',
                         id: 'grass'
                     },
