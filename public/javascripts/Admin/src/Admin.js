@@ -599,7 +599,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             initializeOverlayPolygon(map);
             initializeNeighborhoodPolygons(map);
             initializeAuditedStreets(map);
-            initializeSubmittedLabels(map);
+            // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
+            setTimeout(function(){
+                initializeSubmittedLabels(map);
+            }, 1000);
             initializeAdminGSVLabelView();
             setTimeout(function () {
                 map.invalidateSize(false);
