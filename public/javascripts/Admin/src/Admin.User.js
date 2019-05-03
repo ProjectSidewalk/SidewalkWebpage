@@ -2,6 +2,7 @@ function AdminUser(params) {
     var self = {};
     var _data = {};
     self.username = params.username;
+    self.adminGSVLabelView = AdminGSVLabelView();
 
     // Initialize the map
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
@@ -88,9 +89,25 @@ function AdminUser(params) {
                 var style = $.extend(true, {}, geojsonMarkerOptions);
                 style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
                 return L.circleMarker(latlng, style);
-            }
+            },
+            onEachFeature: onEachLabelFeature
         }).addTo(map);
     });
+
+    function onEachLabelFeature(feature, layer) {
+        layer.on('click', function () {
+            self.adminGSVLabelView.showLabel(feature.properties.label_id);
+        });
+        layer.on({
+            'mouseover': function () {
+                console.log("mouse over!!");
+                layer.setRadius(15);
+            },
+            'mouseout': function () {
+                layer.setRadius(5);
+            }
+        })
+    }
     
     $.getJSON("/adminapi/tasks/" + self.username, function (data) {
         _data.tasks = data;
