@@ -135,7 +135,7 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns a count of the number of audits performed on each day since the tool was launched (11/17/2015).
+    * Returns a count of the number of audits performed on each day with audits.
     *
     * @return
     */

@@ -920,7 +920,7 @@ object LabelTable {
   }
 
   /**
-    * Returns a count of the number of labels placed on each day since the tool was launched (11/17/2015).
+    * Returns a count of the number of labels placed on each day there were labels placed.
     *
     * @return
     */
