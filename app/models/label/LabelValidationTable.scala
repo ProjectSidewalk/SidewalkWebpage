@@ -270,13 +270,13 @@ object LabelValidationTable {
     */
   def getValidationsByDate: List[ValidationCountPerDay] = db.withSession { implicit session =>
     val selectValidationCountQuery = Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(label_id)
+      """SELECT calendar_date, COUNT(label_validation_id)
         |FROM
         |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '12/17/2018') n
+        |    SELECT label_validation_id, end_timestamp::date AS calendar_date
+        |    FROM label_validation
+        |    WHERE label_validation IS NOT NULL
         |) AS calendar
-        |LEFT JOIN sidewalk.label_validation ON label_validation.end_timestamp::date = calendar_date::date
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )

@@ -6,7 +6,7 @@ The Project Sidewalk webpage.
 ### Setting up the development environment
 The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows PowerShell users may also need to install `make`.
 
-### Running the Application Locally
+### Running the application locally
 To run the web server locally, from the root of the SidewalkWebpage directory:
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. You will need the database dump later on. You can continue with the rest of the instructions here, but the website will not work fully until you've received these three files from Mikey.
@@ -43,9 +43,20 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 
 1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
 
-### Additional Tools
-1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, get the dump as per [instructions](https://github.com/ProjectSidewalk/Instructions), rename the file `[database]-dump`, place it in the `db` folder, and run `make import-dump db=[database]` from the base folder. Note: Restart the server once the dump is complete.
+1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, rename the dump file you got from Mikey to `sidewalk-dump`, place it in the `db` folder, and run `make import-dump db=sidewalk` from the base folder outside the container. When that is done, rerun `npm start`.
 
+### Setting up another database or city
+1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.
+
+1. Run `make import-dump db=[db-name]` from the root project directory outside the container. Using the example from step 1., this would be `make import-dump db=sidewalk-seattle`.
+
+1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/[db-name]`.
+
+1. If the database is for a city other than DC, modify the 2nd line of the `conf/cityparams.conf` file to be `city-id = "seattle-wa"` for Seattle or `city-id = "newberg-or"` for Newberg.
+
+1. Rerun `make dev`.
+
+### Additional tools
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
 
 ### Making changes
@@ -83,7 +94,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
     [success] Compiled in 90s
     ```
 
-### Debugging Notes
+### Debugging notes
 1. As mentioned above, `npm start` is a shorthand to run `grunt watch` and `sbt run`. If you prefer, you can manually run these separately (and can, for this matter, choose to use `activator` instead of `sbt`). `activator run` or `sbt run` needs to be run on the top directory where `build.sbt` is located. For `grunt`, run `grunt watch` so the changes you make to SVLabel JavaScript library will be automatically built on file updates. If `grunt watch` is not responding, you can run `grunt concat` and `grunt concat_css` to build the files.
 
 1. If you see an error like:
@@ -93,7 +104,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 
     This is because the data from the database is missing and you'd need to import the sql dump. The schema import that's a part of init script only sets the schema and does not import the data.
 
-## Running the Application Remotely
+## Running the application remotely
 To run the application remotely,
 
 1. Use Play's dist tool to create jar files of the project (i,e., `activator dist`): https://www.playframework.com/documentation/2.3.x/ProductionDist
