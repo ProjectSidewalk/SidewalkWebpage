@@ -264,9 +264,9 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @AuditTaskCommentTable.takeRight(100).map { comment =>
+                            @AuditTaskCommentTable.takeRightAuditAndValidationComments(100).map { comment =>
                             <tr>
-                                <td><a href='@routes.AdminController.userProfile(comment.userId)'>@comment.userId</a>
+                                <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
                                 </td>
                                 <td>@comment.timestamp</td>
                                 <td>@comment.gsvPanoramaId</td>
