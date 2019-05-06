@@ -10,9 +10,9 @@ import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, userId: String,
+case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, username: String,
                             ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
-                            pitch: Option[Double],  zoom: Option[Int], lat: Option[Double], lng: Option[Double],
+                            pitch: Option[Double], zoom: Option[Int], lat: Option[Double], lng: Option[Double],
                             timestamp: Timestamp, comment: String)
 case class GenericComment(commentType: String, username: String, gsvPanoramaId: Option[String], timestamp: Timestamp, comment: String)
 
