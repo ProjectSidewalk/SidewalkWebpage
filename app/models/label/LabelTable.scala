@@ -721,24 +721,6 @@ object LabelTable {
     _labels.list
   }
 
-  /**
-    * Returns all the labels of the given user that are associated with the given interactions
-    * @param userId
-    * @param interactions
-    * @return
-    */
-  def selectLabelsByInteractions(userId: UUID, interactions: List[AuditTaskInteraction]) = {
-    val labels = selectLabelsByUserId(userId).filter(_.temporaryLabelId.isDefined)
-
-    // Yield labels that share the same audit task id and temporary label id.
-    val filteredLabels = for {
-      l <- labels
-      i <- interactions
-      if l.auditTaskId == i.auditTaskId && l.temporaryLabelId == i.temporaryLabelId
-    } yield l
-    filteredLabels
-  }
-
   /*
    * Retrieves label and its metadata
    * Date: Sep 1, 2016
@@ -943,5 +925,24 @@ object LabelTable {
     )
     //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
     selectStreetEdgeIdQuery((lng, lat)).list.headOption
+  }
+
+  /**
+    * Gets the labels placed in the most recent mission.
+    *
+    * @param regionId
+    * @param userId
+    * @return
+    */
+  def getLabelsFromCurrentAuditMission(regionId: Int, userId: UUID): List[Label] = db.withSession { implicit session =>
+    val recentMissionId: Option[Int] = MissionTable.missions
+        .filter(m => m.userId === userId.toString && m.regionId === regionId)
+        .sortBy(_.missionStart.desc)
+        .map(_.missionId).list.headOption
+
+    recentMissionId match {
+      case Some(missionId) => labelsWithoutDeleted.filter(_.missionId === missionId).list
+      case None => List()
+    }
   }
 }
