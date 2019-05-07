@@ -59,6 +59,8 @@ function Tracker() {
         var missionContainer = svv.missionContainer ? svv.missionContainer : null;
         var currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
+        var isMobile = 0;
+
         var data = {
             action: action,
             gsv_panorama_id: panoId,
@@ -69,7 +71,8 @@ function Tracker() {
             note: note,
             pitch: pov ? pov.pitch : null,
             timestamp: timestamp,
-            zoom: pov ? pov.zoom : null
+            zoom: pov ? pov.zoom : null,
+            isMobile: 0
         };
 
         return data;
