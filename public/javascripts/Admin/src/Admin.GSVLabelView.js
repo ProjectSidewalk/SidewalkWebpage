@@ -47,6 +47,10 @@ function AdminGSVLabelView() {
                             '<th>Time Submitted</th>'+
                             '<td id="timestamp" colspan="3"></td>'+
                             '</tr>'+
+                            '<tr>'+
+                            '<th>Label ID</th>'+
+                            '<td id="label-id" colspan="3"></td>'+
+                            '</tr>'+
                             '</table>'+
                         '</div>'+
                     '</div>'+
@@ -62,6 +66,7 @@ function AdminGSVLabelView() {
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
         self.modalTask = self.modal.find("#task");
+        self.modalLabelId = self.modal.find("#label-id")
     }
 
     function showLabel(labelId) {
@@ -94,6 +99,7 @@ function AdminGSVLabelView() {
         //join is here to make the formatting nice, otherwise we don't have commas or spaces.
         self.modalTags.html(labelMetadata['tags'].join(', '));
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalLabelId.html(labelMetadata['label_id']);
         self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
             labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
             labelMetadata['username'] + "</a>");
