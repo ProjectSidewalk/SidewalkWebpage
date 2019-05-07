@@ -49,7 +49,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           for (interaction: InteractionSubmission <- data.interactions) {
             ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
               interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-              interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
+              interaction.zoom, interaction.note, new Timestamp(interaction.timestamp), interaction.isMobile))
+             println(interaction)
           }
 
           // We aren't always submitting labels, so check if data.labels exists.
