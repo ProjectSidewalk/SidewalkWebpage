@@ -100,7 +100,6 @@ function AdminUser(params) {
         });
         layer.on({
             'mouseover': function () {
-                console.log("mouse over!!");
                 layer.setRadius(15);
             },
             'mouseout': function () {
