@@ -135,19 +135,18 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns a count of the number of audits performed on each day since the tool was launched (11/17/2015).
+    * Returns a count of the number of audits performed on each day with audits.
     *
     * @return
     */
   def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id)
+      """SELECT calendar_date, COUNT(audit_task_id)
         |FROM
         |(
-        |    SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '11/17/2015') n
+        |    SELECT audit_task_id, task_start::date AS calendar_date
+        |    FROM audit_task
         |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )

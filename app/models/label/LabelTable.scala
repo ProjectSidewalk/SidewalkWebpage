@@ -920,20 +920,20 @@ object LabelTable {
   }
 
   /**
-    * Returns a count of the number of labels placed on each day since the tool was launched (11/17/2015).
+    * Returns a count of the number of labels placed on each day there were labels placed.
     *
     * @return
     */
   def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>
     val selectLabelCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(label_id)
+      """SELECT calendar_date, COUNT(label_id)
         |FROM
         |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '11/17/2015') n
+        |    SELECT label_id, task_start::date AS calendar_date
+        |    FROM audit_task
+        |    INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
+        |    WHERE deleted = FALSE
         |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )

@@ -386,7 +386,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['cracks']['keyNumber']: // 'r' for 'cracks'
                                 $('.cracks-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber']: // 'g' for 'grass'
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][0]: // 'g' for 'grass'
+                                $('.grass-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][1]: // 'r' for 'grass'
                                 $('.grass-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['narrow sidewalk']['keyNumber']  : // 'a' for 'narrow sidewalk'
