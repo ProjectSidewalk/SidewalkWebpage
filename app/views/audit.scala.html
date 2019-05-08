@@ -866,8 +866,8 @@
             var STREETVIEW_MAX_DISTANCE = 25;
 
             var geojson = @Html(task.get.toJSON.toString);
-            var lat1 = geojson.features[0].geometry.coordinates[0][1];
-            var lng1 = geojson.features[0].geometry.coordinates[0][0];
+            var lat1 = geojson.features[0].properties.y1;
+            var lng1 = geojson.features[0].properties.x1;
             var latLng = new google.maps.LatLng(lat1, lng1);
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
