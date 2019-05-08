@@ -6,7 +6,7 @@ import java.util.UUID
 
 import models.amt.AMTAssignmentTable.db
 import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.audit.AuditTaskTable
+import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
@@ -83,6 +83,9 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
 
   def region: ForeignKeyQuery[RegionTable, Region] =
     foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
+
+  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
+    foreignKey("mission_current_audit_task_id_fkey", currentAuditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 }
 
 object MissionTable {
