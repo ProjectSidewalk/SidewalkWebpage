@@ -30,7 +30,8 @@ case class AuditMission(userId: String, username: String, missionId: Int, comple
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
                    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
                    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
-                   labelsProgress: Option[Int], labelTypeId: Option[Int], skipped: Boolean) {
+                   labelsProgress: Option[Int], labelTypeId: Option[Int], skipped: Boolean,
+                   currentAuditTaskId: Option[Int]) {
 
   def toJSON: JsObject = {
     Json.obj(
@@ -48,7 +49,8 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
       "labels_validated" -> labelsValidated,
       "labels_progress" -> labelsProgress,
       "label_type_id" -> labelTypeId,
-      "skipped" -> skipped
+      "skipped" -> skipped,
+      "current_audit_task_id" -> currentAuditTaskId
     )
   }
 }
@@ -69,8 +71,9 @@ class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "miss
   def labelsProgress: Column[Option[Int]] = column[Option[Int]]("labels_progress", O.Nullable)
   def labelTypeId: Column[Option[Int]] = column[Option[Int]]("label_type_id", O.Nullable)
   def skipped: Column[Boolean] = column[Boolean]("skipped", O.NotNull)
+  def currentAuditTaskId: Column[Option[Int]] = column[Option[Int]]("current_audit_task_id", O.Nullable)
 
-  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped) <> ((Mission.apply _).tupled, Mission.unapply)
+  def * = (missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId) <> ((Mission.apply _).tupled, Mission.unapply)
 
   def missionType: ForeignKeyQuery[MissionTypeTable, MissionType] =
     foreignKey("mission_mission_type_id_fkey", missionTypeId, TableQuery[MissionTypeTable])(_.missionTypeId)
@@ -118,8 +121,9 @@ object MissionTable {
     val labelsProgress: Option[Int] = r.nextIntOption
     val labelTypeId: Option[Int] = r.nextIntOption
     val skipped: Boolean = r.nextBoolean
+    val currentAuditTaskId: Option[Int] = r.nextIntOption
     Mission(missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
-            distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped)
+            distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId)
   })
 
 
