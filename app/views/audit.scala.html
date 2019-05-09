@@ -868,6 +868,7 @@
             var geojson = @Html(task.get.toJSON.toString);
             var lat1 = geojson.features[0].properties.current_lat;
             var lng1 = geojson.features[0].properties.current_lng;
+            var startEndpointReversed = geojson.features[0].properties.start_endpoint_reversed;
             var latLng = new google.maps.LatLng(lat1, lng1);
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -880,7 +881,7 @@
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
-                    var newTask = svl.taskFactory.create(geojson, lat1, lng1);
+                    var newTask = svl.taskFactory.create(geojson, lat1, lng1, startEndpointReversed);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
 

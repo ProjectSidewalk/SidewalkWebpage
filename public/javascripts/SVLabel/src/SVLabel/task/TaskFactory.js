@@ -12,7 +12,7 @@ function TaskFactory () {
      * @param lng
      * @returns {svl.Task}
      */
-    this.create = function (geojson, lat, lng) {
-        return new Task(geojson, lat, lng);
+    this.create = function (geojson, lat, lng, startEndpointReversed) {
+        return new Task(geojson, lat, lng, startEndpointReversed);
     };
 }
