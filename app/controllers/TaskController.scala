@@ -145,11 +145,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     } else if (!MissionTable.isCVGroundTruthMission(missionId)){
       if (missionProgress.distanceProgress.isEmpty) Logger.error("Received null distance progress for audit mission.")
       val distProgress: Float = missionProgress.distanceProgress.get
+      val auditTaskId: Option[Int] = missionProgress.auditTaskId
 
       if (missionProgress.completed) {
-        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, skipped)
+        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, auditTaskId, skipped)
       } else {
-        MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
+        MissionTable.updateAuditProgressOnly(userId, missionId, distProgress, auditTaskId)
       }
     } else {
       None

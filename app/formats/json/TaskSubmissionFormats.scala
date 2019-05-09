@@ -14,7 +14,7 @@ object TaskSubmissionFormats {
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, imageDate: String, links: Seq[GSVLinkSubmission], copyright: String)
-  case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, skipped: Boolean)
+  case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int])
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
@@ -110,6 +110,7 @@ object TaskSubmissionFormats {
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "distance_progress").readNullable[Float] and
       (JsPath \ "completed").read[Boolean] and
+      (JsPath \ "audit_task_id").read[Option[Int]] and
       (JsPath \ "skipped").read[Boolean]
   )(AuditMissionProgress.apply _)
 

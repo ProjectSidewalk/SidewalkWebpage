@@ -39,6 +39,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             mission_id: mission.getProperty("missionId"),
             distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
             completed: mission.getProperty("isComplete"),
+            audit_task_id: task.getAuditTaskId(),
             skipped: mission.getProperty("skipped")
         };
 
@@ -46,7 +47,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
             audit_task_id: task.getAuditTaskId(),
-            completed: task.isComplete()
+            completed: task.isComplete(),
+            current_lat: navigationModel.getPosition().lat,
+            current_lng: navigationModel.getPosition().lng
         };
 
         data.environment = {
