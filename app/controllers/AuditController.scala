@@ -87,7 +87,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Audit", timestamp))
             val regionId: Int = region.get.regionId
 
-            val task: Option[NewTask] = AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
             val role: String = user.role.getOrElse("")
             val payPerMeter: Double = if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
             val tutorialPay: Double =
@@ -97,6 +96,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             val mission: Mission =
               if(retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
               else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
+
+            // If there is a partially completed task in this mission, get that, o/w make a new one.
+            val task: Option[NewTask] =
+              if (mission.currentAuditTaskId.isDefined)
+                AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
+              else
+                AuditTaskTable.selectANewTaskInARegion(regionId, user.userId)
 
             val cityStr: String = Play.configuration.getString("city-id").get
             val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get

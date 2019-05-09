@@ -866,8 +866,8 @@
             var STREETVIEW_MAX_DISTANCE = 25;
 
             var geojson = @Html(task.get.toJSON.toString);
-            var lat1 = geojson.features[0].properties.y1;
-            var lng1 = geojson.features[0].properties.x1;
+            var lat1 = geojson.features[0].properties.current_lat;
+            var lng1 = geojson.features[0].properties.current_lng;
             var latLng = new google.maps.LatLng(lat1, lng1);
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -981,7 +981,7 @@
         function init() {
             var mainParam = mainParam || {},
                     formParam = {},
-                    initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
+                    initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.hitId = '';
             formParam.assignmentId = '';

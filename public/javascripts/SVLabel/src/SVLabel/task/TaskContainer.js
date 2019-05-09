@@ -368,7 +368,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Used to set target distance for Mission Progress
      *
-     * TODO: 839 - Do we set that for completed tasks across all users?
      * @param unit {string} Distance unit
      */
     self.getIncompleteTaskDistance = function (unit) {

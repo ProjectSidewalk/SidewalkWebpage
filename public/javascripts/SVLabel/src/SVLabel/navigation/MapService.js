@@ -1875,7 +1875,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
 
-    // Set a flag that triggers the POV being reset into the route direction upon the postiion changing
+    // Set a flag that triggers the POV being reset into the route direction upon the position changing
     self.preparePovReset = function(){
         initialPositionUpdate = true;
     };

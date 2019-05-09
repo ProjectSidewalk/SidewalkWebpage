@@ -20,7 +20,9 @@ function Task (geojson, currentLat, currentLng) {
         auditTaskId: null,
         streetEdgeId: null,
         completedByAnyUser: null,
-        priority: null
+        priority: null,
+        currentLat: currentLat,
+        currentLng: currentLng
     };
 
     /**
@@ -299,6 +301,10 @@ function Task (geojson, currentLat, currentLng) {
         var lat = _geojson.features[0].geometry.coordinates[0][1],
             lng = _geojson.features[0].geometry.coordinates[0][0];
         return { lat: lat, lng: lng };
+    };
+
+    this.getCurrentLatLng = function() {
+        return { lat: properties.currentLat, lng: properties.currentLng };
     };
 
     /**

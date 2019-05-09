@@ -165,7 +165,12 @@ function Main (params) {
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel, svl.neighborhoodModel,
             svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
-        svl.tracker.initTaskId();
+        if (params.mission.current_audit_task_id) {
+            var currTask = svl.taskContainer.getCurrentTask();
+            currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
+        } else {
+            svl.tracker.initTaskId();
+        }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
 
