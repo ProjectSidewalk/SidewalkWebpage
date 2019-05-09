@@ -643,6 +643,8 @@ object MissionTable {
   /**
     * Creates a new audit mission entry in mission table for the specified user/region id.
     *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    *
     * @param userId
     * @param regionId
     * @param pay
@@ -658,6 +660,9 @@ object MissionTable {
 
   /**
     * Creates and returns a new validation mission
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    *
     * @param userId     User ID
     * @param pay        Amount user is paid per label
     * @param labelsToValidate   Number of labels in this mission
@@ -688,6 +693,8 @@ object MissionTable {
   /**
     * Creates a new auditOnboarding mission entry in the mission table for the specified user.
     *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    *
     * @param userId
     * @param pay
     * @return
@@ -703,6 +710,8 @@ object MissionTable {
   /**
     * Marks the specified mission as complete, filling in mission_end timestamp.
     *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    *
     * @param missionId
     * @return Int number of rows updated (should always be 1).
     */
@@ -715,7 +724,9 @@ object MissionTable {
   }
 
   /**
-    * Marks the specifed mission as skipped.
+    * Marks the specified mission as skipped.
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
     *
     * @param missionId
     * @return
@@ -729,6 +740,8 @@ object MissionTable {
 
   /**
     * Updates the distance_progress column of a mission.
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
     *
     * @param missionId
     * @param distanceProgress
@@ -757,6 +770,15 @@ object MissionTable {
     }
   }
 
+  /**
+    * Updates the labels_validated column of a mission.
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    *
+    * @param missionId
+    * @param labelsProgress
+    * @return
+    */
   def updateValidationProgress(missionId: Int, labelsProgress: Int): Int = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionLabels: Int = missions.filter(_.missionId === missionId).map(_.labelsValidated).list.head.get
