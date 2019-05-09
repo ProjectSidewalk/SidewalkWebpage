@@ -101,7 +101,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       // Update the existing audit task row
       val id = auditTask.auditTaskId.get
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-      AuditTaskTable.updateTaskEnd(id, timestamp)
+      AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng)
       id
     } else {
       // Insert audit task
