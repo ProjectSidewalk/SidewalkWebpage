@@ -4,13 +4,13 @@ ALTER TABLE audit_task ADD COLUMN current_lng DOUBLE PRECISION;
 ALTER TABLE audit_task ADD COLUMN start_endpoint_reversed BOOLEAN DEFAULT FALSE;
 
 UPDATE audit_task
-SET current_lat = y1, current_lng = x1
+SET current_lat = y2, current_lng = x2
 FROM street_edge
 WHERE audit_task.street_edge_id = street_edge.street_edge_id
   AND completed = FALSE;
 
 UPDATE audit_task
-SET current_lat = y2, current_lng = x2
+SET current_lat = y1, current_lng = x1
 FROM street_edge
 WHERE audit_task.street_edge_id = street_edge.street_edge_id
   AND completed = TRUE;
