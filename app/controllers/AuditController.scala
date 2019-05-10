@@ -352,8 +352,16 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
           val tutorialPay: Double =
             if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
-          val mission: Mission =
+          var mission: Mission =
             MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
+
+          // Overwrite the current_audit_task_id column to null if it has a value right now. It will be automatically
+          // updated to whatever an audit_task_id associated with the street edge they are about to start on.
+          if (mission.currentAuditTaskId.isDefined) {
+            MissionTable.updateAuditProgressOnly(userId, mission.missionId, mission.distanceProgress.get, None)
+            mission = MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
+          }
+
           val cityStr: String = Play.configuration.getString("city-id").get
           val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
           val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get

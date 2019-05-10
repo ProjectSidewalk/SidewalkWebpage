@@ -4,7 +4,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-import models.amt.AMTAssignmentTable.db
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -17,8 +16,7 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
-import scala.collection.immutable
-import scala.slick.lifted.{ForeignKeyQuery, QueryBase}
+import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
