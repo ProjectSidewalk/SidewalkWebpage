@@ -198,9 +198,8 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        // Mark neighborhood as complete if the initial task's priority < 1.
-        // Proxy for knowing if the neighborhood is complete across all users.
-        if(task.getStreetPriority() < 1) {
+        // Mark neighborhood as complete if there are no streets left with max priority (= 1).
+        if(!svl.taskContainer.hasMaxPriorityTask()) {
             svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
