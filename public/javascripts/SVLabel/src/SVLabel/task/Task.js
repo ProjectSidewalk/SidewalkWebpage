@@ -23,7 +23,8 @@ function Task (geojson, currentLat, currentLng, startEndpointReversed) {
         priority: null,
         currentLat: currentLat,
         currentLng: currentLng,
-        startEndpointReversed: startEndpointReversed
+        startEndpointReversed: startEndpointReversed,
+        finishedReversing: false
     };
 
     /**
@@ -61,10 +62,15 @@ function Task (geojson, currentLat, currentLng, startEndpointReversed) {
             d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
 
         // If we already set reversed to true or we are at the 2nd endpoint, reverse the coordinates.
-        if (properties.startEndpointReversed || ((properties.startEndpointReversed === null || properties.startEndpointReversed === undefined) && d2 < d1)) {
-            self.reverseCoordinates();
-            properties.startEndpointReversed = true;
-            _furthestPoint = turf.point([lng2, lat2]);
+        if (properties.startEndpointReversed
+            || ((properties.startEndpointReversed === null || properties.startEndpointReversed === undefined) && d2 < d1)) {
+            // Only reverse if we haven't already reversed.
+            if (!properties.finishedReversing) {
+                self.reverseCoordinates();
+                properties.finishedReversing = true;
+                properties.startEndpointReversed = true;
+                _furthestPoint = turf.point([lng2, lat2]);
+            }
         } else {
             properties.startEndpointReversed = false;
             _furthestPoint = turf.point([lng1, lat1]);
