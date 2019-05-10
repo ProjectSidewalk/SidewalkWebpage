@@ -21,7 +21,7 @@ object TaskFormats {
       (__ \ "completed").write[Boolean] and
       (__ \ "current_lat").write[Float] and
       (__ \ "current_lng").write[Float] and
-      (__ \ "start_endpoint_reversed").write[Boolean]
+      (__ \ "start_point_reversed").write[Boolean]
     )(unlift(AuditTask.unapply _))
 
   // case class AuditTaskInteraction(auditTaskInteractionId: Int, auditTaskId: Int, mission_id: Int, action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float],

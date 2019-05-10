@@ -1,7 +1,7 @@
 # --- !Ups
 ALTER TABLE audit_task ADD COLUMN current_lat DOUBLE PRECISION;
 ALTER TABLE audit_task ADD COLUMN current_lng DOUBLE PRECISION;
-ALTER TABLE audit_task ADD COLUMN start_endpoint_reversed BOOLEAN DEFAULT FALSE;
+ALTER TABLE audit_task ADD COLUMN start_point_reversed BOOLEAN DEFAULT FALSE;
 
 UPDATE audit_task
 SET current_lat = y2, current_lng = x2
@@ -29,6 +29,6 @@ ALTER TABLE mission
     DROP COLUMN current_audit_task_id;
 
 
-ALTER TABLE audit_task DROP COLUMN start_endpoint_reversed;
+ALTER TABLE audit_task DROP COLUMN start_point_reversed;
 ALTER TABLE audit_task DROP COLUMN current_lat;
 ALTER TABLE audit_task DROP COLUMN current_lng;

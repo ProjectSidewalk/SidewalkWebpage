@@ -50,7 +50,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             completed: task.isComplete(),
             current_lat: navigationModel.getPosition().lat,
             current_lng: navigationModel.getPosition().lng,
-            start_endpoint_reversed: task.getProperty("startEndpointReversed")
+            start_point_reversed: task.getProperty("startPointReversed")
         };
 
         data.environment = {

@@ -20,14 +20,14 @@ import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, startEndpointReversed: Boolean)
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, startPointReversed: Boolean)
 case class NewTask(edgeId: Int, geom: LineString,
                    currentLng: Float, currentLat: Float, x1: Float, y1: Float, x2: Float, y2: Float,
-                   startEndpointReversed: Boolean, // Did we start at x1,y1 instead of x2,y2?
+                   startPointReversed: Boolean, // Did we start at x1,y1 instead of x2,y2?
                    taskStart: Timestamp,
                    completedByAnyUser: Boolean, // Has any user has audited this street
                    priority: Double,
-                   completed: Boolean    // Has the user audited this street before (null if no corresponding user)
+                   completed: Boolean // Has the user audited this street before (null if no corresponding user)
                   )  {
   /**
     * This method converts the data into the GeoJSON format
@@ -45,7 +45,7 @@ case class NewTask(edgeId: Int, geom: LineString,
       "y1" -> y1,
       "x2" -> x2,
       "y2" -> y2,
-      "start_endpoint_reversed" -> startEndpointReversed,
+      "start_point_reversed" -> startPointReversed,
       "task_start" -> taskStart.toString,
       "completed_by_any_user" -> completedByAnyUser,
       "priority" -> priority,
@@ -69,9 +69,9 @@ class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("
   def completed = column[Boolean]("completed", O.NotNull)
   def currentLat = column[Float]("current_lat", O.NotNull)
   def currentLng = column[Float]("current_lng", O.NotNull)
-  def startEndpointReversed = column[Boolean]("start_endpoint_reversed", O.NotNull)
+  def startPointReversed = column[Boolean]("start_point_reversed", O.NotNull)
 
-  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng, startEndpointReversed) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
+  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng, startPointReversed) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -102,12 +102,12 @@ object AuditTaskTable {
     val y1 = r.nextFloat
     val x2 = r.nextFloat
     val y2 = r.nextFloat
-    val startEndpointReversed = r.nextBoolean
+    val startPointReversed = r.nextBoolean
     val taskStart = r.nextTimestamp
     val completedByAnyUser = r.nextBoolean
     val priority = r.nextDouble
     val completed = r.nextBooleanOption.getOrElse(false)
-    NewTask(edgeId, geom, currentLng, currentLat, x1, y1, x2, y2, startEndpointReversed, taskStart, completedByAnyUser, priority, completed)
+    NewTask(edgeId, geom, currentLng, currentLat, x1, y1, x2, y2, startPointReversed, taskStart, completedByAnyUser, priority, completed)
   })
 
   val db = play.api.db.slick.DB
@@ -517,7 +517,7 @@ object AuditTaskTable {
       se <- streetEdges if at.streetEdgeId === se.streetEdgeId
       sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.x1, se.y1, se.x2, se.y2, at.startEndpointReversed, timestamp, sc._2, sp.priority, false)
+    } yield (se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.x1, se.y1, se.x2, se.y2, at.startPointReversed, timestamp, sc._2, sp.priority, false)
 
     newTask.list.map(NewTask.tupled).headOption
   }
