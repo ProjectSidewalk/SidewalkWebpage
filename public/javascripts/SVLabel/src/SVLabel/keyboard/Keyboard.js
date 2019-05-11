@@ -374,7 +374,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked car']['keyNumber']: // 'a' for 'parked car'
                                 $('.parkedCar-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked bike']['keyNumber']: // 'd' for 'parked bike'
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked bike']['keyNumber']: // 'i' for 'parked bike'
                                 $('.parkedBike-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
