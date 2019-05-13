@@ -277,7 +277,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
         // Old code: this does not work on the newest versions of Google Chrome.
         // TODO: Replace with beacon (or some ajax alternative) asap. Starter code below.
-        self.submitData(asyncParam);
+        // self.submitData(asyncParam);
 
         // // April 17, 2019
         // // What we want here is type: 'application/json'. Can't do that quite yet because the
@@ -286,14 +286,15 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         // // Source for fix and ongoing discussion is here:
         // // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
         var task = taskContainer.getCurrentTask();
-        var data = self.compileSubmissionData(task);
+        var data = [self.compileSubmissionData(task)];
         var jsonData = JSON.stringify(data);
         var headers = {
             type: 'application/x-www-form-urlencoded'
         };
 
         var blob = new Blob([jsonData], headers);
-        navigator.sendBeacon(properties.dataStoreUrl, blob);
+        navigator.sendBeacon(properties.dataStoreUrl + "Beacon", jsonData);
+        console.log("beacon sent", blob, "jsonData", jsonData);
     });
 
     /**

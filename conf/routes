@@ -89,6 +89,7 @@ GET     /task/street/:id                                     @controllers.TaskCo
 GET     /task/groundtruth/:panoid                            @controllers.TaskController.getCVGroundTruthTaskByPanoId(panoid: String)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
+POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
 
 # Missions
