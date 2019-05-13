@@ -1,6 +1,7 @@
 package utils.actor
 
-import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.{Calendar, Locale, TimeZone}
 
 import akka.actor.{Actor, Cancellable, Props}
 import controllers.helper.AttributeControllerHelper
@@ -13,17 +14,18 @@ import scala.concurrent.duration._
 class ClusterLabelAttributesActor extends Actor {
 
   private var cancellable: Option[Cancellable] = None
+  val TIMEZONE = TimeZone.getTimeZone("UTC")
 
 
   override def preStart(): Unit = {
     super.preStart()
-    // If we want to update the street_edge_priority table at 3am every day, we need to figure out how much time there
+    // If we want to update the cluster table at 3am every day, we need to figure out how much time there
     // is b/w now and the next 3am, then we can set the update interval to be 24 hours. So we make a calendar object for
     // right now, and one for 3am today. If it is after 3am right now, we set the 3am object to be 3am tomorrow. Then we
     // get the time difference between the 3am object and now.
 
-    val currentTime: Calendar = Calendar.getInstance
-    var timeOfNextUpdate: Calendar = Calendar.getInstance
+    val currentTime: Calendar = Calendar.getInstance(TIMEZONE)
+    var timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
     timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 3)
     timeOfNextUpdate.set(Calendar.MINUTE, 30)
     timeOfNextUpdate.set(Calendar.SECOND, 0)
@@ -56,10 +58,13 @@ class ClusterLabelAttributesActor extends Actor {
 
   def receive: Receive = {
     case ClusterLabelAttributesActor.Tick =>
-      val currentTimeStart: String = Calendar.getInstance.getTime.toString
+      val dateFormatter = new SimpleDateFormat("EE MMM dd HH:mm:ss zzz yyyy", Locale.US)
+      dateFormatter.setTimeZone(TIMEZONE)
+
+      val currentTimeStart: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
       AttributeControllerHelper.runClustering("both")
-      val currentEndTime: String = Calendar.getInstance.getTime.toString
+      val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Label attribute clustering completed at: $currentEndTime")
   }
 
