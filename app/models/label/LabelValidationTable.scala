@@ -7,6 +7,7 @@ import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.{auditTasks, db, labelsWithoutDeleted, roleTable, userRoles, users}
+import models.user.UserCurrentRegionTable.{neighborhoods, userCurrentRegions}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -19,8 +20,9 @@ case class LabelValidation(validationId: Int,
                            labelValidationId: Int,
                            userId: String,
                            missionId: Int,
-                           canvasX: Int,
-                           canvasY: Int,
+                           // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
+                           canvasX: Option[Int],
+                           canvasY: Option[Int],
                            heading: Float,
                            pitch: Float,
                            zoom: Float,
@@ -41,8 +43,8 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Unsure
   def userId = column[String]("user_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
-  def canvasX = column[Int]("canvas_x", O.NotNull)
-  def canvasY = column[Int]("canvas_y", O.NotNull)
+  def canvasX = column[Option[Int]]("canvas_x", O.Nullable)
+  def canvasY = column[Option[Int]]("canvas_y", O.Nullable)
   def heading = column[Float]("heading", O.NotNull)
   def pitch = column[Float]("pitch", O.NotNull)
   def zoom = column[Float]("zoom", O.NotNull)
@@ -61,7 +63,6 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   */
 object LabelValidationTable {
   val db = play.api.db.slick.DB
-  val labelValidationTable = TableQuery[LabelValidationTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
@@ -110,11 +111,11 @@ object LabelValidationTable {
   /**
     * Select validation counts per user.
     *
-    * @return list of tuples of (labeler_id, validator_role, validation_count, validation_agreed_count)
+    * @return list of tuples of (labeler_id, validator_role, validation_count, validation_agreed_count, validation_disagreed_count, validation_unsure_count)
     */
-  def getValidationCountsPerUser: List[(String, String, Int, Int)] = db.withSession { implicit session =>
+  def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
     val audits = for {
-      _validation <- labelValidationTable
+      _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
       _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
@@ -131,24 +132,87 @@ object LabelValidationTable {
           Case.If(r._4 === 1).Then(1).Else(0) // Only count it if the result was "agree"
         }.sum.getOrElse(0)
 
+        // Sum up the disagreed results
+        val disagreed = group.map { r =>
+          Case.If(r._4 === 2).Then(1).Else(0) // Only count it if the result was "disagree"
+        }.sum.getOrElse(0)
+
+        // Sum up the unsure results
+        val unsure = group.map { r =>
+          Case.If(r._4 === 3).Then(1).Else(0) // Only count it if the result was "unsure"
+        }.sum.getOrElse(0)
+
         // group.length is the total # of validations
-        (uId, role, group.length, agreed)
+        (uId, role, group.length, agreed, disagreed, unsure)
       }
     }.list
+  }
+
+  /**
+    * Count number of labels the user has validated per user.
+    *
+    * @return list of tuples of (labeler_id, validation_count, validation_agreed_count)
+    */
+  def getValidatedCountsPerUser: List[(String, Int, Int)] = db.withSession { implicit session =>
+    val audits = for {
+      _validation <- validationLabels
+      _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
+      _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
+      _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
+      _userRole <- userRoles if _validationUser.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_validationUser.userId, _validation.validationResult)
+
+    // Counts the number of labels for each user by grouping by user_id and role.
+    audits.groupBy(l => l._1).map {
+      case (uId, group) => {
+        // Sum up the agreed results
+        val agreed = group.map { r =>
+          Case.If(r._2 === 1).Then(1).Else(0) // Only count it if the result was "agree"
+        }.sum.getOrElse(0)
+
+        // group.length is the total # of validations
+        (uId, group.length, agreed)
+      }
+    }.list
+  }
+
+  /**
+    * @return count of validations for the given label type
+    */
+  def countValidationsByLabelType(labelType: String): Int = db.withSession { implicit session =>
+    val typeID = LabelTypeTable.labelTypeToId(labelType)
+
+    validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+      .filter(_._2.labelTypeId === typeID)
+      .size.run
+  }
+
+  /**
+    * @return count of validations for the given validation result and label type
+    */
+  def countValidationsByResultAndLabelType(result: Int, labelType: String): Int = db.withSession { implicit session =>
+    val typeID = LabelTypeTable.labelTypeToId(labelType)
+
+    validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
+      .filter(_._2.labelTypeId === typeID)
+      .filter(_._1.validationResult === result)
+      .size.run
   }
 
   /**
     * @return total number of validations
     */
   def countValidations: Int = db.withTransaction(implicit session =>
-    labelValidationTable.list.size
+    validationLabels.list.size
   )
 
   /**
     * @return total number of validations with a given result
     */
   def countValidationsBasedOnResult(result: Int): Int = db.withTransaction(implicit session =>
-    labelValidationTable.filter(_.validationResult === result).list.size
+    validationLabels.filter(_.validationResult === result).list.size
   )
 
   /**
@@ -206,13 +270,13 @@ object LabelValidationTable {
     */
   def getValidationsByDate: List[ValidationCountPerDay] = db.withSession { implicit session =>
     val selectValidationCountQuery = Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(label_id)
+      """SELECT calendar_date, COUNT(label_validation_id)
         |FROM
         |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '12/17/2018') n
+        |    SELECT label_validation_id, end_timestamp::date AS calendar_date
+        |    FROM label_validation
+        |    WHERE label_validation IS NOT NULL
         |) AS calendar
-        |LEFT JOIN sidewalk.label_validation ON label_validation.end_timestamp::date = calendar_date::date
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )

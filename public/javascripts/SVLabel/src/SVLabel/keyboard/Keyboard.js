@@ -374,6 +374,9 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked car']['keyNumber']: // 'a' for 'parked car'
                                 $('.parkedCar-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked bike']['keyNumber']: // 'i' for 'parked bike'
+                                $('.parkedBike-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
                         }
                     } else if (labelType === 'SurfaceProblem') { // Surface Problem
                         switch (e.keyCode) {
@@ -386,7 +389,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['cracks']['keyNumber']: // 'r' for 'cracks'
                                 $('.cracks-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber']: // 'g' for 'grass'
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][0]: // 'g' for 'grass'
+                                $('.grass-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][1]: // 'r' for 'grass'
                                 $('.grass-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['narrow sidewalk']['keyNumber']  : // 'a' for 'narrow sidewalk'

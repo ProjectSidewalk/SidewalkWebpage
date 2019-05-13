@@ -3,7 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, otherCityURLs: List[(String, String)])
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, cityId: String, otherCityURLs: List[(String, String)])
 
 @main(title) {
     @navbar(user)
@@ -196,7 +196,7 @@
     </div>
     <div class="container" id="difference-container">
         <div id="dcanim-div">
-            <img src="@routes.Assets.at("assets/dc_graphic.png")" width="1400" style="position:relative;">
+            <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")" width="1400" style="position:relative;">
         </div>
         <div class="im-centered5">
             <div class="row" style="margin: 0 auto; width: 450px;">Your work is making a difference</div>
@@ -343,15 +343,13 @@
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
-
 
 <script>
         $(document).ready(function () {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.choropleth = Choropleth(_, $, turf, difficultRegionIds);
+            window.choropleth = Choropleth(_, $, difficultRegionIds);
         });
 </script>
 }

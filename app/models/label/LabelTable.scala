@@ -9,7 +9,7 @@ import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskInteraction,
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.label.LabelValidationTable._
-import models.mission.{Mission, MissionTable}
+import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 
@@ -126,9 +126,14 @@ object LabelTable {
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
                            temporary: Boolean, description: Option[String], tags: List[String])
 
+  // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
                                      heading: Float, pitch: Float, zoom: Int, canvasX: Int,
                                      canvasY: Int, canvasWidth: Int, canvasHeight: Int)
+
+  case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
+                             labelTypeId: Int, photographerHeading: Float, heading: Float,
+                             userRole: String, username: String, missionType: String, labelId: Int)
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -274,6 +279,34 @@ object LabelTable {
     val labelId: Int =
       (labels returning labels.map(_.labelId)) += label
     labelId
+  }
+
+  /**
+    * Returns all labels with sufficient metadata to produce crops for computer vision tasks.
+    * @return
+    */
+  def retrieveCVMetadata: List[LabelCVMetadata] = db.withSession { implicit session =>
+    val labelsWithCVMetadata = for {
+      _labels <- labels
+      _labelPoint <- LabelPointTable.labelPoints if _labels.labelId === _labelPoint.labelId
+      _mission <- MissionTable.missions if _labels.missionId === _mission.missionId
+      _missionType <- MissionTypeTable.missionTypes if _mission.missionTypeId === _missionType.missionTypeId
+      _roleid <- UserRoleTable.userRoles if _mission.userId === _roleid.userId
+      _rolename <- RoleTable.roles if _roleid.roleId === _rolename.roleId
+      _user <- UserTable.users if _mission.userId === _user.userId
+
+    } yield (_labels.gsvPanoramaId,
+      _labelPoint.svImageX,
+      _labelPoint.svImageY,
+      _labels.labelTypeId,
+      _labels.photographerHeading,
+      _labelPoint.heading,
+      _rolename.role,
+      _user.username,
+      _missionType.missionType,
+      _labels.labelId
+    )
+    labelsWithCVMetadata.list.map(label => LabelCVMetadata.tupled(label))
   }
 
   // TODO translate the following three queries to Slick
@@ -887,20 +920,20 @@ object LabelTable {
   }
 
   /**
-    * Returns a count of the number of labels placed on each day since the tool was launched (11/17/2015).
+    * Returns a count of the number of labels placed on each day there were labels placed.
     *
     * @return
     */
   def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>
     val selectLabelCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(label_id)
+      """SELECT calendar_date, COUNT(label_id)
         |FROM
         |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '11/17/2015') n
+        |    SELECT label_id, task_start::date AS calendar_date
+        |    FROM audit_task
+        |    INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
+        |    WHERE deleted = FALSE
         |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |LEFT JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )
