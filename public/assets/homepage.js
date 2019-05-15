@@ -30,6 +30,7 @@ function numbersInView(){
             percentageAnim.start();
             labelsAnim.start();
             milesAnim.start();
+            validationsAnim.start();
         }
     }
 }
