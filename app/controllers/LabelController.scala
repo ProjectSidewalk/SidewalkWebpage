@@ -5,7 +5,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import controllers.helper.LabelControllerHelper
 import formats.json.LabelFormats._
 import models.label._
 import models.user.User
@@ -26,7 +25,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels = LabelControllerHelper._helpGetLabelsFromCurrentMission(regionId, user.userId)
+        val labels = LabelTable.getLabelsFromCurrentAuditMission(regionId, user.userId)
         val jsLabels = JsArray(labels.map(l => Json.toJson(l)))
         Future.successful(Ok(jsLabels))
       case None =>
