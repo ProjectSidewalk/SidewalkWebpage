@@ -84,6 +84,31 @@ object UserDAOImpl {
   }
 
   /**
+    * Get all users, excluding anonymous users who haven't placed any labels (so admin user table isn't too big).
+    *
+    * @return
+    */
+  def usersMinusAnonUsersWithNoLabels: Query[UserTable, DBUser, Seq] = {
+    val anonUsers = (for {
+      _user <- userTable
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      _mission <- MissionTable.missions if _user.userId === _mission.userId
+      _label <- LabelTable.labelsWithoutDeleted if _mission.missionId === _label.missionId
+      if _role.role === "Anonymous"
+    } yield _user).groupBy(x => x).map(_._1)
+
+    val otherUsers = for {
+      _user <- userTable
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      if _role.role =!= "Anonymous"
+    } yield _user
+
+    anonUsers ++ otherUsers
+  }
+
+  /**
     * Count the number of users of the given role who have ever started (or completed) an audit task.
     *
     * @param roles
@@ -228,7 +253,7 @@ object UserDAOImpl {
     */
   def getUserStatsForAdminPage: List[UserStatsForAdminPage] = db.withSession { implicit session =>
 
-    // We run 6 queries for different bits of metadata that we need. We run each query and convert them to Scala maps
+    // We run different queries for each bit of metadata that we need. We run each query and convert them to Scala maps
     // with the user_id as the key. We then query for all the users in the `user` table and for each user, we lookup
     // the user's metadata in each of the maps from those 6 queries. This simulates a left join across the six sub-
     // queries. We are using Scala Map objects instead of Slick b/c Slick doesn't create very efficient queries for this
@@ -274,7 +299,7 @@ object UserDAOImpl {
     }.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    userTable.list.map{ u =>
+    usersMinusAnonUsersWithNoLabels.list.map{ u =>
       val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
