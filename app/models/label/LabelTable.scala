@@ -170,11 +170,11 @@ object LabelTable {
   }
 
   def countLabels: Int = db.withTransaction(implicit session =>
-    labels.filter(_.deleted === false).list.size
+    labels.filter(_.deleted === false).length.run
   )
 
   def countLabelsBasedOnType(labelTypeString: String): Int = db.withTransaction(implicit session =>
-    labels.filter(_.deleted === false).filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelTypeString)).list.size
+    labels.filter(_.deleted === false).filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelTypeString)).length.run
   )
 
   /*
@@ -261,7 +261,7 @@ object LabelTable {
     val _labels = for {
       (_tasks, _labels) <- tasks.innerJoin(labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
     } yield _labels
-    _labels.list.size
+    _labels.length.run
   }
 
   def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>

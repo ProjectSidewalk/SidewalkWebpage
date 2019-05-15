@@ -80,7 +80,7 @@ object UserDAOImpl {
   }
 
   def size: Int = db.withTransaction { implicit session =>
-    userTable.list.size
+    userTable.length.run
   }
 
   /**

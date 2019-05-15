@@ -43,7 +43,7 @@ class AuditTaskInteractionSpec extends Specification  {
 
           auditTaskInteractions += auditTaskInteraction
 
-          lazy val length = auditTaskInteractions.list.size
+          lazy val length = auditTaskInteractions.length.run
 
           length shouldEqual 1
         } finally {
