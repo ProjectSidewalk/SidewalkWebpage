@@ -1029,7 +1029,7 @@ video#bgvid {
     /*left: -30px;*/
 }
 
-.exploremaplink {
+.exploremaplink:link {
     color: rgba(251, 215, 139, 1);
     text-decoration:underline;
     font-family: raleway;
@@ -1039,6 +1039,9 @@ video#bgvid {
     text-align:center;
     position:relative;
     cursor: pointer;
+}
+.exploremaplink:visited {
+    color: rgba(251, 215, 139, 1);
 }
 .exploremaplink:hover {
     color: #fff;
@@ -1201,8 +1204,17 @@ kbd {
     position: relative;
 }
 /*Overlay box - start*/
-#advanced-overlay, #neighborhood-completion-overlay, #already-completed-neighborhood-overlay, #HIT-expiration-overlay{
+#advanced-overlay,
+#neighborhood-completion-overlay,
+#already-completed-neighborhood-overlay,
+#cvgroundtruth-complete-overlay,
+#HIT-expiration-overlay {
     display:none;
+}
+#panoid-textarea {
+    color: black;
+    text-align: left;
+    font-size: 10px;
 }
 .overlay-text{
     height: 100%;
@@ -1211,7 +1223,12 @@ kbd {
     background: rgba(0,0,0,0.89);
     z-index: 5;
 }
-#advanced-neighborhood-text, #neighborhood-completion-text, #already-completed-neighborhood-text, #HIT-expiration-text{
+#advanced-neighborhood-text,
+#neighborhood-completion-text,
+#already-completed-neighborhood-text,
+#HIT-expiration-text,
+#cvgroundtruth-panoid-entry-form-text,
+#cvgroundtruth-complete-overlay-text{
     color: white;
     text-align: center;
     width: 70%;
@@ -1347,3 +1364,17 @@ kbd {
     width:100%;
     font-weight:normal;
 }
+#next-pano-button-holder {
+    display:none;
+    position:absolute;
+    left: 735px;
+    top: 340px;
+    width: 200px;
+}
+#groundtruth-info-panel {
+    position:absolute;
+    right:0; bottom:0;
+    height:50px;
+    background-color: white
+}
+

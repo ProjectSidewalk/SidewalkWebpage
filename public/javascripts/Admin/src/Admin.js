@@ -61,6 +61,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setView([data.city_center.lat, data.city_center.lng]);
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
+        choropleth.setZoom(data.default_zoom);
     });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
@@ -496,7 +497,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         var mean = sum / filteredData.length;
         var i = filteredData.length / 2;
         filteredData.sort(function(a, b) {return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);} );
-        var median = (filteredData.length / 2) % 1 == 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
+
+        var median = 0;
+        var max = 0;
+        var min = 0;
+
+        if (filteredData.length > 0) { // Prevent errors in development where there may be no data
+            median = (filteredData.length / 2) % 1 == 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
+            min = filteredData[0][col];
+            max = filteredData[filteredData.length-1][col];
+        }
 
         var std = 0;
         for(var k = 0; k < filteredData.length; k++) {
@@ -504,7 +514,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         }
         std /= filteredData.length;
         std = Math.sqrt(std);
-        return {mean:mean, median:median, std:std, min:filteredData[0][col], max:filteredData[filteredData.length-1][col]};
+
+        return {mean:mean, median:median, std:std, min:min, max};
     }
 
     // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
@@ -780,6 +791,32 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
 
             });
+            $.getJSON('/adminapi/validationCounts', function (data) {
+                var filteredData = data[0].map(function(x) {
+                    return {
+                        role: x.role,
+                        total: x.count,
+                        agreed: x.agreed,
+                    }
+                });
+
+                var pcts = filteredData.filter(function(x) { // Must have 10+ labels validated
+                    return x.total >= 10;
+                }).map(function (x) { // Convert to percentages
+                    return {
+                        count: (x.agreed / x.total) * 100,
+                        role: x.role
+                    };
+                });
+
+                var stats = getSummaryStats(pcts, "count");
+                $("#validation-agreed-std").html((stats.std).toFixed(2) + " %");
+
+                var histOpts = {xAxisTitle:"Validations Placed Agreed With (%)", xDomain:[0, 100], binStep:5};
+                var coverageRateHist = getVegaLiteHistogram(pcts, stats.mean, stats.median, histOpts);
+                vega.embed("#validation-agreed", coverageRateHist, opt, function(error, results) {});
+
+            });
             $.getJSON("/contribution/auditCounts/all", function (data) {
                 var stats = getSummaryStats(data[0], "count");
 
@@ -878,7 +915,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                 },
                                 { // creates lines marking summary statistics
                                     "data": {"values": [
-                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
+                                            {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                                     },
                                     "mark": "rule",
                                     "encoding": {
@@ -908,6 +945,70 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     }
                 };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
+            });
+            $.getJSON("/userapi/validationCounts/all", function (data) {
+                var stats = getSummaryStats(data[0], "count");
+                $("#validation-std").html((stats.std).toFixed(2) + " Validations");
+
+                var histOpts = {xAxisTitle:"# Validations per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
+                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+
+                var chart = {
+                    "data": {"values": data[0]},
+                    "hconcat": [
+                        {
+                            "height": 300,
+                            "width": 550,
+                            "layer": [
+                                {
+                                    "mark": "bar",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "date",
+                                            "type": "temporal",
+                                            "axis": {"title": "Date", "labelAngle": 0}
+                                        },
+                                        "y": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "# Validations per Day"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                            {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "y": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, stats.max]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": false
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"y": {"scale": "independent"}}
+                        },
+                        hist
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                vega.embed("#validation-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/adminapi/userMissionCounts", function (data) {
                 var allData = data[0];
@@ -1049,10 +1150,79 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     }
                 });
             });
+            $.getJSON("/adminapi/validationCounts", function (data) {
+                var allData = data[0];
+                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                var turkerData = allData.filter(user => user.role === 'Turker');
+                var anonData = allData.filter(user => user.role === 'Anonymous');
+
+                var allStats = getSummaryStats(allData, "count");
+                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
+                var regStats = getSummaryStats(regData, "count");
+                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
+                var turkerStats = getSummaryStats(turkerData, "count");
+                var anonStats = getSummaryStats(anonData, "count");
+
+                var allHistOpts = {
+                    xAxisTitle: "# Validations per User (all)", xDomain: [0, allStats.max], width: 187,
+                    binStep: 50, legendOffset: -80
+                };
+                var allFilteredHistOpts = {
+                    xAxisTitle: "# Validations per User (all)", xDomain: [0, allFilteredStats.max],
+                    width: 187, binStep: 50, legendOffset: -80, excludeResearchers: true
+                };
+                var regHistOpts = {
+                    xAxisTitle: "# Validations per Registered User", xDomain: [0, regStats.max], width: 187,
+                    binStep: 50, legendOffset: -80
+                };
+                var regFilteredHistOpts = {
+                    xAxisTitle: "# Validations per Registered User", width: 187, legendOffset: -80,
+                    xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 50
+                };
+                var turkerHistOpts = {
+                    xAxisTitle: "# Validations per Turker User", xDomain: [0, turkerStats.max], width: 187,
+                    binStep: 50, legendOffset: -80
+                };
+                var anonHistOpts = {
+                    xAxisTitle: "# Validations per Anon User", xDomain: [0, anonStats.max],
+                    width: 187, legendOffset: -80, binStep: 2
+                };
+
+                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
+
+                $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
+                $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
+                $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Validations");
+                $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Validations");
+
+                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
+                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+
+                vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
+                });
+
+                var checkbox = document.getElementById("validation-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.srcElement.checked) {
+                        $("#all-validation-std").html((allStats.std).toFixed(2) + " Validations");
+                        $("#reg-validation-std").html((regStats.std).toFixed(2) + " Validations");
+                        vega.embed("#validation-count-hist", combinedChart, opt, function (error, results) {
+                        });
+                    } else {
+                        $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
+                        $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
+                        vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
+                        });
+                    }
+                });
+            });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
                 var stats = getSummaryStats(data[0], "count");
                 var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
-
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};

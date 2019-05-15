@@ -10,7 +10,9 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelTable, LabelTypeTable}
+import models.mission.MissionProgressCVGroundtruthTable
 import models.street.StreetEdgePriorityTable
+import models.user.User
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -133,19 +135,18 @@ object AuditTaskTable {
   }
 
   /**
-    * Returns a count of the number of audits performed on each day since the tool was launched (11/17/2015).
+    * Returns a count of the number of audits performed on each day with audits.
     *
     * @return
     */
   def auditCounts: List[AuditCountPerDay] = db.withSession { implicit session =>
     val selectAuditCountQuery =  Q.queryNA[(String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id)
+      """SELECT calendar_date, COUNT(audit_task_id)
         |FROM
         |(
-        |    SELECT  current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, current_date - '11/17/2015') n
+        |    SELECT audit_task_id, task_start::date AS calendar_date
+        |    FROM audit_task
         |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
         |GROUP BY calendar_date
         |ORDER BY calendar_date""".stripMargin
     )
@@ -424,6 +425,38 @@ object AuditTaskTable {
     } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, userCompleted)
 
     NewTask.tupled(edges.first)
+  }
+
+  /**
+    * Helper method for creating a task for computer vision ground truth auditing. In CV ground truth auditing, we create
+    * a task for *each* pano that needs to be audited, corresponding to the street segment closest to the pano. This method
+    * fetches the id of the pano closest to the provided panoid. This panoid *must* be part of an active CV groundtruth
+    * mission for the provided user.
+    * @param user the user performing a CV ground truth audit
+    * @param panoid panoId to query
+    * @return street segment id closest to pano
+    */
+  def getStreetEdgeIdClosestToCVPanoId(user: User, panoid:String): Option[Int] = {
+    val (panoLat, panoLng): (Option[Float], Option[Float]) = MissionProgressCVGroundtruthTable.getPanoLatLng(user.userId, panoid)
+    (panoLat, panoLng) match {
+      case (Some(lat), Some(lng)) =>
+        LabelTable.getStreetEdgeIdClosestToLatLng(lat, lng)
+      case _ =>  None
+    }
+  }
+
+  /**
+    * Creates a computer vision ground truth audit task and inserts it into the database
+    * @param user user performing the CV ground truth audit
+    * @param panoid panoId that corresponds to the task
+    * @return
+    */
+  def createCVGroundTruthTaskByPanoId(user: User, panoid:String): Option[NewTask] = {
+    val closestStreetEdgeId: Option[Int] = getStreetEdgeIdClosestToCVPanoId(user, panoid)
+    closestStreetEdgeId match {
+      case Some(id) => Some(AuditTaskTable.selectANewTask(id, None))
+      case None => None
+    }
   }
 
   /**

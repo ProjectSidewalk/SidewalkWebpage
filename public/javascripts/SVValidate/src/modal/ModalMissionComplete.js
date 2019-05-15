@@ -19,7 +19,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-        uiModalMissionComplete.closeButton.on('click', null);
+        uiModalMissionComplete.closeButton.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
         uiModalMissionComplete.foreground.css('visibility', 'hidden');
@@ -41,7 +41,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         var message = "You just validated " + totalLabels + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
-        // Disable user from clicking the "Validate next mission" button and set background go gray
+        // Disable user from clicking the "Validate next mission" button and set background to gray
         uiModalMissionComplete.closeButton.css('background', '#7f7f7f');
         uiModalMissionComplete.closeButton.css('cursor', 'wait');
 
@@ -69,20 +69,21 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         uiModalMissionComplete.foreground.css('visibility', 'visible');
         uiModalMissionComplete.closeButton.html('Validate more labels');
 
+        // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
         // and reveal the confirmation code.
-        if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
-            _markAmtAssignmentAsComplete();
-            _showConfirmationCode();
-            var confirmationCodeElement = document.createElement("h3");
-            confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
-                "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
-                "Confirmation Code: " +
-                svv.confirmationCode +
-                "<p></p>";
-            confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
-            uiModalMissionComplete.message.append(confirmationCodeElement);
-        }
+        // if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
+        //     _markAmtAssignmentAsComplete();
+        //     _showConfirmationCode();
+        //     var confirmationCodeElement = document.createElement("h3");
+        //     confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
+        //         "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
+        //         "Confirmation Code: " +
+        //         svv.confirmationCode +
+        //         "<p></p>";
+        //     confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
+        //     uiModalMissionComplete.message.append(confirmationCodeElement);
+        // }
     }
 
     function _markAmtAssignmentAsComplete() {
@@ -105,26 +106,27 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         });
     }
 
-    function _showConfirmationCode() {
-        confirmationCode.css('visibility', "");
-        confirmationCode.attr('data-toggle','popover');
-        confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
-        confirmationCode.attr('data-content', svv.confirmationCode);
-        confirmationCode.popover();
-
-        //Hide the confirmation popover on clicking the background
-        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
-        $(document).on('click', function(e) {
-            confirmationCode.each(function () {
-                // The 'is' for buttons that trigger popups.
-                // The 'has' for icons within a button that triggers a popup.
-                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
-                }
-
-            });
-        });
-    }
+    // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
+    // function _showConfirmationCode() {
+    //     confirmationCode.css('visibility', "");
+    //     confirmationCode.attr('data-toggle','popover');
+    //     confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+    //     confirmationCode.attr('data-content', svv.confirmationCode);
+    //     confirmationCode.popover();
+    //
+    //     //Hide the confirmation popover on clicking the background
+    //     //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+    //     $(document).on('click', function(e) {
+    //         confirmationCode.each(function () {
+    //             // The 'is' for buttons that trigger popups.
+    //             // The 'has' for icons within a button that triggers a popup.
+    //             if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+    //                 (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+    //             }
+    //
+    //         });
+    //     });
+    // }
 
     self.getProperty = getProperty;
     self.hide = hide;

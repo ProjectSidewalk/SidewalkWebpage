@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -121,6 +121,15 @@
                 </div>
             </div>
         </div>
+        <div id="cvgroundtruth-complete-overlay">
+            <div class="overlay-text">
+                <div id="cvgroundtruth-complete-overlay-text">
+                    <p>
+                        <span class="overlay-header">CV Ground Truth Audit Complete!</span>
+                    </p>
+                </div>
+            </div>
+        </div>
         <div id="already-completed-neighborhood-overlay">
             <div class="overlay-text">
                 <div id="already-completed-neighborhood-text">
@@ -141,10 +150,10 @@
                         <span class="overlay-header">Assignment Expired!</span>
                     </p>
                     <p>
-                        You should receive your bonus amount in the next day or two. If you did not submit your
-                        confirmation code on the mturk website, send us an email at
+                        You should receive your bonus amount in the next day or two. If you completed the HIT but did
+                        not submit your confirmation code on the mturk website, send us an email at
                         <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your
-                        confirmation code (@{models.amt.AMTAssignmentTable.getMostRecentConfirmationCode(user.get.username).getOrElse("")}).
+                        confirmation code (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
                     </p>
                 </div>
             </div>
@@ -292,6 +301,13 @@
                 </div>
                 <div class="status-box">
                     <div id="label-counter"></div>
+                </div>
+            </div>
+            <div id="next-pano-button-holder">
+                <div id="groundtruth-info-panel">
+                    <button type="button" class="button" id="next-pano-btn" onClick="svl.cvGroundTruthMission.cvGroundTruthNextPano();">Next Pano</button>
+                    <p id="remaining-pano-text">50 remaining</p>
+                    <p id="current-panoid-text"></p>
                 </div>
             </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
@@ -581,7 +597,7 @@
                                 </tr>
                             </table>
                             @if(user){
-                                @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)) {
+                                @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
                             }
@@ -802,6 +818,10 @@
         </div>
     </template>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+
+
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
         var svl = svl || {};
@@ -877,13 +897,12 @@
                         }                        
                     } else { @if(lat && lng) {
                         svl.map.setPosition(@lat.get, @lng.get);
-                    }}                    
+                    }}
                 }
                 else {
                     // No street view available in this range.
                     console.error("Error loading Street View imagery: " + status);
                     console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
-
                 }
             });
         } else {
@@ -921,6 +940,13 @@
             $('#accept-redirect').on('click', function(){
                 $(location).attr('href', '/audit');
             });
+
+            @* If this is a CV ground truth audit, initialize a CVGroundTruthMission object. If mission is null,
+             the create ground truth mission form will be displayed, otherwise the ground truth audit will start. *@
+            @if(enableCVGroundTruthLabelingMode) {
+                svl.cvGroundTruthMission = new CVGroundTruthMission(@Html(mission.toJSON.toString));
+            }
+
         });
 
         function enableTouchSupport() {
@@ -974,7 +1000,7 @@
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(!MissionTable.hasCompletedMissionInThisAmtAssignment(user.get.username)){
+                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)){
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
                     } else{
                         $("#left-column-confirmation-code-button").css('visibility', "");
