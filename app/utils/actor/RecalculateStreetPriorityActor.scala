@@ -25,7 +25,7 @@ class RecalculateStreetPriorityActor extends Actor {
 
     val currentTime: Calendar = Calendar.getInstance(TIMEZONE)
     var timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
-    timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 3)
+    timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 10)
     timeOfNextUpdate.set(Calendar.MINUTE, 0)
     timeOfNextUpdate.set(Calendar.SECOND, 0)
 
