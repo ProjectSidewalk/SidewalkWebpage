@@ -79,7 +79,7 @@ object LabelValidationTable {
     * @return           Number of labels that were
     */
   def countResultsFromValidationMission(missionId: Int, result: Int): Int = db.withSession { implicit session =>
-    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).list.size
+    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).length.run
   }
 
   /**
@@ -205,14 +205,14 @@ object LabelValidationTable {
     * @return total number of validations
     */
   def countValidations: Int = db.withTransaction(implicit session =>
-    validationLabels.list.size
+    validationLabels.length.run
   )
 
   /**
     * @return total number of validations with a given result
     */
   def countValidationsBasedOnResult(result: Int): Int = db.withTransaction(implicit session =>
-    validationLabels.filter(_.validationResult === result).list.size
+    validationLabels.filter(_.validationResult === result).length.run
   )
 
   /**
