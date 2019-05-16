@@ -131,7 +131,7 @@ function Main (params) {
 
 
         svl.pointCloud = new PointCloud();
-        svl.labelFactory = new LabelFactory(svl);
+        svl.labelFactory = new LabelFactory(svl, params.nextTemporaryLabelId);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects

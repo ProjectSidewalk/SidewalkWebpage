@@ -978,4 +978,14 @@ object LabelTable {
       case None => List()
     }
   }
+
+  /**
+    * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
+    *
+    * @param auditTaskId
+    * @return
+    */
+  def nextTempLabelId(auditTaskId: Option[Int]): Int = db.withSession { implicit session =>
+    labels.filter(_.auditTaskId === auditTaskId).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
+  }
 }
