@@ -13,6 +13,7 @@ import models.region._
 import models.user.{RoleTable, UserRoleTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionPropertyTable
+import models.user.UserRoleTable.db
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -86,6 +87,10 @@ object MissionTable {
   val db = play.api.db.slick.DB
   val missions = TableQuery[MissionTable]
   val missionTypes = TableQuery[MissionTypeTable]
+  val auditMissionTypeId: Int = db.withSession { implicit session =>
+    missionTypes.filter(_.missionType === "audit").map(_.missionTypeId).list.head
+  }
+  val auditMissions = missions.filter(_.missionTypeId === auditMissionTypeId)
 
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
@@ -162,7 +167,6 @@ object MissionTable {
     if (asmt.isEmpty) {
       false
     } else {
-      val auditMissionTypeId: Int = missionTypes.filter(_.missionType === "audit").map(_.missionTypeId).list.head
       missions.filter(m => m.missionTypeId === auditMissionTypeId
         && m.missionEnd > asmt.get.assignmentStart
         && m.missionEnd < asmt.get.assignmentEnd

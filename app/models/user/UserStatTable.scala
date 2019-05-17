@@ -1,6 +1,7 @@
 package models.user
 
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.mission.MissionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -27,5 +28,21 @@ object UserStatTable {
   val db = play.api.db.slick.DB
   val userStats = TableQuery[UserStatTable]
   val userTable = TableQuery[UserTable]
+
+  /**
+    * Updates meters_audited column in the user_stat table for all users.
+    */
+  def updateAuditedDistance() = db.withSession { implicit session =>
+
+    val auditedDists = (for {
+      _user <- userTable if _user.username =!= "anonymous"
+      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
+    } yield (_user.userId, _mission.distanceProgress)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
+
+    for ((userId, auditedDist) <- auditedDists.list) {
+      val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
+      updateQuery.update(auditedDist.getOrElse(0F))
+    }
+  }
 
 }
