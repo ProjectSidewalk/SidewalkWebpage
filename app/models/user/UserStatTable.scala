@@ -1,5 +1,7 @@
 package models.user
 
+import java.util.UUID
+
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.MissionTable
@@ -98,5 +100,18 @@ object UserStatTable {
       val updateQuery = for {_userStat <- userStats if _userStat.userId === userId} yield _userStat.highQuality
       updateQuery.update(highQuality)
     }
+  }
+
+  /**
+    * Insert new user_stat row with defaults if the user_id doesn't already have a row.
+    *
+    * @param userId
+    * @return Number of rows updated
+    */
+  def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
+    if (userStats.filter(_.userId === userId.toString).length.run == 0)
+      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None))
+    else
+      0
   }
 }
