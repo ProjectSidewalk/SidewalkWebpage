@@ -30,19 +30,21 @@ object UserStatTable {
   val userStats = TableQuery[UserStatTable]
   val userTable = TableQuery[UserTable]
 
+  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
+
   /**
     * Update meters_audited column in the user_stat table for all users.
     */
   def updateAuditedDistance() = db.withSession { implicit session =>
 
     // Computes the audited distance in meters using the distance_progress column of the mission table.
-    val auditedDists = (for {
+    val auditedDists: List[(String, Option[Float])] = (for {
       _user <- userTable if _user.username =!= "anonymous"
       _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
-    } yield (_user.userId, _mission.distanceProgress)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
+    } yield (_user.userId, _mission.distanceProgress)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum)).list
 
     // Update the meters_audited column in the user_stat table.
-    for ((userId, auditedDist) <- auditedDists.list) {
+    for ((userId, auditedDist) <- auditedDists) {
       val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
       updateQuery.update(auditedDist.getOrElse(0F))
     }
@@ -61,18 +63,40 @@ object UserStatTable {
     } yield (_stat.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
     // Compute labeling frequency using label counts above and the meters_audited column in user_stat table.
-    val labelFreq = userStats
+    val labelFreq: List[(String, Float)] = userStats
       .filter(_.metersAudited > 0F)
       .leftJoin(labelCounts).on(_.userId === _._1)
       .map { case (_stat, _count) =>
         (_stat.userId, _count._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
-      }
+      }.list
 
     // Update the labels_per_meter column in the user_stat table.
-    for ((userId, labelingFreq) <- labelFreq.list) {
+    for ((userId, labelingFreq) <- labelFreq) {
       val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
       updateQuery.update(Some(labelingFreq))
     }
   }
 
+  /**
+    * Update high_quality column in the user_stat table, run after `updateAuditedDistance` and `updateLabelsPerMeter`.
+    */
+  def updateHighQuality() = db.withSession { implicit session =>
+
+    // Decide if each user is high quality. First check if user was manually marked as high quality, then if they have
+    // an audited distance of 0 (meaning an infinite labeling frequency), then if labeling frequency is over threshold.
+    val userQuality: List[(String, Boolean)] = userStats.map { x =>
+      (
+        x.userId,
+        x.highQualityManual.getOrElse(false)
+        || x.metersAudited === 0F
+        || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD
+      )
+    }.list
+
+    // Update the high_quality column in the user_stat table.
+    for ((userId, highQuality) <- userQuality) {
+      val updateQuery = for {_userStat <- userStats if _userStat.userId === userId} yield _userStat.highQuality
+      updateQuery.update(highQuality)
+    }
+  }
 }
