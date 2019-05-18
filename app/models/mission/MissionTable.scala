@@ -4,7 +4,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-import models.amt.AMTAssignmentTable.db
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -13,13 +12,11 @@ import models.region._
 import models.user.{RoleTable, UserRoleTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionPropertyTable
-import models.user.UserRoleTable.db
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
-import scala.collection.immutable
-import scala.slick.lifted.{ForeignKeyQuery, QueryBase}
+import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
@@ -91,6 +88,8 @@ object MissionTable {
     missionTypes.filter(_.missionType === "audit").map(_.missionTypeId).list.head
   }
   val auditMissions = missions.filter(_.missionTypeId === auditMissionTypeId)
+
+  val METERS_TO_MILES: Float = 0.000621371F
 
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
@@ -426,6 +425,16 @@ object MissionTable {
   }
 
   /**
+    * Get total distance audited by a user in miles.
+    *
+    * @param userId
+    * @return
+    */
+  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
+    missions.filter(_.userId === userId.toString).map(_.distanceProgress).sum.run.getOrElse(0F) * METERS_TO_MILES
+  }
+
+  /**
     * Provides functionality for accessing mission table while a user is auditing while preventing race conditions.
     *
     * The mission table functionality that is required while a user is auditing is all wrapped up into this function in
@@ -658,7 +667,7 @@ object MissionTable {
     * @param userId     User ID
     * @param pay        Amount user is paid per label
     * @param labelsToValidate   Number of labels in this mission
-    * @param labelType  Type of labels featured in this mission
+    * @param labelTypeId  Type of labels featured in this mission
     * @return
     */
   def createNextValidationMission(userId: UUID, pay: Double, labelsToValidate: Int, labelTypeId: Int) : Mission = db.withSession { implicit session =>
