@@ -22,6 +22,7 @@ INSERT INTO user_stat (user_id, meters_audited, labels_per_meter, high_quality, 
                 FROM sidewalk_user
                 LEFT JOIN mission ON sidewalk_user.user_id = mission.user_id
                 LEFT JOIN label ON mission.mission_id = label.mission_id
+                WHERE mission.mission_type_id = 2 OR mission.mission_type_id IS NULL
                 GROUP BY sidewalk_user.user_id, mission.mission_id, distance_progress
             ) label_counts
             GROUP BY user_id
