@@ -31,7 +31,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
-    * Returns the validation page.
+    * Returns the validation page with a single panorama.
     * @return
     */
   def validate = UserAwareAction.async { implicit request =>
@@ -63,6 +63,42 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+    }
+  }
+
+  /**
+    * Returns the validation page with multiple panoramas.
+    * @return
+    */
+  def rapidValidate = UserAwareAction.async { implicit request =>
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Validate", timestamp))
+        val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, 10, None)
+        val hasWork: Boolean = possibleLabelTypeIds.nonEmpty
+
+        // Checks if there are still labels in the database for the user to validate.
+        hasWork match {
+          case true => {
+            // possibleLabelTypeIds can contain elements [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if
+            // possible, otherwise choose 7.
+            val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
+            val labelTypeId: Int = possibleLabelTypeIds(index)
+            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, labelTypeId).get
+            val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId, mission)
+            val missionJsObject: JsObject = mission.toJSON
+            val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
+            Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), Some(progressJsObject), true)))
+          }
+          case false => {
+            Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), None, None, None, false)))
+          }
+        }
+      case None =>
+        Future.successful(Redirect(s"/anonSignUp?url=/rapidValidate"));
     }
   }
 
