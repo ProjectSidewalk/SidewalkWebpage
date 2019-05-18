@@ -1,12 +1,7 @@
 package controllers.helper
 
-import java.util.UUID
-
 import models.attribute.{GlobalAttributeTable, GlobalClusteringSessionTable, UserAttributeLabelTable, UserAttributeTable, UserClusteringSessionTable}
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable}
-import models.label.{Label, LabelTable}
 import models.region.RegionTable
-import models.street.StreetEdgePriorityTable
 import models.user.UserStatTable
 import play.api.libs.json.Json
 

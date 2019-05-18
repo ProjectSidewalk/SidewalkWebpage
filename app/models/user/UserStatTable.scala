@@ -5,7 +5,6 @@ import java.util.UUID
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.MissionTable
-import models.street.StreetEdgePriorityTable.db
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -37,7 +36,6 @@ object UserStatTable {
 
   /**
     * Return query with user_id and high_quality columns.
-    * @return
     */
   def getQualityOfUsers: Query[(Column[String], Column[Boolean]), (String, Boolean), Seq] = db.withSession { implicit session =>
     userStats.map(x => (x.userId, x.highQuality))
@@ -45,7 +43,6 @@ object UserStatTable {
 
   /**
     * Get list of users where high_quality column is marked as TRUE.
-    * @return
     */
   def getIdsOfGoodUsers: List[String] = db.withSession { implicit session =>
     userStats.filter(_.highQuality).map(_.userId).list

@@ -1,15 +1,13 @@
 package models.street
 
-import models.audit.{AuditTaskEnvironmentTable, AuditTaskTable}
+import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json._
 
 import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.{StaticQuery => Q}
 import scala.slick.jdbc.GetResult
 import scala.math.exp
 
@@ -41,8 +39,6 @@ object StreetEdgePriorityTable {
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val userTable = TableQuery[UserTable]
 
-  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
-
   implicit val streetEdgePriorityParameterConverter = GetResult(r => {
     StreetEdgePriorityParameter(r.nextInt, r.nextDouble)
   })
@@ -66,7 +62,6 @@ object StreetEdgePriorityTable {
     * @param priority
     * @return
     */
-
   def updateSingleStreetEdgePriority(streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
     val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId} yield edg.priority
     q.update(priority)
@@ -86,7 +81,6 @@ object StreetEdgePriorityTable {
     * @param z
     * @return
     */
-
   def logisticFunction(z: Double): Double = db.withTransaction { implicit session =>
     return exp(-z) / (1 + exp(-z))
   }
@@ -99,7 +93,6 @@ object StreetEdgePriorityTable {
     * @param priorityParamTable
     * @return
     */
-
   def normalizePriorityParamMinMax(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
     val maxParam: Double = priorityParamTable.map(_.priorityParameter).max
     val minParam: Double = priorityParamTable.map(_.priorityParameter).min
@@ -125,7 +118,6 @@ object StreetEdgePriorityTable {
     * @param priorityParamTable
     * @return
     */
-
   def normalizePriorityReciprocal(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
     val prior = 1
     priorityParamTable.map{x => x.copy(priorityParameter = 1 / (x.priorityParameter + prior))}
@@ -208,11 +200,6 @@ object StreetEdgePriorityTable {
     * @return
     */
   def selectGoodBadUserCompletionCountPriority: List[StreetEdgePriorityParameter] = db.withSession { implicit session =>
-
-    // Compute distance of each street edge
-    val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
-
-
     /********** Quality of Users **********/
 
     // To each audit_task completed by a user, we attach a boolean indicating whether or not the user had a labeling
