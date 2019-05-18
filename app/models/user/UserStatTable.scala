@@ -49,6 +49,15 @@ object UserStatTable {
   }
 
   /**
+    * Call helper functions to update all columns in user_stat table.
+    */
+  def updateUserStatTable() = db.withSession { implicit session =>
+    updateAuditedDistance()
+    updateLabelsPerMeter()
+    updateHighQuality()
+  }
+
+  /**
     * Update meters_audited column in the user_stat table for all users.
     */
   def updateAuditedDistance() = db.withSession { implicit session =>
