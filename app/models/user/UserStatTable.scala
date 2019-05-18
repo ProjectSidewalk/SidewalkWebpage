@@ -107,19 +107,24 @@ object UserStatTable {
     */
   def updateHighQuality() = db.withSession { implicit session =>
 
+    // Get users manually marked as low quality first.
+    val lowQualityUsers: List[(String, Boolean)] =
+      userStats.filterNot(_.highQualityManual).map(x => (x.userId, x.highQualityManual.get)).list
+
     // Decide if each user is high quality. First check if user was manually marked as high quality, then if they have
     // an audited distance of 0 (meaning an infinite labeling frequency), then if labeling frequency is over threshold.
-    val userQuality: List[(String, Boolean)] = userStats.map { x =>
-      (
-        x.userId,
-        x.highQualityManual.getOrElse(false)
-        || x.metersAudited === 0F
-        || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD
-      )
-    }.list
+    val userQuality: List[(String, Boolean)] =
+      userStats.filter(x => x.highQualityManual.isEmpty || x.highQualityManual).map { x =>
+        (
+          x.userId,
+          x.highQualityManual.getOrElse(false)
+          || x.metersAudited === 0F
+          || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD
+        )
+      }.list
 
     // Update the high_quality column in the user_stat table.
-    for ((userId, highQuality) <- userQuality) {
+    for ((userId, highQuality) <- lowQualityUsers ++ userQuality) {
       val updateQuery = for {_userStat <- userStats if _userStat.userId === userId} yield _userStat.highQuality
       updateQuery.update(highQuality)
     }
