@@ -2,8 +2,8 @@ package models.label
 
 import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.mission.MissionTable
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -52,6 +52,15 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
     heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp) <>
     ((LabelValidation.apply _).tupled, LabelValidation.unapply)
+
+  def label: ForeignKeyQuery[LabelTable, Label] =
+    foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+
+  def user: ForeignKeyQuery[UserTable, DBUser] =
+    foreignKey("label_validation_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+
+  def mission: ForeignKeyQuery[MissionTable, Mission] =
+    foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 /**
