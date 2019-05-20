@@ -81,7 +81,7 @@ function StatusPopupDescriptions () {
             case "example-image-4":
                 return "There is a substantial amount of grass growing between the sidewalk cracks";
             case "counterexample-image-1":
-                return "Surface problems on curb ramps should not be labeled as surface problems";
+                return "Surface problems on curb ramps should be marked with a curb ramp label with a higher severity";
             case "counterexample-image-2":
                 return "This gravel is not on the pedestrian path";
             case "counterexample-image-3":
