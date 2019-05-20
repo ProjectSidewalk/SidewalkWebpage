@@ -7,6 +7,7 @@ import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.label.LabelTable.{auditTasks, db, labelsWithoutDeleted, roleTable, userRoles, users}
+import models.mission.MissionTable
 import models.user.UserCurrentRegionTable.{neighborhoods, userCurrentRegions}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
@@ -117,8 +118,8 @@ object LabelValidationTable {
     val audits = for {
       _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
-      _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
-      _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
+      _mission <- MissionTable.auditMissions if _label.missionId === _mission.missionId
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
       _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
       _userRole <- userRoles if _validationUser.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
@@ -157,8 +158,8 @@ object LabelValidationTable {
     val audits = for {
       _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
-      _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
-      _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
+      _mission <- MissionTable.auditMissions if _label.missionId === _mission.missionId
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
       _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
       _userRole <- userRoles if _validationUser.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
