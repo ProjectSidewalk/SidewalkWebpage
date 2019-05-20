@@ -64,7 +64,6 @@ class UserStatActor extends Actor {
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Updating user stats completed at: $currentEndTime")
   }
-
 }
 
 object UserStatActor {
