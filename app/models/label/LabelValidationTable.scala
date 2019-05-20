@@ -1,14 +1,9 @@
 package models.label
 
-import java.sql.Timestamp
-import java.util.{Calendar, UUID}
-
 import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.{auditTasks, db, labelsWithoutDeleted, roleTable, userRoles, users}
 import models.mission.MissionTable
-import models.user.UserCurrentRegionTable.{neighborhoods, userCurrentRegions}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
