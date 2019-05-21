@@ -67,6 +67,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   }
 
   /**
+    * TODO: Combine this with the controller above? The only change is that we return a different
+    *       page -- otherwise, functionality is the same for both pages.
     * Returns the validation page with multiple panoramas.
     * @return
     */

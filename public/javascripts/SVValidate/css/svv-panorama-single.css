@@ -1,0 +1,49 @@
+/* Container that holds the panorama. */
+#svv-panorama {
+    left: 0px;
+    top: 0px;
+}
+
+#svv-panorama-holder {
+    position: absolute;
+    top: 75px;
+    width: 730px;
+    height: 450px;
+}
+
+.single-panorama {
+    height: 440px;
+    width: 720px;
+}
+
+/* Black outline around GSV panorama. */
+#svv-panorama-outline {
+    border: 5px solid black;
+    border-radius: 5px;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 450px;
+    width: 730px;
+}
+
+/*
+ * This code below removes the footers for the Google StreetView, but in doing so, we breach the
+ * terms of service.
+ *
+ * Attribution.  Customer will display all attribution that (i) Google provides through the Services
+ * (including branding, logos, and copyright and trademark notices); or (ii) is specified in the
+ * Maps Service Specific Terms. Customer will not modify, obscure, or delete such attribution.
+ */
+
+/*
+a[href^="http://maps.google.com/maps"]{display:none !important}
+a[href^="https://maps.google.com/maps"]{display:none !important}
+
+.gmnoprint a, .gmnoprint span, .gm-style-cc {
+    display:none;
+}
+.gmnoprint div {
+    background:none !important;
+}
+*/

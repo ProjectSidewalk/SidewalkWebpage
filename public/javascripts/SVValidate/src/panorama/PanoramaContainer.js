@@ -2,11 +2,12 @@
  * Holds the list of labels to be validated, and distributes them to the panoramas that are on the
  * page. Fetches labels from the backend and converts them into Labels that can be placed onto the
  * GSV Panorama.
- * @param labelList Initial list of labels to be validated (generated when the page is loaded).
+ * @param labelList     Initial list of labels to be validated (generated when the page is loaded).
+ * @param canvasList    List of panorama canvas IDs for each panorama to be displayed on the screen.
  * @returns {PanoramaContainer}
  * @constructor
  */
-function PanoramaContainer (labelList) {
+function PanoramaContainer (labelList, canvasList) {
     var self = this;
     var labels = labelList;    // labels that all panoramas from the screen are going to be validating from
     var properties = {
@@ -18,8 +19,11 @@ function PanoramaContainer (labelList) {
      * @private
      */
     function _init () {
-        svv.panorama = new Panorama(labelList[getProperty("progress")]);
-        setProperty("progress", 1);
+
+        canvasList.forEach(function(canvasId) {
+            svv.panorama = new Panorama(labelList[getProperty("progress")], canvasId);
+            setProperty("progress", getProperty("progress") + 1);
+        });
     }
 
     /**

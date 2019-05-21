@@ -1,0 +1,24 @@
+#svv-panorama-container-holder {
+    position: absolute;
+    top: 75px;
+    width: 730px;
+    height: 550px;
+}
+
+#svv-panorama-outline-multiple {
+    border: 5px solid black;
+    border-radius: 5px;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 155px;
+    width: 230px;
+}
+
+.small-panorama {
+    left: 0px;
+    top: 0px;
+    height: 150px;
+    width: 230px;
+    display: inline-block;
+}

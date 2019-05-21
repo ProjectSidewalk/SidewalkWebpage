@@ -2,11 +2,12 @@
  * Creates and controls the Google StreetView panorama that is used in the validation
  * interface. Uses Panomarkers to place labels onto the Panorama.
  * @param   label   Initial label to load onto the panorama.
+ * @param   canvas  DOM ID for this Panorama. (i.e., svv-panorama)
  * @constructor
  */
-function Panorama (label) {
+function Panorama (label, canvas) {
     var currentLabel = label;
-    var panoCanvas = document.getElementById("svv-panorama");
+    var panoCanvas = document.getElementById(canvas);
     var panorama = undefined;
     var properties = {
         panoId: undefined,
@@ -147,11 +148,6 @@ function Panorama (label) {
     function _handlerPanoChange () {
         if (svv.panorama) {
             var panoId = getPanoId();
-            if (panoId !== getProperty('panoId')) {
-                self.labelMarker.setVisible(false);
-            } else {
-                self.labelMarker.setVisible(true);
-            }
 
             /**
              * PanoId is sometimes changed twice. This avoids logging duplicate panos.
@@ -224,6 +220,8 @@ function Panorama (label) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel (label) {
+        console.log("Setting label: ");
+        console.log(label.getOriginalProperties());
         currentLabel = label;
         currentLabel.setValidationProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getOriginalProperty('labelType'));

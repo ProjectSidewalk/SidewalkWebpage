@@ -72,11 +72,17 @@
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>
                 </div>
             </div>
-            <div id="svv-panorama-holder">
-                <div id="svv-panorama-outline">
-                    <div id="svv-panorama">
-
-                    </div>
+            <div id="svv-panorama-container-holder">
+                <div id="svv-panorama-outline-mulitple">
+                    <div id="svv-panorama-1" class="small-panorama"> </div>
+                    <div id="svv-panorama-2" class="small-panorama"> </div>
+                    <div id="svv-panorama-3" class="small-panorama"> </div>
+                    <div id="svv-panorama-4" class="small-panorama"> </div>
+                    <div id="svv-panorama-5" class="small-panorama"> </div>
+                    <div id="svv-panorama-6" class="small-panorama"> </div>
+                    <div id="svv-panorama-7" class="small-panorama"> </div>
+                    <div id="svv-panorama-8" class="small-panorama"> </div>
+                    <div id="svv-panorama-9" class="small-panorama"> </div>
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -283,6 +289,11 @@
             } else {
                 param.dataStoreUrl = '@routes.ValidationTaskController.post';
                 param.hasNextMission = @hasNextMission;
+                param.canvasHeight = 130;
+                param.canvasWidth = 250;
+                param.canvasList = ['svv-panorama-1', 'svv-panorama-2', 'svv-panorama-3'
+                    , 'svv-panorama-4', 'svv-panorama-5', 'svv-panorama-6'
+                    , 'svv-panorama-7', 'svv-panorama-8', 'svv-panorama-9'];
 
                 if (@hasNextMission) {
                     param.mission = @Html(mission.getOrElse("\"\"").toString);

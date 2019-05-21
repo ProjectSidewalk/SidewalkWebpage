@@ -8,8 +8,8 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
-    svv.canvasHeight = 440;
-    svv.canvasWidth = 720;
+    svv.canvasHeight = param.canvasHeight;
+    svv.canvasWidth = param.canvasWidth;
 
     // Maps label types to label names
     svv.labelNames = {
@@ -119,7 +119,7 @@ function Main (param) {
 
         svv.keyboard = new Keyboard(svv.ui.validation);
         svv.labelContainer = new LabelContainer();
-        svv.panoramaContainer = new PanoramaContainer(param.labelList);
+        svv.panoramaContainer = new PanoramaContainer(param.labelList, param.canvasList);
         svv.zoomControl = new ZoomControl();
         svv.labelVisibilityControl = new LabelVisibilityControl();
 

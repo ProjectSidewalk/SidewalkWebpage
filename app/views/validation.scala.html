@@ -74,7 +74,7 @@
             </div>
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama">
+                    <div id="svv-panorama" class="single-panorama">
 
                     </div>
                 </div>
@@ -283,6 +283,8 @@
         } else {
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.hasNextMission = @hasNextMission;
+            param.canvasHeight = 440;
+            param.canvasWidth = 720;
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
