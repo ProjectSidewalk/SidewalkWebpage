@@ -8,7 +8,7 @@ import play.api.libs.functional.syntax._
 
 object ValidationTaskSubmissionFormats {
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Option[Int])
-  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long)
+  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress])
@@ -31,8 +31,8 @@ object ValidationTaskSubmissionFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "validation_result").read[Int] and
-      (JsPath \ "canvas_x").read[Int] and
-      (JsPath \ "canvas_y").read[Int] and
+      (JsPath \ "canvas_x").readNullable[Int] and
+      (JsPath \ "canvas_y").readNullable[Int] and
       (JsPath \ "heading").read[Float] and
       (JsPath \ "pitch").read[Float] and
       (JsPath \ "zoom").read[Float] and

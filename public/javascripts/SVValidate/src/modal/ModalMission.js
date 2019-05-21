@@ -17,6 +17,7 @@ function ModalMission (uiModalMission, user) {
 
     function _handleButtonClick() {
         svv.tracker.push("ModalMission_ClickOK");
+        svv.zoomControl.updateZoomAvailability();
         hide();
     }
 

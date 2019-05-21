@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
+import models.amt.AMTAssignmentTable.db
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -134,7 +135,7 @@ object MissionTable {
   }
 
   /**
-    * Returns true if the user has an amt_assignment and have completed a mission during it, false o/w.
+    * Returns true if the user has an amt_assignment and has completed a mission during it, false o/w.
     *
     * @param username
     * @return
@@ -147,6 +148,40 @@ object MissionTable {
       missions.filterNot(_.missionTypeId inSet MissionTypeTable.onboardingTypeIds)
         .filter(m => m.missionEnd > asmt.get.assignmentStart && m.missionEnd < asmt.get.assignmentEnd && m.completed)
         .list.nonEmpty
+    }
+  }
+
+  /**
+    * Returns true if the user has an amt_assignment and has completed an audit mission during it, false o/w.
+    *
+    * @param username
+    * @return
+    */
+  def hasCompletedAuditMissionInThisAmtAssignment(username: String): Boolean = db.withSession { implicit session =>
+    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
+    if (asmt.isEmpty) {
+      false
+    } else {
+      val auditMissionTypeId: Int = missionTypes.filter(_.missionType === "audit").map(_.missionTypeId).list.head
+      missions.filter(m => m.missionTypeId === auditMissionTypeId
+        && m.missionEnd > asmt.get.assignmentStart
+        && m.missionEnd < asmt.get.assignmentEnd
+        && m.completed
+      ).list.nonEmpty
+    }
+  }
+
+  /**
+    * Returns Some(confirmationCode) if the worker finished an audit mission, None o/w.
+    *
+    * @param username
+    * @return
+    */
+  def getMostRecentConfirmationCodeIfCompletedAuditMission(username: String): Option[String] = db.withSession { implicit session =>
+    if (hasCompletedAuditMissionInThisAmtAssignment(username)) {
+      AMTAssignmentTable.getMostRecentConfirmationCode(username)
+    } else {
+      None
     }
   }
 

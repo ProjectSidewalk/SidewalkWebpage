@@ -109,7 +109,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
         val comment = ValidationTaskComment(0, submission.missionId, submission.labelId, userId,
           ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-          submission.zoom, submission.lat, submission.lng, Some(timestamp), submission.comment)
+          submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
 
         val commentId: Int = ValidationTaskCommentTable.save(comment)
         Future.successful(Ok(Json.obj("commend_id" -> commentId)))

@@ -140,7 +140,9 @@ function Main (param) {
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
-        svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
+        // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
+        // svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
+        svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, null);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);

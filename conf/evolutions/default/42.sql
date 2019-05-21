@@ -1,9 +1,5 @@
 # --- !Ups
-
-ALTER TABLE validation_task_interaction
-  ADD is_mobile INT;
+INSERT INTO version VALUES ('6.3.1', now(), 'We now lose data less often when closing the site in Chrome.');
 
 # --- !Downs
-
-ALTER TABLE validation_task_interaction
-  DROP COLUMN is_mobile;
+DELETE FROM version WHERE version_id = '6.3.1';

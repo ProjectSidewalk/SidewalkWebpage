@@ -8,6 +8,7 @@ import models.daos.UserDAOImpl._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.audit._
+import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
 import play.api.Play.current
@@ -19,7 +20,9 @@ import scala.slick.jdbc.{StaticQuery => Q}
 
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
-                                 completedMissions: Int, completedAudits: Int, labels: Int)
+                                 completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
+                                 ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedUnsurePct: Double,
+                                 othersValidated: Int, othersValidatedAgreedPct: Double)
 
 class UserDAOImpl extends UserDAO {
 
@@ -77,7 +80,32 @@ object UserDAOImpl {
   }
 
   def size: Int = db.withTransaction { implicit session =>
-    userTable.list.size
+    userTable.length.run
+  }
+
+  /**
+    * Get all users, excluding anonymous users who haven't placed any labels (so admin user table isn't too big).
+    *
+    * @return
+    */
+  def usersMinusAnonUsersWithNoLabels: Query[UserTable, DBUser, Seq] = {
+    val anonUsers = (for {
+      _user <- userTable
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      _mission <- MissionTable.missions if _user.userId === _mission.userId
+      _label <- LabelTable.labelsWithoutDeleted if _mission.missionId === _label.missionId
+      if _role.role === "Anonymous"
+    } yield _user).groupBy(x => x).map(_._1)
+
+    val otherUsers = for {
+      _user <- userTable
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      if _role.role =!= "Anonymous"
+    } yield _user
+
+    anonUsers ++ otherUsers
   }
 
   /**
@@ -225,7 +253,7 @@ object UserDAOImpl {
     */
   def getUserStatsForAdminPage: List[UserStatsForAdminPage] = db.withSession { implicit session =>
 
-    // We run 6 queries for different bits of metadata that we need. We run each query and convert them to Scala maps
+    // We run different queries for each bit of metadata that we need. We run each query and convert them to Scala maps
     // with the user_id as the key. We then query for all the users in the `user` table and for each user, we lookup
     // the user's metadata in each of the maps from those 6 queries. This simulates a left join across the six sub-
     // queries. We are using Scala Map objects instead of Slick b/c Slick doesn't create very efficient queries for this
@@ -260,8 +288,44 @@ object UserDAOImpl {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
+    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int))
+    val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
+      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
+    }.toMap
+
+    // Map(user_id: String -> (count: Int, agreed: Int))
+    val othersValidatedCounts = LabelValidationTable.getValidatedCountsPerUser.map { valCount =>
+      (valCount._1, (valCount._2, valCount._3))
+    }.toMap
+
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    userTable.list.map{ u =>
+    usersMinusAnonUsersWithNoLabels.list.map{ u =>
+      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
+      val ownValidatedTotal = ownValidatedCounts._2
+      val ownValidatedAgreed = ownValidatedCounts._3
+      val ownValidatedDisagreed = ownValidatedCounts._4
+      val ownValidatedUnsure = ownValidatedCounts._5
+
+      val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
+      val otherValidatedTotal = otherValidatedCounts._1
+      val otherValidatedAgreed = otherValidatedCounts._2
+
+      val ownValidatedAgreedPct =
+        if (ownValidatedTotal == 0) 0f
+        else ownValidatedAgreed * 1.0 / ownValidatedTotal
+
+      val ownValidatedDisagreedPct =
+        if (ownValidatedTotal == 0) 0f
+        else ownValidatedDisagreed * 1.0 / ownValidatedTotal
+
+      val ownValidatedUnsurePct =
+        if (ownValidatedTotal == 0) 0f
+        else ownValidatedUnsure * 1.0 / ownValidatedTotal
+
+      val otherValidatedAgreedPct =
+        if (otherValidatedTotal == 0) 0f
+        else otherValidatedAgreed * 1.0 / otherValidatedTotal
+
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
@@ -269,7 +333,13 @@ object UserDAOImpl {
         signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
-        labelCounts.getOrElse(u.userId, 0)
+        labelCounts.getOrElse(u.userId, 0),
+        ownValidatedTotal,
+        ownValidatedAgreedPct,
+        ownValidatedDisagreedPct,
+        ownValidatedUnsurePct,
+        otherValidatedTotal,
+        otherValidatedAgreedPct
       )
     }
   }
