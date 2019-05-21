@@ -4,29 +4,19 @@
     top: 530px;
     height: 90px;
     width: 730px;
+    display: flex;
+    justify-content: space-between;
 }
 
 /* Put buttons here */
-.validation-button {
+.validation-button-large {
     height: 70px;
+    width: 238px;
     background-color: white;
     margin-right: 2px;
     border-radius: 5px;
     border-width: 2px;
     border-color: lightgrey;
-}
-
-#validation-agree-button {
-    width: 243px;
-}
-
-#validation-disagree-button {
-    width: 243px;
-}
-
-#validation-not-sure-button {
-    width: 232px;
-    margin-right: 0px;
 }
 
 .validate {
