@@ -168,7 +168,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     */
   def getLabelListForValidation(userId: UUID, count: Int, labelTypeId: Int): JsValue = {
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelTypeId)
-    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
+    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(LabelTable.validationLabelMetadataToJson)
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
   }
@@ -176,10 +176,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   /**
     * Gets the metadata for a single random label in the database. Excludes labels that were
     * originally placed by the user and labels that have already appeared on the interface.
-    * @param labelType  Label Type Id this label should have
-    * @return           Label metadata containing GSV metadata and label type
+    * @param labelTypeId  Label Type Id this label should have
+    * @return             Label metadata containing GSV metadata and label type
     */
-  def getRandomLabelData (labelType: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def getRandomLabelData (labelTypeId: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[SkipLabelSubmission]]
     submission.fold(
       errors => {
@@ -194,7 +194,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           val userId: UUID = request.identity.get.userId
-          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveSingleRandomLabelFromLabelTypeForValidation(userId, labelType, Some(labelIdList))
+          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, labelTypeId, 1).head
           LabelTable.validationLabelMetadataToJson(labelMetadata)
         }
         Future.successful(Ok(labelMetadataJson.head))
