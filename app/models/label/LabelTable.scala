@@ -555,30 +555,29 @@ object LabelTable {
           |LIMIT ?""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery((labelTypeId, userId.toString, userId.toString, n * 5)).list
-      var potentialStart: Int = 0
+      var potentialStartIdx: Int = 0
 
       // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
       // need to query for some more (which we don't expect to happen in a typical use case).
-      while (selectedLabels.length < n && potentialStart < potentialLabels.length) {
+      while (selectedLabels.length < n && potentialStartIdx < potentialLabels.length) {
 
         val labelsNeeded: Int = n - selectedLabels.length
-        val potentialEnd: Int = potentialStart + labelsNeeded
-        val newLabels: Seq[LabelValidationMetadata] = potentialLabels.slice(potentialStart, potentialEnd).par.flatMap { currLabel =>
-          val exists = panoExists(currLabel.gsvPanoramaId)
+        val newLabels: Seq[LabelValidationMetadata] =
+          potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
 
-          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-          if (exists) {
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
-            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-            Some(currLabel)
-          } else {
-            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-            None
-          }
-        }.seq
+            // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+            if (panoExists(currLabel.gsvPanoramaId)) {
+              val now = new DateTime(DateTimeZone.UTC)
+              val timestamp: Timestamp = new Timestamp(now.getMillis)
+              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+              Some(currLabel)
+            } else {
+              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+              None
+            }
+          }.seq
 
-        potentialStart += labelsNeeded
+        potentialStartIdx += labelsNeeded
         selectedLabels ++= newLabels
       }
     }
