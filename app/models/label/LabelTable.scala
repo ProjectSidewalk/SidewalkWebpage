@@ -527,7 +527,7 @@ object LabelTable {
     * @param labelTypeId  Label Type ID of labels requested.
     * @return             Seq[LabelValidationMetadata]
     */
-  def retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId: UUID, n: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
 
@@ -594,7 +594,7 @@ object LabelTable {
   def retrieveRandomLabelListForValidation(userId: UUID, count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // We are currently assigning label types to missions randomly.
     val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
-    retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, count, labelTypeId)
+    retrieveLabelListForValidation(userId, count, labelTypeId)
   }
 
   /**

@@ -80,7 +80,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val labelsValidated: Int = mission.labelsValidated.get
     val labelsToRetrieve: Int = labelsValidated - labelsProgress
 
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, labelsToRetrieve, labelType)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson

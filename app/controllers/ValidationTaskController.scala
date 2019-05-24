@@ -154,14 +154,14 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   /**
     * Gets a random list of labels to validate for this mission.
     * @param userId       User ID of the current user.
-    * @param count        Number of labels to retrieve for this list.
+    * @param n            Number of labels to retrieve for this list.
     * @param labelTypeId  Label Type to retrieve
     * @return             JsValue containing a list of labels with the following attributes:
     *                     {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x,
     *                     canvas_y, canvas_width, canvas_height}
     */
-  def getLabelListForValidation(userId: UUID, count: Int, labelTypeId: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, count, labelTypeId)
+  def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int): JsValue = {
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(LabelTable.validationLabelMetadataToJson)
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
@@ -188,7 +188,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           val userId: UUID = request.identity.get.userId
-          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, labelTypeId, 1).head
+          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId).head
           LabelTable.validationLabelMetadataToJson(labelMetadata)
         }
         Future.successful(Ok(labelMetadataJson.head))
