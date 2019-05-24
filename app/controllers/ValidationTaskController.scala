@@ -6,20 +6,14 @@ import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.ValidationTaskSubmissionFormats._
-import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.audit._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
+import models.amt.AMTAssignmentTable
 import models.label._
-import models.label.LabelValidationTable._
 import models.label.LabelTable.LabelValidationMetadata
 import models.mission.{Mission, MissionTable}
-import models.user.{User, UserCurrentRegionTable}
+import models.user.User
 import models.validation._
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
