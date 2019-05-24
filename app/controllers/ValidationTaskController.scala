@@ -167,7 +167,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     *                     canvas_y, canvas_width, canvas_height}
     */
   def getLabelListForValidation(userId: UUID, count: Int, labelTypeId: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelTypeId)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, count, labelTypeId)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(LabelTable.validationLabelMetadataToJson)
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson

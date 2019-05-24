@@ -523,11 +523,11 @@ object LabelTable {
     * Starts by querying for n * 5 labels, then checks GSV API to see if each gsv_panorama_id exists until we find n.
     *
     * @param userId       User ID for the current user.
-    * @param labelTypeId  Label Type ID of labels requested.
     * @param n            Number of labels we need to query.
-    * @return
+    * @param labelTypeId  Label Type ID of labels requested.
+    * @return             Seq[LabelValidationMetadata]
     */
-  def retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId: UUID, labelTypeId: Int, n: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId: UUID, n: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
 
@@ -585,17 +585,6 @@ object LabelTable {
     selectedLabels
   }
 
-  /**
-    * Retrieves a list of labels to be validated.
-    * @param userId       User ID of the current user.
-    * @param count        Length of list.
-    * @param labelTypeId  Label Type ID of each label in the list.
-    * @return             Seq[LabelValidationMetadata]
-    */
-  def retrieveLabelListForValidation(userId: UUID, count: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, labelTypeId, count)
-  }
-
   /**.
     * Retrieve a list of labels for validation with a random label id
     * @param userId User ID of the current user.
@@ -605,7 +594,7 @@ object LabelTable {
   def retrieveRandomLabelListForValidation(userId: UUID, count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // We are currently assigning label types to missions randomly.
     val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
-    retrieveLabelListForValidation(userId, count, labelTypeId)
+    retrieveNRandomLabelsFromLabelTypeForValidationStatic(userId, count, labelTypeId)
   }
 
   /**
