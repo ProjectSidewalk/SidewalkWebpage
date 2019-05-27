@@ -45,7 +45,6 @@ function Label(params) {
 
     // Labels are circles with a 10px radius.
     var radius = 10;
-
     var self = this;
 
     /**

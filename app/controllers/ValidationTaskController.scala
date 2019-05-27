@@ -16,7 +16,7 @@ import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
 import models.label.LabelValidationTable._
 import models.label.LabelTable.LabelValidationMetadata
-import models.mission.{Mission, MissionTable}
+import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.user.{User, UserCurrentRegionTable}
 import models.validation._
 import org.joda.time.{DateTime, DateTimeZone}
@@ -114,7 +114,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val labelsToRetrieve: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      val labelsToRetrieve: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionProgress.missionType)
       val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
@@ -150,7 +150,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[JsValue] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      val labelCount: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionProgress.missionType)
       Some(getLabelListForValidation(userId, labelCount, labelTypeId))
     } else {
       None
@@ -219,7 +219,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, nextMissionLabelTypeId, skipped)
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
     } else {
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }

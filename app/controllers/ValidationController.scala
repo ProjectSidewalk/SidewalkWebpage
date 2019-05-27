@@ -15,8 +15,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.label.LabelTable.LabelValidationMetadata
 import models.label.LabelValidationTable
-import models.mission.Mission
-import models.mission.MissionTable
+import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.validation._
 import models.user._
 import play.api.libs.json._
@@ -29,6 +28,8 @@ import scala.collection.mutable.ListBuffer
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  val validationMission: String = "validation"
+  val rapidValidationMission: String = "rapidValidation"
 
   /**
     * Returns the validation page with a single panorama.
@@ -51,14 +52,18 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
             // possible, otherwise choose 7.
             val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
             val labelTypeId: Int = possibleLabelTypeIds(index)
-            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, labelTypeId).get
+            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId,
+              AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationMission,
+              labelTypeId).get
             val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId, mission)
             val missionJsObject: JsObject = mission.toJSON
             val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
-            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), Some(progressJsObject), true)))
+            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user),
+              Some(missionJsObject), Some(labelList), Some(progressJsObject), true)))
           }
           case false => {
-            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), None, None, None, false)))
+            Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user),
+              None, None, None, false)))
           }
         }
       case None =>
@@ -78,8 +83,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Validate", timestamp))
-        val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, 10, None)
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress,
+          "Visit_Validate", timestamp))
+        val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(
+          user.userId, 19, None)
         val hasWork: Boolean = possibleLabelTypeIds.nonEmpty
 
         // Checks if there are still labels in the database for the user to validate.
@@ -89,10 +96,19 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
             // possible, otherwise choose 7.
             val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
             val labelTypeId: Int = possibleLabelTypeIds(index)
-            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, labelTypeId).get
+            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId,
+              AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, rapidValidationMission,
+              labelTypeId).get
+
+            println(mission)
             val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId, mission)
             val missionJsObject: JsObject = mission.toJSON
             val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
+            println("Mission JsObject")
+            println(missionJsObject)
+            println("Progress JsObject")
+            println(progressJsObject)
+            println()
             Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), Some(progressJsObject), true)))
           }
           case false => {
@@ -114,9 +130,13 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     *                   canvas_y, canvas_width, canvas_height}
     */
   def getLabelListForValidation(userId: UUID, labelType: Int, mission: Mission): JsValue = {
+    val missionType: String = MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId)
     val labelsProgress: Int = mission.labelsProgress.get
-    val labelsValidated: Int = mission.labelsValidated.get
+    val labelsValidated: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionType)
     val labelsToRetrieve: Int = labelsValidated - labelsProgress
+
+    println("labelsValidated: " + labelsValidated)
+    println("labelsToRetrieve: " + labelsToRetrieve)
 
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))

@@ -10,7 +10,7 @@ object ValidationTaskSubmissionFormats {
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long)
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
-  case class ValidationMissionProgress(missionId: Int, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
+  case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress])
 
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
@@ -43,6 +43,7 @@ object ValidationTaskSubmissionFormats {
 
   implicit val validationMissionReads: Reads[ValidationMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
+      (JsPath \ "mission_type").read[String] and
       (JsPath \ "labels_progress").read[Int] and
       (JsPath \ "label_type_id").read[Int] and
       (JsPath \ "completed").read[Boolean] and

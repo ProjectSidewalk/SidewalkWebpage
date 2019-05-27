@@ -20,6 +20,7 @@ function Form(url) {
             // Add the current mission
             data.missionProgress = {
                 mission_id: mission.getProperty("missionId"),
+                mission_type: mission.getProperty("missionType"),
                 labels_progress: mission.getProperty("labelsProgress"),
                 label_type_id: mission.getProperty("labelTypeId"),
                 completed: mission.getProperty("completed"),
