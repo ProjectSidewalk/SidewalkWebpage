@@ -220,14 +220,12 @@ function Panorama (label, canvas) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel (label) {
-        console.log("Setting label: ");
-        console.log(label.getOriginalProperties());
         currentLabel = label;
-        currentLabel.setValidationProperty('startTimestamp', new Date().getTime());
-        svv.statusField.updateLabelText(currentLabel.getOriginalProperty('labelType'));
-        svv.statusExample.updateLabelImage(currentLabel.getOriginalProperty('labelType'));
-        setPanorama(label.getOriginalProperty('gsvPanoramaId'), label.getOriginalProperty('heading'),
-            label.getOriginalProperty('pitch'), label.getOriginalProperty('zoom'));
+        currentLabel.setProperty('startTimestamp', new Date().getTime());
+        svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
+        svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
+        setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
+            label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
         renderLabel();
     }
 

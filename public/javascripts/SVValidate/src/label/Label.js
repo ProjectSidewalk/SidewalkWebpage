@@ -4,10 +4,10 @@
  * @constructor
  */
 function Label(params) {
-    // Original properties of the label. These properties are initialized from metadata from the
-    // backend. These properties are used to help place the label on the validation interface
-    // and should not be changed.
-    var originalProperties = {
+    // Original properties of the label collected during the audit interface. These properties are
+    // initialized from metadata from the backend. These properties are used to help place the label
+    // on the validation interface and should not be changed.
+    var auditProperties = {
         canvasHeight: undefined,
         canvasWidth: undefined,
         canvasX: undefined,
@@ -21,7 +21,7 @@ function Label(params) {
 
     // These properties are set through validating labels. In this object, canvas properties and
     // heading/pitch/zoom are from the perspective of the user that is validating the labels.
-    var validationProperties = {
+    var properties = {
         canvasX: undefined,
         canvasY: undefined,
         endTimestamp: undefined,
@@ -54,17 +54,17 @@ function Label(params) {
      */
     function _init() {
         if (params) {
-            if ("canvasHeight" in params) setOriginalProperty("canvasHeight", params.canvasHeight);
-            if ("canvasWidth" in params) setOriginalProperty("canvasWidth", params.canvasWidth);
-            if ("canvasX" in params) setOriginalProperty("canvasX", params.canvasX);
-            if ("canvasY" in params) setOriginalProperty("canvasY", params.canvasY);
-            if ("gsvPanoramaId" in params) setOriginalProperty("gsvPanoramaId", params.gsvPanoramaId);
-            if ("heading" in params) setOriginalProperty("heading", params.heading);
-            if ("labelId" in params) setOriginalProperty("labelId", params.labelId);
-            if ("labelId" in params) setValidationProperty("labelId", params.labelId);
-            if ("labelType" in params) setOriginalProperty("labelType", params.labelType);
-            if ("pitch" in params) setOriginalProperty("pitch", params.pitch);
-            if ("zoom" in params) setOriginalProperty("zoom", params.zoom);
+            if ("canvasHeight" in params) setAuditProperty("canvasHeight", params.canvasHeight);
+            if ("canvasWidth" in params) setAuditProperty("canvasWidth", params.canvasWidth);
+            if ("canvasX" in params) setAuditProperty("canvasX", params.canvasX);
+            if ("canvasY" in params) setAuditProperty("canvasY", params.canvasY);
+            if ("gsvPanoramaId" in params) setAuditProperty("gsvPanoramaId", params.gsvPanoramaId);
+            if ("heading" in params) setAuditProperty("heading", params.heading);
+            if ("labelId" in params) setAuditProperty("labelId", params.labelId);
+            if ("labelId" in params) setProperty("labelId", params.labelId);
+            if ("labelType" in params) setAuditProperty("labelType", params.labelType);
+            if ("pitch" in params) setAuditProperty("pitch", params.pitch);
+            if ("zoom" in params) setAuditProperty("zoom", params.zoom);
         }
     }
 
@@ -73,7 +73,7 @@ function Label(params) {
      * @returns {*} String - Path of image in the directory.
      */
     function getIconUrl() {
-        return icons[originalProperties.labelType];
+        return icons[auditProperties.labelType];
     }
 
     /**
@@ -81,16 +81,8 @@ function Label(params) {
      * @param key   Name of property.
      * @returns     Value associated with this key.
      */
-    function getOriginalProperty (key) {
-        return key in originalProperties ? originalProperties[key] : null;
-    }
-
-    /**
-     * Returns the entire originalProperty object for this label.
-     * @returns Object for originalProperties.
-     */
-    function getOriginalProperties () {
-        return originalProperties;
+    function getAuditProperty (key) {
+        return key in auditProperties ? auditProperties[key] : null;
     }
 
     /**
@@ -100,10 +92,10 @@ function Label(params) {
     function getPosition () {
         // This calculates the heading and position for placing this Label onto the panorama from
         // the same POV as when the user placed the label.
-        var pos = svv.util.properties.panorama.getPosition(getOriginalProperty('canvasX'),
-            getOriginalProperty('canvasY'), getOriginalProperty('canvasWidth'),
-            getOriginalProperty('canvasHeight'), getOriginalProperty('zoom'),
-            getOriginalProperty('heading'), getOriginalProperty('pitch'));
+        var pos = svv.util.properties.panorama.getPosition(getAuditProperty('canvasX'),
+            getAuditProperty('canvasY'), getAuditProperty('canvasWidth'),
+            getAuditProperty('canvasHeight'), getAuditProperty('zoom'),
+            getAuditProperty('heading'), getAuditProperty('pitch'));
         return pos;
     }
 
@@ -116,39 +108,34 @@ function Label(params) {
     }
 
     /**
-     * Returns the entire validationProperties object for this label.
-     * @returns Object for validationProperties.
+     * Returns the entire properties object for this label.
+     * @returns Object for properties.
      */
-    function getValidationProperties () {
-        return validationProperties;
+    function getProperties () {
+        return properties;
     }
 
     /**
-     * Gets a specific validationProperty of this label.
+     * Gets a specific validation property of this label.
      * @param key   Name of property.
      * @returns     Value associated with this key.
      */
-    function getValidationProperty (key) {
-        return key in validationProperties ? validationProperties[key] : null;
+    function getProperty (key) {
+        return key in properties ? properties[key] : null;
     }
 
     /**
-     * Sets the value of a single property in originalProperties.
+     * Sets the value of a single property in properties.
      * @param key   Name of property
      * @param value Value to set property to.
      */
-    function setOriginalProperty(key, value) {
-        originalProperties[key] = value;
+    function setProperty(key, value) {
+        properties[key] = value;
         return this;
     }
 
-    /**
-     * Sets the value of a single property in validationProperties.
-     * @param key   Name of property
-     * @param value Value to set property to.
-     */
-    function setValidationProperty(key, value) {
-        validationProperties[key] = value;
+    function setAuditProperty(key, value) {
+        auditProperties[key] = value;
         return this;
     }
 
@@ -192,33 +179,33 @@ function Label(params) {
             labelCanvasY = pixelCoordinates.top - getRadius();
         }
 
-        setValidationProperty("endTimestamp", new Date().getTime());
-        setValidationProperty("canvasX", labelCanvasX);
-        setValidationProperty("canvasY", labelCanvasY);
-        setValidationProperty("heading", userPov.heading);
-        setValidationProperty("pitch", userPov.pitch);
-        setValidationProperty("zoom", userPov.zoom);
+        setProperty("endTimestamp", new Date().getTime());
+        setProperty("canvasX", labelCanvasX);
+        setProperty("canvasY", labelCanvasY);
+        setProperty("heading", userPov.heading);
+        setProperty("pitch", userPov.pitch);
+        setProperty("zoom", userPov.zoom);
 
         switch (validationResult) {
             // Agree option selected.
             case "Agree":
-                setValidationProperty("validationResult", 1);
+                setProperty("validationResult", 1);
                 svv.missionContainer.getCurrentMission().updateValidationResult(1);
-                svv.labelContainer.push(getValidationProperties());
+                svv.labelContainer.push(getProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
-                setValidationProperty("validationResult", 2);
+                setProperty("validationResult", 2);
                 svv.missionContainer.getCurrentMission().updateValidationResult(2);
-                svv.labelContainer.push(getValidationProperties());
+                svv.labelContainer.push(getProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Not sure option selected.
             case "NotSure":
-                setValidationProperty("validationResult", 3);
+                setProperty("validationResult", 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3);
-                svv.labelContainer.push(getValidationProperties());
+                svv.labelContainer.push(getProperties());
                 svv.missionContainer.updateAMission();
                 break;
         }
@@ -233,14 +220,13 @@ function Label(params) {
 
     _init();
 
+    self.getAuditProperty = getAuditProperty;
     self.getIconUrl = getIconUrl;
-    self.getOriginalProperty = getOriginalProperty;
+    self.getProperty = getProperty;
+    self.getProperties = getProperties;
+    self.setProperty = setProperty;
     self.getPosition = getPosition;
     self.getRadius = getRadius;
-    self.getValidationProperty = getValidationProperty;
-    self.getOriginalProperties = getOriginalProperties;
-    self.getValidationProperties = getValidationProperties;
-    self.setValidationProperty = setValidationProperty;
     self.validate = validate;
 
     return this;

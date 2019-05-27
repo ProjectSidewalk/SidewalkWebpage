@@ -150,7 +150,7 @@ function ModalComment (modalUI) {
 
         var data =  {
             comment: comment,
-            label_id: svv.panorama.getCurrentLabel().getOriginalProperty("labelId"),
+            label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
             gsv_panorama_id: svv.panorama.getPanoId(),
             heading: pov.heading,
             lat: position.lat,
