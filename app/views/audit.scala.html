@@ -983,6 +983,7 @@
                     formParam = {},
                     initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
             formParam.dataStoreUrl = '@routes.TaskController.post';
+            formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
             formParam.assignmentId = '';
             formParam.turkerId = '';
