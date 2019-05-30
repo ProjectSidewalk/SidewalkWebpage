@@ -4,7 +4,7 @@ The Project Sidewalk webpage.
 ## Development Instructions
 
 ### Setting up the development environment
-The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows PowerShell users may also need to install `make`.
+The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows PowerShell users may also need to install `make`. You will also need to clone the SidewalkWebpage Github repo by navigating to your desired location in the terminal and entering `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
 
 ### Running the application locally
 To run the web server locally, from the root of the SidewalkWebpage directory:
