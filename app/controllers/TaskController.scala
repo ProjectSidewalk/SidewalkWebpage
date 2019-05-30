@@ -166,33 +166,23 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
+  /**
+    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON
+    *
+    * @return
+    */
   def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
     val json = Json.parse(request.body)
-//    json.validate[]
     var submission = json.validate[Seq[AuditTaskSubmission]]
     submission.fold(
       errors => {
-        println("beacon err")
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-//        println(request.body)
-        println("beacon posted");
-//        Future.successful(Ok(Json.obj(
-//          "random_key_placeholder" -> 1
-//        )))
         processAuditTaskSubmissions(submission, request.remoteAddress, request.identity)
       }
     )
   }
-    //    request.body
-
-    //    var r = new UserAwareRequest[JsValue](request.identity, request.authenticator)
-//    post(r)
-//    r.ide
-//    Future.successful(Ok(Json.obj(
-//      "audit_task_id" -> 1
-//    )))
 
   /**
    * Parse the submitted data and insert them into tables.

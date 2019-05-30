@@ -32,6 +32,83 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue], progress: Option[JsValue])
 
+  def processValidationTaskSubmissions(submission: Seq[ValidationTaskSubmission], remoteAddress: String, identity: Option[User]) = {
+    val user = identity
+    val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
+      for (interaction: InteractionSubmission <- data.interactions) {
+        ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
+          interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
+          interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
+      }
+
+      // We aren't always submitting labels, so check if data.labels exists.
+      for (label: LabelValidationSubmission <- data.labels) {
+        user match {
+          case Some(user) =>
+            LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
+              user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
+              label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+              new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
+          case None =>
+            Logger.warn("User without user_id validated a label, but every user should have a user_id.")
+        }
+      }
+
+      // We aren't always submitting mission progress, so check if data.missionProgress exists.
+      data.missionProgress match {
+        case Some(_) =>
+          val missionProgress: ValidationMissionProgress = data.missionProgress.get
+          val missionId: Int = missionProgress.missionId
+          val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
+          val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(user, missionProgress, Some(currentMissionLabelTypeId))
+          nextMissionLabelTypeId match {
+            // Load new mission, generate label list for validation
+            case Some (nextMissionLabelTypeId) =>
+              val possibleNewMission: Option[Mission] = updateMissionTable(user, missionProgress, Some(nextMissionLabelTypeId))
+              val labelList: Option[JsValue] = getLabelList(user, missionProgress, nextMissionLabelTypeId)
+              val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
+              ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
+            case None =>
+              updateMissionTable(user, missionProgress, None)
+              // No more validation missions available
+              if (missionProgress.completed) {
+                ValidationTaskPostReturnValue(None, None, None, None)
+              } else {
+                // Validation mission is still in progress
+                ValidationTaskPostReturnValue(Some(true), None, None, None)
+              }
+          }
+        case None =>
+          ValidationTaskPostReturnValue (None, None, None, None)
+      }
+    }
+
+    Future.successful(Ok(Json.obj(
+      "hasMissionAvailable" -> returnValues.head.hasMissionAvailable,
+      "mission" -> returnValues.head.mission.map(_.toJSON),
+      "labels" -> returnValues.head.labels,
+      "progress" -> returnValues.head.progress
+    )))
+  }
+
+  /**
+    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON
+    *
+    * @return
+    */
+  def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
+    val json = Json.parse(request.body)
+    var submission = json.validate[Seq[ValidationTaskSubmission]]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
+      }
+    )
+  }
+
   /**
     * Parse submitted validation data and submit to tables
     * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
@@ -44,62 +121,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        val user = request.identity
-        val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
-          for (interaction: InteractionSubmission <- data.interactions) {
-            ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
-              interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-              interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
-          }
-
-          // We aren't always submitting labels, so check if data.labels exists.
-          for (label: LabelValidationSubmission <- data.labels) {
-            user match {
-              case Some(user) =>
-                LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
-                  user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
-                  label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
-                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
-              case None =>
-                Logger.warn("User without user_id validated a label, but every user should have a user_id.")
-            }
-          }
-
-          // We aren't always submitting mission progress, so check if data.missionProgress exists.
-          data.missionProgress match {
-            case Some(_) =>
-              val missionProgress: ValidationMissionProgress = data.missionProgress.get
-              val missionId: Int = missionProgress.missionId
-              val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
-              val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(user, missionProgress, Some(currentMissionLabelTypeId))
-              nextMissionLabelTypeId match {
-                // Load new mission, generate label list for validation
-                case Some (nextMissionLabelTypeId) =>
-                  val possibleNewMission: Option[Mission] = updateMissionTable(user, missionProgress, Some(nextMissionLabelTypeId))
-                  val labelList: Option[JsValue] = getLabelList(user, missionProgress, nextMissionLabelTypeId)
-                  val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
-                  ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
-                case None =>
-                  updateMissionTable(user, missionProgress, None)
-                  // No more validation missions available
-                  if (missionProgress.completed) {
-                    ValidationTaskPostReturnValue(None, None, None, None)
-                  } else {
-                    // Validation mission is still in progress
-                    ValidationTaskPostReturnValue(Some(true), None, None, None)
-                  }
-              }
-            case None =>
-              ValidationTaskPostReturnValue (None, None, None, None)
-          }
-        }
-
-        Future.successful(Ok(Json.obj(
-          "hasMissionAvailable" -> returnValues.head.hasMissionAvailable,
-          "mission" -> returnValues.head.mission.map(_.toJSON),
-          "labels" -> returnValues.head.labels,
-          "progress" -> returnValues.head.progress
-        )))
+        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
       }
     )
   }

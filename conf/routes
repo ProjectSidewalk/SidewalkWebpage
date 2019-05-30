@@ -91,6 +91,7 @@ GET     /tasks                                               @controllers.TaskCo
 POST    /task                                                @controllers.TaskController.post
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
+POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
