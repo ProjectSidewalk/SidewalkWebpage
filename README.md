@@ -11,7 +11,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. You will need the database dump later on. You can continue with the rest of the instructions here, but the website will not work fully until you've received these three files from Mikey.
 
-1. Run `make dev`. This will download the docker images and spin up the containers. The containers will have all the necessary packages and tools so no installation is necessary. Though, the container executes a bash shell running Ubuntu Jessie, which allows you to install whatever tool you prefer that can run on this flavor of linux (vi, etc.). This command also sets up the `sidewalk` database with the schema (just the schema, not the data - see Importing SQL dump in Additional Tools section) from the production dump, which lives in `db/schema.sql`. Successful output of this command will look like:
+1. Run `make dev`. This will download the docker images, spin up the containers, and open a Docker shell into the webpage container. The containers will have all the necessary packages and tools so no installation is necessary. Though, the container executes a bash shell running Ubuntu Stretch, which allows you to install whatever tool you prefer that can run on this flavor of linux (vi, etc.). This command also sets up the `sidewalk` database with the schema (just the schema, not the data - see Importing SQL dump in Additional Tools section) from the production dump, which lives in `db/schema.sql`. Successful output of this command will look like:
 
     ```
     Successfully built [container-id]
@@ -20,7 +20,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
     root@[container-id]:/opt#
     ```
 
-1. Run `npm start`. The result of this command is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (`~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
+1. Run `npm start` from inside the Docker shell. The result of this command is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (`~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
 
     ```
     > grunt watch & sbt clean "~ run"
@@ -43,12 +43,12 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 
 1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
 
-1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, rename the dump file you got from Mikey to `sidewalk-dump`, place it in the `db` folder, and run `make import-dump db=sidewalk` from the base folder outside the container. When that is done, rerun `npm start`.
+1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, rename the dump file you got from Mikey to `sidewalk-dump`, place it in the `db` folder, and run `make import-dump db=sidewalk` from the base folder outside the Docker shell. When that is done, rerun `npm start` from inside the Docker shell.
 
 ### Setting up another database or city
 1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.
 
-1. Run `make import-dump db=[db-name]` from the root project directory outside the container. Using the example from step 1., this would be `make import-dump db=sidewalk-seattle`.
+1. Run `make import-dump db=[db-name]` from the root project directory outside the Docker shell. Using the example from step 1., this would be `make import-dump db=sidewalk-seattle`.
 
 1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/[db-name]`.
 
@@ -60,7 +60,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
 
 ### Making changes
-1. If you make any changes to the `build.sbt` or the configs, you'd need to press `Ctrl+D` and then `sbt clean` and then `npm start`.
+1. If you make any changes to the `build.sbt` or the configs, you'd need to press `Ctrl+D` and then `sbt clean` and then `npm start` from inside the Docker shell.
 
 1. If you make any changes to the views or other scala files, these changes will be automatically picked up by `sbt`. You'd need to reload the browser once the compilation finishes. For example, a change to `index.scala.html` file results in:
 
