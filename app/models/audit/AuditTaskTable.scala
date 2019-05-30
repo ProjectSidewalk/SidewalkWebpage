@@ -158,7 +158,7 @@ object AuditTaskTable {
     * @return
     */
   def countCompletedAudits: Int = db.withSession { implicit session =>
-    completedTasks.list.size
+    completedTasks.length.run
   }
 
   /**
@@ -170,7 +170,7 @@ object AuditTaskTable {
   def countCompletedAuditsToday: Int = db.withSession { implicit session =>
 //    val dateFormat = new SimpleDateFormat("Y-mm-dd")
 //    val today = dateFormat.format(Calendar.getInstance().getTime())
-//    auditTasks.filter(_.taskEnd.toString() == today).filter(_.completed).list.size
+//    auditTasks.filter(_.taskEnd.toString() == today).filter(_.completed).length.run
 
     val countTasksQuery = Q.queryNA[Int](
       """SELECT audit_task_id
@@ -204,7 +204,7 @@ object AuditTaskTable {
     * @return
     */
   def countCompletedAuditsByUserId(userId: UUID): Int = db.withSession { implicit session =>
-    completedTasks.filter(_.userId === userId.toString).list.size
+    completedTasks.filter(_.userId === userId.toString).length.run
   }
 
 
