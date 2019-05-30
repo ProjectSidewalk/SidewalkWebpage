@@ -95,14 +95,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
     ```
 
 ### Debugging notes
-1. As mentioned above, `npm start` is a shorthand to run `grunt watch` and `sbt run`. If you prefer, you can manually run these separately (and can, for this matter, choose to use `activator` instead of `sbt`). `activator run` or `sbt run` needs to be run on the top directory where `build.sbt` is located. For `grunt`, run `grunt watch` so the changes you make to SVLabel JavaScript library will be automatically built on file updates. If `grunt watch` is not responding, you can run `grunt concat` and `grunt concat_css` to build the files.
-
-1. If you see an error like:
-    ```
-    Execution exception[[NoSuchElementException: None.get]]
-    ```
-
-    This is because the data from the database is missing and you'd need to import the sql dump. The schema import that's a part of init script only sets the schema and does not import the data.
+If you run into any problems, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+)
 
 ## Running the application remotely
 To run the application remotely,
