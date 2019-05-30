@@ -190,7 +190,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * @return
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    println("posted " + (System.currentTimeMillis / 1000))
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
     var submission = request.body.validate[Seq[AuditTaskSubmission]]
     submission.fold(
