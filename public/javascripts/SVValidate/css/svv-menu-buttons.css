@@ -1,9 +1,16 @@
-#validation-button-holder {
+#validation-button-holder-large {
     position: absolute;
     left: 0px;
     top: 530px;
     height: 90px;
     width: 730px;
+    display: flex;
+    justify-content: space-between;
+}
+
+
+.validation-holder-small {
+    margin-top: -2px;
     display: flex;
     justify-content: space-between;
 }
@@ -19,6 +26,15 @@
     border-color: lightgrey;
 }
 
+.validation-button-small {
+    height: 25px;
+    width: 74px;
+    background-color: white;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+}
+
 .validate {
     outline: none;
     border: none;
@@ -28,6 +44,11 @@
 .validation-status-icon {
     height: 20px;
     margin-right: 2px;
+}
+
+.validation-status-icon-small {
+    height: 10px;
+    margin-bottom: 5px;
 }
 
 .validation-button:active {

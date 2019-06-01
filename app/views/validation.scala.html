@@ -74,7 +74,7 @@
             </div>
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama" class="single-panorama">
+                    <div id="svv-panorama-1" class="single-panorama">
 
                     </div>
                 </div>
@@ -285,7 +285,7 @@
             param.hasNextMission = @hasNextMission;
             param.canvasHeight = 440;
             param.canvasWidth = 720;
-            param.canvasList = ['svv-panorama'];
+            param.canvasCount = 1;
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);

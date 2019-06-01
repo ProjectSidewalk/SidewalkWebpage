@@ -1,13 +1,13 @@
 /**
  * Creates and controls the Google StreetView panorama that is used in the validation
  * interface. Uses Panomarkers to place labels onto the Panorama.
- * @param   label   Initial label to load onto the panorama.
- * @param   canvas  DOM ID for this Panorama. (i.e., svv-panorama)
+ * @param   label       Initial label to load onto the panorama.
+ * @param   canvasId  DOM ID for this Panorama. (i.e., svv-panorama)
  * @constructor
  */
-function Panorama (label, canvas) {
+function Panorama (label, canvasId) {
     var currentLabel = label;
-    var panoCanvas = document.getElementById(canvas);
+    var panoCanvas = document.getElementById(canvasId);
     var panorama = undefined;
     var properties = {
         panoId: undefined,

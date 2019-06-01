@@ -118,8 +118,9 @@ function Main (param) {
         svv.tracker = new Tracker();
 
         svv.keyboard = new Keyboard(svv.ui.validation);
-        svv.labelContainer = new LabelContainer();
-        svv.panoramaContainer = new PanoramaContainer(param.labelList, param.canvasList);
+        svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
+        // svv.labelContainer = new LabelContainer();
+        // svv.panoramaContainer = new PanoramaContainer(param.labelList, param.canvasList);
         svv.zoomControl = new ZoomControl();
         svv.labelVisibilityControl = new LabelVisibilityControl();
 

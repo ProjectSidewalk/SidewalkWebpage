@@ -10,6 +10,7 @@
 function PanoramaContainer (labelList, canvasList) {
     var self = this;
     var labels = labelList;    // labels that all panoramas from the screen are going to be validating from
+    var panoList = {};
     var properties = {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
@@ -19,11 +20,13 @@ function PanoramaContainer (labelList, canvasList) {
      * @private
      */
     function _init () {
-
         canvasList.forEach(function(canvasId) {
-            svv.panorama = new Panorama(labelList[getProperty("progress")], canvasId);
+            panoList[canvasId] = new Panorama(labelList[getProperty("progress")], canvasId);
             setProperty("progress", getProperty("progress") + 1);
         });
+
+        // temporary... to maintain functionality (yikes)
+        svv.panorama = panoList["svv-panorama-1"];
     }
 
     /**
@@ -76,16 +79,6 @@ function PanoramaContainer (labelList, canvasList) {
                 svv.panorama.setLabel(labels[getProperty('progress')]);
             }
         });
-    }
-
-    /**
-     * Gets the list of labels assigned to this panorama for the current mission.
-     * NOTE: This is used for testing purposes. It does not have any functionality for the
-     * validation interface at the moment.
-     * @returns {*} Returns the label list for this panorama.
-     */
-    function getLabels () {
-        return labels;
     }
 
     /**
@@ -158,7 +151,6 @@ function PanoramaContainer (labelList, canvasList) {
     }
 
     self.fetchNewLabel = fetchNewLabel;
-    self.getLabels = getLabels;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
     self.setProperty = setProperty;
