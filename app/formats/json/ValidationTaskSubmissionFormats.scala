@@ -8,7 +8,7 @@ import play.api.libs.functional.syntax._
 
 object ValidationTaskSubmissionFormats {
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Option[Int])
-  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long)
+  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, isMobile: Option[Int])
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress])
@@ -39,7 +39,8 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[Long] and
-      (JsPath \ "end_timestamp").read[Long]
+      (JsPath \ "end_timestamp").read[Long] and
+      (JsPath \ "is_mobile").readNullable[Int]
     )(LabelValidationSubmission.apply _)
 
   implicit val validationMissionReads: Reads[ValidationMissionProgress] = (
