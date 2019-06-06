@@ -32,4 +32,3 @@ ALTER TABLE mission
 ALTER TABLE audit_task DROP COLUMN start_point_reversed;
 ALTER TABLE audit_task DROP COLUMN current_lat;
 ALTER TABLE audit_task DROP COLUMN current_lng;
-
