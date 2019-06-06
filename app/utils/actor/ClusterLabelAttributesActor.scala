@@ -19,10 +19,10 @@ class ClusterLabelAttributesActor extends Actor {
 
   override def preStart(): Unit = {
     super.preStart()
-    // If we want to update the cluster table at 3am every day, we need to figure out how much time there
-    // is b/w now and the next 3am, then we can set the update interval to be 24 hours. So we make a calendar object for
-    // right now, and one for 3am today. If it is after 3am right now, we set the 3am object to be 3am tomorrow. Then we
-    // get the time difference between the 3am object and now.
+    // If we want to update the cluster table at 3:30am every day, we need to figure out how much time there is b/w now
+    // and the next 3:30am, then we can set the update interval to be 24 hours. So we make a calendar object for right
+    // now, and one for 3:30am today. If it is after 3:30am right now, we set the 3:30am object to be 3:30am tomorrow.
+    // Then we get the time difference between the 3:30am object and now.
 
     val currentTime: Calendar = Calendar.getInstance(TIMEZONE)
     var timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
@@ -30,15 +30,13 @@ class ClusterLabelAttributesActor extends Actor {
     timeOfNextUpdate.set(Calendar.MINUTE, 30)
     timeOfNextUpdate.set(Calendar.SECOND, 0)
 
-//    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH))
-    // If already past 3am, set next update to 3am tomorrow.
+    // If already past 3:30am, set next update to 3:30am tomorrow.
     if (currentTime.after(timeOfNextUpdate)) {
       timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
     }
-//    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH)) // if it is after 3am, this should have just incremented.
+    // If it is after 3:30am, this should have just incremented.
     val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
     val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
-//    println(millisUntilNextupdate / 3600000.0) // shows hours until next update
 
     cancellable = Some(
       context.system.scheduler.schedule(
