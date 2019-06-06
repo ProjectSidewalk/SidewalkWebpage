@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -866,8 +866,9 @@
             var STREETVIEW_MAX_DISTANCE = 25;
 
             var geojson = @Html(task.get.toJSON.toString);
-            var lat1 = geojson.features[0].geometry.coordinates[0][1];
-            var lng1 = geojson.features[0].geometry.coordinates[0][0];
+            var lat1 = geojson.features[0].properties.current_lat;
+            var lng1 = geojson.features[0].properties.current_lng;
+            var startPointReversed = geojson.features[0].properties.start_point_reversed;
             var latLng = new google.maps.LatLng(lat1, lng1);
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -880,7 +881,7 @@
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
-                    var newTask = svl.taskFactory.create(geojson, lat1, lng1);
+                    var newTask = svl.taskFactory.create(geojson, lat1, lng1, startPointReversed);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
 
@@ -981,7 +982,7 @@
         function init() {
             var mainParam = mainParam || {},
                     formParam = {},
-                    initialLocation = svl.taskContainer.getCurrentTask().getStartCoordinate();
+                    initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
@@ -1045,6 +1046,7 @@
                    mainParam.advancedOverlay = true
             }
 
+            mainParam.nextTemporaryLabelId = @nextTempLabelId;
             mainParam.mission = @Html(mission.toJSON.toString);
             mainParam.tutorialStreetId = @tutorialStreetId
 

@@ -101,18 +101,20 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       // Update the existing audit task row
       val id = auditTask.auditTaskId.get
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-      AuditTaskTable.updateTaskEnd(id, timestamp)
+      AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng)
       id
     } else {
       // Insert audit task
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val auditTaskObj = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
-          Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false)
+          Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
+          auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
           AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId,
-            Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false)
+            Timestamp.valueOf(auditTask.taskStart), Some(timestamp), completed=false,
+            auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed)
       }
       AuditTaskTable.save(auditTaskObj)
     }
@@ -143,11 +145,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     } else if (!MissionTable.isCVGroundTruthMission(missionId)){
       if (missionProgress.distanceProgress.isEmpty) Logger.error("Received null distance progress for audit mission.")
       val distProgress: Float = missionProgress.distanceProgress.get
+      val auditTaskId: Option[Int] = missionProgress.auditTaskId
 
       if (missionProgress.completed) {
-        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, skipped)
+        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, auditTaskId, skipped)
       } else {
-        MissionTable.updateAuditProgressOnly(userId, missionId, distProgress)
+        MissionTable.updateAuditProgressOnly(userId, missionId, distProgress, auditTaskId)
       }
     } else {
       None
