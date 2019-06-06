@@ -111,7 +111,7 @@ function Main (param) {
         svv.util.properties = {};
         svv.util.properties.panorama = new PanoProperties();
 
-        svv.form = new Form(param.dataStoreUrl);
+        svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
         svv.statusField = new StatusField();
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();

@@ -7,7 +7,7 @@
  * @constructor
  * @memberof svl
  */
-function Task (geojson, currentLat, currentLng) {
+function Task (geojson, currentLat, currentLng, startPointReversed) {
     var self = this;
     var _geojson;
     var _furthestPoint;
@@ -20,7 +20,11 @@ function Task (geojson, currentLat, currentLng) {
         auditTaskId: null,
         streetEdgeId: null,
         completedByAnyUser: null,
-        priority: null
+        priority: null,
+        currentLat: currentLat,
+        currentLng: currentLng,
+        startPointReversed: startPointReversed,
+        finishedReversing: false
     };
 
     /**
@@ -57,10 +61,18 @@ function Task (geojson, currentLat, currentLng) {
         var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng),
             d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
 
-        if (d2 < d1) {
-            self.reverseCoordinates();
-            _furthestPoint = turf.point([lng2, lat2]);
+        // If we already set reversed to true or we are at the 2nd endpoint, reverse the coordinates.
+        if (properties.startPointReversed
+            || ((properties.startPointReversed === null || properties.startPointReversed === undefined) && d2 < d1)) {
+            // Only reverse if we haven't already reversed.
+            if (!properties.finishedReversing) {
+                self.reverseCoordinates();
+                properties.finishedReversing = true;
+                properties.startPointReversed = true;
+                _furthestPoint = turf.point([lng2, lat2]);
+            }
         } else {
+            properties.startPointReversed = false;
             _furthestPoint = turf.point([lng1, lat1]);
         }
     };
@@ -299,6 +311,10 @@ function Task (geojson, currentLat, currentLng) {
         var lat = _geojson.features[0].geometry.coordinates[0][1],
             lng = _geojson.features[0].geometry.coordinates[0][0];
         return { lat: lat, lng: lng };
+    };
+
+    this.getCurrentLatLng = function() {
+        return { lat: properties.currentLat, lng: properties.currentLng };
     };
 
     /**
