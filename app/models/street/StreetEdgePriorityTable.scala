@@ -1,14 +1,13 @@
 package models.street
 
-import models.audit.{AuditTaskEnvironmentTable, AuditTaskTable}
+import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable
+import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json._
 
 import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.{StaticQuery => Q}
 import scala.slick.jdbc.GetResult
 import scala.math.exp
 
@@ -40,8 +39,6 @@ object StreetEdgePriorityTable {
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTable]
   val userTable = TableQuery[UserTable]
 
-  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
-
   implicit val streetEdgePriorityParameterConverter = GetResult(r => {
     StreetEdgePriorityParameter(r.nextInt, r.nextDouble)
   })
@@ -65,7 +62,6 @@ object StreetEdgePriorityTable {
     * @param priority
     * @return
     */
-
   def updateSingleStreetEdgePriority(streetEdgeId: Int, priority: Double) = db.withTransaction { implicit session =>
     val q = for { edg <- streetEdgePriorities if edg.streetEdgeId === streetEdgeId} yield edg.priority
     q.update(priority)
@@ -85,7 +81,6 @@ object StreetEdgePriorityTable {
     * @param z
     * @return
     */
-
   def logisticFunction(z: Double): Double = db.withTransaction { implicit session =>
     return exp(-z) / (1 + exp(-z))
   }
@@ -98,7 +93,6 @@ object StreetEdgePriorityTable {
     * @param priorityParamTable
     * @return
     */
-
   def normalizePriorityParamMinMax(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
     val maxParam: Double = priorityParamTable.map(_.priorityParameter).max
     val minParam: Double = priorityParamTable.map(_.priorityParameter).min
@@ -124,7 +118,6 @@ object StreetEdgePriorityTable {
     * @param priorityParamTable
     * @return
     */
-
   def normalizePriorityReciprocal(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
     val prior = 1
     priorityParamTable.map{x => x.copy(priorityParameter = 1 / (x.priorityParameter + prior))}
@@ -207,11 +200,6 @@ object StreetEdgePriorityTable {
     * @return
     */
   def selectGoodBadUserCompletionCountPriority: List[StreetEdgePriorityParameter] = db.withSession { implicit session =>
-
-    // Compute distance of each street edge
-    val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
-
-
     /********** Quality of Users **********/
 
     // To each audit_task completed by a user, we attach a boolean indicating whether or not the user had a labeling
@@ -219,7 +207,7 @@ object StreetEdgePriorityTable {
     // NOTE We are calling the getQualityOfUsers function below, which does the heavy lifting.
     val completions = AuditTaskTable.completedTasks
       .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
-      .innerJoin(getQualityOfUsers).on(_._2 === _._1)  // join on user_id
+      .innerJoin(UserStatTable.getQualityOfUsers).on(_._2 === _._1)  // join on user_id
       .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
 
     /********** Compute Audit Counts **********/
@@ -252,39 +240,6 @@ object StreetEdgePriorityTable {
       }
 
     normalizePriorityReciprocal(priorityParamTable)
-  }
-
-  /**
-    * Computes labeling frequency for each user, marking as "good" if above our labeling frequency threshold.
-    *
-    * @return A query with rows of the form (user_id: String, is_good_user: Boolean)
-    */
-  def getQualityOfUsers: Query[(Column[String], Column[Option[Boolean]]), (String, Option[Boolean]), Seq] = db.withSession { implicit session =>
-    val streetDist = StreetEdgeTable.streetEdges.map(edge => (edge.streetEdgeId, edge.geom.transform(26918).length))
-
-    // Gets all tasks completed by users, groups by user_id, and sums over the distances of the street edges.
-    val auditedDists = (for {
-      _user <- userTable if _user.username =!= "anonymous"
-      _task <- AuditTaskTable.completedTasks if _task.userId === _user.userId
-      _dist <- streetDist if _task.streetEdgeId === _dist._1
-    } yield (_user.userId, _dist._2)).groupBy(_._1).map(x => (x._1, x._2.map(_._2).sum))
-
-    // Gets all audit tasks, groups by user_id, and counts number of labels places (incl. incomplete tasks).
-    val labelCounts = (for {
-      _user <- userTable if _user.username =!= "anonymous"
-      _task <- AuditTaskTable.auditTasks if _task.userId === _user.userId
-      _lab  <- LabelTable.labelsWithoutDeletedOrOnboarding if _task.auditTaskId === _lab.auditTaskId
-    } yield (_user.userId, _lab.labelId)).groupBy(_._1).map(x => (x._1, x._2.length)) // SELECT user_id, COUNT(*)
-
-    // Finally, determine whether each user is above or below the label per meter threshold.
-    // SELECT user_id, is_good_user (where is_good_user = label_count/distance_audited > threshold)
-    auditedDists
-      .leftJoin(labelCounts).on(_._1 === _._1)
-      .map { case (d,c) => (d._1, c._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / d._2 > LABEL_PER_METER_THRESHOLD) }
-  }
-
-  def getIdsOfGoodUsers: List[String] = db.withSession { implicit session =>
-    getQualityOfUsers.filter(_._2).map(_._1).list
   }
 
   /**

@@ -1,13 +1,9 @@
 package models.label
 
-import java.sql.Timestamp
-import java.util.{Calendar, UUID}
-
 import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.{auditTasks, db, labelsWithoutDeleted, roleTable, userRoles, users}
-import models.user.UserCurrentRegionTable.{neighborhoods, userCurrentRegions}
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -56,6 +52,15 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
     heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp) <>
     ((LabelValidation.apply _).tupled, LabelValidation.unapply)
+
+  def label: ForeignKeyQuery[LabelTable, Label] =
+    foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+
+  def user: ForeignKeyQuery[UserTable, DBUser] =
+    foreignKey("label_validation_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+
+  def mission: ForeignKeyQuery[MissionTable, Mission] =
+    foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
 
 /**
@@ -79,7 +84,7 @@ object LabelValidationTable {
     * @return           Number of labels that were
     */
   def countResultsFromValidationMission(missionId: Int, result: Int): Int = db.withSession { implicit session =>
-    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).list.size
+    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).length.run
   }
 
   /**
@@ -117,8 +122,8 @@ object LabelValidationTable {
     val audits = for {
       _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
-      _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
-      _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
+      _mission <- MissionTable.auditMissions if _label.missionId === _mission.missionId
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
       _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
       _userRole <- userRoles if _validationUser.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
@@ -157,8 +162,8 @@ object LabelValidationTable {
     val audits = for {
       _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
-      _audit <- auditTasks if _label.auditTaskId === _audit.auditTaskId
-      _user <- users if _user.username =!= "anonymous" && _user.userId === _audit.userId // User who placed the label
+      _mission <- MissionTable.auditMissions if _label.missionId === _mission.missionId
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
       _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
       _userRole <- userRoles if _validationUser.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
@@ -205,14 +210,14 @@ object LabelValidationTable {
     * @return total number of validations
     */
   def countValidations: Int = db.withTransaction(implicit session =>
-    validationLabels.list.size
+    validationLabels.length.run
   )
 
   /**
     * @return total number of validations with a given result
     */
   def countValidationsBasedOnResult(result: Int): Int = db.withTransaction(implicit session =>
-    validationLabels.filter(_.validationResult === result).list.size
+    validationLabels.filter(_.validationResult === result).length.run
   )
 
   /**

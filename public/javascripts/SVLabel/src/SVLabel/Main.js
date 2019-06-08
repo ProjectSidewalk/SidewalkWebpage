@@ -131,7 +131,7 @@ function Main (params) {
 
 
         svl.pointCloud = new PointCloud();
-        svl.labelFactory = new LabelFactory(svl);
+        svl.labelFactory = new LabelFactory(svl, params.nextTemporaryLabelId);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
@@ -165,7 +165,12 @@ function Main (params) {
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel, svl.neighborhoodModel,
             svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
-        svl.tracker.initTaskId();
+        if (params.mission.current_audit_task_id) {
+            var currTask = svl.taskContainer.getCurrentTask();
+            currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
+        } else {
+            svl.tracker.initTaskId();
+        }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
 
@@ -193,9 +198,8 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        // Mark neighborhood as complete if the initial task's priority < 1.
-        // Proxy for knowing if the neighborhood is complete across all users.
-        if(task.getStreetPriority() < 1) {
+        // Mark neighborhood as complete if there are no streets left with max priority (= 1).
+        if(!svl.taskContainer.hasMaxPriorityTask()) {
             svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 

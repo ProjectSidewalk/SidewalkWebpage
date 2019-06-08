@@ -368,7 +368,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Used to set target distance for Mission Progress
      *
-     * TODO: 839 - Do we set that for completed tasks across all users?
      * @param unit {string} Distance unit
      */
     self.getIncompleteTaskDistance = function (unit) {
@@ -457,7 +456,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
                 console.log('finished neighborhood screen has appeared, logging debug info');
                 console.log('incompleteTasks.length:' +
-                    self.getIncompleteTasksAcrossAllUsersUsingPriority().length());
+                    self.getIncompleteTasksAcrossAllUsersUsingPriority().length);
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
 
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
@@ -636,6 +635,20 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return this;
     }
 
+    /**
+     * Checks if there are any max priority tasks remaining (proxy for neighborhood being complete across all users.
+     * @returns {null|boolean}
+     */
+    function hasMaxPriorityTask() {
+        if (!Array.isArray(self._tasks)) {
+            console.error("_tasks is not an array. Probably the data is not loaded yet.");
+            return null;
+        }
+        return self._tasks.filter(function (task) {
+            return task.getStreetPriority() === 1;
+        }).length > 0;
+    }
+
     // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
@@ -647,8 +660,8 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getBeforeJumpNewTask = getBeforeJumpTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
-    // self.nextTask = getNextTask;
     self.push = pushATask;
+    self.hasMaxPriorityTask = hasMaxPriorityTask;
 
     self.storeTask = storeTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;

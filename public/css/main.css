@@ -490,11 +490,13 @@ video#bgvid {
     width:630px;
 }
 #dcanim-div{
-    width: 100%; height: auto; position: absolute; top: 100px; left: -10px;
-    min-width: 1500px;
+    width: 100%; height: auto; position: absolute; top: 100px; left: -5px;
     background-size: cover;
     text-align: center;
-
+}
+#dcanim-div img{
+    margin: auto;
+    width: 1400px;
 }
 #anim-labels{
     position: relative;
@@ -827,7 +829,7 @@ video#bgvid {
 }
 
 #anim-numbers{
-    font-size: 80px;
+    font-size: 60px;
     max-width: 1400px;
     margin: 0 auto;
     font-family: raleway-extrabold, sans-serif;
@@ -839,10 +841,22 @@ video#bgvid {
 }
 #numberholder{
     position:relative;
+    padding-left: 15px;
+    padding-right: 15px;
     min-width: 800px;
-
-
-
+    max-width: 1400px;
+    margin: 0 auto;
+}
+#numberholder a {
+    color: #2D2A3F;
+}
+#numberholder a:hover {
+    text-decoration: none;
+}
+@media (max-width: 835px) {
+  #numberholder {
+    display: none;
+  }
 }
 .quotebox {
     width: 430px;
@@ -1029,7 +1043,7 @@ video#bgvid {
     /*left: -30px;*/
 }
 
-.exploremaplink {
+.exploremaplink:link {
     color: rgba(251, 215, 139, 1);
     text-decoration:underline;
     font-family: raleway;
@@ -1039,6 +1053,9 @@ video#bgvid {
     text-align:center;
     position:relative;
     cursor: pointer;
+}
+.exploremaplink:visited {
+    color: rgba(251, 215, 139, 1);
 }
 .exploremaplink:hover {
     color: #fff;
