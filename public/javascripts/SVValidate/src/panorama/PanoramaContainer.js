@@ -7,14 +7,14 @@
  * @returns {PanoramaContainer}
  * @constructor
  */
-function PanoramaContainer (labelList, idList, canvasList) {
-    let self = this;
-    let labels = labelList;    // labels that all panoramas from the screen are going to be validating from
-    let panoList = {};
+function PanoramaContainer (labelList, idList) {
     let buttons = {};
+    let labels = labelList;    // labels that all panoramas from the screen are going to be validating from
+    let panos = {};
     let properties = {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
+    let self = this;
 
     /**
      * Initializes panorama(s) on the validate page.
@@ -24,13 +24,13 @@ function PanoramaContainer (labelList, idList, canvasList) {
         console.log(idList);
         idList.forEach(function(id) {
             console.log(id);
-            panoList[id] = new Panorama(labelList[getProperty("progress")], id);
+            panos[id] = new Panorama(labelList[getProperty("progress")], id);
             buttons[id] = new MenuButton(id);
             setProperty("progress", getProperty("progress") + 1);
         });
 
         // temporary... to maintain functionality (yikes)
-        svv.panorama = panoList[0];
+        svv.panorama = panos[0];
     }
 
     /**
@@ -94,6 +94,10 @@ function PanoramaContainer (labelList, idList, canvasList) {
         return key in properties ? properties[key] : null;
     }
 
+    /**
+     * Loads a new label onto a panorama after the user validates a label.
+     * @param panorama  Panorama to load the new label onto.
+     */
     function loadNewLabelOntoPanorama (panorama) {
         panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
@@ -104,18 +108,23 @@ function PanoramaContainer (labelList, idList, canvasList) {
     }
 
     /**
-     * Resets the state of the mission.
-     * Called when a new validation mission is loaded, and when we need to get rid of lingering
-     * data from the previous validation mission.
+     * Resets the validation interface. Loads a new set of label onto the panoramas. Called when a
+     * new mission is loaded onto the screen.
+     * @requires    labels contains the current list of label IDs to be loaded onto the panorama.
+     *              labels has a sufficient number of labels for this validation mission.
      */
     function reset () {
         setProperty('progress', 0);
+
+        idList.forEach(function(id) {
+           panos[id].setLabel(labels[id]);
+        });
     }
 
     /**
      * Creates a list of label objects to be validated from label metadata.
      * Called when a new mission is loaded onto the screen.
-     * @param labelList Object containing key-value pairings of (index, labelMetadata)
+     * @param labelList Object containing key-value pairings of {index: labelMetadata}
      */
     function setLabelList (labelList) {
         Object.keys(labelList).map(function(key, index) {
@@ -156,15 +165,11 @@ function PanoramaContainer (labelList, idList, canvasList) {
 
     function validateLabelFromPano (id, action, timestamp) {
         console.log("Validation from pano with id: " + id);
-        console.log(panoList);
-        let pano = panoList[id];
+        console.log(panos);
+        let pano = panos[id];
         console.log(pano.getProperty("canvasId"));
         pano.getCurrentLabel().validate(action, pano);
         pano.setProperty('validationTimestamp', timestamp);
-    }
-
-    function getPanoList () {
-        return panoList;
     }
 
     self.fetchNewLabel = fetchNewLabel;
@@ -174,8 +179,6 @@ function PanoramaContainer (labelList, idList, canvasList) {
     self.reset = reset;
     self.setLabelList = setLabelList;
     self.validateLabelFromPano = validateLabelFromPano;
-
-    self.getPanoList = getPanoList;
 
     _init();
 

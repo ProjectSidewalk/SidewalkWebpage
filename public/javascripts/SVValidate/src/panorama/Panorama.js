@@ -224,6 +224,7 @@ function Panorama (label, id) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel (label) {
+        console.log("Setting label of panorama: " + getProperty("canvasId") + " to " + label.getAuditProperty("labelId"));
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));

@@ -69,9 +69,8 @@ function Form(url) {
                     if (result.hasMissionAvailable) {
                         if (result.mission) {
                             svv.missionContainer.createAMission(result.mission, result.progress);
-                            svv.panoramaContainer.reset();
                             svv.panoramaContainer.setLabelList(result.labels);
-                            svv.panoramaContainer.loadNewLabelOntoPanorama();
+                            svv.panoramaContainer.reset();
                             svv.modalMissionComplete.setProperty('clickable', true);
                         }
                     } else {
