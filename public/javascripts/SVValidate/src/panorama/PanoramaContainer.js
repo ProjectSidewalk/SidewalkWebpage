@@ -8,10 +8,10 @@
  * @constructor
  */
 function PanoramaContainer (labelList, canvasList) {
-    var self = this;
-    var labels = labelList;    // labels that all panoramas from the screen are going to be validating from
-    var panoList = {};
-    var properties = {
+    let self = this;
+    let labels = labelList;    // labels that all panoramas from the screen are going to be validating from
+    let panoList = {};
+    let properties = {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
 
@@ -36,7 +36,7 @@ function PanoramaContainer (labelList, canvasList) {
      * @private
      */
     function _createSingleLabel (metadata) {
-        var labelMetadata = {
+        let labelMetadata = {
             canvasHeight: metadata.canvas_height,
             canvasWidth: metadata.canvas_width,
             canvasX: metadata.canvas_x,
@@ -56,10 +56,10 @@ function PanoramaContainer (labelList, canvasList) {
      * because missions fetch exactly the number of labels that are needed to complete the mission.
      */
     function fetchNewLabel () {
-        var labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
-        var labelUrl = "/label/geo/random/" + labelTypeId;
+        let labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
+        let labelUrl = "/label/geo/random/" + labelTypeId;
 
-        var data = {};
+        let data = {};
         data.labels = svv.labelContainer.getCurrentLabels();
 
         if (data.constructor !== Array) {
@@ -138,13 +138,13 @@ function PanoramaContainer (labelList, canvasList) {
      * @param labelId   label_id of the desired label.
      */
     function setLabelWithId (labelId) {
-        var labelUrl = "/label/geo/" + labelId;
+        let labelUrl = "/label/geo/" + labelId;
         $.ajax({
             url: labelUrl,
             async: false,
             dataType: 'json',
             success: function (labelMetadata) {
-                var label = _createSingleLabel(labelMetadata);
+                let label = _createSingleLabel(labelMetadata);
                 labels.push(label);
             }
         });

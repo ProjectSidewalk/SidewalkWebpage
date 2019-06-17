@@ -6,13 +6,12 @@
  * @returns {MenuButtonContainer}
  * @constructor
  */
-function MenuButtonContainer (buttonMap) {
+function MenuButtonContainer (agreeButtonMap, disagreeButtonMap, notSureButtonMap) {
     var self = this;
+    var agreeButtonList = {};
 
     function _init() {
-        buttonMap.forEach(function(panoramaId) {
 
-        });
     }
 
     _init();

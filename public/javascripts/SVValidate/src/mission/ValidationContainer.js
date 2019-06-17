@@ -11,16 +11,22 @@ function ValidationContainer (screens, labelList) {
     svv.labelContainer = undefined;
     svv.menuButtonContainer = undefined;
 
-    var properties = {
+    let properties = {
         agreeButtonList: undefined,
         disagreeButtonList: undefined,
         labelList: undefined,
         notSureButtonList: undefined,
         numScreens: undefined,
-        panoCanvasList: undefined,
+        panoCanvasList: undefined
     };
 
-    var self = this;
+    // The mappings for panoramas to map buttons is as follows:
+    // {panoCanvas: [agreeButton, disagreeButton, notSureButton] }
+    //
+    // Each element (panoCanvas, agreeButton ...) is the ID for each element and uses 1-based indexing.
+    // (i.e., svv-panorama-1, validation-agree-button-1 ...)
+    let canvasArray = { };
+    let self = this;
 
     function _init() {
         setProperty("agreeButtonList", _createAttrList("validation-agree-button"));
@@ -31,9 +37,33 @@ function ValidationContainer (screens, labelList) {
         _createContainers();
     }
 
+    /**
+     * Adds a mapping of canvas
+     * @param buttonList    String array containing the name of each button type.
+     * @private
+     */
+    function _fillCanvasObject(canvasName, buttonList, screens) {
+        let i;
+        for (i = 1; i <= screens; i++) {
+            let buttons = [];
+            let j;
+            for (j = 0; j < buttonList.length; j++) {
+                buttons[j] = buttonList[j] + "-" + i;
+            }
+
+
+        }
+    }
+
+    /**
+     * Creates a list of some attribute.
+     * @param name
+     * @returns {Array}
+     * @private
+     */
     function _createAttrList(name) {
-        var list = [];
-        var i;
+        let list = [];
+        let i;
         for (i = 1; i <= screens; i++) {
             list.push(name + "-" + i)
         }
