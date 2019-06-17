@@ -29,45 +29,8 @@ function ValidationContainer (screens, labelList) {
     let self = this;
 
     function _init() {
-        setProperty("agreeButtonList", _createAttrList("validation-agree-button"));
-        setProperty("disgareeButtonList", _createAttrList("validation-disagree-button"));
         setProperty("labelList", labelList);
-        setProperty("notSureButtonList", _createAttrList("validation-not-sure-button"));
-        setProperty("panoCanvasList", _createAttrList("svv-panorama"));
         _createContainers();
-    }
-
-    /**
-     * Adds a mapping of canvas
-     * @param buttonList    String array containing the name of each button type.
-     * @private
-     */
-    function _fillCanvasObject(canvasName, buttonList, screens) {
-        let i;
-        for (i = 1; i <= screens; i++) {
-            let buttons = [];
-            let j;
-            for (j = 0; j < buttonList.length; j++) {
-                buttons[j] = buttonList[j] + "-" + i;
-            }
-
-
-        }
-    }
-
-    /**
-     * Creates a list of some attribute.
-     * @param name
-     * @returns {Array}
-     * @private
-     */
-    function _createAttrList(name) {
-        let list = [];
-        let i;
-        for (i = 1; i <= screens; i++) {
-            list.push(name + "-" + i)
-        }
-        return list;
     }
 
     /**
@@ -75,10 +38,9 @@ function ValidationContainer (screens, labelList) {
      * @private
      */
     function _createContainers() {
+        let list = [0, 1, 2, 3, 4, 5, 6, 7, 8];
         svv.labelContainer = new LabelContainer();
-        svv.panoramaContainer = new PanoramaContainer(labelList, getProperty("panoCanvasList"));
-        svv.menuButtonContainer = new MenuButtonContainer(getProperty("agreeButtonList"),
-            getProperty("disagreeButtonList"), getProperty("notSureButtonList"));
+        svv.panoramaContainer = new PanoramaContainer(labelList, list);
     }
 
     /**

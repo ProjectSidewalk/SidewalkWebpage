@@ -5,20 +5,23 @@
  * @param   canvasId  DOM ID for this Panorama. (i.e., svv-panorama)
  * @constructor
  */
-function Panorama (label, canvasId) {
-    var currentLabel = label;
-    var panoCanvas = document.getElementById(canvasId);
-    var panorama = undefined;
-    var properties = {
+function Panorama (label, id) {
+    let currentLabel = label;
+
+    let panorama = undefined;
+    let properties = {
+        canvasId: "svv-panorama-" + id,
         panoId: undefined,
         prevPanoId: undefined,
         validationTimestamp: new Date().getTime()
     };
-    var self = this;
+
+    let panoCanvas = document.getElementById(properties.canvasId);
+    let self = this;
 
     // Determined manually by matching appearance of labels on the audit page and appearance of
     // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
-    var zoomLevel = {
+    let zoomLevel = {
         1: 1.1,
         2: 2.1,
         3: 3.1
@@ -99,7 +102,7 @@ function Panorama (label, canvasId) {
      * @returns {{lat, lng}}
      */
     function getPosition () {
-        var position = panorama.getPosition();
+        let position = panorama.getPosition();
         return (position) ? {'lat': position.lat(), 'lng': position.lng()} : null;
     }
 
@@ -108,7 +111,7 @@ function Panorama (label, canvasId) {
      * @returns {{heading: float, pitch: float, zoom: float}}
      */
     function getPov () {
-        var pov = panorama.getPov();
+        let pov = panorama.getPov();
 
         // Pov can be less than 0. So adjust it.
         while (pov.heading < 0) {
@@ -147,7 +150,7 @@ function Panorama (label, canvasId) {
      */
     function _handlerPanoChange () {
         if (svv.panorama) {
-            var panoId = getPanoId();
+            let panoId = getPanoId();
 
             /**
              * PanoId is sometimes changed twice. This avoids logging duplicate panos.
@@ -175,8 +178,8 @@ function Panorama (label, canvasId) {
      * @returns {renderLabel}
      */
     function renderLabel() {
-        var url = currentLabel.getIconUrl();
-        var pos = currentLabel.getPosition();
+        let url = currentLabel.getIconUrl();
+        let pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
             self.labelMarker = new PanoMarker({
@@ -206,6 +209,7 @@ function Panorama (label, canvasId) {
      * @param zoom      Photographer zoom
      */
     function setPanorama (panoId, heading, pitch, zoom) {
+        console.log("Panorama is: " + getProperty("canvasId"));
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
         panorama.setPano(panoId);

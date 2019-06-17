@@ -3,14 +3,15 @@
  * page. Fetches labels from the backend and converts them into Labels that can be placed onto the
  * GSV Panorama.
  * @param labelList     Initial list of labels to be validated (generated when the page is loaded).
- * @param canvasList    List of panorama canvas IDs for each panorama to be displayed on the screen.
+ * @param idList        List of IDs for every panorama screen.
  * @returns {PanoramaContainer}
  * @constructor
  */
-function PanoramaContainer (labelList, canvasList) {
+function PanoramaContainer (labelList, idList, canvasList) {
     let self = this;
     let labels = labelList;    // labels that all panoramas from the screen are going to be validating from
     let panoList = {};
+    let buttons = {};
     let properties = {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
@@ -20,13 +21,16 @@ function PanoramaContainer (labelList, canvasList) {
      * @private
      */
     function _init () {
-        canvasList.forEach(function(canvasId) {
-            panoList[canvasId] = new Panorama(labelList[getProperty("progress")], canvasId);
+        console.log(idList);
+        idList.forEach(function(id) {
+            console.log(id);
+            panoList[id] = new Panorama(labelList[getProperty("progress")], id);
+            buttons[id] = new MenuButton(id);
             setProperty("progress", getProperty("progress") + 1);
         });
 
         // temporary... to maintain functionality (yikes)
-        svv.panorama = panoList["svv-panorama-1"];
+        svv.panorama = panoList[0];
     }
 
     /**
@@ -90,8 +94,8 @@ function PanoramaContainer (labelList, canvasList) {
         return key in properties ? properties[key] : null;
     }
 
-    function loadNewLabelOntoPanorama () {
-        svv.panorama.setLabel(labels[getProperty('progress')]);
+    function loadNewLabelOntoPanorama (panorama) {
+        panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
         if (!svv.labelVisibilityControl.isVisible()) {
             svv.labelVisibilityControl.unhideLabel();
@@ -150,12 +154,28 @@ function PanoramaContainer (labelList, canvasList) {
         });
     }
 
+    function validateLabelFromPano (id, action, timestamp) {
+        console.log("Validation from pano with id: " + id);
+        console.log(panoList);
+        let pano = panoList[id];
+        console.log(pano.getProperty("canvasId"));
+        pano.getCurrentLabel().validate(action, pano);
+        pano.setProperty('validationTimestamp', timestamp);
+    }
+
+    function getPanoList () {
+        return panoList;
+    }
+
     self.fetchNewLabel = fetchNewLabel;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
     self.setProperty = setProperty;
     self.reset = reset;
     self.setLabelList = setLabelList;
+    self.validateLabelFromPano = validateLabelFromPano;
+
+    self.getPanoList = getPanoList;
 
     _init();
 

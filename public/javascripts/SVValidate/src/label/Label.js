@@ -7,7 +7,7 @@ function Label(params) {
     // Original properties of the label collected during the audit interface. These properties are
     // initialized from metadata from the backend. These properties are used to help place the label
     // on the validation interface and should not be changed.
-    var auditProperties = {
+    let auditProperties = {
         canvasHeight: undefined,
         canvasWidth: undefined,
         canvasX: undefined,
@@ -21,7 +21,7 @@ function Label(params) {
 
     // These properties are set through validating labels. In this object, canvas properties and
     // heading/pitch/zoom are from the perspective of the user that is validating the labels.
-    var properties = {
+    let properties = {
         canvasX: undefined,
         canvasY: undefined,
         endTimestamp: undefined,
@@ -33,7 +33,7 @@ function Label(params) {
         zoom: undefined
     };
 
-    var icons = {
+    let icons = {
         CurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png',
         NoCurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
         Obstacle : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png',
@@ -44,8 +44,8 @@ function Label(params) {
     };
 
     // Labels are circles with a 10px radius.
-    var radius = 10;
-    var self = this;
+    let radius = 10;
+    let self = this;
 
     /**
      * Initializes a label from metadata (if parameters are passed in)
@@ -91,7 +91,7 @@ function Label(params) {
     function getPosition () {
         // This calculates the heading and position for placing this Label onto the panorama from
         // the same POV as when the user placed the label.
-        var pos = svv.util.properties.panorama.getPosition(getAuditProperty('canvasX'),
+        let pos = svv.util.properties.panorama.getPosition(getAuditProperty('canvasX'),
             getAuditProperty('canvasY'), getAuditProperty('canvasWidth'),
             getAuditProperty('canvasHeight'), getAuditProperty('zoom'),
             getAuditProperty('heading'), getAuditProperty('pitch'));
@@ -145,22 +145,23 @@ function Label(params) {
      * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
      *
      * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
+     * @param panorama          Panorama object that this label was placed on.
      */
-    function validate(validationResult) {
+    function validate(validationResult, panorama) {
         // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center
         // of the viewport.
-        var pos = getPosition();
-        var panomarkerPov = {
+        let pos = getPosition();
+        let panomarkerPov = {
             heading: pos.heading,
             pitch: pos.pitch
         };
 
         // This is the POV of the viewport center - this is where the user is looking.
-        var userPov = svv.panorama.getPov();
-        var zoom = svv.panorama.getZoom();
+        let userPov = panorama.getPov();
+        let zoom = panorama.getZoom();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
-        var pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov,
+        let pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov,
             zoom, svv.canvasWidth, svv.canvasHeight);
 
         // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
@@ -213,7 +214,7 @@ function Label(params) {
         // Otherwise, we will load a new label onto the panorama from Form.js - where we still need
         // to retrieve 10 more labels for the next mission.
         if (!svv.missionContainer.getCurrentMission().isComplete()) {
-            svv.panoramaContainer.loadNewLabelOntoPanorama();
+            svv.panoramaContainer.loadNewLabelOntoPanorama(panorama);
         }
     }
 
