@@ -5,6 +5,8 @@
  * @constructor
  */
 function Panorama (label) {
+    // abbreviated dates for panorama date overlay
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     var currentLabel = label;
     var panoCanvas = document.getElementById("svv-panorama");
     var panorama = undefined;
@@ -142,6 +144,7 @@ function Panorama (label) {
      * Logs interactions from panorama changes.
      * Occurs when the user loads a new label onto the screen, or if they use arrow keys to move
      * around. (This is behavior that is automatically enabled by the GSV Panorama).
+     * Updates the date text field to match the current panorama's date.
      * @private
      */
     function _handlerPanoChange () {
@@ -161,6 +164,20 @@ function Panorama (label) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
+        var streetViewService = new google.maps.StreetViewService();
+        streetViewService.getPanorama({pano: panorama.getPano()},
+            function (data, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    var date = data.imageDate;
+                    var year = date.substring(0, 4);
+                    var month = MONTHS[parseInt(date.substring(5, 7)) - 1];
+                    document.getElementById("svv-panorama-date").innerText = month + " " + year;
+                }
+                else {
+                    console.error("Error retrieving Panoramas: " + status);
+                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                }
+            });
     }
 
     /**

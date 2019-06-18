@@ -9,6 +9,9 @@
  * @constructor
  */
 function MapService (canvas, neighborhoodModel, uiMap, params) {
+    // abbreviated dates for panorama date overlay
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
     var self = { className: 'Map' },
         _canvas = canvas,
         mapIconInterval,
@@ -261,6 +264,22 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
 
+        // When the pano is changed, the date overlay will update to the take when the pano was taken.
+        svl.panorama.addListener('pano_changed', function() {
+            streetViewService.getPanorama({pano: svl.panorama.getPano()},
+            function (data, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    var date = data.imageDate;
+                    var year = date.substring(0, 4);
+                    var month = MONTHS[parseInt(date.substring(5, 7)) - 1];
+                    document.getElementById("svl-panorama-date").innerText = month + " " + year;
+                }
+                else {
+                    console.error("Error retrieving Panoramas: " + status);
+                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                }
+            });
+        });
     }
 
     /*
