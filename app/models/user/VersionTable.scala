@@ -34,6 +34,23 @@ object VersionTable {
   }
 
   /**
+    * Returns current version ID
+    *
+    */
+  def currentVersionId(): String = db.withSession { implicit session =>
+    versions.sortBy(_.versionStartTime.desc).list.head.versionId
+  }
+
+  /**
+    * Returns date of most recent update
+    *
+    */
+  def currentVersionDate(): String = db.withSession { implicit session =>
+    val currentVersion = versions.sortBy(_.versionStartTime.desc).list.head
+    new SimpleDateFormat("yyyy-MM-dd").format(currentVersion.versionStartTime)
+  }
+
+  /**
     * Formats the current version of the code in the format "Version <version_number> | Last Updated: <version_time>"
     *
     * @return
