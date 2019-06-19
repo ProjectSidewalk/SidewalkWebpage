@@ -264,22 +264,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
 
-        // When the pano is changed, the date overlay will update to the take when the pano was taken.
-        svl.panorama.addListener('pano_changed', function() {
-            streetViewService.getPanorama({pano: svl.panorama.getPano()},
-            function (data, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    var date = data.imageDate;
-                    var year = date.substring(0, 4);
-                    var month = MONTHS[parseInt(date.substring(5, 7)) - 1];
-                    document.getElementById("svl-panorama-date").innerText = month + " " + year;
-                }
-                else {
-                    console.error("Error retrieving Panoramas: " + status);
-                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
-                }
-            });
-        });
     }
 
     /*
@@ -768,6 +752,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            // Updates the date overlay to match when the current panorama was taken.
+                            var date = data.imageDate;
+                            var year = date.substring(0, 4);
+                            var month = MONTHS[parseInt(date.substring(5, 7)) - 1];
+                            document.getElementById("svl-panorama-date").innerText = month + " " + year;
 
                             var panoramaPosition = svl.panorama.getPosition(); // Current Position
                             map.setCenter(panoramaPosition);
