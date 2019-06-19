@@ -6,7 +6,7 @@
  */
 function Panorama (label) {
     // abbreviated dates for panorama date overlay
-    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     var currentLabel = label;
     var panoCanvas = document.getElementById("svv-panorama");
     var panorama = undefined;
@@ -16,6 +16,7 @@ function Panorama (label) {
         validationTimestamp: new Date().getTime()
     };
     var self = this;
+    var streetViewService = new google.maps.StreetViewService();
 
     // Determined manually by matching appearance of labels on the audit page and appearance of
     // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
@@ -164,13 +165,12 @@ function Panorama (label) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
-        var streetViewService = new google.maps.StreetViewService();
         streetViewService.getPanorama({pano: panorama.getPano()},
             function (data, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     var date = data.imageDate;
                     var year = date.substring(0, 4);
-                    var month = MONTHS[parseInt(date.substring(5, 7)) - 1];
+                    var month = months[parseInt(date.substring(5, 7)) - 1];
                     document.getElementById("svv-panorama-date").innerText = month + " " + year;
                 }
                 else {
