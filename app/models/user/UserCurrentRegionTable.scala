@@ -1,10 +1,11 @@
 package models.user
 
 import models.region.{NamedRegion, RegionTable}
-import models.street.StreetEdgeTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import java.util.UUID
+
+import models.mission.MissionTable
 
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
@@ -42,7 +43,7 @@ object UserCurrentRegionTable {
     * @return
     */
   def isUserExperienced(userId: UUID): Boolean = db.withSession { implicit session =>
-    StreetEdgeTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
+    MissionTable.getDistanceAudited(userId) > experiencedUserMileageThreshold
   }
 
   /**

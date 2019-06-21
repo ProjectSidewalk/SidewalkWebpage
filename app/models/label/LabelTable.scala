@@ -530,9 +530,23 @@ object LabelTable {
   def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
+    val userIdStr = userId.toString
+
+    val minCompletionCountQuery = Q.query[String, Int](
+      """SELECT MIN(validation_count)
+        |FROM (
+        |    SELECT COUNT(label_validation_id) AS validation_count
+        |    FROM label
+        |    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+        |    WHERE label.deleted = FALSE
+        |        AND (label_validation.user_id IS NULL OR label_validation.user_id <> ?)
+        |    GROUP BY label.label_id
+        |) count""".stripMargin
+    )
+    val minCompCnt: Int = minCompletionCountQuery(userIdStr).list.head
 
     while (selectedLabels.length < n) {
-      val selectRandomLabelsQuery = Q.query[(Int, String, String, Int), LabelValidationMetadata](
+      val selectRandomLabelsQuery = Q.query[(String, Int, String, Int, String, Int), LabelValidationMetadata](
         """SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
           |       label_point.zoom, label_point.canvas_x, label_point.canvas_y,
           |       label_point.canvas_width, label_point.canvas_height
@@ -541,11 +555,21 @@ object LabelTable {
           |INNER JOIN label_point ON label.label_id = label_point.label_id
           |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
           |INNER JOIN mission ON label.mission_id = mission.mission_id
+          |INNER JOIN (
+          |    SELECT label.label_id, COUNT(label_validation_id) AS validation_count
+          |    FROM label
+          |    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+          |    WHERE label.deleted = FALSE
+          |        AND (label_validation.user_id <> ? OR label_validation.user_id IS NULL)
+          |    GROUP BY label.label_id
+          |) counts
+          |    ON label.label_id = counts.label_id
           |WHERE label.label_type_id = ?
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
           |    AND gsv_data.expired = FALSE
           |    AND mission.user_id <> ?
+          |    AND counts.validation_count = ?
           |    AND label.label_id NOT IN (
           |        SELECT label_id
           |        FROM label_validation
@@ -554,7 +578,7 @@ object LabelTable {
           |ORDER BY RANDOM()
           |LIMIT ?""".stripMargin
       )
-      potentialLabels = selectRandomLabelsQuery((labelTypeId, userId.toString, userId.toString, n * 5)).list
+      potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, userIdStr, minCompCnt, userIdStr, n * 5)).list
       var potentialStartIdx: Int = 0
 
       // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
@@ -976,5 +1000,15 @@ object LabelTable {
       case Some(missionId) => labelsWithoutDeleted.filter(_.missionId === missionId).list
       case None => List()
     }
+  }
+
+  /**
+    * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
+    *
+    * @param auditTaskId
+    * @return
+    */
+  def nextTempLabelId(auditTaskId: Option[Int]): Int = db.withSession { implicit session =>
+    labels.filter(_.auditTaskId === auditTaskId).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
   }
 }
