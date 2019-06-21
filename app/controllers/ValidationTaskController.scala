@@ -55,7 +55,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
                   user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
                   label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
                   new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.isMobile))
-                println(label)
               case None =>
                 Logger.warn("User without user_id validated a label, but every user should have a user_id.")
             }

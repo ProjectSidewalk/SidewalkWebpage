@@ -16,7 +16,8 @@ function Label(params) {
         labelId: undefined,
         labelType: undefined,
         pitch: undefined,
-        zoom: undefined
+        zoom: undefined,
+        isMobile: undefined
     };
 
     // These properties are set through validating labels. In this object, canvas properties and
@@ -30,7 +31,8 @@ function Label(params) {
         pitch: undefined,
         startTimestamp: undefined,
         validationResult: undefined,
-        zoom: undefined
+        zoom: undefined,
+        isMobile: undefined
     };
 
     if (isMobile()) {
@@ -81,6 +83,11 @@ function Label(params) {
             if ("labelType" in params) setOriginalProperty("labelType", params.labelType);
             if ("pitch" in params) setOriginalProperty("pitch", params.pitch);
             if ("zoom" in params) setOriginalProperty("zoom", params.zoom);
+            if (isMobile()) {
+                setOriginalProperty("isMobile", 1);
+            } else {
+                setOriginalProperty("isMobile", 0);
+            }
         }
     }
 
@@ -214,6 +221,11 @@ function Label(params) {
         setValidationProperty("heading", userPov.heading);
         setValidationProperty("pitch", userPov.pitch);
         setValidationProperty("zoom", userPov.zoom);
+        if (isMobile()) {
+            setValidationProperty("isMobile", 1);
+        } else {
+            setValidationProperty("isMobile", 0);
+        }
 
         switch (validationResult) {
             // Agree option selected.

@@ -75,7 +75,7 @@ function Tracker() {
             pitch: pov ? pov.pitch : null,
             timestamp: timestamp,
             zoom: pov ? pov.zoom : null,
-            is_mobile: is_mobile
+            is_mobile: self.isMobile() ? 1 : 0
         };
 
         return data;
