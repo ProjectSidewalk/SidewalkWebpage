@@ -1,5 +1,5 @@
 //changes timestamps from UTC to local time. Updates any data order variables for tables.
-$(window).load(function () {
+$(document).ready(function () {
         $(".timestamp").each(function(){
         if($(this).hasClass('local')){
             return;
@@ -10,7 +10,7 @@ $(window).load(function () {
 
         //add sorting attribute, if it's part of a table it will be sorted by this instead of the nicely formatted timestamp.
         $(this).attr("data-order", timestampText);
-        
+
         var localDate = moment(new Date(timestampText + " UTC"));
 
         var format = 'MMMM Do YYYY, h:mm:ss'
