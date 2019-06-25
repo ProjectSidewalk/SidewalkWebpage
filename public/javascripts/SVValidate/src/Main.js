@@ -150,6 +150,15 @@ function Main (param) {
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
+
+        $('#sign-in-modal-container').on('hide.bs.modal', function () {
+            svv.keyboard.enableKeyboard();
+            $(".toolUI").css('opacity', 1);
+        });
+        $('#sign-in-modal-container').on('show.bs.modal', function () {
+            svv.keyboard.disableKeyboard();
+            $(".toolUI").css('opacity', 0.5);
+        });
     }
 
     _initUI();
