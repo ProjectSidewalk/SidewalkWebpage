@@ -1,29 +1,17 @@
-// requires moment.js
-
-// on window load, run the changeTimestamps function.
+//changes timestamps from UTC to local time. Updates any data order variables for tables.
 $(window).load(function () {
-    changeTimestamps();
-    //if any html changes, call the changeTimestamps function.
-    var observer = new MutationObserver(changeTimestamps);
-
-    observer.observe(document, {
-        attributes: true,
-        childList: true,
-        subtree: true,
-        characterData: true
-    });
-});
-
-//changes anything with the class timestamp from UTC to local time.
-function changeTimestamps(){
-    $(".timestamp").each(function(){
+        $(".timestamp").each(function(){
         if($(this).hasClass('local')){
             return;
         }
         $(this).addClass('local');
 
-        var timestampText = this.textContent + " UTC";
-        var localDate = moment(new Date(timestampText));
+        var timestampText = this.textContent;
+
+        //add sorting attribute, if it's part of a table it will be sorted by this instead of the nicely formatted timestamp.
+        $(this).attr("data-order", timestampText);
+        
+        var localDate = moment(new Date(timestampText + " UTC"));
 
         var format = 'MMMM Do YYYY, h:mm:ss'
         if($(this).hasClass('date')){
@@ -35,4 +23,4 @@ function changeTimestamps(){
             this.textContent = localDate.format(format);
         }
     });
-}
+});
