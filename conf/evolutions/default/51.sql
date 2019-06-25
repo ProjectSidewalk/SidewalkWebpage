@@ -33,4 +33,4 @@ INSERT INTO user_stat (user_id, meters_audited, labels_per_meter, high_quality, 
 
 # --- !Downs
 DROP TABLE user_stat;
->>>>>>> 009bca35fe59bf32183e880a0beb513bcaeb18cb
+

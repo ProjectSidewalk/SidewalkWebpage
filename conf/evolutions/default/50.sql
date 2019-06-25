@@ -1,5 +1,4 @@
 # --- !Ups
-
 ALTER TABLE audit_task ADD COLUMN current_lat DOUBLE PRECISION;
 ALTER TABLE audit_task ADD COLUMN current_lng DOUBLE PRECISION;
 ALTER TABLE audit_task ADD COLUMN start_point_reversed BOOLEAN DEFAULT FALSE;
@@ -33,4 +32,4 @@ ALTER TABLE mission
 ALTER TABLE audit_task DROP COLUMN start_point_reversed;
 ALTER TABLE audit_task DROP COLUMN current_lat;
 ALTER TABLE audit_task DROP COLUMN current_lng;
->>>>>>> 009bca35fe59bf32183e880a0beb513bcaeb18cb
+
