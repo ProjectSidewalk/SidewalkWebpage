@@ -150,6 +150,7 @@ function Main (param) {
     if (param.hasNextMission) {
         _init();
     } else {
+        svv.keyboard = new Keyboard(svv.ui.validation);
         svv.form = new Form(param.dataStoreUrl);
         svv.tracker = new Tracker();
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
