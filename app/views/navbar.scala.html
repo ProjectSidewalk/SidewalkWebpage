@@ -282,6 +282,7 @@ $(document).ready(function () {
                     @text(forms.SignUpForm.form("username"), "Username", icon = "person")
                     @text(forms.SignUpForm.form("email"), "Email", icon = "at")
                     @password(forms.SignUpForm.form("password"), "Password", icon = "key")
+                    @password(forms.SignUpForm.form("passwordConfirm"), "Confirm password", icon = "key")
                     <div class="form-group">
                         <div class="checkbox">
                             <label><input type="checkbox" id="navbar-agree-to-terms">You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a></label>
@@ -425,6 +426,7 @@ $(document).ready(function () {
                 var username = formData[0].value;
                 var email = formData[1].value;
                 var password = formData[2].value;
+		var passwordConfirm = formData[3].value;
 
                 if(!username){
                     invalidSignInUpAlert(false, 'Please enter a username.');
@@ -441,6 +443,16 @@ $(document).ready(function () {
                     invalidSignInUpAlert(false, 'Please enter your password.');
                     return false;
                 }
+
+		if (password !== passwordConfirm) {
+		    invalidSignInUpAlert(false, 'Passwords do not match.');
+		    return false;
+		}
+
+		if (password.length < 6) {
+		    invalidSignInUpAlert(false, 'Password must be at least 6 characters.');
+		    return false;
+		}
 
                 var data = $(this).serialize();
 
