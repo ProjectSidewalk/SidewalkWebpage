@@ -58,33 +58,6 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Gets the metadata for all the labels in a given GSV panorama ID
-    * @param gsvPanoramaId the gavpanoramaId for wanted labels
-    * @return List of Label metadata
-    */
-  def getLabelsInPano(gsvPanoramaId: String) = UserAwareAction.async { implicit request =>
-    val labels: List[LabelTable.LabelResumeMetadata] = LabelTable.find(gsvPanoramaId)
-    val jsonList: List[JsObject] = labels.map { label =>
-      Json.obj(
-        "label_id" -> label.labelId,
-        "label_type" -> label.labelType,
-        "gsv_panorama_id" -> label.gsvPanoramaId,
-        "heading" -> label.heading,
-        "pitch" -> label.pitch,
-        "zoom" -> label.zoom,
-        "canvas_x" -> label.canvasX,
-        "canvas_y" -> label.canvasY,
-        "canvas_width" -> label.canvasWidth,
-        "canvas_height" -> label.canvasHeight,
-        "image_x" -> label.svImageX,
-        "image_y" -> label.svImageY
-      )
-    }
-    val featureCollection: JsObject = Json.obj("labels" -> jsonList)
-    Future.successful(Ok(featureCollection))
-  }
-
-  /**
     * Gets all tags in the database in JSON.
     *
     * @return

@@ -169,23 +169,6 @@ object LabelTable {
   }
 
   /**
-    * Find all labels with given gsvPanoramaId
-    * @param labelId
-    * @return
-    */
-  def find(gsvPanoramaId: String): List[LabelResumeMetadata] = db.withSession { implicit session =>
-    val labelsWithCVMetadata = for {
-      _lb <- labels if _lb.gsvPanoramaId === gsvPanoramaId
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-      _lp <- LabelPointTable.labelPoints if _lb.labelId === _lp.labelId
-
-    } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
-             _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight, _lp.svImageX, _lp.svImageY
-    )
-    labelsWithCVMetadata.list.map(label => LabelResumeMetadata.tupled(label))
-  }
-
-  /**
     * Find all labels with given regionId and userId
     * @param labelId
     * @return

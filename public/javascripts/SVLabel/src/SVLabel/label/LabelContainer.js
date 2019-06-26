@@ -65,19 +65,6 @@ function LabelContainer($) {
     };
 
     /**
-     * Fetches all labels that a user has placed in a given panorama(panoId)
-     * @param panoId - Google Street View Panorama ID
-     * @param callback - function to handle response
-     */
-    this.fetchLabelsInPano = function (panoId, callback) {
-        $.getJSON(
-            '/label/pano/' + panoId,
-            function (result) {
-                if (callback && !(result.error)) callback(result);
-            });
-    };
-
-    /**
      * Returns canvas labels.
      */
     this.getCanvasLabels = function () {
