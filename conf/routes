@@ -102,7 +102,6 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
-GET     /label/pano/:panoId                                  @controllers.LabelController.getLabelsInPano(panoId: String)
 POST    /label/geo/random/:labelType                         @controllers.ValidationTaskController.getRandomLabelData(labelType: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 

@@ -132,10 +132,6 @@ object LabelTable {
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
                              userRole: String, username: String, missionType: String, labelId: Int)
 
-  case class LabelResumeMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                 heading: Float, pitch: Float, zoom: Int, canvasX: Int,
-                                 canvasY: Int, canvasWidth: Int, canvasHeight: Int, svImageX: Int, svImageY: Int)
-
   case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
@@ -143,10 +139,6 @@ object LabelTable {
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt))
-
-  implicit val LabelResumeMetadataConverter = GetResult[LabelResumeMetadata](r =>
-    LabelResumeMetadata(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt,
-                        r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt))
 
   implicit val MiniMapResumeMetadataConverter = GetResult[MiniMapResumeMetadata](r =>
     MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
@@ -734,6 +726,13 @@ object LabelTable {
                     label._17, label._18, label._19, tags)
   }
 
+//  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean heading: Float, pitch: Float,
+//                           zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
+//                           auditTaskId: Int,
+//                           userId: String, username: String,
+//                           timestamp: java.sql.Timestamp,
+//                           labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
+//                           temporary: Boolean, description: Option[String])
   def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
