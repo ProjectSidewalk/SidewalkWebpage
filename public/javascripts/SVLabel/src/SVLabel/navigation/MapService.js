@@ -174,6 +174,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     if (map) map.setOptions({styles: mapStyleOptions});
 
+    /**
+     * Stores PanoMarkers with associated PanoID so panomarkers don't have to be created everytime a user walks
+     * into the same panorama.
+     */
+    var currentPanoMarkers = {};
+
     function _init(params) {
         params = params || {};
 
@@ -742,6 +748,49 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     svl.compass.update();
                 }
                 return;
+            }
+
+            /**
+             * Hides old PanoMarkers
+             */
+            var makeHidden = currentPanoMarkers[prevPanoId];
+            if (makeHidden != null) {
+                for (var i = 0; i < makeHidden.length; i++) {
+                    makeHidden[i].setVisible(false)
+                }
+            }
+
+            /**
+             * Creates new panomarkers if the user resumes mission from a previous time. If the PanoMarkers are
+             * already created from the user visiting that panorama earlier, it will make them visible again instead
+             * of creating new ones.
+             */
+            if (currentPanoMarkers[panoId] == null) {
+                svl.labelContainer.fetchLabelsInPano(panoId, function(result) {
+                    var temp = [];
+                    var list = result.labels;
+                    for (var i = 0; i < list.length; i++) {
+                        var pos = calculatePointPov(list[i].canvas_x, list[i].canvas_y,
+                            {heading: list[i].heading, pitch: list[i].pitch, zoom: list[i].zoom});
+                        var imagePaths = util.misc.getLabelCursorImagePath(),
+                            url = imagePaths[list[i].label_type].cursorImagePath;
+                        temp.push(new PanoMarker({
+                            container: document.getElementById("pano"),
+                            pano: svl.panorama,
+                            position: {heading: pos.heading, pitch: pos.pitch},
+                            icon: url,
+                            size: new google.maps.Size(30, 30)
+                        }));
+                    }
+                    currentPanoMarkers[panoId] = temp;
+                });
+            } else {
+                var makeVisible = currentPanoMarkers[panoId];
+                if (makeVisible != null) {
+                    for (var i = 0; i < makeVisible.length; i++) {
+                        makeVisible[i].setVisible(true)
+                    }
+                }
             }
 
             if (svl.streetViewService && panoId.length > 0) {

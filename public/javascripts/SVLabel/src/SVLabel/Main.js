@@ -384,25 +384,28 @@ function Main (params) {
                 svl.labelCounter.set('Other', counter['Other']);
             });
 
-        svl.labelContainer.fetchLabelsInTheCurrentMission(//Here
+        /**
+         * Loads the labels onto the mini map when user start auditing if they are near any previously
+         * placed labels
+         */
+        svl.labelContainer.miniMapLabelsInRegion(
             neighborhood.getProperty("regionId"),
             function (result) {
-                for (var i = 0; i < result.length; i++) {
-                    let label = result[i];
-                    var googleLatLng = new google.maps.LatLng(label.panorama_lat, label.panorama_lng);
-                    //let labelType = label_type_id (1 = "curbramp");
+                var labelsArr = result.labels;
+                for (var i = 0; i < labelsArr.length; i++) {
                     var imagePaths = util.misc.getIconImagePaths(),
-                        url = imagePaths["CurbRamp"].googleMapsIconImagePath;
-                    var googleMarker =  new google.maps.Marker({
-                            position: googleLatLng,
-                            map: svl.map.getMap(),
-                            title: "Hi!",
-                            icon: url,
-                            size: new google.maps.Size(20, 20)
-                            });
+                        url = imagePaths[labelsArr[i].label_type].googleMapsIconImagePath;
+                    var googleMarker = new google.maps.Marker({
+                        position: {lat: labelsArr[i].label_lat, lng: labelsArr[i].label_lng},
+                        map: svl.map.getMap(),
+                        title: "Mini-Map Label",
+                        icon: url,
+                        size: new google.maps.Size(20, 20)
+                    });
                     googleMarker.setMap(svl.map.getMap());
-                }//End
+                }
             });
+
         var unit = {units: 'miles'};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
