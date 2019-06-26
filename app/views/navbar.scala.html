@@ -449,6 +449,11 @@ $(document).ready(function () {
 		    return false;
 		}
 
+		if (password.length < 8) {
+		    invalidSignInUpAlert(false, 'Password must be at least 8 characters.');
+		    return false;
+		}
+
                 var data = $(this).serialize();
 
                 var url = '/authapi/signup';
