@@ -393,8 +393,8 @@ function Main (params) {
             function (result) {
                 var labelsArr = result.labels;
                 for (var i = 0; i < labelsArr.length; i++) {
-                    var imagePaths = util.misc.getIconImagePaths(),
-                        url = imagePaths[labelsArr[i].label_type].googleMapsIconImagePath;
+                    var imagePaths = util.misc.getIconImagePaths();
+                    var url = imagePaths[labelsArr[i].label_type].googleMapsIconImagePath;
                     var googleMarker = new google.maps.Marker({
                         position: {lat: labelsArr[i].label_lat, lng: labelsArr[i].label_lng},
                         map: svl.map.getMap(),

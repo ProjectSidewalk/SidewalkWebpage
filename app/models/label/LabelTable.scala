@@ -172,8 +172,7 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- LabelPointTable.labelPoints if _lb.labelId === _lp.labelId
 
-    } yield (_lb.labelId, _lt.labelType, _lp.lat, _lp.lng
-    )
+    } yield (_lb.labelId, _lt.labelType, _lp.lat, _lp.lng)
     labelsWithCVMetadata.list.map(label => MiniMapResumeMetadata.tupled(label))
   }
 
