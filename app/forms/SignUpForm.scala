@@ -8,7 +8,8 @@ object SignUpForm {
     mapping(
       "username" -> nonEmptyText,
       "email" -> email,
-      "password" -> nonEmptyText
+      "password" -> nonEmptyText,
+      "passwordConfirm" -> nonEmptyText
    )(Data.apply)(Data.unapply)
   )
 
@@ -22,6 +23,7 @@ object SignUpForm {
   case class Data(
                  username: String,
                  email: String,
-                 password: String
+                 password: String,
+		 passwordConfirm: String
                    )
 }
