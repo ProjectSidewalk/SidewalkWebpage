@@ -9,6 +9,9 @@
  * @constructor
  */
 function MapService (canvas, neighborhoodModel, uiMap, params) {
+    // abbreviated dates for panorama date overlay
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
     var self = { className: 'Map' },
         _canvas = canvas,
         mapIconInterval,
@@ -749,6 +752,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.streetViewService.getPanorama({pano: panoId},
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
+                            // Updates the date overlay to match when the current panorama was taken.
+                            var date = data.imageDate;
+                            var year = date.substring(0, 4);
+                            var month = months[parseInt(date.substring(5, 7)) - 1];
+                            document.getElementById("svl-panorama-date").innerText = month + " " + year;
 
                             var panoramaPosition = svl.panorama.getPosition(); // Current Position
                             map.setCenter(panoramaPosition);
