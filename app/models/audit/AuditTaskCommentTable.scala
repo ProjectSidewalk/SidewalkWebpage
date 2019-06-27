@@ -88,7 +88,7 @@ object AuditTaskCommentTable {
       (c, u) <- ValidationTaskCommentTable.validationTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
     } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment)).take(n).list.map(c => GenericComment(c._1, c._2, Some(c._3), c._4, c._5))
 
-    (auditComments ++ validationComments).sortBy(_.timestamp).take(n)
+    (auditComments ++ validationComments).sortBy(_.timestamp).reverse.take(n)
   }
 
   // Defining ordered method for Timestamp so they can be used in sortBy.
