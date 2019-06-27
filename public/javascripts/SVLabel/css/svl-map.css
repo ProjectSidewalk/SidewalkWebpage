@@ -2,6 +2,8 @@
     position: absolute;
     left: 735px;
     top: 393px;
+    width: 200px;
+    height: 210px;
 }
 
 .google-maps-pane {

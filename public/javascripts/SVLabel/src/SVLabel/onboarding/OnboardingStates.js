@@ -1,7 +1,7 @@
 function OnboardingStates (compass, mapService, statusModel, tracker) {
     var numStates = 42;
-    var panoId = "stxXyCKAbd73DmkM2vsIHA";
-    var afterWalkPanoId = "PTHUzZqpLdS1nTixJMoDSw";
+    var panoId = "tutorial";
+    var afterWalkPanoId = "afterWalkTutorial";
     var headingRanges = {
         "stage-1": [238, 242],
         "stage-2-adjust": [197, 242],
@@ -21,8 +21,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "heading": 241,
                 "pitch": -6,
                 "zoom": 1,
-                "lat": 38.94042608,
-                "lng": -77.06766133,
+                "lat": 38.9404982935884,
+                "lng": -77.06762207994893,
                 "name": "initialize",
                 "maxLabelCount": 0
             },

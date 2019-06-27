@@ -68,6 +68,10 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         this._removeOnboardingLabels();
 
+        svl.panorama.registerPanoProvider(getCustomPanorama);
+
+        adjustMap();
+
         $("#toolbar-onboarding-link").css("visibility", "hidden");
 
         var canvasUI = uiOnboarding.canvas.get(0);
@@ -106,6 +110,88 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         onboardingModel.triggerStartOnboarding();
     };
+
+    function getCustomPanorama(pano) {
+        if (pano === 'tutorial') {
+            return {
+                location: {
+                    pano: 'tutorial',
+                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
+                },
+                links: [{
+                    heading: 342,
+                    description: 'Exit',
+                    pano: "afterWalkTutorial"
+                }],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(2048, 1024),
+                    worldSize: new google.maps.Size(2048, 1024),
+                    centerHeading: 50,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return svl.rootDirectory + "img/onboarding/tiles/tutorial.png";
+                    }
+                }
+            };
+        } else if (pano === 'afterWalkTutorial') {
+            return {
+                location: {
+                    pano: 'afterWalkTutorial',
+                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
+                },
+                links: [],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(2048, 1024),
+                    worldSize: new google.maps.Size(2048, 1024),
+                    centerHeading: 339,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorial.png";
+                    }
+                }
+            };
+        }
+    }
+
+    function adjustMap() {
+        var mapStyleOptions = [
+            {
+                featureType: "all",
+                stylers: [
+                    { visibility: "off" }
+                ]
+            },
+            {
+                featureType: "road",
+                stylers: [
+                    { visibility: "off" }
+                ]
+            },
+            {
+                "elementType": "labels",
+                "stylers": [
+                    { "visibility": "off" }
+                ]
+            },
+            {
+                elementType: 'geometry.fill',
+                stylers: [
+                    { visibility: 'off' }
+                ]
+            },
+            {
+                featureType: 'landscape.natural.landcover',
+                elementType: 'geometry.fill',
+                stylers: [
+                    { visibility: 'on' },
+                ]
+            }
+        ];
+        var map = svl.map.getMap();
+        map.setOptions({styles: mapStyleOptions});
+        //var ans = svl.rootDirectory + "/img/onboarding/tut1.jpg";
+        document.getElementById("google-maps-holder").style.backgroundImage = "url('/assets/javascripts/SVLabel//img/onboarding/tut1.jpg')";
+    }
 
     function renderRoutesOnGoogleMap(state) {
 
@@ -728,7 +814,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             googleCallback,
             $target;
 
-        renderRoutesOnGoogleMap(state);
+        //renderRoutesOnGoogleMap(state);
 
         // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
         // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
@@ -862,7 +948,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         if (state == getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
         }
-        renderRoutesOnGoogleMap(state);
+        //renderRoutesOnGoogleMap(state);
         blinkInterface(state);
 
         if (!("okButton" in state) || state.okButton) {
