@@ -384,6 +384,28 @@ function Main (params) {
                 svl.labelCounter.set('Other', counter['Other']);
             });
 
+        /**
+         * Loads the labels onto the mini map when user start auditing if they are near any previously
+         * placed labels
+         */
+        svl.labelContainer.miniMapLabelsInRegion(
+            neighborhood.getProperty("regionId"),
+            function (result) {
+                var labelsArr = result.labels;
+                for (var i = 0; i < labelsArr.length; i++) {
+                    var imagePaths = util.misc.getIconImagePaths();
+                    var url = imagePaths[labelsArr[i].label_type].googleMapsIconImagePath;
+                    var googleMarker = new google.maps.Marker({
+                        position: {lat: labelsArr[i].label_lat, lng: labelsArr[i].label_lng},
+                        map: svl.map.getMap(),
+                        title: "Mini-Map Label",
+                        icon: url,
+                        size: new google.maps.Size(20, 20)
+                    });
+                    googleMarker.setMap(svl.map.getMap());
+                }
+            });
+
         var unit = {units: 'miles'};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);

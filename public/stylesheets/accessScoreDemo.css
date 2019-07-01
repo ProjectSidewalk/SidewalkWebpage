@@ -52,14 +52,6 @@ svg {
 }
 
 
-.leaflet-overlay-pane svg g:first-child path {
-    fill: #fff !important;
-    fill-opacity: 0.4 !important;
-    stroke-width: 2px !important;
-    stroke-opacity: 1 !important;
-    stroke: #ffffff !important;
-}
-
 .table input {
     margin-top: 5px;
 }
