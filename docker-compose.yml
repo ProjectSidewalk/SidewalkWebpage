@@ -14,7 +14,7 @@ services:
     ports:
       - "127.0.0.1:9000:9000"
     environment:
-      - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
+      - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk-newberg
 
   db:
     image: projectsidewalk/db

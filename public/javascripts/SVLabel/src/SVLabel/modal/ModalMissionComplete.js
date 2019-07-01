@@ -236,12 +236,28 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var unit = {units: 'miles'};
         var regionId = neighborhood.getProperty("regionId");
 
+        console.log("User has finished a particular mission...")
+
         var missionDistance = mission.getDistance("miles");
+        missionDistance = Math.round(missionDistance * 10) / 10;
+        console.log("mission distance for this time is " + missionDistance);
         var missionPay = mission.getProperty("pay");
+
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
+        userAuditedDistance = Math.round(userAuditedDistance * 10) / 10;
+        console.log("user audited distance is " + userAuditedDistance);
+
         var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority(unit);
+        allAuditedDistance = Math.round(allAuditedDistance * 10) / 10;
+        console.log("total audited distance is " + allAuditedDistance);
+
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
+        otherAuditedDistance = Math.round(otherAuditedDistance * 10) / 10;
+        console.log("others' audited distance is " + otherAuditedDistance);
+
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
+        remainingDistance = Math.round(remainingDistance * 10) / 10;
+        console.log("remaining distance is " + remainingDistance);
 
         var userCompletedTasks = taskContainer.getCompletedTasks(regionId);
         var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();

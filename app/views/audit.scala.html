@@ -22,63 +22,65 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
 
-    @if(Some(User)){
+    @if(Some(User)) {
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content" id="survey-modal">
                     <div class="modal-header">
-                        <!-- only allow non-turkers to exit out of survey -->
+                            <!-- only allow non-turkers to exit out of survey -->
                         @if(user.get.role.getOrElse("") != "Turker") {
-                            <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
+                            <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">
+                                ×</button>
                         }
-                        <h4 class="modal-title" id="sign-in-label">Please take this one-time survey about Project Sidewalk</h4>
+                        <h4 class="modal-title" id="sign-in-label">
+                            Please take this one-time survey about Project Sidewalk</h4>
                     </div>
                     <div class="modal-body">
                         <form id="surveyForm" method="post">
                             <ol>
-                            @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                            @for(surveyQuestion <- SurveyQuestionTable.listAll) {
                                 <li>
-                                @if(surveyQuestion.required == true) {
-                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
-                                } else {
-                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
-                                }
-                                @if(surveyQuestion.surveyInputType == "radio"){
-                                    <ul class="survey-option-holder">
-                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
-                                        <li class="survey-option">
-                                            @if(surveyQuestion.required == true){
-                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
-                                            } else{
-                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                            }
-                                            <label>@surveyOption.surveyOptionText</label>
-                                        </li>
+                                    @if(surveyQuestion.required == true) {
+                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
+                                    } else {
+                                        <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
                                     }
-                                    </ul>
-                                }else{
-                                    @if(surveyQuestion.surveyInputType == "checkbox"){
+                                    @if(surveyQuestion.surveyInputType == "radio") {
                                         <ul class="survey-option-holder">
-                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
                                             <li class="survey-option">
-                                                <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                                <label>@surveyOption.surveyOptionText</label>
+                                                @if(surveyQuestion.required == true) {
+                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
+                                                } else {
+                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                                }
+                                            <label>@surveyOption.surveyOptionText</label>
                                             </li>
                                         }
                                         </ul>
-                                    } else{
-                                        @if(surveyQuestion.surveyInputType == "free-text-feedback"){
-                                            @if(surveyQuestion.required == true){
-                                                <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
-                                            } else{
-                                                <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
+                                    } else {
+                                        @if(surveyQuestion.surveyInputType == "checkbox") {
+                                            <ul class="survey-option-holder">
+                                            @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
+                                                <li class="survey-option">
+                                                    <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                                    <label>@surveyOption.surveyOptionText</label>
+                                                </li>
+                                            }
+                                            </ul>
+                                        } else {
+                                            @if(surveyQuestion.surveyInputType == "free-text-feedback") {
+                                                @if(surveyQuestion.required == true) {
+                                                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
+                                                } else {
+                                                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
+                                                }
                                             }
                                         }
                                     }
-                                }
                                 </li>
                             }
-                        </ol>
+                            </ol>
                             <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
                         </form>
                     </div>
@@ -86,8 +88,9 @@
                     </div>
                 </div><!-- /.modal-content -->
             </div><!-- /.modal-dialog -->
-        </div><!-- /.modal -->
-}
+        </div>
+            <!-- /.modal -->
+    }
 
     <div class="container toolUI" style = "visibility: hidden;">
         <div id="advanced-overlay">
@@ -97,7 +100,8 @@
                         <span class="overlay-header">Advanced Neighborhood</span>
                     </p>
                     <p>
-                        <b>Warning:</b> This neighborhood is difficult to travel and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
+                        <b>Warning:</b>
+                        This neighborhood is difficult to travel and is only recommended for experienced users. Are you sure you would like to explore this neighborhood?
                     </p>
                     <p>
                         If you get stuck, click the Jump button to navigate to a different area.
@@ -153,14 +157,17 @@
                         You should receive your bonus amount in the next day or two. If you completed the HIT but did
                         not submit your confirmation code on the mturk website, send us an email at
                         <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your
-                        confirmation code (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        confirmation code (@{
+                            models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")
+                        }).
                     </p>
                 </div>
             </div>
         </div>
         <div class="page-alert-holder" id="unsupported-browser-alert" style="visibility: hidden">
             <div class="page-alert">
-                <span id="page-alert-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
+                <span id="page-alert-message"><strong>Disclaimer:</strong>
+                    This site is optimized for Google Chrome. Other browsers are not fully supported yet.&nbsp;</span>
 
                 <a id="page-alert-close" onClick="hideBrowserVersionAlert();" href="#"><span class="glyphicon glyphicon-remove"></span></a>
             </div>
@@ -169,7 +176,7 @@
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
                     <div id="left-column-confirmation-code-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon" align="">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon" align="">
                         Mturk Code
                     </div>
                     <div id="left-column-sound-button" class="button">
@@ -179,12 +186,12 @@
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-jump-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")' alt="Jump icon" align="">
                         Jump
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")' alt="Comment icon" align="">
                         Feedback
                     </div>
                 </div>
@@ -195,9 +202,10 @@
                     <div id="ribbon-menu-left-column-button-holder">
                         <span class="modeSwitch" val="Walk" id="modeSwitchWalk" style="">
                             <span class="modeSwitch_Icon">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="icon-explore" class="icon-ribbon-menu-large" alt="Mode switch: Walk" align="">
+                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")' id="icon-explore" class="icon-ribbon-menu-large" alt="Mode switch: Walk" align="">
                             </span>
-                            <span class="modeSwitch_Name" style="position:absolute; left: 0px;"><u>E</u>xplore</span>
+                            <span class="modeSwitch_Name" style="position: absolute;
+                                left: 0px;"><u>E</u>xplore</span>
                             <div id="ribbon-mode-switch-horizontal-line-walk" class="ribbon-menu-mode-switch-horizontal-line" val="Walk"></div>
                         </span>
                     </div>
@@ -272,7 +280,7 @@
 
                     <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
 
-              <!--      <a href="" target="_blank" id="status-neighborhood-link">
+                        <!--      <a href="" target="_blank" id="status-neighborhood-link">
                         <h2 id="link-neighborhood-name"><span id="status-holder-neighborhood-name"></span>D.C.</h2>
                     </a>-->
 
@@ -283,7 +291,8 @@
                         </span>
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
-                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>labels</small></span>
+                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>
+                                labels</small></span>
                         </span>
                     </div>
                 </div>
@@ -296,8 +305,8 @@
                         </div>
                     </div>
                     <br class="clear">
-                    <h2 id="current-mission-reward" style="display:none"></h2>
-                    <h2 id="total-mission-reward" style="display:none"></h2>
+                    <h2 id="current-mission-reward" style="display: none"></h2>
+                    <h2 id="total-mission-reward" style="display: none"></h2>
                 </div>
                 <div class="status-box">
                     <div id="label-counter"></div>
@@ -305,7 +314,8 @@
             </div>
             <div id="next-pano-button-holder">
                 <div id="groundtruth-info-panel">
-                    <button type="button" class="button" id="next-pano-btn" onClick="svl.cvGroundTruthMission.cvGroundTruthNextPano();">Next Pano</button>
+                    <button type="button" class="button" id="next-pano-btn" onClick="svl.cvGroundTruthMission.cvGroundTruthNextPano();">
+                        Next Pano</button>
                     <p id="remaining-pano-text">50 remaining</p>
                     <p id="current-panoid-text"></p>
                 </div>
@@ -320,31 +330,32 @@
                 </div>
                 <div id="street-view-holder">
                     <div id="ribbon-street-view-connector"><!-- border --></div>
-                    <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
+                        <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
                     <div id="pano" class="Window_StreetView" style="z-index: 0;" ></div>
                     <div id="overlay-message-holder" class="Window_StreetView"></div>
                     <div id="onboarding-holder" class="Window_StreetView">
-                        <canvas id="onboarding-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas>
+                        <canvas id="onboarding-canvas" class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas>
                         <div id="hand-gesture-holder"></div>
                         <div id="onboarding-background"></div>
                         <div id="onboarding-message-holder" class="white-background">
                             <p></p>
                         </div>
-                        <div style="display:none;">
+                        <div style="display: none;">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClick.png")' id="double-click-icon" width="200" alt="Double click icon"/>
                         </div>
                     </div>
-                    <div id="userControlLayer"  class="Window_StreetView" style="z-index: 0;">
-                        <div id="viewControlLayer"  class="Window_StreetView" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 1;">
-                            <!-- In IE, it seems like a div element that has nothing inside gets neglected...
+                    <div id="userControlLayer" class="Window_StreetView" style="z-index: 0;">
+                        <div id="viewControlLayer" class="Window_StreetView" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move;
+                            z-index: 1;">
+                                <!-- In IE, it seems like a div element that has nothing inside gets neglected...
                                 So I put an empty canvas as a place holder.
                             -->
-                            <!--[if IE]>
+                                <!--[if IE]>
                             <canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>
                             <![endif]-->
                         </div>
-                        <div id="labelDrawingLayer"  class="Window_StreetView" style="z-index: 0;">
-                            <canvas id="label-canvas"  class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas>
+                        <div id="labelDrawingLayer" class="Window_StreetView" style="z-index: 0;">
+                            <canvas id="label-canvas" class="Window_StreetView" width="720px" height="480px" style="cursor: default, move;"></canvas>
                         </div>
                     </div>
 
@@ -362,15 +373,15 @@
                             <div id="severity-radio-holder">
                                 <div class="radio-inline" id="column-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible-2.png")'
-                                        class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
+                                    class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
                                     <div class="label-severity-axis-label">Passable</div>
                                 </div>
                                 <div class="radio-inline" id="severity-one" data-toggle="tooltip" onmouseut="function(){}">
                                     <label class="radio-button-labels">
                                         <input type="radio" name="label-severity" value="1">
-                                            <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
-                                            default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
-                                            value="1" alt="Smiley face rating 1">
+                                        <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
+                                        default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_1_BW.png'
+                                        value="1" alt="Smiley face rating 1">
                                         <div>1</div>
                                     </label>
                                 </div>
@@ -378,17 +389,17 @@
                                     <label class="radio-button-labels">
                                         <input type="radio" name="label-severity" value="2">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_2_BW.png'
-                                            default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_2_BW.png'
-                                            value="2" alt="Smiley face rating 2">
+                                        default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_2_BW.png'
+                                        value="2" alt="Smiley face rating 2">
                                         <div>2</div>
                                     </label>
                                 </div>
                                 <div class="radio-inline" id="severity-three" data-toggle="tooltip">
-                                  <label class="radio-button-labels">
-                                      <input type="radio" name="label-severity" value="3">
+                                    <label class="radio-button-labels">
+                                        <input type="radio" name="label-severity" value="3">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_3_BW.png'
-                                            default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_3_BW.png'
-                                            value="3" alt="Smiley face rating 3">
+                                        default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_3_BW.png'
+                                        value="3" alt="Smiley face rating 3">
                                         <div>3</div>
                                     </label>
                                 </div>
@@ -396,23 +407,23 @@
                                     <label class="radio-button-labels">
                                         <input type="radio" name="label-severity" value="4">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_4_BW.png'
-                                            default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_4_BW.png'
-                                            value="4" alt="Smiley face rating 4">
+                                        default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_4_BW.png'
+                                        value="4" alt="Smiley face rating 4">
                                         <div>4</div>
                                     </label>
                                 </div>
                                 <div class="radio-inline" id="severity-five" data-toggle="tooltip">
-                                  <label class="radio-button-labels">
-                                      <input type="radio" name="label-severity" value="5">
+                                    <label class="radio-button-labels">
+                                        <input type="radio" name="label-severity" value="5">
                                         <img src='/assets/javascripts/SVLabel/img/misc/SmileyRating_5_BW.png'
-                                            default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_5_BW.png'
-                                            value="5" alt="Smiley face rating 5">
+                                        default-src='/assets/javascripts/SVLabel/img/misc/SmileyRating_5_BW.png'
+                                        value="5" alt="Smiley face rating 5">
                                         <div>5</div>
                                     </label>
                                 </div>
                                 <div class="radio-inline" id="column-not-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible-2.png")'
-                                        class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
+                                    class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
                                     <div class="label-severity-axis-label">Not Passable</div>
                                 </div>
                             </div>
@@ -435,7 +446,8 @@
                                 <button class="context-menu-tag" name='tag' id="9"></button>
                             </div>
                             <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
+                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">
+                                    Temporary (e.g., construction, trash)</label>
                                 <button id="context-menu-ok-button">OK</button>
                             </div>
                         </div>
@@ -454,7 +466,7 @@
                 </div>
             </div>
             <div id="page-overlay-holder">
-                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
+                    <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
             </div>
             <div id="pop-up-message-holder" class="hidden">
                 <div id="pop-up-message-background"></div>
@@ -533,9 +545,12 @@
                             <div id="modal-mission-complete-map">
                             </div>
                             <div id="map-legend">
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> This Mission</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> Previous Missions</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg> Other Users' Missions</span>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg>
+                                    This Mission</span><br>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg>
+                                    Previous Missions</span><br>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg>
+                                    Other Users' Missions</span>
                             </div>
 
                         </div>
@@ -571,7 +586,7 @@
                             <h3>Neighborhood Progress</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
-                                @if(user){
+                                @if(user) {
                                     @if(user.get.role.getOrElse("") == "Turker") {
                                         <tr>
                                             <th>Earned in this mission</th>
@@ -596,9 +611,10 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            @if(user){
+                            @if(user) {
                                 @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
-                                    <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
+                                    <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">
+                                        Click to generate HIT confirmation code</button>
                                 }
                             }
                             <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button>
@@ -687,8 +703,8 @@
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_Passable.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
                             <p class="bold">Rating 1: Passable</p>
                             <p>A traffic light standing in the middle of the sidewalk. There seems to be enough space
-                            for wheelchair users to pass, but those who are using larger chairs
-                            could have trouble navigating.</p>
+                                for wheelchair users to pass, but those who are using larger chairs
+                                could have trouble navigating.</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_HardToPass.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
@@ -719,7 +735,7 @@
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_Passable.png")' class="img-responsive" alt="A partially damaged sidewalk." />
                             <p class="bold">Rating 1: Passable</p>
                             <p>Partially damaged sidewalk. Because there is enough space next to the damaged part of
-                            the sidewalk, wheelchair users would be able to pass. </p>
+                                the sidewalk, wheelchair users would be able to pass. </p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_HardToPass.png")' class="img-responsive" alt="Cobblestone sidewalks and crosswalks." />
@@ -753,7 +769,7 @@
             <div class="col-md-12">
                 <p>
                     In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing
-                        missions to find and label accessibility features and problems in the environment, including:
+                    missions to find and label accessibility features and problems in the environment, including:
                 </p>
                 <p>
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v2.png")' id="onboarding-example-image-1"
@@ -768,25 +784,26 @@
             </div>
             <div class="col-md-offset-3 col-md-3">
                 <p>
-                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">Let's get started!</button>
+                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative;
+                        top: -4px;">Let's get started!</button>
                 </p>
             </div>
 
-                <div class="col-md-12" id="onboarding-skip-option">
-                    <p class="text-right"><span style='font-size: 65%;'>
-                        Already taken the tutorial? Have an account?
-                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a>
-                        now
-                        or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
-                    </span></p>
-                </div>
+            <div class="col-md-12" id="onboarding-skip-option">
+                <p class="text-right"><span style='font-size: 65%;'>
+                    Already taken the tutorial? Have an account?
+                    <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a>
+                    now
+                    or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                </span></p>
+            </div>
 
             <script>
                     var role = '@user.get.role';
                     var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
                     if (role === 'Turker' && numMissionsCompleted === 0) {
                         $("#onboarding-skip-option").hide();
-                    } else{
+                    } else {
                         $("#onboarding-skip-option").show();
                     }
             </script>
@@ -799,7 +816,7 @@
                 <p>
                     Great! You’ve learned how to use the interface! Now, go ahead and
                     <span class="bold">label the following accessibility attributes in Google Street View</span> that
-                        significantly affect how wheelchair users move about the city:
+                    significantly affect how wheelchair users move about the city:
                 </p>
                 <p>
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
@@ -823,286 +840,299 @@
 
 
     <script type="text/javascript">
-        // Todo. Try to move the following code to Main.js
-        var svl = svl || {};
-        var mainParam = {};
-        svl.storage = new TemporaryStorage(JSON);
-        if (!("tracker" in svl)) {
-            svl.tracker = new Tracker();
-        }
+    // Todo. Try to move the following code to Main.js
+    var svl = svl || {};
+    var mainParam = {};
+    svl.storage = new TemporaryStorage(JSON);
+    if (!("tracker" in svl)) {
+        svl.tracker = new Tracker();
+    }
 
-        svl.userModel = new UserModel();
-        @if(user) {
-            var userParam = {
-                username: '@user.get.username',
-                role: '@user.get.role'
-            };
-            svl.user = new User(userParam);
+    svl.userModel = new UserModel();
+    @if(user) {
+    var userParam = {
+        username: '@user.get.username',
+        role: '@user.get.role'
+    };
+    svl.user = new User(userParam);
 
-            $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
-        } else {
-            $('#status-neighborhood-link').hide();
+    $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
+    } else {
+    $('#status-neighborhood-link').hide();
 
-            var userParam = {
-                username: "anonymous",
-                role: "Anonymous"
-            };
-            svl.user = new User(userParam);
-        }
-        svl.userModel._user = svl.user;
-        var hitExpired = false;
-        @if(user && user.get.role.getOrElse("") == "Turker") {
-            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
-            if (msRemaining < 0) {
-                hitExpired = true;
-            }
-        }
-        if(hitExpired) {
-            $(".toolUI").css({"visibility": "visible"});
-            $('#HIT-expiration-overlay').show();
-        } else @if(task) {
-            var streetViewService = new google.maps.StreetViewService();
-            svl.streetViewService = streetViewService;
-            var STREETVIEW_MAX_DISTANCE = 25;
+    var userParam = {
+        username: "anonymous",
+        role: "Anonymous"
+    };
+    svl.user = new User(userParam);
+    }
+    svl.userModel._user = svl.user;
+    var hitExpired = false;
+    @if(user && user.get.role.getOrElse("") == "Turker") {
+    var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+    if (msRemaining < 0) {
+        hitExpired = true;
+    }
+    }
+    if (hitExpired) {
+        $(".toolUI").css({"visibility": "visible"});
+        $('#HIT-expiration-overlay').show();
+    } else @if(task) {
+        var streetViewService = new google.maps.StreetViewService();
+    svl.streetViewService = streetViewService;
+    var STREETVIEW_MAX_DISTANCE = 25;
 
-            var geojson = @Html(task.get.toJSON.toString);
-            var lat1 = geojson.features[0].properties.current_lat;
-            var lng1 = geojson.features[0].properties.current_lng;
-            var startPointReversed = geojson.features[0].properties.start_point_reversed;
-            var latLng = new google.maps.LatLng(lat1, lng1);
+    var geojson = @Html(task.get.toJSON.toString);
+    var lat1 = geojson.features[0].properties.current_lat;
+    var lng1 = geojson.features[0].properties.current_lng;
+    var startPointReversed = geojson.features[0].properties.start_point_reversed;
+    var latLng = new google.maps.LatLng(lat1, lng1);
 
-            if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
-            if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
-            svl.taskModel = new TaskModel();
-            svl.taskFactory = new TaskFactory(svl.taskModel);
-            svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.taskModel, svl.tracker);
+    if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
+    if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
+    svl.taskModel = new TaskModel();
+    svl.taskFactory = new TaskFactory(svl.taskModel);
+    svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.taskModel, svl.tracker);
 
-            // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
-            streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    // Ok
-                    var newTask = svl.taskFactory.create(geojson, lat1, lng1, startPointReversed);
-                    svl.taskContainer.setCurrentTask(newTask);
-                    init();
+    // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
+    streetViewService.getPanorama({
+        location: latLng,
+        radius: STREETVIEW_MAX_DISTANCE,
+        source: google.maps.StreetViewSource.OUTDOOR
+    }, function (streetViewPanoramaData, status) {
+        if (status === google.maps.StreetViewStatus.OK) {
+            // Ok
+            var newTask = svl.taskFactory.create(geojson, lat1, lng1, startPointReversed);
+            svl.taskContainer.setCurrentTask(newTask);
+            init();
 
-                    // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
-                    @if(panoId) {
-                        try {
-                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData){
-                                var lat = panoData.location.latLng.lat();
-                                var lng = panoData.location.latLng.lng();
-                                svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
-                            });
-                        } catch (e) {
-                            console.error("Invalid panorama ID");
-                        }                        
-                    } else { @if(lat && lng) {
-                        svl.map.setPosition(@lat.get, @lng.get);
-                    }}
-                }
-                else {
-                    // No street view available in this range.
-                    console.error("Error loading Street View imagery: " + status);
-                    console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
-                }
-            });
-        } else {
-            $(".toolUI").css({"visibility": "visible"});
-            $('#already-completed-neighborhood-overlay').show();
-        }
-
-        $(document).ready(function(){
-            // Solutions to annoying text selection cursor.
-            // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
-            document.onselectstart = function () { return false; };
-            enableTouchSupport();
-
-            // Advanced Neighborhood Overlay
-            $('#continue-advanced').on('click', function(){
-                mainParam.advancedOverlay = false;
-                $('#advanced-overlay').hide();
-            });
-
-            $('#redirect-advanced').on('click', function(){
-                mainParam.advancedOverlay = false;
-                $(location).attr('href', '/audit?nextRegion=easy');
-            });
-
-            // Neighborhood Completion Overlay
-            $('#continue-current').on('click', function(){
-                $('#neighborhood-completion-overlay').hide();
-            });
-
-            $('#redirect-new').on('click', function(){
-                $(location).attr('href', '/audit?nextRegion=regular');
-            });
-
-            // Already Completed Neighborhood Overlay
-            $('#accept-redirect').on('click', function(){
-                $(location).attr('href', '/audit');
-            });
-
-            @* If this is a CV ground truth audit, initialize a CVGroundTruthMission object. If mission is null,
-             the create ground truth mission form will be displayed, otherwise the ground truth audit will start. *@
-            @if(enableCVGroundTruthLabelingMode) {
-                svl.cvGroundTruthMission = new CVGroundTruthMission(@Html(mission.toJSON.toString));
-            }
-
-        });
-
-        function enableTouchSupport() {
-            $(document).on('touchstart touchmove touchend touchcancel', function(e) {
-                var event = e.originalEvent;
-                var touches = event.changedTouches,
-                        first = touches[0],
-                        type = "";
-
-                switch(event.type) {
-                    case "touchstart": type = "mousedown"; break;
-                    case "touchmove":  type = "mousemove"; break;
-                    case "touchend":   type = "mouseup";   break;
-                    default:           return;
-                }
-
-                var simulatedEvent = new MouseEvent(type, {
-                    screenX: first.screenX,
-                    screenY: first.screenY,
-                    clientX: first.clientX,
-                    clientY: first.clientY
+            // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
+            @if(panoId) {
+            try {
+                svl.streetViewService.getPanorama({pano: "@panoId.get"}, function (panoData) {
+                    var lat = panoData.location.latLng.lat();
+                    var lng = panoData.location.latLng.lng();
+                    svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
                 });
+            } catch (e) {
+                console.error("Invalid panorama ID");
+            }
+            } else { @if(lat && lng) {
+            svl.map.setPosition(@lat.get, @lng.get);
+            }}
+        } else {
+            // No street view available in this range.
+            console.error("Error loading Street View imagery: " + status);
+            console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
+        }
+    });
+    } else {
+    $(".toolUI").css({"visibility": "visible"});
+    $('#already-completed-neighborhood-overlay').show();
+    }
 
-                first.target.dispatchEvent(simulatedEvent);
-            });
+    $(document).ready(function () {
+        // Solutions to annoying text selection cursor.
+        // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
+        document.onselectstart = function () {
+            return false;
+        };
+        enableTouchSupport();
 
-            $("#interaction-area-holder").on("touchmove", function (event) {
-                event.preventDefault();
-            });
+        // Advanced Neighborhood Overlay
+        $('#continue-advanced').on('click', function () {
+            mainParam.advancedOverlay = false;
+            $('#advanced-overlay').hide();
+        });
+
+        $('#redirect-advanced').on('click', function () {
+            mainParam.advancedOverlay = false;
+            $(location).attr('href', '/audit?nextRegion=easy');
+        });
+
+        // Neighborhood Completion Overlay
+        $('#continue-current').on('click', function () {
+            $('#neighborhood-completion-overlay').hide();
+        });
+
+        $('#redirect-new').on('click', function () {
+            $(location).attr('href', '/audit?nextRegion=regular');
+        });
+
+        // Already Completed Neighborhood Overlay
+        $('#accept-redirect').on('click', function () {
+            $(location).attr('href', '/audit');
+        });
+
+        @* If this is a CV ground truth audit, initialize a CVGroundTruthMission object. If mission is null,
+         the create ground truth mission form will be displayed, otherwise the ground truth audit will start. *@
+        @if(enableCVGroundTruthLabelingMode) {
+        svl.cvGroundTruthMission = new CVGroundTruthMission(@Html(mission.toJSON.toString));
         }
 
-        function init() {
-            var mainParam = mainParam || {},
-                    formParam = {},
-                    initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
-            formParam.dataStoreUrl = '@routes.TaskController.post';
-            formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
-            formParam.hitId = '';
-            formParam.assignmentId = '';
-            formParam.turkerId = '';
-            formParam.onboarding = false;
-            formParam.taskPanoramaId = "";
-            formParam.taskDescription = "";
-            formParam.domIds = {};
-            formParam.domIds.canvas = 'onboardingCanvas';
-            mainParam.form = formParam;
-            mainParam.initLat = initialLocation.lat;
-            mainParam.initLng = initialLocation.lng;
-            mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
-            @if(user){
-                @if(user.get.role.getOrElse("") == "Turker") {
-                    svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
-                    svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
-                    svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)){
-                        $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                    } else{
-                        $("#left-column-confirmation-code-button").css('visibility', "");
-                        $("#left-column-confirmation-code-button").attr('data-toggle','popover');
-                        $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
-                        $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
-                        $("#left-column-confirmation-code-button").popover();
+    });
 
-                        //Hide the confirmation popover on clicking the background
-                        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+    function enableTouchSupport() {
+        $(document).on('touchstart touchmove touchend touchcancel', function (e) {
+            var event = e.originalEvent;
+            var touches = event.changedTouches,
+                    first = touches[0],
+                    type = "";
 
-                        $(document).on('click', function (e) {
-                            $("#left-column-confirmation-code-button").each(function () {
-                                //the 'is' for buttons that trigger popups
-                                //the 'has' for icons within a button that triggers a popup
-                                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                                    (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
-                                }
-
-                            });
-                        });
-                    }
-                    $("#current-mission-reward").show();
-                    $("#total-mission-reward").show();
-                    $("#modal-mission-reward-text").show();
-                } else{
-                    $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                }
-            } else{
-                $("#left-column-confirmation-code-button").css('visibility', "hidden");
-            }
-            var missionDescriptionParam = {};
-            missionDescriptionParam.description = "";
-            mainParam.missionDescription = missionDescriptionParam;
-
-            mainParam.regionId = @region.regionId;
-            mainParam.regionName = '@region.name';
-            mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
-            if(@RegionTable.difficultRegionIds.contains(region.regionId)){
-                   $('#advanced-overlay').show();
-                   mainParam.advancedOverlay = true
+            switch (event.type) {
+                case "touchstart":
+                    type = "mousedown";
+                    break;
+                case "touchmove":
+                    type = "mousemove";
+                    break;
+                case "touchend":
+                    type = "mouseup";
+                    break;
+                default:
+                    return;
             }
 
-            mainParam.nextTemporaryLabelId = @nextTempLabelId;
-            mainParam.mission = @Html(mission.toJSON.toString);
-            mainParam.tutorialStreetId = @tutorialStreetId
+            var simulatedEvent = new MouseEvent(type, {
+                screenX: first.screenX,
+                screenY: first.screenY,
+                clientX: first.clientX,
+                clientY: first.clientY
+            });
 
-            svl.main = new Main(mainParam);
-        }
+            first.target.dispatchEvent(simulatedEvent);
+        });
 
+        $("#interaction-area-holder").on("touchmove", function (event) {
+            event.preventDefault();
+        });
+    }
+
+    function init() {
+        var mainParam = mainParam || {},
+                formParam = {},
+                initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
+        formParam.dataStoreUrl = '@routes.TaskController.post';
+        formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
+        formParam.hitId = '';
+        formParam.assignmentId = '';
+        formParam.turkerId = '';
+        formParam.onboarding = false;
+        formParam.taskPanoramaId = "";
+        formParam.taskDescription = "";
+        formParam.domIds = {};
+        formParam.domIds.canvas = 'onboardingCanvas';
+        mainParam.form = formParam;
+        mainParam.initLat = initialLocation.lat;
+        mainParam.initLng = initialLocation.lng;
+        mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
         @if(user){
-        //Survey Submission
-        $("#surveyForm").submit(function submitSurvey(e) {
-            var formData = $('#surveyForm').serializeArray();
-            //alert(formData);
+        @if(user.get.role.getOrElse("") == "Turker") {
+        svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
+        svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+        svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+        @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)){
+        $("#left-column-confirmation-code-button").css('visibility', "hidden");
+        } else{
+        $("#left-column-confirmation-code-button").css('visibility', "");
+        $("#left-column-confirmation-code-button").attr('data-toggle', 'popover');
+        $("#left-column-confirmation-code-button").attr('title', 'Submit this code for HIT verification on Amazon Mechanical Turk');
+        $("#left-column-confirmation-code-button").attr('data-content', svl.confirmationCode);
+        $("#left-column-confirmation-code-button").popover();
 
-            var surveyUrl = '/survey';
-            var async = true;
-            //submit data from survey
-            $.ajax({
-                async: async,
-                contentType: 'application/json; charset=utf-8',
-                url: surveyUrl,
-                type: 'post',
-                dataType: 'json',
-                data: JSON.stringify(formData),
-                success: function (data) {
-                    //close survey modal here
-                    $('#survey-modal-container').modal('hide');
+        //Hide the confirmation popover on clicking the background
+        //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
+
+        $(document).on('click', function (e) {
+            $("#left-column-confirmation-code-button").each(function () {
+                //the 'is' for buttons that trigger popups
+                //the 'has' for icons within a button that triggers a popup
+                if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                    (($(this).popover('hide').data('bs.popover') || {}).inState || {}).click = false
                 }
+
             });
-            // Prevents reloading the audit page with the posted data in the url
-            // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
-            e.preventDefault();
         });
         }
+        $("#current-mission-reward").show();
+        $("#total-mission-reward").show();
+        $("#modal-mission-reward-text").show();
+        } else{
+        $("#left-column-confirmation-code-button").css('visibility', "hidden");
+        }
+        } else{
+        $("#left-column-confirmation-code-button").css('visibility', "hidden");
+        }
+        var missionDescriptionParam = {};
+        missionDescriptionParam.description = "";
+        mainParam.missionDescription = missionDescriptionParam;
 
-    </script>
+        mainParam.regionId = @region.regionId;
+        mainParam.regionName = '@region.name';
+        mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
+        if (@RegionTable.difficultRegionIds.contains(region.regionId)) {
+            $('#advanced-overlay').show();
+            mainParam.advancedOverlay = true
+        }
 
-<!-- now we will start the logging behaviour -->
-<script>
+        mainParam.nextTemporaryLabelId = @nextTempLabelId;
+        mainParam.mission = @Html(mission.toJSON.toString);
+        mainParam.tutorialStreetId = @tutorialStreetId
 
-    // Log whether the survey was skipped or completed to WebpageActivityTable
-    // Log is of form: "SurveySkip"
-    $('#survey-skip-button').on('click', function(){
-        var activity = "SurveySkip";
-        var url = "/userapi/logWebpageActivity";
+                svl.main = new Main(mainParam);
+    }
+
+    @if(user){
+    //Survey Submission
+    $("#surveyForm").submit(function submitSurvey(e) {
+        var formData = $('#surveyForm').serializeArray();
+        //alert(formData);
+
+        var surveyUrl = '/survey';
         var async = true;
+        //submit data from survey
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: surveyUrl,
             type: 'post',
-            data: JSON.stringify(activity),
             dataType: 'json',
-            success: function(result){},
-            error: function (result) {
-                console.error(result);
+            data: JSON.stringify(formData),
+            success: function (data) {
+                //close survey modal here
+                $('#survey-modal-container').modal('hide');
             }
         });
+        // Prevents reloading the audit page with the posted data in the url
+        // https://stackoverflow.com/questions/12624230/jquery-post-returns-querystring-in-address-bar
+        e.preventDefault();
     });
+    }
+
+    </script>
+
+        <!-- now we will start the logging behaviour -->
+    <script>
+
+            // Log whether the survey was skipped or completed to WebpageActivityTable
+            // Log is of form: "SurveySkip"
+            $('#survey-skip-button').on('click', function () {
+                var activity = "SurveySkip";
+                var url = "/userapi/logWebpageActivity";
+                var async = true;
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(activity),
+                    dataType: 'json',
+                    success: function (result) {
+                    },
+                    error: function (result) {
+                        console.error(result);
+                    }
+                });
+            });
     </script>
 }
