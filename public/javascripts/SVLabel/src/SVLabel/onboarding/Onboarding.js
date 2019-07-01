@@ -53,6 +53,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var _mouseDownCanvasDrawingHandler;
     var currentState;
     var currentLabelState;
+    var map = svl.map.getMap();
 
     this._onboardingLabels = [];
 
@@ -67,8 +68,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         tracker.push('Onboarding_Start');
 
         this._removeOnboardingLabels();
-
-        svl.panorama.registerPanoProvider(getCustomPanorama);
 
         adjustMap();
 
@@ -111,48 +110,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         onboardingModel.triggerStartOnboarding();
     };
 
-    function getCustomPanorama(pano) {
-        if (pano === 'tutorial') {
-            return {
-                location: {
-                    pano: 'tutorial',
-                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
-                },
-                links: [{
-                    heading: 342,
-                    description: 'Exit',
-                    pano: "afterWalkTutorial"
-                }],
-                copyright: 'Imagery (c) 2010 Google',
-                tiles: {
-                    tileSize: new google.maps.Size(2048, 1024),
-                    worldSize: new google.maps.Size(2048, 1024),
-                    centerHeading: 50,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/tutorial.png";
-                    }
-                }
-            };
-        } else if (pano === 'afterWalkTutorial') {
-            return {
-                location: {
-                    pano: 'afterWalkTutorial',
-                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
-                },
-                links: [],
-                copyright: 'Imagery (c) 2010 Google',
-                tiles: {
-                    tileSize: new google.maps.Size(2048, 1024),
-                    worldSize: new google.maps.Size(2048, 1024),
-                    centerHeading: 339,
-                    getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorial.png";
-                    }
-                }
-            };
-        }
-    }
-
     function adjustMap() {
         var mapStyleOptions = [
             {
@@ -187,10 +144,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 ]
             }
         ];
-        var map = svl.map.getMap();
         map.setOptions({styles: mapStyleOptions});
-        //var ans = svl.rootDirectory + "/img/onboarding/tut1.jpg";
-        document.getElementById("google-maps-holder").style.backgroundImage = "url('/assets/javascripts/SVLabel//img/onboarding/tut1.jpg')";
+        document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/tut1.jpg')";
     }
 
     function renderRoutesOnGoogleMap(state) {
@@ -580,6 +535,28 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _endTheOnboarding(skip) {
+        var mapStyleOptions = [
+            {
+                featureType: "all",
+                stylers: [
+                    { visibility: "off" }
+                ]
+            },
+            {
+                featureType: "road",
+                stylers: [
+                    { visibility: "on" }
+                ]
+            },
+            {
+                "elementType": "labels",
+                "stylers": [
+                    { "visibility": "off" }
+                ]
+            }
+        ];
+        if (map) map.setOptions({styles: mapStyleOptions});
+        map.setOptions({styles: mapStyleOptions});
         if (skip) {
             tracker.push("Onboarding_Skip");
             missionContainer.getCurrentMission().setProperty("skipped", true);
