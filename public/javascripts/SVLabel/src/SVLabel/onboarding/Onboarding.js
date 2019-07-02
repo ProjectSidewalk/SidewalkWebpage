@@ -71,6 +71,8 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         adjustMap();
 
+        svl.pointCloud.getPointCloud("stxXyCKAbd73DmkM2vsIHA");
+
         $("#toolbar-onboarding-link").css("visibility", "hidden");
 
         var canvasUI = uiOnboarding.canvas.get(0);
