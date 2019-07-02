@@ -11,6 +11,8 @@ function Main (param) {
     svv.canvasHeight = 440;
     svv.canvasWidth = 720;
 
+    svv.missionsCompleted = 0;
+
     // Maps label types to label names
     svv.labelNames = {
         CurbRamp: "Curb Ramp",
