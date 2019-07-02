@@ -64,6 +64,8 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         }
 
         _missionModel.completeMission(mission);
+
+        svl.missionsCompleted += 1;
     };
 
     this._checkMissionComplete = function (mission, neighborhood) {
