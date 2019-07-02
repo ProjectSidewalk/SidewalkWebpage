@@ -1,25 +1,35 @@
 .button.label-visibility-control-button {
+    position: absolute;
+    visibility: hidden; 
+    color: rgba(0,0,0,1);
+    z-index: 1;
+    font-size: 9px;
+    height: 20px;
+    width: 60px;	
+}
+
+.button.label-visibility-button:focus {
+    outline: none;
+}
+
+.button.label-visibility-button {
     color: rgba(0,0,0,1);
     font-size: 9px;
     height: 36px;
     width: 65px;
-    margin-right: 2px;
 }
 
-.button.label-visibility-control-button:focus {
-    outline: none;
-}
-
-.label-visibility-control-button-icon {
+.label-visibility-button-icon {
     height: 18px;
     width: 18px;
 }
 
-#label-visibility-control-holder {
+#label-visibility-holder {
     background: transparent;
     position: absolute;
-    left: 0px;
+    left: 524px;
     top: 30px;
     height: 55px;
-    width: 185px;
+    width: 65px;
 }
+

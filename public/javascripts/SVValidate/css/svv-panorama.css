@@ -24,6 +24,12 @@
     width: 730px;
 }
 
+#LabelDeleteIcon {
+    height: 20px;
+    width: 20px;
+    position: absolute;
+}
+
 #svv-panorama-date-holder {
     position: absolute;
     bottom: 3px;
@@ -34,3 +40,4 @@
     text-shadow: 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5);
     color: white;
 }
+
