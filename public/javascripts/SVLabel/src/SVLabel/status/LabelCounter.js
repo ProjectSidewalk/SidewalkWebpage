@@ -171,44 +171,56 @@ function LabelCounter (d3) {
         function _update(key) {
             if (keys.indexOf(key) == -1) { key = "Other"; }
 
-            var fiftyCircles = parseInt(dotPlots[key].count / 50),
+            var hundredCircles = parseInt(dotPlots[key].count / 100),
+              fiftyCircles = parseInt((dotPlots[key].count % 100) / 50),
               tenCircles = parseInt((dotPlots[key].count % 50) / 10),
               oneCircles = dotPlots[key].count % 10,
-              count = fiftyCircles + tenCircles + oneCircles;
+              count = hundredCircles + fiftyCircles + tenCircles + oneCircles;
 
             /* 
             the code of these three functions was being used so much I decided to separately declare them
             the d3 calls look much cleaner now :)
             */
             function setCX(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
-                return x(i * 4 * radius + dR);
-              }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
-                return x(fiftyCircles * 4 * radius + dR) + x((i - fiftyCircles) * 2 * (radius + dR));
-              }
-              else{
-                return x(fiftyCircles * 2 * radius + dR) + x(tenCircles * 1.9 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
-              }
+               if (i < hundredCircles && hundredCircles != 0){
+                   return x(i * 5.33 * radius + 2 * dR)
+               }
+               else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0){
+                   return x(hundredCircles * 5.33 * radius);
+               }
+               else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0){
+                   return x(hundredCircles * 2.5 * radius) + x(fiftyCircles * 3.4 * radius) +
+                     x((i - fiftyCircles) * 2 * (radius + dR));
+               }
+               else{
+                   return x(hundredCircles * 3.1 * radius) + x(fiftyCircles * 1.3 * radius) +
+                     x(tenCircles * 1.9 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
+               }
             }
             
             function setCY(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
+              if (i < hundredCircles && hundredCircles != 0){
                 return 0;
               }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
-                return x(dR);
+              else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0){
+                return x(2 * dR);
+              }
+              else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0){
+                return x(radius + dR);
               }
               else{
-                return x(radius);
+                return x(2 * radius);
               }
             }
 
             function setR(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
+              if (i < hundredCircles && hundredCircles != 0){
+                return x(2 * (radius + dR))
+              }
+              else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0){
                 return x(2 * radius);
               }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+              else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0){
                 return x(radius + dR);
               }
               else{
