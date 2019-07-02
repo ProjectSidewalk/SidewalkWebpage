@@ -106,7 +106,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     this._closeModal = function (e) {
         if (svl.missionsCompleted === 2) {
-            // Load the audit page since they've done 2 missions.
+            // Load the validation page since they've done 2 missions.
             window.location.replace('/validate');
         }
         else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
