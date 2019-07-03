@@ -174,7 +174,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
         ];
         map.setOptions({styles: mapStyleOptions});
-        document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/tut1.jpg')";
+        document.getElementById("google-maps-holder").style.backgroundImage = "url('"+ svl.rootDirectory + "img/onboarding/TutorialMiniMap.jpg')";
     }
 
     function renderRoutesOnGoogleMap(state) {
