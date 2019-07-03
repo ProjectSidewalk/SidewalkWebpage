@@ -901,7 +901,7 @@ function Label (svl, pathIn, params) {
             var imageCoordinates = path.getImageCoordinates();
             var pc = null;
             if (properties.panoId === "tutorial") {
-                pc = svl.pointCloud.getPointCloud("stxXyCKAbd73DmkM2vsIHA");
+                pc = svl.onboarding.getTutorialPointCloud();
             } else  {
                 pc = svl.pointCloud.getPointCloud(properties.panoId);
             }

@@ -40,6 +40,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                     tracker, canvas, uiCanvas, contextMenu, uiMap, uiOnboarding, uiRibbon, user, zoomControl) {
     var self = this;
     var ctx;
+    var tutorialPC;
     var canvasWidth = 720;
     var canvasHeight = 480;
     var blink_timer = 0;
@@ -71,7 +72,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         adjustMap();
 
-        svl.pointCloud.getPointCloud("stxXyCKAbd73DmkM2vsIHA");
+        fetchTutorialPointCloud();
 
         $("#toolbar-onboarding-link").css("visibility", "hidden");
 
@@ -112,6 +113,32 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         onboardingModel.triggerStartOnboarding();
     };
 
+    /**
+     * Fetches the string data of the PointCloud object for the tutorial. If Google removes the tutorial's
+     * panos, the PointCloud data is stored in a .txt file.
+     */
+    function fetchTutorialPointCloud() {
+        var client = new XMLHttpRequest();
+        client.open('GET', svl.rootDirectory + "doc/TutorialPointCloud.txt");
+        client.onreadystatechange = function() {
+            tutorialPC = client.responseText;
+        };
+        client.send();
+    }
+
+    /**
+     * @returns {PointCloud} - returns the PointCloud object for the tutorial panorama
+     */
+    function getTutorialPointCloud() {
+        if (typeof tutorialPC === "string") {
+            tutorialPC = JSON.parse(tutorialPC);
+        }
+        return tutorialPC;
+    }
+
+    /**
+     * Sets the mini map to be transparent for everything except for yellow pin man.
+     */
     function adjustMap() {
         var mapStyleOptions = [
             {
@@ -793,8 +820,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             googleCallback,
             $target;
 
-        //renderRoutesOnGoogleMap(state);
-
         // I need to nest callbacks due to the bug in Street View; I have to first set panorama, and set POV
         // once the panorama is loaded. Here I let the panorama load while the user is reading the instruction.
         // When they click OK, then the POV changes.
@@ -927,7 +952,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         if (state == getState("outro")) {
             $("#mini-footer-audit").css("visibility", "hidden");
         }
-        //renderRoutesOnGoogleMap(state);
         blinkInterface(state);
 
         if (!("okButton" in state) || state.okButton) {
@@ -1159,4 +1183,5 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     self.showMessage = showMessage;
     self.setStatus = setStatus;
     self.hideMessage = hideMessage;
+    self.getTutorialPointCloud = getTutorialPointCloud;
 }
