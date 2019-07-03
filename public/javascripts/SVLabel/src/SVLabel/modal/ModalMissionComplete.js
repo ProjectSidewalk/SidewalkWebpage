@@ -26,9 +26,9 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer,
-                               modalMissionCompleteMap, modalMissionProgressBar,
-                               uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
+function ModalMissionComplete(svl, missionContainer, missionModel, taskContainer,
+                              modalMissionCompleteMap, modalMissionProgressBar,
+                              uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
     var self = this;
     var _missionModel = missionModel;
     var _missionContainer = missionContainer;
@@ -66,7 +66,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self.hide();
     });
 
-    svl.neighborhoodModel.on("Neighborhood:completed", function(parameters) {
+    svl.neighborhoodModel.on("Neighborhood:completed", function (parameters) {
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
@@ -77,7 +77,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self._canShowContinueButton = false;
     });
 
-    _missionContainer.on("MissionContainer:missionLoaded", function(mission) {
+    _missionContainer.on("MissionContainer:missionLoaded", function (mission) {
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
             uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
@@ -108,14 +108,13 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         if (svl.missionsCompleted === 2) {
             // Load the validation page since they've done 2 missions.
             window.location.replace('/validate');
-        }
-        else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
+        } else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
             // Reload the page to load another neighborhood.
             window.location.replace('/audit');
         } else {
             // TODO can we require that we have a new mission before doing this?
             var nextMission = missionContainer.getCurrentMission();
-            _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
+            _modalModel.triggerMissionCompleteClosed({nextMission: nextMission});
             self.hide();
         }
     };
@@ -130,7 +129,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         this._modalMissionCompleteMap.hide();
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
-        if(this._uiModalMissionComplete.confirmationText!=null && this._uiModalMissionComplete.confirmationText!=undefined){
+        if (this._uiModalMissionComplete.confirmationText != null && this._uiModalMissionComplete.confirmationText != undefined) {
             this._uiModalMissionComplete.confirmationText.empty();
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
@@ -180,7 +179,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
          Display the generate confirmation button. When clicked, remove this button completely
          and make the Continue button visible again.
          */
-        if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
+        if (uiModalMissionComplete.generateConfirmationButton != null && uiModalMissionComplete.generateConfirmationButton != undefined) {
             uiModalMissionComplete.closeButton.css('visibility', "hidden");
             // Assignment Completion Data
             var data = {
@@ -215,9 +214,9 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             uiModalMissionComplete.generateConfirmationButton.remove();
             delete uiModalMissionComplete.generateConfirmationButton;
 
-            svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
-            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
-            svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
+            svl.ui.leftColumn.confirmationCode.attr('data-toggle', 'popover');
+            svl.ui.leftColumn.confirmationCode.attr('title', 'Submit this code for HIT verification on Amazon Mechanical Turk');
+            svl.ui.leftColumn.confirmationCode.attr('data-content', svl.confirmationCode);
 
             //Hide the mTurk confirmation code popover on clicking the background (i.e. outside the popover)
             //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
@@ -227,10 +226,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
                     //the 'is' for buttons that trigger popups
                     //the 'has' for icons within a button that triggers a popup
                     if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
-                        (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                        (($(this).popover('hide').data('bs.popover') || {}).inState || {}).click = false
                     }
 
-                });
+                 });
             });
         }
     };
@@ -240,12 +239,28 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var unit = {units: 'miles'};
         var regionId = neighborhood.getProperty("regionId");
 
+        console.log("User has finished a particular mission...");
+
         var missionDistance = mission.getDistance("miles");
+        missionDistance = Math.round(missionDistance * 10) / 10;
+        console.log("mission distance for this time is " + missionDistance);
         var missionPay = mission.getProperty("pay");
+
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
+        userAuditedDistance = Math.round(userAuditedDistance * 10) / 10;
+        console.log("user audited distance is " + userAuditedDistance);
+
         var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority(unit);
+        allAuditedDistance = Math.round(allAuditedDistance * 10) / 10;
+        console.log("total audited distance is " + allAuditedDistance);
+
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
+        otherAuditedDistance = Math.round(otherAuditedDistance * 10) / 10;
+        console.log("others' audited distance is " + otherAuditedDistance);
+
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
+        remainingDistance = Math.round(remainingDistance * 10) / 10;
+        console.log("remaining distance is " + remainingDistance);
 
         var userCompletedTasks = taskContainer.getCompletedTasks(regionId);
         var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
@@ -257,7 +272,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
         var labelCount = mission.getLabelCount(),
             curbRampCount = labelCount ? labelCount["CurbRamp"] : 0,
-            noCurbRampCount = labelCount ? labelCount["NoCurbRamp"] : 0 ,
+            noCurbRampCount = labelCount ? labelCount["NoCurbRamp"] : 0,
             obstacleCount = labelCount ? labelCount["Obstacle"] : 0,
             surfaceProblemCount = labelCount ? labelCount["SurfaceProblem"] : 0,
             noSidewalkCount = labelCount ? labelCount["NoSidewalk"] : 0,
@@ -278,7 +293,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     uiModalMissionComplete.closeButton.on("click", this._handleCloseButtonClick);
     this.hide();
 }
-
 
 
 ModalMissionComplete.prototype.getProperty = function (key) {
@@ -307,7 +321,7 @@ ModalMissionComplete.prototype._updateMissionProgressStatistics = function (miss
 
     // Update the reward HTML if the user is a turker.
     if (this._userModel.getUser().getProperty("role") === "Turker") {
-        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$"+missionReward.toFixed(2)+"</span>");
+        svl.ui.modalMissionComplete.missionReward.html("<span style='color:forestgreen'>$" + missionReward.toFixed(2) + "</span>");
     }
 };
 
