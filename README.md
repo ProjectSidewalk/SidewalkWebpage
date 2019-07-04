@@ -61,6 +61,19 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 ### Additional tools
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
 
+### Programming environment
+The IDE [IntelliJ IDEA](https://www.jetbrains.com/idea/) is highly recommended for development, particularly with Scala. You should be able to get a [student license](https://www.jetbrains.com/student/) to use get the "ultimate" edition of IntelliJ IDEA.
+
+To look at and run queries on your database, you will want to install a database client. [Valentina Studio](https://www.valentina-db.com/en/valentina-studio-overview) is a good cross-platform database client. People also like using [Postico](https://eggerapps.at/postico/) for Mac or [PGAdmin](https://www.pgadmin.org/download/) on Windows/Mac.
+
+You'll connect to the database using the following credentials:
+```
+Host: localhost:5432
+User: sidewalk
+Password: sidewalk
+Database: sidewalk
+```
+
 ### Making changes
 1. If you make any changes to the `build.sbt` or the configs, you'd need to press `Ctrl+D` and then `sbt clean` and then `npm start` from inside the Docker shell.
 
