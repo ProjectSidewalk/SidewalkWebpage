@@ -63,6 +63,18 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     };
 
     this._handleCloseButtonClick = function () {
+        mission = _missionContainer.getCurrentMission();
+        if(mission.getProperty("distanceProgress") < 0.0001) {
+            svl.tracker.push(
+                "MissionStart",
+                {
+                    missionId: mission.getProperty("missionId"),
+                    missionType: mission.getProperty("missionType"),
+                    distanceMeters: Math.round(mission.getDistance("meters")),
+                    regionId: mission.getProperty("regionId")
+                }
+            );
+        }
         self.hide();
     };
 
