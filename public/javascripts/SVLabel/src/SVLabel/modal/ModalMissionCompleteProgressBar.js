@@ -71,6 +71,11 @@ function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
      * @private
      */
     this.update = function (missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate) {
+        // rounding rates to .1 accuracy to avoid floating value arithmetic error
+        missionDistanceRate = missionDistanceRate.toFixed(1);
+        userAuditedDistanceRate = userAuditedDistanceRate.toFixed(1);
+        otherAuditedDistanceRate = otherAuditedDistanceRate.toFixed(1);
+
         horizontalBarOtherContribution.attr("width", 0)
             .transition()
             .delay(200)
