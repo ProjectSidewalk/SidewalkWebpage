@@ -177,8 +177,7 @@ function LabelCounter (d3) {
             var tenCircles = parseInt((dotPlots[key].count % 50) / 10);
             var oneCircles = dotPlots[key].count % 10;
             var count = hundredCircles + fiftyCircles + tenCircles + oneCircles;
-            var multiplier = 1.0 - parseInt(dotPlots[key].count) / 1500.0;
-            if (multiplier < 0.5) { multiplier = 0.5; }
+            var multiplier = Math.max(0.5, 1.0 - parseInt(dotPlots[key].count) / 1500.0);
             var radius = 0.2 * multiplier;
             var dR = radius / 3;
 
