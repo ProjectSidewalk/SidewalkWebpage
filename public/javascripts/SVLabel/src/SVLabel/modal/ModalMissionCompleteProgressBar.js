@@ -71,30 +71,30 @@ function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
      * @private
      */
     this.update = function (missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate) {
-        // rounding rates to .1 accuracy to avoid floating value arithmetic error
-        missionDistanceRate = missionDistanceRate.toFixed(1);
-        userAuditedDistanceRate = userAuditedDistanceRate.toFixed(1);
-        otherAuditedDistanceRate = otherAuditedDistanceRate.toFixed(1);
+        // Rounding rates to .1 accuracy to avoid floating value arithmetic error.
+        var roundedMissionDistanceRate = missionDistanceRate.toFixed(1);
+        var roundedUserAuditedDistanceRate = userAuditedDistanceRate.toFixed(1);
+        var roundedOtherAuditedDistanceRate = otherAuditedDistanceRate.toFixed(1);
 
         horizontalBarOtherContribution.attr("width", 0)
             .transition()
             .delay(200)
             .duration(600)
-            .attr("width", otherAuditedDistanceRate * svgCoverageBarWidth);
+            .attr("width", roundedOtherAuditedDistanceRate * svgCoverageBarWidth);
 
         horizontalBarPreviousContribution.attr("width", 0)
-            .attr("x", otherAuditedDistanceRate * svgCoverageBarWidth)
+            .attr("x", roundedOtherAuditedDistanceRate * svgCoverageBarWidth)
             .transition()
             .delay(800)
             .duration(600)
-            .attr("width", userAuditedDistanceRate * svgCoverageBarWidth);
+            .attr("width", roundedUserAuditedDistanceRate * svgCoverageBarWidth);
 
         horizontalBarMission.attr("width", 0)
-            .attr("x", (otherAuditedDistanceRate + userAuditedDistanceRate) * svgCoverageBarWidth)
+            .attr("x", (roundedOtherAuditedDistanceRate + roundedUserAuditedDistanceRate) * svgCoverageBarWidth)
             .transition()
             .delay(1400)
             .duration(600)
-            .attr("width", missionDistanceRate * svgCoverageBarWidth);
-        horizontalBarMissionLabel.text(parseInt((userAuditedDistanceRate + missionDistanceRate) * 100, 10) + "%");
+            .attr("width", roundedMissionDistanceRate * svgCoverageBarWidth);
+        horizontalBarMissionLabel.text(parseInt((roundedUserAuditedDistanceRate + roundedMissionDistanceRate) * 100, 10) + "%");
     };
 }
