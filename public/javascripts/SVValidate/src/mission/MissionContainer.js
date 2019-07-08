@@ -42,6 +42,7 @@ function MissionContainer () {
      * Submits this mission to the backend.
      */
     function completeAMission () {
+        svv.missionsCompleted += 1;
         svv.modalMissionComplete.show(currentMission);
         var data = svv.form.compileSubmissionData();
         svv.form.submit(data, true);

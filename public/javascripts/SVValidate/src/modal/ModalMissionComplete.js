@@ -7,7 +7,12 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
     function _handleButtonClick() {
         svv.tracker.push("ClickOk_MissionComplete");
-        self.hide();
+        if (svv.missionsCompleted === 3) {
+            // Load the audit page since they've done 2 missions.
+            window.location.replace('/audit');
+        } else {
+            self.hide();
+        }
     }
 
     function getProperty(key) {
