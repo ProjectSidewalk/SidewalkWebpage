@@ -119,7 +119,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function fetchTutorialPointCloud() {
         var client = new XMLHttpRequest();
-        client.open('GET', svl.rootDirectory + "doc/TutorialPointCloud.txt");
+        client.open('GET', svl.rootDirectory + "doc/TutorialPointCloud.dat");
         client.onreadystatechange = function() {
             tutorialPC = client.responseText;
         };
