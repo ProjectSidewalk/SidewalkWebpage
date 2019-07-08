@@ -270,3 +270,8 @@ function isElementVerticallyVisible(el) {
 
     return (rect.top <= windowHeight) && ((rect.top + rect.height) >= 0);
 }
+
+window.addEventListener("resize", mobileEvent);
+function mobileEvent() {
+
+}

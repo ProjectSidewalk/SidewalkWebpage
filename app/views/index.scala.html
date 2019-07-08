@@ -7,7 +7,6 @@
 
 @main(title) {
     @navbar(user)
-    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
@@ -32,6 +31,7 @@
                     </p>
                     <br>
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Exploring @cityShortName</a>
+                    <a class="bodyStartBtn bodyStartBtnMobile" href="@routes.ValidationController.validate()">Start Validating</a>
                     <br><br>
                     <span class="header-text">We are also in:</span>
                     @for((cityName, cityURL) <- otherCityURLs) {
@@ -159,7 +159,7 @@
         </div>
     </div>
 
-    <div class="container" id="choropleth-container" style="width: 100%;
+    <div class="container hidden-sm" id="choropleth-container" style="width: 100%;
         position: relative;">
         <div class="im-centered3">
             <div class="row">Pick a Neighborhood</div>

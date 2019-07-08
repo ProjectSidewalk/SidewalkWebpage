@@ -2,6 +2,7 @@
 @(title: String, user: Option[User] = None)
 
 @main(title) {
+    @navbar(user, Some("/audit")) //need to handle case for on results page
     <script>
         $(document).ready(function() {
             
@@ -27,7 +28,7 @@
                 'height': '100vh',
                 'width': '100vw',
                 'text-align': 'center',
-                'padding': '2vh 10vw',
+                'padding': '5vh 10vw',
                 'font-family': 'raleway, sans-serif',
                 'color': '#777'
             });

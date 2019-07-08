@@ -294,6 +294,11 @@ video#bgvid {
     transition:background-color 300ms ease;
 
 }
+@media (max-width: 992px) {
+    #vidbanner {
+        height: 625px;
+    }
+}
 
 #graybar {
     position: relative;
@@ -722,6 +727,15 @@ video#bgvid {
     position: relative;
     top: -10px;
 }
+@media (max-width: 992px) {
+    #exploredesc:before {
+        content: 'Virtually explore city streets to validate label accessibility issues with three categories—right from the comfort of your home.';
+        background: white;
+        position: absolute;
+        left: -5px;
+    }
+}
+
 #count-container {
 
     position: relative;
@@ -1030,6 +1044,19 @@ video#bgvid {
 .bodyStartBtn:active{
     position:relative;
     top:1px;
+}
+.bodyStartBtnMobile {
+    display: none;
+}
+@media (max-width: 992px) {
+
+    .bodyStartBtn {
+        display: none;
+    }
+
+    .bodyStartBtnMobile {
+        display: inline-block;
+    }
 }
 
 .header-text {
