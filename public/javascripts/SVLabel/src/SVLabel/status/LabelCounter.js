@@ -8,15 +8,16 @@
 function LabelCounter (d3) {
     var self = this;
 
-    var radius = 0.2, dR = radius / 3,
-        svgWidth = 200, svgHeight = 120,
-        margin = {top: 10, right: 10, bottom: 10, left: 0},
-        padding = {left: 5, top: 15},
-        width = 200 - margin.left - margin.right,
-        height = 40 - margin.top - margin.bottom,
-        colorScheme = util.misc.getLabelColors(),
-        imageWidth = 22, imageHeight = 22,
-        rightColumn = 1.8;
+    var svgWidth = 200;
+    var svgHeight = 120;
+    var margin = {top: 10, right: 10, bottom: 10, left: 0};
+    var padding = {left: 5, top: 15};
+    var width = 200 - margin.left - margin.right;
+    var height = 40 - margin.top - margin.bottom;
+    var colorScheme = util.misc.getLabelColors();
+    var imageWidth = 22;
+    var imageHeight = 22;
+    var rightColumn = 1.8;
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
@@ -171,50 +172,64 @@ function LabelCounter (d3) {
         function _update(key) {
             if (keys.indexOf(key) == -1) { key = "Other"; }
 
-            var fiftyCircles = parseInt(dotPlots[key].count / 50),
-              tenCircles = parseInt((dotPlots[key].count % 50) / 10),
-              oneCircles = dotPlots[key].count % 10,
-              count = fiftyCircles + tenCircles + oneCircles;
+            var hundredCircles = parseInt(dotPlots[key].count / 100);
+            var fiftyCircles = parseInt((dotPlots[key].count % 100) / 50);
+            var tenCircles = parseInt((dotPlots[key].count % 50) / 10);
+            var oneCircles = dotPlots[key].count % 10;
+            var count = hundredCircles + fiftyCircles + tenCircles + oneCircles;
+            var multiplier = Math.max(0.5, 1.0 - parseInt(dotPlots[key].count) / 1500.0);
+            var radius = 0.2 * multiplier;
+            var dR = radius / 3;
 
-            /* 
-            the code of these three functions was being used so much I decided to separately declare them
-            the d3 calls look much cleaner now :)
-            */
+            // The code of these three functions was being used so much I decided to separately declare them.
+            // The d3 calls look much cleaner now. :)
             function setCX(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
-                return x(i * 4 * radius + dR);
-              }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
-                return x(fiftyCircles * 4 * radius + dR) + x((i - fiftyCircles) * 2 * (radius + dR));
-              }
-              else{
-                return x(fiftyCircles * 2 * radius + dR) + x(tenCircles * 1.9 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
-              }
+               if (i < hundredCircles && hundredCircles != 0) {
+                   return x(i * 5.33 * radius + 2 * dR)
+               }
+               else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0) {
+                   return x(hundredCircles * 5.33 * radius);
+               }
+               else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0) {
+                   return x(hundredCircles * 2.6 * radius) + x(fiftyCircles * 3.3 * radius) +
+                     x((i - fiftyCircles) * 2 * (radius + dR));
+               }
+               else {
+                   return x(hundredCircles * 3.2 * radius) + x(fiftyCircles * 1.3 * radius) +
+                     x(tenCircles * 1.95 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
+               }
             }
             
             function setCY(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
+              if (i < hundredCircles && hundredCircles != 0) {
                 return 0;
               }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
-                return x(dR);
+              else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0) {
+                return x(2 * dR);
               }
-              else{
-                return x(radius);
+              else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0) {
+                return x(radius + dR);
+              }
+              else {
+                return x(2 * radius);
               }
             }
 
             function setR(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
+              if (i < hundredCircles && hundredCircles != 0) {
+                return x(2 * (radius + dR));
+              }
+              else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0) {
                 return x(2 * radius);
               }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+              else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0) {
                 return x(radius + dR);
               }
-              else{
+              else {
                 return x(radius);
               }
             }
+
             // Update the dot plot
             if (dotPlots[key].data.length >= count) {
               // Remove dots
