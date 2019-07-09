@@ -46,7 +46,7 @@ function LabelVisibilityControl () {
      */
     function hideLabel () {
         var panomarker = svv.panorama.getPanomarker();
-	panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
+	panomarker.setIcon("assets/javascripts/SVLabel/img/icons/LabelOutline.svg");
 	panomarker.draw();
         visible = false;
         var htmlString = `S<u>h</u>ow Label</button>`;
