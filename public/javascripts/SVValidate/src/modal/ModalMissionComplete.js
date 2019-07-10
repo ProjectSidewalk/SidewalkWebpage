@@ -6,7 +6,6 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     var watch;
 
     function _handleButtonClick() {
-        svv.tracker.push("ClickOk_MissionComplete");
         if (svv.missionsCompleted === 3) {
             // Load the audit page since they've done 2 missions.
             window.location.replace('/audit');
@@ -89,6 +88,16 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         //     confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
         //     uiModalMissionComplete.message.append(confirmationCodeElement);
         // }
+
+        svv.tracker.push(
+            "MissionComplete",
+            {
+                missionId: mission.getProperty("missionId"),
+                missionType: mission.getProperty("missionType"),
+                labelTypeId: mission.getProperty("labelTypeId"),
+                labelsValidated: mission.getProperty("labelsValidated")
+            }
+        );
     }
 
     function _markAmtAssignmentAsComplete() {
