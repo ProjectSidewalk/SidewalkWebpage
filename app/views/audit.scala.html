@@ -470,7 +470,16 @@
             </div>
             <div id="modal-skip-holder" class="hidden">
                 <div id="modal-skip-background"></div>
+                <div id="modal-skip-box-neighborhood">
+                    <div id="modal-skip-neighborhood-title" class="bold">
+                        <p>Go to a new location or a new neighborhood?</p>
+                    </div>
+                    <span class="overlay-option" id="continue-street">Go to a new location on this street</span>
+                    <span class="overlay-option" id="redirect-jump">Go to a new neighborhood</span>
+                </div>
                 <div id="modal-skip-box">
+                    <div id="modal-skip-box-new-location"></div>
+                    <div id="modal-skip-box-new-neighborhood"></div>
                     <div id="modal-skip-title" class="bold">
                         <p>Jump to another location because:</p>
                     </div>
@@ -929,6 +938,28 @@
             $('#redirect-advanced').on('click', function(){
                 mainParam.advancedOverlay = false;
                 $(location).attr('href', '/audit?nextRegion=easy');
+            });
+
+            // Neighborhood Jump Overlay
+            $('#continue-street').on('click', function(){
+                $('#modal-skip-box-neighborhood').hide();
+                $('#modal-skip-box').show();
+            });
+
+            $('#redirect-jump').on('click', function(){
+                $('#modal-skip-box-neighborhood').show();
+                $('#modal-skip-box').hide();
+                $(location).attr('href', '/audit?nextRegion=regular');
+            });
+
+            $('#modal-skip-ok-button').on('click', function(){
+                $('#modal-skip-box-neighborhood').show();
+                $('#modal-skip-box').hide();
+            });
+
+            $('#modal-skip-cancel-button').on('click', function(){
+                $('#modal-skip-box-neighborhood').show();
+                $('#modal-skip-box').hide();
             });
 
             // Neighborhood Completion Overlay

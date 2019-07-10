@@ -21,7 +21,7 @@
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box {
+#modal-skip-box, #modal-comment-box, #modal-skip-box-neighborhood {
     background: rgba(255, 255, 255, 1);
     /*border: 3px solid rgba(200, 200, 200, 1);*/
     color: rgba(80, 80, 80, 1);
@@ -37,6 +37,10 @@
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#modal-skip-box {
+    display: none;
 }
 
 .modal-foreground {
