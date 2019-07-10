@@ -64,7 +64,10 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
     this._handleCloseButtonClick = function () {
         mission = _missionContainer.getCurrentMission();
-        if(mission.getProperty("distanceProgress") < 0.0001) {
+        
+        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later, another 
+        // MissionStart will not be triggered
+        if(mission.getProperty("distanceProgress") < 0.0001) { 
             svl.tracker.push(
                 "MissionStart",
                 {
