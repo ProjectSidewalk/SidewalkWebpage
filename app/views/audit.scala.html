@@ -474,7 +474,7 @@
                     <div id="modal-skip-neighborhood-title" class="bold">
                         <p>Go to a new location or a new neighborhood?</p>
                     </div>
-                    <span class="overlay-option" id="continue-street">Go to a new location on this street</span>
+                    <span class="overlay-option" id="continue-neighborhood">Go to a new location in this neighborhood</span>
                     <span class="overlay-option" id="redirect-jump">Go to a new neighborhood</span>
                 </div>
                 <div id="modal-skip-box">
@@ -941,7 +941,7 @@
             });
 
             // Neighborhood Jump Overlay
-            $('#continue-street').on('click', function(){
+            $('#continue-neighborhood').on('click', function(){
                 $('#modal-skip-box-neighborhood').hide();
                 $('#modal-skip-box').show();
             });
