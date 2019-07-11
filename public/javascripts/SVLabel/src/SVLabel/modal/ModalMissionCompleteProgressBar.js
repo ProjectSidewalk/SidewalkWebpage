@@ -73,9 +73,9 @@ function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
     this.update = function (missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate) {
 
         // Round the rates to 0.01 accuracy.
-        var roundedMissionDistanceRate = parseFloat(missionDistanceRate.toFixed(2));
-        var roundedUserAuditedDistanceRate = parseFloat(userAuditedDistanceRate.toFixed(2));
-        var roundedOtherAuditedDistanceRate = parseFloat(otherAuditedDistanceRate.toFixed(2));
+        var roundedMissionDistanceRate = parseFloat(missionDistanceRate.toFixed(3));
+        var roundedUserAuditedDistanceRate = parseFloat(userAuditedDistanceRate.toFixed(3));
+        var roundedOtherAuditedDistanceRate = parseFloat(otherAuditedDistanceRate.toFixed(3));
 
         horizontalBarOtherContribution.attr("width", 0)
             .transition()
@@ -95,7 +95,7 @@ function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
             .transition()
             .delay(1400)
             .duration(600)
-            .attr("width", roundedMissionDistanceRate * svgCoverageBarWidth);
+            .attr("width", Math.max(1, roundedMissionDistanceRate * svgCoverageBarWidth));
         horizontalBarMissionLabel.text(parseInt(((roundedUserAuditedDistanceRate + roundedMissionDistanceRate) * 100).toString(), 10) + "%");
     };
 }
