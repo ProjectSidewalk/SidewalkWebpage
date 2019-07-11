@@ -608,7 +608,7 @@ object LabelTable {
           |        FROM label_validation
           |        WHERE user_id = ?
           |    )
-          |ORDER BY COALESCE(needs_validations, TRUE), RANDOM()
+          |ORDER BY COALESCE(needs_validations, TRUE) DESC, RANDOM()
           |LIMIT ?""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, minCompCnt, userIdStr, n * 5)).list
