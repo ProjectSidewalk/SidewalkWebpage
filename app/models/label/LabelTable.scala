@@ -578,6 +578,7 @@ object LabelTable {
           |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
           |INNER JOIN mission ON label.mission_id = mission.mission_id
           |INNER JOIN (
+          |    -- This subquery gets the number of times each label has been validated.
           |    SELECT label.label_id, COUNT(label_validation_id) AS validation_count
           |    FROM label
           |    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
@@ -587,6 +588,9 @@ object LabelTable {
           |) counts
           |    ON label.label_id = counts.label_id
           |LEFT JOIN (
+          |    -- This subquery counts how many of each users' labels have been validated for the given label type. If
+          |    -- it is less than 10, then we need more validations from them in order to use them for inferring worker
+          |    -- quality, and they therefore get priority.
           |    SELECT mission.user_id, COUNT(DISTINCT(label.label_id)) < 10 AS needs_validations
           |    FROM mission
           |    INNER JOIN label ON label.mission_id = mission.mission_id
@@ -608,6 +612,7 @@ object LabelTable {
           |        FROM label_validation
           |        WHERE user_id = ?
           |    )
+          |-- Prioritize labels from users who have had less than 10 validations of this label type, then randomize it.
           |ORDER BY COALESCE(needs_validations, TRUE) DESC, RANDOM()
           |LIMIT ?""".stripMargin
       )
