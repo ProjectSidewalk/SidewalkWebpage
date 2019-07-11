@@ -553,6 +553,7 @@ object LabelTable {
     var potentialLabels: List[LabelValidationMetadata] = List()
     val userIdStr = userId.toString
 
+    // Get the minimum number of times any label has been validated for prioritizing labels with fewer validations.
     val minCompletionCountQuery = Q.query[String, Int](
       """SELECT MIN(validation_count)
         |FROM (
@@ -567,7 +568,7 @@ object LabelTable {
     val minCompCnt: Int = minCompletionCountQuery(userIdStr).list.head
 
     while (selectedLabels.length < n) {
-      val selectRandomLabelsQuery = Q.query[(String, Int, String, Int, String, Int), LabelValidationMetadata](
+      val selectRandomLabelsQuery = Q.query[(String, Int, Int, String, Int, String, Int), LabelValidationMetadata](
         """SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
           |       label_point.zoom, label_point.canvas_x, label_point.canvas_y,
           |       label_point.canvas_width, label_point.canvas_height
@@ -585,6 +586,17 @@ object LabelTable {
           |    GROUP BY label.label_id
           |) counts
           |    ON label.label_id = counts.label_id
+          |LEFT JOIN (
+          |    SELECT mission.user_id, COUNT(DISTINCT(label.label_id)) < 10 AS needs_validations
+          |    FROM mission
+          |    INNER JOIN label ON label.mission_id = mission.mission_id
+          |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
+          |    WHERE mission.mission_type_id = 2
+          |        AND label.deleted = FALSE
+          |        AND label.label_type_id = ?
+          |    GROUP BY mission.user_id
+          |) needs_validations_query
+          |    ON mission.user_id = needs_validations_query.user_id
           |WHERE label.label_type_id = ?
           |    AND label.deleted = FALSE
           |    AND label.tutorial = FALSE
@@ -596,10 +608,10 @@ object LabelTable {
           |        FROM label_validation
           |        WHERE user_id = ?
           |    )
-          |ORDER BY RANDOM()
+          |ORDER BY COALESCE(needs_validations, TRUE), RANDOM()
           |LIMIT ?""".stripMargin
       )
-      potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, userIdStr, minCompCnt, userIdStr, n * 5)).list
+      potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, minCompCnt, userIdStr, n * 5)).list
       var potentialStartIdx: Int = 0
 
       // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
