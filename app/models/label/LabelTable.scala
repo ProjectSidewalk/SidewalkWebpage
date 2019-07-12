@@ -132,11 +132,16 @@ object LabelTable {
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
                              userRole: String, username: String, missionType: String, labelId: Int)
 
+  case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
+
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt))
+
+  implicit val MiniMapResumeMetadataConverter = GetResult[MiniMapResumeMetadata](r =>
+    MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
@@ -153,6 +158,22 @@ object LabelTable {
   def find(labelId: Int): Option[Label] = db.withSession { implicit session =>
     val labelList = labels.filter(_.labelId === labelId).list
     labelList.headOption
+  }
+
+  /**
+    * Find all labels with given regionId and userId
+    * @param labelId
+    * @return
+    */
+  def resumeMiniMap(regionId: Int, userId: UUID): List[MiniMapResumeMetadata] = db.withSession { implicit session =>
+    val labelsWithCVMetadata = for {
+      _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
+      _lb <- labels if _lb.missionId === _m.missionId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- LabelPointTable.labelPoints if _lb.labelId === _lp.labelId
+
+    } yield (_lb.labelId, _lt.labelType, _lp.lat, _lp.lng)
+    labelsWithCVMetadata.list.map(label => MiniMapResumeMetadata.tupled(label))
   }
 
   /**

@@ -24,6 +24,7 @@ function Main (params) {
     svl.isOnboarding = function () {
         return svl.onboarding != null && svl.onboarding.isOnboarding();
     };
+    svl.missionsCompleted = 0;
     svl.canvasWidth = 720;
     svl.canvasHeight = 480;
     svl.svImageHeight = 6656;
@@ -382,6 +383,28 @@ function Main (params) {
                 svl.labelCounter.set('Obstacle', counter['Obstacle']);
                 svl.labelCounter.set('SurfaceProblem', counter['SurfaceProblem']);
                 svl.labelCounter.set('Other', counter['Other']);
+            });
+
+        /**
+         * Loads the labels onto the mini map when user start auditing if they are near any previously
+         * placed labels
+         */
+        svl.labelContainer.miniMapLabelsInRegion(
+            neighborhood.getProperty("regionId"),
+            function (result) {
+                var labelsArr = result.labels;
+                for (var i = 0; i < labelsArr.length; i++) {
+                    var imagePaths = util.misc.getIconImagePaths();
+                    var url = imagePaths[labelsArr[i].label_type].googleMapsIconImagePath;
+                    var googleMarker = new google.maps.Marker({
+                        position: {lat: labelsArr[i].label_lat, lng: labelsArr[i].label_lng},
+                        map: svl.map.getMap(),
+                        title: "Mini-Map Label",
+                        icon: url,
+                        size: new google.maps.Size(20, 20)
+                    });
+                    googleMarker.setMap(svl.map.getMap());
+                }
             });
 
         var unit = {units: 'miles'};

@@ -105,8 +105,12 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     };
 
     this._closeModal = function (e) {
-        if (svl.neighborhoodModel.isNeighborhoodCompleted) {
-            // reload the page to load another neighborhood
+        if (svl.missionsCompleted === 1) {
+            // Load the validation page since they've done 1 mission.
+            window.location.replace('/validate');
+        }
+        else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
+            // Reload the page to load another neighborhood.
             window.location.replace('/audit');
         } else {
             // TODO can we require that we have a new mission before doing this?
