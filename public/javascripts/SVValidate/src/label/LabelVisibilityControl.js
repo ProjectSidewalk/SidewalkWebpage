@@ -62,12 +62,36 @@ function LabelVisibilityControl () {
         return visible;
     }
 
+    function show () {
+        var button = document.getElementById('label-description');
+	    var marker = document.getElementById('validate-pano-marker');
+        button.style.left = (parseFloat(marker.style.left) - 120) + 'px';
+        button.style.top = (parseFloat(marker.style.top) + 10) + 'px';
+	    button.style.visibility = 'visible';
+    }
+
+    function hide () {
+        document.getElementById("label-description").style.visibility = 'hidden';
+    }
+
     labelVisibilityControlButton.on('click', clickAdjustLabel);
+    labelVisibilityControlButton.on('mouseover', function (e) {
+        document.getElementById('label-description').style.display = 'none';
+    	show();
+    	e.stopPropagation();
+    });
+    labelVisibilityControlButton.on('mouseout', function (e) {
+        document.getElementById('label-description').style.display = 'block';
+        hide();
+        e.stopPropagation();
+    });
 
     self.hideLabel = hideLabel;
     self.unhideLabel = unhideLabel;
     self.refreshLabel = refreshLabel;
     self.isVisible = isVisible;
+    self.show = show;
+    self.hide = hide;
 
     return this;
 

@@ -137,6 +137,9 @@
         /** @private @ŧype {?HTMLDivElement} */
         this.marker_ = null;
 
+        /** @private @ŧype {?HTMLDivElement} */
+        this.description_ = null;
+
         /** @private @type {?google.maps.StreetViewPanorama} */
         this.pano_ = null;
 
@@ -402,14 +405,25 @@
         if (this.icon_) { marker.style.backgroundImage = 'url(' + this.icon_ + ')'; }
 
         // If neither icon, class nor id is specified, assign the basic google maps
-        // marker image to the marker (otherwise it will be invisble)
+        // marker image to the marker (otherwise it will be invisible)
         if (!(this.id_ || this.className_ || this.icon_)) {
             marker.style.backgroundImage = 'url(https://www.google.com/intl/en_us/' +
                 'mapfiles/ms/micons/red-dot.png)';
         }
 
-        this.marker_ = marker;
+        var description = document.createElement('div');
+        description.id = 'label-description';
+        iconColors = {
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png': 'rgb(0, 222, 38)',
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png': 'rgb(233, 39, 113)',
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png': 'rgb(0, 161, 203)',
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png': 'rgb(241, 141, 5)'
+        }
+        description.style['background-color'] = iconColors[this.icon_];
+        this.description_ = description;
+        this.getPanes().overlayMouseTarget.appendChild(description);
 
+        this.marker_ = marker;
         this.getPanes().overlayMouseTarget.appendChild(marker);
 
         // Attach to some global events
@@ -431,6 +445,18 @@
         marker.addEventListener(eventName, this.onClick.bind(this), false);
 
         this.draw();
+
+    	// If this is a validation label, we want to add mouse-hovering event
+    	// for popped up hide/show label.
+    	if (this.id_ === "validate-pano-marker") {
+    	    marker.addEventListener("mouseover", function () {
+    		    svv.labelVisibilityControlButton.show();
+    	    });
+
+     	    marker.addEventListener("mouseout", function () {
+                svv.labelVisibilityControlButton.hide();
+    	    });
+    	}
 
         // Fire 'add' event once the marker has been created.
         google.maps.event.trigger(this, 'add', this.marker_);
@@ -487,6 +513,8 @@
         google.maps.event.removeListener(this.zoomListener_);
         this.marker_.parentNode.removeChild(this.marker_);
         this.marker_ = null;
+        this.description_.parentNode.removeChild(this.description_);
+        this.description_ = null;
 
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');
