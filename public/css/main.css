@@ -729,8 +729,10 @@ video#bgvid {
 }
 
 .testimage{
+    position: relative;
     width: 250px;
     height: auto;
+    left: -5px;
 }
 .testimage img{
     max-width: 100%;
