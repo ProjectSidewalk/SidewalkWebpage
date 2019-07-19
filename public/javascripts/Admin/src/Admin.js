@@ -388,7 +388,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             for (var i = 0; i < dataWithSeverity.features.length; i++) {
                 var labelType = dataWithSeverity.features[i].properties.label_type;
-                if (labelType === "Occlusion" || labelType === "NoSidewalk") {
+                if (labelType === "Occlusion") {
                     // console.log(data.features[i]);
                 }
 
@@ -445,7 +445,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     function toggleLayers(label, checkboxId, sliderId) {
         if (document.getElementById(checkboxId).checked) {
-            if(checkboxId == "occlusion" || checkboxId == "nosidewalk"){
+            if(checkboxId == "occlusion"){
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])) {
                         map.addLayer(self.allLayers[label][i]);
