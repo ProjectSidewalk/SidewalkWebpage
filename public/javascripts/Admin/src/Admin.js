@@ -13,7 +13,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     var neighborhoodPolygonLayer;
 
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
         self.curbRampLayers[i] = [];
         self.missingCurbRampLayers[i] = [];
         self.obstacleLayers[i] = [];
@@ -310,7 +310,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     function initializeSubmittedLabels(map) {
 
-        $.getJSON("/adminapi/labels/all", function (data) {
+        $.getJSON("/adminapi/labels/all", function (allData) {
             // Count a number of each label type
             var labelCounter = {
                 "CurbRamp": 0,
@@ -320,8 +320,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 "NoSidewalk": 0
             };
 
-            for (var i = data.features.length - 1; i >= 0; i--) {
-                labelCounter[data.features[i].properties.label_type] += 1;
+            for (var i = allData.features.length - 1; i >= 0; i--) {
+                labelCounter[allData.features[i].properties.label_type] += 1;
             }
             //document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
             //document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
@@ -338,8 +338,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
-            // Create layers for each of the 35 different label-severity combinations
-            initializeAllLayers(data);
+            // Create layers for each of the 42 different label-severity combinations
+            initializeAllLayers(allData);
         });
     }
 
@@ -381,31 +381,50 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         })
     }
 
-    function initializeAllLayers(data) {
-        for (var i = 0; i < data.features.length; i++) {
-            var labelType = data.features[i].properties.label_type;
-            if(labelType === "Occlusion" || labelType === "NoSidewalk"){
-                // console.log(data.features[i]);
-            }
-            if (data.features[i].properties.severity == 1) {
-                self.allLayers[labelType][0].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 2) {
-                self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 3) {
-                self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 4) {
-                self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 5) {
-                self.allLayers[labelType][4].push(data.features[i]);
-            }
-        }
+    function initializeAllLayers(allData) {
 
-        Object.keys(self.allLayers).forEach(function (key) {
-            for (var i = 0; i < self.allLayers[key].length; i++) {
-                self.allLayers[key][i] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key][i]});
-                self.allLayers[key][i].addTo(map);
+        $.getJSON("/adminapi/labels/allWithSeverity", function (dataWithSeverity) {
+            var addedLabelIds = [];
+
+            for (var i = 0; i < dataWithSeverity.features.length; i++) {
+                var labelType = dataWithSeverity.features[i].properties.label_type;
+                if (labelType === "Occlusion" || labelType === "NoSidewalk") {
+                    // console.log(data.features[i]);
+                }
+
+                if (dataWithSeverity.features[i].properties.severity == 1) {
+                    self.allLayers[labelType][1].push(dataWithSeverity.features[i]);
+                } else if (dataWithSeverity.features[i].properties.severity == 2) {
+                    self.allLayers[labelType][2].push(dataWithSeverity.features[i]);
+                } else if (dataWithSeverity.features[i].properties.severity == 3) {
+                    self.allLayers[labelType][3].push(dataWithSeverity.features[i]);
+                } else if (dataWithSeverity.features[i].properties.severity == 4) {
+                    self.allLayers[labelType][4].push(dataWithSeverity.features[i]);
+                } else if (dataWithSeverity.features[i].properties.severity == 5) {
+                    self.allLayers[labelType][5].push(dataWithSeverity.features[i]);
+                }
+
+                addedLabelIds.push(dataWithSeverity.features[i].properties.label_id);
             }
-        })
+
+            for (var i = 0; i < allData.features.length; i++) {
+                var labelType = allData.features[i].properties.label_type;
+                if(!addedLabelIds.includes(allData.features[i].properties.label_id)) {
+                    self.allLayers[labelType][0].push(allData.features[i]);
+                }
+
+            }
+
+            Object.keys(self.allLayers).forEach(function (key) {
+                for (var i = 0; i < self.allLayers[key].length; i++) {
+                    self.allLayers[key][i] = createLayer({
+                        "type": "FeatureCollection",
+                        "features": self.allLayers[key][i]
+                    });
+                    self.allLayers[key][i].addTo(map);
+                }
+            })
+        });
     }
 
     function clearMap() {
@@ -436,11 +455,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             else {
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])
-                        && ($(sliderId).slider("option", "value") == i ||
-                        $(sliderId).slider("option", "value") == 5 )) {
+                        && ($(sliderId).slider("option", "values")[0] <= i &&
+                        $(sliderId).slider("option", "values")[1] >= i )) {
                         map.addLayer(self.allLayers[label][i]);
-                    } else if ($(sliderId).slider("option", "value") != 5
-                        && $(sliderId).slider("option", "value") != i) {
+                    } else if ($(sliderId).slider("option", "values")[0] > i
+                        || $(sliderId).slider("option", "values")[1] < i) {
                         map.removeLayer(self.allLayers[label][i]);
                     }
                 }

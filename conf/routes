@@ -52,6 +52,7 @@ GET     /adminapi/auditpath/:id                              @controllers.AdminC
 GET     /adminapi/auditedStreets/:username                   @controllers.AdminController.getStreetsAuditedByAUser(username: String)
 GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
+GET     /adminapi/labels/allWithSeverity                     @controllers.AdminController.getAllLabelsWithSeverity
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
 GET     /adminapi/labels/cv                                  @controllers.AdminController.getAllLabelCVMetadata
 GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
