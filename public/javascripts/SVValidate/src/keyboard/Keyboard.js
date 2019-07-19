@@ -36,6 +36,18 @@ function Keyboard(menuUI) {
         }
     }
 
+    /**
+     * Removes the visual effect of the buttons being pressed down.
+     */
+    function removeAllKeyPressVisualEffect () {
+    	menuUI.agreeButton.removeClass("validate");
+        menuUI.disagreeButton.removeClass("validate");
+        menuUI.notSureButton.removeClass("validate");
+	status.keyPressed = false;
+    }
+
+        
+
     this._documentKeyDown = function (e) {
         if (!status.disableKeyboard && !status.keyPressed) {
             status.shiftDown = e.shiftKey;
@@ -126,6 +138,7 @@ function Keyboard(menuUI) {
 
     self.disableKeyboard = disableKeyboard;
     self.enableKeyboard = enableKeyboard;
+    self.removeAllKeyPressVisualEffect = removeAllKeyPressVisualEffect;
 
     return this;
 }

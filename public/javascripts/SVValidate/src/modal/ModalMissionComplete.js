@@ -11,7 +11,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
             // Load the audit page since they've done 2 missions.
             window.location.replace('/audit');
         } else {
-            self.hide();
+	    self.hide();
         }
     }
 
@@ -24,6 +24,8 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
+	svv.keyboard.removeAllKeyPressVisualEffect();
+	svv.keyboard.enableKeyboard();
         uiModalMissionComplete.closeButton.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
