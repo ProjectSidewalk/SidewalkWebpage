@@ -131,6 +131,14 @@ object GlobalAttributeTable {
     globalAttributes.list
   }
 
+  def toInt(s: String): Option[Int] = {
+    try {
+      Some(s.toInt)
+    } catch {
+      case e: Exception => None
+    }
+  }
+
   /**
     * Gets global attributes within a bounding box for the public API.
     *
@@ -144,7 +152,7 @@ object GlobalAttributeTable {
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     val attributes = for {
       _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
-        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || "" + _att.severity == severity.getOrElse(""))
+        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity.getOrElse("6")))
       _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
       _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
       if _labType.labelType =!= "Problem"
@@ -165,7 +173,7 @@ object GlobalAttributeTable {
   def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = for {
       _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
-        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || "" + _att.severity == severity.getOrElse(""))
+        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity.getOrElse("6")))
       _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
       _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
       _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _att.globalAttributeId === _gaua.globalAttributeId
