@@ -227,7 +227,7 @@ function initializeSubmittedLabels(map, southwest, northeast) {
             "stroke-width": 1
         };
 
-    $.getJSON(`/v2/access/attributes?lat1=${southwest.lat}&lng1=${southwest.lng}&lat2=${northeast.lat}&lng2=${northeast.lng}`, function (data) {
+    $.getJSON(`/v2/access/attributes?lat1=${southwest.lat}&lng1=${southwest.lng}&lat2=${northeast.lat}&lng2=${northeast.lng}&severity=${label.severity}`, function (data) {
         // Render submitted labels
         var acceptedLabelTypes = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
         data = data.features.filter(function (d) { return acceptedLabelTypes.indexOf(d.properties.label_type) >= 0; });
