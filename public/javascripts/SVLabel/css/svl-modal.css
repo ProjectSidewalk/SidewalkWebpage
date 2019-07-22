@@ -39,6 +39,14 @@
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
+#modal-skip-box-neighborhood .overlay-option {
+    background-color: rgb(220, 220, 220);
+}
+
+#modal-skip-box-neighborhood .overlay-option:hover {
+    background-color: rgb(190, 190, 190);
+}
+
 #modal-skip-box {
     display: none;
 }
