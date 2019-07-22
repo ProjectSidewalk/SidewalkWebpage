@@ -25,7 +25,13 @@ function ModalMission (uiModalMission, user) {
      * Hides the new/continuing mission screen
      */
     function hide () {
-        svv.keyboard.enableKeyboard();
+        // We still want to disable keyboard shortcuts if the
+	// comment box is shown
+        if ($('#modal-comment-box').is(":hidden")) {
+            svv.keyboard.enableKeyboard();
+        } else {
+            svv.keyboard.disableKeyboard();
+        }
         uiModalMission.background.css('visibility', 'hidden');
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');

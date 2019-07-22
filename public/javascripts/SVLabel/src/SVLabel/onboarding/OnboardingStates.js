@@ -3,22 +3,22 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
     var panoId = "stxXyCKAbd73DmkM2vsIHA";
     var afterWalkPanoId = "PTHUzZqpLdS1nTixJMoDSw";
     var headingRanges = {
-        "stage-1": [250, 262],
-        "stage-2-adjust": [200, 262],
-        "stage-2": [200, 210],
-        "stage-3-adjust": [97, 200],
-        "stage-3": [97, 180],
-        "stage-4-adjust": [7, 180],
-        "stage-4": [7, 115],
-        "stage-5-adjust": [320, 115],
-        "stage-5": [300, 36],
+        "stage-1": [238, 242],
+        "stage-2-adjust": [197, 242],
+        "stage-2": [197, 209],
+        "stage-3-adjust": [98, 197],
+        "stage-3": [98, 108],
+        "stage-4-adjust": [359, 108],
+        "stage-4": [355, 1],
+        "stage-5-adjust": [315, 1],
+        "stage-5": [315, 343],
         "stage-6": [281, 14]
     };
     this.states = {
         "initialize": {
             "properties": {
                 "action": "Introduction",
-                "heading": 262,
+                "heading": 241,
                 "pitch": -6,
                 "zoom": 1,
                 "lat": 38.94042608,
@@ -1396,7 +1396,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
         "adjust-heading-angle-4": {
             "properties": {
                 "action": "AdjustHeadingAngle",
-                "heading": 20,
+                "heading": 0,
                 "tolerance": 20,
                 "minHeading": headingRanges["stage-4-adjust"][0],
                 "maxHeading": headingRanges["stage-4-adjust"][1],

@@ -11,6 +11,8 @@ function Main (param) {
     svv.canvasHeight = 440;
     svv.canvasWidth = 720;
 
+    svv.missionsCompleted = 0;
+
     // Maps label types to label names
     svv.labelNames = {
         CurbRamp: "Curb Ramp",
@@ -134,6 +136,15 @@ function Main (param) {
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
+
+        $('#sign-in-modal-container').on('hide.bs.modal', function () {
+            svv.keyboard.enableKeyboard();
+            $(".toolUI").css('opacity', 1);
+        });
+        $('#sign-in-modal-container').on('show.bs.modal', function () {
+            svv.keyboard.disableKeyboard();
+            $(".toolUI").css('opacity', 0.5);
+        });
     }
 
     _initUI();
@@ -141,6 +152,7 @@ function Main (param) {
     if (param.hasNextMission) {
         _init();
     } else {
+        svv.keyboard = new Keyboard(svv.ui.validation);
         svv.form = new Form(param.dataStoreUrl);
         svv.tracker = new Tracker();
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
