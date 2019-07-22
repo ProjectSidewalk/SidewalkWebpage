@@ -1,5 +1,5 @@
 # Sidewalk Webpage
-The Project Sidewalk webpage. 
+The Project Sidewalk webpage.
 
 ## Development Instructions
 
