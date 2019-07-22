@@ -115,7 +115,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
     /**
      * Fetches the string data of the PointCloud object for the tutorial. If Google removes the tutorial's
-     * panos, the PointCloud data is stored in a .txt file.
+     * panos, the PointCloud data is stored in a .dat file.
      */
     function fetchTutorialPointCloud() {
         var client = new XMLHttpRequest();
@@ -137,7 +137,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     /**
-     * Sets the mini map to be transparent for everything except for yellow pin man.
+     * Sets the mini map to be transparent for everything except for yellow pin.
      */
     function adjustMap() {
         var mapStyleOptions = [

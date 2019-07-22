@@ -275,6 +275,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     }
 
+    /**
+     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
+     * tutorial view or the "after walk" view.
+     * @param pano - the pano ID/name of the wanted custom panorama.
+     * @returns custom Google Street View panorama.
+     * */
     function getCustomPanorama(pano) {
         if (pano === 'tutorial') {
             return {
