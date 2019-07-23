@@ -46,8 +46,6 @@ function Keyboard(menuUI) {
         status.keyPressed = false;
     }
 
-        
-
     this._documentKeyDown = function (e) {
         if (!status.disableKeyboard && !status.keyPressed) {
             status.shiftDown = e.shiftKey;
