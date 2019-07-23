@@ -40,13 +40,11 @@ function Keyboard(menuUI) {
      * Removes the visual effect of the buttons being pressed down.
      */
     function removeAllKeyPressVisualEffect () {
-    	menuUI.agreeButton.removeClass("validate");
+        menuUI.agreeButton.removeClass("validate");
         menuUI.disagreeButton.removeClass("validate");
         menuUI.notSureButton.removeClass("validate");
-	status.keyPressed = false;
+        status.keyPressed = false;
     }
-
-        
 
     this._documentKeyDown = function (e) {
         if (!status.disableKeyboard && !status.keyPressed) {
