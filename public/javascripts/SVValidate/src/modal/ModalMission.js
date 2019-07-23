@@ -18,7 +18,7 @@ function ModalMission (uiModalMission, user) {
     function _handleButtonClick() {
         var mission = svv.missionContainer.getCurrentMission();
 
-        // Check added so that if a user begins a mission, leaves partwar through, and then resumes the mission later,
+        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later,
         // another MissionStart will not be triggered
         if(mission.getProperty("labelsProgress") < 1) {
             svv.tracker.push(
@@ -103,7 +103,7 @@ function ModalMission (uiModalMission, user) {
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.closeButton.html('Ok');
-        uiModalMission.closeButton.on('click', _handleButtonClick);
+        uiModalMission.closeButton.off('click').on('click', _handleButtonClick);
     }
 
     self.hide = hide;
