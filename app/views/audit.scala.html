@@ -11,6 +11,8 @@
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
+    @zoomInAlert()
+
     <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
