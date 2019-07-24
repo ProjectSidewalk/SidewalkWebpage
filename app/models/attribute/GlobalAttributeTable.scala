@@ -131,16 +131,16 @@ object GlobalAttributeTable {
     globalAttributes.list
   }
 
-  def toInt(s: String): Option[Int] = {
+  def toInt(s: Option[String]): Option[Int] = {
     try {
-      Some(s.toInt)
+      Some(s.getOrElse("6").toInt)
     } catch {
       case e: Exception => None
     }
   }
 
   /**
-    * Gets global attributes within a bounding box for the public API.
+    * Gets global attributes within a bounding box and a potentially specified severity rating for the public API.
     *
     * @param minLat
     * @param minLng
@@ -152,7 +152,7 @@ object GlobalAttributeTable {
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     val attributes = for {
       _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
-        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity.getOrElse("6")))
+        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity))
       _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
       _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
       if _labType.labelType =!= "Problem"
@@ -161,7 +161,8 @@ object GlobalAttributeTable {
   }
 
   /**
-    * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
+    * Gets global attributes within a bounding box and a potentially specified severity rating with the labels that
+    * make up those attributes for the public API.
     *
     * @param minLat
     * @param minLng
@@ -173,7 +174,7 @@ object GlobalAttributeTable {
   def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = for {
       _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
-        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity.getOrElse("6")))
+        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity))
       _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
       _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
       _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _att.globalAttributeId === _gaua.globalAttributeId
