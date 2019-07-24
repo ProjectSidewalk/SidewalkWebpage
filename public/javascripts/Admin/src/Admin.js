@@ -13,7 +13,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     var neighborhoodPolygonLayer;
 
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
         self.curbRampLayers[i] = [];
         self.missingCurbRampLayers[i] = [];
         self.obstacleLayers[i] = [];
@@ -338,7 +338,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
-            // Create layers for each of the 35 different label-severity combinations
+            // Create layers for each of the 42 different label-severity combinations
             initializeAllLayers(data);
         });
     }
@@ -384,25 +384,31 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function initializeAllLayers(data) {
         for (var i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
-            if(labelType === "Occlusion" || labelType === "NoSidewalk"){
+            if (labelType === "Occlusion") {
                 // console.log(data.features[i]);
             }
+
             if (data.features[i].properties.severity == 1) {
-                self.allLayers[labelType][0].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 2) {
                 self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 3) {
+            } else if (data.features[i].properties.severity == 2) {
                 self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 4) {
+            } else if (data.features[i].properties.severity == 3) {
                 self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 5) {
+            } else if (data.features[i].properties.severity == 4) {
                 self.allLayers[labelType][4].push(data.features[i]);
+            } else if (data.features[i].properties.severity == 5) {
+                self.allLayers[labelType][5].push(data.features[i]);
+            } else { // No severity level
+                self.allLayers[labelType][0].push(data.features[i]);
             }
         }
 
         Object.keys(self.allLayers).forEach(function (key) {
             for (var i = 0; i < self.allLayers[key].length; i++) {
-                self.allLayers[key][i] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key][i]});
+                self.allLayers[key][i] = createLayer({
+                    "type": "FeatureCollection",
+                    "features": self.allLayers[key][i]
+                });
                 self.allLayers[key][i].addTo(map);
             }
         })
@@ -426,7 +432,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     function toggleLayers(label, checkboxId, sliderId) {
         if (document.getElementById(checkboxId).checked) {
-            if(checkboxId == "occlusion" || checkboxId == "nosidewalk"){
+            if(checkboxId == "occlusion"){
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])) {
                         map.addLayer(self.allLayers[label][i]);
@@ -436,11 +442,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             else {
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])
-                        && ($(sliderId).slider("option", "value") == i ||
-                        $(sliderId).slider("option", "value") == 5 )) {
+                        && ($(sliderId).slider("option", "values")[0] <= i &&
+                        $(sliderId).slider("option", "values")[1] >= i )) {
                         map.addLayer(self.allLayers[label][i]);
-                    } else if ($(sliderId).slider("option", "value") != 5
-                        && $(sliderId).slider("option", "value") != i) {
+                    } else if ($(sliderId).slider("option", "values")[0] > i
+                        || $(sliderId).slider("option", "values")[1] < i) {
                         map.removeLayer(self.allLayers[label][i]);
                     }
                 }
@@ -653,9 +659,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+                var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
 
-                var subPlotHeight = 200;
-                var subPlotWidth = 199;
+                var subPlotHeight = 150;
+                var subPlotWidth = 149;
                 var chart = {
                     "hconcat": [
                         {
@@ -699,6 +706,17 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "Obstacle Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noSidewalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         }
