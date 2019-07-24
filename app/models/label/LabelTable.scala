@@ -45,7 +45,7 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      auditTaskId: Int,
                                      gsvPanoramaId: String,
                                      labelType: String,
-                                     severity: Int,
+                                     severity: Option[Int],
                                      lat: Float,
                                      lng: Float)
 
@@ -144,7 +144,7 @@ object LabelTable {
     MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextIntOption, r.nextFloat, r.nextFloat))
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
@@ -553,22 +553,8 @@ object LabelTable {
     var potentialLabels: List[LabelValidationMetadata] = List()
     val userIdStr = userId.toString
 
-    // Get the minimum number of times any label has been validated for prioritizing labels with fewer validations.
-    val minCompletionCountQuery = Q.query[String, Int](
-      """SELECT MIN(validation_count)
-        |FROM (
-        |    SELECT COUNT(label_validation_id) AS validation_count
-        |    FROM label
-        |    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
-        |    WHERE label.deleted = FALSE
-        |        AND (label_validation.user_id IS NULL OR label_validation.user_id <> ?)
-        |    GROUP BY label.label_id
-        |) count""".stripMargin
-    )
-    val minCompCnt: Int = minCompletionCountQuery(userIdStr).list.head
-
     while (selectedLabels.length < n) {
-      val selectRandomLabelsQuery = Q.query[(String, Int, Int, String, Int, String, Int), LabelValidationMetadata](
+      val selectRandomLabelsQuery = Q.query[(String, Int, Int, String, String, Int), LabelValidationMetadata](
         """SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
           |       label_point.zoom, label_point.canvas_x, label_point.canvas_y,
           |       label_point.canvas_width, label_point.canvas_height
@@ -606,17 +592,17 @@ object LabelTable {
           |    AND label.tutorial = FALSE
           |    AND gsv_data.expired = FALSE
           |    AND mission.user_id <> ?
-          |    AND counts.validation_count = ?
           |    AND label.label_id NOT IN (
           |        SELECT label_id
           |        FROM label_validation
           |        WHERE user_id = ?
           |    )
-          |-- Prioritize labels from users who have had less than 10 validations of this label type, then randomize it.
-          |ORDER BY COALESCE(needs_validations, TRUE) DESC, RANDOM()
+          |-- Prioritize labels that have been validated fewer times and from users who have had less than 10
+          |-- validations of this label type, then randomize it.
+          |ORDER BY counts.validation_count, COALESCE(needs_validations, TRUE) DESC, RANDOM()
           |LIMIT ?""".stripMargin
       )
-      potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, minCompCnt, userIdStr, n * 5)).list
+      potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, userIdStr, n * 5)).list
       var potentialStartIdx: Int = 0
 
       // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
@@ -861,11 +847,11 @@ object LabelTable {
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
     val _slabels = for {
-      (l, s) <- _labels.innerJoin(severities).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, s.severity)
+      (l, s) <- _labels.leftJoin(severities).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, s.severity.?)
 
     val _points = for {
-      (l, p) <- _slabels.innerJoin(labelPoints).on(_._1 === _.labelId)
+      (l, p) <- _slabels.leftJoin(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
     val labelLocationList: List[LabelLocationWithSeverity] = _points.list.map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7))

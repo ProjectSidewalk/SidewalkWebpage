@@ -653,9 +653,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+                var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
 
-                var subPlotHeight = 200;
-                var subPlotWidth = 199;
+                var subPlotHeight = 150;
+                var subPlotWidth = 149;
                 var chart = {
                     "hconcat": [
                         {
@@ -699,6 +700,17 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "Obstacle Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noSidewalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         }

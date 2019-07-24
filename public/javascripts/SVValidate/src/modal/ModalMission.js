@@ -16,7 +16,21 @@ function ModalMission (uiModalMission, user) {
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
-        svv.tracker.push("ModalMission_ClickOK");
+        var mission = svv.missionContainer.getCurrentMission();
+
+        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later,
+        // another MissionStart will not be triggered
+        if(mission.getProperty("labelsProgress") < 1) {
+            svv.tracker.push(
+                "MissionStart",
+                {
+                    missionId: mission.getProperty("missionId"),
+                    missionType: mission.getProperty("missionType"),
+                    labelTypeId: mission.getProperty("labelTypeId"),
+                    labelsValidated: mission.getProperty("labelsValidated")
+                }
+            );
+        }
         svv.zoomControl.updateZoomAvailability();
         hide();
         ZoomInAlertUtil.showZoomInAlert();
@@ -90,7 +104,7 @@ function ModalMission (uiModalMission, user) {
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.closeButton.html('Ok');
-        uiModalMission.closeButton.on('click', _handleButtonClick);
+        uiModalMission.closeButton.off('click').on('click', _handleButtonClick);
     }
 
     self.hide = hide;
