@@ -64,6 +64,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
     this._handleCloseButtonClick = function () {
         self.hide();
+        ZoomInAlertUtil.showZoomInAlert();
     };
 
     /**

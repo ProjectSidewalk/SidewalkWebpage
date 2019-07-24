@@ -756,6 +756,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 compass.hideMessage();
             }
 
+            // Binds the ok button with the showAlert function.
+            $("#onboarding-ok-button").on('click', function () {
+                ZoomInAlertUtil.showZoomInAlert();
+            });
+
             $target.on("click", callback);
         }
     }
