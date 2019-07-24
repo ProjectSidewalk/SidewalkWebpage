@@ -77,7 +77,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // JSON APIs
 
   /**
-    * Get a list of all labels that have severities
+    * Get a list of all labels
     *
     * @return
     */
