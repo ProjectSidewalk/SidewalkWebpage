@@ -24,7 +24,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-	// Have to remove the effect since keyup event did not go through.
+        // Have to remove the effect since keyup event did not go through.
         svv.keyboard.removeAllKeyPressVisualEffect();
         svv.keyboard.enableKeyboard();
 
