@@ -1,0 +1,50 @@
+@import views.html.bootstrap._
+
+  <!-- Modal -->
+  <div class="modal fade" id="zoom-in-alert-modal" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h3 class="modal-title text-center">You can use your browser's zoom to get a better view!</h3>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li><h4> Mac: Hold down <b>Command</b>, then press <b>+</b></h4></li>
+            <li><h4> Windows: Hold down <b>Ctrl</b>, then press <b>+</b> </h4></li>
+            <li><h4>Or manually zoom in as instructed below:</h4></li>
+          </ul>
+          <div>
+            <iframe id="zoom-in-instructions-video" width="830" height="530" frameborder="0" allowfullscreen="" style="margin-left:20px;margin-top:10px;"></iframe>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+        var gif = $("#zoom-in-instructions-video");
+        // Determines client's web browser.
+        if((navigator.userAgent.indexOf("Opera") || navigator.userAgent.indexOf('OPR')) != -1 ) {
+            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Opera.gif")');
+        } else if(navigator.userAgent.indexOf("Chrome") != -1 ) {
+            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Chrome.gif")');
+        } else if(navigator.userAgent.indexOf("Safari") != -1) {
+            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Safari.gif")');
+        } else if(navigator.userAgent.indexOf("Firefox") != -1 ) {
+            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Firefox.gif")');
+        } else if((navigator.userAgent.indexOf("MSIE") != -1 ) || (!!document.documentMode == true )) { //IF IE > 10
+	    gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/IE.gif")');
+        } else {
+            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Chrome.gif")');
+        }
+    });
+  </script>
+
