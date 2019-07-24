@@ -24,6 +24,7 @@ function Main (params) {
     svl.isOnboarding = function () {
         return svl.onboarding != null && svl.onboarding.isOnboarding();
     };
+    svl.missionsCompleted = 0;
     svl.canvasWidth = 720;
     svl.canvasHeight = 480;
     svl.svImageHeight = 6656;
@@ -332,6 +333,7 @@ function Main (params) {
     }
 
     function startTheMission(mission, neighborhood) {
+        document.getElementById("google-maps-holder").style.backgroundColor = "#e5e3df";
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
             if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {

@@ -6,6 +6,8 @@ The Project Sidewalk webpage.
 ### Setting up the development environment
 The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows PowerShell users may also need to install `make`. You will also need to clone the SidewalkWebpage Github repo by navigating to your desired location in the terminal and entering `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
 
+If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
+
 ### Running the application locally
 To run the web server locally, from the root of the SidewalkWebpage directory:
 
@@ -59,7 +61,22 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 ### Additional tools
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
 
+### Programming environment
+The IDE [IntelliJ IDEA](https://www.jetbrains.com/idea/) is highly recommended for development, particularly with Scala. You should be able to get a [student license](https://www.jetbrains.com/student/) to use get the "ultimate" edition of IntelliJ IDEA.
+
+To look at and run queries on your database, you will want to install a database client. [Valentina Studio](https://www.valentina-db.com/en/valentina-studio-overview) is a good cross-platform database client. People also like using [Postico](https://eggerapps.at/postico/) for Mac or [PGAdmin](https://www.pgadmin.org/download/) on Windows/Mac.
+
+You'll connect to the database using the following credentials:
+```
+Host: localhost:5432
+User: sidewalk
+Password: sidewalk
+Database: sidewalk
+```
+
 ### Making changes
+1. Before making changes, check out our [style guide](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Style-Guide) and [process for contributing new code](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Process-for-contributing-new-code) wiki pages.
+
 1. If you make any changes to the `build.sbt` or the configs, you'd need to press `Ctrl+D` and then `sbt clean` and then `npm start` from inside the Docker shell.
 
 1. If you make any changes to the views or other scala files, these changes will be automatically picked up by `sbt`. You'd need to reload the browser once the compilation finishes. For example, a change to `index.scala.html` file results in:
@@ -93,9 +110,6 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 
     [success] Compiled in 90s
     ```
-
-### Debugging notes
-If you run into any problems, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+)
 
 ## Running the application remotely
 To run the application remotely,
