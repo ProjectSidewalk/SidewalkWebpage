@@ -52,4 +52,8 @@ object ValidationTaskInteractionTable {
       (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)).insert(interaction)
     interactionId
   }
+
+  def saveMultiple(interactions: Seq[ValidationTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
+    (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) ++= interactions
+  }
 }
