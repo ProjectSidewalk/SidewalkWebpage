@@ -117,6 +117,12 @@ object AuditTaskInteractionTable {
     interactionId
   }
 
+  /**
+    * Inserts a sequence of interactions into the audit_task_interaction table.
+    *
+    * @param interactions
+    * @return
+    */
   def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
     (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) ++= interactions
   }

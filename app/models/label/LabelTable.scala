@@ -645,8 +645,12 @@ object LabelTable {
   }
 
   /**
-    * Retrieves a list of possible label types that the user can validate. This is determined by how
-    * many labels are in the database and how many labels the user has validated.
+    * Retrieves a list of possible label types that the user can validate.
+    *
+    * We do this by getting the number of labels available to validate for each label type. We then filter out label
+    * types with less than 10 labels to validate (the size of a validation mission), and we filter for labels in our
+    * labelTypeIdList (the main label types that we ask users to validate).
+    *
     * @param userId               User ID of the current user.
     * @param count                Number of labels for this mission.
     * @param currentLabelTypeId   Label ID of the current mission
@@ -657,7 +661,7 @@ object LabelTable {
   }
 
     /**
-    * Checks if the panorama associated with a label eixsts by pinging Google Maps.
+    * Checks if the panorama associated with a label exists by pinging Google Maps.
     * @param gsvPanoId  Panorama ID
     * @return           True if the panorama exists, false otherwise
     */
