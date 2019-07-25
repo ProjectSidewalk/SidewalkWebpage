@@ -30,8 +30,7 @@ object LabelTypeTable {
     * @return
     */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
-    val typeId: Option[Int] = labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.headOption
-    typeId.getOrElse(LabelTypeTable.save(LabelType(0, labelType, "")))
+    labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.head
   }
 
   /**
@@ -42,17 +41,6 @@ object LabelTypeTable {
     */
   def labelTypeIdToLabelType(labelTypeId: Int): String = db.withTransaction { implicit session =>
     labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).list.head
-  }
-
-  /**
-   * Saves a new label type in the table
-   * @param lt
-   * @return
-   */
-  def save(lt: LabelType): Int = db.withTransaction { implicit session =>
-    val labelTypeId: Int =
-      (labelTypes returning labelTypes.map(_.labelTypeId)) += lt
-    labelTypeId
   }
 }
 
