@@ -346,12 +346,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }
       }
 
-      // Insert interaction
-      for (interaction: InteractionSubmission <- data.interactions) {
-        AuditTaskInteractionTable.save(AuditTaskInteraction(0, auditTaskId, missionId, interaction.action,
-          interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-          interaction.zoom, interaction.note, interaction.temporaryLabelId, new Timestamp(interaction.timestamp)))
-      }
+      // Insert interactions
+      AuditTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
+        AuditTaskInteraction(0, auditTaskId, missionId, interaction.action, interaction.gsvPanoramaId,
+          interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
+          interaction.temporaryLabelId, new Timestamp(interaction.timestamp))
+      })
 
       // Insert environment
       val env: EnvironmentSubmission = data.environment
