@@ -29,11 +29,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def processValidationTaskSubmissions(submission: Seq[ValidationTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val user = identity
     val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
-      for (interaction: InteractionSubmission <- data.interactions) {
-        ValidationTaskInteractionTable.save(ValidationTaskInteraction(0, interaction.missionId, interaction.action,
-          interaction.gsvPanoramaId, interaction.lat, interaction.lng, interaction.heading, interaction.pitch,
-          interaction.zoom, interaction.note, new Timestamp(interaction.timestamp)))
-      }
+      ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
+        ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
+          interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
+          new Timestamp(interaction.timestamp))
+      })
 
       // We aren't always submitting labels, so check if data.labels exists.
       for (label: LabelValidationSubmission <- data.labels) {
@@ -131,7 +131,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
       val labelsToRetrieve: Int = MissionTable.getNextValidationMissionLabelCount(userId)
-      val possibleLabelTypeIds: ListBuffer[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
+      val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
