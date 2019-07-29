@@ -376,9 +376,9 @@
             }
             svv.user = new User(userParam);
 
-            var hitExpired = false;
+            let hitExpired = false;
             @if(user && user.get.role.getOrElse("") == "Turker") {
-            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemaining < 0) {
                 hitExpired = true;
             }
@@ -392,7 +392,7 @@
 
                 // Set information about panorama size (to be used by JS), number of panoramas
                 param.canvasHeight = 130;
-                param.canvasWidth = 250;
+                param.canvasWidth = 240;
                 param.canvasCount = 9;
 
                 if (@hasNextMission) {
@@ -403,7 +403,7 @@
                     // Initializes an object of labels from label metadata.
                     // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
                     Object.keys(param.labelList).map(function (key, index) {
-                        var labelMetadata = {
+                        let labelMetadata = {
                             canvasHeight: param.labelList[key].canvas_height,
                             canvasWidth: param.labelList[key].canvas_width,
                             canvasX: param.labelList[key].canvas_x,
