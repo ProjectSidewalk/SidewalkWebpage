@@ -1,13 +1,10 @@
 #validation-button-holder-large {
-    position: absolute;
-    left: 0px;
-    top: 530px;
-    height: 90px;
-    width: 730px;
+    margin-top: 7px;
+    margin-left: -6px;
+    width: 733px;
     display: flex;
     justify-content: space-between;
 }
-
 
 .validation-holder-small {
     margin-top: -2px;
@@ -18,7 +15,7 @@
 /* Put buttons here */
 .validation-button-large {
     height: 70px;
-    width: 238px;
+    width: 242px;
     background-color: white;
     margin-right: 2px;
     border-radius: 5px;
@@ -28,7 +25,7 @@
 
 .validation-button-small {
     height: 25px;
-    width: 74px;
+    width: 79px;
     background-color: white;
     border-radius: 5px;
     border-width: 2px;
@@ -51,16 +48,16 @@
     margin-bottom: 5px;
 }
 
-.validation-button:active {
+.validation-button-small:active, .validation-button-large:active {
     outline: none;
     border: none;
     background-color: lightgrey;
 }
 
-.validation-button:focus {
+.validation-button-small:focus, .validation-button-large:focus {
     outline: none;
 }
 
-.validation-button:hover {
+.validation-button-small:hover, .validation-button-large:hover {
     background-color: lightgrey;
 }

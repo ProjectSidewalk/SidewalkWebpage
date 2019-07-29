@@ -5,25 +5,14 @@
     height: 550px;
 }
 
-#svv-panorama-outline-multiple {
-    border: 5px solid black;
-    border-radius: 5px;
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    height: 155px;
-    width: 230px;
-    display: inline-block
-}
-
 #svv-panorama-holder-small {
     display: inline-block;
-    width: 230px;
-    height: 190px;
+    width: 240px;
+    height: 175px;
 }
 
 .small-panorama {
-    height: 150px;
-    width: 230px;
+    height: 140px;
+    width: 240px;
     display: inline-block;
 }
