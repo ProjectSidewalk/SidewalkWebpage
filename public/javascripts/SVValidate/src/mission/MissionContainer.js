@@ -4,9 +4,9 @@
  * @constructor
  */
 function MissionContainer () {
-    var self = this;
-    var currentMission = undefined;
-    var _completedMissions = [];
+    let self = this;
+    let currentMission = undefined;
+    let _completedMissions = [];
 
     /**
      * Adds a mission to in progress or list of completed missions
@@ -29,10 +29,10 @@ function MissionContainer () {
      * @private
      */
     function _addToCompletedMissions(mission) {
-        var existingMissionIds = _completedMissions.map(function (m) {
+        let existingMissionIds = _completedMissions.map(function (m) {
             return m.getProperty("missionId")
         });
-        var currentMissionId = mission.getProperty("missionId");
+        let currentMissionId = mission.getProperty("missionId");
         if (existingMissionIds.indexOf(currentMissionId) < 0) {
             _completedMissions.push(mission);
         }
@@ -43,7 +43,7 @@ function MissionContainer () {
      */
     function completeAMission () {
         svv.modalMissionComplete.show(currentMission);
-        var data = svv.form.compileSubmissionData();
+        let data = svv.form.compileSubmissionData();
         svv.form.submit(data, true);
         _addToCompletedMissions(currentMission);
     }
@@ -56,7 +56,7 @@ function MissionContainer () {
      * @private
      */
     function createAMission(missionMetadata, progressMetadata) {
-        var metadata = {
+        let metadata = {
             agreeCount: progressMetadata.agree_count,
             completed : missionMetadata.completed,
             disagreeCount: progressMetadata.disagree_count,
@@ -69,7 +69,7 @@ function MissionContainer () {
             skipped : missionMetadata.skipped,
             pay: missionMetadata.pay
         };
-        var mission = new Mission(metadata);
+        let mission = new Mission(metadata);
         addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
     }

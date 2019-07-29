@@ -5,7 +5,7 @@
  * @constructor
  */
 function PanoProperties () {
-    var self = this;
+    let self = this;
 
     /**
      * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
@@ -24,36 +24,36 @@ function PanoProperties () {
             return x >= 0 ? 1 : -1;
         }
 
-        var PI = Math.PI;
-        var cos = Math.cos;
-        var sin = Math.sin;
-        var tan = Math.tan;
-        var sqrt = Math.sqrt;
-        var atan2 = Math.atan2;
-        var asin = Math.asin;
-        var fov = _get3dFov(zoom) * PI / 180.0;
-        var width = canvas_width;
-        var height = canvas_height;
-        var h0 = heading * PI / 180.0;
-        var p0 = pitch * PI / 180.0;
-        var f = 0.5 * width / tan(0.5 * fov);
-        var x0 = f * cos(p0) * sin(h0);
-        var y0 = f * cos(p0) * cos(h0);
-        var z0 = f * sin(p0);
-        var du = (canvas_x) - width / 2;
-        var dv = height / 2 - (canvas_y - 5);
-        var ux = sgn(cos(p0)) * cos(h0);
-        var uy = -sgn(cos(p0)) * sin(h0);
-        var uz = 0;
-        var vx = -sin(p0) * sin(h0);
-        var vy = -sin(p0) * cos(h0);
-        var vz = cos(p0);
-        var x = x0 + du * ux + dv * vx;
-        var y = y0 + du * uy + dv * vy;
-        var z = z0 + du * uz + dv * vz;
-        var R = sqrt(x * x + y * y + z * z);
-        var h = atan2(x, y);
-        var p = asin(z / R);
+        let PI = Math.PI;
+        let cos = Math.cos;
+        let sin = Math.sin;
+        let tan = Math.tan;
+        let sqrt = Math.sqrt;
+        let atan2 = Math.atan2;
+        let asin = Math.asin;
+        let fov = _get3dFov(zoom) * PI / 180.0;
+        let width = canvas_width;
+        let height = canvas_height;
+        let h0 = heading * PI / 180.0;
+        let p0 = pitch * PI / 180.0;
+        let f = 0.5 * width / tan(0.5 * fov);
+        let x0 = f * cos(p0) * sin(h0);
+        let y0 = f * cos(p0) * cos(h0);
+        let z0 = f * sin(p0);
+        let du = (canvas_x) - width / 2;
+        let dv = height / 2 - (canvas_y - 5);
+        let ux = sgn(cos(p0)) * cos(h0);
+        let uy = -sgn(cos(p0)) * sin(h0);
+        let uz = 0;
+        let vx = -sin(p0) * sin(h0);
+        let vy = -sin(p0) * cos(h0);
+        let vz = cos(p0);
+        let x = x0 + du * ux + dv * vx;
+        let y = y0 + du * uy + dv * vy;
+        let z = z0 + du * uz + dv * vz;
+        let R = sqrt(x * x + y * y + z * z);
+        let h = atan2(x, y);
+        let p = asin(z / R);
         return {
             heading: h * 180.0 / PI,
             pitch: p * 180.0 / PI
@@ -90,48 +90,48 @@ function PanoProperties () {
      */
     function povToPixel3d (targetPov, currentPov, zoom, canvasWidth, canvasHeight) {
 
-        // Gather required variables and convert to radians where necessary
-        var width = canvasWidth;
-        var height = canvasHeight;
-        var target = {
+        // Gather required letiables and convert to radians where necessary
+        let width = canvasWidth;
+        let height = canvasHeight;
+        let target = {
             left: width / 2,
             top: height / 2
         };
 
-        var DEG_TO_RAD = Math.PI / 180.0;
-        var fov = _get3dFov(zoom) * DEG_TO_RAD;
-        var h0 = currentPov.heading * DEG_TO_RAD;
-        var p0 = currentPov.pitch * DEG_TO_RAD;
-        var h = targetPov.heading * DEG_TO_RAD;
-        var p = targetPov.pitch * DEG_TO_RAD;
+        let DEG_TO_RAD = Math.PI / 180.0;
+        let fov = _get3dFov(zoom) * DEG_TO_RAD;
+        let h0 = currentPov.heading * DEG_TO_RAD;
+        let p0 = currentPov.pitch * DEG_TO_RAD;
+        let h = targetPov.heading * DEG_TO_RAD;
+        let p = targetPov.pitch * DEG_TO_RAD;
 
         // f = focal length = distance of current POV to image plane
-        var f = (width / 2) / Math.tan(fov / 2);
+        let f = (width / 2) / Math.tan(fov / 2);
 
         // our coordinate system: camera at (0,0,0), heading = pitch = 0 at (0,f,0)
         // calculate 3d coordinates of viewport center and target
-        var cos_p = Math.cos(p);
-        var sin_p = Math.sin(p);
+        let cos_p = Math.cos(p);
+        let sin_p = Math.sin(p);
 
-        var cos_h = Math.cos(h);
-        var sin_h = Math.sin(h);
+        let cos_h = Math.cos(h);
+        let sin_h = Math.sin(h);
 
-        var x = f * cos_p * sin_h;
-        var y = f * cos_p * cos_h;
-        var z = f * sin_p;
+        let x = f * cos_p * sin_h;
+        let y = f * cos_p * cos_h;
+        let z = f * sin_p;
 
-        var cos_p0 = Math.cos(p0);
-        var sin_p0 = Math.sin(p0);
+        let cos_p0 = Math.cos(p0);
+        let sin_p0 = Math.sin(p0);
 
-        var cos_h0 = Math.cos(h0);
-        var sin_h0 = Math.sin(h0);
+        let cos_h0 = Math.cos(h0);
+        let sin_h0 = Math.sin(h0);
 
-        var x0 = f * cos_p0 * sin_h0;
-        var y0 = f * cos_p0 * cos_h0;
-        var z0 = f * sin_p0;
+        let x0 = f * cos_p0 * sin_h0;
+        let y0 = f * cos_p0 * cos_h0;
+        let z0 = f * sin_p0;
 
-        var nDotD = x0 * x + y0 * y + z0 * z;
-        var nDotC = x0 * x0 + y0 * y0 + z0 * z0;
+        let nDotD = x0 * x + y0 * y + z0 * z;
+        let nDotC = x0 * x0 + y0 * y0 + z0 * z0;
 
         // nDotD == |targetVec| * |currentVec| * cos(theta)
         // nDotC == |currentVec| * |currentVec| * 1
@@ -147,7 +147,7 @@ function PanoProperties () {
         // touches the image plane. It's equal to 1/cos(theta) ==
         //     (distance from camera to image plane through target) /
         //     (distance from camera to target == f)
-        var t = nDotC / nDotD;
+        let t = nDotC / nDotD;
 
         // Sanity check: it doesn't make sense to scale the vector in a negative
         // direction. In fact, it should even be t >= 1.0 since the image plane
@@ -158,29 +158,29 @@ function PanoProperties () {
 
         // (tx, ty, tz) are the coordinates of the intersection point between a
         // line through camera and target with the image plane
-        var tx = t * x;
-        var ty = t * y;
-        var tz = t * z;
+        let tx = t * x;
+        let ty = t * y;
+        let tz = t * z;
 
         // u and v are the basis vectors for the image plane
-        var vx = -sin_p0 * sin_h0;
-        var vy = -sin_p0 * cos_h0;
-        var vz = cos_p0;
+        let vx = -sin_p0 * sin_h0;
+        let vy = -sin_p0 * cos_h0;
+        let vz = cos_p0;
 
-        var ux = cos_h0;
-        var uy = -sin_h0;
-        var uz = 0;
+        let ux = cos_h0;
+        let uy = -sin_h0;
+        let uz = 0;
 
         // normalize horiz. basis vector to obtain orthonormal basis
-        var ul = Math.sqrt(ux * ux + uy * uy + uz * uz);
+        let ul = Math.sqrt(ux * ux + uy * uy + uz * uz);
         ux /= ul;
         uy /= ul;
         uz /= ul;
 
         // project the intersection point t onto the basis to obtain offsets in
         // terms of actual pixels in the viewport
-        var du = tx * ux + ty * uy + tz * uz;
-        var dv = tx * vx + ty * vy + tz * vz;
+        let du = tx * ux + ty * uy + tz * uz;
+        let dv = tx * vx + ty * vy + tz * vz;
 
         // use the calculated pixel offsets
         target.left += du;

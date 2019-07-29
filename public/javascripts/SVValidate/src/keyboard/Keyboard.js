@@ -1,7 +1,7 @@
 function Keyboard(menuUI) {
-    var self = this;
-    var lastShiftKeyDownTimestamp = undefined;
-    var status = {
+    let self = this;
+    let lastShiftKeyDownTimestamp = undefined;
+    let status = {
         disableKeyboard: false,
         keyPressed: false,
         shiftDown: false
@@ -26,7 +26,7 @@ function Keyboard(menuUI) {
 
         // It does not look like GSV StreetView supports any listeners that will check when the
         // panorama is fully loaded yet.
-        var timestamp = new Date().getTime();
+        let timestamp = new Date().getTime();
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);

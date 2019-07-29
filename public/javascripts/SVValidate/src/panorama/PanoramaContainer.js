@@ -29,6 +29,10 @@ function PanoramaContainer (labelList, idList) {
             setProperty("progress", getProperty("progress") + 1);
         });
 
+        // Set the HTML
+        svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
+        svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
+
         // temporary... to maintain functionality (yikes)
         svv.panorama = panos[0];
     }
@@ -101,10 +105,13 @@ function PanoramaContainer (labelList, idList) {
     function loadNewLabelOntoPanorama (panorama) {
         panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
-        if (!svv.labelVisibilityControl.isVisible()) {
+        if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
             svv.labelVisibilityControl.unhideLabel();
         }
-        svv.zoomControl.updateZoomAvailability();
+
+        if (svv.zoomControl) {
+            svv.zoomControl.updateZoomAvailability();
+        }
     }
 
     /**

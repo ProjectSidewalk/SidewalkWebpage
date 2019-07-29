@@ -227,8 +227,6 @@ function Panorama (label, id) {
         console.log("Setting label of panorama: " + getProperty("canvasId") + " to " + label.getAuditProperty("labelId"));
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
-        svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
-        svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
         renderLabel();

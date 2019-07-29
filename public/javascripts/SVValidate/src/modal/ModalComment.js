@@ -6,8 +6,8 @@
  * @constructor
  */
 function ModalComment (modalUI) {
-    var self = this;
-    var status = {
+    let self = this;
+    let status = {
         disableClickOk: true
     };
 
@@ -50,7 +50,7 @@ function ModalComment (modalUI) {
      */
     function handleClickOk () {
         svv.tracker.push("ModalComment_ClickOK");
-        var data = prepareCommentData();
+        let data = prepareCommentData();
         submitComment(data);
         hideCommentMenu();
     }
@@ -60,7 +60,7 @@ function ModalComment (modalUI) {
      * button if there is text.
      */
     function handleTextAreaChange () {
-        var comment = modalUI.textarea.val();
+        let comment = modalUI.textarea.val();
         if (comment.length > 0) {
             enableClickOk();
         } else {
@@ -120,8 +120,8 @@ function ModalComment (modalUI) {
      * Submit the comment.
      */
     function submitComment (data) {
-        var url = "/validate/comment";
-        var async = true;
+        let url = "/validate/comment";
+        let async = true;
         $.ajax({
             async: async,
             contentType: 'application/json; charset=utf-8',
@@ -144,11 +144,11 @@ function ModalComment (modalUI) {
      * pitch, mission_id, zoom}}
      */
     function prepareCommentData () {
-        var comment = modalUI.textarea.val();
-        var position = svv.panorama.getPosition();
-        var pov = svv.panorama.getPov();
+        let comment = modalUI.textarea.val();
+        let position = svv.panorama.getPosition();
+        let pov = svv.panorama.getPov();
 
-        var data =  {
+        let data =  {
             comment: comment,
             label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
             gsv_panorama_id: svv.panorama.getPanoId(),

@@ -5,8 +5,8 @@
  * @constructor
  */
 function Mission(params) {
-    var self = this;
-    var properties = {
+    let self = this;
+    let properties = {
         agreeCount: 0,
         disagreeCount: 0,
         missionId: undefined,
@@ -80,7 +80,7 @@ function Mission(params) {
      * Updates status bar (UI) and current mission properties.
      */
     function updateMissionProgress() {
-        var labelsProgress = getProperty("labelsProgress");
+        let labelsProgress = getProperty("labelsProgress");
         if (labelsProgress < getProperty("labelsValidated")) {
             labelsProgress += 1;
             svv.statusField.updateLabelCounts(labelsProgress);
@@ -93,7 +93,7 @@ function Mission(params) {
             }
         }
 
-        var completionRate = labelsProgress / getProperty("labelsValidated");
+        let completionRate = labelsProgress / getProperty("labelsValidated");
         svv.statusField.setProgressBar(completionRate);
         svv.statusField.setProgressText(completionRate);
     }

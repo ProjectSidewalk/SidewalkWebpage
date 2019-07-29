@@ -1,9 +1,9 @@
 function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
-    var self = this;
-    var properties = {
+    let self = this;
+    let properties = {
         clickable: false
     };
-    var watch;
+    let watch;
 
     function _handleButtonClick() {
         svv.tracker.push("ClickOk_MissionComplete");
@@ -36,9 +36,9 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      */
     function show (mission) {
         svv.keyboard.disableKeyboard();
-        var totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
+        let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
-        var message = "You just validated " + totalLabels + " " +
+        let message = "You just validated " + totalLabels + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
         // Disable user from clicking the "Validate next mission" button and set background to gray
@@ -75,7 +75,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         // if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
         //     _markAmtAssignmentAsComplete();
         //     _showConfirmationCode();
-        //     var confirmationCodeElement = document.createElement("h3");
+        //     let confirmationCodeElement = document.createElement("h3");
         //     confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
         //         "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
         //         "Confirmation Code: " +
@@ -87,7 +87,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     }
 
     function _markAmtAssignmentAsComplete() {
-        var data = {
+        let data = {
             amt_assignment_id: svv.amtAssignmentId,
             completed: true
         };

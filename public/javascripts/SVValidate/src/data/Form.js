@@ -1,5 +1,5 @@
 function Form(url) {
-    var properties = {
+    let properties = {
         dataStoreUrl : url
     };
 
@@ -8,12 +8,12 @@ function Form(url) {
      * @returns {{}}
      */
     function compileSubmissionData() {
-        var data = {};
-        var missionContainer = svv.missionContainer;
-        var mission = missionContainer ? missionContainer.getCurrentMission() : null;
+        let data = {};
+        let missionContainer = svv.missionContainer;
+        let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
-        var labelContainer = svv.labelContainer;
-        var labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
+        let labelContainer = svv.labelContainer;
+        let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
 
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
@@ -88,7 +88,7 @@ function Form(url) {
 
     $(window).on('beforeunload', function () {
         svv.tracker.push("Unload");
-        var data = compileSubmissionData();
+        let data = compileSubmissionData();
 
         // Synchronous ajax requests have been disabled in Google Chrome, so our beforeunload requests are now failing.
         // The alternative we would like to use is Navigator.sendBeacon, but application/json is currently disabled
@@ -113,8 +113,8 @@ function Form(url) {
         // had previously, but I'm not convinced that it works on Chrome (at the very least, it
         // sends us an error message, but I'm not sure if it (reluctantly) submits data as well.
         //
-        // var data = compileSubmissionData();
-        var jsonData = JSON.stringify(data);
+        // let data = compileSubmissionData();
+        let jsonData = JSON.stringify(data);
         //
         // April 17, 2019
         // What we want here is type: 'application/json'. Can't do that quite yet because the
@@ -123,11 +123,11 @@ function Form(url) {
         // Source for fix and ongoing discussion is here:
         // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
         //
-        var headers = {
+        let headers = {
             type: 'application/x-www-form-urlencoded'
         };
 
-        var blob = new Blob([jsonData], headers);
+        let blob = new Blob([jsonData], headers);
         navigator.sendBeacon(properties.dataStoreUrl, blob);
     });
 

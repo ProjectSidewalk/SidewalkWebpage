@@ -20,12 +20,6 @@ function ValidationContainer (screens, labelList) {
         panoCanvasList: undefined
     };
 
-    // The mappings for panoramas to map buttons is as follows:
-    // {panoCanvas: [agreeButton, disagreeButton, notSureButton] }
-    //
-    // Each element (panoCanvas, agreeButton ...) is the ID for each element and uses 1-based indexing.
-    // (i.e., svv-panorama-1, validation-agree-button-1 ...)
-    let canvasArray = { };
     let self = this;
 
     function _init() {
@@ -38,9 +32,23 @@ function ValidationContainer (screens, labelList) {
      * @private
      */
     function _createContainers() {
-        let list = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+        let list = _createIdList();
         svv.labelContainer = new LabelContainer();
         svv.panoramaContainer = new PanoramaContainer(labelList, list);
+    }
+
+    /**
+     * Creates a list between 0 and screens (inclusive)
+     * @returns {Array}
+     * @private
+     */
+    function _createIdList() {
+        let i;
+        let list = [];
+        for (i = 0; i < screens; i++) {
+            list[i] = i;
+        }
+        return list;
     }
 
     /**

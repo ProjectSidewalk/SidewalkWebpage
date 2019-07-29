@@ -1,14 +1,14 @@
 function ModalMission (uiModalMission, user) {
-    var self = this;
+    let self = this;
 
-    var validationStartMissionHTML = ' <figure> \
+    let validationStartMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!</p>\
         <div class="spacer10"></div>';
 
-    var validationResumeMissionHTML = ' <figure> \
+    let validationResumeMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
@@ -17,7 +17,9 @@ function ModalMission (uiModalMission, user) {
 
     function _handleButtonClick() {
         svv.tracker.push("ModalMission_ClickOK");
-        svv.zoomControl.updateZoomAvailability();
+        if (svv.zoomControl) {
+            svv.zoomControl.updateZoomAvailability();
+        }
         hide();
     }
 
@@ -25,7 +27,10 @@ function ModalMission (uiModalMission, user) {
      * Hides the new/continuing mission screen
      */
     function hide () {
-        svv.keyboard.enableKeyboard();
+        if (svv.keyboard) {
+            svv.keyboard.enableKeyboard();
+        }
+
         uiModalMission.background.css('visibility', 'hidden');
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');
@@ -38,7 +43,7 @@ function ModalMission (uiModalMission, user) {
      */
     function setMissionMessage(mission) {
         if (mission.getProperty("labelsProgress") === 0) {
-            var validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
+            let validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
                 + " " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels";
             validationStartMissionHTML = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
             validationStartMissionHTML = validationStartMissionHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
@@ -52,8 +57,8 @@ function ModalMission (uiModalMission, user) {
 
         // Update the reward HTML if the user is a turker.
         if (user.getProperty("role") === "Turker") {
-            var missionReward = mission.getProperty("pay");
-            var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+            let missionReward = mission.getProperty("pay");
+            let missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
             missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
             svv.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
             uiModalMission.rewardText.html(missionRewardText);
@@ -73,7 +78,9 @@ function ModalMission (uiModalMission, user) {
     }
 
     function show (title, instruction) {
-        svv.keyboard.disableKeyboard();
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
         if (instruction) {
             uiModalMission.instruction.html(instruction);
         }
