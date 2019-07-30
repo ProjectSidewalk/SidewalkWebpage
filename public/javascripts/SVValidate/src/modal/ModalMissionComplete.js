@@ -6,8 +6,12 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     let watch;
 
     function _handleButtonClick() {
-        svv.tracker.push("ClickOk_MissionComplete");
-        self.hide();
+        if (svv.missionsCompleted === 3) {
+            // Load the audit page since they've done 2 missions.
+            window.location.replace('/audit');
+        } else {
+            self.hide();
+        }
     }
 
     function getProperty(key) {
@@ -19,6 +23,10 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
+        // Have to remove the effect since keyup event did not go through.
+        svv.keyboard.removeAllKeyPressVisualEffect();
+        svv.keyboard.enableKeyboard();
+
         uiModalMissionComplete.closeButton.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
@@ -84,6 +92,16 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         //     confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
         //     uiModalMissionComplete.message.append(confirmationCodeElement);
         // }
+
+        svv.tracker.push(
+            "MissionComplete",
+            {
+                missionId: mission.getProperty("missionId"),
+                missionType: mission.getProperty("missionType"),
+                labelTypeId: mission.getProperty("labelTypeId"),
+                labelsValidated: mission.getProperty("labelsValidated")
+            }
+        );
     }
 
     function _markAmtAssignmentAsComplete() {

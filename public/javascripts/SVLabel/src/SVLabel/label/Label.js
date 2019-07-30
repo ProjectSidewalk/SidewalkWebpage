@@ -898,8 +898,13 @@ function Label (svl, pathIn, params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates(),
+            var imageCoordinates = path.getImageCoordinates();
+            var pc = null;
+            if (properties.panoId === "tutorial") {
+                pc = svl.onboarding.getTutorialPointCloud();
+            } else  {
                 pc = svl.pointCloud.getPointCloud(properties.panoId);
+            }
             if (pc) {
                 var minDx = 1000, minDy = 1000, i, delta, latlng,
                     p, idx, dx, dy, r, minR;

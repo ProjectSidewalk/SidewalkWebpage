@@ -159,7 +159,7 @@ object StreetEdgeTable {
       // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
       // get length of each street segment, sum the lengths, and convert from meters to miles
-      val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+      val distances: List[Float] = streetEdgesWithoutDeleted.map(_.geom.transform(26918).length).list
       (distances.sum * 0.000621371).toFloat
     }
   }
@@ -369,26 +369,6 @@ object StreetEdgeTable {
       if _tasks.userId === userId.toString
     } yield _edges
     auditedStreets.groupBy(x => x).map(_._1) // does a select distinct
-  }
-
-  /** Returns the total distance that the specified user has audited in miles */
-  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
-
-    val dist = selectAllStreetsAuditedByAUserQuery(userId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-    (dist * 0.000621371).toFloat // converts to miles
-  }
-
-  /** Returns the total distance audited by the specified user within the specified region, in miles */
-  def getDistanceAudited(userId: UUID, region: Int): Float = db.withSession { implicit session =>
-    // get the street edges from only this region
-    val auditedStreetsInRegion = for {
-      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === region
-      _edges <- selectAllStreetsAuditedByAUserQuery(userId) if _edges.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _edges
-
-    // compute sum of lengths of the streets audited by the user in the region
-    val dist = auditedStreetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-    (dist * 0.000621371).toFloat // converts to miles
   }
 
   /** Returns the sum of the lengths of all streets in the region that have been audited */

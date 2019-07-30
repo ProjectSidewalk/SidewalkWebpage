@@ -36,6 +36,16 @@ function Keyboard(menuUI) {
         }
     }
 
+    /**
+     * Removes the visual effect of the buttons being pressed down.
+     */
+    function removeAllKeyPressVisualEffect () {
+        menuUI.agreeButton.removeClass("validate");
+        menuUI.disagreeButton.removeClass("validate");
+        menuUI.notSureButton.removeClass("validate");
+        status.keyPressed = false;
+    }
+
     this._documentKeyDown = function (e) {
         if (!status.disableKeyboard && !status.keyPressed) {
             status.shiftDown = e.shiftKey;
@@ -100,23 +110,25 @@ function Keyboard(menuUI) {
     };
 
     this._documentKeyUp = function (e) {
-        switch (e.keyCode) {
-            // "a" key
-            case 65:
-                menuUI.agreeButton.removeClass("validate");
-                status.keyPressed = false;
-                break;
-            // "d" key
-            case 68:
-                menuUI.disagreeButton.removeClass("validate");
-                status.keyPressed = false;
-                break;
-            // "n" key
-            case 78:
-                menuUI.notSureButton.removeClass("validate");
-                status.keyPressed = false;
-                break;
-        }
+        if (!status.disableKeyboard) {
+            switch (e.keyCode) {
+                // "a" key
+                case 65:
+                    menuUI.agreeButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "d" key
+                case 68:
+                    menuUI.disagreeButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "n" key
+                case 78:
+                    menuUI.notSureButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+            }
+         }
     };
 
     $(document).bind('keyup', this._documentKeyUp);
@@ -124,6 +136,7 @@ function Keyboard(menuUI) {
 
     self.disableKeyboard = disableKeyboard;
     self.enableKeyboard = enableKeyboard;
+    self.removeAllKeyPressVisualEffect = removeAllKeyPressVisualEffect;
 
     return this;
 }

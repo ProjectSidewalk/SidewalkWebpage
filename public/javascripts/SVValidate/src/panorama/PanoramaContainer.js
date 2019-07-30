@@ -83,8 +83,8 @@ function PanoramaContainer (labelList, idList) {
             dataType: 'json',
             success: function (labelMetadata) {
                 labels.push(_createSingleLabel(labelMetadata));
-                setProperty('progress', getProperty('progress') + 1);
-                svv.panorama.setLabel(labels[getProperty('progress')]);
+                svv.missionContainer.updateAMissionSkip();
+                loadNewLabelOntoPanorama();
             }
         });
     }

@@ -78,16 +78,21 @@ function Mission(params) {
 
     /**
      * Updates status bar (UI) and current mission properties.
+     * @param skip (bool) - if true, the user clicked the skip button and the progress will not
+     *                      increase. If false the user clicked agree, disagree, or not sure and
+     *                      progress will increase.
      */
-    function updateMissionProgress() {
+    function updateMissionProgress(skip) {
         let labelsProgress = getProperty("labelsProgress");
         if (labelsProgress < getProperty("labelsValidated")) {
-            labelsProgress += 1;
+            if (!skip) {
+                labelsProgress += 1;
+            }
             svv.statusField.updateLabelCounts(labelsProgress);
             setProperty("labelsProgress", labelsProgress);
 
             // Submit mission if mission is complete
-            if (labelsProgress === getProperty("labelsValidated")) {
+            if (labelsProgress >= getProperty("labelsValidated")) {
                 setProperty("completed", true);
                 svv.missionContainer.completeAMission();
             }

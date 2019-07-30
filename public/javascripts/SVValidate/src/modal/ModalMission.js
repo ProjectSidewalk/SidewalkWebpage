@@ -16,7 +16,21 @@ function ModalMission (uiModalMission, user) {
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
-        svv.tracker.push("ModalMission_ClickOK");
+        let mission = svv.missionContainer.getCurrentMission();
+
+        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later,
+        // another MissionStart will not be triggered
+        if(mission.getProperty("labelsProgress") < 1) {
+            svv.tracker.push(
+                "MissionStart",
+                {
+                    missionId: mission.getProperty("missionId"),
+                    missionType: mission.getProperty("missionType"),
+                    labelTypeId: mission.getProperty("labelTypeId"),
+                    labelsValidated: mission.getProperty("labelsValidated")
+                }
+            );
+        }
         if (svv.zoomControl) {
             svv.zoomControl.updateZoomAvailability();
         }
@@ -24,13 +38,17 @@ function ModalMission (uiModalMission, user) {
     }
 
     /**
-     * Hides the new/continuing mission screen
+     * Hides the new/continuing mission screen.
      */
     function hide () {
         if (svv.keyboard) {
-            svv.keyboard.enableKeyboard();
+            // We still want to disable keyboard shortcuts if the comment box is shown.
+            if ($('#modal-comment-box').is(":hidden")) {
+                svv.keyboard.enableKeyboard();
+            } else {
+                svv.keyboard.disableKeyboard();
+            }
         }
-
         uiModalMission.background.css('visibility', 'hidden');
         uiModalMission.holder.css('visibility', 'hidden');
         uiModalMission.foreground.css('visibility', 'hidden');
@@ -45,14 +63,14 @@ function ModalMission (uiModalMission, user) {
         if (mission.getProperty("labelsProgress") === 0) {
             let validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
                 + " " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels";
-            validationStartMissionHTML = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
-            validationStartMissionHTML = validationStartMissionHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
-            show(validationMissionStartTitle, validationStartMissionHTML);
+            var validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
+            show(validationMissionStartTitle, validationStartMissionHTMLCopy);
         } else {
             validationMissionStartTitle = "Return to your mission";
-            validationResumeMissionHTML = validationResumeMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
-            validationResumeMissionHTML = validationResumeMissionHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
-            show(validationMissionStartTitle, validationResumeMissionHTML);
+            var validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
+            show(validationMissionStartTitle, validationResumeMissionHTMLCopy);
         }
 
         // Update the reward HTML if the user is a turker.
@@ -90,7 +108,7 @@ function ModalMission (uiModalMission, user) {
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
         uiModalMission.closeButton.html('Ok');
-        uiModalMission.closeButton.on('click', _handleButtonClick);
+        uiModalMission.closeButton.off('click').on('click', _handleButtonClick);
     }
 
     self.hide = hide;

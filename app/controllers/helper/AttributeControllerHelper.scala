@@ -1,12 +1,8 @@
 package controllers.helper
 
-import java.util.UUID
-
 import models.attribute.{GlobalAttributeTable, GlobalClusteringSessionTable, UserAttributeLabelTable, UserAttributeTable, UserClusteringSessionTable}
-import models.audit.{AuditTaskInteraction, AuditTaskInteractionTable}
-import models.label.{Label, LabelTable}
 import models.region.RegionTable
-import models.street.StreetEdgePriorityTable
+import models.user.UserStatTable
 import play.api.libs.json.Json
 
 import scala.collection.immutable.Seq
@@ -64,7 +60,7 @@ object AttributeControllerHelper {
 
     if (maybeKey.isDefined) {
       val key: String = maybeKey.get
-      val goodUsers: List[String] = StreetEdgePriorityTable.getIdsOfGoodUsers // All users
+      val goodUsers: List[String] = UserStatTable.getIdsOfGoodUsers // All users
       //      val goodUsers: List[String] = List("9efaca05-53bb-492e-83ab-2b47219ee863") // Test users with a lot of labels
       //      val goodUsers: List[String] = List("53b4a67b-614e-432d-9bfa-8a97e081fea5") // Test users with fewer labels
       val nUsers = goodUsers.length

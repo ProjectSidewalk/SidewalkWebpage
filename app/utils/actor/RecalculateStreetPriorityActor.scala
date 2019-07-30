@@ -29,15 +29,13 @@ class RecalculateStreetPriorityActor extends Actor {
     timeOfNextUpdate.set(Calendar.MINUTE, 0)
     timeOfNextUpdate.set(Calendar.SECOND, 0)
 
-//    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH))
     // If already past 3am, set next update to 3am tomorrow.
     if (currentTime.after(timeOfNextUpdate)) {
       timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
     }
-//    println(timeOfNextUpdate.get(Calendar.DAY_OF_MONTH)) // if it is after 3am, this should have just incremented.
+    // If it is after 3am, this should have just incremented.
     val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
     val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
-//    println(millisUntilNextupdate / 3600000.0) // shows hours until next update
 
     cancellable = Some(
       context.system.scheduler.schedule(

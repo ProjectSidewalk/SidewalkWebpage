@@ -2,7 +2,7 @@
   "name": "SidewalkWebpage",
   "version": "0.1.0",
   "devDependencies": {
-    "grunt": "*",
+    "grunt": "^1.0.4",
     "grunt-concat-css": "*",
     "grunt-contrib-concat": "*",
     "grunt-contrib-jasmine": "*",
@@ -10,7 +10,7 @@
     "grunt-contrib-nodeunit": "*",
     "grunt-contrib-uglify": "*",
     "grunt-contrib-watch": "*",
-    "grunt-jsdoc": "*"
+    "grunt-jsdoc": "^2.4.0"
   },
   "scripts": {
     "grunt-concat": "grunt concat && grunt concat_css",

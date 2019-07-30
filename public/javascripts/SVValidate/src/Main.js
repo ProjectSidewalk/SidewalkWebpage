@@ -11,6 +11,8 @@ function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
 
+    svv.missionsCompleted = 0;
+
     // Maps label types to label names
     svv.labelNames = {
         CurbRamp: "Curb Ramp",
@@ -111,7 +113,7 @@ function Main (param) {
         svv.util.properties = {};
         svv.util.properties.panorama = new PanoProperties();
 
-        svv.form = new Form(param.dataStoreUrl);
+        svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
         svv.statusField = new StatusField();
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
@@ -137,6 +139,15 @@ function Main (param) {
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
+
+        $('#sign-in-modal-container').on('hide.bs.modal', function () {
+            svv.keyboard.enableKeyboard();
+            $(".toolUI").css('opacity', 1);
+        });
+        $('#sign-in-modal-container').on('show.bs.modal', function () {
+            svv.keyboard.disableKeyboard();
+            $(".toolUI").css('opacity', 0.5);
+        });
     }
 
     _initUI();
@@ -144,6 +155,7 @@ function Main (param) {
     if (param.hasNextMission) {
         _init();
     } else {
+        svv.keyboard = new Keyboard(svv.ui.validation);
         svv.form = new Form(param.dataStoreUrl);
         svv.tracker = new Tracker();
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);

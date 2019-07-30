@@ -89,6 +89,9 @@
                             <u>N</u>ot sure
                         </button>
                     </div>
+                    <div id="svv-panorama-date-holder">
+                        <span id="svv-panorama-date">no</span>
+                    </div>
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -279,6 +282,7 @@
             $('#HIT-expiration-overlay').show();
         } else {
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.canvasHeight = 440;
             param.canvasWidth = 720;

@@ -17,7 +17,8 @@
 function Form (labelContainer, missionModel, missionContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
     var properties = {
-        dataStoreUrl : undefined
+        dataStoreUrl : undefined,
+        beaconDataStoreUrl : undefined
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
@@ -39,6 +40,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             mission_id: mission.getProperty("missionId"),
             distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
             completed: mission.getProperty("isComplete"),
+            audit_task_id: task.getAuditTaskId(),
             skipped: mission.getProperty("skipped")
         };
 
@@ -46,7 +48,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
             audit_task_id: task.getAuditTaskId(),
-            completed: task.isComplete()
+            completed: task.isComplete(),
+            current_lat: navigationModel.getPosition().lat,
+            current_lng: navigationModel.getPosition().lng,
+            start_point_reversed: task.getProperty("startPointReversed")
         };
 
         data.environment = {
@@ -257,43 +262,23 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     properties.dataStoreUrl = params.dataStoreUrl;
+    properties.beaconDataStoreUrl = params.beaconDataStoreUrl;
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");
-
-        // Synchronous ajax requests have been disabled in Google Chrome, so our beforeunload requests are now failing.
-        // The alternative we would like to use is Navigator.sendBeacon, but application/json is currently disabled
-        // there :( So one small improvement we are making is to send _asynchronous_ requests in Chrome. These are not
-        // guaranteed to send like sendBeacon or synchronous requests, but they will at least send some of the time. So
-        // we will use synchronous for other browsers to guarantee data is sent and async on Chrome so it sometimes
-        // sends until we are able to switch to something more reliable like sendBeacon. Make sure to make this change
-        // on the validate page as well when a fix is found. How to check if Chrome:
-        // https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser
-        let asyncParam;
-        if (!!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime))
-            asyncParam = true;
-        else
-            asyncParam = false;
-
-        // Old code: this does not work on the newest versions of Google Chrome.
-        // TODO: Replace with beacon (or some ajax alternative) asap. Starter code below.
-        self.submitData(asyncParam);
 
         // // April 17, 2019
         // // What we want here is type: 'application/json'. Can't do that quite yet because the
         // // feature has been disabled, but we should switch back when we can.
         //
+        // // For now, we send plaintext and the server converts it to actual JSON
+        //
         // // Source for fix and ongoing discussion is here:
         // // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
         var task = taskContainer.getCurrentTask();
-        var data = self.compileSubmissionData(task);
+        var data = [self.compileSubmissionData(task)];
         var jsonData = JSON.stringify(data);
-        var headers = {
-            type: 'application/x-www-form-urlencoded'
-        };
-
-        var blob = new Blob([jsonData], headers);
-        navigator.sendBeacon(properties.dataStoreUrl, blob);
+        navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
     });
 
     /**

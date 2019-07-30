@@ -89,9 +89,10 @@ class SignUpController @Inject() (
                     Redirect(url)
                   ))
                 } yield {
-                  // Set the user role and assign the neighborhood to audit.
+                  // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
                   UserRoleTable.setRole(user.userId, "Registered")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
+                  UserStatTable.addUserStatIfNew(user.userId)
 
                   // Add Timestamp
                   val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -149,9 +150,10 @@ class SignUpController @Inject() (
                     Ok(Json.toJson(user))
                   ))
                 } yield {
-                  // Set the user role and assign the neighborhood to audit.
+                  // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
                   UserRoleTable.setRole(user.userId, "Registered")
                   UserCurrentRegionTable.assignEasyRegion(user.userId)
+                  UserStatTable.addUserStatIfNew(user.userId)
 
                   // Add Timestamp
                   val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -208,8 +210,9 @@ class SignUpController @Inject() (
             Redirect(url)
           ))
         } yield {
-          // Set the user role.
+          // Set the user role and add to the user_stat table.
           UserRoleTable.setRole(user.userId, "Anonymous")
+          UserStatTable.addUserStatIfNew(user.userId)
 
           // Add Timestamp
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -273,9 +276,10 @@ class SignUpController @Inject() (
             Redirect("/audit")
           ))
         } yield {
-          // Set the user role and assign the neighborhood to audit.
+          // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
           UserRoleTable.setRole(user.userId, "Turker")
           UserCurrentRegionTable.assignEasyRegion(user.userId)
+          UserStatTable.addUserStatIfNew(user.userId)
 
           // Add Timestamp
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)

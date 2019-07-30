@@ -90,7 +90,9 @@ GET     /task/street/:id                                     @controllers.TaskCo
 GET     /task/groundtruth/:panoid                            @controllers.TaskController.getCVGroundTruthTaskByPanoId(panoid: String)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
+POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
+POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
@@ -100,6 +102,7 @@ GET     /rewardEarned                                        @controllers.Missio
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
+GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
 POST    /label/geo/random/:labelType                         @controllers.ValidationTaskController.getRandomLabelData(labelType: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 

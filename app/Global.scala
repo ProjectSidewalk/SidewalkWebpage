@@ -74,6 +74,7 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
   override def onStart(app: Application) = {
     Akka.system.actorOf(RecalculateStreetPriorityActor.props, RecalculateStreetPriorityActor.Name)
     Akka.system.actorOf(ClusterLabelAttributesActor.props, ClusterLabelAttributesActor.Name)
+    Akka.system.actorOf(UserStatActor.props, UserStatActor.Name)
   }
 
   /**

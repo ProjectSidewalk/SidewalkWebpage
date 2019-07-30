@@ -20,11 +20,14 @@ import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean)
-case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp,
+case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Option[Timestamp], completed: Boolean, currentLat: Float, currentLng: Float, startPointReversed: Boolean)
+case class NewTask(edgeId: Int, geom: LineString,
+                   currentLng: Float, currentLat: Float, x1: Float, y1: Float, x2: Float, y2: Float,
+                   startPointReversed: Boolean, // Did we start at x1,y1 instead of x2,y2?
+                   taskStart: Timestamp,
                    completedByAnyUser: Boolean, // Has any user has audited this street
                    priority: Double,
-                   completed: Boolean    // Has the user audited this street before (null if no corresponding user)
+                   completed: Boolean // Has the user audited this street before (null if no corresponding user)
                   )  {
   /**
     * This method converts the data into the GeoJSON format
@@ -36,10 +39,13 @@ case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Floa
     val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
     val properties = Json.obj(
       "street_edge_id" -> edgeId,
+      "current_lng" -> currentLng,
+      "current_lat" -> currentLat,
       "x1" -> x1,
       "y1" -> y1,
       "x2" -> x2,
       "y2" -> y2,
+      "start_point_reversed" -> startPointReversed,
       "task_start" -> taskStart.toString,
       "completed_by_any_user" -> completedByAnyUser,
       "priority" -> priority,
@@ -61,8 +67,11 @@ class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("
   def taskStart = column[Timestamp]("task_start", O.NotNull)
   def taskEnd = column[Option[Timestamp]]("task_end", O.Nullable)
   def completed = column[Boolean]("completed", O.NotNull)
+  def currentLat = column[Float]("current_lat", O.NotNull)
+  def currentLng = column[Float]("current_lng", O.NotNull)
+  def startPointReversed = column[Boolean]("start_point_reversed", O.NotNull)
 
-  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
+  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng, startPointReversed) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -79,7 +88,7 @@ object AuditTaskTable {
   import MyPostgresDriver.plainImplicits._
 
   implicit val auditTaskConverter = GetResult[AuditTask](r => {
-    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean)
+    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestampOption, r.nextBoolean, r.nextFloat, r.nextFloat, r.nextBoolean)
   })
 
 //  case class NewTask(edgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, taskStart: Timestamp, completed: Boolean)
@@ -87,15 +96,18 @@ object AuditTaskTable {
   implicit val newTaskConverter = GetResult[NewTask](r => {
     val edgeId = r.nextInt
     val geom = r.nextGeometry[LineString]
+    val currentLng = r.nextFloat
+    val currentLat = r.nextFloat
     val x1 = r.nextFloat
     val y1 = r.nextFloat
     val x2 = r.nextFloat
     val y2 = r.nextFloat
+    val startPointReversed = r.nextBoolean
     val taskStart = r.nextTimestamp
     val completedByAnyUser = r.nextBoolean
     val priority = r.nextDouble
     val completed = r.nextBooleanOption.getOrElse(false)
-    NewTask(edgeId, geom, x1, y1, x2, y2, taskStart, completedByAnyUser, priority, completed)
+    NewTask(edgeId, geom, currentLng, currentLat, x1, y1, x2, y2, startPointReversed, taskStart, completedByAnyUser, priority, completed)
   })
 
   val db = play.api.db.slick.DB
@@ -422,7 +434,7 @@ object AuditTaskTable {
       se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, userCompleted)
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, userCompleted)
 
     NewTask.tupled(edges.first)
   }
@@ -477,18 +489,37 @@ object AuditTaskTable {
       sp <- streetEdgePriorities
       se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
       sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, sc._2, sp.priority, false)
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, sc._2, sp.priority, false)
 
     // Get the priority of the highest priority task.
-    val highestPriority: Option[Double] = possibleTasks.map(_._9).max.run
+    val highestPriority: Option[Double] = possibleTasks.map(_._12).max.run
 
     // Get list of tasks that have this priority.
     val highestPriorityTasks: Option[List[NewTask]] = highestPriority.map { highPriority =>
-      possibleTasks.filter(_._9 === highPriority).list.map(NewTask.tupled)
+      possibleTasks.filter(_._12 === highPriority).list.map(NewTask.tupled)
     }
 
     // Choose one of the highest priority tasks at random.
     highestPriorityTasks.flatMap(scala.util.Random.shuffle(_).headOption)
+  }
+
+  /**
+    * Gets the metadata for a task from its audit_task_id.
+    *
+    * @param taskId
+    * @return
+    */
+  def selectTaskFromTaskId(taskId: Int): Option[NewTask] = db.withSession { implicit session =>
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
+    val newTask = for {
+      at <- auditTasks if at.auditTaskId === taskId
+      se <- streetEdges if at.streetEdgeId === se.streetEdgeId
+      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
+      sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
+    } yield (se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.x1, se.y1, se.x2, se.y2, at.startPointReversed, timestamp, sc._2, sp.priority, false)
+
+    newTask.list.map(NewTask.tupled).headOption
   }
 
   /**
@@ -505,7 +536,7 @@ object AuditTaskTable {
       se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, false)
+    } yield (se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, false)
 
     tasks.list.map(NewTask.tupled(_))
   }
@@ -530,7 +561,7 @@ object AuditTaskTable {
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
     } yield (
-      se.streetEdgeId, se.geom, se.x1, se.y1, se.x2, se.y2, timestamp, scau._2, sep.priority, ucs._2.?.getOrElse(false))
+      se.streetEdgeId, se.geom, se.x2, se.y2, se.x1, se.y1, se.x2, se.y2, false, timestamp, scau._2, sep.priority, ucs._2.?.getOrElse(false))
 
     tasks.list.map(NewTask.tupled(_))
   }
@@ -569,14 +600,14 @@ object AuditTaskTable {
   }
 
   /**
-    * Update the `task_end` column of the specified audit task row
+    * Update the `current_lat`, `current_lng`, and `task_end` columns of the specified audit task row
     *
     * @param auditTaskId
     * @param timestamp
     * @return
     */
-  def updateTaskEnd(auditTaskId: Int, timestamp: Timestamp) = db.withTransaction { implicit session =>
-    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.taskEnd
-    q.update(Some(timestamp))
+  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float) = db.withTransaction { implicit session =>
+    val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng)
+    q.update((Some(timestamp), lat, lng))
   }
 }
