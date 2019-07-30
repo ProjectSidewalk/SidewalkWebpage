@@ -1007,8 +1007,24 @@ video#bgvid {
     margin-left: auto;
     margin-right: auto;
 }
+
 #banner2{
     min-height: 900px;
+}
+
+#banner3 {
+    display: none;
+}
+
+@media (max-width: 992px) {
+
+    #banner2 {
+        display: none;
+    }
+
+    #banner3 {
+        display: block;
+    }
 }
 #header {
     background-color: #fff;
