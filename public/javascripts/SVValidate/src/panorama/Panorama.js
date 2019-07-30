@@ -2,7 +2,7 @@
  * Creates and controls the Google StreetView panorama that is used in the validation
  * interface. Uses Panomarkers to place labels onto the Panorama.
  * @param   label       Initial label to load onto the panorama.
- * @param   canvasId  DOM ID for this Panorama. (i.e., svv-panorama)
+ * @param   id          DOM ID for this Panorama. (i.e., svv-panorama)
  * @constructor
  */
 function Panorama (label, id) {
@@ -169,7 +169,7 @@ function Panorama (label, id) {
                     var date = data.imageDate;
                     var year = date.substring(0, 4);
                     var month = months[parseInt(date.substring(5, 7)) - 1];
-                    document.getElementById("svv-panorama-date").innerText = month + " " + year;
+                    document.getElementById("svv-panorama-date-" + id).innerText = month + " " + year;
                 }
                 else {
                     console.error("Error retrieving Panoramas: " + status);
