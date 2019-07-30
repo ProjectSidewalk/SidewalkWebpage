@@ -63,12 +63,12 @@ function ModalMission (uiModalMission, user) {
         if (mission.getProperty("labelsProgress") === 0) {
             let validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
                 + " " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels";
-            var validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            let validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
             validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
             show(validationMissionStartTitle, validationStartMissionHTMLCopy);
         } else {
             validationMissionStartTitle = "Return to your mission";
-            var validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            let validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
             validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
             show(validationMissionStartTitle, validationResumeMissionHTMLCopy);
         }

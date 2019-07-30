@@ -24,8 +24,10 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      */
     function hide () {
         // Have to remove the effect since keyup event did not go through.
-        svv.keyboard.removeAllKeyPressVisualEffect();
-        svv.keyboard.enableKeyboard();
+        if (svv.keyboard) {
+            svv.keyboard.removeAllKeyPressVisualEffect();
+            svv.keyboard.enableKeyboard();
+        }
 
         uiModalMissionComplete.closeButton.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
@@ -43,7 +45,9 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * @param mission   Object for the mission that was just completed.
      */
     function show (mission) {
-        svv.keyboard.disableKeyboard();
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
         let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
         let message = "You just validated " + totalLabels + " " +
