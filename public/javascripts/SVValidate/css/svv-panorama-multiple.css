@@ -16,3 +16,15 @@
     width: 240px;
     display: inline-block;
 }
+
+.svv-small-panorama-date-holder {
+    display: inline-block;
+    position: relative;
+    bottom: 42px;
+    left: 5px;
+    z-index: 1;
+    font-family: sans-serif;
+    font-size: 12px;
+    text-shadow: 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5);
+    color: white;
+}

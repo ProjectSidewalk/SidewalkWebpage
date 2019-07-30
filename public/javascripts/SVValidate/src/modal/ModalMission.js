@@ -68,7 +68,7 @@ function ModalMission (uiModalMission, user) {
             show(validationMissionStartTitle, validationStartMissionHTMLCopy);
         } else {
             validationMissionStartTitle = "Return to your mission";
-            let validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            let validationResumeMissionHTMLCopy = validationResumeMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
             validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
             show(validationMissionStartTitle, validationResumeMissionHTMLCopy);
         }
