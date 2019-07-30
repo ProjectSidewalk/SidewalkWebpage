@@ -400,6 +400,9 @@ function ContextMenu (uiContextMenu) {
         });
     }
 
+    /**
+     * Returns true if tagging is currently disabled.
+     */
     function isTagDisabled () {
         return getStatus('disableTagging');
     }
@@ -594,5 +597,6 @@ function ContextMenu (uiContextMenu) {
     self.show = show;
     self.disableTagging = disableTagging;
     self.enableTagging = enableTagging;
+    self.isTagDisabled = isTagDisabled;
     return self;
 }
