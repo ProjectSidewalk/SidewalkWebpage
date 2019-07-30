@@ -296,10 +296,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
-                    worldSize: new google.maps.Size(2048, 1024),
+                    worldSize: new google.maps.Size(4096, 2048),
                     centerHeading: 51,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/tutorialSmall.jpg";
+                        return svl.rootDirectory + "img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }
                 }
             };
@@ -312,11 +312,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 links: [],
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
-                    tileSize: new google.maps.Size(2048, 1024),
-                    worldSize: new google.maps.Size(2048, 1024),
+                    tileSize: new google.maps.Size(1700, 850),
+                    worldSize: new google.maps.Size(3400, 1700),
                     centerHeading: 344,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
-                        return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorialsmall.jpg";
+                        return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }
                 }
             };

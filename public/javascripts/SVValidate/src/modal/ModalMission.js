@@ -60,14 +60,14 @@ function ModalMission (uiModalMission, user) {
         if (mission.getProperty("labelsProgress") === 0) {
             var validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
                 + " " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels";
-            validationStartMissionHTML = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
-            validationStartMissionHTML = validationStartMissionHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
-            show(validationMissionStartTitle, validationStartMissionHTML);
+            var validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
+            show(validationMissionStartTitle, validationStartMissionHTMLCopy);
         } else {
             validationMissionStartTitle = "Return to your mission";
-            validationResumeMissionHTML = validationResumeMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
-            validationResumeMissionHTML = validationResumeMissionHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
-            show(validationMissionStartTitle, validationResumeMissionHTML);
+            var validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
+            show(validationMissionStartTitle, validationResumeMissionHTMLCopy);
         }
 
         // Update the reward HTML if the user is a turker.
