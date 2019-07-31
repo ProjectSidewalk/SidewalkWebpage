@@ -272,7 +272,7 @@
                 <div id="modal-mission-complete-background" class="modal-background"></div>
                 <div id="modal-mission-complete-foreground" class="modal-foreground">
                     <h1 class="normal" id="modal-mission-complete-title"></h1>
-                    <p><div id="modal-mission-complete-message"></div></p>
+                    <div id="modal-mission-complete-message"></div>
                     <div id="modal-mission-complete-table">
                         <div class="col-sm-8">
                             <h3>Category</h3>
@@ -400,15 +400,15 @@
             // Store user object.
             var userParam = {};
             @if(user) {
-            userParam = {
-                username: '@user.get.username',
-                role: '@user.get.role'
-            };
+                userParam = {
+                    username: '@user.get.username',
+                    role: '@user.get.role'
+                };
             } else {
-            userParam = {
-                username: "anonymous",
-                role: "Anonymous"
-            };
+                userParam = {
+                    username: "anonymous",
+                    role: "Anonymous"
+                };
             }
             svv.user = new User(userParam);
 

@@ -1,7 +1,6 @@
 /**
  * Container holding each validation screen on the validation interface.
  * @param screens       Number of screens (i.e., panoramas) to display
- * @param panoSize      Dimensions of the panorama
  * @param labelList     Initial list of labels to validate for this mission
  * @returns {ValidationContainer}
  * @constructor
