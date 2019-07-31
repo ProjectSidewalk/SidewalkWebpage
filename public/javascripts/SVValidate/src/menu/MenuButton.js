@@ -47,9 +47,6 @@ function MenuButton(id) {
         // If enough time has passed between validations, log validations
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             svv.panoramaContainer.validateLabelFromPano(id, action, timestamp);
-
-            // svv.panorama.getCurrentLabel().validate(action);
-            // svv.panorama.setProperty('validationTimestamp', timestamp);
         }
     }
 

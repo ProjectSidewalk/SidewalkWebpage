@@ -121,8 +121,7 @@ function Main (param) {
 
         svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
 
-        // There are certain features that will only make sense if we have one validation interface
-        // displayed onto the screen.
+        // There are certain features that will only make sense if we have one validation interface on the screen.
         if (param.canvasCount === 1) {
             svv.keyboard = new Keyboard(svv.ui.validation);
             svv.labelVisibilityControl = new LabelVisibilityControl();
@@ -161,6 +160,4 @@ function Main (param) {
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
         svv.modalNoNewMission.show();
     }
-
-    // return this;
 }

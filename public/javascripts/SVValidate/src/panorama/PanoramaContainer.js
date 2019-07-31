@@ -109,6 +109,7 @@ function PanoramaContainer (labelList, idList) {
             svv.labelVisibilityControl.unhideLabel();
         }
 
+        // Update zoom availability on /validate (/rapidValidate doesn't have zoom right now).
         if (svv.zoomControl) {
             svv.zoomControl.updateZoomAvailability();
         }
@@ -170,6 +171,12 @@ function PanoramaContainer (labelList, idList) {
         });
     }
 
+    /**
+     * Updates label for the given pano.
+     * @param id
+     * @param action
+     * @param timestamp
+     */
     function validateLabelFromPano (id, action, timestamp) {
         console.log("Validation from pano with id: " + id);
         console.log(panos);

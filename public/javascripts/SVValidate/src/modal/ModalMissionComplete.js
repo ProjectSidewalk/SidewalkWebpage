@@ -23,7 +23,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-        // Have to remove the effect since keyup event did not go through.
+        // Have to remove the effect since keyup event did not go through (but no keyboard use on /rapidValidate).
         if (svv.keyboard) {
             svv.keyboard.removeAllKeyPressVisualEffect();
             svv.keyboard.enableKeyboard();
@@ -45,6 +45,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * @param mission   Object for the mission that was just completed.
      */
     function show (mission) {
+        // Disable keyboard on /validate (/rapidValidate doesn't have keyboard shortcuts right now).
         if (svv.keyboard) {
             svv.keyboard.disableKeyboard();
         }

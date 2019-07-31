@@ -113,8 +113,7 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Updates images that shows label counter-examples.
-     * * Paths for label examples are found at
+     * Updates images that shows label counter-examples. Paths for label examples are found at:
      * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeExampleX.png
      * @private
      */
@@ -126,8 +125,7 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Updates images that show label examples.
-     * Paths for label examples are found at
+     * Updates images that show label examples. Paths for label examples are found at:
      * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeCounterExampleX.png
      * @private
      */

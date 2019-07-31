@@ -90,7 +90,7 @@ function PanoProperties () {
      */
     function povToPixel3d (targetPov, currentPov, zoom, canvasWidth, canvasHeight) {
 
-        // Gather required letiables and convert to radians where necessary
+        // Gather required variables and convert to radians where necessary
         let width = canvasWidth;
         let height = canvasHeight;
         let target = {
