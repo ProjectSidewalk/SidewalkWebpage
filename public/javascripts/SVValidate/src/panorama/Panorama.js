@@ -166,9 +166,9 @@ function Panorama (label, id) {
         streetViewService.getPanorama({pano: panorama.getPano()},
             function (data, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    var date = data.imageDate;
-                    var year = date.substring(0, 4);
-                    var month = months[parseInt(date.substring(5, 7)) - 1];
+                    let date = data.imageDate;
+                    let year = date.substring(0, 4);
+                    let month = months[parseInt(date.substring(5, 7)) - 1];
                     document.getElementById("svv-panorama-date-" + id).innerText = month + " " + year;
                 }
                 else {
