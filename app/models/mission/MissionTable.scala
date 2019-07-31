@@ -116,10 +116,6 @@ object MissionTable {
   val normalValidationMissionLabelsToRetrieve: Int = 10
   val rapidValidationMissionLabelsToRetrieve: Int = 19
 
-  // IDs of different types of validation missions
-  val normalValidationMissionId: Int = 4
-  val rapidValidationMissionId: Int = 6
-
   implicit val missionConverter = GetResult[Mission](r => {
     val missionId: Int = r.nextInt
     val missionTypeId: Int = r.nextInt
@@ -591,7 +587,7 @@ object MissionTable {
     * @param userId           User ID of the current user
     * @param payPerLabel      Amount to pay users per validation label
     * @param missionId        Mission ID for the current mission
-    * @param missionTypeId    Type of validation mission {validation, rapidValidation}
+    * @param missionType      Type of validation mission {validation, rapidValidation}
     * @param labelsProgress   Number of labels the user validated
     * @param labelTypeId      Label type that was validated during this mission.
     *                         {1: cr, 2: mcr, 3: obst, 4: sfc prob, 7: no sdwlk}
@@ -678,8 +674,7 @@ object MissionTable {
   }
 
   /**
-    * Calculates the number of labels to be retrieved for a validation mission. Varies depending
-    * on what type of validation mission is being loaded.
+    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
     * @param userId         UserID of user requesting more labels.
     * @param missionType    Name of the validation mission type
     * @return               {validation: 10, rapidValidation: 10}
@@ -694,6 +689,12 @@ object MissionTable {
     }
   }
 
+  /**
+    * Get the number of labels to be retrieved for a validation mission. Depends on type of validation mission.
+    * @param userId         UserID of user requesting more labels.
+    * @param missionType    Name of the validation mission type
+    * @return               {validation: 10, rapidValidation: 19}
+    */
   def getNumberOfLabelsToRetrieve(userId: UUID, missionType: String): Int = {
     println("Mission Type: " + missionType)
     (missionType) match {
@@ -731,7 +732,7 @@ object MissionTable {
     * @param pay                Amount user is paid per label
     * @param labelsToValidate   Number of labels in this mission
     * @param labelTypeId        Type of labels featured in this mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
-    * @param missionType      Type of validation mission {validation, rapidValidation}
+    * @param missionType        Type of validation mission {validation, rapidValidation}
     * @return
     */
   def createNextValidationMission(userId: UUID, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : Mission = db.withSession { implicit session =>
