@@ -681,7 +681,7 @@ object MissionTable {
     * Calculates the number of labels to be retrieved for a validation mission. Varies depending
     * on what type of validation mission is being loaded.
     * @param userId         UserID of user requesting more labels.
-    * @param missionTypeId  Name of the validation mission type
+    * @param missionType    Name of the validation mission type
     * @return               {validation: 10, rapidValidation: 10}
     */
   def getNextValidationMissionLength(userId: UUID, missionType: String): Int = {

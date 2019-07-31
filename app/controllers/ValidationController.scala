@@ -40,7 +40,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     request.identity match {
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, validationMissionStr)
-        Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
+        Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
     }
@@ -106,10 +106,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   def getLabelListForValidation(userId: UUID, labelType: Int, mission: Mission): JsValue = {
     val missionType: String = MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId)
     val labelsProgress: Int = mission.labelsProgress.get
-    val labelsValidated: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionType)
-    val labelsToRetrieve: Int = labelsValidated - labelsProgress
+    val labelsToValidate: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionType)
+    val labelsToRetrieve: Int = labelsToValidate - labelsProgress
 
-    println("labelsValidated: " + labelsValidated)
+    println("labelsToValidate: " + labelsToValidate)
     println("labelsToRetrieve: " + labelsToRetrieve)
 
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType)
