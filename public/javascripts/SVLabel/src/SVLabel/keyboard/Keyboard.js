@@ -322,7 +322,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 }
 
                 // Hotkeys for tag selection
-                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen()) {
+                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTagDisabled()) {
                     var labelType = contextMenu.getTargetLabel().getProperty('labelType');
                     if (labelType === 'CurbRamp') { // Curb Ramp
                         switch (e.keyCode) {
