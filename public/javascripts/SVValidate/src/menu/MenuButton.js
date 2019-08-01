@@ -10,24 +10,19 @@ function MenuButton(id) {
     let notSureButtonId = "validation-not-sure-button-" + id;
     let self = this;
 
-    console.log("Created menu button");
     self.agreeButton = $("#" + agreeButtonId);
     self.disagreeButton = $("#" + disagreeButtonId);
     self.notSureButton = $("#" + notSureButtonId);
-    console.log(self);
 
     self.agreeButton.click(function() {
-        console.log(self.agreeButton);
         validateLabel("Agree");
     });
 
     self.disagreeButton.click(function() {
-        console.log(self.disagreeButton);
         validateLabel("Disagree");
     });
 
     self.notSureButton.click(function() {
-        console.log(self.notSureButton);
         validateLabel("NotSure");
     });
 

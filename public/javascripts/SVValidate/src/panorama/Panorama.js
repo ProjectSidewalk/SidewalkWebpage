@@ -225,7 +225,6 @@ function Panorama (label, id) {
      * @param zoom      Photographer zoom
      */
     function setPanorama (panoId, heading, pitch, zoom) {
-        console.log("Panorama is: " + getProperty("canvasId"));
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
         panorama.setPano(panoId);
@@ -240,7 +239,6 @@ function Panorama (label, id) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel (label) {
-        console.log("Setting label of panorama: " + getProperty("canvasId") + " to " + label.getAuditProperty("labelId"));
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),

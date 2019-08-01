@@ -539,10 +539,8 @@ object MissionTable {
         // Create or retrieve a mission with the passed in label type id
         getCurrentValidationMission(userId, labelTypeId.get, missionType.get) match {
           case Some(incompleteMission) =>
-            println("incomplete mission available")
             Some(incompleteMission)
           case _ =>
-            println("creating new mission")
             val labelsToValidate: Int = getNextValidationMissionLength(userId, missionType.get)
             val pay: Double = labelsToValidate.toDouble * payPerLabel.get
             Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get, missionType.get))
@@ -680,7 +678,6 @@ object MissionTable {
     * @return               {validation: 10, rapidValidation: 10}
     */
   def getNextValidationMissionLength(userId: UUID, missionType: String): Int = {
-    println("Mission Type: " + missionType)
     (missionType) match {
       case "validation" =>
         normalValidationMissionLength
@@ -696,7 +693,6 @@ object MissionTable {
     * @return               {validation: 10, rapidValidation: 19}
     */
   def getNumberOfLabelsToRetrieve(userId: UUID, missionType: String): Int = {
-    println("Mission Type: " + missionType)
     (missionType) match {
       case "validation" =>
         normalValidationMissionLabelsToRetrieve

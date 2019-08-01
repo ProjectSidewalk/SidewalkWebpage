@@ -21,9 +21,7 @@ function PanoramaContainer (labelList, idList) {
      * @private
      */
     function _init () {
-        console.log(idList);
         idList.forEach(function(id) {
-            console.log(id);
             panos[id] = new Panorama(labelList[getProperty("progress")], id);
             buttons[id] = new MenuButton(id);
             setProperty("progress", getProperty("progress") + 1);
@@ -178,10 +176,7 @@ function PanoramaContainer (labelList, idList) {
      * @param timestamp
      */
     function validateLabelFromPano (id, action, timestamp) {
-        console.log("Validation from pano with id: " + id);
-        console.log(panos);
         let pano = panos[id];
-        console.log(pano.getProperty("canvasId"));
         pano.getCurrentLabel().validate(action, pano);
         pano.setProperty('validationTimestamp', timestamp);
     }
