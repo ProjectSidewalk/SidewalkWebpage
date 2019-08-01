@@ -5,7 +5,7 @@
  * @constructor
  */
 function User (param) {
-    var properties = {
+    let properties = {
         username: param.username,
         role: param.role
     };

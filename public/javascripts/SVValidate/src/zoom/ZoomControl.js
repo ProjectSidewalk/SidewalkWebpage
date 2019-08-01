@@ -5,9 +5,9 @@
  * @constructor
  */
 function ZoomControl () {
-    var self = this;
-    var zoomInButton = $("#zoom-in-button");
-    var zoomOutButton = $("#zoom-out-button");
+    let self = this;
+    let zoomInButton = $("#zoom-in-button");
+    let zoomOutButton = $("#zoom-out-button");
 
     /**
      * Logs interaction when the zoom in button is clicked.
@@ -31,7 +31,7 @@ function ZoomControl () {
      * Zoom levels: {1.1, 2.1, 3.1}
      */
     function zoomIn () {
-        var zoomLevel = svv.panorama.getZoom();
+        let zoomLevel = svv.panorama.getZoom();
         if (zoomLevel <= 2.1) {
             zoomLevel += 1;
             svv.panorama.setZoom(zoomLevel);
@@ -45,7 +45,7 @@ function ZoomControl () {
      * Zoom levels: {1.1, 2.1, 3.1}
      */
     function zoomOut () {
-        var zoomLevel = svv.panorama.getZoom();
+        let zoomLevel = svv.panorama.getZoom();
         if (zoomLevel >= 2.1) {
             zoomLevel -= 1;
             svv.panorama.setZoom(zoomLevel);
