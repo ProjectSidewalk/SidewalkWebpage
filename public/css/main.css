@@ -296,7 +296,13 @@ video#bgvid {
 }
 @media (max-width: 992px) {
     #vidbanner {
-        height: 625px;
+        height: 600px;
+    }
+}
+
+@media (max-width: 992px) {
+    #other-cities-text {
+        display: none;
     }
 }
 
@@ -341,6 +347,12 @@ video#bgvid {
     font-weight: bold;
     line-height: 1em;
     color: #fff;
+}
+
+@media (max-width: 992px) {
+    .tagline {
+        font-size: 40px;
+    }
 }
 
 #bigtext{
@@ -415,7 +427,7 @@ video#bgvid {
 .im-centered5 {
     position: relative;
     top: 0px;
-    margin: auto; max-width: 100%;
+    margin: 0 auto;
     text-align: center;
     padding-top: 50px;
     font-family: raleway, sans-serif;
@@ -424,16 +436,22 @@ video#bgvid {
     font-style: normal;
     font-variant: normal;
     height: 500px;
-    min-height:700px;
+    min-height:775px;
     line-height: 1.1em;
     color: #2D2A3F;
+    width: 450px;
+}
 
+@media (max-width: 992px) {
+    .im-centered5 {
+        font-size: 35px;
+    }
 }
 
 .im-centered3 {
     position: relative;
     top: 0px;
-    margin: auto; max-width: 400px;
+    margin: auto;
     text-align: center;
     padding-top: 50px;
     font-family: raleway, sans-serif;
@@ -443,8 +461,12 @@ video#bgvid {
     font-variant: normal;
     line-height: 1.1em;
     color: #2D2A3F;
-
 }
+
+.im-centered3 .row {
+    margin: auto;
+}
+
 #difference-container{
     position:relative;
     width: 100%;
@@ -564,6 +586,11 @@ video#bgvid {
 
 
 }
+@media (max-width: 992px) {
+    #quotebox-container {
+        min-height: 750px;
+    }
+}
 #quotearea{
     max-width: 900px;
     margin: 0 auto;
@@ -614,6 +641,13 @@ video#bgvid {
 
 }
 
+@media (max-width: 992px) {
+    #content-text-4 {
+        font-size: 16px;
+        max-width: 700px;
+    }
+}
+
 #mlgif{
     position: absolute;
     left: 50%;
@@ -625,6 +659,12 @@ video#bgvid {
     background-color: rgba(249, 241, 227, 1);
     width: 100%;
     min-height: 800px;
+}
+
+@media (max-width: 992px) {
+    #machinelearning-container {
+        min-height: 850px;
+    }
 }
 
 #choropleth-container {
@@ -723,6 +763,11 @@ video#bgvid {
     top:25px;
 }
 
+@media (max-width: 992px) {
+    #exploreButton {
+        display: none;
+    }
+}
 #exploredesc{
     position: relative;
     top: -10px;
@@ -730,9 +775,8 @@ video#bgvid {
 
 .testimage{
     position: relative;
-    width: 250px;
+    width: 350px;
     height: auto;
-    left: -5px;
 }
 .testimage img{
     max-width: 100%;
@@ -955,6 +999,12 @@ video#bgvid {
 
 }
 
+@media (max-width: 992px) {
+    #footer-container {
+        display: none;
+    }
+}
+
 #footer-container a{
     color:#2d2a3f;
     cursor: pointer;
@@ -1024,6 +1074,7 @@ video#bgvid {
 
     #banner3 {
         display: block;
+        height: 820px;
     }
 }
 #header {
@@ -1372,6 +1423,11 @@ kbd {
     width: 425px;
     max-width: 500px;
     height: 80px;
+}
+@media (max-width: 992px) {
+    .leaflet-bottom > .map-legends.wax-legends {
+        width: 325px;
+    }
 }
 #results-choropleth-container {
     background-color: #fff;

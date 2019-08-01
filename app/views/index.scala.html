@@ -33,10 +33,12 @@
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Exploring @cityShortName</a>
                     <a class="bodyStartBtn bodyStartBtnMobile" href="@routes.ValidationController.validate()">Start Validating</a>
                     <br><br>
-                    <span class="header-text">We are also in:</span>
-                    @for((cityName, cityURL) <- otherCityURLs) {
-                        <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
-                    }
+                    <div id="other-cities-text">
+                        <span class="header-text">We are also in:</span>
+                        @for((cityName, cityURL) <- otherCityURLs) {
+                            <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
+                        }
+                    </div>
 
                 </div>
                 <div class="col-sm-3"></div>
@@ -214,7 +216,7 @@
             <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
         </div>
         <div class="im-centered5">
-            <div class="row" style="margin: 0 auto; width: 450px;">Your work is making a difference</div>
+            <div class="row">Your work is making a difference</div>
             <div class="row" id="content-text-2">
                 <p id="conditional-text">Keep Mapping!</p>
             </div>
