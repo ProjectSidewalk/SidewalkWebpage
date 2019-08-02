@@ -923,7 +923,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     function _visitRateSeverity(state, listener) {
-
+        svl.contextMenu.disableTagging();
         if (state.properties.action == "RedoRateSeverity") contextMenu.unhide();
         var $target = contextMenu.getContextMenuUI().radioButtons;
         var callback = function () {
@@ -931,6 +931,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             $target.off("click", callback);
             tracker.push("ContextMenu_CloseOnboarding");
             contextMenu.hide();
+            svl.contextMenu.enableTagging();
             next.call(this, state.transition);
         };
         $target.on("click", callback);

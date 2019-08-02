@@ -5,7 +5,7 @@
  * @constructor
  */
 function StatusPopupDescriptions () {
-    var self = this;
+    let self = this;
 
     function getCurbRampDescription (id) {
         switch (id) {

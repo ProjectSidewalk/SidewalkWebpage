@@ -6,9 +6,9 @@
  * @constructor
  */
 function ModalNoNewMission (uiModalMission) {
-    var self = this;
+    let self = this;
 
-    var noMissionsRemaining = '<figure> \
+    let noMissionsRemaining = '<figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
