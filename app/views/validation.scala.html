@@ -11,7 +11,7 @@
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
-    @zoomInAlert()
+    @zoomInAlert(Some("/validate"))
 
     <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>

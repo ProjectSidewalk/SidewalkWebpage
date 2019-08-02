@@ -1,6 +1,7 @@
+@(url: Option[String] = Some("/"))
 @import views.html.bootstrap._
 
-<!-- Modal -->
+ <!-- Modal -->
   <div class="modal fade" id="zoom-in-alert-modal" role="dialog">
     <div class="modal-dialog modal-lg modal-dialog-centered">
 
@@ -16,9 +17,7 @@
             <li><h4> Windows: Hold down <b>Ctrl</b>, then press <b>+</b> </h4></li>
             <li><h4>Or manually zoom in as instructed below:</h4></li>
           </ul>
-          <div>
-            <iframe id="zoom-in-instructions-video" width="830" height="530" frameborder="0" allowfullscreen="" style="margin-left:20px;margin-top:10px;"></iframe>
-          </div>
+            <iframe id="zoom-in-instructions-video" scrolling='no' height= "500px" width="830px" frameborder="0" allowfullscreen="" style="margin-left:20px;margin-top:10px;"></iframe>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default btn-lg" data-dismiss="modal">OK</button>
@@ -28,23 +27,45 @@
     </div>
   </div>
 
-  <script>
+<script>
     $(document).ready(function () {
-        var gif = $("#zoom-in-instructions-video");
-        // Determines client's web browser.
-        if((navigator.userAgent.indexOf("Opera") || navigator.userAgent.indexOf('OPR')) != -1 ) {
-            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Opera.gif")');
-        } else if(navigator.userAgent.indexOf("Chrome") != -1 ) {
-            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Chrome.gif")');
-        } else if(navigator.userAgent.indexOf("Safari") != -1) {
-            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Safari.gif")');
+        var gif = document.getElementById('zoom-in-instructions-video');
+        var isValidate = false;
+        @if(url.isDefined && url.get == "/validate") {
+            isValidate = true;
+        }
+        var isIE = !!document.documentMode;
+        var isEdge = !isIE && !!window.StyleMedia;
+        if ((navigator.userAgent.indexOf("Opera") != -1) || (navigator.userAgent.indexOf('OPR') != -1)) {
+            gif.src = '@routes.Assets.at("assets/ZoomInInstructions/AuditOpera.gif")';
+            if (isValidate) {
+                gif.src = '@routes.Assets.at("assets/ZoomInInstructions/ValidateOpera.gif")';
+            } 
+        } else if(navigator.userAgent.indexOf("Chrome") != -1 && !isEdge) {
+            gif.src = '@routes.Assets.at("assets/ZoomInInstructions/AuditChrome.gif")';
+            if (isValidate) {
+                gif.src = '@routes.Assets.at("assets/ZoomInInstructions/ValidateChrome.gif")';
+                gif.height = "470";
+            } 
+        } else if(navigator.userAgent.indexOf("Safari") != -1 && !isEdge) {
+            gif.src = '@routes.Assets.at("assets/ZoomInInstructions/AuditSafari.gif")';
+            if (isValidate) {
+                gif.src = '@routes.Assets.at("assets/ZoomInInstructions/ValidateSafari.gif")';
+            } 
         } else if(navigator.userAgent.indexOf("Firefox") != -1 ) {
-            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Firefox.gif")');
-        } else if((navigator.userAgent.indexOf("MSIE") != -1 ) || (!!document.documentMode == true )) { //IF IE > 10
-	    gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/IE.gif")');
+            if (isValidate) {
+                gif.src = '@routes.Assets.at("assets/ZoomInInstructions/ValidateFirefox.gif")';
+            } else {
+                gif.src = '@routes.Assets.at("assets/ZoomInInstructions/AuditFirefox.gif")';
+                gif.height = "440";
+            }
         } else {
-            gif.attr("src", '@routes.Assets.at("assets/ZoomInInstructions/Chrome.gif")');
+            gif.src = '@routes.Assets.at("assets/ZoomInInstructions/AuditEdge.gif")';
+            if (isValidate) {
+                gif.src = '@routes.Assets.at("assets/ZoomInInstructions/ValidateEdge.gif")';
+            } 
         }
     });
-  </script>
+</script>
+
 

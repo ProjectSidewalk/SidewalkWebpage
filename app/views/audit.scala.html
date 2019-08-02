@@ -11,7 +11,7 @@
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
-    @zoomInAlert()
+    @zoomInAlert(Some("/audit"))
 
     <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
