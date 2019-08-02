@@ -3,6 +3,12 @@
     height: 800px;
 }
 
+@media (max-width: 992px) {
+    #choropleth {
+        height: 80vh;
+    }
+}
+
 .legend label,
 .legend span {
     display:block;

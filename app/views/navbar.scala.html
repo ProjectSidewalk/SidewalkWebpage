@@ -11,7 +11,7 @@
             <a id="brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
-            <ul class="nav navbar-nav navbar-right" id="topbuttons">
+            <ul class="nav navbar-nav navbar-right" id="topbuttons" style="display: none">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
                     <li>
                         <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:20px;padding-right:5px;">
