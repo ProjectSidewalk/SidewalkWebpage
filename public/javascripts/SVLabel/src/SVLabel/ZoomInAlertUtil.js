@@ -13,7 +13,7 @@ class ZoomInAlertUtil {
             return;
         }
         var STANDARD_SCREEN = 1280 * 800;
-        var RATIO = 1.2;
+        var RATIO = 1.45;
         var browserWidth = window.innerWidth || document.body.clientWidth;
         var browserHeight = window.innerHeight || document.body.clientHeight;
         var clientScreen = browserWidth * browserHeight;
