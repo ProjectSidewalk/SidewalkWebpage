@@ -418,6 +418,9 @@ $(document).ready(function () {
                 $.post(url, data, handleSignIn).fail(function(e){
                     invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
                 });
+                 .done(function(e) {
+                    document.location.reload();
+                });
                 return false;
             });
 
