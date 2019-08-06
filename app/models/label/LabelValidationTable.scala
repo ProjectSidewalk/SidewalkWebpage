@@ -124,8 +124,7 @@ object LabelValidationTable {
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
       _mission <- MissionTable.auditMissions if _label.missionId === _mission.missionId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
-      _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
-      _userRole <- userRoles if _validationUser.userId === _userRole.userId
+      _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
     } yield (_user.userId, _role.role, _validation.labelId, _validation.validationResult)
 
