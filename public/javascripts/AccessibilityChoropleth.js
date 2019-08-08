@@ -34,6 +34,10 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
         choropleth.setZoom(data.default_zoom);
+        $("#reset-button").click(reset);
+        function reset() {
+            choropleth.setZoom(data.default_zoom);
+        }
     });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
