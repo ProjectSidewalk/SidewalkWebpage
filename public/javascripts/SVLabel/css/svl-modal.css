@@ -25,7 +25,7 @@
     background: rgba(255, 255, 255, 1);
     /*border: 3px solid rgba(200, 200, 200, 1);*/
     color: rgba(80, 80, 80, 1);
-    font-size: 14pt;
+    font-size: 13pt;
     padding: 10px;
     position: relative;
     top: 35%;
@@ -39,15 +39,15 @@
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
-#modal-skip-box-neighborhood .overlay-option {
+#modal-skip-box .overlay-option, #modal-skip-box-neighborhood .overlay-option {
     background-color: rgb(220, 220, 220);
 }
 
-#modal-skip-box-neighborhood .overlay-option:hover {
+#modal-skip-box .overlay-option:hover, #modal-skip-box-neighborhood .overlay-option:hover  {
     background-color: rgb(190, 190, 190);
 }
 
-#modal-skip-box {
+#modal-skip-box-neighborhood {
     display: none;
 }
 

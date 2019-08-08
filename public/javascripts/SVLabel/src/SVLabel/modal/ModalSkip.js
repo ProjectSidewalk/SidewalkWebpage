@@ -26,24 +26,6 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     });
 
     /**
-     * Disable clicking the ok button
-     */
-    this._disableClickOK = function () {
-        uiModalSkip.ok.attr("disabled", true);
-        uiModalSkip.ok.addClass("disabled");
-        status.disableClickOK = true;
-    };
-
-    /**
-     * Enable clicking the ok button
-     */
-    this._enableClickOK = function () {
-        uiModalSkip.ok.attr("disabled", false);
-        uiModalSkip.ok.removeClass("disabled");
-        status.disableClickOK = false;
-    };
-
-    /**
      * Callback for clicking jump button
      * @param e
      */
@@ -55,20 +37,47 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     };
 
     /**
-     * This method handles a click OK event
+     * This method handles a click Unavailable event
      * @param e
      */
-    this._handleClickOK = function (e) {
-        tracker.push("ModalSkip_ClickOK");
-        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
-
-        // self.skip(radioValue);
+    this._handleClickUnavailable = function (e) {
+        tracker.push("ModalSkip_ClickUnavailable");
         var task = taskContainer.getCurrentTask();
-        form.skip(task, radioValue);
+        form.skip(task, "");
 
         ribbonMenu.backToWalk();
         self.hideSkipMenu();
     };
+
+    /**
+     * This method handles a click Continue Neighborhood event
+     * @param e
+     */
+    this._handleClickContinueNeighborhood = function (e) {
+        tracker.push("ModalSkip_ClickContinueNeighborhood");
+        var task = taskContainer.getCurrentTask();
+        form.skip(task, "");
+
+        ribbonMenu.backToWalk();
+        self.hideSkipMenu();
+    };
+
+    /**
+     * This method handles a click Redirect event
+     * @param e
+     */
+     this._handleClickRedirect = function (e) {
+        tracker.push("ModalSkip_ClickRedirect");
+     }
+
+    /**
+     * This method handles a click Explore event
+     * @param e
+     */
+     this._handleClickExplore = function (e) {
+        tracker.push("ModalSkip_ClickExplore");
+     }
+
 
     /**
      * This method handles a click Cancel event
@@ -77,21 +86,6 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this._handleClickCancel = function (e) {
         tracker.push("ModalSkip_ClickCancel");
         self.hideSkipMenu();
-    };
-
-    /**
-     * This method takes care of nothing.
-     * @param e
-     */
-    this._handleClickRadio = function (e) {
-        var radioValue = $('input[name="modal-skip-radio"]:checked', '#modal-skip-content').val();
-
-        var notes = {
-            option: radioValue
-        };
-
-        tracker.push("ModalSkip_ClickRadio", notes);
-        self._enableClickOK();
     };
 
     /**
@@ -109,7 +103,6 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
      * Hide a skip menu
      */
     this.hideSkipMenu = function () {
-        uiModalSkip.radioButtons.prop('checked', false);
         uiModalSkip.holder.addClass('hidden');
         svl.popUpMessage.enableInteractions();
         self.hideBackground();
@@ -120,7 +113,6 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
      */
     this.showSkipMenu = function () {
         uiModalSkip.holder.removeClass('hidden');
-        this._disableClickOK();
         svl.popUpMessage.disableInteractions();
         self.showBackground();
     };
@@ -149,9 +141,10 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     };
 
     // Initialize
-    this._disableClickOK();
-    uiModalSkip.ok.bind("click", this._handleClickOK);
+    uiModalSkip.unavailable.bind("click", this._handleClickUnavailable);
+    uiModalSkip.continueNeighborhood.bind("click", this._handleClickContinueNeighborhood);
     uiModalSkip.cancel.bind("click", this._handleClickCancel);
-    uiModalSkip.radioButtons.bind("click", this._handleClickRadio);
+    uiModalSkip.redirect.bind("click", this._handleClickRedirect);
+    uiModalSkip.explore.bind("click", this._handleClickExplore);
     uiLeftColumn.jump.on('click', this._handleClickJump);
 }

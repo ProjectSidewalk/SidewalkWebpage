@@ -470,13 +470,6 @@
             </div>
             <div id="modal-skip-holder" class="hidden">
                 <div id="modal-skip-background"></div>
-                <div id="modal-skip-box-neighborhood">
-                    <div id="modal-skip-neighborhood-title" class="bold">
-                        <p>Go to a new location or a new neighborhood?</p>
-                    </div>
-                    <span class="overlay-option" id="continue-neighborhood">Go to a new location in this neighborhood</span>
-                    <span class="overlay-option" id="redirect-jump">Go to a new neighborhood</span>
-                </div>
                 <div id="modal-skip-box">
                     <div id="modal-skip-box-new-location"></div>
                     <div id="modal-skip-box-new-neighborhood"></div>
@@ -484,23 +477,16 @@
                         <p>Jump to another location because:</p>
                     </div>
                     <div id="modal-skip-content">
-                        <div class="radio">
-                            <label>
-                                <input class="modal-skip-radio-buttons" type="radio" value="IWantToExplore" name="modal-skip-radio">
-                                I want to explore another area!
-                            </label>
-                        </div>
-                        <div class="radio">
-                            <label>
-                                <input class="modal-skip-radio-buttons" type="radio" value="GSVNotAvailable" name="modal-skip-radio">
-                                I cannot go the direction that you want me to walk.
-                            </label>
-                        </div>
-                        <div>
-                            <button class="button" id="modal-skip-ok-button">OK</button>&nbsp;
-                            <button class="button" id="modal-skip-cancel-button">Cancel</button>
-                        </div>
+                        <input type="button" class="overlay-option" id="modal-skip-explore" value="I want to explore another area!">
+                        <input type="button" class="overlay-option" id="modal-skip-unavailable" value="I cannot go the direction you want me to walk.">
                     </div>
+                </div>
+                <div id="modal-skip-box-neighborhood">
+                    <div id="modal-skip-neighborhood-title" class="bold">
+                        <p>Go to a new location or a new neighborhood?</p>
+                    </div>
+                    <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="Go to a new location in this neighborhood">
+                    <input type="button" class="overlay-option" id="modal-skip-redirect-jump" value="Go to a new neighborhood">
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -941,25 +927,23 @@
             });
 
             // Neighborhood Jump Overlay
-            $('#continue-neighborhood').on('click', function(){
+            $('#modal-skip-continue-neighborhood').on('click', function(){
                 $('#modal-skip-box-neighborhood').hide();
                 $('#modal-skip-box').show();
             });
 
-            $('#redirect-jump').on('click', function(){
-                $('#modal-skip-box-neighborhood').show();
-                $('#modal-skip-box').hide();
+            $('#modal-skip-redirect-jump').on('click', function(){
                 $(location).attr('href', '/audit?nextRegion=regular');
             });
 
-            $('#modal-skip-ok-button').on('click', function(){
-                $('#modal-skip-box-neighborhood').show();
+            $('#modal-skip-explore').on('click', function(){
                 $('#modal-skip-box').hide();
+                $('#modal-skip-box-neighborhood').show();
             });
 
-            $('#modal-skip-cancel-button').on('click', function(){
-                $('#modal-skip-box-neighborhood').show();
-                $('#modal-skip-box').hide();
+            $('#modal-skip-background').on('click', function(){
+                $('#modal-skip-box-neighborhood').hide();
+                $('#modal-skip-box').show();
             });
 
             // Neighborhood Completion Overlay
