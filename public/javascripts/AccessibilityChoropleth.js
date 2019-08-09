@@ -36,6 +36,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         choropleth.setZoom(data.default_zoom);
         $("#reset-button").click(reset);
         function reset() {
+            choropleth.setView([data.city_center.lat, data.city_center.lng]);
             choropleth.setZoom(data.default_zoom);
         }
     });
