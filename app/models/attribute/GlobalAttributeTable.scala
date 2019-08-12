@@ -133,7 +133,7 @@ object GlobalAttributeTable {
 
   def toInt(s: Option[String]): Option[Int] = {
     try {
-      Some(s.getOrElse("6").toInt)
+      Some(s.getOrElse("-1").toInt)
     } catch {
       case e: Exception => None
     }
