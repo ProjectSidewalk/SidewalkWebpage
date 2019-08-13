@@ -45,7 +45,7 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      auditTaskId: Int,
                                      gsvPanoramaId: String,
                                      labelType: String,
-                                     severity: Int,
+                                     severity: Option[Int],
                                      lat: Float,
                                      lng: Float)
 
@@ -144,7 +144,7 @@ object LabelTable {
     MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
+    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextIntOption, r.nextFloat, r.nextFloat))
 
   // Valid label type ids -- excludes Other and Occlusion labels
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
@@ -503,39 +503,30 @@ object LabelTable {
   }
 
   /**
-    * Returns whether we have enough labels for this user to validate.
-    * @param userId             User ID.
-    * @param labelTypeId        Label Type ID of labels requested.
-    * @param labelsRequired     Number of labels we need to query.
-    * @return   True if we have enough labels, false otherwise.
+    * Returns how many labels this user has available to validate for each label type.
+    *
+    * @param userId User ID.
+    * @return List[(label_type_id, label_count)]
     */
-  def hasSufficientLabels(userId: UUID, labelTypeId: Int, labelsRequired: Int): Boolean = db.withSession { implicit session =>
-    val labelCount: Int = getAvailableValidationLabels(userId, labelTypeId, None)
-    labelCount >= labelsRequired
-  }
-
-  /**
-    * Returns how many labels this user can validate for a given label type. Users are not allowed
-    * to validate labels that they have already validated or labels that they have placed.
-    * @param userId       User ID.
-    * @param labelTypeId  Type of label.
-    * @param labelIdList  List of labels to exclude (i.e., labels that have already been selected)
-    * @return             Number of labels that the user can validate.
-    */
-  def getAvailableValidationLabels(userId: UUID, labelTypeId: Int, labelIdList: Option[ListBuffer[Int]]): Int = db.withSession { implicit session =>
+  def getAvailableValidationLabelsByType(userId: UUID): List[(Int, Int)] = db.withSession { implicit session =>
     val userIdString: String = userId.toString
-    val existingLabels: ListBuffer[Int] = labelIdList.getOrElse(new ListBuffer[Int])
-    val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString).map(_.labelId).list
+    val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
 
-    val validationLabels =  for {
-      _lb <- labels if _lb.labelTypeId === labelTypeId && _lb.deleted === false && _lb.tutorial === false
-      _lt <- labelTypes if _lt.labelTypeId === _lb.labelTypeId
+    // Get labels the given user has not placed that have non-expired GSV imagery.
+    val labelsToValidate =  for {
+      _lb <- labels if _lb.deleted === false && _lb.tutorial === false
       _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId && _gd.expired === false
       _ms <- missions if _ms.missionId === _lb.missionId && _ms.userId =!= userIdString
-    } yield (_lb.labelId)
+    } yield (_lb.labelId, _lb.labelTypeId)
 
-    val filterUserLabels = validationLabels.filterNot(_ inSet labelsValidatedByUser)
-    filterUserLabels.list.length
+    // Left join with the labels that the user has already validated, then filter those out.
+    val filteredLabelsToValidate = for {
+      (_lab, _val) <- labelsToValidate.leftJoin(labelsValidatedByUser).on(_._1 === _.labelId)
+      if _val.labelId.?.isEmpty
+    } yield _lab
+
+    // Group by the label_type_id and count.
+    filteredLabelsToValidate.groupBy(_._2).map{ case (labType, group) => (labType, group.length) }.list
   }
 
   /**
@@ -654,26 +645,23 @@ object LabelTable {
   }
 
   /**
-    * Retrieves a list of possible label types that the user can validate. This is determined by how
-    * many labels are in the database and how many labels the user has validated.
+    * Retrieves a list of possible label types that the user can validate.
+    *
+    * We do this by getting the number of labels available to validate for each label type. We then filter out label
+    * types with less than 10 labels to validate (the size of a validation mission), and we filter for labels in our
+    * labelTypeIdList (the main label types that we ask users to validate).
+    *
     * @param userId               User ID of the current user.
     * @param count                Number of labels for this mission.
     * @param currentLabelTypeId   Label ID of the current mission
     * @return
     */
-  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): ListBuffer[Int] = {
-    val inProgress: List[Int] = MissionTable.getInProgressValidationMissions(userId, currentLabelTypeId)
-    var possibleLabelTypeIds = new ListBuffer[Int]
-    for (labelTypeId <- labelTypeIdList) {
-      if (hasSufficientLabels(userId, labelTypeId, count) || inProgress.contains(labelTypeId)) {
-        possibleLabelTypeIds += labelTypeId
-      }
-    }
-    possibleLabelTypeIds
+  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
+    getAvailableValidationLabelsByType(userId).filter(_._2 > count).map(_._1).filter(labelTypeIdList.contains(_))
   }
 
     /**
-    * Checks if the panorama associated with a label eixsts by pinging Google Maps.
+    * Checks if the panorama associated with a label exists by pinging Google Maps.
     * @param gsvPanoId  Panorama ID
     * @return           True if the panorama exists, false otherwise
     */
@@ -847,11 +835,11 @@ object LabelTable {
     } yield (_labels.labelId, _labels.auditTaskId, _labels.gsvPanoramaId, _labelTypes.labelType, _labels.panoramaLat, _labels.panoramaLng)
 
     val _slabels = for {
-      (l, s) <- _labels.innerJoin(severities).on(_._1 === _.labelId)
-    } yield (l._1, l._2, l._3, l._4, s.severity)
+      (l, s) <- _labels.leftJoin(severities).on(_._1 === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, s.severity.?)
 
     val _points = for {
-      (l, p) <- _slabels.innerJoin(labelPoints).on(_._1 === _.labelId)
+      (l, p) <- _slabels.leftJoin(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
     val labelLocationList: List[LabelLocationWithSeverity] = _points.list.map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7))

@@ -63,6 +63,21 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     };
 
     this._handleCloseButtonClick = function () {
+        mission = _missionContainer.getCurrentMission();
+        
+        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later, another 
+        // MissionStart will not be triggered
+        if(mission.getProperty("distanceProgress") < 0.0001) { 
+            svl.tracker.push(
+                "MissionStart",
+                {
+                    missionId: mission.getProperty("missionId"),
+                    missionType: mission.getProperty("missionType"),
+                    distanceMeters: Math.round(mission.getDistance("meters")),
+                    regionId: mission.getProperty("regionId")
+                }
+            );
+        }
         self.hide();
     };
 
