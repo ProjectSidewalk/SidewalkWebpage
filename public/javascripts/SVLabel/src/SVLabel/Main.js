@@ -536,8 +536,9 @@ function Main (params) {
         svl.ui.modalSkip.holder = $("#modal-skip-holder");
         svl.ui.modalSkip.unavailable = $("#modal-skip-unavailable");
         svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
-        svl.ui.modalSkip.cancel = $("#modal-skip-background");
-        svl.ui.modalSkip.redirect = $("#modal-skip-redirect-jump"); //ht
+        svl.ui.modalSkip.cancelFirst = $("#modal-skip-cancel-first-button");
+        svl.ui.modalSkip.cancelSecond = $("#modal-skip-cancel-second-button");
+        svl.ui.modalSkip.redirect = $("#modal-skip-redirect-jump");
         svl.ui.modalSkip.explore = $("#modal-skip-explore");
         svl.ui.modalComment = {};
         svl.ui.modalComment.holder = $("#modal-comment-holder");

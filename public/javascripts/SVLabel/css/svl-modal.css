@@ -51,6 +51,10 @@
     display: none;
 }
 
+.modal-skip-cancel-button {
+    text-align: right;
+}
+
 .modal-foreground {
     top: 110px;
     left: 0;

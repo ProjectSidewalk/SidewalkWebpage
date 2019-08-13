@@ -476,17 +476,25 @@
                     <div id="modal-skip-title" class="bold">
                         <p>Jump to another location because:</p>
                     </div>
-                    <div id="modal-skip-content">
+                    <div id="modal-skip-box-content">
                         <input type="button" class="overlay-option" id="modal-skip-explore" value="I want to explore another area!">
                         <input type="button" class="overlay-option" id="modal-skip-unavailable" value="I cannot go the direction you want me to walk.">
+                    </div>
+                    <div class="modal-skip-cancel-button">
+                        <button class="button" id="modal-skip-cancel-first-button">Cancel</button>
                     </div>
                 </div>
                 <div id="modal-skip-box-neighborhood">
                     <div id="modal-skip-neighborhood-title" class="bold">
                         <p>Go to a new location or a new neighborhood?</p>
                     </div>
-                    <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="Go to a new location in this neighborhood">
-                    <input type="button" class="overlay-option" id="modal-skip-redirect-jump" value="Go to a new neighborhood">
+                    <div id="modal-skip-neighborhood-content">
+                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="Go to a new location in this neighborhood">
+                        <input type="button" class="overlay-option" id="modal-skip-redirect-jump" value="Go to a new neighborhood">
+                    </div>
+                    <div class="modal-skip-cancel-button">
+                        <button class="button" id="modal-skip-cancel-second-button">Cancel</button>
+                    </div>
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -941,7 +949,7 @@
                 $('#modal-skip-box-neighborhood').show();
             });
 
-            $('#modal-skip-background').on('click', function(){
+            $('#modal-skip-cancel-second-button').on('click', function(){
                 $('#modal-skip-box-neighborhood').hide();
                 $('#modal-skip-box').show();
             });

@@ -78,13 +78,21 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
         tracker.push("ModalSkip_ClickExplore");
      }
 
-
     /**
-     * This method handles a click Cancel event
+     * This method handles a click Cancel event on the first jump screen
      * @param e
      */
-    this._handleClickCancel = function (e) {
-        tracker.push("ModalSkip_ClickCancel");
+    this._handleClickCancelFirst = function (e) {
+        tracker.push("ModalSkip_ClickCancelFirst");
+        self.hideSkipMenu();
+    };
+
+    /**
+     * This method handles a click Cancel event on the second jump screen
+     * @param e
+     */
+    this._handleClickCancelSecond = function (e) {
+        tracker.push("ModalSkip_ClickCancelSecond");
         self.hideSkipMenu();
     };
 
@@ -143,7 +151,8 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     // Initialize
     uiModalSkip.unavailable.bind("click", this._handleClickUnavailable);
     uiModalSkip.continueNeighborhood.bind("click", this._handleClickContinueNeighborhood);
-    uiModalSkip.cancel.bind("click", this._handleClickCancel);
+    uiModalSkip.cancelFirst.bind("click", this._handleClickCancelFirst);
+    uiModalSkip.cancelSecond.bind("click", this._handleClickCancelSecond);
     uiModalSkip.redirect.bind("click", this._handleClickRedirect);
     uiModalSkip.explore.bind("click", this._handleClickExplore);
     uiLeftColumn.jump.on('click', this._handleClickJump);
