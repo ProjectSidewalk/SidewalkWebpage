@@ -131,6 +131,14 @@ object GlobalAttributeTable {
     globalAttributes.list
   }
 
+  def toInt(s: Option[String]): Option[Int] = {
+    try {
+      Some(s.getOrElse("-1").toInt)
+    } catch {
+      case e: Exception => None
+    }
+  }
+
   /**
     * Gets global attributes within a bounding box for the public API.
     *
@@ -138,11 +146,15 @@ object GlobalAttributeTable {
     * @param minLng
     * @param maxLat
     * @param maxLng
+    * @param severity
     * @return
     */
-  def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     val attributes = for {
-      _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng
+      _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
+        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity))
+        // The line above gets attributes with null severity if severity = "none", all attributes if severity is unspecified,
+        // and attributes with the specified severity (e.g. severity = 3) otherwise.
       _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
       _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
       if _labType.labelType =!= "Problem"
@@ -157,11 +169,13 @@ object GlobalAttributeTable {
     * @param minLng
     * @param maxLat
     * @param maxLng
+    * @param severity
     * @return
     */
-  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = for {
-      _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng
+      _att <- globalAttributes if _att.lat > minLat && _att.lat < maxLat && _att.lng > minLng && _att.lng < maxLng &&
+        (_att.severity.isEmpty && severity.getOrElse("") == "none" || severity.isEmpty || _att.severity === toInt(severity))
       _labType <- LabelTypeTable.labelTypes if _att.labelTypeId === _labType.labelTypeId
       _nbhd <- RegionTable.namedNeighborhoods if _att.regionId === _nbhd._1
       _gaua <- GlobalAttributeUserAttributeTable.globalAttributeUserAttributes if _att.globalAttributeId === _gaua.globalAttributeId
