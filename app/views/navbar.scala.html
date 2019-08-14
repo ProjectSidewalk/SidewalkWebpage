@@ -395,7 +395,7 @@ $(document).ready(function () {
                 }
             }
 
-            // Intercept form-based sign in and use AJAX to signin so the page does not refresh.
+            // Handles sign-in event and refresh the webpage.
             $('#sign-in-form').submit(function () {
                 var formData = $('#sign-in-form :input');
                 var email = formData[0].value;
@@ -415,13 +415,18 @@ $(document).ready(function () {
                 var data = $(this).serialize();
 
                 var url = '/authapi/authenticate';
-                $.post(url, data, handleSignIn).fail(function(e){
-                    invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: data,
+                    success: function() {
+                        document.location.reload();
+                    },
+                    error: function() {
+                        invalidSignInUpAlert(true, 'Something went wrong processing your request. Please make sure all your information is correct and then try again');
+                    }
                 });
-                 .done(function(e) {
-                    document.location.reload();
-                });
-                return false;
             });
 
             $('#sign-up-form').submit(function () {
