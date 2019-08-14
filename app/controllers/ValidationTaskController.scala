@@ -132,11 +132,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       val labelsToRetrieve: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionProgress.missionType)
       val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
+      println(possibleLabelTypeIds)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
-        val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
-        return Some(possibleLabelTypeIds(index))
+        // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
+        val possibleIds: List[Int] =
+          if (possibleLabelTypeIds.size > 1) possibleLabelTypeIds.filter(_ != 7)
+          else possibleLabelTypeIds
+        val index: Int = if (possibleIds.size > 1) scala.util.Random.nextInt(possibleIds.size - 1) else 0
+        return Some(possibleIds(index))
       }
     }
     None
