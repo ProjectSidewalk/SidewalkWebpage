@@ -65,7 +65,7 @@ function LabelVisibilityControl () {
     function show () {
         var button = document.getElementById('label-description');
 	    var marker = document.getElementById('validate-pano-marker');
-        button.style.left = (parseFloat(marker.style.left) - 120) + 'px';
+        button.style.right = (710 - parseFloat(marker.style.left)) + 'px';
         button.style.top = (parseFloat(marker.style.top) + 10) + 'px';
 	    button.style.visibility = 'visible';
     }

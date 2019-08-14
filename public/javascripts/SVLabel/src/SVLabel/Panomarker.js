@@ -135,7 +135,7 @@
         this.id_ = opts.id || null;
 
         /** @private @type {?number} */
-        this.severity_ = opts.severity != 0 || null;
+        this.severity_ = opts.severity || null;
 
         /** @private @type {boolean} */
         this.temporary_ = opts.temporary || false;
@@ -425,6 +425,7 @@
 
         var descriptionBox = document.createElement('div');
         descriptionBox.id = 'label-description';
+
         iconColors = {
             '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png': 'rgb(0, 222, 38)',
             '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png': 'rgb(233, 39, 113)',
@@ -432,32 +433,39 @@
             '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png': 'rgb(241, 141, 5)'
         }
         descriptionBox.style['background-color'] = iconColors[this.icon_];
+
 	    smileyScale = {
-	        1: 'public/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
-	        2: 'public/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
-	        3: 'public/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
-	        4: 'public/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
-	        5: 'public/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
+	        1: '/assets/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
+	        2: '/assets/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
+	        3: '/assets/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
+	        4: '/assets/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
+	        5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
 	    }
 
-        if (this.severity_) {
-            var img = document.createElement("IMG");
+        if (this.severity_ & this.severity_ != 0) {
+            var htmlString = document.createTextNode('Severity: ' + this.severity_ + ' ');
+            descriptionBox.appendChild(htmlString);
+            var img = document.createElement('img');
             img.setAttribute('src', smileyScale[this.severity_]);
             img.setAttribute('width', '12px');
             img.setAttribute('height', '12px');
-            var htmlString = document.createTextNode('Severity: ' + this.severity_ + '<br>');
-            descriptionBox.appendChild(htmlString);
             descriptionBox.appendChild(img);
+            linebreak = document.createElement('br');
+            descriptionBox.appendChild(linebreak);
         }
 
         if (this.temporary_) {
-            var htmlString = document.createTextNode('Temporary<br>');
+            var htmlString = document.createTextNode('Temporary');
             descriptionBox.appendChild(htmlString);
+            linebreak = document.createElement('br');
+            descriptionBox.appendChild(linebreak);
         }
 
         if (this.description_) {
-            var htmlString = document.createTextNode(this.description_ + '<br>');
+            var htmlString = document.createTextNode(this.description_);
             descriptionBox.appendChild(htmlString);
+            linebreak = document.createElement('br');
+            descriptionBox.appendChild(linebreak);
         }
 
         if (this.tags_) {
@@ -465,7 +473,7 @@
             descriptionBox.appendChild(htmlString);
         }
 
-        if (!(this.severity_ || this.temporary_ || this.description_ || this.tags_)) {
+        if (!(this.severity_ != 0 || this.temporary_ || this.description_ || this.tags_)) {
             var htmlString = document.createTextNode('No available information');
             descriptionBox.appendChild(htmlString);
         }
@@ -617,6 +625,21 @@
     PanoMarker.prototype.getZIndex = function() { return this.zIndex_; };
 
 
+    /** @return {number} The description box's severity. */
+    PanoMarker.prototype.getSeverity = function() { return this.severity_; };
+
+
+    /** @return {number} The description box's temporariness. */
+    PanoMarker.prototype.getTemporariness = function() { return this.temporary_; };
+
+
+    /** @return {number} The description box's description */
+    PanoMarker.prototype.getDescription = function() { return this.description_; };
+
+
+    /** @return {number} The description box's tags. */
+    PanoMarker.prototype.getTags = function() { return this.tags_; };
+
 //// Setter for the properties mentioned above ////
 
 
@@ -755,6 +778,30 @@
         if (!!this.marker_) {
             this.marker_.style.zIndex = zIndex;
         }
+    };
+
+
+    /** @param {number} severity The new severity. */
+    PanoMarker.prototype.setSeverity = function(severity) {
+        this.severity_ = severity;
+    };
+
+
+    /** @param {boolean} temporary The new temporariness. */
+    PanoMarker.prototype.setTemporariness = function(temporary) {
+        this.temporary_ = temporary;
+    };
+
+
+    /** @param {string} description The new description. */
+    PanoMarker.prototype.setDescription = function(description) {
+        this.description_ = description;
+    };
+
+
+    /** @param {string} tags The new tags. */
+    PanoMarker.prototype.setTags = function(tags) {
+        this.tags_ = tags;
     };
 
     return PanoMarker;

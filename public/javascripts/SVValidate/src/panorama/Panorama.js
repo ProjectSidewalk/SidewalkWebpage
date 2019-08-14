@@ -190,7 +190,6 @@ function Panorama (label) {
         var desc = currentLabel.getOriginalProperty('description');
         var tags = currentLabel.getOriginalProperty('tags');
 
-
         if (!self.labelMarker) {
             self.labelMarker = new PanoMarker({
                 id: "validate-pano-marker",
@@ -212,6 +211,10 @@ function Panorama (label) {
                 pitch: pos.pitch
             });
             self.labelMarker.setIcon(url);
+            self.labelMarker.setSeverity(sev);
+            self.labelMarker.setTemporariness(temp);
+            self.labelMarker.setDescription(desc);
+            self.labelMarker.setTags(tags);
         }
         return this;
     }

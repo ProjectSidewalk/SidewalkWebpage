@@ -26,8 +26,8 @@
 
 #label-description {
     visibility: hidden;
-    width: 130px;
-    height: auto; /*:(*/
+    width: auto;
+    height: auto;
     position: absolute;
     color: white;
     font-family: "Open sans";
