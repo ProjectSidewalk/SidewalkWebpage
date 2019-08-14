@@ -1,15 +1,13 @@
-/**
- * An additional layer on top of the Google StreetView object
- * on validation interface. This layer handles panning.
- *
+/*
+ * An additional layer on top of the Google StreetView object on validation interface. This layer handles panning.
  */
 function GSVOverlay () {
     let self = this;
-    var panningDisabled = false;
-    var viewControlLayer = $("#viewControlLayer");
+    let panningDisabled = false;
+    let viewControlLayer = $("#viewControlLayer");
 
-    // Mouse status and mouse event callback functions
-    var mouseStatus = {
+    // Mouse status and mouse event callback functions.
+    let mouseStatus = {
         currX: 0,
         currY: 0,
         prevX: 0,
@@ -36,8 +34,8 @@ function GSVOverlay () {
     }
 
     /**
-     * This is a callback function that is fired with the mouse down event
-     * on the view control layer (where you control street view angle.)
+     * This is a callback function that is fired with the mouse down event on the view
+     * control layer (where you control street view angle.)
      * @param e
      */
     function handlerViewControlLayerMouseDown (e) {
@@ -46,7 +44,7 @@ function GSVOverlay () {
         mouseStatus.leftDownY = mouseposition(e, this).y;
         viewControlLayer.css("cursor", "url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move");
 
-        //This is necessary for supporting touch devices, because there is no mouse hover
+        // This is necessary for supporting touch devices, because there is no mouse hover.
         mouseStatus.prevX = mouseposition(e, this).x;
         mouseStatus.prevY = mouseposition(e, this).y;
     }
@@ -61,8 +59,8 @@ function GSVOverlay () {
         mouseStatus.isLeftDown = false;
         mouseStatus.leftUpX = mouseposition(e, this).x;
         mouseStatus.leftUpY = mouseposition(e, this).y;
-
     }
+
     /**
      * Handles mouse leaving control view.
      * @param e
@@ -80,13 +78,14 @@ function GSVOverlay () {
         mouseStatus.currX = mouseposition(e, this).x;
         mouseStatus.currY = mouseposition(e, this).y;
 
-        var timestamp = new Date().getTime();  // waits till the pano is fully loaded
-        if ((timestamp - svv.panorama.getProperty("prevSetPanoTimestamp") > 800) && mouseStatus.isLeftDown && panningDisabled === false) {
+        let timestamp = new Date().getTime();  // Waits till the pano is fully loaded.
+        if ((timestamp - svv.panorama.getProperty("prevSetPanoTimestamp") > 500)
+            && mouseStatus.isLeftDown && panningDisabled === false) {
             // If a mouse is being dragged on the control layer, move the sv image.
-            var dx = mouseStatus.currX - mouseStatus.prevX;
-            var dy = mouseStatus.currY - mouseStatus.prevY;
-            var pov = svv.panorama.getPov();
-            var zoomLevel = pov.zoom;
+            let dx = mouseStatus.currX - mouseStatus.prevX;
+            let dy = mouseStatus.currY - mouseStatus.prevY;
+            let pov = svv.panorama.getPov();
+            let zoomLevel = pov.zoom;
             dx = dx / (2 * zoomLevel);
             dy = dy / (2 * zoomLevel);
             dx *= 1.5;
@@ -98,15 +97,15 @@ function GSVOverlay () {
     }
 
     /**
-     * Update POV of Street View as a user drag a mouse cursor.
+     * Update POV of Street View as a user drags their mouse cursor.
      * @param dx
      * @param dy
      */
     function updatePov (dx, dy) {
-        var pano = svv.panorama.getPanorama();
+        let pano = svv.panorama.getPanorama();
         if (pano) {
-            var pov = pano.getPov(),
-                alpha = 0.25;
+            let pov = pano.getPov();
+            let alpha = 0.25;
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
             pano.setPov(pov);
@@ -115,9 +114,10 @@ function GSVOverlay () {
         }
     }
 
-    // A cross-browser function to capture a mouse position
+    // A cross-browser function to capture mouse positions.
     function mouseposition (e, dom) {
-        var mx, my;
+        let mx;
+        let my;
         //if(e.offsetX) {
             // Chrome
         //    mx = e.offsetX;
