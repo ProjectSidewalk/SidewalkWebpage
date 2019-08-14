@@ -206,7 +206,9 @@ function Panorama (label, id) {
         let pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
+            let controlLayer = document.getElementById("viewControlLayer");
             self.labelMarker = new PanoMarker({
+                markerContainer: controlLayer,
                 container: panoCanvas,
                 pano: panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
