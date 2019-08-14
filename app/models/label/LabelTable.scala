@@ -52,7 +52,8 @@ case class LabelLocationWithSeverity(labelId: Int,
 
 case class LabelValidationLocation(labelId: Int, labelType: String, gsvPanoramaId: String,
                                    heading: Float, pitch: Float, zoom: Float, canvasX: Int,
-                                   canvasY: Int, canvasWidth: Int, canvasHeight: Int)
+                                   canvasY: Int, canvasWidth: Int, canvasHeight: Int, severity: Int,
+                                   temporary: Boolean, description: String, tags: String)
 
 /**
  *
@@ -102,10 +103,13 @@ object LabelTable {
   val missions = TableQuery[MissionTable]
   val regions = TableQuery[RegionTable]
   val severities = TableQuery[LabelSeverityTable]
+  val labelTagTable = TableQuery[LabelTagTable]
+  val labelDescriptions = TableQuery[LabelDescriptionTable]
+  val labelTemporarinesses = TableQuery[LabelTemporarinessTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
-
+  val tagTable = TableQuery[TagTable]
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
 
@@ -126,7 +130,8 @@ object LabelTable {
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
                                      heading: Float, pitch: Float, zoom: Int, canvasX: Int,
-                                     canvasY: Int, canvasWidth: Int, canvasHeight: Int)
+                                     canvasY: Int, canvasWidth: Int, canvasHeight: Int, severity: Int,
+                                     temporary: Boolean, description: String, tags: String)
 
   case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
@@ -136,7 +141,8 @@ object LabelTable {
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
-    LabelValidationMetadata(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt))
+    LabelValidationMetadata(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt,
+                            r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextBoolean, r.nextString, r.nextString))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextInt, r.nextFloat, r.nextFloat))
@@ -476,8 +482,15 @@ object LabelTable {
       _lb <- labels if _lb.labelId === labelId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _ls <- severities if _lb.labelId === _ls.labelId
+      _lte <- labelTemporarinesses if _lb.labelId === _lte.labelId
+      _ld <- labelDescriptions if _lb.labelId === _ld.labelId
+      _ltt <- labelTagTable if _lb.labelId === _ltt.labelId
+      _tt <- tagTable if _ltt.tagId === _tt.tagId
+
     } yield (_lb.labelId, _lt.labelType, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom,
-      _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight)
+      _lp.canvasX, _lp.canvasY, _lp.canvasWidth, _lp.canvasHeight, _ls.severity, _lte.temporary,
+      _ld.description, _tt.tag)
     validationLabels.list.map(label => LabelValidationMetadata.tupled(label)).head
   }
 
@@ -545,14 +558,40 @@ object LabelTable {
     )
     val minCompCnt: Int = minCompletionCountQuery(userIdStr).list.head
 
+
+    /*
+, label_severity.severity,
+       label_temporariness.temporary, label_description.description, tag.tag
+
+
+
+
+INNER JOIN label_severity ON label.label_id = label_severity.label_id
+INNER JOIN label_temporariness ON label.label_id = label_temporariness.label_id
+INNER JOIN label_description ON label.label_id = label_description.label_id
+INNER JOIN label_tag ON label.label_id = label_tag.label_id
+INNER JOIN tag ON label_tag.tag_id = tag.tag_id
+
+SELECT Them14rows
+FROM label INNER JOIN
+     label_description
+      ON (label.label_id = label_description.label_id or label_description.description is NULL)
+
+     */
     while (selectedLabels.length < n) {
       val selectRandomLabelsQuery = Q.query[(String, Int, String, Int, String, Int), LabelValidationMetadata](
         """SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
           |       label_point.zoom, label_point.canvas_x, label_point.canvas_y,
-          |       label_point.canvas_width, label_point.canvas_height
+          |       label_point.canvas_width, label_point.canvas_height, label_severity.severity,
+          |       label_temporariness.temporary, label_description.description, tag.tag
           |FROM label
           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           |INNER JOIN label_point ON label.label_id = label_point.label_id
+          |FULL OUTER JOIN label_severity ON label.label_id = label_severity.label_id
+          |INNER JOIN label_temporariness ON label.label_id = label_temporariness.label_id
+          |FULL OUTER JOIN label_description ON label.label_id = label_description.label_id
+          |FULL OUTER JOIN label_tag ON label.label_id = label_tag.label_id
+          |FULL OUTER JOIN tag ON label_tag.tag_id = tag.tag_id
           |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
           |INNER JOIN mission ON label.mission_id = mission.mission_id
           |INNER JOIN (
@@ -687,7 +726,11 @@ object LabelTable {
       "canvas_x" -> labelMetadata.canvasX,
       "canvas_y" -> labelMetadata.canvasY,
       "canvas_width" -> labelMetadata.canvasWidth,
-      "canvas_height" -> labelMetadata.canvasHeight
+      "canvas_height" -> labelMetadata.canvasHeight,
+      "severity" -> labelMetadata.severity,
+      "temporary" -> labelMetadata.temporary,
+      "description" -> labelMetadata.description,
+      "tags" -> labelMetadata.tags
     )
   }
 

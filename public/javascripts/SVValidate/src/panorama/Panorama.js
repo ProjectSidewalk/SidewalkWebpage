@@ -185,6 +185,11 @@ function Panorama (label) {
     function renderLabel() {
         var url = currentLabel.getIconUrl();
         var pos = currentLabel.getPosition();
+        var sev = currentLabel.getOriginalProperty('severity');
+        var temp = currentLabel.getOriginalProperty('temporary');
+        var desc = currentLabel.getOriginalProperty('description');
+        var tags = currentLabel.getOriginalProperty('tags');
+
 
         if (!self.labelMarker) {
             self.labelMarker = new PanoMarker({
@@ -194,7 +199,11 @@ function Panorama (label) {
                 position: {heading: pos.heading, pitch: pos.pitch},
                 icon: url,
                 size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
-                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius())
+                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
+                severity: sev,
+                temporary: temp,
+                description: desc,
+                tags: tags
             });
         } else {
             self.labelMarker.setPano(panorama, panoCanvas);

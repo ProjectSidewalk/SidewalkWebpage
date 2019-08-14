@@ -134,11 +134,23 @@
         /** @private @type {?string} */
         this.id_ = opts.id || null;
 
+        /** @private @type {?number} */
+        this.severity_ = opts.severity != 0 || null;
+
+        /** @private @type {boolean} */
+        this.temporary_ = opts.temporary || false;
+
+        /** @private @type {?string} */
+        this.description_ = opts.description || null;
+
+        /** @private @type {?string} */
+        this.tags_ = opts.tags || null;
+
         /** @private @ŧype {?HTMLDivElement} */
         this.marker_ = null;
 
         /** @private @ŧype {?HTMLDivElement} */
-        this.description_ = null;
+        this.descriptionBox_ = null;
 
         /** @private @type {?google.maps.StreetViewPanorama} */
         this.pano_ = null;
@@ -411,17 +423,55 @@
                 'mapfiles/ms/micons/red-dot.png)';
         }
 
-        var description = document.createElement('div');
-        description.id = 'label-description';
+        var descriptionBox = document.createElement('div');
+        descriptionBox.id = 'label-description';
         iconColors = {
             '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png': 'rgb(0, 222, 38)',
             '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png': 'rgb(233, 39, 113)',
             '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png': 'rgb(0, 161, 203)',
             '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png': 'rgb(241, 141, 5)'
         }
-        description.style['background-color'] = iconColors[this.icon_];
-        this.description_ = description;
-        this.getPanes().overlayMouseTarget.appendChild(description);
+        descriptionBox.style['background-color'] = iconColors[this.icon_];
+	    smileyScale = {
+	        1: 'public/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
+	        2: 'public/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
+	        3: 'public/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
+	        4: 'public/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
+	        5: 'public/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
+	    }
+
+        if (this.severity_) {
+            var img = document.createElement("IMG");
+            img.setAttribute('src', smileyScale[this.severity_]);
+            img.setAttribute('width', '12px');
+            img.setAttribute('height', '12px');
+            var htmlString = document.createTextNode('Severity: ' + this.severity_ + '<br>');
+            descriptionBox.appendChild(htmlString);
+            descriptionBox.appendChild(img);
+        }
+
+        if (this.temporary_) {
+            var htmlString = document.createTextNode('Temporary<br>');
+            descriptionBox.appendChild(htmlString);
+        }
+
+        if (this.description_) {
+            var htmlString = document.createTextNode(this.description_ + '<br>');
+            descriptionBox.appendChild(htmlString);
+        }
+
+        if (this.tags_) {
+            var htmlString = document.createTextNode(this.tags_);
+            descriptionBox.appendChild(htmlString);
+        }
+
+        if (!(this.severity_ || this.temporary_ || this.description_ || this.tags_)) {
+            var htmlString = document.createTextNode('No available information');
+            descriptionBox.appendChild(htmlString);
+        }
+
+        this.descriptionBox_ = descriptionBox;
+        this.getPanes().overlayMouseTarget.appendChild(descriptionBox);
 
         this.marker_ = marker;
         this.getPanes().overlayMouseTarget.appendChild(marker);
@@ -513,8 +563,8 @@
         google.maps.event.removeListener(this.zoomListener_);
         this.marker_.parentNode.removeChild(this.marker_);
         this.marker_ = null;
-        this.description_.parentNode.removeChild(this.description_);
-        this.description_ = null;
+        this.descriptionBox_.parentNode.removeChild(this.descriptionBox_);
+        this.descriptionBox_ = null;
 
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');

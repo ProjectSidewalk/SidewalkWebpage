@@ -16,7 +16,11 @@ function Label(params) {
         labelId: undefined,
         labelType: undefined,
         pitch: undefined,
-        zoom: undefined
+        zoom: undefined,
+        severity: undefined,
+        temporary: undefined,
+        description: undefined,
+        tags: undefined
     };
 
     // These properties are set through validating labels. In this object, canvas properties and
@@ -65,7 +69,18 @@ function Label(params) {
             if ("labelType" in params) setOriginalProperty("labelType", params.labelType);
             if ("pitch" in params) setOriginalProperty("pitch", params.pitch);
             if ("zoom" in params) setOriginalProperty("zoom", params.zoom);
-        }
+            if ("severity" in params) setOriginalProperty("severity", params.severity);
+            if ("temporary" in params) setOriginalProperty("temporary", params.temporary);
+            if ("description" in params) setOriginalProperty("description", params.description);
+            if ("tags" in params) setOriginalProperty("tags", params.tags);
+
+            console.log(params.labelId);
+            if ("severity" in params) console.log(params.severity);
+            if ("temporary" in params) console.log(params.temporary);
+            if ("description" in params) console.log(params.description);
+            if ("tags" in params) console.log(params.tags);
+
+        } //bloopdebeephdhhyhdhhhfhhbbjjjhnbdbjnnahhhhn12345678ahhanMESSn?nn
     }
 
     /**
@@ -179,7 +194,7 @@ function Label(params) {
 
         // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
         // We add/subtract the radius of the label so that we still record these values when only a fraction of the
-        // labe is still visible.
+        // label is still visible.
         let labelCanvasX = null;
         let labelCanvasY = null;
         if (pixelCoordinates
