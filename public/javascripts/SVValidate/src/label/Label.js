@@ -73,14 +73,7 @@ function Label(params) {
             if ("temporary" in params) setOriginalProperty("temporary", params.temporary);
             if ("description" in params) setOriginalProperty("description", params.description);
             if ("tags" in params) setOriginalProperty("tags", params.tags);
-
-            console.log(params.labelId);
-            if ("severity" in params) console.log(params.severity);
-            if ("temporary" in params) console.log(params.temporary);
-            if ("description" in params) console.log(params.description);
-            if ("tags" in params) console.log(params.tags);
-
-        } //bloopdebeephdhhyhdhhhfhhbbjjjhnbdbjnnahhhhn12345678ahhanMESSn?nn
+        }
     }
 
     /**
