@@ -37,6 +37,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         $("#reset-button").click(reset);
         function reset() {
             choropleth.setView([data.city_center.lat, data.city_center.lng]);
+            choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
             choropleth.setZoom(data.default_zoom);
         }
     });
