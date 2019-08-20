@@ -150,6 +150,20 @@ object MissionTable {
   }
 
   /**
+    * Count number of missions of the given type completed by the given user.
+    * @param userId
+    * @param missionType
+    * @return
+    */
+  def countCompletedMissions(userId: UUID, missionType: String): Int = db.withSession { implicit session =>
+    (for {
+      _missionType <- missionTypes
+      _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
+      if _missionType.missionType === missionType && _mission.userId === userId.toString && _mission.completed === true
+    } yield _mission.missionId).length.run
+  }
+
+  /**
     * Returns true if the user has an amt_assignment and has completed a mission during it, false o/w.
     *
     * @param username

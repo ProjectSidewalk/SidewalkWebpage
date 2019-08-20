@@ -7,7 +7,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
     function _handleButtonClick() {
         if (svv.missionsCompleted === 3) {
-            // Load the audit page since they've done 2 missions.
+            // Load the audit page since they've done 3 missions.
             window.location.replace('/audit');
         } else {
             self.hide();
