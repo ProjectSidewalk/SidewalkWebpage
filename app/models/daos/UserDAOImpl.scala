@@ -288,9 +288,9 @@ object UserDAOImpl {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
-    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int))
+    // Map(user_id: String -> (role: String, distinct: Int, total: Int, agreed: Int, disagreed: Int, unsure: Int))
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
-      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
+      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6, valCount._7))
     }.toMap
 
     // Map(user_id: String -> (count: Int, agreed: Int))
@@ -300,11 +300,12 @@ object UserDAOImpl {
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
     usersMinusAnonUsersWithNoLabels.list.map{ u =>
-      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
-      val ownValidatedTotal = ownValidatedCounts._2
-      val ownValidatedAgreed = ownValidatedCounts._3
-      val ownValidatedDisagreed = ownValidatedCounts._4
-      val ownValidatedUnsure = ownValidatedCounts._5
+      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0, 0))
+      val ownValidatedDistinct = ownValidatedCounts._2
+      val ownValidatedTotal = ownValidatedCounts._3
+      val ownValidatedAgreed = ownValidatedCounts._4
+      val ownValidatedDisagreed = ownValidatedCounts._5
+      val ownValidatedUnsure = ownValidatedCounts._6
 
       val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
       val otherValidatedTotal = otherValidatedCounts._1
@@ -334,7 +335,7 @@ object UserDAOImpl {
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
         labelCounts.getOrElse(u.userId, 0),
-        ownValidatedTotal,
+        ownValidatedDistinct,
         ownValidatedAgreedPct,
         ownValidatedDisagreedPct,
         ownValidatedUnsurePct,

@@ -6,10 +6,10 @@
  * @constructor
  */
 function LabelVisibilityControl () {
-    var self = this;
-    var visible = true;
-    var labelVisibilityControlButton = $("#label-visibility-control-button");
-    var labelVisibilityButtonInPano = $("#label-visibility-button-in-pano");
+    let self = this;
+    let visible = true;
+    let labelVisibilityControlButton = $("#label-visibility-control-button");
+    let labelVisibilityButtonInPano = $("#label-visibility-button-in-pano");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -34,7 +34,7 @@ function LabelVisibilityControl () {
 	panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
-        var htmlString = `<u>H</u>ide Label</button>`;
+        let htmlString = `<u>H</u>ide Label</button>`;
         labelVisibilityButtonInPano.html(htmlString);
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
@@ -49,7 +49,7 @@ function LabelVisibilityControl () {
 	panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
 	panomarker.draw();
         visible = false;
-        var htmlString = `S<u>h</u>ow Label</button>`;
+        let htmlString = `S<u>h</u>ow Label</button>`;
         labelVisibilityButtonInPano.html(htmlString);
 	htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
@@ -60,7 +60,7 @@ function LabelVisibilityControl () {
      * Refreshes label visual state
      */
     function refreshLabel () {
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         $("#label-visibility-control-button").html(htmlString);
         $("#label-visibility-control-button").css({

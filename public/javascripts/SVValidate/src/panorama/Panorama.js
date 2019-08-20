@@ -14,6 +14,7 @@ function Panorama (label, id) {
         canvasId: "svv-panorama-" + id,
         panoId: undefined,
         prevPanoId: undefined,
+        prevSetPanoTimestamp: new Date().getTime(),
         validationTimestamp: new Date().getTime()
     };
 
@@ -80,6 +81,13 @@ function Panorama (label, id) {
      */
     function getCurrentLabel () {
         return currentLabel;
+    }
+
+    /**
+     * Returns the actual StreetView object.
+     */
+    function getPanorama () {
+        return panorama;
     }
 
     /**
@@ -206,8 +214,10 @@ function Panorama (label, id) {
         let pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
+            let controlLayer = document.getElementById("viewControlLayer");
             self.labelMarker = new PanoMarker({
 		id: "validate-pano-marker",
+                markerContainer: controlLayer,
                 container: panoCanvas,
                 pano: panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
@@ -237,6 +247,7 @@ function Panorama (label, id) {
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
         panorama.setPano(panoId);
+        setProperty("prevSetPanoTimestamp", new Date().getTime());
         panorama.set('pov', {heading: heading, pitch: pitch});
         panorama.set('zoom', zoomLevel[zoom]);
         renderLabel();
@@ -250,6 +261,8 @@ function Panorama (label, id) {
     function setLabel (label) {
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
+        svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
+        svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
         renderLabel();
@@ -313,6 +326,7 @@ function Panorama (label, id) {
     self.skipLabel = skipLabel;
     self.hideLabel = hideLabel;
     self.showLabel = showLabel;
+    self.getPanorama = getPanorama;
 
     return this;
 }
