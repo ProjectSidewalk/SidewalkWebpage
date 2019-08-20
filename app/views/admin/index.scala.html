@@ -269,7 +269,7 @@
                             <tr>
                                 <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
                                 </td>
-                                <td>@comment.timestamp</td>
+                                <td class = 'timestamp'>@comment.timestamp</td>
                                 <td>@comment.gsvPanoramaId</td>
                                 <td>@comment.commentType</td>
                                 <td>@comment.comment</td>
@@ -617,7 +617,7 @@
                                     <tr>
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
-                                        <td>@label.timestamp</td>
+                                        <td class = 'timestamp'>@label.timestamp</td>
                                         <td>@label.labelTypeKey</td>
                                         <td>@label.severity</td>
                                         <td>@label.temporary</td>
@@ -691,8 +691,8 @@
                                 <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
                                 <td>@u.othersValidated</td>
                                 <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
-                                <td>@u.signUpTime</td>
-                                <td>@u.lastSignInTime</td>
+                                <td class = 'timestamp'>@u.signUpTime</td>
+                                <td class = 'timestamp'>@u.lastSignInTime</td>
                                 <td>@u.signInCount</td>
                             </tr>
                             }
@@ -737,6 +737,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
