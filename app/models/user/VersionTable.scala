@@ -42,12 +42,11 @@ object VersionTable {
   }
 
   /**
-    * Returns date of most recent update
+    * Returns timestamp of most recent update
     *
     */
-  def currentVersionDate(): String = db.withSession { implicit session =>
-    val currentVersion = versions.sortBy(_.versionStartTime.desc).list.head
-    new SimpleDateFormat("yyyy-MM-dd").format(currentVersion.versionStartTime)
+  def currentVersionTimestamp(): String = db.withSession { implicit session =>
+    versions.sortBy(_.versionStartTime.desc).list.head.versionStartTime.toString
   }
 
   /**
