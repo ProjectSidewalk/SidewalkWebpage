@@ -62,9 +62,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng1
     * @param lat2
     * @param lng2
+    * @param severity
     * @return
     */
-  def getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val minLat:Float = min(lat1, lat2).toFloat
@@ -73,7 +74,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLng:Float = max(lng1, lng2).toFloat
 
     val features: List[JsObject] =
-      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng).map(_.toJSON)
+      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
 
     Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
   }
@@ -85,9 +86,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng1
     * @param lat2
     * @param lng2
+    * @param severity
     * @return
     */
-  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val minLat:Float = min(lat1, lat2).toFloat
@@ -96,7 +98,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLng:Float = max(lng1, lng2).toFloat
 
     val features: List[JsObject] =
-      GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng).map(_.toJSON)
+      GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
 
     Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
   }
@@ -173,6 +175,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLat = max(lat1, lat2)
     val minLng = min(lng1, lng2)
     val maxLng = max(lng1, lng2)
+    val severity: Option[String] = None
 
     // Retrieve data and cluster them by location and label type.
     def prepareFeatureCollection = {
@@ -182,7 +185,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
           clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
         case 2 =>
-          val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat.toFloat, minLng.toFloat, maxLat.toFloat, maxLng.toFloat)
+          val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat.toFloat, minLng.toFloat, maxLat.toFloat, maxLng.toFloat, severity)
           globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
       }
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(minLat, minLng, maxLat, maxLng)
@@ -307,6 +310,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLat = max(lat1, lat2)
     val minLng = min(lng1, lng2)
     val maxLng = max(lng1, lng2)
+    val severity: Option[String] = None
 
     // Retrieve data and cluster them by location and label type.
     val labelsForScore: List[AttributeForAccessScore] = version match {
@@ -315,7 +319,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
         clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
       case 2 =>
-        val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat.toFloat, minLng.toFloat, maxLat.toFloat, maxLng.toFloat)
+        val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat.toFloat, minLng.toFloat, maxLat.toFloat, maxLng.toFloat, severity)
         globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
     }
     val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)

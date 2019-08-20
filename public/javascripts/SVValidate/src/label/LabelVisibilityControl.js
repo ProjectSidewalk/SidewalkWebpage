@@ -6,9 +6,9 @@
  * @constructor
  */
 function LabelVisibilityControl () {
-    var self = this;
-    var visible = true;
-    var labelVisibilityControlButton = $("#label-visibility-control-button");
+    let self = this;
+    let visible = true;
+    let labelVisibilityControlButton = $("#label-visibility-control-button");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -30,7 +30,7 @@ function LabelVisibilityControl () {
     function unhideLabel () {
         svv.panorama.showLabel();
         visible = true;
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         $("#label-visibility-control-button").html(htmlString);
     }
@@ -41,7 +41,7 @@ function LabelVisibilityControl () {
     function hideLabel () {
         svv.panorama.hideLabel();
         visible = false;
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
         $("#label-visibility-control-button").html(htmlString);
     }
@@ -50,7 +50,7 @@ function LabelVisibilityControl () {
      * Refreshes label visual state
      */
     function refreshLabel () {
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         $("#label-visibility-control-button").html(htmlString);
         $("#label-visibility-control-button").css({

@@ -83,6 +83,8 @@ function Main (params) {
 
     function _init (params) {
         params = params || {};
+
+        svl.userHasCompletedAMission = params.hasCompletedAMission;
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 

@@ -130,13 +130,17 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val labelsToRetrieve: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      val labelsToRetrieve: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionProgress.missionType)
       val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
-        val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
-        return Some(possibleLabelTypeIds(index))
+        // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
+        val possibleIds: List[Int] =
+          if (possibleLabelTypeIds.size > 1) possibleLabelTypeIds.filter(_ != 7)
+          else possibleLabelTypeIds
+        val index: Int = if (possibleIds.size > 1) scala.util.Random.nextInt(possibleIds.size - 1) else 0
+        return Some(possibleIds(index))
       }
     }
     None
@@ -166,7 +170,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[JsValue] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val labelCount: Int = MissionTable.getNextValidationMissionLabelCount(userId)
+      val labelCount: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionProgress.missionType)
       Some(getLabelListForValidation(userId, labelCount, labelTypeId))
     } else {
       None
@@ -235,7 +239,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (missionProgress.completed) {
       // payPerLabel is currently always 0 because this is only available to volunteers.
       val payPerLabel: Double = AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION
-      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, labelsProgress, nextMissionLabelTypeId, skipped)
+      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
     } else {
       MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
     }

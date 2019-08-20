@@ -4,17 +4,17 @@
  * @constructor
  */
 function Tracker() {
-    var self = this;
-    var panorama = undefined;
-    var actions = [];
-    var prevActions = [];
+    let self = this;
+    let panorama = undefined;
+    let actions = [];
+    let prevActions = [];
 
     function _init() {
         _trackWindowEvents();
     }
 
     function _trackWindowEvents() {
-        var prefix = "LowLevelEvent_";
+        let prefix = "LowLevelEvent_";
 
         // track all mouse related events
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
@@ -48,18 +48,18 @@ function Tracker() {
             extraData = {};
         }
 
-        var note = _notesToString(notes);
-        var timestamp = new Date().getTime();
+        let note = _notesToString(notes);
+        let timestamp = new Date().getTime();
 
         panorama = svv.panorama ? svv.panorama : null;
-        var panoId = panorama ? panorama.getPanoId() : null;
-        var position = panorama ? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
-        var pov = panorama ? panorama.getPov() : null;
+        let panoId = panorama ? panorama.getPanoId() : null;
+        let position = panorama ? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
+        let pov = panorama ? panorama.getPov() : null;
 
-        var missionContainer = svv.missionContainer ? svv.missionContainer : null;
-        var currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
+        let missionContainer = svv.missionContainer ? svv.missionContainer : null;
+        let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
-        var data = {
+        let data = {
             action: action,
             gsv_panorama_id: panoId,
             lat: position ? position.lat : null,
@@ -83,8 +83,8 @@ function Tracker() {
         if (!notes)
             return "";
 
-        var noteString = "";
-        for (var key in notes) {
+        let noteString = "";
+        for (let key in notes) {
             if (noteString.length > 0)
                 noteString += ",";
             noteString += key + ':' + notes[key];
@@ -100,10 +100,10 @@ function Tracker() {
      * @param extraData (optional) Extra data that should not be stored in the db notes field
      */
     function push(action, notes, extraData) {
-        var item = _createAction(action, notes, extraData);
+        let item = _createAction(action, notes, extraData);
         actions.push(item);
         if (actions.length > 200) {
-            var data = svv.form.compileSubmissionData();
+            let data = svv.form.compileSubmissionData();
             svv.form.submit(data, true);
         }
         return this;

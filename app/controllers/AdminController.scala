@@ -379,7 +379,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     val validationCounts = LabelValidationTable.getValidationCountsPerUser
 
     val json = Json.arr(validationCounts.map(x => Json.obj(
-      "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
+      "user_id" -> x._1, "role" -> x._2, "count" -> x._4, "agreed" -> x._5
     )))
     Future.successful(Ok(json))
   }

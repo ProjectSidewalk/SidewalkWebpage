@@ -4,9 +4,9 @@
  * @constructor
  */
 function LabelContainer() {
-    var self = this;
-    var currentLabels = [];
-    var previousLabels = [];
+    let self = this;
+    let currentLabels = [];
+    let previousLabels = [];
 
     /**
      * Gets a list of current labels that have not been sent to the backend yet.
@@ -21,7 +21,7 @@ function LabelContainer() {
      * @param labelMetadata     Label metadata (validationProperties object)
      */
     function push(labelMetadata) {
-        var data = {
+        let data = {
             canvas_height: svv.canvasHeight,
             canvas_width: svv.canvasWidth,
             canvas_x: labelMetadata.canvasX,

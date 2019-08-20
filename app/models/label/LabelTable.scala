@@ -657,7 +657,7 @@ object LabelTable {
     * @return
     */
   def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
-    getAvailableValidationLabelsByType(userId).filter(_._2 > count).map(_._1).filter(labelTypeIdList.contains(_))
+    getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(labelTypeIdList.contains(_))
   }
 
     /**

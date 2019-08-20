@@ -1,14 +1,14 @@
 function ModalMission (uiModalMission, user) {
-    var self = this;
+    let self = this;
 
-    var validationStartMissionHTML = ' <figure> \
+    let validationStartMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!</p>\
         <div class="spacer10"></div>';
 
-    var validationResumeMissionHTML = ' <figure> \
+    let validationResumeMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
@@ -16,7 +16,7 @@ function ModalMission (uiModalMission, user) {
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
-        var mission = svv.missionContainer.getCurrentMission();
+        let mission = svv.missionContainer.getCurrentMission();
 
         // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later,
         // another MissionStart will not be triggered
@@ -31,20 +31,24 @@ function ModalMission (uiModalMission, user) {
                 }
             );
         }
-        svv.zoomControl.updateZoomAvailability();
+        // Update zoom availability on /validate (/rapidValidate doesn't have zoom right now).
+        if (svv.zoomControl) {
+            svv.zoomControl.updateZoomAvailability();
+        }
         hide();
     }
 
     /**
-     * Hides the new/continuing mission screen
+     * Hides the new/continuing mission screen.
      */
     function hide () {
-        // We still want to disable keyboard shortcuts if the
-	// comment box is shown
-        if ($('#modal-comment-box').is(":hidden")) {
-            svv.keyboard.enableKeyboard();
-        } else {
-            svv.keyboard.disableKeyboard();
+        if (svv.keyboard) {
+            // We still want to disable keyboard shortcuts if the comment box is shown.
+            if ($('#modal-comment-box').is(":hidden")) {
+                svv.keyboard.enableKeyboard();
+            } else {
+                svv.keyboard.disableKeyboard();
+            }
         }
         uiModalMission.background.css('visibility', 'hidden');
         uiModalMission.holder.css('visibility', 'hidden');
@@ -58,22 +62,22 @@ function ModalMission (uiModalMission, user) {
      */
     function setMissionMessage(mission) {
         if (mission.getProperty("labelsProgress") === 0) {
-            var validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
+            let validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
                 + " " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels";
-            var validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            let validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
             validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
             show(validationMissionStartTitle, validationStartMissionHTMLCopy);
         } else {
             validationMissionStartTitle = "Return to your mission";
-            var validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
+            let validationResumeMissionHTMLCopy = validationResumeMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
             validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
             show(validationMissionStartTitle, validationResumeMissionHTMLCopy);
         }
 
         // Update the reward HTML if the user is a turker.
         if (user.getProperty("role") === "Turker") {
-            var missionReward = mission.getProperty("pay");
-            var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+            let missionReward = mission.getProperty("pay");
+            let missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
             missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
             svv.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
             uiModalMission.rewardText.html(missionRewardText);
@@ -93,7 +97,10 @@ function ModalMission (uiModalMission, user) {
     }
 
     function show (title, instruction) {
-        svv.keyboard.disableKeyboard();
+        // Disable keyboard on /validate (/rapidValidate doesn't have keyboard shortcuts right now).
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
         if (instruction) {
             uiModalMission.instruction.html(instruction);
         }
