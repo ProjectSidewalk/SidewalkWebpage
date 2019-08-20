@@ -1,4 +1,4 @@
-.button.label-visibility-control-button {
+.button.label-visibility-button-in-pano {
     position: absolute;
     visibility: hidden; 
     color: rgba(0,0,0,1);
@@ -8,23 +8,23 @@
     width: 65px;	
 }
 
-.button.label-visibility-button:focus {
+.button.label-visibility-control-button:focus {
     outline: none;
 }
 
-.button.label-visibility-button {
+.button.label-visibility-control-button {
     color: rgba(0,0,0,1);
     font-size: 9px;
     height: 36px;
     width: 65px;
 }
 
-.label-visibility-button-icon {
+.label-visibility-control-button-icon {
     height: 18px;
     width: 18px;
 }
 
-#label-visibility-holder {
+#label-visibility-control-holder {
     background: transparent;
     position: absolute;
     left: 524px;

@@ -1,9 +1,9 @@
 function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
-    var self = this;
-    var properties = {
+    let self = this;
+    let properties = {
         clickable: false
     };
-    var watch;
+    let watch;
 
     function _handleButtonClick() {
         if (svv.missionsCompleted === 3) {
@@ -23,9 +23,11 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-        // Have to remove the effect since keyup event did not go through.
-        svv.keyboard.removeAllKeyPressVisualEffect();
-        svv.keyboard.enableKeyboard();
+        // Have to remove the effect since keyup event did not go through (but no keyboard use on /rapidValidate).
+        if (svv.keyboard) {
+            svv.keyboard.removeAllKeyPressVisualEffect();
+            svv.keyboard.enableKeyboard();
+        }
 
         uiModalMissionComplete.closeButton.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
@@ -43,10 +45,13 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * @param mission   Object for the mission that was just completed.
      */
     function show (mission) {
-        svv.keyboard.disableKeyboard();
-        var totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
+        // Disable keyboard on /validate (/rapidValidate doesn't have keyboard shortcuts right now).
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
+        let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
-        var message = "You just validated " + totalLabels + " " +
+        let message = "You just validated " + totalLabels + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
         // Disable user from clicking the "Validate next mission" button and set background to gray
@@ -83,7 +88,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         // if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
         //     _markAmtAssignmentAsComplete();
         //     _showConfirmationCode();
-        //     var confirmationCodeElement = document.createElement("h3");
+        //     let confirmationCodeElement = document.createElement("h3");
         //     confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
         //         "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
         //         "Confirmation Code: " +
@@ -105,7 +110,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     }
 
     function _markAmtAssignmentAsComplete() {
-        var data = {
+        let data = {
             amt_assignment_id: svv.amtAssignmentId,
             completed: true
         };

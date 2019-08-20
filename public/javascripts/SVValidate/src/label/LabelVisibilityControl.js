@@ -8,8 +8,8 @@
 function LabelVisibilityControl () {
     var self = this;
     var visible = true;
-    var labelVisibilityButton = $("#label-visibility-button");
     var labelVisibilityControlButton = $("#label-visibility-control-button");
+    var labelVisibilityButtonInPano = $("#label-visibility-button-in-pano");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -35,10 +35,10 @@ function LabelVisibilityControl () {
         panomarker.draw();
         visible = true;
         var htmlString = `<u>H</u>ide Label</button>`;
-        $("#label-visibility-control-button").html(htmlString);
-        htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-button-icon" alt="Hide Label">
+        labelVisibilityButtonInPano.html(htmlString);
+        htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
-	labelVisibilityButton.html(htmlString);
+	labelVisibilityControlButton.html(htmlString);
     }
 
     /**
@@ -50,20 +50,20 @@ function LabelVisibilityControl () {
 	panomarker.draw();
         visible = false;
         var htmlString = `S<u>h</u>ow Label</button>`;
-        $("#label-visibility-control-button").html(htmlString);
-	htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-button-icon" alt="Hide Label">
+        labelVisibilityButtonInPano.html(htmlString);
+	htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
-	labelVisibilityButton.html(htmlString);
+	labelVisibilityControlButton.html(htmlString);
     }
 
     /**
      * Refreshes label visual state
      */
     function refreshLabel () {
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-button-icon" alt="Hide Label">
+        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
-        $("#label-visibility-button").html(htmlString);
-        $("#label-visibility-button").css({
+        $("#label-visibility-control-button").html(htmlString);
+        $("#label-visibility-control-button").css({
             "background": ""
         });
     }
@@ -73,7 +73,7 @@ function LabelVisibilityControl () {
     }
 
     function show () {
-        var button = document.getElementById("label-visibility-control-button");
+        var button = document.getElementById("label-visibility-button-in-pano");
 	var marker = document.getElementById("validate-pano-marker");
         button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
         button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
@@ -81,17 +81,17 @@ function LabelVisibilityControl () {
     }
 
     function hide () {
-        document.getElementById("label-visibility-control-button").style.visibility = 'hidden';
+        document.getElementById("label-visibility-button-in-pano").style.visibility = 'hidden';
 
     }
 
     labelVisibilityControlButton.on('click', clickAdjustLabel);
-    labelVisibilityButton.on('click', clickAdjustLabel);
-    labelVisibilityControlButton.on('mouseover', function (e) {
+    labelVisibilityButtonInPano.on('click', clickAdjustLabel);
+    labelVisibilityButtonInPano.on('mouseover', function (e) {
 	show();
 	e.stopPropagation();
     });
-    labelVisibilityControlButton.on('mouseout', hide);
+    labelVisibilityButtonInPano.on('mouseout', hide);
 
     self.hideLabel = hideLabel;
     self.unhideLabel = unhideLabel;

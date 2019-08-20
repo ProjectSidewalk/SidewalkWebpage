@@ -1,12 +1,17 @@
 /**
  * Updates items that appear on the right side of the validation interface (i.e., label counts)
- * @param missionMetadata   Metadata for the initial mission
  * @returns {StatusField}
  * @constructor
  */
 function StatusField() {
-    var self = this;
+    let containerWidth = 730;
+    let self = this;
 
+    /**
+     * Creates the prefix that comes before a label.
+     * @param labelType
+     * @returns {string}
+     */
     function createPrefix (labelType) {
         if (labelType === "Obstacle") {
             return "an ";
@@ -20,9 +25,9 @@ function StatusField() {
      * @param currentMission    Mission object for the current mission.
      */
     function reset(currentMission) {
-        var progress = currentMission.getProperty('labelsProgress');
-        var total = currentMission.getProperty('labelsValidated');
-        var completionRate = progress / total;
+        let progress = currentMission.getProperty('labelsProgress');
+        let total = currentMission.getProperty('labelsValidated');
+        let completionRate = progress / total;
         updateLabelCounts(progress);
         updateMissionDescription(total);
         setProgressText(completionRate);
@@ -42,8 +47,8 @@ function StatusField() {
      * @param labelType {String} Name of label without spaces.
      */
     function updateLabelText(labelType) {
-        var labelName = svv.labelNames[labelType];
-        var prefix = createPrefix(labelType);
+        let labelName = svv.labelNames[labelType];
+        let prefix = createPrefix(labelType);
 
         // Centers and updates title top of the validation interface.
         if (labelName === "No Sidewalk") {
@@ -64,7 +69,7 @@ function StatusField() {
 
     /**
      * Updates the text for the mission description.
-     * @param count {int} Number of labels to validate this mission.
+     * @param count {Number} Number of labels to validate this mission.
      */
     function updateMissionDescription(count) {
         svv.ui.status.missionDescription.html("Validate " + count + " labels");
@@ -75,7 +80,7 @@ function StatusField() {
      * @param completionRate    Proportion of this region completed (0 <= completionRate <= 1)
      */
     function setProgressBar(completionRate) {
-        var color = completionRate < 1 ? 'rgba(0, 161, 203, 1)' : 'rgba(0, 222, 38, 1)';
+        let color = completionRate < 1 ? 'rgba(0, 161, 203, 1)' : 'rgba(0, 222, 38, 1)';
 
         completionRate *=  100;
         if (completionRate > 100) completionRate = 100;
@@ -90,6 +95,11 @@ function StatusField() {
         });
     }
 
+    /**
+     * Updates the percentage on the progress bar to show what percentage of the validation mission
+     * the user has completed.
+     * @param completionRate    {Number} Proportion of completed validations.
+     */
     function setProgressText(completionRate) {
         completionRate *= 100;
         if (completionRate > 100) completionRate = 100;

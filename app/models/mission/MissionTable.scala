@@ -109,8 +109,12 @@ object MissionTable {
   val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 228.6F)
   val distanceForLaterMissions: Float = 304.8F // 1,000 ft
 
-  // Number of labels for validation mission
-  val validationMissionLabelCount: Int = 10
+  // Number of labels for each type of validation mission
+  val normalValidationMissionLength: Int = 10
+  val rapidValidationMissionLength: Int = 10
+
+  val normalValidationMissionLabelsToRetrieve: Int = 10
+  val rapidValidationMissionLabelsToRetrieve: Int = 19
 
   implicit val missionConverter = GetResult[Mission](r => {
     val missionId: Int = r.nextInt
@@ -274,11 +278,11 @@ object MissionTable {
     missions.filter(m => m.missionId === missionId).list.headOption
   }
 
-  def getCurrentValidationMission(userId: UUID, labelTypeId: Int): Option[Mission] = db.withSession { implicit session =>
-    val validationMissionId : Int = missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
+  def getCurrentValidationMission(userId: UUID, labelTypeId: Int, missionType: String): Option[Mission] = db.withSession { implicit session =>
+    val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
     missions.filter(m =>
       m.userId === userId.toString
-        && m.missionTypeId === validationMissionId
+        && m.missionTypeId === missionTypeId
         && m.labelTypeId === labelTypeId
         && !m.completed
     ).list.headOption
@@ -508,14 +512,16 @@ object MissionTable {
     * @param payPerLabel        Amount of money users receive per label validated (not fully implemented feature)
     * @param tutorialPay        Amount of money users when completing onboarding tutorial (not implemented -- exists in case there is any onboarding)
     * @param retakingTutorial   Indicates whether the user is retaking the turoial (not implemented -- tutorial doesn't exist).
-    * @param missionId          Mission ID of the current mission.
-    * @param labelsProgress     Numbers of labels that have been validated
-    * @param labelTypeId        Label Type ID of the next mission to be validated
+    * @param missionId          Name of the mission type of the current mission.
+    * @param missionType        Type of validation mission {validation, rapidValidation}
+    * @param labelsProgress     Numbers of labels that have been validated {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
+    * @param labelTypeId        Label Type ID to be validated for the next mission
     * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
     */
   def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double],
                                           tutorialPay: Option[Double], retakingTutorial: Option[Boolean],
-                                          missionId: Option[Int], labelsProgress: Option[Int], labelTypeId: Option[Int],
+                                          missionId: Option[Int], missionType: Option[String],
+                                          labelsProgress: Option[Int], labelTypeId: Option[Int],
                                           skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
     this.synchronized {
       if (actions.contains("updateProgress")) {
@@ -529,15 +535,15 @@ object MissionTable {
         }
       }
 
-      if (actions.contains("getValidationMission") && labelTypeId.nonEmpty) {
+      if (actions.contains("getValidationMission") && labelTypeId.nonEmpty && missionType.nonEmpty) {
         // Create or retrieve a mission with the passed in label type id
-        getCurrentValidationMission(userId, labelTypeId.get) match {
+        getCurrentValidationMission(userId, labelTypeId.get, missionType.get) match {
           case Some(incompleteMission) =>
             Some(incompleteMission)
           case _ =>
-            val labelsToValidate: Int = getNextValidationMissionLabelCount(userId)
+            val labelsToValidate: Int = getNextValidationMissionLength(userId, missionType.get)
             val pay: Double = labelsToValidate.toDouble * payPerLabel.get
-            Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get))
+            Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get, missionType.get))
         }
       } else {
         None // If we are not trying to get a mission, return None
@@ -574,9 +580,21 @@ object MissionTable {
     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), auditTaskId, Some(skipped))
   }
 
-  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Option[Mission] = {
+  /**
+    * Updates the current validation mission and returns a new validation mission.
+    * @param userId           User ID of the current user
+    * @param payPerLabel      Amount to pay users per validation label
+    * @param missionId        Mission ID for the current mission
+    * @param missionType      Type of validation mission {validation, rapidValidation}
+    * @param labelsProgress   Number of labels the user validated
+    * @param labelTypeId      Label type that was validated during this mission.
+    *                         {1: cr, 2: mcr, 3: obst, 4: sfc prob, 7: no sdwlk}
+    * @param skipped          Whether this mission was skipped (default: false)
+    * @return
+    */
+  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Option[Mission] = {
     val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(labelsProgress), labelTypeId, Some(skipped))
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped))
   }
 
   /**
@@ -594,7 +612,7 @@ object MissionTable {
 
   def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Option[Mission] = {
     val actions: List[String] = List("updateProgress")
-    queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), Some(labelsProgress), None, None)
+    queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), None, Some(labelsProgress), None, None)
   }
 
   /**
@@ -623,9 +641,18 @@ object MissionTable {
      queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None, None)
    }
 
-  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double, labelTypeId: Int): Option[Mission] = {
+  /**
+    * Either resumes or creates a new validation mission.
+    * @param userId       User ID
+    * @param payPerLabel  Amount of money users receive per label validated
+    * @param tutorialPay  Amount of money users receive after completing onboarding [unimplemented]
+    * @param missionType  Name of the mission type of the current validation mission {validation, rapidValidation}
+    * @param labelTypeId  Label Type ID to be validated for the next mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
+    * @return
+    */
+  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Option[Mission] = {
     val actions: List[String] = List("getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, None, Some(labelTypeId), None)
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, Some(missionType), None, Some(labelTypeId), None)
   }
 
   /**
@@ -645,12 +672,33 @@ object MissionTable {
   }
 
   /**
-    * Gets the number of labels to be validated for a new mission. Currently returns 10 labels.
-    * @param userId UserID of user requesting more labels.
-    * @return 10
+    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
+    * @param userId         UserID of user requesting more labels.
+    * @param missionType    Name of the validation mission type
+    * @return               {validation: 10, rapidValidation: 10}
     */
-  def getNextValidationMissionLabelCount(userId: UUID): Int = {
-    validationMissionLabelCount
+  def getNextValidationMissionLength(userId: UUID, missionType: String): Int = {
+    (missionType) match {
+      case "validation" =>
+        normalValidationMissionLength
+      case "rapidValidation" =>
+        rapidValidationMissionLength
+    }
+  }
+
+  /**
+    * Get the number of labels to be retrieved for a validation mission. Depends on type of validation mission.
+    * @param userId         UserID of user requesting more labels.
+    * @param missionType    Name of the validation mission type
+    * @return               {validation: 10, rapidValidation: 19}
+    */
+  def getNumberOfLabelsToRetrieve(userId: UUID, missionType: String): Int = {
+    (missionType) match {
+      case "validation" =>
+        normalValidationMissionLabelsToRetrieve
+      case "rapidValidation" =>
+        rapidValidationMissionLabelsToRetrieve
+    }
   }
 
   /**
@@ -672,19 +720,20 @@ object MissionTable {
   }
 
   /**
-    * Creates and returns a new validation mission
+    * Creates and returns a new validation mission.
     *
     * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
     *
-    * @param userId     User ID
-    * @param pay        Amount user is paid per label
+    * @param userId             User ID
+    * @param pay                Amount user is paid per label
     * @param labelsToValidate   Number of labels in this mission
-    * @param labelTypeId  Type of labels featured in this mission
+    * @param labelTypeId        Type of labels featured in this mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
+    * @param missionType        Type of validation mission {validation, rapidValidation}
     * @return
     */
-  def createNextValidationMission(userId: UUID, pay: Double, labelsToValidate: Int, labelTypeId: Int) : Mission = db.withSession { implicit session =>
+  def createNextValidationMission(userId: UUID, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionTypeId: Int = MissionTypeTable.missionTypeToId("validation")
+    val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
     val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
     val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
     missions.filter(_.missionId === missionId).list.head
