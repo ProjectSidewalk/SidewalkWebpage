@@ -1,5 +1,5 @@
 function Form(url, beaconUrl) {
-    var properties = {
+    let properties = {
         dataStoreUrl : url,
         beaconDataStoreUrl : beaconUrl
     };
@@ -9,18 +9,19 @@ function Form(url, beaconUrl) {
      * @returns {{}}
      */
     function compileSubmissionData() {
-        var data = {};
-        var missionContainer = svv.missionContainer;
-        var mission = missionContainer ? missionContainer.getCurrentMission() : null;
+        let data = {};
+        let missionContainer = svv.missionContainer;
+        let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
-        var labelContainer = svv.labelContainer;
-        var labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
+        let labelContainer = svv.labelContainer;
+        let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
 
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
             data.missionProgress = {
                 mission_id: mission.getProperty("missionId"),
+                mission_type: mission.getProperty("missionType"),
                 labels_progress: mission.getProperty("labelsProgress"),
                 label_type_id: mission.getProperty("labelTypeId"),
                 completed: mission.getProperty("completed"),
@@ -69,9 +70,8 @@ function Form(url, beaconUrl) {
                     if (result.hasMissionAvailable) {
                         if (result.mission) {
                             svv.missionContainer.createAMission(result.mission, result.progress);
-                            svv.panoramaContainer.reset();
                             svv.panoramaContainer.setLabelList(result.labels);
-                            svv.panoramaContainer.loadNewLabelOntoPanorama();
+                            svv.panoramaContainer.reset();
                             svv.modalMissionComplete.setProperty('clickable', true);
                         }
                     } else {
@@ -90,7 +90,6 @@ function Form(url, beaconUrl) {
     $(window).on('beforeunload', function () {
         svv.tracker.push("Unload");
 
-        //
         // April 17, 2019
         // What we want here is type: 'application/json'. Can't do that quite yet because the
         // feature has been disabled, but we should switch back when we can.
@@ -99,9 +98,8 @@ function Form(url, beaconUrl) {
         //
         // Source for fix and ongoing discussion is here:
         // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
-        //
-        var data = [compileSubmissionData()];
-        var jsonData = JSON.stringify(data);
+        let data = [compileSubmissionData()];
+        let jsonData = JSON.stringify(data);
         navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
     });
 

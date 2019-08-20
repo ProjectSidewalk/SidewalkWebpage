@@ -74,8 +74,25 @@
             </div>
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama">
-
+                    <div id="svv-panorama-0" class="single-panorama">
+                        <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;"></div>
+                    </div>
+                    <div id="svv-panorama-date-holder-0" class="svv-panorama-date-holder">
+                        <span id="svv-panorama-date-0">no</span>
+                    </div>
+                    <div id="validation-button-holder-large">
+                        <button id="validation-agree-button-0" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
+                            <u>A</u>gree
+                        </button>
+                        <button id="validation-disagree-button-0" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
+                            <u>D</u>isagree
+                        </button>
+                        <button id="validation-not-sure-button-0" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
+                            <u>N</u>ot sure
+                        </button>
                     </div>
                 </div>
             </div>
@@ -184,21 +201,6 @@
                 <img id="example-image-popup">
                 <div id="example-image-popup-description"></div>
             </div>
-
-            <div id="validation-button-holder">
-                <button id="validation-agree-button" class="validation-button">
-                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
-                    <u>A</u>gree
-                </button>
-                <button id="validation-disagree-button" class="validation-button">
-                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
-                    <u>D</u>isagree
-                </button>
-                <button id="validation-not-sure-button" class="validation-button">
-                    <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
-                    <u>N</u>ot sure
-                </button>
-            </div>
             <div id="modal-comment-background"></div>
         </div>
         <div id="mini-footer-audit">
@@ -256,7 +258,7 @@
 @*        }*@
 
         // Store user object.
-        var userParam = {};
+        let userParam = {};
         @if(user) {
             userParam = {
                 username: '@user.get.username',
@@ -270,9 +272,9 @@
         }
         svv.user = new User(userParam);
 
-        var hitExpired = false;
+        let hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemaining < 0) {
                 hitExpired = true;
             }
@@ -284,6 +286,9 @@
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
+            param.canvasHeight = 440;
+            param.canvasWidth = 720;
+            param.canvasCount = 1;
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
@@ -293,7 +298,7 @@
                 // Initializes an object of labels from label metadata.
                 // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
                 Object.keys(param.labelList).map(function (key, index) {
-                    var labelMetadata = {
+                    let labelMetadata = {
                         canvasHeight: param.labelList[key].canvas_height,
                         canvasWidth: param.labelList[key].canvas_width,
                         canvasX: param.labelList[key].canvas_x,

@@ -1,8 +1,10 @@
 function ContextMenu (uiContextMenu) {
+
     var self = { className: "ContextMenu" },
         status = {
             targetLabel: null,
-            visibility: 'hidden'
+            visibility: 'hidden',
+            disableTagging: false
         };
     var $menuWindow = uiContextMenu.holder,
         $connector = uiContextMenu.connector,
@@ -376,6 +378,34 @@ function ContextMenu (uiContextMenu) {
         return this;
     }
 
+    /**
+     * Disable tagging. Adds the disabled visual effects to the
+     * tags on current context menu.
+     */
+    function disableTagging () {
+        setStatus('disableTagging', true);
+        $("body").find("button[name=tag]").each(function(t) {
+            $(this).addClass('disabled');
+        });
+    }
+
+    /**
+     * Enable tagging. Removes the disabled visual effects to the
+     * tags on current context menu.
+     */
+    function enableTagging () {
+        setStatus('disableTagging', false);
+        $("body").find("button[name=tag]").each(function(t) {
+            $(this).removeClass('disabled');
+        });
+    }
+
+    /**
+     * Returns true if tagging is currently disabled.
+     */
+    function isTagDisabled () {
+        return getStatus('disableTagging');
+    }
 
     /**
      * Sets the color of a label's tags based off of tags that were previously chosen.
@@ -471,6 +501,7 @@ function ContextMenu (uiContextMenu) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
+                if (getStatus('disableTagging')) { disableTagging(); }
                 windowHeight = $('#context-menu-holder').outerHeight();
 
                 $("#test-rectangle").css({
@@ -492,25 +523,12 @@ function ContextMenu (uiContextMenu) {
                     connectorCoordinate = windowHeight;
                 }
 
-                $menuWindow.css({
-                    visibility: 'visible',
-                    left: x - windowWidth / 2,
-                    top: topCoordinate
-                });
-
-                $connector.css({
-                    visibility: 'visible',
-                    top: topCoordinate + connectorCoordinate,
-                    left: x - 3
-                });
-
                 if (param) {
                     if ('targetLabelColor' in param) {
                         setBorderColor(param.targetLabelColor);
                         lastShownLabelColor = param.targetLabelColor;
                     }
                 }
-                setStatus('visibility', 'visible');
 
                 // Set the menu value if label has it's value set.
                 var severity = param.targetLabel.getProperty('severity'),
@@ -525,6 +543,20 @@ function ContextMenu (uiContextMenu) {
                 if (temporaryLabel) {
                     $temporaryLabelCheckbox.prop("checked", temporaryLabel);
                 }
+
+                $menuWindow.css({
+                    visibility: 'visible',
+                    left: x - windowWidth / 2,
+                    top: topCoordinate
+                });
+
+                $connector.css({
+                    visibility: 'visible',
+                    top: topCoordinate + connectorCoordinate,
+                    left: x - 3
+                });
+
+                setStatus('visibility', 'visible');
 
                 if (description) {
                     $descriptionTextBox.val(description);
@@ -563,5 +595,8 @@ function ContextMenu (uiContextMenu) {
     self.unhide = unhide;
     self.isOpen = isOpen;
     self.show = show;
+    self.disableTagging = disableTagging;
+    self.enableTagging = enableTagging;
+    self.isTagDisabled = isTagDisabled;
     return self;
 }

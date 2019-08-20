@@ -178,4 +178,5 @@
 
 tag-underline {
     text-decoration: underline;
+    pointer-events: none;
 }

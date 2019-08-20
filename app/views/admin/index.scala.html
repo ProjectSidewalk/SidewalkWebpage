@@ -297,7 +297,7 @@
                                         <td width="190px">Curb Ramp</td>
                                         <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
                                         <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
-                                        <td width="60px" align= "center" ><span id="curb-ramp-severity-label">All</span></td>
+                                        <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
 
                                     </tr>
                                     <tr>
@@ -305,32 +305,34 @@
                                         <td>Missing Curb Ramp</td>
                                         <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
                                         <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="missing-curb-ramp-severity-label">All</span></td>
+                                        <td align= "center"><span id="missing-curb-ramp-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-obstacle"></td>
                                         <td>Obstacle in Path</td>
                                         <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
                                         <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="obstacle-severity-label">All</span></td>
+                                        <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr><td id="map-legend-surface-problem"></td>
                                         <td>Surface Problem</td>
                                         <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
                                         <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
-                                        <td align="center"><span id="surface-problem-severity-label">All</span></td>
+                                        <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-nosidewalk"></td>
                                         <td>No Sidewalk</td>
                                         <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
+                                        <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
+                                        <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-other"></td>
                                         <td>Other</td>
                                         <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
                                         <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="other-severity-label">All</span></td>
+                                        <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-occlusion"></td>
@@ -745,7 +747,7 @@
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 
 <script>
-        var labelArr = new Array(1, 2, 3, 4, 5, "All");
+        var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
         var sliderToLabelMap = {};
         sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
         sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
@@ -757,12 +759,17 @@
 
         $( "*[id*='slider']" ).each(function() {
             $(this).slider({
+                range: true,
                 min : 0,
                 max : 5,
                 step: 1,
-                value: 5,
+                values: [0,5],
                 slide: function(event, ui) {
-                    $(sliderToLabelMap[this.id]).text(labelArr[ui.value]);
+                    if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
+                    } else {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
+                    }
                 },
                 change: function(event,ui) {
                     if (this.id == "curb-ramp-slider") {
