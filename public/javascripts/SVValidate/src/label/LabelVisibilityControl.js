@@ -9,7 +9,7 @@ function LabelVisibilityControl () {
     let self = this;
     let visible = true;
     let labelVisibilityControlButton = $("#label-visibility-control-button");
-    let labelVisibilityButtonInPano = $("#label-visibility-button-in-pano");
+    let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -35,7 +35,7 @@ function LabelVisibilityControl () {
         panomarker.draw();
         visible = true;
         let htmlString = `<u>H</u>ide Label</button>`;
-        labelVisibilityButtonInPano.html(htmlString);
+        labelVisibilityButtonOnPano.html(htmlString);
         htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
 	labelVisibilityControlButton.html(htmlString);
@@ -50,7 +50,7 @@ function LabelVisibilityControl () {
 	panomarker.draw();
         visible = false;
         let htmlString = `S<u>h</u>ow Label</button>`;
-        labelVisibilityButtonInPano.html(htmlString);
+        labelVisibilityButtonOnPano.html(htmlString);
 	htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
 	labelVisibilityControlButton.html(htmlString);
@@ -73,7 +73,7 @@ function LabelVisibilityControl () {
     }
 
     function show () {
-        var button = document.getElementById("label-visibility-button-in-pano");
+        var button = document.getElementById("label-visibility-button-on-pano");
 	var marker = document.getElementById("validate-pano-marker");
         button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
         button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
@@ -81,17 +81,17 @@ function LabelVisibilityControl () {
     }
 
     function hide () {
-        document.getElementById("label-visibility-button-in-pano").style.visibility = 'hidden';
+        document.getElementById("label-visibility-button-on-pano").style.visibility = 'hidden';
 
     }
 
     labelVisibilityControlButton.on('click', clickAdjustLabel);
-    labelVisibilityButtonInPano.on('click', clickAdjustLabel);
-    labelVisibilityButtonInPano.on('mouseover', function (e) {
+    labelVisibilityButtonOnPano.on('click', clickAdjustLabel);
+    labelVisibilityButtonOnPano.on('mouseover', function (e) {
 	show();
 	e.stopPropagation();
     });
-    labelVisibilityButtonInPano.on('mouseout', hide);
+    labelVisibilityButtonOnPano.on('mouseout', hide);
 
     self.hideLabel = hideLabel;
     self.unhideLabel = unhideLabel;
