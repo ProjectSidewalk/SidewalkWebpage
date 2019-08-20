@@ -38,6 +38,14 @@
     width: 730px;
 }
 
+#viewControlLayer {
+    position: absolute;
+    width: 720px;
+    height: 440px;
+    left: 0;
+    top: 0;
+}
+
 /*
  * This code below removes the footers for the Google StreetView, but in doing so, we breach the
  * terms of service.

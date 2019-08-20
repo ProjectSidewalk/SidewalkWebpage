@@ -164,6 +164,9 @@
         /** @private @type {number} */
         this.zIndex_ = opts.zIndex || 1;
 
+        /** @private @type {Object} */
+        this.markerContainer_ = opts.markerContainer || null;
+
         // At last, call some methods which use the initialized parameters
         this.setPano(opts.pano || null, opts.container);
     };
@@ -410,7 +413,11 @@
 
         this.marker_ = marker;
 
-        this.getPanes().overlayMouseTarget.appendChild(marker);
+        // Add marker to viewControlLayer if on validate page.
+        if (this.markerContainer_ == null) {
+            this.markerContainer_ = this.getPanes().overlayMouseTarget;
+        }
+        this.markerContainer_.appendChild(marker);
 
         // Attach to some global events
         window.addEventListener('resize', this.draw.bind(this));
