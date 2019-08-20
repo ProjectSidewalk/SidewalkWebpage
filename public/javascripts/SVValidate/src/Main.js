@@ -123,6 +123,7 @@ function Main (param) {
 
         // There are certain features that will only make sense if we have one validation interface on the screen.
         if (param.canvasCount === 1) {
+            svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
             svv.labelVisibilityControl = new LabelVisibilityControl();
             svv.zoomControl = new ZoomControl();

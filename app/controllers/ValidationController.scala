@@ -77,8 +77,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     hasWork match {
       case true => {
         // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
-        val index: Int = if (possibleLabTypeIds.size > 1) scala.util.Random.nextInt(possibleLabTypeIds.size - 1) else 0
-        val labelTypeId: Int = possibleLabTypeIds(index)
+        val possibleIds: List[Int] =
+          if (possibleLabTypeIds.size > 1) possibleLabTypeIds.filter(_ != 7)
+          else possibleLabTypeIds
+        val index: Int = if (possibleIds.size > 1) scala.util.Random.nextInt(possibleIds.size - 1) else 0
+        val labelTypeId: Int = possibleIds(index)
         val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId,
           AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationTypeStr, labelTypeId).get
 

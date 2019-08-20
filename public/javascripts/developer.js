@@ -81,7 +81,7 @@ $(document).ready(function () {
     var colorMapping = util.misc.getLabelColors();
 
     // A map for Access Attribute
-    $.getJSON("/v2/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982", function (data) {
+    $.getJSON("/v2/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982&severity=3", function (data) {
         function style(feature) {
             return {
                 weight: 1,
