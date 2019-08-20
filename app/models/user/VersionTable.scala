@@ -51,17 +51,6 @@ object VersionTable {
   }
 
   /**
-    * Formats the current version of the code in the format "Version <version_number> | Last Updated: <version_time>"
-    *
-    * @return
-    */
-  def currentVersionStr(): String = db.withSession { implicit session =>
-    val currentVersion = versions.sortBy(_.versionStartTime.desc).list.head
-    val timestampAsDate: String = new SimpleDateFormat("yyyy-MM-dd").format(currentVersion.versionStartTime)
-    s"Version ${currentVersion.versionId} | Last Updated: $timestampAsDate"
-  }
-
-  /**
     * Read in Google Maps API key from google_maps_api_key.txt (ask Mikey Saugstad for the file if you don't have it).
     *
     * @return
