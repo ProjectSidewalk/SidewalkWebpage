@@ -211,12 +211,25 @@ footer {
 
 #vidembed{
     position: relative;
-
     background-color:#ccc;
     max-height: 600px;
     overflow:hidden;
     width: 100%;
+}
 
+@media (max-width: 992px) {
+    #vidembed {
+        height: 300px;
+        padding: 0;
+    }
+
+    #vidembed img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 300px;
+        width: auto;
+    }
 }
 
 #videooverlay{
@@ -448,7 +461,7 @@ video#bgvid {
     font-style: normal;
     font-variant: normal;
     height: 500px;
-    min-height:775px;
+    min-height:575px;
     line-height: 1.1em;
     color: #2D2A3F;
     width: 450px;
@@ -489,6 +502,7 @@ video#bgvid {
 #difference-container{
     position:relative;
     width: 100%;
+    height: 770px;
 }
 
 .grayButton{
@@ -949,10 +963,13 @@ video#bgvid {
     margin: 0 auto;
 }
 #numberholder{
-    position:relative;
+    position: absolute;
+    bottom: 0;
     padding-left: 15px;
     padding-right: 15px;
     min-width: 800px;
+    width: 100%;
+    text-align: center;
     max-width: 1400px;
     margin: 0 auto;
 }
@@ -963,9 +980,20 @@ video#bgvid {
     text-decoration: none;
 }
 @media (max-width: 835px) {
-  #numberholder {
-    display: none;
-  }
+    #numberholder {
+        padding: 0px;
+        min-width: 0px;
+        bottom: 135px;
+        left: 10px;
+    }
+
+    #anim-numbers {
+        font-size: 35px;
+    }
+
+    #anim-labels {
+        font-size: 20px;
+    }
 }
 .quotebox {
     width: 430px;
