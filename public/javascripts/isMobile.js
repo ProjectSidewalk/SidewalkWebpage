@@ -1,4 +1,7 @@
-// Detect if mobile
+/**
+ * Detects if device is a phone
+ * @returns {boolean} true if the device is a mobile phone, false if not
+ */
 function isMobile() {
     var isMobile = false; //initiate as false
     // device detection
