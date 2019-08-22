@@ -68,10 +68,16 @@ function LabelVisibilityControl () {
         });
     }
 
+    /**
+     * Returns true if label is currently not hidden, false otherwise.
+     */
     function isVisible () {
         return visible;
     }
 
+    /**
+     * Shows the 'Show/Hide Label' button on panorama.
+     */
     function show () {
         var button = document.getElementById("label-visibility-button-on-pano");
 	var marker = document.getElementById("validate-pano-marker");
@@ -80,9 +86,11 @@ function LabelVisibilityControl () {
 	button.style.visibility = 'visible';
     }
 
+    /**
+     * Hides the 'Show/Hide Label' button on GSV pano.
+     */
     function hide () {
         document.getElementById("label-visibility-button-on-pano").style.visibility = 'hidden';
-
     }
 
     labelVisibilityControlButton.on('click', clickAdjustLabel);
@@ -101,5 +109,5 @@ function LabelVisibilityControl () {
     self.hide = hide;
 
     return this;
-
 }
+
