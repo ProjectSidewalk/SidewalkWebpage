@@ -21,8 +21,8 @@ import models.user._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
-import scala.concurrent.Future
 
+import scala.concurrent.Future
 
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
