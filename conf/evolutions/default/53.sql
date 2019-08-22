@@ -1,15 +1,4 @@
-# --- !Ups
-ALTER TABLE validation_task_interaction
-  ADD is_mobile INT;
-
-ALTER TABLE label_validation
-  ADD is_mobile INT;
-
+INSERT INTO version VALUES ('6.5.0', now(), 'Now automatically routed between audits and validations, and labels are shown on mini map when returning.');
 
 # --- !Downs
-
-ALTER TABLE validation_task_interaction
-  DROP COLUMN is_mobile;
-
-ALTER TABLE label_validation
-  DROP COLUMN is_mobile;
+DELETE FROM version WHERE version_id = '6.5.0';

@@ -1,6 +1,7 @@
 function checkIfPaddingNeeded(){
     if(window.location.pathname === "/faq" ||
         window.location.pathname === "/admin" ||
+        window.location.pathname === "/results" ||
         window.location.pathname === "/labelingGuide" ||
         window.location.pathname === "/labelingGuide/curbRamps" ||
         window.location.pathname === "/labelingGuide/surfaceProblems" ||

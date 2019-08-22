@@ -145,7 +145,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         scaleControl:false,
         streetViewControl:true,
         zoomControl:false,
-        zoom: 18
+        zoom: 18,
+        backgroundColor: "none"
     };
 
     var mapCanvas = document.getElementById("google-maps");
@@ -215,6 +216,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
         var panoCanvas = document.getElementById('pano');
         svl.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(panoCanvas, panoramaOptions) : null;
+
+        svl.panorama.registerPanoProvider(function(pano) {
+            if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
+                return getCustomPanorama(pano);
+            }
+            return null;
+        });
+
         if (svl.panorama) {
             svl.panorama.set('addressControl', false);
             svl.panorama.set('clickToGo', false);
@@ -264,6 +273,54 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
         }
 
+    }
+
+    /**
+     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
+     * tutorial view or the "after walk" view.
+     * @param pano - the pano ID/name of the wanted custom panorama.
+     * @returns custom Google Street View panorama.
+     * */
+    function getCustomPanorama(pano) {
+        if (pano === 'tutorial') {
+            return {
+                location: {
+                    pano: 'tutorial',
+                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
+                },
+                links: [{
+                    heading: 342,
+                    description: 'Exit',
+                    pano: "afterWalkTutorial"
+                }],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(2048, 1024),
+                    worldSize: new google.maps.Size(4096, 2048),
+                    centerHeading: 51,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return svl.rootDirectory + "img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                    }
+                }
+            };
+        } else if (pano === 'afterWalkTutorial') {
+            return {
+                location: {
+                    pano: 'afterWalkTutorial',
+                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
+                },
+                links: [],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(1700, 850),
+                    worldSize: new google.maps.Size(3400, 1700),
+                    centerHeading: 344,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return svl.rootDirectory + "img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                    }
+                }
+            };
+        }
     }
 
     /*
@@ -787,8 +844,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                 svl.tracker.push("PanoId_Changed");
                                 prevPanoId = panoId;
                             }
-                        }
-                        else {
+                        } else if (panoId === "tutorial" || panoId === "afterWalkTutorial") {
+                            document.getElementById("svl-panorama-date").innerText = "May 2014";
+                        } else {
                             handleImageryNotFound(panoId, panoStatus);
                         }
                     }

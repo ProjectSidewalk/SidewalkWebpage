@@ -6,10 +6,10 @@
  * @constructor
  */
 function ModalSkip (uiModal) {
-    var status = {
+    let status = {
         disableSkip: false
     };
-    var self = this;
+    let self = this;
 
     /**
      * Enables the skip button (makes button clickable).
