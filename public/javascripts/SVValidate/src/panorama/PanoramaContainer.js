@@ -82,7 +82,7 @@ function PanoramaContainer (labelList, idList) {
             success: function (labelMetadata) {
                 labels.push(_createSingleLabel(labelMetadata));
                 svv.missionContainer.updateAMissionSkip();
-                loadNewLabelOntoPanorama();
+                loadNewLabelOntoPanorama(svv.panorama);
             }
         });
     }
