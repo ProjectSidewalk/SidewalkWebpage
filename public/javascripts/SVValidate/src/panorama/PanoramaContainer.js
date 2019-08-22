@@ -124,6 +124,7 @@ function PanoramaContainer (labelList, idList) {
 
         idList.forEach(function(id) {
            panos[id].setLabel(labels[id]);
+           setProperty("progress", getProperty("progress") + 1);
         });
     }
 
