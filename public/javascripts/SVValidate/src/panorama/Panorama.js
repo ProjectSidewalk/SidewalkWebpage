@@ -286,7 +286,9 @@ function Panorama (label, id) {
     }
 
     function sizePano() {
+        console.log("bi")
         if (isMobile()) {
+            console.log("hi")
             var h = window.innerHeight - 10;
             var w = window.innerWidth - 10;
             var outline_h = h + 10;

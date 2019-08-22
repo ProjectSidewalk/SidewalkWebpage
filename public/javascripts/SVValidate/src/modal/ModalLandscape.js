@@ -30,7 +30,6 @@ function ModalLandscape (uiModal) {
         uiModal.background.css('visibility', 'visible');
         uiModal.holder.css('visibility', 'visible');
         uiModal.foreground.css('visibility', 'visible');
-        console.log("I am showing");
     }
 
     self.hide = hide;

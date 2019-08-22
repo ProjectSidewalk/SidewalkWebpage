@@ -228,7 +228,7 @@
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
 
-        //the correction for mobile phones will go here
+        // The correction for mobile phones
          if (isMobile()) {
             width = window.innerWidth;
             height = window.innerHeight;

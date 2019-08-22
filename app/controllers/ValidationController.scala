@@ -21,34 +21,14 @@ import models.user._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
-
 import scala.concurrent.Future
-import scala.collection.mutable.ListBuffer
-
-
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom._
-import controllers.headers.ProvidesHeader
-import formats.json.CommentSubmissionFormats._
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.LabelTable
-import models.label.LabelTable.LabelValidationMetadata
-import models.mission.Mission
-import models.mission.MissionTable
-import models.validation._
-import models.user._
-import play.api.libs.json._
-import play.api.Logger
-import play.api.mvc._
-import models.amt.AMTAssignmentTable
-import models.label.LabelValidationTable
 
 
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   val validationMissionStr: String = "validation"
+  val mobileValidationMissionStr: String = "validation"
   val rapidValidationMissionStr: String = "rapidValidation"
 
   /**
@@ -60,10 +40,26 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, validationMissionStr)
+        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, validationMissionStr, "Visit_Validate")
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+    }
+  }
+
+  /**
+    * Returns the validation page for mobile.
+    * @return
+    */
+  def mobileValidate = UserAwareAction.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, mobileValidationMissionStr, "Visit_MobileValidate")
+        Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
+      case None =>
+        Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
     }
   }
 
@@ -76,47 +72,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 19, rapidValidationMissionStr)
+        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 19, rapidValidationMissionStr, "Visit_Validate")
         Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/rapidValidate"));
-    }
-  }
-
-  def mobileValidate = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
-    request.identity match {
-      case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_MobileValidate", timestamp))
-        val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, 10, None)
-        val hasWork: Boolean = possibleLabelTypeIds.nonEmpty
-
-        // Checks if there are still labels in the database for the user to validate.
-        hasWork match {
-          case true => {
-            // possibleLabelTypeIds can contain elements [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if
-            // possible, otherwise choose 7.
-            val index: Int = if (possibleLabelTypeIds.size > 1) scala.util.Random.nextInt(possibleLabelTypeIds.size - 1) else 0
-            val labelTypeId: Int = possibleLabelTypeIds(index)
-            val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION,
-              0.0, "", labelTypeId).get //fix placeholder
-            val labelsProgress: Int = mission.labelsProgress.get
-            val labelsValidated: Int = mission.labelsValidated.get
-            val labelsToRetrieve: Int = labelsValidated - labelsProgress
-
-            val labelList: JsValue = getLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId)
-            val missionJsObject: JsObject = mission.toJSON
-            val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
-            Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), Some(missionJsObject), Some(labelList), Some(progressJsObject), true)))
-          }
-          case false => {
-            Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), None, None, None, false)))
-          }
-        }
-      case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
     }
   }
 
@@ -124,10 +83,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * Get the data needed by the /validate or /rapidValidate endpoints.
     * @return (mission, labelList, missionProgress, hasNextMission)
     */
-  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, validationTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], Boolean) = {
+  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, validationTypeStr: String, visitTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], Boolean) = {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
-    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Validate", timestamp))
+    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, visitTypeStr, timestamp))
     val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, labelCount, None)
     val hasWork: Boolean = possibleLabTypeIds.nonEmpty
 
@@ -171,22 +130,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val labelsToRetrieve: Int = labelsToValidate - labelsProgress
 
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType)
-    val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
-    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
-    labelMetadataJson
-  }
-
-  /**
-    * This gets a random list of labels to validate for this mission.
-    * @param userId     User ID for current user.
-    * @param count      Number of labels to retrieve for this list.
-    * @param labelType  Label type id of labels to retrieve.
-    * @return           JsValue containing a list of labels with the following attributes:
-    *                   {label_id, label_type, gsv_panorama_id, heading, pitch, zoom, canvas_x,
-    *                   canvas_y, canvas_width, canvas_height}
-    */
-  def getLabelListForValidation(userId: UUID, count: Int, labelType: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, count, labelType)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
