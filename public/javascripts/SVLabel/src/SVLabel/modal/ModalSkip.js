@@ -43,7 +43,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this._handleClickUnavailable = function (e) {
         tracker.push("ModalSkip_ClickUnavailable");
         var task = taskContainer.getCurrentTask();
-        form.skip(task, "");
+        form.skip(task, "GSVNotAvailable");
 
         ribbonMenu.backToWalk();
         self.hideSkipMenu();
@@ -56,7 +56,7 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     this._handleClickContinueNeighborhood = function (e) {
         tracker.push("ModalSkip_ClickContinueNeighborhood");
         var task = taskContainer.getCurrentTask();
-        form.skip(task, "");
+        form.skip(task, "IWantToExplore");
 
         ribbonMenu.backToWalk();
         self.hideSkipMenu();
