@@ -99,6 +99,14 @@ function Panorama (label, id) {
     }
 
     /**
+     * Returns the underlying panomarker object.
+     * @returns {PanoMarker}
+     */
+    function getPanomarker () {
+	return self.labelMarker;
+    }
+
+    /**
      * Returns the panorama ID for the current panorama.
      * @returns {google.maps.StreetViewPanorama} Google StreetView Panorama Id
      */
@@ -208,6 +216,7 @@ function Panorama (label, id) {
         if (!self.labelMarker) {
             let controlLayer = document.getElementById("viewControlLayer");
             self.labelMarker = new PanoMarker({
+		id: "validate-pano-marker",
                 markerContainer: controlLayer,
                 container: panoCanvas,
                 pano: panorama,
@@ -308,6 +317,7 @@ function Panorama (label, id) {
     self.getProperty = getProperty;
     self.getPov = getPov;
     self.getZoom = getZoom;
+    self.getPanomarker = getPanomarker;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;
     self.setPanorama = setPanorama;
