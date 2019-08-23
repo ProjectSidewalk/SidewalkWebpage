@@ -156,9 +156,8 @@ object StreetEdgeTable {
     */
   def totalStreetDistance(): Float = db.withSession { implicit session =>
     Cache.getOrElse("totalStreetDistance()") {
-      // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
-      // get length of each street segment, sum the lengths, and convert from meters to miles
+      // Get length of each street segment, sum the lengths, and convert from meters to miles.
       val distances: List[Float] = streetEdgesWithoutDeleted.map(_.geom.transform(26918).length).list
       (distances.sum * 0.000621371).toFloat
     }
