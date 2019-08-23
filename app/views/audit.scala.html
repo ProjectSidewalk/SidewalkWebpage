@@ -934,26 +934,6 @@
                 $(location).attr('href', '/audit?nextRegion=easy');
             });
 
-            // Neighborhood Jump Overlay
-            $('#modal-skip-continue-neighborhood').on('click', function(){
-                $('#modal-skip-box-neighborhood').hide();
-                $('#modal-skip-box').show();
-            });
-
-            $('#modal-skip-redirect-jump').on('click', function(){
-                $(location).attr('href', '/audit?nextRegion=regular');
-            });
-
-            $('#modal-skip-explore').on('click', function(){
-                $('#modal-skip-box').hide();
-                $('#modal-skip-box-neighborhood').show();
-            });
-
-            $('#modal-skip-cancel-second-button').on('click', function(){
-                $('#modal-skip-box-neighborhood').hide();
-                $('#modal-skip-box').show();
-            });
-
             // Neighborhood Completion Overlay
             $('#continue-current').on('click', function(){
                 $('#neighborhood-completion-overlay').hide();

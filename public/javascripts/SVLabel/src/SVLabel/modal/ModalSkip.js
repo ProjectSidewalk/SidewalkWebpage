@@ -14,22 +14,22 @@
  * @param uiModalSkip
  * @constructor
  */
-function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
+function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
     var self = this;
     var status = {
         disableClickOK: true
     };
     var blinkInterval;
 
-    onboardingModel.on("Onboarding:startOnboarding", function () {
+    onboardingModel.on("Onboarding:startOnboarding", function() {
         self.hideSkipMenu();
     });
 
     /**
-     * Callback for clicking jump button
+     * Callback for clicking jump button.
      * @param e
      */
-    this._handleClickJump = function (e) {
+    this._handleClickJump = function(e) {
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
         svl.modalComment.hide();
@@ -37,10 +37,10 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     };
 
     /**
-     * This method handles a click Unavailable event
+     * This method handles a click Unavailable event.
      * @param e
      */
-    this._handleClickUnavailable = function (e) {
+    this._handleClickUnavailable = function(e) {
         tracker.push("ModalSkip_ClickUnavailable");
         var task = taskContainer.getCurrentTask();
         form.skip(task, "GSVNotAvailable");
@@ -50,11 +50,13 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     };
 
     /**
-     * This method handles a click Continue Neighborhood event
+     * This method handles a click Continue Neighborhood event.
      * @param e
      */
-    this._handleClickContinueNeighborhood = function (e) {
+    this._handleClickContinueNeighborhood = function(e) {
         tracker.push("ModalSkip_ClickContinueNeighborhood");
+        uiModalSkip.secondBox.hide();
+        uiModalSkip.firstBox.show();
         var task = taskContainer.getCurrentTask();
         form.skip(task, "IWantToExplore");
 
@@ -63,44 +65,49 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     };
 
     /**
-     * This method handles a click Redirect event
+     * This method handles a click Redirect event.
      * @param e
      */
-     this._handleClickRedirect = function (e) {
+     this._handleClickRedirect = function(e) {
         tracker.push("ModalSkip_ClickRedirect");
-     }
+         window.location.replace('/audit?nextRegion=regular');
+     };
 
     /**
-     * This method handles a click Explore event
+     * This method handles a click Explore event.
      * @param e
      */
-     this._handleClickExplore = function (e) {
+     this._handleClickExplore = function(e) {
         tracker.push("ModalSkip_ClickExplore");
-     }
+         uiModalSkip.firstBox.hide();
+         uiModalSkip.secondBox.show();
+     };
 
     /**
-     * This method handles a click Cancel event on the first jump screen
+     * This method handles a click Cancel event on the first jump screen.
      * @param e
      */
-    this._handleClickCancelFirst = function (e) {
+    this._handleClickCancelFirst = function(e) {
         tracker.push("ModalSkip_ClickCancelFirst");
         self.hideSkipMenu();
     };
 
     /**
-     * This method handles a click Cancel event on the second jump screen
+     * This method handles a click Cancel event on the second jump screen.
      * @param e
      */
-    this._handleClickCancelSecond = function (e) {
+    this._handleClickCancelSecond = function(e) {
         tracker.push("ModalSkip_ClickCancelSecond");
+        uiModalSkip.secondBox.hide();
+        uiModalSkip.firstBox.show();
         self.hideSkipMenu();
     };
 
     /**
-     * Blink the jump button
+     * Blink the jump button.
      * Todo. This should be moved LeftMenu.js
      */
-    this.blink = function () {
+    this.blink = function() {
         self.stopBlinking();
         blinkInterval = window.setInterval(function () {
             uiLeftColumn.jump.toggleClass("highlight-100");
@@ -108,28 +115,28 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     };
 
     /**
-     * Hide a skip menu
+     * Hide the skip menu.
      */
-    this.hideSkipMenu = function () {
+    this.hideSkipMenu = function() {
         uiModalSkip.holder.addClass('hidden');
         svl.popUpMessage.enableInteractions();
         self.hideBackground();
     };
 
     /**
-     * Show a skip menu
+     * Show the skip menu.
      */
-    this.showSkipMenu = function () {
+    this.showSkipMenu = function() {
         uiModalSkip.holder.removeClass('hidden');
         svl.popUpMessage.disableInteractions();
         self.showBackground();
     };
 
-    this.hideBackground = function (){
+    this.hideBackground = function() {
         $('#modal-skip-background').css({ width: '', height: ''})
     };
 
-    this.showBackground = function (){
+    this.showBackground = function() {
         $('#modal-skip-background').css("background-color", "white");
         $('#modal-skip-background').css({
             width: '100%',
@@ -140,10 +147,10 @@ function ModalSkip (form, modalModel, navigationModel, onboardingModel, ribbonMe
     };
 
     /**
-     * Stop blinking the jump button
+     * Stop blinking the jump button.
      * Todo. This should be moved to LeftMenu.js
      */
-    this.stopBlinking = function () {
+    this.stopBlinking = function() {
         window.clearInterval(blinkInterval);
         uiLeftColumn.jump.removeClass("highlight-100");
     };
