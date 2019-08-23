@@ -70,7 +70,7 @@
     <div id="mobile-viewer">
         <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama">
+                    <div id="svv-panorama-0">
                     </div>
                 </div>
         </div>
@@ -239,6 +239,9 @@
 
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.hasNextMission = @hasNextMission;
+
+            param.canvasCount = 1;
+            param.beaconDataStoreUrl = "/validationTaskBeacon";
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
