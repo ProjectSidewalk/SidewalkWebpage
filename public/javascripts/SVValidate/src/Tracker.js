@@ -58,7 +58,7 @@ function Tracker() {
 
         let missionContainer = svv.missionContainer ? svv.missionContainer : null;
         let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
-        
+
         let data = {
             action: action,
             gsv_panorama_id: panoId,
