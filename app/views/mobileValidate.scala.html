@@ -2,6 +2,7 @@
 @import models.mission.{MissionTable, Mission}
 @import models.label.LabelTable
 @import models.label.LabelTable.LabelValidationMetadata
+@import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
@@ -75,13 +76,13 @@
                 </div>
         </div>
         <div id="validation-button-holder">
-            <button id="validation-disagree-button" class="validation-button">
+            <button id="validation-disagree-button-0" class="validation-button">
                 ✗ Disagree
             </button>
-            <button id="validation-not-sure-button" class="validation-button">
+            <button id="validation-not-sure-button-0" class="validation-button">
                 ? Not sure
             </button>
-            <button id="validation-agree-button" class="validation-button">
+            <button id="validation-agree-button-0" class="validation-button">
                 ✓ Agree
             </button>
         </div>
@@ -185,15 +186,16 @@
 
     <!-- resize elements based on phone size -->
     <script>
+            // Poor/redundant code ---------------- Fix
             var h = window.innerHeight;
             var w = window.innerWidth;
 
             //change validation button position
             document.getElementById("validation-button-holder").style.top = h - 200 + "px";
             document.getElementById("validation-button-holder").style.width = w + "px";
-            document.getElementById("validation-agree-button").style.width = w/3-30 + "px";
-            document.getElementById("validation-disagree-button").style.width = w/3-30 + "px";
-            document.getElementById("validation-not-sure-button").style.width = w/3-30 + "px";
+            document.getElementById("validation-agree-button-0").style.width = w/3-30 + "px";
+            document.getElementById("validation-disagree-button-0").style.width = w/3-30 + "px";
+            document.getElementById("validation-not-sure-button-0").style.width = w/3-30 + "px";
             //scale progress bar
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
@@ -226,48 +228,129 @@
             //if you need to do functional testing without a phone, enable this code to test using Chrome's inspection tool
             // document.getElementById("validation-button-holder").style.top = h - 1500 + "px";
             // document.getElementById("validation-button-holder").style.width = w + "px";
-            // document.getElementById("validation-agree-button").style.width = w/5-30 + "px";
-            // document.getElementById("validation-disagree-button").style.width = w/5-30 + "px";
-            // document.getElementById("validation-not-sure-button").style.width = w/5-30 + "px";
+            // document.getElementById("validation-agree-button-0").style.width = w/5-30 + "px";
+            // document.getElementById("validation-disagree-button-0").style.width = w/5-30 + "px";
+            // document.getElementById("validation-not-sure-button-0").style.width = w/5-30 + "px";
             // document.getElementById("left-column-jump-button").style.left = w - 600 + "px";
             // document.getElementById("info-button").style.left = w - 700 + "px";
+
+            // Accounts for bars later coming in after setting elements
+            var count = 0;
+            var intervalID = setInterval(function () {
+                var h = window.innerHeight;
+                var w = window.innerWidth;
+
+                //change validation button position
+                document.getElementById("validation-button-holder").style.top = h - 200 + "px";
+                document.getElementById("validation-button-holder").style.width = w + "px";
+                document.getElementById("validation-agree-button-0").style.width = w/3-30 + "px";
+                document.getElementById("validation-disagree-button-0").style.width = w/3-30 + "px";
+                document.getElementById("validation-not-sure-button-0").style.width = w/3-30 + "px";
+                //scale progress bar
+                document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
+                document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
+                document.getElementById("status-current-mission-completion-rate").style.width = w + "px";
+                //resize button elements
+                document.getElementById("title-bar-holder").style.width = w + "px";
+                document.getElementById("left-column-jump-button").style.left = w - 75 + "px";
+                document.getElementById("info-button").style.left = w - 150 + "px";
+                //resize mission start popup
+                var modalForegrounds = document.getElementsByClassName("modal-foreground");
+                for (var i = 0; i < modalForegrounds.length; i++) {
+                    modalForegrounds[i].style.width = w + "px";
+                    modalForegrounds[i].style.height = h + "px";
+                }
+                document.getElementById("ps-logo-mission").style.width = w -70+ 'px';
+                document.getElementById("ps-logo-mission-complete").style.width = w -70+ 'px';
+                //resize modal info panel
+                var exampleImages = document.getElementsByClassName("example-image");
+                for (i = 0; i < exampleImages.length; i++) {
+                    exampleImages[i].style.width = w/2 - 50 + "px";
+                    exampleImages[i].style.height = (w/2 - 50)*(83/95) + "px";
+                }
+                var statusBoxes = document.getElementsByClassName("status-box");
+                for (i = 0; i < statusBoxes.length; i++) {
+                    statusBoxes[i].style.height = w*(83/95)/2 + 20 + "px";
+                }
+                document.getElementById("modal-info-close-button").style.left = w - 75 + "px";
+                //resize comment panel
+                if (++count === 5) {
+                    window.clearInterval(intervalID);
+                }
+
+                //if you need to do functional testing without a phone, enable this code to test using Chrome's inspection tool
+                // document.getElementById("validation-button-holder").style.top = h - 1500 + "px";
+                // document.getElementById("validation-button-holder").style.width = w + "px";
+                // document.getElementById("validation-agree-button-0").style.width = w/5-30 + "px";
+                // document.getElementById("validation-disagree-button-0").style.width = w/5-30 + "px";
+                // document.getElementById("validation-not-sure-button-0").style.width = w/5-30 + "px";
+                // document.getElementById("left-column-jump-button").style.left = w - 600 + "px";
+                // document.getElementById("info-button").style.left = w - 700 + "px";
+            }, 250);
     </script>
 
     <script type="text/javascript">
             var svv = svv || {};
             var param = {};
 
-            param.dataStoreUrl = '@routes.ValidationTaskController.post';
-            param.hasNextMission = @hasNextMission;
-
-            param.canvasCount = 1;
-            param.beaconDataStoreUrl = "/validationTaskBeacon";
-
-            if (@hasNextMission) {
-                param.mission = @Html(mission.getOrElse("\"\"").toString);
-                param.labelList = @Html(labelList.getOrElse("\"\"").toString);
-                param.progress = @Html(progress.getOrElse("\"\"").toString);
-
-                // Initializes an object of labels from label metadata.
-                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-                Object.keys(param.labelList).map(function (key, index) {
-                    var labelMetadata = {
-                        canvasHeight: param.labelList[key].canvas_height,
-                        canvasWidth: param.labelList[key].canvas_width,
-                        canvasX: param.labelList[key].canvas_x,
-                        canvasY: param.labelList[key].canvas_y,
-                        gsvPanoramaId: param.labelList[key].gsv_panorama_id,
-                        heading: param.labelList[key].heading,
-                        labelId: param.labelList[key].label_id,
-                        labelType: param.labelList[key].label_type,
-                        pitch: param.labelList[key].pitch,
-                        zoom: param.labelList[key].zoom
-                    };
-                    param.labelList[key] = new Label(labelMetadata);
-                });
+            let userParam = {};
+            @if(user) {
+            userParam = {
+                username: '@user.get.username',
+                role: '@user.get.role'
+            };
+            } else {
+            userParam = {
+                username: "anonymous",
+                role: "Anonymous"
+            };
             }
+            svv.user = new User(userParam);
 
-            svv.main = new Main(param);
+            let hitExpired = false;
+            @if(user && user.get.role.getOrElse("") == "Turker") {
+            let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            if (msRemaining < 0) {
+                hitExpired = true;
+            }
+            }
+            if (hitExpired) {
+                $(".toolUI").css({"visibility": "visible"});
+                $('#HIT-expiration-overlay').show();
+            } else {
+                param.dataStoreUrl = '@routes.ValidationTaskController.post';
+                param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
+                param.hasNextMission = @hasNextMission;
+                param.canvasHeight = 440;
+                param.canvasWidth = 720;
+                param.canvasCount = 1;
+
+                if (@hasNextMission) {
+                    param.mission = @Html(mission.getOrElse("\"\"").toString);
+                    param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+                    param.progress = @Html(progress.getOrElse("\"\"").toString);
+
+                    // Initializes an object of labels from label metadata.
+                    // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+                    Object.keys(param.labelList).map(function (key, index) {
+                        let labelMetadata = {
+                            canvasHeight: param.labelList[key].canvas_height,
+                            canvasWidth: param.labelList[key].canvas_width,
+                            canvasX: param.labelList[key].canvas_x,
+                            canvasY: param.labelList[key].canvas_y,
+                            gsvPanoramaId: param.labelList[key].gsv_panorama_id,
+                            heading: param.labelList[key].heading,
+                            labelId: param.labelList[key].label_id,
+                            labelType: param.labelList[key].label_type,
+                            pitch: param.labelList[key].pitch,
+                            zoom: param.labelList[key].zoom
+                        };
+                        param.labelList[key] = new Label(labelMetadata);
+                    });
+                }
+
+                svv.main = new Main(param);
+            }
 
     </script>
 }

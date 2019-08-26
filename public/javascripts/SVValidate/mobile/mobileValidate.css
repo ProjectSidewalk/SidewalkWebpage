@@ -39,17 +39,17 @@
     font-size: 40px;
 }
 
-#validation-agree-button {
+#validation-agree-button-0 {
     background-color: #78C8AB;
     color: #2C293E;
 }
 
-#validation-disagree-button {
+#validation-disagree-button-0 {
     background-color: #EB7350;
     color: #2C293E;
 }
 
-#validation-not-sure-button {
+#validation-not-sure-button-0 {
     background-color: #FDD68D;
     color: #2C293E;
 }
