@@ -1,10 +1,10 @@
 # --- !Ups
 
 ALTER TABLE validation_task_interaction
-  ADD is_mobile INT;
+  ADD is_mobile BOOLEAN NOT NULL DEFAULT FALSE;
 
 ALTER TABLE label_validation
-  ADD is_mobile INT;
+  ADD is_mobile BOOLEAN NOT NULL DEFAULT FALSE;
 
 
 # --- !Downs

@@ -36,7 +36,9 @@ function Panorama (label, id) {
      */
     function _init () {
         _createNewPanorama();
-        sizePano();
+        if (isMobile()) {
+            sizePano();
+        }
         _addListeners();
         setLabel(currentLabel);
     }
@@ -289,22 +291,20 @@ function Panorama (label, id) {
     }
 
     function sizePano() {
-        if (isMobile()) {
-            var h = window.innerHeight - 10;
-            var w = window.innerWidth - 10;
-            var outline_h = h + 10;
-            var outline_w = w + 10;
-            var left = 0;
-            document.getElementById("svv-panorama-0").style.height = h + "px";
-            document.getElementById("svv-panorama-holder").style.height = h + "px";
-            document.getElementById("svv-panorama-outline").style.height = outline_h + "px";
-            document.getElementById("svv-panorama-0").style.width = w + "px";
-            document.getElementById("svv-panorama-holder").style.width = w + "px";
-            document.getElementById("svv-panorama-outline").style.width = outline_w + "px";
-            document.getElementById("svv-panorama-0").style.left = left + "px";
-            document.getElementById("svv-panorama-holder").style.left = left + "px";
-            document.getElementById("svv-panorama-outline").style.left = left + "px";
-        }
+        var h = window.innerHeight - 10;
+        var w = window.innerWidth - 10;
+        var outline_h = h + 10
+        var outline_w = w + 10;
+        var left = 0;
+        document.getElementById("svv-panorama-0").style.height = h + "px";
+        document.getElementById("svv-panorama-holder").style.height = h + "px";
+        document.getElementById("svv-panorama-outline").style.height = outline_h + "px";
+        document.getElementById("svv-panorama-0").style.width = w + "px";
+        document.getElementById("svv-panorama-holder").style.width = w + "px";
+        document.getElementById("svv-panorama-outline").style.width = outline_w + "px";
+        document.getElementById("svv-panorama-0").style.left = left + "px";
+        document.getElementById("svv-panorama-holder").style.left = left + "px";
+        document.getElementById("svv-panorama-outline").style.left = left + "px";
     }
 
     /**

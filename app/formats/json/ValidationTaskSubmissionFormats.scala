@@ -7,8 +7,8 @@ import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
 object ValidationTaskSubmissionFormats {
-  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Option[Int])
-  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, isMobile: Option[Int])
+  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Boolean)
+  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, isMobile: Boolean)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress])
@@ -24,7 +24,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "zoom").readNullable[Float] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "timestamp").read[Long] and
-      (JsPath \ "is_mobile").readNullable[Int]
+      (JsPath \ "is_mobile").read[Boolean]
     )(InteractionSubmission.apply _)
 
   implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
@@ -40,7 +40,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[Long] and
       (JsPath \ "end_timestamp").read[Long] and
-      (JsPath \ "is_mobile").readNullable[Int]
+      (JsPath \ "is_mobile").read[Boolean]
     )(LabelValidationSubmission.apply _)
 
   implicit val validationMissionReads: Reads[ValidationMissionProgress] = (

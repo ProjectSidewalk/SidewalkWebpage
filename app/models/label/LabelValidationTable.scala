@@ -26,7 +26,7 @@ case class LabelValidation(validationId: Int,
                            canvasWidth: Int,
                            startTimestamp: java.sql.Timestamp,
                            endTimestamp: java.sql.Timestamp,
-                           isMobile: Option[Int])
+                           isMobile: Boolean)
 
 
 /**
@@ -49,7 +49,7 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def canvasWidth = column[Int]("canvas_width", O.NotNull)
   def startTimestamp = column[java.sql.Timestamp]("start_timestamp", O.NotNull)
   def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
-  def isMobile = column[Option[Int]]("is_mobile", O.Nullable)
+  def isMobile = column[Boolean]("is_mobile", O.NotNull)
 
   def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
     heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, isMobile) <>

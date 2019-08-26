@@ -83,11 +83,7 @@ function Label(params) {
             if ("labelType" in params) setAuditProperty("labelType", params.labelType);
             if ("pitch" in params) setAuditProperty("pitch", params.pitch);
             if ("zoom" in params) setAuditProperty("zoom", params.zoom);
-            if (isMobile()) {
-                setAuditProperty("isMobile", 1);
-            } else {
-                setAuditProperty("isMobile", 0);
-            }
+            setAuditProperty("isMobile", isMobile());
         }
     }
 
@@ -209,11 +205,7 @@ function Label(params) {
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
-        if (isMobile()) {
-            setProperty("isMobile", 1);
-        } else {
-            setProperty("isMobile", 0);
-        }
+        setProperty("isMobile", isMobile());
 
         switch (validationResult) {
             // Agree option selected.

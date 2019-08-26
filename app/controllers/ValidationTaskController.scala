@@ -32,7 +32,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
         ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
           interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
-          new Timestamp(interaction.timestamp), None)
+          new Timestamp(interaction.timestamp), interaction.isMobile)
       })
 
       // We aren't always submitting labels, so check if data.labels exists.

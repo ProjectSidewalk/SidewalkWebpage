@@ -22,7 +22,7 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
                                      zoom: Option[Float],
                                      note: Option[String],
                                      timestamp: java.sql.Timestamp,
-                                     isMobile: Option[Int])
+                                     isMobile: Boolean)
 
 class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, Some("sidewalk"), "validation_task_interaction") {
   def validationTaskInteractionId = column[Int]("validation_task_interaction_id", O.PrimaryKey, O.AutoInc)
@@ -36,7 +36,7 @@ class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[Valida
   def zoom = column[Option[Float]]("zoom", O.Nullable)
   def note = column[Option[String]]("note", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
-  def isMobile = column[Option[Int]]("is_mobile", O.Nullable)
+  def isMobile = column[Boolean]("is_mobile", O.NotNull)
 
   def * = (validationTaskInteractionId, missionId, action, gsvPanoramaId, lat,
     lng, heading, pitch, zoom, note, timestamp, isMobile) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
