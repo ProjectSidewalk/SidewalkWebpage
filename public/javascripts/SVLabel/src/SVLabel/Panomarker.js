@@ -228,7 +228,7 @@
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
 
-        // The correction for mobile phones
+        // Adjusts the width and height for when placing PanoMarkers on mobile phones.
         if (isMobile()) {
             width = window.innerWidth;
             height = window.innerHeight;

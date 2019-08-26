@@ -1,5 +1,6 @@
 /**
  * Detects if device is a phone
+ * https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
  * @returns {boolean} true if the device is a mobile phone, false if not
  */
 function isMobile() {

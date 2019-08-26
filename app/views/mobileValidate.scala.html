@@ -20,7 +20,7 @@
     <script>
             $(document).ready(function() {
 
-                // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that
+                // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that.
                 var font = "<style> @@font-face{ font-family: 'raleway'; src: url('/assets/fonts/Raleway/Raleway-Regular.ttf');} </style>";
                 $("head").append(font);
 
@@ -32,21 +32,10 @@
                     }
                 }
 
-                $('html').css('position', 'fixed');
-                $('body').css({
-                    'height': '100vh',
-                    'width': '100vw',
-                    'text-align': 'center',
-                    'padding': '2vh 10vw',
-                    'font-family': 'raleway, sans-serif',
-                    'color': '#777'
-                });
                 window.addEventListener("resize", function() {
                     orientationCheck();
                 }, false);
-                $('.filler').css('display', 'none');
-                $('#footer-container').css('display', 'none');
-                $('#info-footer').css('display', 'none');
+
                 orientationCheck();
             });
     </script>

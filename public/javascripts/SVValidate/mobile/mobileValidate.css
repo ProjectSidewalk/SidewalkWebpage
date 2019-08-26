@@ -1,80 +1,35 @@
-#upper-menu-title-bar {
-    font-size: 40px;
-    color: white;
-    top: 10px;
-    width: 700px;
-}
-
-#title-bar-holder {
+#back-button {
+    background: transparent;
     position: absolute;
-    left: 0px;
-    width: 500px;
-    height: 75px;
-    top: 50px;
-}
-
-#svv-panorama-holder {
-    position: absolute;
-    top: 120px;
-    width: 730px;
-    height: 390px;
-}
-
-#validation-button-holder {
-    position: relative;
-    left: -100px;
-    height: 90px;
-    width: 730px;
-    z-index: 1;
-}
-
-/* Put buttons here */
-.validation-button {
-    height: 70px;
-    background-color: white;
-    border-radius: 25px;
-    border-width: 3px;
-    border-color: #2C293E;
-    width: 260px;
-    font-size: 40px;
-}
-
-#validation-agree-button-0 {
-    background-color: #78C8AB;
-    color: #2C293E;
-}
-
-#validation-disagree-button-0 {
-    background-color: #EB7350;
-    color: #2C293E;
-}
-
-#validation-not-sure-button-0 {
-    background-color: #FDD68D;
-    color: #2C293E;
-}
-
-#status-current-mission-completion-bar {
-    height: 50px;
-    width: 190px;
     left: 0px;
     top: 0px;
-}
-
-#status-current-mission-completion-bar-filler {
-    border-width: 0;
-    height: 50px;
-    position: absolute;
-    width: 190px;
-}
-
-#status-current-mission-completion-rate {
-    font-size: 25pt;
-    width: 190px;
+    height: 75px;
+    width: 75px;
 }
 
 body {
     background-color: #2C293E;
+    height: 100vh;
+    width: 100vw;
+    text-align: center;
+    padding: 2vh 10vw;
+    font-family: raleway, sans-serif;
+    color: #777;
+}
+
+.example-image {
+    padding-left: 25px;
+    height: 249px;
+    width: 285px;
+    margin-top: 20px;
+}
+
+.filler, #footer-container, #info-footer {
+    display: none;
+}
+
+html {
+    position: fixed;
 }
 
 #info-button {
@@ -86,13 +41,18 @@ body {
     width: 75px;
 }
 
-#back-button {
-    background: transparent;
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    height: 75px;
-    width: 75px;
+#label-type-counterexample {
+    font-size: 30pt;
+    padding-left: 25px;
+}
+
+#label-type-example {
+    font-size: 30pt;
+    padding-left: 25px;
+}
+
+#left-column-feedback-button {
+    font-size: 30pt;
 }
 
 #left-column-jump-button {
@@ -105,8 +65,32 @@ body {
     color: white;
 }
 
-.validation-button {
-    height: 100px;
+#modal-comment-box {
+    top: 0px;
+}
+
+#modal-comment-cancel-button {
+    font-size: 30pt;
+    width: 45%;
+    float: right;
+}
+
+#modal-comment-holder {
+    z-index: 5;
+}
+
+#modal-comment-ok-button {
+    font-size: 30pt;
+    width: 45%;
+    float: left;
+}
+
+#modal-comment-textarea {
+    font-size: 30pt;
+}
+
+#modal-comment-title {
+    font-size: 30pt;
 }
 
 .modal-foreground {
@@ -128,12 +112,14 @@ body {
     -moz-border-radius: 3px 3px 3px 3px;
 }
 
-#modal-mission-header {
-    font-size: 50pt;
-}
-
-#modal-mission-close-button {
-    font-size: 50pt;
+#modal-info-background {
+    position: absolute;
+    left: 0px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
+    height: 100%;
+    width: 110%;
 }
 
 #modal-info-close-button {
@@ -146,6 +132,14 @@ body {
     top: -25px;
 }
 
+#modal-info-description {
+    padding-left: 25px;
+    height: 400px;
+    color: #2C293E;
+    font-size: 30pt;
+    text-align: left;
+}
+
 #modal-info-holder {
     visibility: hidden;
 }
@@ -155,43 +149,20 @@ body {
     color: white;
 }
 
-#modal-info-background {
-    position: absolute;
-    left: 0px;
-    top: 0;
-    background: rgba(255, 255, 255, 0.5);
+#modal-landscape-description {
+    font-size: 20pt;
+}
+
+#modal-landscape-holder {
     visibility: hidden;
-    height: 100%;
-    width: 110%;
 }
 
-#modal-info-description {
-    padding-left: 25px;
-    height: 400px;
-    color: #2C293E;
-    font-size: 30pt;
-    text-align: left;
+#modal-mission-close-button {
+    font-size: 50pt;
 }
 
-#label-type-example {
-    font-size: 30pt;
-    padding-left: 25px;
-}
-
-#label-type-counterexample {
-    font-size: 30pt;
-    padding-left: 25px;
-}
-
-.example-image {
-    padding-left: 25px;
-    height: 249px;
-    width: 285px;
-    margin-top: 20px;
-}
-
-.status-box {
-    height: 500px;
+#modal-mission-header {
+    font-size: 50pt;
 }
 
 #modal-mission-complete-title {
@@ -211,42 +182,80 @@ body {
     width: 350px;
 }
 
-#modal-landscape-description {
-    font-size: 20pt;
+.status-box {
+    height: 500px;
 }
 
-#left-column-feedback-button {
- font-size: 30pt;
-}
-
-#modal-comment-holder {
-    z-index: 5;
-}
-
-#modal-comment-box {
+#status-current-mission-completion-bar {
+    height: 50px;
+    width: 190px;
+    left: 0px;
     top: 0px;
 }
 
-#modal-comment-title {
-    font-size: 30pt;
+#status-current-mission-completion-bar-filler {
+    border-width: 0;
+    height: 50px;
+    position: absolute;
+    width: 190px;
 }
 
-#modal-comment-ok-button {
-    font-size: 30pt;
-    width: 45%;
-    float: left;
+#status-current-mission-completion-rate {
+    font-size: 25pt;
+    width: 190px;
 }
 
-#modal-comment-cancel-button {
-    font-size: 30pt;
-    width: 45%;
-    float: right;
+#svv-panorama-holder {
+    position: absolute;
+    top: 120px;
+    width: 730px;
+    height: 390px;
 }
 
-#modal-comment-textarea {
-    font-size: 30pt;
+#title-bar-holder {
+    position: absolute;
+    left: 0px;
+    width: 500px;
+    height: 75px;
+    top: 50px;
 }
 
-#modal-landscape-holder {
-    visibility: hidden;
+#upper-menu-title-bar {
+    font-size: 40px;
+    color: white;
+    top: 10px;
+    width: 700px;
+}
+
+#validation-agree-button-0 {
+    background-color: #78C8AB;
+    color: #2C293E;
+}
+
+#validation-disagree-button-0 {
+    background-color: #EB7350;
+    color: #2C293E;
+}
+
+#validation-not-sure-button-0 {
+    background-color: #FDD68D;
+    color: #2C293E;
+}
+
+.validation-button {
+    height: 100px;
+    background-color: white;
+    border-radius: 25px;
+    border-width: 3px;
+    border-color: #2C293E;
+    width: 260px;
+    font-size: 40px;
+}
+
+#validation-button-holder {
+    position: relative;
+    left: -100px;
+    height: 90px;
+    width: 730px;
+    z-index: 1;
 }
