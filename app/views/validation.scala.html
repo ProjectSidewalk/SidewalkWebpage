@@ -307,7 +307,7 @@
                         severity: param.labelList[key].severity,
                         temporary: param.labelList[key].temporary,
                         description: param.labelList[key].description,
-                        tags: param.labelList[key].tags
+                        tags: param.labelList[key].tags.join(', ')
                     };
                     param.labelList[key] = new Label(labelMetadata);
                 });
