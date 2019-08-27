@@ -1,7 +1,7 @@
 /**
- * Detects if device is a phone
+ * Detects if device is a phone.
  * https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
- * @returns {boolean} True if the device is a mobile phone, false if not
+ * @returns {boolean} True if the device is a mobile phone, false if it is not.
  */
 function isMobile() {
     let isMobile = false;

@@ -1,7 +1,7 @@
 /**
  * Represents a single validation mission
  * @param params  Mission metadata passed in from MissionContainer.js
- * @returns {Mission} object
+ * @returns {Mission} object.
  * @constructor
  */
 function Mission(params) {
@@ -42,8 +42,8 @@ function Mission(params) {
 
     /**
      * Gets a single property for this mission object.
-     * @param key   String representation of property
-     * @returns     property if it exists, null otherwise
+     * @param key   String representation of property.
+     * @returns     Property if it exists, null otherwise.
      */
     function getProperty (key) {
         return key in properties ? properties[key] : null;
@@ -59,16 +59,16 @@ function Mission(params) {
 
     /**
      * Function that checks if the current mission is complete.
-     * @returns {property} True if this mission is complete, false if in progress
+     * @returns {property} True if this mission is complete, false if in progress.
      */
     function isComplete() {
         return getProperty("completed");
     }
 
     /**
-     * Sets a property of this mission
-     * @param key       Name of property
-     * @param value     Value
+     * Sets a property of this mission.
+     * @param key       Name of property.
+     * @param value     Value.
      * @returns {setProperty}
      */
     function setProperty (key, value) {
@@ -78,7 +78,7 @@ function Mission(params) {
 
     /**
      * Updates status bar (UI) and current mission properties.
-     * @param skip (bool) - if true, the user clicked the skip button and the progress will not
+     * @param skip (bool) - If true, the user clicked the skip button and the progress will not
      *                      increase. If false the user clicked agree, disagree, or not sure and
      *                      progress will increase.
      */
@@ -106,7 +106,7 @@ function Mission(params) {
     /**
      * Updates the validation result for this mission by incrementing agree, disagree and not sure
      * counts collected in this mission. (Only persists for current session)
-     * @param result Validation result - can either be agree, disagree, or not sure.
+     * @param result Validation result - Can either be agree, disagree, or not sure.
      */
     function updateValidationResult(result) {
         switch (result) {
@@ -124,7 +124,7 @@ function Mission(params) {
 
     /**
      * Function that returns the appropriate description for the current mission label type.
-     * @param result Validation result - can either be agree, disagree, or not sure.
+     * @param result Validation result - Can either be agree, disagree, or not sure.
      */
     function getLabelTypeDescription(labelTypeId) {
         let description = "";
