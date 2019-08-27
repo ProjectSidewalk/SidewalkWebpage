@@ -6,14 +6,13 @@
  */
 
 function ModalLandscape (uiModal) {
-    var self = this;
+    let self = this;
 
     $(document).ready(function() {
         $(window).on('orientationchange', function(event) {
             if (orientation != 0) {
                 self.show();
-            }
-            else {
+            } else {
                 self.hide();
                 location.reload();
             }

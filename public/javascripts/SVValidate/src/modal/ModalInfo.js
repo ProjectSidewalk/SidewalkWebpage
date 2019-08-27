@@ -6,10 +6,10 @@
  */
 
 function ModalInfo (uiModal) {
-    var self = this;
+    let self = this;
 
-    var infoHeaderHTML = '<p>What is a __LABELTYPE_PLACEHOLDER__?</p>';
-    var descriptionHTML = '<p>__DESCRIPTION_PLACEHOLDER__</p>';
+    let infoHeaderHTML = '<p>What is a __LABELTYPE_PLACEHOLDER__?</p>';
+    let descriptionHTML = '<p>__DESCRIPTION_PLACEHOLDER__</p>';
 
     function _handleButtonClick() {
         svv.tracker.push("ModalInfo_ClickOK");

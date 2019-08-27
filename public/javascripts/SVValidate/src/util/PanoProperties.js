@@ -94,7 +94,7 @@ function PanoProperties () {
         let width = canvasWidth;
         let height = canvasHeight;
 
-        // The correction for mobile phones will go here
+        // Corrects width and height for mobile phones
         if (isMobile()) {
             width = window.innerWidth;
             height = window.innerHeight;

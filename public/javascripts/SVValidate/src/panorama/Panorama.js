@@ -290,12 +290,15 @@ function Panorama (label, id) {
         svv.panoramaContainer.fetchNewLabel();
     }
 
+    /**
+     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone
+     */
     function sizePano() {
-        var h = window.innerHeight - 10;
-        var w = window.innerWidth - 10;
-        var outline_h = h + 10
-        var outline_w = w + 10;
-        var left = 0;
+        let h = window.innerHeight - 10;
+        let w = window.innerWidth - 10;
+        let outline_h = h + 10
+        let outline_w = w + 10;
+        let left = 0;
         document.getElementById("svv-panorama-0").style.height = h + "px";
         document.getElementById("svv-panorama-holder").style.height = h + "px";
         document.getElementById("svv-panorama-outline").style.height = outline_h + "px";

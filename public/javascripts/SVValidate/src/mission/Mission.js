@@ -123,11 +123,11 @@ function Mission(params) {
     }
 
     /**
-     * function that returns the appropriate description for the current mission label type.
+     * Function that returns the appropriate description for the current mission label type.
      * @param result Validation result - can either be agree, disagree, or not sure.
      */
     function getLabelTypeDescription(labelTypeId) {
-        var description = ""
+        let description = "";
         switch(labelTypeId) {
             //if curb ramp
             case 1:

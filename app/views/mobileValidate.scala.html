@@ -193,21 +193,21 @@
             let h = window.innerHeight;
             let w = window.innerWidth;
 
-            //change validation button position
+            // Change validation button position.
             document.getElementById("validation-button-holder").style.top = h - 200 + "px";
             document.getElementById("validation-button-holder").style.width = w + "px";
             document.getElementById("validation-agree-button-0").style.width = w / 3 - 30 + "px";
             document.getElementById("validation-disagree-button-0").style.width = w / 3 - 30 + "px";
             document.getElementById("validation-not-sure-button-0").style.width = w / 3 - 30 + "px";
-            //scale progress bar
+            // Scale progress bar.
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
             document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
             document.getElementById("status-current-mission-completion-rate").style.width = w + "px";
-            //resize button elements
+            // Resize button elements.
             document.getElementById("title-bar-holder").style.width = w + "px";
             document.getElementById("left-column-jump-button").style.left = w - 75 + "px";
             document.getElementById("info-button").style.left = w - 150 + "px";
-            //resize mission start popup
+            // Resize mission start popup.
             let modalForegrounds = document.getElementsByClassName("modal-foreground");
             for (let i = 0; i < modalForegrounds.length; i++) {
                 modalForegrounds[i].style.width = w + "px";
@@ -215,7 +215,7 @@
             }
             document.getElementById("ps-logo-mission").style.width = w - 70 + 'px';
             document.getElementById("ps-logo-mission-complete").style.width = w - 70 + 'px';
-            //resize modal info panel
+            // Resize modal info panel.
             let exampleImages = document.getElementsByClassName("example-image");
             for (let i = 0; i < exampleImages.length; i++) {
                 exampleImages[i].style.width = w / 2 - 50 + "px";
@@ -231,7 +231,7 @@
                 window.clearInterval(intervalID);
             }
 
-            //if you need to do functional testing without a phone, enable this code to test using Chrome's inspection tool
+            // If you need to do functional testing without a phone, enable this code to test using Chrome's inspection tool.
             // document.getElementById("validation-button-holder").style.top = h - 1500 + "px";
             // document.getElementById("validation-button-holder").style.width = w + "px";
             // document.getElementById("validation-agree-button-0").style.width = w/5-30 + "px";
@@ -243,29 +243,29 @@
     </script>
 
     <script type="text/javascript">
-        var svv = svv || {};
-        var param = {};
-
+        let svv = svv || {};
+        let param = {};
         let userParam = {};
+
         @if(user) {
-        userParam = {
-            username: '@user.get.username',
-            role: '@user.get.role'
-        };
+            userParam = {
+                username: '@user.get.username',
+                role: '@user.get.role'
+            };
         } else {
-        userParam = {
-            username: "anonymous",
-            role: "Anonymous"
-        };
+            userParam = {
+                username: "anonymous",
+                role: "Anonymous"
+            };
         }
         svv.user = new User(userParam);
 
         let hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-        let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
-        if (msRemaining < 0) {
-            hitExpired = true;
-        }
+            let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            if (msRemaining < 0) {
+                hitExpired = true;
+            }
         }
         if (hitExpired) {
             $(".toolUI").css({"visibility": "visible"});

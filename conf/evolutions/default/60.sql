@@ -1,5 +1,4 @@
 # --- !Ups
-
 ALTER TABLE validation_task_interaction
   ADD is_mobile BOOLEAN NOT NULL DEFAULT FALSE;
 
@@ -8,9 +7,8 @@ ALTER TABLE label_validation
 
 
 # --- !Downs
-
-ALTER TABLE validation_task_interaction
+ALTER TABLE label_validation
   DROP COLUMN is_mobile;
 
-ALTER TABLE label_validation
+ALTER TABLE validation_task_interaction
   DROP COLUMN is_mobile;
