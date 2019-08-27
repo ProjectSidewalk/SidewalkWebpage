@@ -445,7 +445,7 @@
 	        5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
 	    }
 
-        if (this.severity_ & this.severity_ != 0) {
+        if (this.severity_ && this.severity_ != 0) {
             var htmlString = document.createTextNode('Severity: ' + this.severity_ + ' ');
             descriptionBox.appendChild(htmlString);
             var img = document.createElement('img');
