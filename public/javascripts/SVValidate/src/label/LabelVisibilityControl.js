@@ -75,32 +75,6 @@ function LabelVisibilityControl () {
         return visible;
     }
 
-/*
-    function show () {
-        var button = document.getElementById('label-description');
-	    var marker = document.getElementById('validate-pano-marker');
-        button.style.right = (710 - parseFloat(marker.style.left)) + 'px';
-        button.style.top = (parseFloat(marker.style.top) + 10) + 'px';
-	    button.style.visibility = 'visible';
-    }
-
-    function hide () {
-        document.getElementById("label-description").style.visibility = 'hidden';
-    }
-
-    labelVisibilityControlButton.on('click', clickAdjustLabel);
-    labelVisibilityControlButton.on('mouseover', function (e) {
-        document.getElementById('label-description').style.display = 'none';
-    	show();
-    	e.stopPropagation();
-    });
-    labelVisibilityControlButton.on('mouseout', function (e) {
-        document.getElementById('label-description').style.display = 'block';
-        hide();
-        e.stopPropagation();
-    });
-*/
-
     /**
      * Shows the 'Show/Hide Label' button and the description box on panorama.
      */
