@@ -445,6 +445,18 @@
 
         marker.addEventListener(eventName, this.onClick.bind(this), false);
 
+	// If this is a validation label, we want to add mouse-hovering event
+	// for popped up hide/show label.
+	if (this.id_ === "validate-pano-marker") {
+	    marker.addEventListener("mouseover", function () {
+		svv.labelVisibilityControl.show();
+	    });
+
+	    marker.addEventListener("mouseout", function () {
+		svv.labelVisibilityControl.hide();
+	    });
+	}
+
         this.draw();
 
         // Fire 'add' event once the marker has been created.
@@ -505,7 +517,7 @@
 
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');
-    };
+    }
 
 
 //// Getter to be roughly equivalent to the regular google.maps.Marker ////

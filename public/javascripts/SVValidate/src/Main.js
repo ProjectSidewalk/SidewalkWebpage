@@ -104,7 +104,7 @@ function Main (param) {
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
         svv.ui.status.zoomInButton = $("#zoom-in-button");
         svv.ui.status.zoomOutButton = $("#zoom-out-button");
-        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
+        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-button");
 
         svv.ui.status.examples = {};
         svv.ui.status.examples.example1 = $("#example-image-1");
@@ -116,6 +116,7 @@ function Main (param) {
         svv.ui.status.examples.counterExample3 = $("#counterexample-image-3");
         svv.ui.status.examples.counterExample4 = $("#counterexample-image-4");
         svv.ui.status.examples.popup = $("#example-image-popup-holder");
+
         svv.ui.status.examples.popupDescription = $("#example-image-popup-description");
         svv.ui.status.examples.popupImage = $("#example-image-popup");
         svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
