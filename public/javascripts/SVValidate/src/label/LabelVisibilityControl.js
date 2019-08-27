@@ -6,9 +6,10 @@
  * @constructor
  */
 function LabelVisibilityControl () {
-    var self = this;
-    var visible = true;
-    var labelVisibilityControlButton = $("#label-visibility-control-button");
+    let self = this;
+    let visible = true;
+    let labelVisibilityControlButton = $("#label-visibility-control-button");
+    let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -28,29 +29,38 @@ function LabelVisibilityControl () {
      * depending on current state.
      */
     function unhideLabel () {
-        svv.panorama.showLabel();
+	var panomarker = svv.panorama.getPanomarker();
+	var label = svv.panorama.getCurrentLabel();
+	panomarker.setIcon(label.getIconUrl());
+        panomarker.draw();
         visible = true;
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `<u>H</u>ide Label</button>`;
+        labelVisibilityButtonOnPano.html(htmlString);
+        htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
-        $("#label-visibility-control-button").html(htmlString);
+	labelVisibilityControlButton.html(htmlString);
     }
 
     /**
      * Hides label in Google StreetView Panorama.
      */
     function hideLabel () {
-        svv.panorama.hideLabel();
+        var panomarker = svv.panorama.getPanomarker();
+	panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
+	panomarker.draw();
         visible = false;
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `S<u>h</u>ow Label</button>`;
+        labelVisibilityButtonOnPano.html(htmlString);
+	htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br />S<u>h</u>ow Label</button>`;
-        $("#label-visibility-control-button").html(htmlString);
+	labelVisibilityControlButton.html(htmlString);
     }
 
     /**
      * Refreshes label visual state
      */
     function refreshLabel () {
-        var htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
         $("#label-visibility-control-button").html(htmlString);
         $("#label-visibility-control-button").css({
@@ -58,10 +68,14 @@ function LabelVisibilityControl () {
         });
     }
 
+    /**
+     * Returns true if label is currently not hidden, false otherwise.
+     */
     function isVisible () {
         return visible;
     }
 
+/*
     function show () {
         var button = document.getElementById('label-description');
 	    var marker = document.getElementById('validate-pano-marker');
@@ -85,6 +99,40 @@ function LabelVisibilityControl () {
         hide();
         e.stopPropagation();
     });
+*/
+
+    /**
+     * Shows the 'Show/Hide Label' button and the description box on panorama.
+     */
+    function show () {
+        var button = document.getElementById("label-visibility-button-on-pano");
+        var desBox = document.getElementById('label-description');
+	var marker = document.getElementById("validate-pano-marker");
+
+        button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
+        button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
+	button.style.visibility = 'visible';
+
+        desBox.style.right = (710 - parseFloat(marker.style.left)) + 'px';
+        desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
+	desBox.style.visibility = 'visible';
+    }
+
+    /**
+     * Hides the 'Show/Hide Label' button and the description box on GSV pano.
+     */
+    function hide () {
+        document.getElementById("label-visibility-button-on-pano").style.visibility = 'hidden';
+        document.getElementById("label-description").style.visibility = 'hidden';
+    }
+
+    labelVisibilityControlButton.on('click', clickAdjustLabel);
+    labelVisibilityButtonOnPano.on('click', clickAdjustLabel);
+    labelVisibilityButtonOnPano.on('mouseover', function (e) {
+	show();
+	e.stopPropagation();
+    });
+    labelVisibilityButtonOnPano.on('mouseout', hide);
 
     self.hideLabel = hideLabel;
     self.unhideLabel = unhideLabel;
@@ -94,5 +142,5 @@ function LabelVisibilityControl () {
     self.hide = hide;
 
     return this;
-
 }
+

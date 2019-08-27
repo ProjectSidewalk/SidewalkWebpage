@@ -1,7 +1,7 @@
 function Keyboard(menuUI) {
-    var self = this;
-    var lastShiftKeyDownTimestamp = undefined;
-    var status = {
+    let self = this;
+    let lastShiftKeyDownTimestamp = undefined;
+    let status = {
         disableKeyboard: false,
         keyPressed: false,
         shiftDown: false
@@ -26,14 +26,24 @@ function Keyboard(menuUI) {
 
         // It does not look like GSV StreetView supports any listeners that will check when the
         // panorama is fully loaded yet.
-        var timestamp = new Date().getTime();
+        let timestamp = new Date().getTime();
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);
-            svv.panorama.getCurrentLabel().validate(action);
+            svv.panorama.getCurrentLabel().validate(action, svv.panorama);
             svv.panorama.setProperty('validationTimestamp', timestamp);
             status.keyPressed = true;
         }
+    }
+
+    /**
+     * Removes the visual effect of the buttons being pressed down.
+     */
+    function removeAllKeyPressVisualEffect () {
+        menuUI.agreeButton.removeClass("validate");
+        menuUI.disagreeButton.removeClass("validate");
+        menuUI.notSureButton.removeClass("validate");
+        status.keyPressed = false;
     }
 
     this._documentKeyDown = function (e) {
@@ -100,23 +110,25 @@ function Keyboard(menuUI) {
     };
 
     this._documentKeyUp = function (e) {
-        switch (e.keyCode) {
-            // "a" key
-            case 65:
-                menuUI.agreeButton.removeClass("validate");
-                status.keyPressed = false;
-                break;
-            // "d" key
-            case 68:
-                menuUI.disagreeButton.removeClass("validate");
-                status.keyPressed = false;
-                break;
-            // "n" key
-            case 78:
-                menuUI.notSureButton.removeClass("validate");
-                status.keyPressed = false;
-                break;
-        }
+        if (!status.disableKeyboard) {
+            switch (e.keyCode) {
+                // "a" key
+                case 65:
+                    menuUI.agreeButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "d" key
+                case 68:
+                    menuUI.disagreeButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "n" key
+                case 78:
+                    menuUI.notSureButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+            }
+         }
     };
 
     $(document).bind('keyup', this._documentKeyUp);
@@ -124,6 +136,7 @@ function Keyboard(menuUI) {
 
     self.disableKeyboard = disableKeyboard;
     self.enableKeyboard = enableKeyboard;
+    self.removeAllKeyPressVisualEffect = removeAllKeyPressVisualEffect;
 
     return this;
 }

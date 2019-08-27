@@ -71,25 +71,31 @@ function ModalMissionCompleteProgressBar (uiModalMissionComplete) {
      * @private
      */
     this.update = function (missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate) {
+
+        // Round the rates to 0.01 accuracy.
+        var roundedMissionDistanceRate = parseFloat(missionDistanceRate.toFixed(3));
+        var roundedUserAuditedDistanceRate = parseFloat(userAuditedDistanceRate.toFixed(3));
+        var roundedOtherAuditedDistanceRate = parseFloat(otherAuditedDistanceRate.toFixed(3));
+
         horizontalBarOtherContribution.attr("width", 0)
             .transition()
             .delay(200)
             .duration(600)
-            .attr("width", otherAuditedDistanceRate * svgCoverageBarWidth);
+            .attr("width", roundedOtherAuditedDistanceRate * svgCoverageBarWidth);
 
         horizontalBarPreviousContribution.attr("width", 0)
-            .attr("x", otherAuditedDistanceRate * svgCoverageBarWidth)
+            .attr("x", roundedOtherAuditedDistanceRate * svgCoverageBarWidth)
             .transition()
             .delay(800)
             .duration(600)
-            .attr("width", userAuditedDistanceRate * svgCoverageBarWidth);
+            .attr("width", roundedUserAuditedDistanceRate * svgCoverageBarWidth);
 
         horizontalBarMission.attr("width", 0)
-            .attr("x", (otherAuditedDistanceRate + userAuditedDistanceRate) * svgCoverageBarWidth)
+            .attr("x", (roundedOtherAuditedDistanceRate + roundedUserAuditedDistanceRate) * svgCoverageBarWidth)
             .transition()
             .delay(1400)
             .duration(600)
-            .attr("width", missionDistanceRate * svgCoverageBarWidth);
-        horizontalBarMissionLabel.text(parseInt((userAuditedDistanceRate + missionDistanceRate) * 100, 10) + "%");
+            .attr("width", Math.max(1, roundedMissionDistanceRate * svgCoverageBarWidth));
+        horizontalBarMissionLabel.text(parseInt(((roundedUserAuditedDistanceRate + roundedMissionDistanceRate) * 100).toString(), 10) + "%");
     };
 }

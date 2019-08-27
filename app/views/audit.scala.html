@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -319,6 +319,9 @@
                     </div>
                 </div>
                 <div id="street-view-holder">
+                    <div id="svl-panorama-date-holder">
+                        <span id="svl-panorama-date"></span>
+                    </div>
                     <div id="ribbon-street-view-connector"><!-- border --></div>
                     <!-- You can put an extra div element on top of the Street View div panel to disable any of StreetView control. -->
                     <div id="pano" class="Window_StreetView" style="z-index: 0;" ></div>
@@ -468,26 +471,29 @@
             <div id="modal-skip-holder" class="hidden">
                 <div id="modal-skip-background"></div>
                 <div id="modal-skip-box">
+                    <div id="modal-skip-box-new-location"></div>
+                    <div id="modal-skip-box-new-neighborhood"></div>
                     <div id="modal-skip-title" class="bold">
                         <p>Jump to another location because:</p>
                     </div>
-                    <div id="modal-skip-content">
-                        <div class="radio">
-                            <label>
-                                <input class="modal-skip-radio-buttons" type="radio" value="IWantToExplore" name="modal-skip-radio">
-                                I want to explore another area!
-                            </label>
-                        </div>
-                        <div class="radio">
-                            <label>
-                                <input class="modal-skip-radio-buttons" type="radio" value="GSVNotAvailable" name="modal-skip-radio">
-                                I cannot go the direction that you want me to walk.
-                            </label>
-                        </div>
-                        <div>
-                            <button class="button" id="modal-skip-ok-button">OK</button>&nbsp;
-                            <button class="button" id="modal-skip-cancel-button">Cancel</button>
-                        </div>
+                    <div id="modal-skip-box-content">
+                        <input type="button" class="overlay-option" id="modal-skip-explore" value="I want to explore another area!">
+                        <input type="button" class="overlay-option" id="modal-skip-unavailable" value="I cannot go the direction you want me to walk.">
+                    </div>
+                    <div class="modal-skip-cancel-button">
+                        <button class="button" id="modal-skip-cancel-first-button">Cancel</button>
+                    </div>
+                </div>
+                <div id="modal-skip-box-neighborhood">
+                    <div id="modal-skip-neighborhood-title" class="bold">
+                        <p>Go to a new location or a new neighborhood?</p>
+                    </div>
+                    <div id="modal-skip-neighborhood-content">
+                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="Go to a new location in this neighborhood">
+                        <input type="button" class="overlay-option" id="modal-skip-redirect-jump" value="Go to a new neighborhood">
+                    </div>
+                    <div class="modal-skip-cancel-button">
+                        <button class="button" id="modal-skip-cancel-second-button">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -1048,7 +1054,8 @@
 
             mainParam.nextTemporaryLabelId = @nextTempLabelId;
             mainParam.mission = @Html(mission.toJSON.toString);
-            mainParam.tutorialStreetId = @tutorialStreetId
+            mainParam.tutorialStreetId = @tutorialStreetId;
+            mainParam.hasCompletedAMission = @hasCompletedMission;
 
             svl.main = new Main(mainParam);
         }

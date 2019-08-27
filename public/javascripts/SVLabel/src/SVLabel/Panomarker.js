@@ -179,6 +179,9 @@
         /** @private @type {number} */
         this.zIndex_ = opts.zIndex || 1;
 
+        /** @private @type {Object} */
+        this.markerContainer_ = opts.markerContainer || null;
+
         // At last, call some methods which use the initialized parameters
         this.setPano(opts.pano || null, opts.container);
     };
@@ -427,10 +430,10 @@
         descriptionBox.id = 'label-description';
 
         iconColors = {
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png': 'rgb(0, 222, 38)',
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png': 'rgb(233, 39, 113)',
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png': 'rgb(0, 161, 203)',
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png': 'rgb(241, 141, 5)'
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png': 'rgba(0, 222, 38, 0.9)',
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png': 'rgba(233, 39, 113, 0.9)',
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png': 'rgba(0, 161, 203, 0.9)',
+            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png': 'rgba(241, 141, 5, 0.9)'
         }
         descriptionBox.style['background-color'] = iconColors[this.icon_];
 
@@ -449,40 +452,45 @@
             img.setAttribute('src', smileyScale[this.severity_]);
             img.setAttribute('width', '12px');
             img.setAttribute('height', '12px');
+            img.style.verticalAlign = 'middle';
             descriptionBox.appendChild(img);
-            linebreak = document.createElement('br');
-            descriptionBox.appendChild(linebreak);
+            descriptionBox.appendChild(document.createElement("br"));
         }
 
         if (this.temporary_) {
             var htmlString = document.createTextNode('Temporary');
             descriptionBox.appendChild(htmlString);
-            linebreak = document.createElement('br');
-            descriptionBox.appendChild(linebreak);
+            descriptionBox.appendChild(document.createElement("br"));
         }
 
-        if (this.description_) {
+        if (this.description_ && this.description_.trim().length > 0) {
             var htmlString = document.createTextNode(this.description_);
             descriptionBox.appendChild(htmlString);
-            linebreak = document.createElement('br');
-            descriptionBox.appendChild(linebreak);
+            descriptionBox.appendChild(document.createElement("br"));
         }
 
-        if (this.tags_) {
-            var htmlString = document.createTextNode(this.tags_);
+        if (this.tags_ && this.tags_.length > 0) {
+            var tag = this.tags_.join(', ');
+            var htmlString = document.createTextNode(tag);
             descriptionBox.appendChild(htmlString);
         }
 
-        if (!(this.severity_ != 0 || this.temporary_ || this.description_ || this.tags_)) {
+        if (!this.severity_ && !this.temporary_ && (!this.description_ || this.description_.trim().length == 0) &&
+           (!this.tags_ || this.tags_.length == 0)) {
             var htmlString = document.createTextNode('No available information');
             descriptionBox.appendChild(htmlString);
         }
 
         this.descriptionBox_ = descriptionBox;
-        this.getPanes().overlayMouseTarget.appendChild(descriptionBox);
-
         this.marker_ = marker;
-        this.getPanes().overlayMouseTarget.appendChild(marker);
+
+        // Add marker to viewControlLayer if on validate page.
+        if (this.markerContainer_ == null) {
+            this.markerContainer_ = this.getPanes().overlayMouseTarget;
+        }
+        
+        this.markerContainer_.appendChild(descriptionBox);
+        this.markerContainer_.appendChild(marker);
 
         // Attach to some global events
         window.addEventListener('resize', this.draw.bind(this));
@@ -502,19 +510,19 @@
 
         marker.addEventListener(eventName, this.onClick.bind(this), false);
 
+	// If this is a validation label, we want to add mouse-hovering event
+	// for popped up hide/show label.
+	if (this.id_ === "validate-pano-marker") {
+	    marker.addEventListener("mouseover", function () {
+		svv.labelVisibilityControl.show();
+	    });
+
+	    marker.addEventListener("mouseout", function () {
+		svv.labelVisibilityControl.hide();
+	    });
+	}
+
         this.draw();
-
-    	// If this is a validation label, we want to add mouse-hovering event
-    	// for popped up hide/show label.
-    	if (this.id_ === "validate-pano-marker") {
-    	    marker.addEventListener("mouseover", function () {
-    		    svv.labelVisibilityControlButton.show();
-    	    });
-
-     	    marker.addEventListener("mouseout", function () {
-                svv.labelVisibilityControlButton.hide();
-    	    });
-    	}
 
         // Fire 'add' event once the marker has been created.
         google.maps.event.trigger(this, 'add', this.marker_);
@@ -576,7 +584,7 @@
 
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');
-    };
+    }
 
 
 //// Getter to be roughly equivalent to the regular google.maps.Marker ////

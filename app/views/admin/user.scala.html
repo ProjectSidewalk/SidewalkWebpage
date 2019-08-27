@@ -103,7 +103,7 @@
                     <tbody>
                     @LabelTable.selectTopLabelsAndMetadataByUser(1000, UUID.fromString(user.get.userId)).map { userLabel =>
                         <tr>
-                            <td>@userLabel.timestamp</td>
+                            <td class = 'timestamp'>@userLabel.timestamp</td>
                             <td>@userLabel.labelTypeKey</td>
                             <td>@userLabel.severity</td>
                             <td>@userLabel.temporary</td>
@@ -170,7 +170,7 @@
                     <tr><th class="col-md-3">Timestamp</th><th class="col-md-3">Panorama Id</th><th class="col-md-6">Comment</th></tr>
                     @AuditTaskCommentTable.all(user.get.username).getOrElse(List()).map { comment =>
                         <tr>
-                            <td>@comment.timestamp</td>
+                            <td class = 'timestamp'>@comment.timestamp</td>
                             <td>@comment.gsvPanoramaId</td>
                             <td>@comment.comment</td>
                         </tr>
@@ -184,6 +184,7 @@
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore.min.js")'></script>
@@ -193,6 +194,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
 
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />

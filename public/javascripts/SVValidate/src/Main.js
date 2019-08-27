@@ -3,13 +3,15 @@ var svv = svv || {};
 
 /**
  * Main module for SVValidate (Validation interface)
- * @param params    Object passed from validation.scala.html containing initial values pulled from
+ * @param param    Object passed from validation.scala.html containing initial values pulled from
  *                  the database on page load. (Currently, mission and labels)
  * @constructor
  */
 function Main (param) {
-    svv.canvasHeight = 440;
-    svv.canvasWidth = 720;
+    svv.canvasHeight = param.canvasHeight;
+    svv.canvasWidth = param.canvasWidth;
+
+    svv.missionsCompleted = 0;
 
     // Maps label types to label names
     svv.labelNames = {
@@ -88,7 +90,7 @@ function Main (param) {
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
         svv.ui.status.zoomInButton = $("#zoom-in-button");
         svv.ui.status.zoomOutButton = $("#zoom-out-button");
-        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
+        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-button");
 
         svv.ui.status.examples = {};
         svv.ui.status.examples.example1 = $("#example-image-1");
@@ -100,6 +102,7 @@ function Main (param) {
         svv.ui.status.examples.counterExample3 = $("#counterexample-image-3");
         svv.ui.status.examples.counterExample4 = $("#counterexample-image-4");
         svv.ui.status.examples.popup = $("#example-image-popup-holder");
+
         svv.ui.status.examples.popupDescription = $("#example-image-popup-description");
         svv.ui.status.examples.popupImage = $("#example-image-popup");
         svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
@@ -117,13 +120,16 @@ function Main (param) {
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
 
-        svv.keyboard = new Keyboard(svv.ui.validation);
-        svv.labelContainer = new LabelContainer();
-        svv.panoramaContainer = new PanoramaContainer(param.labelList);
-        svv.zoomControl = new ZoomControl();
-        svv.labelVisibilityControlButton = new LabelVisibilityControl();
+        svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
 
-        svv.menuButtons = new MenuButton(svv.ui.validation);
+        // There are certain features that will only make sense if we have one validation interface on the screen.
+        if (param.canvasCount === 1) {
+            svv.gsvOverlay = new GSVOverlay();
+            svv.keyboard = new Keyboard(svv.ui.validation);
+            svv.labelVisibilityControl = new LabelVisibilityControl();
+            svv.zoomControl = new ZoomControl();
+        }
+
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
@@ -134,6 +140,15 @@ function Main (param) {
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
+
+        $('#sign-in-modal-container').on('hide.bs.modal', function () {
+            svv.keyboard.enableKeyboard();
+            $(".toolUI").css('opacity', 1);
+        });
+        $('#sign-in-modal-container').on('show.bs.modal', function () {
+            svv.keyboard.disableKeyboard();
+            $(".toolUI").css('opacity', 0.5);
+        });
     }
 
     _initUI();
@@ -141,11 +156,10 @@ function Main (param) {
     if (param.hasNextMission) {
         _init();
     } else {
+        svv.keyboard = new Keyboard(svv.ui.validation);
         svv.form = new Form(param.dataStoreUrl);
         svv.tracker = new Tracker();
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
         svv.modalNoNewMission.show();
     }
-
-    return this;
 }

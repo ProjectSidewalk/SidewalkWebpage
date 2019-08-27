@@ -51,6 +51,20 @@ function LabelContainer($) {
     };
 
     /**
+     * Fetches all the labels that the user has placed in given region
+     * @param regionId - ID of region
+     * @param callback - function to handle response
+     */
+    this.miniMapLabelsInRegion = function (regionId, callback) {
+        $.getJSON(
+            '/label/miniMapResume',
+            { regionId: regionId },
+            function (result) {
+                if (callback) callback(result);
+            });
+    };
+
+    /**
      * Returns canvas labels.
      */
     this.getCanvasLabels = function () {

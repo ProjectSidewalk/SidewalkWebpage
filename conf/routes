@@ -82,6 +82,7 @@ POST    /audit/groundtruth/markComplete                      @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
+GET     /rapidValidate                                       @controllers.ValidationController.rapidValidate
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
@@ -101,6 +102,7 @@ GET     /rewardEarned                                        @controllers.Missio
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
+GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
 POST    /label/geo/random/:labelType                         @controllers.ValidationTaskController.getRandomLabelData(labelType: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
@@ -130,8 +132,8 @@ POST    /userapi/logWebpageActivity                          @controllers.UserCo
 # Geometry API
 
 # Access Feature and Access Score APIs
-GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String])
+GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String])
 GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
