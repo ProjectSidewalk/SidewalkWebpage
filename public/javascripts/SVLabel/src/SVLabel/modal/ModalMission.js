@@ -79,6 +79,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             );
         }
         self.hide();
+        ZoomInAlertUtil.showZoomInAlert();
     };
 
     /**

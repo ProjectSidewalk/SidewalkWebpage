@@ -36,6 +36,7 @@ function ModalMission (uiModalMission, user) {
             svv.zoomControl.updateZoomAvailability();
         }
         hide();
+        ZoomInAlertUtil.showZoomInAlert();
     }
 
     /**
