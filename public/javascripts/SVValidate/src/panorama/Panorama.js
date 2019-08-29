@@ -214,12 +214,8 @@ function Panorama (label, id) {
      * @returns {renderLabel}
      */
     function renderLabel() {
-        var url = currentLabel.getIconUrl();
-        var pos = currentLabel.getPosition();
-        var sev = currentLabel.getAuditProperty('severity');
-        var temp = currentLabel.getAuditProperty('temporary');
-        var desc = currentLabel.getAuditProperty('description');
-        var tags = currentLabel.getAuditProperty('tags');
+        let url = currentLabel.getIconUrl();
+        let pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
             let controlLayer = document.getElementById("viewControlLayer");
@@ -231,11 +227,7 @@ function Panorama (label, id) {
                 position: {heading: pos.heading, pitch: pos.pitch},
                 icon: url,
                 size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
-                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
-                severity: sev,
-                temporary: temp,
-                description: desc,
-                tags: tags
+                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius())
             });
         } else {
             self.labelMarker.setPano(panorama, panoCanvas);
@@ -244,10 +236,6 @@ function Panorama (label, id) {
                 pitch: pos.pitch
             });
             self.labelMarker.setIcon(url);
-            self.labelMarker.setSeverity(sev);
-            self.labelMarker.setTemporariness(temp);
-            self.labelMarker.setDescription(desc);
-            self.labelMarker.setTags(tags);
         }
         return this;
     }
@@ -281,6 +269,10 @@ function Panorama (label, id) {
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
+        // Only set description box if on /validate and not /rapidValidate.
+        if (typeof svv.labelDescriptionBox !== 'undefined') {
+            svv.labelDescriptionBox.reset(label);
+        }
         renderLabel();
     }
 

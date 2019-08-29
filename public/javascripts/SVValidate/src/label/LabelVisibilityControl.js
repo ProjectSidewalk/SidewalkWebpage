@@ -10,6 +10,7 @@ function LabelVisibilityControl () {
     let visible = true;
     let labelVisibilityControlButton = $("#label-visibility-control-button");
     let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");
+    let labelDescriptionBox = document.getElementById("label-description-box");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -80,24 +81,27 @@ function LabelVisibilityControl () {
      */
     function show () {
         var button = document.getElementById("label-visibility-button-on-pano");
-        var desBox = document.getElementById('label-description');
 	var marker = document.getElementById("validate-pano-marker");
 
+        // Position the button to the top right corner of the label, 10px right and
+        // 15px up from center of the label.
         button.style.left = (parseFloat(marker.style.left) + 10) + 'px';
         button.style.top = (parseFloat(marker.style.top) - 15) + 'px';
 	button.style.visibility = 'visible';
-
-        desBox.style.right = (710 - parseFloat(marker.style.left)) + 'px';
-        desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
-	desBox.style.visibility = 'visible';
+        
+        // Position the box to the lower left corner of the label, 10px left and
+        // 10px down from center of the label.
+        labelDescriptionBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
+        labelDescriptionBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
+	labelDescriptionBox.style.visibility = 'visible';
     }
 
     /**
      * Hides the 'Show/Hide Label' button and the description box on GSV pano.
      */
     function hide () {
-        document.getElementById("label-visibility-button-on-pano").style.visibility = 'hidden';
-        document.getElementById("label-description").style.visibility = 'hidden';
+        labelVisibilityButtonOnPano[0].style.visibility = 'hidden';
+        labelDescriptionBox.style.visibility = 'hidden';
     }
 
     labelVisibilityControlButton.on('click', clickAdjustLabel);

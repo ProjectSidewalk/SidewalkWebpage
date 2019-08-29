@@ -44,6 +44,7 @@
     height: 440px;
     left: 0;
     top: 0;
+    overflow: hidden;
 }
 
 .button.label-visibility-button-on-pano {
@@ -56,11 +57,10 @@
     width: 65px;	
 }
 
-#label-description {
+#label-description-box {
+    display: block;
     visibility: hidden;
     max-width: 260px;
-    width: auto;
-    height: auto;
     position: absolute;
     color: white;
     font-family: "Open sans";
