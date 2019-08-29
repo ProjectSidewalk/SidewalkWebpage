@@ -134,23 +134,8 @@
         /** @private @type {?string} */
         this.id_ = opts.id || null;
 
-        /** @private @type {?number} */
-        this.severity_ = opts.severity || null;
-
-        /** @private @type {boolean} */
-        this.temporary_ = opts.temporary || false;
-
-        /** @private @type {?string} */
-        this.description_ = opts.description || null;
-
-        /** @private @type {?string} */
-        this.tags_ = opts.tags || null;
-
         /** @private @ŧype {?HTMLDivElement} */
         this.marker_ = null;
-
-        /** @private @ŧype {?HTMLDivElement} */
-        this.descriptionBox_ = null;
 
         /** @private @type {?google.maps.StreetViewPanorama} */
         this.pano_ = null;
@@ -426,62 +411,6 @@
                 'mapfiles/ms/micons/red-dot.png)';
         }
 
-        var descriptionBox = document.createElement('div');
-        descriptionBox.id = 'label-description';
-
-        iconColors = {
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png': 'rgba(0, 222, 38, 0.9)',
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png': 'rgba(233, 39, 113, 0.9)',
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png': 'rgba(0, 161, 203, 0.9)',
-            '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png': 'rgba(241, 141, 5, 0.9)'
-        }
-        descriptionBox.style['background-color'] = iconColors[this.icon_];
-
-	    smileyScale = {
-	        1: '/assets/javascripts/SVLabel/img/misc/SmileyScale_1_White_Small.png',
-	        2: '/assets/javascripts/SVLabel/img/misc/SmileyScale_2_White_Small.png',
-	        3: '/assets/javascripts/SVLabel/img/misc/SmileyScale_3_White_Small.png',
-	        4: '/assets/javascripts/SVLabel/img/misc/SmileyScale_4_White_Small.png',
-	        5: '/assets/javascripts/SVLabel/img/misc/SmileyScale_5_White_Small.png'
-	    }
-
-        if (this.severity_ && this.severity_ != 0) {
-            var htmlString = document.createTextNode('Severity: ' + this.severity_ + ' ');
-            descriptionBox.appendChild(htmlString);
-            var img = document.createElement('img');
-            img.setAttribute('src', smileyScale[this.severity_]);
-            img.setAttribute('width', '12px');
-            img.setAttribute('height', '12px');
-            img.style.verticalAlign = 'middle';
-            descriptionBox.appendChild(img);
-            descriptionBox.appendChild(document.createElement("br"));
-        }
-
-        if (this.temporary_) {
-            var htmlString = document.createTextNode('Temporary');
-            descriptionBox.appendChild(htmlString);
-            descriptionBox.appendChild(document.createElement("br"));
-        }
-
-        if (this.description_ && this.description_.trim().length > 0) {
-            var htmlString = document.createTextNode(this.description_);
-            descriptionBox.appendChild(htmlString);
-            descriptionBox.appendChild(document.createElement("br"));
-        }
-
-        if (this.tags_ && this.tags_.length > 0) {
-            var tag = this.tags_.join(', ');
-            var htmlString = document.createTextNode(tag);
-            descriptionBox.appendChild(htmlString);
-        }
-
-        if (!this.severity_ && !this.temporary_ && (!this.description_ || this.description_.trim().length == 0) &&
-           (!this.tags_ || this.tags_.length == 0)) {
-            var htmlString = document.createTextNode('No available information');
-            descriptionBox.appendChild(htmlString);
-        }
-
-        this.descriptionBox_ = descriptionBox;
         this.marker_ = marker;
 
         // Add marker to viewControlLayer if on validate page.
@@ -489,7 +418,6 @@
             this.markerContainer_ = this.getPanes().overlayMouseTarget;
         }
         
-        this.markerContainer_.appendChild(descriptionBox);
         this.markerContainer_.appendChild(marker);
 
         // Attach to some global events
@@ -579,8 +507,6 @@
         google.maps.event.removeListener(this.zoomListener_);
         this.marker_.parentNode.removeChild(this.marker_);
         this.marker_ = null;
-        this.descriptionBox_.parentNode.removeChild(this.descriptionBox_);
-        this.descriptionBox_ = null;
 
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');
@@ -631,22 +557,6 @@
 
     /** @return {number} The marker's z-index. */
     PanoMarker.prototype.getZIndex = function() { return this.zIndex_; };
-
-
-    /** @return {number} The description box's severity. */
-    PanoMarker.prototype.getSeverity = function() { return this.severity_; };
-
-
-    /** @return {number} The description box's temporariness. */
-    PanoMarker.prototype.getTemporariness = function() { return this.temporary_; };
-
-
-    /** @return {number} The description box's description */
-    PanoMarker.prototype.getDescription = function() { return this.description_; };
-
-
-    /** @return {number} The description box's tags. */
-    PanoMarker.prototype.getTags = function() { return this.tags_; };
 
 //// Setter for the properties mentioned above ////
 
@@ -788,29 +698,6 @@
         }
     };
 
-
-    /** @param {number} severity The new severity. */
-    PanoMarker.prototype.setSeverity = function(severity) {
-        this.severity_ = severity;
-    };
-
-
-    /** @param {boolean} temporary The new temporariness. */
-    PanoMarker.prototype.setTemporariness = function(temporary) {
-        this.temporary_ = temporary;
-    };
-
-
-    /** @param {string} description The new description. */
-    PanoMarker.prototype.setDescription = function(description) {
-        this.description_ = description;
-    };
-
-
-    /** @param {string} tags The new tags. */
-    PanoMarker.prototype.setTags = function(tags) {
-        this.tags_ = tags;
-    };
-
     return PanoMarker;
 }));
+
