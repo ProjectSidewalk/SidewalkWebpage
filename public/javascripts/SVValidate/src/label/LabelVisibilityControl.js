@@ -30,8 +30,8 @@ function LabelVisibilityControl () {
      * depending on current state.
      */
     function unhideLabel () {
-	var panomarker = svv.panorama.getPanomarker();
-	var label = svv.panorama.getCurrentLabel();
+	let panomarker = svv.panorama.getPanomarker();
+	let label = svv.panorama.getCurrentLabel();
 	panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
@@ -46,7 +46,7 @@ function LabelVisibilityControl () {
      * Hides label in Google StreetView Panorama.
      */
     function hideLabel () {
-        var panomarker = svv.panorama.getPanomarker();
+        let panomarker = svv.panorama.getPanomarker();
 	panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
 	panomarker.draw();
         visible = false;
@@ -80,8 +80,8 @@ function LabelVisibilityControl () {
      * Shows the 'Show/Hide Label' button and the description box on panorama.
      */
     function show () {
-        var button = document.getElementById("label-visibility-button-on-pano");
-	var marker = document.getElementById("validate-pano-marker");
+        let button = document.getElementById("label-visibility-button-on-pano");
+	let marker = document.getElementById("validate-pano-marker");
 
         // Position the button to the top right corner of the label, 10px right and
         // 15px up from center of the label.
