@@ -179,8 +179,8 @@
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
-            param.canvasHeight = 440;
-            param.canvasWidth = 720;
+            param.canvasHeight = window.innerHeight;
+            param.canvasWidth = window.innerWidth;
             param.canvasCount = 1;
 
             if (@hasNextMission) {

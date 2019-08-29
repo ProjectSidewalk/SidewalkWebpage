@@ -24,8 +24,8 @@ function ModalInfo (uiModal) {
     }
 
     function setMissionInfo(mission) {
-        infoHeaderHTML = infoHeaderHTML.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
-        descriptionHTML = descriptionHTML.replace("__DESCRIPTION_PLACEHOLDER__", mission.getLabelTypeDescription(mission.getProperty("labelTypeId")));
+        infoHeaderHTML = "What is a " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + "?";
+        descriptionHTML = mission.getLabelTypeDescription(mission.getProperty("labelTypeId"));
     }
 
     function show () {

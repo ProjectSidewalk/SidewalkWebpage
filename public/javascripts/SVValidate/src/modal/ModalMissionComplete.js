@@ -6,7 +6,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     let watch;
 
     function _handleButtonClick() {
-        if (svv.missionsCompleted === 3) {
+        if (svv.missionsCompleted === 3 && !isMobile()) {
             // Load the audit page since they've done 3 missions.
             window.location.replace('/audit');
         } else {
