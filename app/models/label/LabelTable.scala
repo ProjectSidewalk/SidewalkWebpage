@@ -129,11 +129,20 @@ object LabelTable {
                                      canvasY: Int, canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
                                      temporary: Boolean, description: Option[String], tags: List[String])
 
+  case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
+                                     heading: Float, pitch: Float, zoom: Int, canvasX: Int,
+                                     canvasY: Int, canvasWidth: Int, canvasHeight: Int, severity: Option[Int],
+                                     temporary: Boolean, description: Option[String]); 
+
   case class LabelCVMetadata(gsvPanoramaId: String, svImageX: Int, svImageY: Int,
                              labelTypeId: Int, photographerHeading: Float, heading: Float,
                              userRole: String, username: String, missionType: String, labelId: Int)
 
   case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
+
+  implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
+    LabelValidationMetadataWithoutTags(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt,
+                                       r.nextInt, r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption))
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -491,7 +500,7 @@ object LabelTable {
     * @return         LabelValidationMetadata object.
     */
   def retrieveSingleLabelForValidation(labelId: Int): LabelValidationMetadata = db.withSession { implicit session =>
-    val validationLabelsQuery = Q.query[Int, (Int, String, String, Float, Float, Int, Int, Int, Int, Int, Option[Int], Boolean, Option[String])] (
+    val validationLabelsQuery = Q.query[Int, LabelValidationMetadataWithoutTags] (
       """SELECT lb.label_id, lt.label_type, lb.gsv_panorama_id, lp.heading, lp.pitch,
         |       lp.zoom, lp.canvas_x, lp.canvas_y, lp.canvas_width, lp.canvas_height,
         |       ls.severity, lte.temporary, ld.description
@@ -503,7 +512,7 @@ object LabelTable {
         |LEFT JOIN label_temporariness AS lte ON lb.label_id = lte.label_id
         |WHERE lb.label_id = ?""".stripMargin
     )
-    validationLabelsQuery(labelId).list.map(label => labelAndTagsToLabelValidationMetadata(label, getTagsFromLabelId(label._1))).head
+    validationLabelsQuery(labelId).list.map(label => labelAndTagsToLabelValidationMetadata(label, getTagsFromLabelId(label.labelId))).head
   }
 
   /**
@@ -545,12 +554,11 @@ object LabelTable {
     */
   def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-    var potentialLabels: List[(Int, String, String, Float, Float, Int, Int, Int, Int, Int, Option[Int], Boolean, Option[String])] = List()
+    var potentialLabels: List[LabelValidationMetadataWithoutTags] = List()
     val userIdStr = userId.toString
 
     while (selectedLabels.length < n) {
-      val selectRandomLabelsQuery = Q.query[(String, Int, Int, String, String, Int), (Int, String, String, Float, Float, Int, Int,
-                                             Int, Int, Int, Option[Int], Boolean, Option[String])] (
+      val selectRandomLabelsQuery = Q.query[(String, Int, Int, String, String, Int), LabelValidationMetadataWithoutTags] (
         """SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, label_point.heading, label_point.pitch,
           |       label_point.zoom, label_point.canvas_x, label_point.canvas_y,
           |       label_point.canvas_width, label_point.canvas_height,
@@ -614,13 +622,13 @@ object LabelTable {
           potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
 
             // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-            if (panoExists(currLabel._3)) {
+            if (panoExists(currLabel.gsvPanoramaId)) {
               val now = new DateTime(DateTimeZone.UTC)
               val timestamp: Timestamp = new Timestamp(now.getMillis)
-              GSVDataTable.markLastViewedForPanorama(currLabel._3, timestamp)
-              Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel._1)))
+              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+              Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
             } else {
-              GSVDataTable.markExpired(currLabel._3, expired = true)
+              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
               None
             }
           }.seq
@@ -639,10 +647,9 @@ object LabelTable {
     * @param tags list of tags as strings
     * @return LabelValidationMetadata object
     */
-  def labelAndTagsToLabelValidationMetadata(label: (Int, String, String, Float, Float, Int, Int, Int, Int, Int, Option[Int], Boolean, Option[String]),
-                                                    tags: List[String]): LabelValidationMetadata = {
-      LabelValidationMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
-                    label._9, label._10, label._11, label._12, label._13, tags)
+  def labelAndTagsToLabelValidationMetadata(label: LabelValidationMetadataWithoutTags, tags: List[String]): LabelValidationMetadata = {
+      LabelValidationMetadata(label.labelId, label.labelType, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
+                    label.canvasWidth, label.canvasHeight, label.severity, label.temporary, label.description, tags)
   }
 
   /**.
