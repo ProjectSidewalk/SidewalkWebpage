@@ -6,7 +6,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     let watch;
 
     function _handleButtonClick() {
-        if (svv.missionsCompleted === 3) {
+        if (svv.missionsCompleted === 3 && !isMobile()) {
             // Load the audit page since they've done 3 missions.
             window.location.replace('/audit');
         } else {
@@ -84,7 +84,8 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
-        // and reveal the confirmation code.
+        // and reveal the confirmation code. Take care to handle the mobile use case when this is added back in.
+
         // if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
         //     _markAmtAssignmentAsComplete();
         //     _showConfirmationCode();

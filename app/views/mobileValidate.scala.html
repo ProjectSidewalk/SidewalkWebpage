@@ -1,0 +1,212 @@
+@import models.user.User
+@import models.mission.{MissionTable, Mission}
+@import models.label.LabelTable
+@import models.label.LabelTable.LabelValidationMetadata
+@import models.amt.AMTAssignmentTable
+@import play.api.libs.json.Json
+@import play.api.libs.json.JsValue
+@import views.html.bootstrap._
+
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean)
+
+@main(title) {
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
+
+    <div id='status-current-mission-completion-bar'>
+        <div id='status-current-mission-completion-bar-filler'>
+            <div id='status-current-mission-completion-rate'></div>
+        </div>
+    </div>
+    <br class="clear">
+
+    <div id="title-bar-holder">
+        <!--<button id="back-button" class="button back-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>-->
+        <div id="upper-menu-title-bar"></div>
+        <button id="info-button" class="button info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
+        <button id="left-column-jump-button">
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
+        </button>
+    </div>
+
+    <div id="mobile-viewer">
+        <div id="svv-panorama-holder">
+            <div id="svv-panorama-outline">
+                <div id="svv-panorama-0"></div>
+            </div>
+        </div>
+        <div id="validation-button-holder">
+            <button id="validation-disagree-button-0" class="validation-button">
+                ✗ Disagree
+            </button>
+            <button id="validation-not-sure-button-0" class="validation-button">
+                ? Not sure
+            </button>
+            <button id="validation-agree-button-0" class="validation-button">
+                ✓ Agree
+            </button>
+        </div>
+        <div id="modal-mission-holder">
+            <div id="modal-mission-background" class="modal-background"></div>
+            <div id="modal-mission-foreground" class="modal-foreground">
+                <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' id="ps-logo-mission"></img>
+                <h1 id="modal-mission-header" class="text-center"></h1>
+                <div id="modal-mission-instruction"></div>
+                <button class="button" id="modal-mission-close-button">OK</button>
+            </div>
+        </div>
+        <div id="modal-info-holder">
+            <div id="modal-info-background" class="modal-background"></div>
+            <div id="modal-info-foreground" class="modal-foreground">
+                <div id="modal-info-header" class="text-center"></div>
+                <div id="modal-info-description"></div>
+                <div class="status-box">
+                    <h1 class="status-holder-header-1" id="label-type-example"></h1>
+                    <div id="example-image-holder">
+                        <img id="example-image-1" class="example-image">
+                        <img id="example-image-2" class="example-image">
+                    </div>
+                </div>
+                <div class="status-box">
+                    <h1 class="status-holder-header-2" id="label-type-counterexample"></h1>
+                    <div id="example-image-holder">
+                        <img id="counterexample-image-1" class="example-image">
+                        <img id="counterexample-image-2" class="example-image">
+                    </div>
+                </div>
+                <button class="button" id="modal-info-close-button">OK</button>
+                <button class="button" id="left-column-feedback-button">Leave Feedback</button>
+            </div>
+            <div id="modal-comment-holder" class="hidden">
+                <div id="modal-comment-box" class="modal-foreground">
+                    <form id="comment-form">
+                        <div id="modal-comment-title" class="bold">
+                            <p>
+                                Any thoughts? Found something confusing? Spotted a bug? <br />
+                                Send us comments!
+                            </p>
+                        </div>
+                        <div id="modal-comment-content">
+                            <textarea id="modal-comment-textarea" placeholder=""></textarea>
+                        </div>
+                        <div>
+                            <button class="button" id="modal-comment-ok-button" type="button">OK</button>&nbsp;
+                            <button class="button" id="modal-comment-cancel-button" type="button">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div id="modal-mission-complete-holder">
+            <div id="modal-mission-complete-background" class="modal-background"></div>
+            <div id="modal-mission-complete-foreground" class="modal-foreground">
+                <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' id="ps-logo-mission-complete"></img>
+                <h1 class="normal" id="modal-mission-complete-title"></h1>
+                <p><div id="modal-mission-complete-message"></div></p>
+                <div id="modal-mission-complete-table">
+                    <div class="col-sm-8">
+                        <h3>Category</h3>
+                        <table class="table">
+                            <tr>
+                                <th>Agree</th>
+                                <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
+                            </tr>
+                            <tr>
+                                <th>Disagree</th>
+                                <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
+                            </tr>
+                            <tr>
+                                <th>Not Sure</th>
+                                <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                            </tr>
+                        </table>
+                        <button class="btn blue-btn" id="modal-mission-complete-close-button">Validate more labels</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="modal-landscape-holder">
+            <div id="modal-landscape-background" class="modal-background"></div>
+            <div id="modal-landscape-foreground" class="modal-foreground">
+                <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' id="ps-logo-landscape"></img>
+                <div>
+                    <p id="modal-landscape-header">
+                        Welcome to Project Sidewalk!
+                    </p>
+                    <p id="modal-landscape-description">
+                        We do not currently support landscape mode on mobile or tablet devices.
+                        Please use portrait mode to proceed to Project Sidewalk.
+                    </p>
+                </div>
+                <br />
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        let param = {};
+        let userParam = {};
+
+        @if(user) {
+            userParam = {
+                username: '@user.get.username',
+                role: '@user.get.role'
+            };
+        } else {
+            userParam = {
+                username: "anonymous",
+                role: "Anonymous"
+            };
+        }
+        svv.user = new User(userParam);
+
+        let hitExpired = false;
+        @if(user && user.get.role.getOrElse("") == "Turker") {
+            let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            if (msRemaining < 0) {
+                hitExpired = true;
+            }
+        }
+        if (hitExpired) {
+            $(".toolUI").css({"visibility": "visible"});
+            $('#HIT-expiration-overlay').show();
+        } else {
+            param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
+            param.hasNextMission = @hasNextMission;
+            param.canvasHeight = window.innerHeight;
+            param.canvasWidth = window.innerWidth;
+            param.canvasCount = 1;
+
+            if (@hasNextMission) {
+                param.mission = @Html(mission.getOrElse("\"\"").toString);
+                param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+                param.progress = @Html(progress.getOrElse("\"\"").toString);
+
+                // Initializes an object of labels from label metadata.
+                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+                Object.keys(param.labelList).map(function (key, index) {
+                    let labelMetadata = {
+                        canvasHeight: param.labelList[key].canvas_height,
+                        canvasWidth: param.labelList[key].canvas_width,
+                        canvasX: param.labelList[key].canvas_x,
+                        canvasY: param.labelList[key].canvas_y,
+                        gsvPanoramaId: param.labelList[key].gsv_panorama_id,
+                        heading: param.labelList[key].heading,
+                        labelId: param.labelList[key].label_id,
+                        labelType: param.labelList[key].label_type,
+                        pitch: param.labelList[key].pitch,
+                        zoom: param.labelList[key].zoom
+                    };
+                    param.labelList[key] = new Label(labelMetadata);
+                });
+            }
+            svv.main = new Main(param);
+        }
+    </script>
+}

@@ -107,7 +107,7 @@
          */
 
         // Original code:
-        // this.povToPixel_ = !!window.chrome ? PanoMarker.povToPixel3d :
+        // this.povToPixel_ = (!!window.chrome || isMobile()) ? PanoMarker.povToPixel3d :
         //     PanoMarker.povToPixel2d;
 
         // New code (April 17, 2019) -- modified by Aileen
@@ -227,6 +227,13 @@
         // Gather required variables and convert to radians where necessary
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
+
+        // Adjusts the width and height for when placing PanoMarkers on mobile phones.
+        if (isMobile()) {
+            width = window.innerWidth;
+            height = window.innerHeight;
+        }
+
         var target = {
             left: width / 2,
             top: height / 2
@@ -359,6 +366,7 @@
         // Gather required variables
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
+
         var target = {
             left: width / 2,
             top: height / 2

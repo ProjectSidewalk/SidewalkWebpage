@@ -75,24 +75,26 @@ function ModalMission (uiModalMission, user) {
         }
 
         // Update the reward HTML if the user is a turker.
-        if (user.getProperty("role") === "Turker") {
-            let missionReward = mission.getProperty("pay");
-            let missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
-            missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
-            svv.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
-            uiModalMission.rewardText.html(missionRewardText);
+        if (!isMobile()) {
+            if (user.getProperty("role") === "Turker") {
+                let missionReward = mission.getProperty("pay");
+                let missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+                missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
+                svv.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
+                uiModalMission.rewardText.html(missionRewardText);
 
-            $.ajax({
-                async: true,
-                url: '/rewardEarned',
-                type: 'get',
-                success: function(rewardData) {
-                    svv.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
-                },
-                error: function (xhr, ajaxOptions, thrownError) {
-                    console.log(thrownError);
-                }
-            })
+                $.ajax({
+                    async: true,
+                    url: '/rewardEarned',
+                    type: 'get',
+                    success: function (rewardData) {
+                        svv.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError);
+                    }
+                })
+            }
         }
     }
 

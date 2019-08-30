@@ -1,0 +1,258 @@
+#back-button {
+    background: transparent;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 75px;
+    width: 75px;
+}
+
+body {
+    background-color: #2C293E;
+    height: 100vh;
+    width: 100vw;
+    text-align: center;
+    padding: 2vh 10vw;
+    font-family: raleway, sans-serif;
+    color: #777;
+}
+
+.example-image {
+    padding-left: 25px;
+    height: 249px;
+    width: 285px;
+    margin-top: 20px;
+}
+
+.filler, #footer-container, #info-footer {
+    display: none;
+}
+
+html {
+    position: fixed;
+}
+
+#info-button {
+    background: transparent;
+    position: absolute;
+    left: 750px;
+    top: 0px;
+    height: 75px;
+    width: 75px;
+}
+
+#label-type-counterexample, #label-type-example {
+    font-size: 30pt;
+    padding-left: 25px;
+    font-weight: bold;
+}
+
+#left-column-feedback-button {
+    font-size: 30pt;
+}
+
+#left-column-jump-button {
+    background: transparent;
+    position: absolute;
+    left: 900px;
+    top: 0px;
+    height: 75px;
+    width: 75px;
+    color: white;
+}
+
+#modal-comment-box {
+    top: 0px;
+}
+
+#modal-comment-cancel-button {
+    font-size: 30pt;
+    width: 45%;
+    float: right;
+}
+
+#modal-comment-holder {
+    z-index: 5;
+}
+
+#modal-comment-ok-button {
+    font-size: 30pt;
+    width: 45%;
+    float: left;
+}
+
+#modal-comment-textarea {
+    font-size: 30pt;
+}
+
+#modal-comment-title {
+    font-size: 30pt;
+}
+
+.modal-foreground {
+    top: 0px;
+    left: 0;
+    right: 0;
+    padding: 0px;
+    height: 525px;
+    background: rgba(255, 255, 255, 1);
+    color: rgba(80, 80, 80, 1);
+    font-size: 40pt;
+    position: absolute;
+    min-height: 480px;
+    border: 5px solid black;
+
+    border-radius: 3px 3px 3px 3px;
+    z-index: 4;
+    -webkit-border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#modal-info-background {
+    position: absolute;
+    left: 0px;
+    top: 0;
+    background: rgba(255, 255, 255, 0.5);
+    visibility: hidden;
+    height: 100%;
+    width: 110%;
+}
+
+#modal-info-close-button {
+    font-size: 50pt;
+    position: absolute;
+    width: 75px;
+    height: 75px;
+    background: transparent;
+    color: white;
+    top: -25px;
+}
+
+#modal-info-description {
+    padding-left: 25px;
+    padding-bottom: 10px;
+    color: #2C293E;
+    font-size: 30pt;
+    text-align: left;
+    line-height: 1.3;
+}
+
+#modal-info-holder {
+    visibility: hidden;
+}
+
+#modal-info-header {
+    background: #2C293E;
+    color: white;
+}
+
+#modal-landscape-description {
+    font-size: 20pt;
+}
+
+#modal-landscape-holder {
+    visibility: hidden;
+}
+
+#modal-mission-close-button {
+    font-size: 50pt;
+}
+
+#modal-mission-header {
+    font-size: 50pt;
+}
+
+#modal-mission-complete-title {
+    font-size: 50pt;
+}
+
+#modal-mission-complete-close-button {
+    font-size: 30pt;
+    width: 500px;
+}
+
+#ps-logo {
+    width: 500px;
+}
+
+#ps-logo-landscape {
+    width: 350px;
+}
+
+.status-box {
+    height: 500px;
+}
+
+#status-current-mission-completion-bar {
+    height: 50px;
+    width: 190px;
+    left: 0px;
+    top: 0px;
+}
+
+#status-current-mission-completion-bar-filler {
+    border-width: 0;
+    height: 50px;
+    position: absolute;
+    width: 190px;
+}
+
+#status-current-mission-completion-rate {
+    font-size: 25pt;
+    width: 190px;
+}
+
+#svv-panorama-holder {
+    position: absolute;
+    top: 120px;
+    width: 730px;
+    height: 390px;
+}
+
+#title-bar-holder {
+    position: absolute;
+    left: 0px;
+    width: 500px;
+    height: 75px;
+    top: 50px;
+}
+
+#upper-menu-title-bar {
+    font-size: 40px;
+    color: white;
+    top: 10px;
+    width: 700px;
+}
+
+#validation-agree-button-0 {
+    background-color: #78C8AB;
+    color: #2C293E;
+}
+
+#validation-disagree-button-0 {
+    background-color: #EB7350;
+    color: #2C293E;
+}
+
+#validation-not-sure-button-0 {
+    background-color: #FDD68D;
+    color: #2C293E;
+}
+
+.validation-button {
+    height: 100px;
+    background-color: white;
+    border-radius: 25px;
+    border-width: 3px;
+    border-color: #2C293E;
+    width: 260px;
+    font-size: 40px;
+}
+
+#validation-button-holder {
+    position: relative;
+    left: -100px;
+    height: 90px;
+    width: 730px;
+    z-index: 1;
+}
