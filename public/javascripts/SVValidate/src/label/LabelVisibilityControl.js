@@ -79,7 +79,7 @@ function LabelVisibilityControl () {
     /**
      * Shows the 'Show/Hide Label' button and the description box on panorama.
      */
-    function show () {
+    function showTagsAndDeleteButton () {
         let button = document.getElementById("label-visibility-button-on-pano");
 	let marker = document.getElementById("validate-pano-marker");
 
@@ -99,7 +99,7 @@ function LabelVisibilityControl () {
     /**
      * Hides the 'Show/Hide Label' button and the description box on GSV pano.
      */
-    function hide () {
+    function hideTagsAndDeleteButton () {
         labelVisibilityButtonOnPano[0].style.visibility = 'hidden';
         labelDescriptionBox.style.visibility = 'hidden';
     }
@@ -116,8 +116,8 @@ function LabelVisibilityControl () {
     self.unhideLabel = unhideLabel;
     self.refreshLabel = refreshLabel;
     self.isVisible = isVisible;
-    self.show = show;
-    self.hide = hide;
+    self.showTagsAndDeleteButton = showTagsAndDeleteButton;
+    self.hideTagsAndDeleteButton = hideTagsAndDeleteButton;
 
     return this;
 }

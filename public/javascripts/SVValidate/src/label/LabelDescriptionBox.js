@@ -23,7 +23,7 @@ function LabelDescriptionBox () {
      * @param label The label whose information is to be shown
      * on the box.
      */
-    function reset(label) {
+    function setDescription(label) {
         descriptionBox.style.width = 'auto';
         $(descriptionBox).empty();
 
@@ -76,7 +76,7 @@ function LabelDescriptionBox () {
         descriptionBox.style.width = width;
     }
 
-    self.reset = reset;
+    self.setDescription = setDescription;
     return this;
 }
 

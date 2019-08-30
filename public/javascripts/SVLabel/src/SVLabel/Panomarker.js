@@ -442,11 +442,11 @@
 	// for popped up hide/show label.
 	if (this.id_ === "validate-pano-marker") {
 	    marker.addEventListener("mouseover", function () {
-		svv.labelVisibilityControl.show();
+		svv.labelVisibilityControl.showTagsAndDeleteButton();
 	    });
 
 	    marker.addEventListener("mouseout", function () {
-		svv.labelVisibilityControl.hide();
+		svv.labelVisibilityControl.hideTagsAndDeleteButton();
 	    });
 	}
 
