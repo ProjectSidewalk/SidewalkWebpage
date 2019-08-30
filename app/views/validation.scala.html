@@ -59,11 +59,13 @@
             </div>
             <div id="upper-menu-holder">
                 <div id="upper-menu-title-bar"></div>
-                <div id="label-visibility-control-holder">
+
+		<div id="label-visibility-control-holder">
                     <button id="label-visibility-control-button" class="button label-visibility-control-button" title="Press the &quot;H&quot; key" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
                         <br /><u>H</u>ide Label</button>
                 </div>
+
                 <div id="zoom-control-holder">
                     <button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
@@ -75,7 +77,9 @@
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
                     <div id="svv-panorama-0" class="single-panorama">
-                        <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;"></div>
+                        <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
+                            <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="Press the &quot;H&quot; key" data-toggle="tooltip" data-placement="top"><u>H</u>ide Label</button>
+                        </div>
                     </div>
                     <div id="svv-panorama-date-holder-0" class="svv-panorama-date-holder">
                         <span id="svv-panorama-date-0">no</span>
@@ -211,7 +215,6 @@
             <span id="application-version"></span>
         </div>
     </div>
-
 
     <script type="text/javascript">
         var svv = svv || {};

@@ -73,6 +73,7 @@ function MissionContainer () {
         let mission = new Mission(metadata);
         addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
+        svv.modalInfo.setMissionInfo(mission);
     }
 
     /**

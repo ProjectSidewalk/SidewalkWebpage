@@ -57,6 +57,20 @@ function Main (param) {
         svv.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svv.ui.modalComment.textarea = $("#modal-comment-textarea");
 
+        svv.ui.modalInfo = {};
+        svv.ui.modalInfo.holder = $("#modal-info-holder");
+        svv.ui.modalInfo.foreground = $("#modal-info-foreground");
+        svv.ui.modalInfo.background = $("#modal-info-background");
+        svv.ui.modalInfo.infoHeader = $("#modal-info-header");
+        svv.ui.modalInfo.description = $("#modal-info-description");
+        svv.ui.modalInfo.closeButton = $("#modal-info-close-button");
+        svv.ui.modalInfo.infoButton = $("#info-button");
+
+        svv.ui.modalLandscape = {};
+        svv.ui.modalLandscape.holder = $("#modal-landscape-holder");
+        svv.ui.modalLandscape.foreground = $("#modal-landscape-foreground");
+        svv.ui.modalLandscape.background = $("#modal-landscape-background");
+
         svv.ui.modalMission = {};
         svv.ui.modalMission.holder = $("#modal-mission-holder");
         svv.ui.modalMission.foreground = $("#modal-mission-foreground");
@@ -90,7 +104,7 @@ function Main (param) {
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
         svv.ui.status.zoomInButton = $("#zoom-in-button");
         svv.ui.status.zoomOutButton = $("#zoom-out-button");
-        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
+        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-button");
 
         svv.ui.status.examples = {};
         svv.ui.status.examples.example1 = $("#example-image-1");
@@ -102,6 +116,7 @@ function Main (param) {
         svv.ui.status.examples.counterExample3 = $("#counterexample-image-3");
         svv.ui.status.examples.counterExample4 = $("#counterexample-image-4");
         svv.ui.status.examples.popup = $("#example-image-popup-holder");
+
         svv.ui.status.examples.popupDescription = $("#example-image-popup-description");
         svv.ui.status.examples.popupImage = $("#example-image-popup");
         svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
@@ -135,6 +150,8 @@ function Main (param) {
         // svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, null);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
+        svv.modalInfo = new ModalInfo(svv.ui.modalInfo);
+        svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
         svv.missionContainer = new MissionContainer();

@@ -25,7 +25,8 @@ case class LabelValidation(validationId: Int,
                            canvasHeight: Int,
                            canvasWidth: Int,
                            startTimestamp: java.sql.Timestamp,
-                           endTimestamp: java.sql.Timestamp)
+                           endTimestamp: java.sql.Timestamp,
+                           isMobile: Boolean)
 
 
 /**
@@ -48,9 +49,10 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def canvasWidth = column[Int]("canvas_width", O.NotNull)
   def startTimestamp = column[java.sql.Timestamp]("start_timestamp", O.NotNull)
   def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
+  def isMobile = column[Boolean]("is_mobile", O.NotNull)
 
   def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
-    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp) <>
+    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, isMobile) <>
     ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
   def label: ForeignKeyQuery[LabelTable, Label] =
