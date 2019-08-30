@@ -1,26 +1,30 @@
 /**
  * Creates and controls the Google StreetView panorama that is used in the validation
  * interface. Uses Panomarkers to place labels onto the Panorama.
- * @param   label   Initial label to load onto the panorama.
+ * @param   label       Initial label to load onto the panorama.
+ * @param   id          DOM ID for this Panorama. (i.e., svv-panorama)
  * @constructor
  */
-function Panorama (label) {
+function Panorama (label, id) {
     // abbreviated dates for panorama date overlay
-    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    var currentLabel = label;
-    var panoCanvas = document.getElementById("svv-panorama");
-    var panorama = undefined;
-    var properties = {
+    let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let currentLabel = label;
+    let panorama = undefined;
+    let properties = {
+        canvasId: "svv-panorama-" + id,
         panoId: undefined,
         prevPanoId: undefined,
+        prevSetPanoTimestamp: new Date().getTime(),
         validationTimestamp: new Date().getTime()
     };
-    var self = this;
-    var streetViewService = new google.maps.StreetViewService();
+
+    let panoCanvas = document.getElementById(properties.canvasId);
+    let self = this;
+    let streetViewService = new google.maps.StreetViewService();
 
     // Determined manually by matching appearance of labels on the audit page and appearance of
     // labels on the validation page. Zoom is determined by FOV, not by how "close" the user is.
-    var zoomLevel = {
+    let zoomLevel = {
         1: 1.1,
         2: 2.1,
         3: 3.1
@@ -32,6 +36,9 @@ function Panorama (label) {
      */
     function _init () {
         _createNewPanorama();
+        if (isMobile()) {
+            sizePano();
+        }
         _addListeners();
         setLabel(currentLabel);
     }
@@ -80,11 +87,26 @@ function Panorama (label) {
     }
 
     /**
+     * Returns the actual StreetView object.
+     */
+    function getPanorama () {
+        return panorama;
+    }
+
+    /**
      * Returns the list of labels to validate / to be validated in this mission.
      * @returns {*}
      */
     function getCurrentMissionLabels () {
         return labels;
+    }
+
+    /**
+     * Returns the underlying panomarker object.
+     * @returns {PanoMarker}
+     */
+    function getPanomarker () {
+	return self.labelMarker;
     }
 
     /**
@@ -101,7 +123,7 @@ function Panorama (label) {
      * @returns {{lat, lng}}
      */
     function getPosition () {
-        var position = panorama.getPosition();
+        let position = panorama.getPosition();
         return (position) ? {'lat': position.lat(), 'lng': position.lng()} : null;
     }
 
@@ -110,7 +132,7 @@ function Panorama (label) {
      * @returns {{heading: float, pitch: float, zoom: float}}
      */
     function getPov () {
-        var pov = panorama.getPov();
+        let pov = panorama.getPov();
 
         // Pov can be less than 0. So adjust it.
         while (pov.heading < 0) {
@@ -150,12 +172,7 @@ function Panorama (label) {
      */
     function _handlerPanoChange () {
         if (svv.panorama) {
-            var panoId = getPanoId();
-            if (panoId !== getProperty('panoId')) {
-                self.labelMarker.setVisible(false);
-            } else {
-                self.labelMarker.setVisible(true);
-            }
+            let panoId = getPanoId();
 
             /**
              * PanoId is sometimes changed twice. This avoids logging duplicate panos.
@@ -165,19 +182,21 @@ function Panorama (label) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
-        streetViewService.getPanorama({pano: panorama.getPano()},
-            function (data, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    var date = data.imageDate;
-                    var year = date.substring(0, 4);
-                    var month = months[parseInt(date.substring(5, 7)) - 1];
-                    document.getElementById("svv-panorama-date").innerText = month + " " + year;
-                }
-                else {
-                    console.error("Error retrieving Panoramas: " + status);
-                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
-                }
-            });
+        if (!isMobile()) {
+            streetViewService.getPanorama({pano: panorama.getPano()},
+                function (data, status) {
+                    if (status === google.maps.StreetViewStatus.OK) {
+                        let date = data.imageDate;
+                        let year = date.substring(0, 4);
+                        let month = months[parseInt(date.substring(5, 7)) - 1];
+                        document.getElementById("svv-panorama-date-" + id).innerText = month + " " + year;
+                    }
+                    else {
+                        console.error("Error retrieving Panoramas: " + status);
+                        svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                    }
+                });
+        }
     }
 
     /**
@@ -196,11 +215,14 @@ function Panorama (label) {
      * @returns {renderLabel}
      */
     function renderLabel() {
-        var url = currentLabel.getIconUrl();
-        var pos = currentLabel.getPosition();
+        let url = currentLabel.getIconUrl();
+        let pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
+            let controlLayer = document.getElementById("viewControlLayer");
             self.labelMarker = new PanoMarker({
+		id: "validate-pano-marker",
+                markerContainer: controlLayer,
                 container: panoCanvas,
                 pano: panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
@@ -230,6 +252,7 @@ function Panorama (label) {
         setProperty("panoId", panoId);
         setProperty("prevPanoId", panoId);
         panorama.setPano(panoId);
+        setProperty("prevSetPanoTimestamp", new Date().getTime());
         panorama.set('pov', {heading: heading, pitch: pitch});
         panorama.set('zoom', zoomLevel[zoom]);
         renderLabel();
@@ -242,11 +265,11 @@ function Panorama (label) {
      */
     function setLabel (label) {
         currentLabel = label;
-        currentLabel.setValidationProperty('startTimestamp', new Date().getTime());
-        svv.statusField.updateLabelText(currentLabel.getOriginalProperty('labelType'));
-        svv.statusExample.updateLabelImage(currentLabel.getOriginalProperty('labelType'));
-        setPanorama(label.getOriginalProperty('gsvPanoramaId'), label.getOriginalProperty('heading'),
-            label.getOriginalProperty('pitch'), label.getOriginalProperty('zoom'));
+        currentLabel.setProperty('startTimestamp', new Date().getTime());
+        svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
+        svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
+        setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
+            label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
         renderLabel();
     }
 
@@ -277,6 +300,26 @@ function Panorama (label) {
     }
 
     /**
+     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone
+     */
+    function sizePano() {
+        let h = window.innerHeight - 10;
+        let w = window.innerWidth - 10;
+        let outline_h = h + 10
+        let outline_w = w + 10;
+        let left = 0;
+        document.getElementById("svv-panorama-0").style.height = h + "px";
+        document.getElementById("svv-panorama-holder").style.height = h + "px";
+        document.getElementById("svv-panorama-outline").style.height = outline_h + "px";
+        document.getElementById("svv-panorama-0").style.width = w + "px";
+        document.getElementById("svv-panorama-holder").style.width = w + "px";
+        document.getElementById("svv-panorama-outline").style.width = outline_w + "px";
+        document.getElementById("svv-panorama-0").style.left = left + "px";
+        document.getElementById("svv-panorama-holder").style.left = left + "px";
+        document.getElementById("svv-panorama-outline").style.left = left + "px";
+    }
+
+    /**
      * Hides the current label on this panorama.
      */
     function hideLabel () {
@@ -299,6 +342,7 @@ function Panorama (label) {
     self.getProperty = getProperty;
     self.getPov = getPov;
     self.getZoom = getZoom;
+    self.getPanomarker = getPanomarker;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;
     self.setPanorama = setPanorama;
@@ -307,6 +351,7 @@ function Panorama (label) {
     self.skipLabel = skipLabel;
     self.hideLabel = hideLabel;
     self.showLabel = showLabel;
+    self.getPanorama = getPanorama;
 
     return this;
 }

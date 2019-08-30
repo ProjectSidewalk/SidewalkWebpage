@@ -1,14 +1,13 @@
 function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
-    var self = this;
-    var properties = {
+    let self = this;
+    let properties = {
         clickable: false
     };
-    var watch;
+    let watch;
 
     function _handleButtonClick() {
-        svv.tracker.push("ClickOk_MissionComplete");
-        if (svv.missionsCompleted === 3) {
-            // Load the audit page since they've done 2 missions.
+        if (svv.missionsCompleted === 3 && !isMobile()) {
+            // Load the audit page since they've done 3 missions.
             window.location.replace('/audit');
         } else {
             self.hide();
@@ -24,6 +23,12 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
+        // Have to remove the effect since keyup event did not go through (but no keyboard use on /rapidValidate).
+        if (svv.keyboard) {
+            svv.keyboard.removeAllKeyPressVisualEffect();
+            svv.keyboard.enableKeyboard();
+        }
+
         uiModalMissionComplete.closeButton.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
@@ -40,10 +45,13 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * @param mission   Object for the mission that was just completed.
      */
     function show (mission) {
-        svv.keyboard.disableKeyboard();
-        var totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
+        // Disable keyboard on /validate (/rapidValidate doesn't have keyboard shortcuts right now).
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
+        let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
-        var message = "You just validated " + totalLabels + " " +
+        let message = "You just validated " + totalLabels + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
         // Disable user from clicking the "Validate next mission" button and set background to gray
@@ -72,15 +80,22 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
-        uiModalMissionComplete.closeButton.html('Validate more labels');
+
+        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop).
+        if (svv.missionsCompleted === 3 && !isMobile()) {
+            uiModalMissionComplete.closeButton.html('Start an exploration mission');
+        } else {
+            uiModalMissionComplete.closeButton.html('Validate more labels');
+        }
 
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
-        // and reveal the confirmation code.
+        // and reveal the confirmation code. Take care to handle the mobile use case when this is added back in.
+
         // if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
         //     _markAmtAssignmentAsComplete();
         //     _showConfirmationCode();
-        //     var confirmationCodeElement = document.createElement("h3");
+        //     let confirmationCodeElement = document.createElement("h3");
         //     confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
         //         "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
         //         "Confirmation Code: " +
@@ -89,10 +104,20 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         //     confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
         //     uiModalMissionComplete.message.append(confirmationCodeElement);
         // }
+
+        svv.tracker.push(
+            "MissionComplete",
+            {
+                missionId: mission.getProperty("missionId"),
+                missionType: mission.getProperty("missionType"),
+                labelTypeId: mission.getProperty("labelTypeId"),
+                labelsValidated: mission.getProperty("labelsValidated")
+            }
+        );
     }
 
     function _markAmtAssignmentAsComplete() {
-        var data = {
+        let data = {
             amt_assignment_id: svv.amtAssignmentId,
             completed: true
         };

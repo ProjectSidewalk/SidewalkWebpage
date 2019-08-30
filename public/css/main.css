@@ -866,13 +866,14 @@ video#bgvid {
 
 }
 #maprow{
-    height:500px;
+    height: 500px;
+    margin-top: 25px;
 }
 #map-holder{
-    height:100%;
+    height: 100%;
 }
 #mapcolumn{
-    height:100%;
+    height: 100%;
 }
 #map{
     height: 100%;

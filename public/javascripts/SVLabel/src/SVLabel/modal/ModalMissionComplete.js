@@ -105,8 +105,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     };
 
     this._closeModal = function (e) {
-        if (svl.missionsCompleted === 2) {
-            // Load the validation page since they've done 2 missions.
+        if ((!svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted === 3) {
+            // Load the validation page since they've either completed their audit first mission or just finished 3.
             window.location.replace('/validate');
         }
         else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
@@ -299,11 +299,12 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
 
 ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance, unit) {
     if (!unit) unit = {units: 'kilometers'};
-    remainingDistance = Math.max(remainingDistance, 0);
+    var positiveRemainingDistance = Math.max(remainingDistance, 0);
+    var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
     this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.othersAuditedDistance.html(othersAuditedDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.othersAuditedDistance.html(positiveOthersAuditedDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.remainingDistance.html(positiveRemainingDistance.toFixed(1) + " " + unit.units);
 
     // Update the reward HTML if the user is a turker.
     if (this._userModel.getUser().getProperty("role") === "Turker") {

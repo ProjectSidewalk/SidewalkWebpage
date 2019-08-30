@@ -107,7 +107,7 @@
          */
 
         // Original code:
-        // this.povToPixel_ = !!window.chrome ? PanoMarker.povToPixel3d :
+        // this.povToPixel_ = (!!window.chrome || isMobile()) ? PanoMarker.povToPixel3d :
         //     PanoMarker.povToPixel2d;
 
         // New code (April 17, 2019) -- modified by Aileen
@@ -163,6 +163,9 @@
 
         /** @private @type {number} */
         this.zIndex_ = opts.zIndex || 1;
+
+        /** @private @type {Object} */
+        this.markerContainer_ = opts.markerContainer || null;
 
         // At last, call some methods which use the initialized parameters
         this.setPano(opts.pano || null, opts.container);
@@ -224,6 +227,13 @@
         // Gather required variables and convert to radians where necessary
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
+
+        // Adjusts the width and height for when placing PanoMarkers on mobile phones.
+        if (isMobile()) {
+            width = window.innerWidth;
+            height = window.innerHeight;
+        }
+
         var target = {
             left: width / 2,
             top: height / 2
@@ -356,6 +366,7 @@
         // Gather required variables
         var width = viewport.offsetWidth;
         var height = viewport.offsetHeight;
+
         var target = {
             left: width / 2,
             top: height / 2
@@ -410,7 +421,11 @@
 
         this.marker_ = marker;
 
-        this.getPanes().overlayMouseTarget.appendChild(marker);
+        // Add marker to viewControlLayer if on validate page.
+        if (this.markerContainer_ == null) {
+            this.markerContainer_ = this.getPanes().overlayMouseTarget;
+        }
+        this.markerContainer_.appendChild(marker);
 
         // Attach to some global events
         window.addEventListener('resize', this.draw.bind(this));
@@ -429,6 +444,18 @@
         }
 
         marker.addEventListener(eventName, this.onClick.bind(this), false);
+
+	// If this is a validation label, we want to add mouse-hovering event
+	// for popped up hide/show label.
+	if (this.id_ === "validate-pano-marker") {
+	    marker.addEventListener("mouseover", function () {
+		svv.labelVisibilityControl.show();
+	    });
+
+	    marker.addEventListener("mouseout", function () {
+		svv.labelVisibilityControl.hide();
+	    });
+	}
 
         this.draw();
 
@@ -490,7 +517,7 @@
 
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');
-    };
+    }
 
 
 //// Getter to be roughly equivalent to the regular google.maps.Marker ////

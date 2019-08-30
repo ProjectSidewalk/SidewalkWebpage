@@ -83,6 +83,8 @@ function Main (params) {
 
     function _init (params) {
         params = params || {};
+
+        svl.userHasCompletedAMission = params.hasCompletedAMission;
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
@@ -333,6 +335,7 @@ function Main (params) {
     }
 
     function startTheMission(mission, neighborhood) {
+        document.getElementById("google-maps-holder").style.backgroundColor = "#e5e3df";
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
             if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
@@ -533,9 +536,14 @@ function Main (params) {
         // Modal
         svl.ui.modalSkip = {};
         svl.ui.modalSkip.holder = $("#modal-skip-holder");
-        svl.ui.modalSkip.ok = $("#modal-skip-ok-button");
-        svl.ui.modalSkip.cancel = $("#modal-skip-cancel-button");
-        svl.ui.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
+        svl.ui.modalSkip.firstBox = $("#modal-skip-box");
+        svl.ui.modalSkip.unavailable = $("#modal-skip-unavailable");
+        svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
+        svl.ui.modalSkip.cancelFirst = $("#modal-skip-cancel-first-button");
+        svl.ui.modalSkip.secondBox = $("#modal-skip-box-neighborhood");
+        svl.ui.modalSkip.redirect = $("#modal-skip-redirect-jump");
+        svl.ui.modalSkip.explore = $("#modal-skip-explore");
+        svl.ui.modalSkip.cancelSecond = $("#modal-skip-cancel-second-button");
         svl.ui.modalComment = {};
         svl.ui.modalComment.holder = $("#modal-comment-holder");
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");

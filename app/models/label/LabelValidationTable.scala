@@ -25,7 +25,8 @@ case class LabelValidation(validationId: Int,
                            canvasHeight: Int,
                            canvasWidth: Int,
                            startTimestamp: java.sql.Timestamp,
-                           endTimestamp: java.sql.Timestamp)
+                           endTimestamp: java.sql.Timestamp,
+                           isMobile: Boolean)
 
 
 /**
@@ -48,9 +49,10 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def canvasWidth = column[Int]("canvas_width", O.NotNull)
   def startTimestamp = column[java.sql.Timestamp]("start_timestamp", O.NotNull)
   def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
+  def isMobile = column[Boolean]("is_mobile", O.NotNull)
 
   def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
-    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp) <>
+    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, isMobile) <>
     ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
   def label: ForeignKeyQuery[LabelTable, Label] =
@@ -116,39 +118,49 @@ object LabelValidationTable {
   /**
     * Select validation counts per user.
     *
-    * @return list of tuples of (labeler_id, validator_role, validation_count, validation_agreed_count, validation_disagreed_count, validation_unsure_count)
+    * @return list of tuples of (labeler_id, validator_role, distinct_labels_validated, validation_count,
+    *         validation_agreed_count, validation_disagreed_count, validation_unsure_count)
     */
-  def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
-    val audits = for {
+  def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int, Int)] = db.withSession { implicit session =>
+    val labels = for {
       _validation <- validationLabels
       _label <- labelsWithoutDeleted if _label.labelId === _validation.labelId
       _mission <- MissionTable.auditMissions if _label.missionId === _mission.missionId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
-      _validationUser <- users if _validationUser.username =!= "anonymous" && _validationUser.userId === _validation.userId // User who did the validation
-      _userRole <- userRoles if _validationUser.userId === _userRole.userId
+      _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
     } yield (_user.userId, _role.role, _validation.labelId, _validation.validationResult)
 
-    // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => (l._1, l._2)).map {
-      case ((uId, role), group) => {
+    // Counts distinct labels validated for each user.
+    val distinctLabelsValidated = labels.map(x => (x._1, x._3)) // SELECT user_id, label_id
+      .groupBy(x => x).map(_._1) // SELECT DISTINCT(user_id, label_id)
+      .groupBy(_._1).map { case (userId, group) => (userId, group.length) } // SELECT user_id, COUNT(label_id)
+
+    // Combine the distinct labels validated with the query with all the labels.
+    val labelCounts = for {
+      (_lab, _count) <- labels.innerJoin(distinctLabelsValidated).on(_._1 === _._1)
+    } yield (_lab._1, _lab._2, _count._2, _lab._3, _lab._4)
+
+    // Counts the number of labels for each user by grouping by user_id, role, and label_count.
+    labelCounts.groupBy(l => (l._1, l._2, l._3)).map {
+      case ((uId, role, count), group) => {
         // Sum up the agreed results
         val agreed = group.map { r =>
-          Case.If(r._4 === 1).Then(1).Else(0) // Only count it if the result was "agree"
+          Case.If(r._5 === 1).Then(1).Else(0) // Only count it if the result was "agree"
         }.sum.getOrElse(0)
 
         // Sum up the disagreed results
         val disagreed = group.map { r =>
-          Case.If(r._4 === 2).Then(1).Else(0) // Only count it if the result was "disagree"
+          Case.If(r._5 === 2).Then(1).Else(0) // Only count it if the result was "disagree"
         }.sum.getOrElse(0)
 
         // Sum up the unsure results
         val unsure = group.map { r =>
-          Case.If(r._4 === 3).Then(1).Else(0) // Only count it if the result was "unsure"
+          Case.If(r._5 === 3).Then(1).Else(0) // Only count it if the result was "unsure"
         }.sum.getOrElse(0)
 
         // group.length is the total # of validations
-        (uId, role, group.length, agreed, disagreed, unsure)
+        (uId, role, count, group.length, agreed, disagreed, unsure)
       }
     }.list
   }

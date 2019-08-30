@@ -41,6 +41,7 @@
     <!--<link href='@routes.Assets.at("stylesheets/main.css")' rel="stylesheet"/>-->
     <link rel="stylesheet" href='@routes.Assets.at("css/main.css")'>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/isMobile.js")'></script>
     <!--<script src='@routes.Assets.at("assets/homepage.js")'></script>-->
     <script src='@routes.Assets.at("assets/countUp.js")'></script>
     <script src='@routes.Assets.at("assets/bowser.min.js")'></script>
@@ -80,7 +81,12 @@
           <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
           <a href="http://www.umd.edu/">University of Maryland</a> and
               <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-          <span id="application-version">@VersionTable.currentVersionStr()</span>
+          <span id="application-version">
+              Version @VersionTable.currentVersionId() | Last Updated: 
+              <span class = "timestamp date">
+                  @VersionTable.currentVersionTimestamp()
+              </span>
+          </span>
         </div>
 
     } else{
@@ -114,7 +120,6 @@
         <br>
         <p><span id="funding-title">WE ARE PROUDLY FUNDED BY</span></p>
         <div class="row" style="max-width: 900px; margin: 0 auto;">
-
             <div class="col-sm-4">
                 <a href="https://sloan.org/fellowships/" id ="sloan-link">
                     <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
@@ -125,11 +130,9 @@
                     <img src="@routes.Assets.at("assets/nsf.png")">
                 </a>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
             </div>
-
-
         </div>
         <div class="row" style="max-width: 900px; margin: 0 auto;">
 
@@ -150,7 +153,12 @@
         <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
         <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
         <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-        <span id="application-version">@VersionTable.currentVersionStr()</span>
+        <span id="application-version">
+            Version @VersionTable.currentVersionId() | Last Updated: 
+            <span class = "timestamp date">
+                @VersionTable.currentVersionTimestamp()
+            </span>
+        </span>
     </div>
 
   }
@@ -242,4 +250,6 @@
                 });
             });
     </script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
 </body>
