@@ -41,14 +41,10 @@ html {
     width: 75px;
 }
 
-#label-type-counterexample {
+#label-type-counterexample, #label-type-example {
     font-size: 30pt;
     padding-left: 25px;
-}
-
-#label-type-example {
-    font-size: 30pt;
-    padding-left: 25px;
+    font-weight: bold;
 }
 
 #left-column-feedback-button {
@@ -134,10 +130,11 @@ html {
 
 #modal-info-description {
     padding-left: 25px;
-    padding-bottom: 45px;
+    padding-bottom: 10px;
     color: #2C293E;
     font-size: 30pt;
     text-align: left;
+    line-height: 1.3;
 }
 
 #modal-info-holder {
