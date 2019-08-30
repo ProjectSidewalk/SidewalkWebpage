@@ -10,7 +10,7 @@ function LabelVisibilityControl () {
     let visible = true;
     let labelVisibilityControlButton = $("#label-visibility-control-button");
     let labelVisibilityButtonOnPano = $("#label-visibility-button-on-pano");
-    let labelDescriptionBox = document.getElementById("label-description-box");
+    let labelDescriptionBox = $("#label-description-box");
 
     /**
      * Logs interaction when the hide label button is clicked.
@@ -91,9 +91,10 @@ function LabelVisibilityControl () {
         
         // Position the box to the lower left corner of the label, 10px left and
         // 10px down from center of the label.
-        labelDescriptionBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
-        labelDescriptionBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
-	labelDescriptionBox.style.visibility = 'visible';
+        let desBox = labelDescriptionBox[0];
+        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
+        desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
+	desBox.style.visibility = 'visible';
     }
 
     /**
@@ -101,7 +102,7 @@ function LabelVisibilityControl () {
      */
     function hideTagsAndDeleteButton () {
         labelVisibilityButtonOnPano[0].style.visibility = 'hidden';
-        labelDescriptionBox.style.visibility = 'hidden';
+        labelDescriptionBox[0].style.visibility = 'hidden';
     }
 
     labelVisibilityControlButton.on('click', clickAdjustLabel);

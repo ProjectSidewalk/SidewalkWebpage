@@ -133,13 +133,13 @@ function Main (param) {
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
-        if (param.canvasCount === 1) {
+        if (param.canvasCount === 1 && !isMobile()) {
            svv.labelDescriptionBox = new LabelDescriptionBox();
         }
         svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
 
         // There are certain features that will only make sense if we have one validation interface on the screen.
-        if (param.canvasCount === 1) {
+        if (param.canvasCount === 1 && !isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
             svv.labelVisibilityControl = new LabelVisibilityControl();
