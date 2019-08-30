@@ -80,7 +80,13 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
-        uiModalMissionComplete.closeButton.html('Validate more labels');
+
+        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop).
+        if (svv.missionsCompleted === 3 && !isMobile()) {
+            uiModalMissionComplete.closeButton.html('Start an exploration mission');
+        } else {
+            uiModalMissionComplete.closeButton.html('Validate more labels');
+        }
 
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
