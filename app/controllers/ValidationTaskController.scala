@@ -32,7 +32,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
         ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
           interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
-          new Timestamp(interaction.timestamp))
+          new Timestamp(interaction.timestamp), interaction.isMobile)
       })
 
       // We aren't always submitting labels, so check if data.labels exists.
@@ -42,7 +42,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
               user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
               label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
-              new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp)))
+              new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.isMobile))
           case None =>
             Logger.warn("User without user_id validated a label, but every user should have a user_id.")
         }

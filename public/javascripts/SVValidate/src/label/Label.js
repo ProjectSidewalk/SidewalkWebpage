@@ -20,7 +20,8 @@ function Label(params) {
         severity: undefined,
         temporary: undefined,
         description: undefined,
-        tags: undefined
+        tags: undefined,
+        isMobile: undefined
     };
 
     // These properties are set through validating labels. In this object, canvas properties and
@@ -34,7 +35,8 @@ function Label(params) {
         pitch: undefined,
         startTimestamp: undefined,
         validationResult: undefined,
-        zoom: undefined
+        zoom: undefined,
+        isMobile: undefined
     };
 
     let icons = {
@@ -47,8 +49,25 @@ function Label(params) {
         NoSidewalk : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
     };
 
-    // Labels are circles with a 10px radius.
+    if (isMobile()) {
+        icons = {
+            CurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp_Mobile.png',
+            NoCurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp_Mobile.png',
+            Obstacle : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle_Mobile.png',
+            SurfaceProblem : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem_Mobile.png',
+            Other : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other_Mobile.png',
+            Occlusion : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other_Mobile.png',
+            NoSidewalk : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk_Mobile.png'
+        };
+    }
+
+    // Labels are circles with a 10px radius, mobile is 25px.
     let radius = 10;
+
+    if (isMobile()) {
+        radius = 25;
+    }
+
     let self = this;
 
     /**
@@ -72,6 +91,7 @@ function Label(params) {
             if ("temporary" in params) setAuditProperty("temporary", params.temporary);
             if ("description" in params) setAuditProperty("description", params.description);
             if ("tags" in params) setAuditProperty("tags", params.tags);
+            setAuditProperty("isMobile", isMobile());
         }
     }
 
@@ -193,6 +213,7 @@ function Label(params) {
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
+        setProperty("isMobile", isMobile());
 
         switch (validationResult) {
             // Agree option selected.
