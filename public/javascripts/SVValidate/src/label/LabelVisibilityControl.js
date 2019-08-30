@@ -107,10 +107,10 @@ function LabelVisibilityControl () {
     labelVisibilityControlButton.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('click', clickAdjustLabel);
     labelVisibilityButtonOnPano.on('mouseover', function (e) {
-	show();
+	showTagsAndDeleteButton();
 	e.stopPropagation();
     });
-    labelVisibilityButtonOnPano.on('mouseout', hide);
+    labelVisibilityButtonOnPano.on('mouseout', hideTagsAndDeleteButton);
 
     self.hideLabel = hideLabel;
     self.unhideLabel = unhideLabel;
