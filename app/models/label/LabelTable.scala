@@ -594,6 +594,12 @@ object LabelTable {
           |LIMIT ?""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, userIdStr, n * 5)).list
+
+      // Randomize those n * 5 high priority labels to prevent repeated and similar labels in a mission.
+      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1874
+      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
+      potentialLabels = scala.util.Random.shuffle(potentialLabels)
+
       var potentialStartIdx: Int = 0
 
       // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
