@@ -633,18 +633,6 @@ object LabelTable {
     selectedLabels
   }
 
-  /**.
-    * Retrieve a list of labels for validation with a random label id
-    * @param userId User ID of the current user.
-    * @param count  Number of labels in the list.
-    * @return       Seq[LabelValidationMetadata]
-    */
-  def retrieveRandomLabelListForValidation(userId: UUID, count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // We are currently assigning label types to missions randomly.
-    val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
-    retrieveLabelListForValidation(userId, count, labelTypeId, skippedLabelId = None)
-  }
-
   /**
     * Retrieves a random validation label type id (1, 2, 3, 4, 7).
     * @return Integer corresponding to the label type id.
