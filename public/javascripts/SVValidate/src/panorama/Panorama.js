@@ -59,10 +59,12 @@ function Panorama (label, id) {
             panorama.set('motionTracking', false);
             panorama.set('motionTrackingControl', false);
             panorama.set('navigationControl', false);
-            panorama.set('panControl', false);
-            panorama.set('scrollwheel', false);
+            panorama.set('panControl', false); 
             panorama.set('showRoadLabels', false);
             panorama.set('zoomControl', false);
+            if (!isMobile()) {
+                panorama.set('scrollwheel', false);
+            }    
         } else {
             console.error("No typeof google");
         }
