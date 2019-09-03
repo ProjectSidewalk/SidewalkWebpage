@@ -4,7 +4,7 @@ from pandas.io.json import json_normalize
 import sys
 
 # Create CSV from street_edge table with street_edge_id, x1, y1, x2, y2
-# Name it street_edge_endpoints.csv and put it in the root directory, then run this script.
+# Name it street_edge_endpoints.csv and put it in the scripts/ directory, then run this script.
 # It will output a CSV called streets_with_no_imagery.csv. Use this to mark those edges as "deleted" in the database.
 
 if __name__ == '__main__':
