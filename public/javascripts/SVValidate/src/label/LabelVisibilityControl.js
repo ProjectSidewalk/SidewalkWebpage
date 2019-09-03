@@ -80,6 +80,8 @@ function LabelVisibilityControl () {
      * Shows the 'Show/Hide Label' button and the description box on panorama.
      */
     function showTagsAndDeleteButton () {
+        svv.tracker.push("MouseOver_Label");
+
         let button = document.getElementById("label-visibility-button-on-pano");
 	let marker = document.getElementById("validate-pano-marker");
 
