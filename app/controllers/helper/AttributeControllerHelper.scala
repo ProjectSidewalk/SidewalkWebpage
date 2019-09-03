@@ -70,7 +70,7 @@ object AttributeControllerHelper {
       for ((userId, i) <- goodUsers.view.zipWithIndex) {
         println(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
         val clusteringOutput =
-          Seq("python", "label_clustering.py", "--key", key, "--user_id", userId).!!
+          Seq("python", "scripts/label_clustering.py", "--key", key, "--user_id", userId).!!
         //      println(clusteringOutput)
       }
       println("\nFinshed 100% of users!!\n")
@@ -101,7 +101,8 @@ object AttributeControllerHelper {
       // Runs multi-user clustering within each region.
       for ((regionId, i) <- regionIds.view.zipWithIndex) {
         println(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
-        val clusteringOutput = Seq("python", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+        val clusteringOutput =
+          Seq("python", "scripts/label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
       }
       println("\nFinshed 100% of regions!!\n\n")
     } else {
