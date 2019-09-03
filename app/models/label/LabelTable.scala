@@ -534,12 +534,13 @@ object LabelTable {
     *
     * Starts by querying for n * 5 labels, then checks GSV API to see if each gsv_panorama_id exists until we find n.
     *
-    * @param userId       User ID for the current user.
-    * @param n            Number of labels we need to query.
-    * @param labelTypeId  Label Type ID of labels requested.
-    * @return             Seq[LabelValidationMetadata]
+    * @param userId         User ID for the current user.
+    * @param n              Number of labels we need to query.
+    * @param labelTypeId    Label Type ID of labels requested.
+    * @param skippedLabelid Label ID of the label that was just skipped (if applicable)
+    * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
     val userIdStr = userId.toString
@@ -595,6 +596,9 @@ object LabelTable {
       )
       potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, userIdStr, n * 5)).list
 
+      // Remove label that was just skipped (if one was skipped).
+      potentialLabels = potentialLabels.filter(_.labelId != skippedLabelId.getOrElse(-1))
+
       // Randomize those n * 5 high priority labels to prevent repeated and similar labels in a mission.
       // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1874
       // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
@@ -638,7 +642,7 @@ object LabelTable {
   def retrieveRandomLabelListForValidation(userId: UUID, count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // We are currently assigning label types to missions randomly.
     val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
-    retrieveLabelListForValidation(userId, count, labelTypeId)
+    retrieveLabelListForValidation(userId, count, labelTypeId, skippedLabelId = None)
   }
 
   /**
