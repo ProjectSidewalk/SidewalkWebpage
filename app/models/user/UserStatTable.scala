@@ -42,10 +42,19 @@ object UserStatTable {
   }
 
   /**
-    * Get list of users where high_quality column is marked as TRUE.
+    * Get list of users where high_quality column is marked as TRUE and they have placed at least one label.
     */
-  def getIdsOfGoodUsers: List[String] = db.withSession { implicit session =>
-    userStats.filter(_.highQuality).map(_.userId).list
+  def getIdsOfGoodUsersWithLabels: List[String] = db.withSession { implicit session =>
+
+    // Get the list of users who have placed a label by joining with the label table.
+    val usersWithLabels = for {
+      _stat <- userStats if _stat.highQuality
+      _mission <- MissionTable.auditMissions if _mission.userId === _stat.userId
+      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
+    } yield _stat.userId
+
+    // Select distinct on the name user_ids.
+    usersWithLabels.groupBy(x => x).map(_._1).list
   }
 
   /**
@@ -77,6 +86,7 @@ object UserStatTable {
 
   /**
     * Update labels_per_meter column in the user_stat table for all users, run after `updateAuditedDistance`.
+    * // TODO labelsWithoutDeletedOrOnboarding
     */
   def updateLabelsPerMeter() = db.withSession { implicit session =>
 
