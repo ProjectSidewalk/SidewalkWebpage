@@ -86,7 +86,7 @@ object UserStatTable {
 
   /**
     * Update labels_per_meter column in the user_stat table for all users, run after `updateAuditedDistance`.
-    * // TODO labelsWithoutDeletedOrOnboarding
+    *
     */
   def updateLabelsPerMeter() = db.withSession { implicit session =>
 
@@ -94,7 +94,7 @@ object UserStatTable {
     val labelCounts = (for {
       _stat <- userStats if _stat.metersAudited > 0F
       _mission <- MissionTable.auditMissions if _stat.userId === _mission.userId
-      _label <- LabelTable.labelsWithoutDeleted if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
     } yield (_stat.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
     // Compute labeling frequency using label counts above and the meters_audited column in user_stat table.
