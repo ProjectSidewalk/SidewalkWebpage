@@ -52,7 +52,11 @@ function PanoramaContainer (labelList, idList) {
             labelId: metadata.label_id,
             labelType: metadata.label_type,
             pitch: metadata.pitch,
-            zoom: metadata.zoom
+            zoom: metadata.zoom,
+            severity: metadata.severity,
+            temporary: metadata.temporary,
+            description: metadata.description,
+            tags: metadata.tags
         };
         return new Label(labelMetadata);
     }
