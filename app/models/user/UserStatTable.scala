@@ -86,7 +86,6 @@ object UserStatTable {
 
   /**
     * Update labels_per_meter column in the user_stat table for all users, run after `updateAuditedDistance`.
-    *
     */
   def updateLabelsPerMeter() = db.withSession { implicit session =>
 
