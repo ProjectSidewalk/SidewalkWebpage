@@ -42,10 +42,19 @@ object UserStatTable {
   }
 
   /**
-    * Get list of users where high_quality column is marked as TRUE.
+    * Get list of users where high_quality column is marked as TRUE and they have placed at least one label.
     */
-  def getIdsOfGoodUsers: List[String] = db.withSession { implicit session =>
-    userStats.filter(_.highQuality).map(_.userId).list
+  def getIdsOfGoodUsersWithLabels: List[String] = db.withSession { implicit session =>
+
+    // Get the list of users who have placed a label by joining with the label table.
+    val usersWithLabels = for {
+      _stat <- userStats if _stat.highQuality
+      _mission <- MissionTable.auditMissions if _mission.userId === _stat.userId
+      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
+    } yield _stat.userId
+
+    // Select distinct on the name user_ids.
+    usersWithLabels.groupBy(x => x).map(_._1).list
   }
 
   /**
@@ -84,7 +93,7 @@ object UserStatTable {
     val labelCounts = (for {
       _stat <- userStats if _stat.metersAudited > 0F
       _mission <- MissionTable.auditMissions if _stat.userId === _mission.userId
-      _label <- LabelTable.labelsWithoutDeleted if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithoutDeletedOrOnboarding if _mission.missionId === _label.missionId
     } yield (_stat.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
     // Compute labeling frequency using label counts above and the meters_audited column in user_stat table.
