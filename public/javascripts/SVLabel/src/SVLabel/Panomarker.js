@@ -413,7 +413,7 @@
         if (this.icon_) { marker.style.backgroundImage = 'url(' + this.icon_ + ')'; }
 
         // If neither icon, class nor id is specified, assign the basic google maps
-        // marker image to the marker (otherwise it will be invisble)
+        // marker image to the marker (otherwise it will be invisible)
         if (!(this.id_ || this.className_ || this.icon_)) {
             marker.style.backgroundImage = 'url(https://www.google.com/intl/en_us/' +
                 'mapfiles/ms/micons/red-dot.png)';
@@ -425,6 +425,7 @@
         if (this.markerContainer_ == null) {
             this.markerContainer_ = this.getPanes().overlayMouseTarget;
         }
+        
         this.markerContainer_.appendChild(marker);
 
         // Attach to some global events
@@ -449,11 +450,11 @@
 	// for popped up hide/show label.
 	if (this.id_ === "validate-pano-marker") {
 	    marker.addEventListener("mouseover", function () {
-		svv.labelVisibilityControl.show();
+		svv.labelVisibilityControl.showTagsAndDeleteButton();
 	    });
 
 	    marker.addEventListener("mouseout", function () {
-		svv.labelVisibilityControl.hide();
+		svv.labelVisibilityControl.hideTagsAndDeleteButton();
 	    });
 	}
 
@@ -564,7 +565,6 @@
 
     /** @return {number} The marker's z-index. */
     PanoMarker.prototype.getZIndex = function() { return this.zIndex_; };
-
 
 //// Setter for the properties mentioned above ////
 
@@ -708,3 +708,4 @@
 
     return PanoMarker;
 }));
+

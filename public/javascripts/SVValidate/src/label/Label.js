@@ -17,6 +17,10 @@ function Label(params) {
         labelType: undefined,
         pitch: undefined,
         zoom: undefined,
+        severity: undefined,
+        temporary: undefined,
+        description: undefined,
+        tags: undefined,
         isMobile: undefined
     };
 
@@ -83,6 +87,10 @@ function Label(params) {
             if ("labelType" in params) setAuditProperty("labelType", params.labelType);
             if ("pitch" in params) setAuditProperty("pitch", params.pitch);
             if ("zoom" in params) setAuditProperty("zoom", params.zoom);
+            if ("severity" in params) setAuditProperty("severity", params.severity);
+            if ("temporary" in params) setAuditProperty("temporary", params.temporary);
+            if ("description" in params) setAuditProperty("description", params.description);
+            if ("tags" in params) setAuditProperty("tags", params.tags);
             setAuditProperty("isMobile", isMobile());
         }
     }
@@ -186,7 +194,7 @@ function Label(params) {
 
         // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
         // We add/subtract the radius of the label so that we still record these values when only a fraction of the
-        // labe is still visible.
+        // label is still visible.
         let labelCanvasX = null;
         let labelCanvasY = null;
         if (pixelCoordinates
