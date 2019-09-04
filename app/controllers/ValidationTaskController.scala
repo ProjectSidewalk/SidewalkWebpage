@@ -187,19 +187,20 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     *                     canvas_y, canvas_width, canvas_height}
     */
   def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int): JsValue = {
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, skippedLabelId = None)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(LabelTable.validationLabelMetadataToJson)
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson
   }
 
   /**
-    * Gets the metadata for a single random label in the database. Excludes labels that were
-    * originally placed by the user and labels that have already appeared on the interface.
-    * @param labelTypeId  Label Type Id this label should have
-    * @return             Label metadata containing GSV metadata and label type
+    * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
+    * user, labels that have already appeared on the interface, and the label that was just skipped.
+    * @param labelTypeId    Label Type Id this label should have
+    * @param skippedLabelId Label ID of the label that was just skipped
+    * @return               Label metadata containing GSV metadata and label type
     */
-  def getRandomLabelData (labelTypeId: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[SkipLabelSubmission]]
     submission.fold(
       errors => {
@@ -214,7 +215,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           val userId: UUID = request.identity.get.userId
-          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId).head
+          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId, Some(skippedLabelId)).head
           LabelTable.validationLabelMetadataToJson(labelMetadata)
         }
         Future.successful(Ok(labelMetadataJson.head))

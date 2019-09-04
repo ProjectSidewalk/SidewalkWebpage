@@ -19,7 +19,29 @@ $(document).ready(function() {
 
     orientationCheck();
 
-    resizeMobileValidation()
+    resizeMobileValidation();
+
+    // If the site is loaded in landscape mode first, 'loadedScreenLandscape' will be set to true
+    // and when the screen is flipped back to portrait mode the site will be reloaded to set the panoramas
+    // correctly.
+    let loadedScreenLandscape = false;
+
+    if (orientation != 0) {
+        svv.modalLandscape.show();
+        loadedScreenLandscape = true;
+    } else {
+        svv.modalLandscape.hide();
+    }
+
+    $(window).on('orientationchange', function (event) {
+        if (orientation != 0) {
+            svv.modalLandscape.show();
+        } else if (loadedScreenLandscape) {
+            location.reload();
+        } else {
+            svv.modalLandscape.hide();
+        }
+    });
 });
 
 /**

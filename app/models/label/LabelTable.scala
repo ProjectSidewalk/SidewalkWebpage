@@ -547,12 +547,13 @@ object LabelTable {
     *
     * Starts by querying for n * 5 labels, then checks GSV API to see if each gsv_panorama_id exists until we find n.
     *
-    * @param userId       User ID for the current user.
-    * @param n            Number of labels we need to query.
-    * @param labelTypeId  Label Type ID of labels requested.
-    * @return             Seq[LabelValidationMetadata]
+    * @param userId         User ID for the current user.
+    * @param n              Number of labels we need to query.
+    * @param labelTypeId    Label Type ID of labels requested.
+    * @param skippedLabelid Label ID of the label that was just skipped (if applicable)
+    * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadataWithoutTags] = List()
     val userIdStr = userId.toString
@@ -611,6 +612,15 @@ object LabelTable {
           |LIMIT ?""".stripMargin
       )
       potentialLabels = selectRandomLabelsQuery((userIdStr, labelTypeId, labelTypeId, userIdStr, userIdStr, n * 5)).list
+
+      // Remove label that was just skipped (if one was skipped).
+      potentialLabels = potentialLabels.filter(_.labelId != skippedLabelId.getOrElse(-1))
+
+      // Randomize those n * 5 high priority labels to prevent repeated and similar labels in a mission.
+      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1874
+      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
+      potentialLabels = scala.util.Random.shuffle(potentialLabels)
+
       var potentialStartIdx: Int = 0
 
       // Start looking through our n * 5 labels until we find n with valid pano id or we've gone through our n * 5 and
@@ -650,18 +660,6 @@ object LabelTable {
   def labelAndTagsToLabelValidationMetadata(label: LabelValidationMetadataWithoutTags, tags: List[String]): LabelValidationMetadata = {
       LabelValidationMetadata(label.labelId, label.labelType, label.gsvPanoramaId, label.heading, label.pitch, label.zoom, label.canvasX, label.canvasY,
                     label.canvasWidth, label.canvasHeight, label.severity, label.temporary, label.description, tags)
-  }
-
-  /**.
-    * Retrieve a list of labels for validation with a random label id
-    * @param userId User ID of the current user.
-    * @param count  Number of labels in the list.
-    * @return       Seq[LabelValidationMetadata]
-    */
-  def retrieveRandomLabelListForValidation(userId: UUID, count: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    // We are currently assigning label types to missions randomly.
-    val labelTypeId: Int = retrieveRandomValidationLabelTypeId()
-    retrieveLabelListForValidation(userId, count, labelTypeId)
   }
 
   /**
