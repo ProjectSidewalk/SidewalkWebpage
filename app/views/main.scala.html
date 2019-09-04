@@ -14,7 +14,6 @@
 <!DOCTYPE html>
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@title</title>
     <link rel="icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
     <link href='@routes.Assets.at("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
@@ -89,9 +88,9 @@
           </span>
         </div>
 
-    } else{
+    } else {
 
-    <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
+        <div class="footer-filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
     <div class="container" id="footer-container">
         <div class="row" style="padding-top: 50px; width: 900px; position:relative; left:80px;">
@@ -120,18 +119,18 @@
         <br>
         <p><span id="funding-title">WE ARE PROUDLY FUNDED BY</span></p>
         <div class="row" style="max-width: 900px; margin: 0 auto;">
-            <div class="col-sm-4">
+            <div class="col-xs-4 col-sm-4">
                 <a href="https://sloan.org/fellowships/" id ="sloan-link">
-                    <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
+                    <img src="@routes.Assets.at("assets/sloan_logo.png")">
                 </a>
             </div>
-            <div class="col-sm-4">
+            <div class="col-xs-4 col-sm-4">
                 <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
                     <img src="@routes.Assets.at("assets/nsf.png")">
                 </a>
             </div>
-            <div class="col-sm-3">
-                <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
+            <div class="col-xs-3 col-sm-3">
+                <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")"></a>
             </div>
         </div>
         <div class="row" style="max-width: 900px; margin: 0 auto;">
@@ -149,16 +148,18 @@
 
         </div>
 
-        Project Sidewalk is designed and operated by the
-        <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
-        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
-        <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-        <span id="application-version">
-            Version @VersionTable.currentVersionId() | Last Updated: 
-            <span class = "timestamp date">
+        <div id="info-footer-links">
+            Project Sidewalk is designed and operated by the
+            <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
+            <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
+            <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
+            <span id="application-version">
+                Version @VersionTable.currentVersionId() | Last Updated:
+                <span class = "timestamp date">
                 @VersionTable.currentVersionTimestamp()
+                </span>
             </span>
-        </span>
+        </div>
     </div>
 
   }
