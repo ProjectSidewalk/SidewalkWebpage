@@ -101,6 +101,10 @@ function Panorama (label, id) {
         return labels;
     }
 
+    function getPanomarker () {
+    	return self.labelMarker;
+    }
+
     /**
      * Returns the underlying panomarker object.
      * @returns {PanoMarker}
@@ -270,6 +274,10 @@ function Panorama (label, id) {
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
+        // Only set description box if on /validate and not /rapidValidate.
+        if (typeof svv.labelDescriptionBox !== 'undefined') {
+            svv.labelDescriptionBox.setDescription(label);
+        }
         renderLabel();
     }
 
@@ -348,6 +356,7 @@ function Panorama (label, id) {
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
     self.setZoom = setZoom;
+    self.getPanomarker = getPanomarker;
     self.skipLabel = skipLabel;
     self.hideLabel = hideLabel;
     self.showLabel = showLabel;
