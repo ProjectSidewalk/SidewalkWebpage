@@ -314,14 +314,14 @@ function Panorama (label, id) {
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
+        if (isMobile()) {
+             self.prevZoomLevel = zoomLevel[label.getAuditProperty('zoom')];
+        }
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
         // Only set description box if on /validate and not /rapidValidate.
         if (typeof svv.labelDescriptionBox !== 'undefined') {
             svv.labelDescriptionBox.setDescription(label);
-        }
-        if (isMobile()) {
-             self.prevZoomLevel = panorama.getZoom();
         }
         renderLabel();
     }
