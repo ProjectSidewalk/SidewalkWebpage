@@ -39,8 +39,9 @@ function Panorama (label, id) {
         if (isMobile()) {
             sizePano();
         }
-        _addListeners();
         setLabel(currentLabel);
+        _addListeners();
+
     }
 
     /**
@@ -78,7 +79,6 @@ function Panorama (label, id) {
         panorama.addListener('pov_changed', _handlerPovChange);
         panorama.addListener('pano_changed', _handlerPanoChange);
         if (isMobile()) {
-            panorama.addListener('zoom_changed', _handlerZoomChange);
             let screen = document.getElementById(properties.canvasId);
             screen.addEventListener('touchstart', _processTouchstart, false);
             screen.addEventListener('touchend', _processTouchend, false);
@@ -208,41 +208,34 @@ function Panorama (label, id) {
     }
 
     /**
-     * Logs zoom interactions on mobile devices. This is only used for mobile devices as
-     * they use GSV pinch zoom mechanism.
-     * @private
-     */
-    function _handlerZoomChange () {
-        if (svv.tracker && svv.panorama) {
-            let currentZoom = panorama.getZoom();
-            let zoomChange = currentZoom - self.prevZoomLevel;
-            if (zoomChange > 0) {
-                svv.tracker.push("Mobile_Pinch_ZoomIn");
-            }
-            if (zoomChange < 0) {
-                svv.tracker.push("Mobile_Pinch_ZoomOut");
-            }
-            self.prevZoomLevel = currentZoom;
-        }
-    }
-
-    /**
-     * Prevents POV_Changed logs when zooming on mobile device. Its purpose
-     * is to separate zooming and pov_changed events on mobile.
+     * Starts pinch zooming.
      * @private
      */
     function _processTouchstart(e) {
         if (e.touches.length >= 2) {
-            self.disablePovChangeLogging = true;
+            self.pinchZooming = true;
+            self.prevZoomLevel = panorama.getZoom();
         }
     }
 
     /**
-     * Enables POV_Changed logs after zooming on mobile device.
+     * Logs zoom interactions on mobile devices. This is only used for mobile devices as
+     * they use GSV pinch zoom mechanism.
      * @private
      */
+
     function _processTouchend(e) {
-        self.disablePovChangeLogging = false;
+        let currentZoom = panorama.getZoom();
+        if (svv.tracker && svv.panorama && self.pinchZooming && e.touches.length <= 1) {
+            let zoomChange = currentZoom - self.prevZoomLevel;
+            if (zoomChange > 0) {
+                svv.tracker.push('Pinch_ZoomIn');
+             }
+            if (zoomChange < 0) {
+                svv.tracker.push('Pinch_ZoomOut');
+            }
+            self.pinchZooming = false;
+        }   
     }
         
     /**
@@ -314,9 +307,6 @@ function Panorama (label, id) {
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
-        if (isMobile()) {
-             self.prevZoomLevel = zoomLevel[label.getAuditProperty('zoom')];
-        }
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
         // Only set description box if on /validate and not /rapidValidate.
