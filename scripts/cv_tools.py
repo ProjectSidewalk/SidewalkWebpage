@@ -50,7 +50,7 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
     ])
 
     if verbose:
-        print("Building dataset and loading model...")
+        print "Building dataset and loading model..."
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Connect to GPU and if not then CPU
 
@@ -64,9 +64,9 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
     panos = image_dataset.classes
 
     if verbose:
-        print("Using dataloader that supplies {} extra features.".format(len_ex_feats))
-        print("")
-        print("Finished loading data. Got crops from {} panos.".format(len(panos)))
+        print "Using dataloader that supplies {} extra features.".format(len_ex_feats)
+        print ""
+        print "Finished loading data. Got crops from {} panos.".format(len(panos))
 
     #Load the model
     model_ft = extended_resnet18(len_ex_feats=len_ex_feats)
@@ -83,7 +83,7 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
     pred_out  = []
 
     if verbose:
-        print("Computing predictions....")
+        print "Computing predictions...."
 
     #Get the output predictions
     for inputs, labels, paths in dataloader:
@@ -125,7 +125,7 @@ def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbo
     path = os.path.join(root_path,pred_file_name)
     if os.path.exists(path):
         os.remove(path)
-    with open(path, 'w', newline='') as csvfile:
+    with open(path, 'w') as csvfile:
         writer = csv.writer(csvfile)
         for pano_id in predictions_dict.keys():
             predictions = predictions_dict[pano_id]
@@ -142,7 +142,7 @@ def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbo
                 writer.writerow(row)
                 count += 1
         if verbose:
-            print("\tWrote {} predictions to {}.".format(count + 1, path))
+            print "\tWrote {} predictions to {}.".format(count + 1, path)
     return path
 
 '''
@@ -206,7 +206,7 @@ def make_crop(predictions, pano, path_to_panos):
             im = Image.open(image)
         except Exception as ex:
             template = "An exception of type " + str(type(ex).__name__) + " occured importing image: " + str(image)
-            print(template)
+            print template
     else:
         return 0
     xml = path_to_pano + ".xml"
@@ -298,10 +298,10 @@ def get_results(verbose):
         if os.path.exists(path_to_completelabels):
             os.remove(path_to_completelabels)
         if(verbose):
-            print("Delted a old compeltelabels file")
+            print "Delted a old compeltelabels file"
         single_crops("single","single", "models", verbose=True)
     elif(verbose):
-        print("No new crops to run CV")
+        print "No new crops to run CV"
 
 '''
 Extracts information about user label and cv predictions along with prediction values from the complete labels file 
@@ -321,7 +321,7 @@ def read_complete_file(ignore_null):
                     continue
                 value = row[:3]
                 numbers = list(map(float, row[3:]))
-                removed = numbers.copy()
+                removed = list(numbers)
                 if ignore_null:
                     removed.pop(1)
                 confidence_value = max(removed) #Get max confidence number
@@ -433,7 +433,7 @@ def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary)
     name_of_summaryfile = os.path.join(path_to_summary,"summary.csv")
     if os.path.exists(name_of_summaryfile):
         os.remove(name_of_summaryfile)
-    with open(name_of_summaryfile, 'w+', newline='') as csvfile:
+    with open(name_of_summaryfile, 'w+') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(title)
         #Adding items that have previously being processed by the CV systems and the resutls are saved in an already.csv file
@@ -501,7 +501,7 @@ def generate_image_date(dict_valid, existing_labels, verbose):
     for pano_id, points in dict_image.items():
         total += len(points)
     if(verbose):
-        print("Number of new labels to consider: " + str(total))
+        print "Number of new labels to consider: " + str(total)
     return dict_image
 
 '''
@@ -594,8 +594,8 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
     else:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
     if(verbose):
-        print("Already have results for " + str(len(add_to_summary)) + " items")
-        print("Need to get results for: " + str(len(updated)))
+        print "Already have results for " + str(len(add_to_summary)) + " items"
+        print "Need to get results for: " + str(len(updated))
     return updated
 
 '''
@@ -639,7 +639,7 @@ def update_labels_already_made(new_lables,path_to_panos):
         pano_id = row[0]
         complete = os.path.join(path_to_panos,pano_id[:2],"already.csv")
         exist = os.path.exists(complete)
-        with open(complete, 'a+', newline='') as csvfile:
+        with open(complete, 'a+') as csvfile:
             writer = csv.writer(csvfile)
             if not exist:
                 #Add column titles to the file if it was just know created
@@ -671,7 +671,7 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
     labels_list = generate_labelrows(dict_valid)
     new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary) #Write the summary file
     if(verbose):
-        print("Number of new labels is " + str(len(new_labels)))
+        print "Number of new labels is " + str(len(new_labels))
     update_labels_already_made(new_labels,path_to_panos) #Save the locations that have been currently processed
     utils.clear_dir(crops)
     if os.path.exists(path_to_completelabels):
@@ -687,9 +687,9 @@ Throws a FileNotFoundError if the path_to_panos or the input_data file does not 
 
 def generate_validation_data(input_data,path_to_panos,path_to_summary, number_agree = 1,num_threads = 4, date_after = "2008-06-28", verbose = False):
     if not os.path.isdir(path_to_panos):
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path_to_panos)
+        raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), path_to_panos)
     if not os.path.exists(input_data):
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), input_data)
+        raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), input_data)
     ignore_null = True
     generate_data(input_data, date_after, path_to_panos, ignore_null, number_agree, path_to_summary, verbose, num_threads)
     return (os.path.join(path_to_summary,"summary.csv"))
