@@ -105,3 +105,7 @@ nohup.out
 
 # docker db files
 db/dump
+
+# Python build files
+scripts/*.pyc
+
