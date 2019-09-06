@@ -77,6 +77,12 @@ function Panorama (label, id) {
     function _addListeners () {
         panorama.addListener('pov_changed', _handlerPovChange);
         panorama.addListener('pano_changed', _handlerPanoChange);
+        if (isMobile()) {
+            panorama.addListener('zoom_changed', _handlerZoomChange);
+            let screen = document.getElementById(properties.canvasId);
+            screen.addEventListener('touchstart', _processTouchstart, false);
+            screen.addEventListener('touchend', _processTouchend, false);
+        }
         return this;
     }
 
@@ -101,10 +107,6 @@ function Panorama (label, id) {
      */
     function getCurrentMissionLabels () {
         return labels;
-    }
-
-    function getPanomarker () {
-    	return self.labelMarker;
     }
 
     /**
@@ -206,11 +208,49 @@ function Panorama (label, id) {
     }
 
     /**
+     * Logs zoom interactions on mobile devices. This is only used for mobile devices as
+     * they use GSV pinch zoom mechanism.
+     * @private
+     */
+    function _handlerZoomChange () {
+        if (svv.tracker && svv.panorama) {
+            let currentZoom = panorama.getZoom();
+            let zoomChange = currentZoom - self.prevZoomLevel;
+            if (zoomChange > 0) {
+                svv.tracker.push("Mobile_Pinch_ZoomIn");
+            }
+            if (zoomChange < 0) {
+                svv.tracker.push("Mobile_Pinch_ZoomOut");
+            }
+            self.prevZoomLevel = currentZoom;
+        }
+    }
+
+    /**
+     * Prevents POV_Changed logs when zooming on mobile device. Its purpose
+     * is to separate zooming and pov_changed events on mobile.
+     * @private
+     */
+    function _processTouchstart(e) {
+        if (e.touches.length >= 2) {
+            self.disablePovChangeLogging = true;
+        }
+    }
+
+    /**
+     * Enables POV_Changed logs after zooming on mobile device.
+     * @private
+     */
+    function _processTouchend(e) {
+        self.disablePovChangeLogging = false;
+    }
+        
+    /**
      * Logs panning interactions.
      * @private
      */
     function _handlerPovChange () {
-        if (svv.tracker && svv.panorama) {
+        if (svv.tracker && svv.panorama && !self.disablePovChangeLogging) {
             svv.tracker.push('POV_Changed');
         }
     }
@@ -269,7 +309,7 @@ function Panorama (label, id) {
      * Sets the label on the panorama to be some label.
      * @param label {Label} Label to be displayed on the panorama.
      */
-    function setLabel (label) {
+    function setLabel (label) { 
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
@@ -279,6 +319,9 @@ function Panorama (label, id) {
         // Only set description box if on /validate and not /rapidValidate.
         if (typeof svv.labelDescriptionBox !== 'undefined') {
             svv.labelDescriptionBox.setDescription(label);
+        }
+        if (isMobile()) {
+             self.prevZoomLevel = panorama.getZoom();
         }
         renderLabel();
     }
@@ -358,7 +401,6 @@ function Panorama (label, id) {
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
     self.setZoom = setZoom;
-    self.getPanomarker = getPanomarker;
     self.skipLabel = skipLabel;
     self.hideLabel = hideLabel;
     self.showLabel = showLabel;
