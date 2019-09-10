@@ -39,9 +39,8 @@ function Panorama (label, id) {
         if (isMobile()) {
             sizePano();
         }
+        console.log(prevZoomLevel);
         setLabel(currentLabel);
-        _addListeners();
-
     }
 
     /**
@@ -65,7 +64,7 @@ function Panorama (label, id) {
             panorama.set('zoomControl', false);
             if (!isMobile()) {
                 panorama.set('scrollwheel', false);
-            }    
+            }
         } else {
             console.error("No typeof google");
         }
@@ -78,11 +77,6 @@ function Panorama (label, id) {
     function _addListeners () {
         panorama.addListener('pov_changed', _handlerPovChange);
         panorama.addListener('pano_changed', _handlerPanoChange);
-        if (isMobile()) {
-            let screen = document.getElementById(properties.canvasId);
-            screen.addEventListener('touchstart', _processTouchstart, false);
-            screen.addEventListener('touchend', _processTouchend, false);
-        }
         return this;
     }
 
@@ -208,46 +202,14 @@ function Panorama (label, id) {
     }
 
     /**
-     * Starts pinch zooming.
-     * @private
-     */
-    function _processTouchstart(e) {
-        if (e.touches.length >= 2) {
-            self.pinchZooming = true;
-            self.prevZoomLevel = panorama.getZoom();
-        }
-    }
-
-    /**
-     * Logs zoom interactions on mobile devices. This is only used for mobile devices as
-     * they use GSV pinch zoom mechanism.
-     * @private
-     */
-
-    function _processTouchend(e) {
-        let currentZoom = panorama.getZoom();
-        if (svv.tracker && svv.panorama && self.pinchZooming && e.touches.length <= 1) {
-            let zoomChange = currentZoom - self.prevZoomLevel;
-            if (zoomChange > 0) {
-                svv.tracker.push('Pinch_ZoomIn');
-             }
-            if (zoomChange < 0) {
-                svv.tracker.push('Pinch_ZoomOut');
-            }
-            self.pinchZooming = false;
-        }   
-    }
-        
-    /**
      * Logs panning interactions.
      * @private
      */
     function _handlerPovChange () {
-        if (svv.tracker && svv.panorama && !self.disablePovChangeLogging) {
+        if (svv.tracker && svv.panorama) {
             svv.tracker.push('POV_Changed');
         }
     }
-
 
     /**
      * Renders a label onto the screen using a Panomarker.
