@@ -39,7 +39,7 @@ function Panorama (label, id) {
         if (isMobile()) {
             sizePano();
         }
-        console.log(prevZoomLevel);
+        _addListeners();
         setLabel(currentLabel);
     }
 
