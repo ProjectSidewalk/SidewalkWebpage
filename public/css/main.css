@@ -91,6 +91,10 @@ footer {
     /* box-shadow: 0 0 5px rgba(0,0,0,.8); */
 }
 
+.mobileNavbarLink {
+    margin-top: 20px;
+}
+
 .navbarLink{
     display: inline;
     margin-top: 4px;
@@ -134,6 +138,13 @@ footer {
     margin-left: auto;
     margin-right: auto;
     max-height: 30px;
+    float: right;
+    line-height: 60px;
+}
+@media (max-width: 415px) {
+    #navbar {
+        padding: 0;
+    }
 }
 
 .navbar-nav > li > a.navbarBtn {
@@ -166,6 +177,55 @@ footer {
     top:8px;
 }
 
+#mobile-menu {
+    height: 100vh;
+    width: 100vw;
+    background: #2C293E;
+    color: white;
+    z-index: 100;
+    position: absolute;
+    top: 125px;
+    text-align: center;
+    left: 0;
+}
+
+@media (max-width: 900px) {
+    #mobile-menu {
+        background: white;
+        color: black;
+        top: 70px;
+    }
+}
+
+#mobile-links {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 40px;
+    font-size: 35pt;
+}
+
+@media (max-width: 900px) {
+    #mobile-links {
+        margin-top: 20px;
+        font-size: 18pt;
+    }
+}
+
+#mobile-links a {
+    text-decoration: none;
+    color: white;
+}
+
+@media (max-width: 900px) {
+    #mobile-links a {
+        color: black;
+    }
+}
+
+.fa .fa-bars {
+    font-size: 23pt;
+}
+
 .grayButton {
     position: relative;
     background-color: #eee;
@@ -195,7 +255,12 @@ footer {
     position:relative;
     top:1px;
 }
-
+@media (max-width: 415px) {
+    .grayButton {
+        font-size: 18pt;
+        padding: 5px 50px;
+    }
+}
 
 
 .logintext {
@@ -431,10 +496,12 @@ video#bgvid {
 
 #header-container {
     position: relative;
-    top: -11px;
     background-color: #fff;
     max-width:90%;
     max-height:70px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    height: 50px;
 }
 
 .im-centered {

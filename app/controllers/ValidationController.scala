@@ -59,7 +59,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, mobileValidationMissionStr, "Visit_MobileValidate")
         Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
       case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
+        Future.successful(Redirect(s"/anonSignUp?url=/mobileValidate"));
     }
   }
 

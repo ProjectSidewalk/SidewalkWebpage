@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean, url: Option[String] = Some("/"))
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
@@ -15,8 +15,10 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/kinetic-v4.3.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
+    <script src='@routes.Assets.at("assets/navbar.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
     <div id='status-current-mission-completion-bar'>
         <div id='status-current-mission-completion-bar-filler'>
@@ -29,8 +31,11 @@
         <!--<button id="back-button" class="button back-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>-->
         <div id="upper-menu-title-bar"></div>
         <button id="info-button" class="button info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
-        <button id="left-column-jump-button">
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
+@*        <button id="left-column-jump-button">*@
+@*            <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">*@
+@*        </button>*@
+        <button id="left-column-menu-button">
+            <span id="mobile-menu-button" class="fa fa-bars" style="font-size: 25pt; color: white;"></span>
         </button>
     </div>
 
@@ -145,6 +150,48 @@
                 </div>
                 <br />
             </div>
+        </div>
+        <div id="mobile-menu" style="display: none;">
+            <ul id="mobile-links">
+                <li class="mobileNavbarLink">
+                    <a class="navbarBtn navbarStartBtn" href="/">Homepage</a>
+                </li>
+                <li class="mobileNavbarLink">
+                    <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
+                </li>
+                <li class="mobileNavbarLink">
+                    <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
+                </li>
+                    <!--<li><a href="#">Explore Accessibility!</a></li>-->
+                <li class="dropdown mobileNavbarLink" id="navbar-dropdown-list">
+                @if(user && user.get.role.getOrElse("") != "Anonymous") {
+
+                    <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+                        @user.get.username
+                        <b class="caret"></b>
+                    </a>
+                    <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                        <li role="presentation">
+                            <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
+                                Your dashboard
+                            </a>
+                        </li>
+                        @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
+                            <li role="presentation">
+                                <a href='@routes.AdminController.index' role="menuitem">
+                                    Admin
+                                </a>
+                            </li>
+                        }
+                        <li role="presentation">
+                            <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+                        </li>
+                    </ul>
+                } else {
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Sign in</button>
+                }
+                </li>
+            </ul>
         </div>
     </div>
 

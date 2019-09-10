@@ -41,7 +41,7 @@ function resizeMobileValidation() {
     document.getElementById("status-current-mission-completion-rate").style.width = w + "px";
     // Resize button elements.
     document.getElementById("title-bar-holder").style.width = w + "px";
-    document.getElementById("left-column-jump-button").style.left = w - 75 + "px";
+    document.getElementById("left-column-menu-button").style.left = w - 75 + "px";
     document.getElementById("info-button").style.left = w - 150 + "px";
     // Resize mission start popup.
     let modalForegrounds = document.getElementsByClassName("modal-foreground");
