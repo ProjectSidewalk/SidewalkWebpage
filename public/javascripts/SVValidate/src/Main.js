@@ -146,6 +146,11 @@ function Main (param) {
             svv.zoomControl = new ZoomControl();
         }
 
+        // Logs when user zoom in/out on mobile.
+        if (isMobile()) {
+            svv.pinchZoom = new PinchZoomDetector();
+        }
+
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
