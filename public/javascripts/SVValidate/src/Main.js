@@ -57,6 +57,20 @@ function Main (param) {
         svv.ui.modalComment.cancel = $("#modal-comment-cancel-button");
         svv.ui.modalComment.textarea = $("#modal-comment-textarea");
 
+        svv.ui.modalInfo = {};
+        svv.ui.modalInfo.holder = $("#modal-info-holder");
+        svv.ui.modalInfo.foreground = $("#modal-info-foreground");
+        svv.ui.modalInfo.background = $("#modal-info-background");
+        svv.ui.modalInfo.infoHeader = $("#modal-info-header");
+        svv.ui.modalInfo.description = $("#modal-info-description");
+        svv.ui.modalInfo.closeButton = $("#modal-info-close-button");
+        svv.ui.modalInfo.infoButton = $("#info-button");
+
+        svv.ui.modalLandscape = {};
+        svv.ui.modalLandscape.holder = $("#modal-landscape-holder");
+        svv.ui.modalLandscape.foreground = $("#modal-landscape-foreground");
+        svv.ui.modalLandscape.background = $("#modal-landscape-background");
+
         svv.ui.modalMission = {};
         svv.ui.modalMission.holder = $("#modal-mission-holder");
         svv.ui.modalMission.foreground = $("#modal-mission-foreground");
@@ -119,15 +133,22 @@ function Main (param) {
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
-
+        if (param.canvasCount === 1 && !isMobile()) {
+           svv.labelDescriptionBox = new LabelDescriptionBox();
+        }
         svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
 
         // There are certain features that will only make sense if we have one validation interface on the screen.
-        if (param.canvasCount === 1) {
+        if (param.canvasCount === 1 && !isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
             svv.labelVisibilityControl = new LabelVisibilityControl();
             svv.zoomControl = new ZoomControl();
+        }
+
+        // Logs when user zoom in/out on mobile.
+        if (isMobile()) {
+            svv.pinchZoom = new PinchZoomDetector();
         }
 
         svv.modalComment = new ModalComment(svv.ui.modalComment);
@@ -136,6 +157,8 @@ function Main (param) {
         // svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, null);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
+        svv.modalInfo = new ModalInfo(svv.ui.modalInfo);
+        svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
         svv.missionContainer = new MissionContainer();

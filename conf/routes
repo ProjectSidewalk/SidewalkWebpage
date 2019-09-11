@@ -19,7 +19,7 @@ GET     /labelingGuide/surfaceProblems                       @controllers.Applic
 GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
 GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
-GET     /mobile                                              @controllers.ApplicationController.mobile
+GET     /mobile                                              @controllers.ValidationController.mobileValidate
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 
@@ -103,7 +103,7 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
-POST    /label/geo/random/:labelType                         @controllers.ValidationTaskController.getRandomLabelData(labelType: Int)
+POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods

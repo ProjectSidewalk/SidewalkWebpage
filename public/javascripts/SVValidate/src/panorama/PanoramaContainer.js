@@ -52,7 +52,11 @@ function PanoramaContainer (labelList, idList) {
             labelId: metadata.label_id,
             labelType: metadata.label_type,
             pitch: metadata.pitch,
-            zoom: metadata.zoom
+            zoom: metadata.zoom,
+            severity: metadata.severity,
+            temporary: metadata.temporary,
+            description: metadata.description,
+            tags: metadata.tags
         };
         return new Label(labelMetadata);
     }
@@ -60,10 +64,11 @@ function PanoramaContainer (labelList, idList) {
     /**
      * Fetches a single label from the database.  When the user clicks skip, need to get more
      * because missions fetch exactly the number of labels that are needed to complete the mission.
+     * @param skippedLabelId the ID of the label that we are skipping
      */
-    function fetchNewLabel () {
+    function fetchNewLabel (skippedLabelId) {
         let labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
-        let labelUrl = "/label/geo/random/" + labelTypeId;
+        let labelUrl = '/label/geo/random/' + labelTypeId + '/' + skippedLabelId;
 
         let data = {};
         data.labels = svv.labelContainer.getCurrentLabels();

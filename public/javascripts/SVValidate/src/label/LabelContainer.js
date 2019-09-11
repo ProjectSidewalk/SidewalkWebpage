@@ -33,7 +33,8 @@ function LabelContainer() {
             pitch: labelMetadata.pitch,
             start_timestamp: labelMetadata.startTimestamp,
             validation_result: labelMetadata.validationResult,
-            zoom: labelMetadata.zoom
+            zoom: labelMetadata.zoom,
+            is_mobile: labelMetadata.isMobile
         };
         currentLabels.push(data);
     }

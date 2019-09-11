@@ -36,6 +36,9 @@ function Panorama (label, id) {
      */
     function _init () {
         _createNewPanorama();
+        if (isMobile()) {
+            sizePano();
+        }
         _addListeners();
         setLabel(currentLabel);
     }
@@ -56,10 +59,12 @@ function Panorama (label, id) {
             panorama.set('motionTracking', false);
             panorama.set('motionTrackingControl', false);
             panorama.set('navigationControl', false);
-            panorama.set('panControl', false);
-            panorama.set('scrollwheel', false);
+            panorama.set('panControl', false); 
             panorama.set('showRoadLabels', false);
             panorama.set('zoomControl', false);
+            if (!isMobile()) {
+                panorama.set('scrollwheel', false);
+            }
         } else {
             console.error("No typeof google");
         }
@@ -179,19 +184,21 @@ function Panorama (label, id) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
-        streetViewService.getPanorama({pano: panorama.getPano()},
-            function (data, status) {
-                if (status === google.maps.StreetViewStatus.OK) {
-                    let date = data.imageDate;
-                    let year = date.substring(0, 4);
-                    let month = months[parseInt(date.substring(5, 7)) - 1];
-                    document.getElementById("svv-panorama-date-" + id).innerText = month + " " + year;
-                }
-                else {
-                    console.error("Error retrieving Panoramas: " + status);
-                    svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
-                }
-            });
+        if (!isMobile()) {
+            streetViewService.getPanorama({pano: panorama.getPano()},
+                function (data, status) {
+                    if (status === google.maps.StreetViewStatus.OK) {
+                        let date = data.imageDate;
+                        let year = date.substring(0, 4);
+                        let month = months[parseInt(date.substring(5, 7)) - 1];
+                        document.getElementById("svv-panorama-date-" + id).innerText = month + " " + year;
+                    }
+                    else {
+                        console.error("Error retrieving Panoramas: " + status);
+                        svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                    }
+                });
+        }
     }
 
     /**
@@ -203,7 +210,6 @@ function Panorama (label, id) {
             svv.tracker.push('POV_Changed');
         }
     }
-
 
     /**
      * Renders a label onto the screen using a Panomarker.
@@ -265,6 +271,10 @@ function Panorama (label, id) {
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
+        // Only set description box if on /validate and not /rapidValidate.
+        if (typeof svv.labelDescriptionBox !== 'undefined') {
+            svv.labelDescriptionBox.setDescription(label);
+        }
         renderLabel();
     }
 
@@ -291,7 +301,27 @@ function Panorama (label, id) {
      * Skips the current label on this panorama and fetches a new label for validation.
      */
     function skipLabel () {
-        svv.panoramaContainer.fetchNewLabel();
+        svv.panoramaContainer.fetchNewLabel(currentLabel.getProperty('labelId'));
+    }
+
+    /**
+     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
+     */
+    function sizePano() {
+        let h = window.innerHeight - 10;
+        let w = window.innerWidth - 10;
+        let outline_h = h + 10;
+        let outline_w = w + 10;
+        let left = 0;
+        document.getElementById("svv-panorama-0").style.height = h + "px";
+        document.getElementById("svv-panorama-holder").style.height = h + "px";
+        document.getElementById("svv-panorama-outline").style.height = outline_h + "px";
+        document.getElementById("svv-panorama-0").style.width = w + "px";
+        document.getElementById("svv-panorama-holder").style.width = w + "px";
+        document.getElementById("svv-panorama-outline").style.width = outline_w + "px";
+        document.getElementById("svv-panorama-0").style.left = left + "px";
+        document.getElementById("svv-panorama-holder").style.left = left + "px";
+        document.getElementById("svv-panorama-outline").style.left = left + "px";
     }
 
     /**

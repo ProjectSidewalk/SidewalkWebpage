@@ -28,6 +28,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   val validationMissionStr: String = "validation"
+  val mobileValidationMissionStr: String = "validation"
   val rapidValidationMissionStr: String = "rapidValidation"
 
   /**
@@ -39,10 +40,26 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, validationMissionStr)
+        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, validationMissionStr, "Visit_Validate")
         Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+    }
+  }
+
+  /**
+    * Returns the validation page for mobile.
+    * @return
+    */
+  def mobileValidate = UserAwareAction.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, mobileValidationMissionStr, "Visit_MobileValidate")
+        Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
+      case None =>
+        Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
     }
   }
 
@@ -55,7 +72,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 19, rapidValidationMissionStr)
+        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 19, rapidValidationMissionStr, "Visit_Validate")
         Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4)))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/rapidValidate"));
@@ -66,10 +83,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * Get the data needed by the /validate or /rapidValidate endpoints.
     * @return (mission, labelList, missionProgress, hasNextMission)
     */
-  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, validationTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], Boolean) = {
+  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, validationTypeStr: String, visitTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], Boolean) = {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
-    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Validate", timestamp))
+    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, visitTypeStr, timestamp))
     val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, labelCount, None)
     val hasWork: Boolean = possibleLabTypeIds.nonEmpty
 
@@ -112,7 +129,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val labelsToValidate: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionType)
     val labelsToRetrieve: Int = labelsToValidate - labelsProgress
 
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType, skippedLabelId = None)
     val labelMetadataJsonSeq: Seq[JsObject] = labelMetadata.map(label => LabelTable.validationLabelMetadataToJson(label))
     val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
     labelMetadataJson

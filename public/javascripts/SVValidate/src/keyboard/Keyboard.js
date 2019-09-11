@@ -49,6 +49,7 @@ function Keyboard(menuUI) {
     this._documentKeyDown = function (e) {
         if (!status.disableKeyboard && !status.keyPressed) {
             status.shiftDown = e.shiftKey;
+            svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.keyCode) {
                 // shift key
                 case 16:

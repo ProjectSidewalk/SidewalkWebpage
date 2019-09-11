@@ -93,6 +93,13 @@ function PanoProperties () {
         // Gather required variables and convert to radians where necessary
         let width = canvasWidth;
         let height = canvasHeight;
+
+        // Corrects width and height for mobile phones
+        if (isMobile()) {
+            width = window.innerWidth;
+            height = window.innerHeight;
+        }
+
         let target = {
             left: width / 2,
             top: height / 2
