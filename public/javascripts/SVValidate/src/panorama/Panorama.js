@@ -59,10 +59,12 @@ function Panorama (label, id) {
             panorama.set('motionTracking', false);
             panorama.set('motionTrackingControl', false);
             panorama.set('navigationControl', false);
-            panorama.set('panControl', false);
-            panorama.set('scrollwheel', false);
+            panorama.set('panControl', false); 
             panorama.set('showRoadLabels', false);
             panorama.set('zoomControl', false);
+            if (!isMobile()) {
+                panorama.set('scrollwheel', false);
+            }
         } else {
             console.error("No typeof google");
         }
@@ -99,10 +101,6 @@ function Panorama (label, id) {
      */
     function getCurrentMissionLabels () {
         return labels;
-    }
-
-    function getPanomarker () {
-    	return self.labelMarker;
     }
 
     /**
@@ -213,7 +211,6 @@ function Panorama (label, id) {
         }
     }
 
-
     /**
      * Renders a label onto the screen using a Panomarker.
      * @returns {renderLabel}
@@ -308,12 +305,12 @@ function Panorama (label, id) {
     }
 
     /**
-     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone
+     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
      */
     function sizePano() {
         let h = window.innerHeight - 10;
         let w = window.innerWidth - 10;
-        let outline_h = h + 10
+        let outline_h = h + 10;
         let outline_w = w + 10;
         let left = 0;
         document.getElementById("svv-panorama-0").style.height = h + "px";
@@ -356,7 +353,6 @@ function Panorama (label, id) {
     self.setPanorama = setPanorama;
     self.setProperty = setProperty;
     self.setZoom = setZoom;
-    self.getPanomarker = getPanomarker;
     self.skipLabel = skipLabel;
     self.hideLabel = hideLabel;
     self.showLabel = showLabel;
