@@ -177,7 +177,9 @@ def get_data(path_to_metadata_xml):
     for child in root:
         if(child.tag == 'data_properties' or child.tag == 'projection_properties'):
             pano[child.tag] = child.attrib
-    return [pano['data_properties']['image_width'], pano['data_properties']['image_height'], pano['projection_properties']['pano_yaw_deg']]
+    return [pano['data_properties']['image_width'],
+            pano['data_properties']['image_height'],
+            str(180 - float(pano['projection_properties']['pano_yaw_deg']))]
 
 
 '''
@@ -486,6 +488,7 @@ Returns: A dictionary where the key is pano_id ("1a1UlhadSS_3dNtc5oI10Q") and th
 
 def generate_image_date(dict_valid, existing_labels, verbose):
     dict_image = {}
+    print dict_valid
     for key in dict_valid:
         pano_id, x, y = key.split(",")
         complete = pano_id + "," + str(float(x)) + "," + str(float(y))
@@ -557,7 +560,7 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
                 #Only proceed if the label occurs after the date_after value
                 if(date > date_after):
                     totalcount += 1
-                    #Extarct info about user label
+                    #Extract info about user label
                     label_id = row[1]
                     pano_id = row[2]
                     x = row[3]
