@@ -6,6 +6,11 @@
  */
 function PinchZoomDetector () {
     let self = this;
+
+    let ZOOM_UNKNOWN_CODE = 0;
+    let ZOOM_IN_CODE = 1;
+    let ZOOM_OUT_CODE = 2;
+
     let pinchZoomCode = 0;
     let prevZoomLevel = -1;
     let pinchZooming = false;
@@ -24,45 +29,42 @@ function PinchZoomDetector () {
     }
 
     /**
-     * Uset starts pinch zooming.
+     * User starts pinch zooming. Don't know yet whether they are zooming in or out.
      * @private
      */
     function processTouchstart (e) {
         if (e.touches.length >= 2) {
             prevZoomLevel = svv.panorama.getZoom();
             pinchZooming = true;
-            // 1: zooming in, 2: zooming out, 0: unknown.
-            pinchZoomCode = 0;
+            pinchZoomCode = ZOOM_UNKNOWN_CODE;
         }
     }
 
     /**
-     * Determine whether a user is zooming in or out and logs
-     * their actions accordingly.
+     * Determine whether a user is zooming in or out and logs their actions accordingly.
      * @private
      */
     function processZoomChange () {
         let currentZoom = svv.panorama.getZoom();
-        // Logs interaction only if a user is pinch zooming and
-        // current zoom is less than max zoom.
+        // Logs interaction only if a user is pinch zooming and current zoom is less than max zoom.
         if (pinchZooming && currentZoom <= 4) {
             let zoomChange = currentZoom - prevZoomLevel;
             if (zoomChange > 0) {
-                if (pinchZoomCode != 1) {
-                    if (pinchZoomCode == 2) {
+                if (pinchZoomCode !== ZOOM_IN_CODE) {
+                    if (pinchZoomCode === ZOOM_OUT_CODE) {
                         svv.tracker.push('Pinch_ZoomOut_End');
                     }
                     svv.tracker.push('Pinch_ZoomIn_Start');
-                    pinchZoomCode = 1;
+                    pinchZoomCode = ZOOM_IN_CODE;
                 }
             }
             if (zoomChange < 0) {
-                if (pinchZoomCode != 2) {
-                    if (pinchZoomCode == 1) {
+                if (pinchZoomCode !== ZOOM_OUT_CODE) {
+                    if (pinchZoomCode === ZOOM_IN_CODE) {
                         svv.tracker.push('Pinch_ZoomIn_End');
                     }
                     svv.tracker.push('Pinch_ZoomOut_Start');
-                    pinchZoomCode = 2;
+                    pinchZoomCode = ZOOM_OUT_CODE;
                 }
            }
            prevZoomLevel = currentZoom;
@@ -75,14 +77,14 @@ function PinchZoomDetector () {
      */
     function processTouchend (e) {
         if (svv.tracker && svv.panorama && pinchZooming && e.touches.length <= 1) {
-            if (pinchZoomCode == 1) {
+            if (pinchZoomCode === ZOOM_IN_CODE) {
                 svv.tracker.push('Pinch_ZoomIn_End');
             }
-            if (pinchZoomCode == 2) {
+            if (pinchZoomCode === ZOOM_OUT_CODE) {
                 svv.tracker.push('Pinch_ZoomOut_End');
             }
             pinchZooming = false;
-        } 
+        }
     }
 
     _init();

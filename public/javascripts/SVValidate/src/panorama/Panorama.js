@@ -264,7 +264,7 @@ function Panorama (label, id) {
      * Sets the label on the panorama to be some label.
      * @param label {Label} Label to be displayed on the panorama.
      */
-    function setLabel (label) { 
+    function setLabel (label) {
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
@@ -305,12 +305,12 @@ function Panorama (label, id) {
     }
 
     /**
-     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone
+     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
      */
     function sizePano() {
         let h = window.innerHeight - 10;
         let w = window.innerWidth - 10;
-        let outline_h = h + 10
+        let outline_h = h + 10;
         let outline_w = w + 10;
         let left = 0;
         document.getElementById("svv-panorama-0").style.height = h + "px";
