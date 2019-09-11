@@ -149,12 +149,18 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 
 
 def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase, factor = 1):
+	expected_image_width = 13312
+	expected_image_height = 6656
+	image_x = sv_image_x * GSV_IMAGE_WIDTH / expected_image_width
+	image_y = sv_image_y * GSV_IMAGE_HEIGHT / expected_image_height
+
 	img_filename  = output_filebase + '.jpg'
 	meta_filename = output_filebase + '.json'
 	im_width = GSV_IMAGE_WIDTH
 	im_height = GSV_IMAGE_HEIGHT
-	x = ((float(PanoYawDeg) / 360) * im_width + sv_image_x) % im_width
-	y = im_height / 2 - sv_image_y
+
+	x = ((float(PanoYawDeg) / 360) * im_width + image_x) % im_width
+	y = im_height / 2 - image_y
 
 	# Crop rectangle around label
 	cropped_square = None
