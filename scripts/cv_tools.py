@@ -135,7 +135,7 @@ def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbo
                 if type(prediction) != list:
                     prediction = list(prediction)
                 x,y = coords.split(',')
-                if(save_id == True):
+                if save_id == True:
                     row = [pano_id] + [x,y] + prediction
                 else:
                     row = [x,y] + prediction
@@ -155,13 +155,13 @@ def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbo
 	Throws a FileNotFoundError if can't find any model in the model_dir
 '''
 
-def single_crops(crop_dir,path_dir,model_dir, verbose=False):
+def single_crops(crop_dir, path_dir, model_dir, verbose=False):
     model_name = utils.get_model_name()
     if model_name == None:
         raise  FileNotFoundError(errno.ENOENT, "Could not find a model in directory", model_dir)
     model_path = os.path.join(model_dir, model_name+'.pt')
-    preds = predict_from_crops(crop_dir,model_path,verbose=verbose)
-    preds_loc = write_predictions_to_file(preds,path_dir,"completelabels.csv", verbose=verbose)
+    preds = predict_from_crops(crop_dir, model_path, verbose=verbose)
+    preds_loc = write_predictions_to_file(preds,path_dir, "completelabels.csv", verbose=verbose)
 
 '''
 	Uses the meta data file to extract the width, height, and pano_yaw_degree of a crop
@@ -175,7 +175,7 @@ def get_data(path_to_metadata_xml):
     tree = ET.parse(pano_xml)
     root = tree.getroot()
     for child in root:
-        if(child.tag == 'data_properties' or child.tag == 'projection_properties'):
+        if child.tag == 'data_properties' or child.tag == 'projection_properties':
             pano[child.tag] = child.attrib
     return [pano['data_properties']['image_width'],
             pano['data_properties']['image_height'],
@@ -195,11 +195,11 @@ Returns: A 1 if the crops was sucessfully created and 0 if the crop could not be
 '''
 
 def make_crop(predictions, pano, path_to_panos):
-    complete_path = os.path.join('single','crops')
+    complete_path = os.path.join('single', 'crops')
     if not os.path.exists(complete_path):
         os.makedirs(complete_path)
     #Get path to pano and meta data
-    path_to_pano = os.path.join(path_to_panos,pano[:2],pano)
+    path_to_pano = os.path.join(path_to_panos,pano[:2], pano)
     image =  path_to_pano + ".jpg"
     im = None
     #Extract the image
@@ -228,12 +228,12 @@ def make_crop(predictions, pano, path_to_panos):
     #Make the crop around the given points
     for prediction in predictions:
         prediction = prediction.strip()
-        output = os.path.join(complete_path,pano + "_crop" + str(prediction))
+        output = os.path.join(complete_path, pano + "_crop" + str(prediction))
         coord = prediction.split(',')
         imagex = float(coord[0])
         imagey = float(coord[1])
         if im != None:
-            utils.make_single_crop(im,width,height,depth,pano, imagex, imagey, yawdeg, output)
+            utils.make_single_crop(im, width, height, depth, pano, imagex, imagey, yawdeg, output)
             m += 1
     return m
 
@@ -296,13 +296,13 @@ Returns: Nothing
 '''
 
 def get_results(verbose):
-    if(len(os.listdir(os.path.join("single", "crops"))) > 0):
+    if len(os.listdir(os.path.join("single", "crops"))) > 0:
         if os.path.exists(path_to_completelabels):
             os.remove(path_to_completelabels)
-        if(verbose):
+        if verbose:
             print "Delted a old compeltelabels file"
-        single_crops("single","single", "models", verbose=True)
-    elif(verbose):
+        single_crops("single", "single", "models", verbose=True)
+    elif verbose:
         print "No new crops to run CV"
 
 '''
@@ -319,7 +319,7 @@ def read_complete_file(ignore_null):
         with open(path_to_completelabels, 'r') as csvfile:
             csvreader = csv.reader(csvfile)
             for row in csvreader:
-                if(len(row) == 0):
+                if len(row) == 0:
                     continue
                 value = row[:3]
                 numbers = list(map(float, row[3:]))
@@ -376,7 +376,7 @@ def read_complete():
 '''
 
 def get_sigmoid(x):
-    return 1.0/(1.0 + math.exp(0.5 * (x - 2.5)))
+    return 1.0 / (1.0 + math.exp(0.5 * (x - 2.5)))
 
 '''
 	Method to get lower values for low x values (difference between cv_confidence and user_confidence) while mapping (0, infiinity) to (0, 1)
@@ -385,7 +385,7 @@ def get_sigmoid(x):
 '''
 
 def second_sigmoid(value):
-    return 1.0/(1.0 + math.exp(-0.6 * value + 3.0))
+    return 1.0 / (1.0 + math.exp(-0.6 * value + 3.0))
 
 '''
 	Calculates a priority score for the given label type for the importance of this label being validated by humans
@@ -396,8 +396,8 @@ def second_sigmoid(value):
 	Returns: A priority score betweeen (0,1) where 0 is low priority and 1 is high priority 
 '''
 
-def get_score(cv_label,cv_confidence, user_label, user_confidence):
-    if(cv_label == user_label):
+def get_score(cv_label, cv_confidence, user_label, user_confidence):
+    if cv_label == user_label:
         return get_sigmoid(float(cv_confidence))
     return 0.15 * second_sigmoid(float(cv_confidence) - float(user_confidence)) + 0.35 * get_sigmoid(float(user_confidence)) + 0.5
 
@@ -432,7 +432,7 @@ def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary)
         additional.append(add)
     title = ["label_id", "cv_label", "cv_confidence", "user_label", "user_label_confidence", "priority_score"] + additional
     #Writting titles to the columns
-    name_of_summaryfile = os.path.join(path_to_summary,"summary.csv")
+    name_of_summaryfile = os.path.join(path_to_summary, "summary.csv")
     if os.path.exists(name_of_summaryfile):
         os.remove(name_of_summaryfile)
     with open(name_of_summaryfile, 'w+') as csvfile:
@@ -444,26 +444,26 @@ def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary)
             x = int(float(x))
             y = int(float(y))
             values = value[2:]
-            cvlabel = value[0]
+            cv_label = value[0]
             confidence = value[1] #Getting the confidence values of the CV system
             complete = pano_id + "," + str(float(x)) + "," + str(float(y))
-            for label_id, userlabel in user_data[complete]:
-                value = float(values[pytorch_label_from_int.index(userlabel)])
-                score = get_score(cvlabel, confidence, userlabel, value) #Getting priority score
-                row = [label_id, cvlabel, confidence, userlabel, value, score] + values
+            for label_id, user_label in user_data[complete]:
+                value = float(values[pytorch_label_from_int.index(user_label)])
+                score = get_score(cv_label, confidence, user_label, value) #Getting priority score
+                row = [label_id, cv_label, confidence, user_label, value, score] + values
                 writer.writerow(row)
         #Writing summary information for labels that have not been previously processed by the CV system
-        for labelrow in labels_list:
-            pano_id = labelrow[0]
-            x = float(labelrow[1])
-            y = float(labelrow[2])
+        for label_row in labels_list:
+            pano_id = label_row[0]
+            x = float(label_row[1])
+            y = float(label_row[2])
             complete = pano_id + "," + str(x) + "," + str(y)
-            if(complete in rows_dict and complete not in add_to_summary):
-                first_label = labelrow[3]
+            if complete in rows_dict and complete not in add_to_summary:
+                first_label = label_row[3]
                 index = (pano_id + "_", x, y)
                 values = raw_values.loc[index, :]
-                cv_respone = rows_dict[complete]
-                label,confidence  = cv_respone.split(",") #Getting information about CV response
+                cv_response = rows_dict[complete]
+                label,confidence  = cv_response.split(",") #Getting information about CV response
                 for label_id, user_label in user_data[complete]:
                     user_confidence = round(float(values[user_label]), 2)
                     score = get_score(label, confidence, user_label, user_confidence) #Getting priority score
@@ -503,7 +503,7 @@ def generate_image_date(dict_valid, existing_labels, verbose):
     total = 0
     for pano_id, points in dict_image.items():
         total += len(points)
-    if(verbose):
+    if verbose:
         print "Number of new labels to consider: " + str(total)
     return dict_image
 
@@ -549,17 +549,17 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
     global user_data
     dict = {}
     updated ={}
-    totalcount = 0
+    total_count = 0
     if os.path.exists(path):
         with open(path) as csvfile:
-            csvreader = csv.reader(csvfile, delimiter=',')
-            next(csvreader)
-            for row in csvreader:
+            csv_reader = csv.reader(csvfile, delimiter=',')
+            next(csv_reader)
+            for row in csv_reader:
                 time_stamp = row[0]
                 date, time = time_stamp.split(" ")
                 #Only proceed if the label occurs after the date_after value
-                if(date > date_after):
-                    totalcount += 1
+                if date > date_after:
+                    total_count += 1
                     #Extract info about user label
                     label_id = row[1]
                     pano_id = row[2]
@@ -583,20 +583,20 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
                 #Get crowd consensus on the label type of the location and set that as a temporary label
                 for pred in predictions:
                     count[pytorch_label_from_int.index(pred)] += 1
-                maxval = np.argmax(count)
-                if(count[maxval] < number_agree):
+                max_val = np.argmax(count)
+                if count[max_val] < number_agree:
                     continue
-                labeltype = pytorch_label_from_int[maxval]
-                if(add):
+                label_type = pytorch_label_from_int[max_val]
+                if add:
                     #Location already processed by CV system
                     row = existing_labels[key]
                     add_to_summary[key] = row
                 else:
                     #Location that needs to be processed by CV system
-                    updated[key] =  labeltype
+                    updated[key] =  label_type
     else:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
-    if(verbose):
+    if verbose:
         print "Already have results for " + str(len(add_to_summary)) + " items"
         print "Need to get results for: " + str(len(updated))
     return updated
@@ -615,11 +615,11 @@ def labels_already_made(path_to_panos):
     sub.pop(0)
     for file in sub:
         name_of_existing_file = os.path.join(file,"already.csv")
-        if(os.path.exists(name_of_existing_file)):
-            with open(name_of_existing_file) as csvfile:
-                csvreader = csv.reader(csvfile, delimiter=',')
-                next(csvreader)
-                for row in csvreader:
+        if os.path.exists(name_of_existing_file):
+            with open(name_of_existing_file) as csv_file:
+                csv_reader = csv.reader(csv_file, delimiter=',')
+                next(csv_reader)
+                for row in csv_reader:
                     pano_id = row[0]
                     x = row[1]
                     y = row[2]
@@ -636,19 +636,19 @@ CV_Label (label type with max confidence), confidence (confidence value for cv_l
 for the 5 label types]  example ["1a1UlhadSS_3dNtc5oI10Q", -300, 400, Curb Ramps, 2.5, -2.3, 1.2, 2.5, 0.1, -1.6]
 '''
 
-def update_labels_already_made(new_lables,path_to_panos):
+def update_labels_already_made(new_labels, path_to_panos):
     writer = None
-    for row in new_lables:
+    for row in new_labels:
         pano_id = row[0]
-        complete = os.path.join(path_to_panos,pano_id[:2],"already.csv")
+        complete = os.path.join(path_to_panos,pano_id[:2], "already.csv")
         exist = os.path.exists(complete)
-        with open(complete, 'a+') as csvfile:
-            writer = csv.writer(csvfile)
+        with open(complete, 'a+') as csv_file:
+            writer = csv.writer(csv_file)
             if not exist:
                 #Add column titles to the file if it was just know created
                 title = ["pano_id", "sv_x", "sv_y", "cv label", "cv confidence"] + pytorch_label_from_int
                 writer.writerow(title)
-            if(writer != None):
+            if writer is not None:
                 writer.writerow(row)
 
 '''
@@ -658,8 +658,8 @@ for information about each of the inputs
 Returns Nothing
 '''
 
-def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agree, path_to_summary, verbose, num_threads):
-    crops = os.path.join(path_to_summary,"crops")
+def generate_data(input_data, date_after, path_to_panos, ignore_null, number_agree, path_to_summary, verbose, num_threads):
+    crops = os.path.join(path_to_summary, "crops")
     if not os.path.exists(crops):
         os.makedirs(crops)
     utils.clear_dir(crops)
@@ -673,9 +673,9 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
     rows_dict = exact_labels(ignore_null)
     labels_list = generate_labelrows(dict_valid)
     new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary) #Write the summary file
-    if(verbose):
+    if verbose:
         print "Number of new labels is " + str(len(new_labels))
-    update_labels_already_made(new_labels,path_to_panos) #Save the locations that have been currently processed
+    update_labels_already_made(new_labels, path_to_panos) #Save the locations that have been currently processed
     utils.clear_dir(crops)
     if os.path.exists(path_to_completelabels):
         os.remove(path_to_completelabels)
@@ -688,11 +688,11 @@ about more information about the output.
 Throws a FileNotFoundError if the path_to_panos or the input_data file does not exists
 '''
 
-def generate_validation_data(input_data,path_to_panos,path_to_summary, number_agree = 1,num_threads = 4, date_after = "2008-06-28", verbose = False):
+def generate_validation_data(input_data, path_to_panos, path_to_summary, number_agree = 1,num_threads = 4, date_after = "2008-06-28", verbose = False):
     if not os.path.isdir(path_to_panos):
         raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), path_to_panos)
     if not os.path.exists(input_data):
         raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), input_data)
     ignore_null = True
     generate_data(input_data, date_after, path_to_panos, ignore_null, number_agree, path_to_summary, verbose, num_threads)
-    return (os.path.join(path_to_summary,"summary.csv"))
+    return os.path.join(path_to_summary, "summary.csv")

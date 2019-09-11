@@ -2,6 +2,10 @@
 import math
 import os
 import json
+
+EXPECTED_IMAGE_WIDTH = 13312
+EXPECTED_IMAGE_HEIGHT = 6656
+
 def bilinear_interpolation(x, y, points):
 	'''Interpolate (x,y) from values associated with four points.
 
@@ -90,7 +94,7 @@ def predict_crop_size_by_position(x, y, im_width, im_height):
 	return crop_size
 
 
-def predict_crop_size(x, y, im_width, im_height, depth_txt):
+def predict_crop_size(sv_x, sv_y, im_width, im_height, depth_txt):
 	"""
 	# Calculate distance from point to image center
 	dist_to_center = math.sqrt((x-im_width/2)**2 + (y-im_height/2)**2)
@@ -105,10 +109,9 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 
 	print("Min dist was "+str(min_dist))
 	"""
-	### TEMP FIX FOR THE DEPTH CALCULATION. See Github Issue: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2 ###
-	x *= 13312/im_width
-	x *= 13312/im_width
-	y *= 6656/im_width
+	# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
+	x = sv_x * im_width / EXPECTED_IMAGE_WIDTH
+	y = sv_y * im_height / EXPECTED_IMAGE_HEIGHT
 	crop_size = 0
 	try:
 		depth_x = depth_txt[:, 0::3]
@@ -148,18 +151,16 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 	return crop_size
 
 
-def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase, factor = 1):
-	expected_image_width = 13312
-	expected_image_height = 6656
-	image_x = sv_image_x * GSV_IMAGE_WIDTH / expected_image_width
-	image_y = sv_image_y * GSV_IMAGE_HEIGHT / expected_image_height
+def make_single_crop(im, gsv_image_width, gsv_image_height, depth_txt, pano_id, sv_image_x, sv_image_y, pano_yaw_deg, output_filebase, factor = 1):
+	image_x = sv_image_x * gsv_image_width / EXPECTED_IMAGE_WIDTH
+	image_y = sv_image_y * gsv_image_height / EXPECTED_IMAGE_HEIGHT
 
 	img_filename  = output_filebase + '.jpg'
 	meta_filename = output_filebase + '.json'
-	im_width = GSV_IMAGE_WIDTH
-	im_height = GSV_IMAGE_HEIGHT
+	im_width = gsv_image_width
+	im_height = gsv_image_height
 
-	x = ((float(PanoYawDeg) / 360) * im_width + image_x) % im_width
+	x = ((float(pano_yaw_deg) / 360) * im_width + image_x) % im_width
 	y = im_height / 2 - image_y
 
 	# Crop rectangle around label
@@ -183,7 +184,7 @@ def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, 
 		top_left_y = y - crop_height / 2
 		cropped_square = im.crop((top_left_x, top_left_y, top_left_x + crop_width, top_left_y + crop_height))
 	predicted_crop_size *= factor
-	if(predict_crop_size != -1):
+	if predict_crop_size != -1:
 		crop_width = predicted_crop_size
 		crop_height = predicted_crop_size
 		#print(x, y)
@@ -200,7 +201,7 @@ def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, 
 			'sv_y'      : sv_image_y,
 			'crop_x'    : x,
 			'crop_y'    : y,
-			'pano yaw'  : PanoYawDeg,
+			'pano yaw'  : pano_yaw_deg,
 			'pano id'   : pano_id
 		   }
 
@@ -221,6 +222,6 @@ def get_model_name():
 	name = os.getcwd()
 	for file in os.listdir("models"): 
 		name, ext = file.split(".")
-		if(ext == "pt"):
+		if ext == "pt":
 			return name
 	return None
