@@ -133,17 +133,19 @@ footer {
 
     /* the rest of your styling */
 }
+
 #navbar {
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
     max-height: 30px;
     float: right;
-    line-height: 60px;
 }
-@media (max-width: 415px) {
+
+@media (max-width: 1000px) {
     #navbar {
         padding: 0;
+        line-height: 60px;
     }
 }
 
@@ -197,6 +199,17 @@ footer {
     }
 }
 
+#mobile-menu-button {
+    display: none;
+    font-size: 23pt;
+}
+
+@media (max-width: 1000px) {
+    #mobile-menu-button {
+        display: inline;
+    }
+}
+
 #mobile-links {
     list-style-type: none;
     padding: 0;
@@ -207,7 +220,7 @@ footer {
 @media (max-width: 900px) {
     #mobile-links {
         margin-top: 20px;
-        font-size: 18pt;
+        font-size: 16pt;
     }
 }
 
@@ -386,7 +399,7 @@ video#bgvid {
 }
 @media (max-width: 415px) {
     #vidbanner {
-        height: 100vh;
+        height: 80vh;
     }
 }
 
@@ -441,16 +454,21 @@ video#bgvid {
 
 @media (max-width: 415px) {
     .tagline {
-        font-size: 40px;
+        font-size: 35px;
     }
 }
 
-#bigtext{
-
+#bigtext {
     display: flex;
     align-items: center;
     justify-content: center;
     height:100%;
+}
+
+@media (max-width: 415px) {
+    #bigtext {
+        height: 90%;
+    }
 }
 
 #text {
@@ -522,6 +540,14 @@ video#bgvid {
 
 }
 
+@media (max-width: 415px) {
+    .im-centered {
+        font-size: 40px;
+        padding-top: 30px;
+    }
+
+}
+
 .im-centered5 {
     position: relative;
     top: 0px;
@@ -544,6 +570,7 @@ video#bgvid {
     .im-centered5 {
         font-size: 33px;
         width: auto;
+        padding-top: 30px;
     }
 }
 
@@ -567,6 +594,10 @@ video#bgvid {
 }
 
 @media (max-width: 415px) {
+    .im-centered3 {
+        padding-top: 30px;
+    }
+
     .im-centered3 .row {
         width: auto;
         font-size: 38px;
@@ -581,7 +612,7 @@ video#bgvid {
 
 @media (max-width: 415px) {
     #difference-container {
-        height: 575px;
+        height: 520px;
     }
 }
 
@@ -659,6 +690,7 @@ video#bgvid {
 @media (max-width: 415px) {
     #dcanim-div {
         left: -300px;
+        top: 45px;
     }
 }
 #dcanim-div img{
@@ -751,6 +783,9 @@ video#bgvid {
     top: 25px;
 
 
+}
+@media (max-width: 415px) {
+    top: 0;
 }
 #content-text-3 {
     font-family: adelle-regular, sans-serif;
@@ -930,7 +965,7 @@ video#bgvid {
 }
 #exploredesc{
     position: relative;
-    top: -10px;
+    top: -14px;
 }
 
 .testimage{
@@ -1269,14 +1304,15 @@ video#bgvid {
 }
 
 @media (max-width: 415px) {
-
     #banner2 {
         display: none;
     }
 
     #banner3 {
+        padding-left: 10px;
+        padding-right: 10px;
         display: block;
-        height: 820px;
+        height: 750px;
     }
 }
 #header {
@@ -1488,6 +1524,12 @@ kbd {
 
 .navbar-right {
     float: right;
+}
+
+@media (max-width: 1000px){
+    .navbar-right {
+        display: none;
+    }
 }
 
 .navbar-nav .open .dropdown-menu {

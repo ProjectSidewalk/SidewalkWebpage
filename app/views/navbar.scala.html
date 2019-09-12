@@ -14,9 +14,9 @@
             <a id="brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
-            <span id="mobile-menu-button" class="fa fa-bars" style="font-size: 23pt;"></span>
+            <span id="mobile-menu-button" class="fa fa-bars"></span>
 
-            <ul class="nav navbar-nav navbar-right" id="topbuttons" style="display: none">
+            <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
                     <li>
                         <img src="@routes.Assets.at("assets/clock.png")" style="width:22px;margin-top:20px;padding-right:5px;">
@@ -149,27 +149,18 @@
         <!-- /.container -->
     <div id="mobile-menu" style="display: none;">
         <ul id="mobile-links">
-            @if(url.isDefined && url.get != "/validate") {
-                <li class="active mobileNavbarLink">
-                    <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.mobileValidate()">Start Validating</a>
-                </li>
-                <li class="active mobileNavbarLink">
-                    <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
-                </li>
-                <li class="active mobileNavbarLink">
-                    <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
-                </li>
-            } else {
-                <li class="mobileNavbarLink">
-                    <a class="navbarBtn navbarStartBtn" href="/">Homepage</a>
-                </li>
-                <li class="mobileNavbarLink">
-                    <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
-                </li>
-                <li class="mobileNavbarLink">
-                    <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
-                </li>
-            }
+            <li class="active mobileNavbarLink">
+                <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.mobileValidate()">Start Validating</a>
+            </li>
+            <hr />
+            <li class="active mobileNavbarLink">
+                <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
+            </li>
+            <hr />
+            <li class="active mobileNavbarLink">
+                <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
+            </li>
+            <hr />
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
             <li class="dropdown mobileNavbarLink" id="navbar-dropdown-list">
             @if(user && user.get.role.getOrElse("") != "Anonymous") {

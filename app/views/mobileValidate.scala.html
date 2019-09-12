@@ -156,12 +156,15 @@
                 <li class="mobileNavbarLink">
                     <a class="navbarBtn navbarStartBtn" href="/">Homepage</a>
                 </li>
+                <hr />
                 <li class="mobileNavbarLink">
                     <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
                 </li>
+                <hr />
                 <li class="mobileNavbarLink">
                     <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
                 </li>
+                <hr />
                     <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="dropdown mobileNavbarLink" id="navbar-dropdown-list">
                 @if(user && user.get.role.getOrElse("") != "Anonymous") {
