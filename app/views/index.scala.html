@@ -8,9 +8,11 @@
 @main(title) {
     @navbar(user)
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="//unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.css" type="text/css">
+    <script src="//unpkg.com/leaflet-gesture-handling"></script>
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
-        <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+        <video defaultMuted playsinline autoplay loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>

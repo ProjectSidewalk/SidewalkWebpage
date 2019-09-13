@@ -16,6 +16,7 @@ function Choropleth(_, $, difficultRegionIds) {
         legendControl: {
             position: 'bottomleft'
         },
+        gestureHandling: true,
         zoomSnap: 0.5
     });
     choropleth.scrollWheelZoom.disable();

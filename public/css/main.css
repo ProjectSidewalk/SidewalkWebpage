@@ -544,6 +544,8 @@ video#bgvid {
     .im-centered {
         font-size: 40px;
         padding-top: 30px;
+        min-height: 0;
+        height: auto;
     }
 
 }
@@ -631,7 +633,7 @@ video#bgvid {
 
 @media (max-width: 415px) {
     #google-link img, #sloan-link img {
-        width: 100px;
+        width: 130%;
         margin-top: 0;
         left: -5px;
     }
@@ -785,7 +787,9 @@ video#bgvid {
 
 }
 @media (max-width: 415px) {
-    top: 0;
+    #content-text-2 {
+        top: 0;
+    }
 }
 #content-text-3 {
     font-family: adelle-regular, sans-serif;
@@ -833,7 +837,7 @@ video#bgvid {
 @media (max-width: 415px) {
     #mlgif {
         left: 0;
-        width: 350px;
+        width: 100%;
         margin-left: 0;
     }
 }
@@ -970,8 +974,9 @@ video#bgvid {
 
 .testimage{
     position: relative;
-    width: 350px;
-    height: auto;
+    width: auto;
+    height: 60vh;
+    margin-bottom: 15px;
 }
 .testimage img{
     max-width: 100%;
@@ -1121,17 +1126,16 @@ video#bgvid {
     #numberholder {
         padding: 0px;
         min-width: 0px;
-        bottom: 175px;
-        left: 10px;
+        top: 200px;
     }
 
     #anim-numbers {
-        font-size: 35px;
-        margin-bottom: 5px;
+        font-size: 3.5rem;
+        margin-bottom: 10px;
     }
 
     #anim-labels {
-        font-size: 20px;
+        font-size: 2rem;
     }
 }
 .quotebox {
@@ -1260,8 +1264,9 @@ video#bgvid {
 
 @media (max-width: 415px) {
     #info-footer {
-        height: 175px;
+        height: auto;
         min-height: 0;
+        padding: 0 0 15px 0;
     }
 }
 
@@ -1312,7 +1317,11 @@ video#bgvid {
         padding-left: 10px;
         padding-right: 10px;
         display: block;
-        height: 750px;
+    }
+
+    #banner3 .row, #quotearea .row {
+        margin-left: 0;
+        margin-right: 0;
     }
 }
 #header {
