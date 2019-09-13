@@ -113,14 +113,12 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     // TODO maybe deal with lost connection causing modal to not close
     this._handleBackgroundClick = function (e) {
         self._closeModalClicked = true;
-        // self._handleLoadNextMission();
         self._closeModal();
     };
 
     // TODO maybe deal with lost connection causing modal to not close
     this._handleCloseButtonClick = function (e) {
         self._closeModalClicked = true;
-        // self._handleLoadNextMission();
         self._closeModal();
     };
 
@@ -175,14 +173,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
-
-        // Start GET request for next mission. If this req is complete and the user clicks continue/next button, the
-        // next mission shows up. So clicking continue does nothing until the mission is received from the back-end.
-        // This should never happen, unless we completely lose connection to the back-end anyway.
-        // missionContainer.nextMission(function() {
-        //     self._gotNextMission = true;
-        //     self._handleLoadNextMission();
-        // });
 
         /*If the user has completed their first mission then hide the continue button.
          Display the generate confirmation button. When clicked, remove this button completely
