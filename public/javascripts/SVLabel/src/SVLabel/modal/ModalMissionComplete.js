@@ -71,6 +71,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
         uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+        self._canShowContinueButton = true;
+        if (self.showingMissionCompleteScreen) {
+            self._enableContinueButton();
+        }
     });
 
     _missionModel.on("MissionProgress:complete", function (parameters) {
@@ -80,15 +84,31 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     _missionContainer.on("MissionContainer:missionLoaded", function(mission) {
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
-            uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
-            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
-
-            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
-            uiModalMissionComplete.closeButton.css('opacity', "1.0");
-
-            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+            self._enableContinueButton();
         }
     });
+
+    // Enables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
+    this._enableContinueButton = function() {
+        uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
+        uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
+
+        uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
+        uiModalMissionComplete.closeButton.css('opacity', "1.0");
+
+        uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+    };
+
+    // Disables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
+    this._disableContinueButton = function() {
+        uiModalMissionComplete.closeButton.off('click'); // disable clicking
+        uiModalMissionComplete.background.off("click");
+
+        uiModalMissionComplete.closeButton.css('background', 'rgba(100,100,100,1)'); // gray out button
+        uiModalMissionComplete.closeButton.css('opacity', "0.35");
+
+        uiModalMissionComplete.closeButton.css("cursor", "wait"); // update cursor to waiting
+    };
 
     // TODO maybe deal with lost connection causing modal to not close
     this._handleBackgroundClick = function (e) {
@@ -149,21 +169,9 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         uiModalMissionComplete.closeButton.css('visibility', "visible");
         self.showingMissionCompleteScreen = true;
         if (self._canShowContinueButton) {
-            uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
-            uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
-
-            uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
-            uiModalMissionComplete.closeButton.css('opacity', "1.0");
-
-            uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+            self._enableContinueButton();
         } else {
-            uiModalMissionComplete.closeButton.off('click'); // disable clicking
-            uiModalMissionComplete.background.off("click");
-
-            uiModalMissionComplete.closeButton.css('background', 'rgba(100,100,100,1)'); // gray out button
-            uiModalMissionComplete.closeButton.css('opacity', "0.35");
-
-            uiModalMissionComplete.closeButton.css("cursor", "wait"); // update cursor to waiting
+            self._disableContinueButton();
         }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
@@ -247,7 +255,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
         var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
 
-        var userCompletedTasks = taskContainer.getCompletedTasks(regionId);
+        var userCompletedTasks = taskContainer.getCompletedTasks();
         var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
