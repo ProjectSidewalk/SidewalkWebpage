@@ -102,10 +102,17 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                url = "/audit/region/" + regionId,
+            var regionId = feature.properties.region_id;
+            var userCompleted = feature.properties.user_completed;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "???";
+
+            if (userCompleted) {
+                popupContent = "You already audited this entire neighborhood!";
+            } else {
                 popupContent = "Do you want to explore this area to find accessibility issues? " +
                     "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            }
             layer.bindPopup(popupContent);
             layers.push(layer);
 
@@ -189,12 +196,13 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                regionName = feature.properties.region_name,
-                compRate = -1.0,
-                milesLeft = -1.0,
-                url = "/audit/region/" + regionId,
-                popupContent = "???";
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var compRate = -1.0;
+            var milesLeft = -1.0;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "???";
             for (var i=0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(rates[i].rate);
@@ -205,7 +213,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
-                    if (compRate === 100) {
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                            "Thanks for all your help!";
+                    } else if (compRate === 100) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to find accessibility issues in this neighborhood yourself!";

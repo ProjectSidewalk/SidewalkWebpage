@@ -107,12 +107,13 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                regionName = feature.properties.region_name,
-                compRate = -1.0,
-                milesLeft = -1.0,
-                url = "/audit/region/" + regionId,
-                popupContent = "";
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var compRate = -1.0;
+            var milesLeft = -1.0;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "";
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(100.0 * rates[i].rate);
@@ -123,7 +124,10 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
-                    if (compRate === 100) {
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                            "Thanks for all your help!";
+                    } else if (compRate === 100) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to find accessibility issues in this neighborhood yourself!";
