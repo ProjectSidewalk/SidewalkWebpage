@@ -12,7 +12,7 @@
     <script src="//unpkg.com/leaflet-gesture-handling"></script>
     <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
-        <video defaultMuted playsinline autoplay loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
+        <video muted playsinline autoplay loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
             <source src='@routes.Assets.at("assets/mainvideo.mp4")' type="video/mp4">
         </video>
@@ -34,7 +34,7 @@
                     </p>
                     <br>
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Exploring @cityShortName</a>
-                    <a class="bodyStartBtn bodyStartBtnMobile" href="@routes.ValidationController.validate()">Start Validating</a>
+                    <a class="bodyStartBtn bodyStartBtnMobile" href="@routes.ValidationController.mobileValidate()">Start Validating</a>
                     <br><br>
                     <div id="other-cities-text">
                         <span class="header-text">We are also in:</span>

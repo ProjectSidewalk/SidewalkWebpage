@@ -403,12 +403,6 @@ video#bgvid {
     }
 }
 
-@media (max-width: 415px) {
-    #other-cities-text {
-        display: none;
-    }
-}
-
 #graybar {
     position: relative;
     top: -70px;
@@ -614,7 +608,7 @@ video#bgvid {
 
 @media (max-width: 415px) {
     #difference-container {
-        height: 520px;
+        height: 560px;
     }
 }
 
@@ -854,10 +848,7 @@ video#bgvid {
 
 @media (max-width: 415px) {
     #machinelearning-container {
-        min-height: 550px;
-    }
-    #machinelearning-container-title {
-        width: auto;
+        display: none;
     }
 }
 
@@ -869,7 +860,7 @@ video#bgvid {
 
 @media (max-width: 415px) {
     #choropleth-container {
-        min-height: 0;
+        display: none;
     }
 }
 #content{
