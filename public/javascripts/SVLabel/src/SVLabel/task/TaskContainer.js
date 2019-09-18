@@ -21,11 +21,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
 
-    self._handleTaskFetchCompleted = function () {
-        var nextTask = self.nextTask();
-        self.initNextTask(nextTask);
-    };
-
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
         if (!newTask) {
