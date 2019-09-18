@@ -141,7 +141,12 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
             var len = missionTasks.length;
             for (var i = 0; i < len; i++) {
-                var  geojsonFeature = missionTasks[i].getFeature();
+                var geojsonFeature = missionTasks[i].getFeature();
+                // If this is the last task (and it is incomplete), make a deep copy & only render audited parts.
+                if (i === len - 1 && !missionTasks[i].isComplete()) {
+                    geojsonFeature = JSON.parse(JSON.stringify(missionTasks[i].getFeature()));
+                    geojsonFeature.geometry.coordinates = missionTasks[i]._getPointsOnAuditedSegments();
+                }
                 var layer = L.geoJson(geojsonFeature).addTo(leafletMap);
                 layer.setStyle(missionTaskLayerStyle);
                 completedTasksLayer.push(layer);
@@ -157,6 +162,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
      *
      * @param missionTasks
      * @param completedTasks
+     * @param allCompletedTasks
      * @private
      */
     this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks) {
@@ -179,7 +185,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         // Add the other users' tasks layer
         for (i = 0; i < allCompletedTasks.length; i++) {
             var otherUserStreet = allCompletedTasks[i].getStreetEdgeId();
-            if(userOldStreets.indexOf(otherUserStreet) == -1 && newStreets.indexOf(otherUserStreet) == -1){
+            if(userOldStreets.indexOf(otherUserStreet) === -1 && newStreets.indexOf(otherUserStreet) === -1){
                 geojsonFeature = allCompletedTasks[i].getFeature();
                 layer = L.geoJson(geojsonFeature).addTo(this._map);
                 layer.setStyle(completedTaskAllUsersLayerStyle);

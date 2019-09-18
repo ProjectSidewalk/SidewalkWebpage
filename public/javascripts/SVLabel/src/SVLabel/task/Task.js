@@ -407,7 +407,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     /**
-     * Returns if the task is completed or not
+     * Returns if the task was completed or not.
      * @returns {boolean}
      */
     this.isComplete = function () {

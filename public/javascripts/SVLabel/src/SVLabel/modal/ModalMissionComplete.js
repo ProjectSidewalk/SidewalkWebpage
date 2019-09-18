@@ -247,6 +247,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
         var userCompletedTasks = taskContainer.getCompletedTasks();
         var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
+        mission.pushATaskToTheRoute(taskContainer.getCurrentTask());
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
