@@ -23,7 +23,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         accessToken: L.mapbox.accessToken
     }).addTo(this._map);
 
-    // these two are defined globaly so that they can be added in show and removed in hide
+    // These two are defined globally so that they can be added in show and removed in hide.
     this._overlayPolygon = null;
     this._overlayPolygonLayer = null;
     this._ui = uiModalMissionComplete;
@@ -31,7 +31,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
     this._animateMissionTasks = function (completedTasks, index, max){
         var collection = this._linestringToPoint(completedTasks[index].getGeoJSON());
-        var featuresdata = collection.features;
+        var featuresData = collection.features;
         var leafletMap = this._map;
         var completedTasksLayer = this._completedTasksLayer;
 
@@ -55,7 +55,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             });
 
         var linePath = g.selectAll(".lineConnect")
-            .data([featuresdata])
+            .data([featuresData])
             .enter()
             .append("path")
             .attr("class", "lineConnect");
@@ -92,13 +92,19 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                 .duration(transitionDuration)
                 .attrTween("stroke-dasharray", tweenDash)
                 .each("end", function() {
-                    if(index < max){
+                    if(index < max) {
                         // recursively call the next animation render when this one is done
                         self._animateMissionTasks(completedTasks, index + 1, max);
                     }
-                    else{
-                        //render the complete path as plain svg to avoid scaling issues
+                    else {
+                        // Render the complete path as plain svg to avoid scaling issues.
                         renderPath(completedTasks);
+
+                        // Remove after animation now that the scaling svg has been added (fixes #1839).
+                        d3.select(self._map.getPanes().overlayPane)
+                            .selectAll("svg")
+                            .selectAll(".lineConnect")
+                            .remove();
                     }
                 });
         } //end transition
@@ -167,12 +173,6 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             leafletMap.removeLayer(element);
         });
 
-        // remove after animation, otherwise segments remain green from previous tasks
-        d3.select(this._map.getPanes().overlayPane)
-            .selectAll("svg")
-            .selectAll(".lineConnect")
-            .remove();
-
         var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
         var userOldStreets = completedTasks.map( function(t) { return t.getStreetEdgeId(); });
 
@@ -190,7 +190,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         // Add the completed task layer
         for (i = 0; i < completedTasks.length; i++) {
             var streetEdgeId = completedTasks[i].getStreetEdgeId();
-            if(newStreets.indexOf(streetEdgeId) == -1){
+            if(newStreets.indexOf(streetEdgeId) === -1){
                 geojsonFeature = completedTasks[i].getFeature();
                 layer = L.geoJson(geojsonFeature).addTo(this._map);
                 layer.setStyle(completedTaskLayerStyle);
