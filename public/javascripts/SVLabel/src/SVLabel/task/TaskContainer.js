@@ -3,34 +3,6 @@
  *
  * TODO This module needs to be cleaned up.
  * TODO Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
  * @param navigationModel
  * @param neighborhoodModel
  * @param streetViewService
@@ -164,12 +136,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * Fetch a task based on the street id.
-     * @param regionId
      * @param streetEdgeId
+     * @param params
      * @param callback
      * @param async
      */
-    function fetchATask(regionId, streetEdgeId, callback, async) {
+    function fetchATask(streetEdgeId, params, callback, async) {
+        var tutorialTask = params.tutorialTask ? params.tutorialTask : false;
         if (typeof async == "undefined") async = true;
         $.ajax({
             url: "/task/street/" + streetEdgeId,
@@ -177,7 +150,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             success: function (json) {
                 var lat1 = json.features[0].geometry.coordinates[0][1],
                     lng1 = json.features[0].geometry.coordinates[0][0],
-                    newTask = svl.taskFactory.create(json, lat1, lng1);
+                    newTask = svl.taskFactory.create(json, tutorialTask, lat1, lng1);
                 if (json.features[0].properties.completed) newTask.complete();
                 storeTask(newTask);
                 if (callback) callback();
@@ -204,7 +177,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             success: function (result) {
                 var task;
                 for (var i = 0; i < result.length; i++) {
-                    task = svl.taskFactory.create(result[i]);
+                    task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
                     storeTask(task);
                 }
@@ -571,14 +544,24 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Store a task into _tasks
+     * Store a task into _tasks. Make sure the tutorial task gets added, even if it has a duplicate streetEdgeId.
      * @param task {object} Task object
      */
     function storeTask(task) {
-        var streetEdgeIds = self._tasks.map(function (task) {
+        var nonTutorialTasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
+        var streetEdgeIds = nonTutorialTasks.map(function (task) {
             return task.getStreetEdgeId();
         });
-        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) self._tasks.push(task);
+        if (task.getProperty('tutorialTask') || streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
+            self._tasks.push(task);
+        }
+    }
+
+    /**
+     * Removes the tutorial task.
+     */
+    function removeTutorialTask() {
+        self._tasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
     }
 
     /**
@@ -664,6 +647,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.hasMaxPriorityTask = hasMaxPriorityTask;
 
     self.storeTask = storeTask;
+    self.removeTutorialTask = removeTutorialTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;
