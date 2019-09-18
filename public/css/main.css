@@ -1115,9 +1115,10 @@ video#bgvid {
 }
 @media (max-width: 835px) {
     #numberholder {
-        padding: 0px;
-        min-width: 0px;
+        padding: 0;
+        min-width: 0;
         top: 200px;
+        width: 92%;
     }
 
     #anim-numbers {
