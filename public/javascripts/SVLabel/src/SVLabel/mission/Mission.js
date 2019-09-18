@@ -145,11 +145,16 @@ function Mission(parameters) {
     }
 
     /**
-     * Push a completed task into `_tasksForTheMission`
+     * Push a completed task into `_tasksForTheMission`.
      * @param task
      */
     function pushATaskToTheRoute(task) {
-        _tasksForTheMission.push(task);
+        var streetEdgeIds = _tasksForTheMission.map(function (task) {
+            return task.getStreetEdgeId();
+        });
+        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
+            _tasksForTheMission.push(task);
+        }
     }
 
     /**
