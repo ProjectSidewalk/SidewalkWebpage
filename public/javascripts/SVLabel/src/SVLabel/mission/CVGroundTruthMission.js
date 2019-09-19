@@ -88,7 +88,7 @@ function CVGroundTruthMission(mission) {
                 success: function (data) {
                     let lat1 = data.features[0].geometry.coordinates[0][1];
                     let lng1 = data.features[0].geometry.coordinates[0][0];
-                    let newTask = svl.taskFactory.create(data, lat1, lng1);
+                    let newTask = svl.taskFactory.create(data, false, lat1, lng1);
                     svl.taskContainer.setCurrentTask(newTask);
                 }
             });

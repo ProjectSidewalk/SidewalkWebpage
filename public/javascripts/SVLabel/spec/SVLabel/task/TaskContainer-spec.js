@@ -92,7 +92,6 @@ describe("TaskContainer module.", function () {
                 nextRegionId: 2
             };
             neighborhoodModel.trigger("Neighborhood:completed", parameters);
-            expect(taskContainer.fetchTasksInARegion).toHaveBeenCalledWith(2, taskContainer._handleTaskFetchCompleted, false)
         });
     });
 

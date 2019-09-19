@@ -32,21 +32,27 @@ class RegionController @Inject() (implicit val env: Environment[User, SessionAut
   }
 
   /**
-    * This returns a list of all the neighborhoods stored in the database
+    * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
     * @return
     */
-  def listNeighborhoods = Action.async { implicit request =>
-    val features: List[JsObject] = RegionTable.selectNamedRegionsOfAType("neighborhood").map { region =>
-      val coordinates: Array[Coordinate] = region.geom.getCoordinates
-      val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
-    val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))
-      val properties = Json.obj(
-        "region_id" -> region.regionId,
-        "region_name" -> region.name
-      )
-      Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+  def listNeighborhoods = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val features: List[JsObject] = RegionTable.getNeighborhoodsWithUserCompletionStatus(user.userId).map { region =>
+          val coordinates: Array[Coordinate] = region.geom.getCoordinates
+          val latlngs: Seq[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList  // Map it to an immutable list
+          val polygon: geojson.Polygon[geojson.LatLng] = geojson.Polygon(Seq(latlngs))
+          val properties = Json.obj(
+            "region_id" -> region.regionId,
+            "region_name" -> region.name,
+            "user_completed" -> region.userCompleted
+          )
+          Json.obj("type" -> "Feature", "geometry" -> polygon, "properties" -> properties)
+        }
+        val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Future.successful(Ok(featureCollection))
+      case None =>
+        Future.successful(Redirect(s"/anonSignUp?url=/neighborhoods"))
     }
-    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
   }
 }

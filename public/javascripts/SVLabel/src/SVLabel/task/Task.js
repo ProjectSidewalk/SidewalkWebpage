@@ -1,13 +1,15 @@
 /**
  * Task module.
  * @param geojson
+ * @param tutorialTask
  * @param currentLat
  * @param currentLng
+ * @param startPointReversed
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Task (geojson, currentLat, currentLng, startPointReversed) {
+function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed) {
     var self = this;
     var _geojson;
     var _furthestPoint;
@@ -24,11 +26,12 @@ function Task (geojson, currentLat, currentLng, startPointReversed) {
         currentLat: currentLat,
         currentLng: currentLng,
         startPointReversed: startPointReversed,
-        finishedReversing: false
+        finishedReversing: false,
+        tutorialTask: tutorialTask
     };
 
     /**
-     * This method takes a task parameters and set up the cturrent task.
+     * This method takes a task parameters and set up the current task.
      * @param geojson Description of the next task in json format.
      * @param currentLat Current latitude
      * @param currentLng Current longitude
@@ -404,7 +407,7 @@ function Task (geojson, currentLat, currentLng, startPointReversed) {
     };
 
     /**
-     * Returns if the task is completed or not
+     * Returns if the task was completed or not.
      * @returns {boolean}
      */
     this.isComplete = function () {
