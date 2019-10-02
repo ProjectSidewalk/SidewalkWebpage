@@ -220,44 +220,43 @@
         var param = {};
 
         // Hide confirmation code if turker hasn't completed a mission.
-        // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
-@*        @if(user) {*@
-@*            @if(user.get.role.getOrElse("") == "Turker") {*@
-@*                svv.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";*@
-@*                svv.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);*@
-@*                svv.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";*@
-@*                @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {*@
-@*                    $("#left-column-confirmation-code-button").css('visibility', "hidden");*@
-@*                } else {*@
-@*                    $("#left-column-confirmation-code-button").css('visibility', "");*@
-@*                    $("#left-column-confirmation-code-button").attr('data-toggle','popover');*@
-@*                    $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');*@
-@*                    $("#left-column-confirmation-code-button").attr('data-content', svv.confirmationCode);*@
-@*                    $("#left-column-confirmation-code-button").popover();*@
+        @if(user) {
+            @if(user.get.role.getOrElse("") == "Turker") {
+                svv.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
+                svv.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                svv.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
+                    $("#left-column-confirmation-code-button").css('visibility', 'hidden');
+                } else {
+                    $("#left-column-confirmation-code-button").css('visibility', "");
+                    $("#left-column-confirmation-code-button").attr('data-toggle','popover');
+                    $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+                    $("#left-column-confirmation-code-button").attr('data-content', svv.confirmationCode);
+                    $("#left-column-confirmation-code-button").popover();
 
-@*                    //Hide the confirmation popover on clicking the background*@
-@*                    //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside*@
+                    //Hide the confirmation popover on clicking the background
+                    //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
 
-@*                    $(document).on('click', function(e) {*@
-@*                        $("#left-column-confirmation-code-button").each(function () {*@
-@*                            //the 'is' for buttons that trigger popups*@
-@*                            //the 'has' for icons within a button that triggers a popup*@
-@*                            if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {*@
-@*                                (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false*@
-@*                            }*@
+                    $(document).on('click', function(e) {
+                        $("#left-column-confirmation-code-button").each(function () {
+                            //the 'is' for buttons that trigger popups
+                            //the 'has' for icons within a button that triggers a popup
+                            if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                                (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                            }
 
-@*                        });*@
-@*                    });*@
-@*                }*@
-@*                $("#current-mission-reward").show();*@
-@*                $("#total-mission-reward").show();*@
-@*                $("#modal-mission-reward-text").show();*@
-@*            } else {*@
-@*                $("#left-column-confirmation-code-button").css('visibility', "hidden");*@
-@*            }*@
-@*        } else{*@
-@*            $("#left-column-confirmation-code-button").css('visibility', "hidden");*@
-@*        }*@
+                        });
+                    });
+                }
+                $("#current-mission-reward").show();
+                $("#total-mission-reward").show();
+                $("#modal-mission-reward-text").show();
+            } else {
+                $("#left-column-confirmation-code-button").css('visibility', "hidden");
+            }
+        } else{
+            $("#left-column-confirmation-code-button").css('visibility', "hidden");
+        }
 
         // Store user object.
         let userParam = {};
