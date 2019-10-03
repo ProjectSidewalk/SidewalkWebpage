@@ -118,6 +118,9 @@ object MissionTable {
   val normalValidationMissionLabelsToRetrieve: Int = 10
   val rapidValidationMissionLabelsToRetrieve: Int = 19
 
+  val defaultAuditMissionSetProgress: MissionSetProgress = MissionSetProgress("audit", 0)
+  val defaultValidationMissionSetProgress: MissionSetProgress = MissionSetProgress("validation", 0)
+
   implicit val missionConverter = GetResult[Mission](r => {
     val missionId: Int = r.nextInt
     val missionTypeId: Int = r.nextInt
@@ -216,8 +219,7 @@ object MissionTable {
   def getProgressOnMissionSet(username: String): MissionSetProgress = db.withSession { implicit session =>
     val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
     if (asmt.isEmpty) {
-      MissionSetProgressprintln("assignment empty")
-      ("audit", 0)
+      defaultAuditMissionSetProgress
     } else {
       val missionsInThisAsmt: List[String] = missions.filter(m =>
         m.missionEnd > asmt.get.assignmentStart
