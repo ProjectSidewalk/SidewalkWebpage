@@ -25,6 +25,8 @@ case class RegionalMission(missionId: Int, missionType: String, regionId: Option
 case class AuditMission(userId: String, username: String, missionId: Int, completed: Boolean, missionStart: Timestamp,
                         missionEnd: Timestamp, neighborhood: Option[String], labelId: Option[Int], labelType: Option[String])
 
+case class MissionSetProgress(missionType: String, numComplete: Int)
+
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
                    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
                    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
@@ -196,6 +198,41 @@ object MissionTable {
         && m.missionEnd < asmt.get.assignmentEnd
         && m.completed
       ).list.nonEmpty
+    }
+  }
+
+  /**
+   * Gets a turker's progress on their current set of missions, either 3 audit or 3 validation missions.
+   *
+   * Turkers rotate between doing 3 audit missions and 3 validation missions. Here we check which of those two the
+   * turker is in the middle of, and how many of those 3 missions they have completed so far. This is used to determine
+   * how many missions they should complete before sending them from audit to validation or vice versa.
+   *
+   * TODO The mission set should really be stored in a table instead of it being implicit. I made it implicit for now
+   *      because we're talking about making big changes to the mission flow, so I want a lightweight solution for now.
+   * @param username
+   * @return
+   */
+  def getProgressOnMissionSet(username: String): MissionSetProgress = db.withSession { implicit session =>
+    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
+    if (asmt.isEmpty) {
+      MissionSetProgressprintln("assignment empty")
+      ("audit", 0)
+    } else {
+      val missionsInThisAsmt: List[String] = missions.filter(m =>
+        m.missionEnd > asmt.get.assignmentStart
+        && m.missionEnd < asmt.get.assignmentEnd
+        && m.completed
+      ).innerJoin(missionTypes).on(_.missionTypeId === _.missionTypeId).map(_._2.missionType).list
+
+      val auditMissionCount: Int = missionsInThisAsmt.count(_ == "audit")
+      val validationMissionCount: Int = missionsInThisAsmt.count(_ == "validation")
+      // If they've completed 3 audit missions but not 3 validation missions, they should get validation missions.
+      if (auditMissionCount % 3 == 0 && auditMissionCount > validationMissionCount) {
+        MissionSetProgress("validation", validationMissionCount % 3)
+      } else {
+        MissionSetProgress("audit", auditMissionCount % 3)
+      }
     }
   }
 
