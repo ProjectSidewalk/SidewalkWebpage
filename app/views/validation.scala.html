@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -287,6 +287,7 @@
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
+            param.missionSetProgress = @missionSetProgress;
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.canvasCount = 1;

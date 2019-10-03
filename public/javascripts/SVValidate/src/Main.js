@@ -11,7 +11,7 @@ function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
 
-    svv.missionsCompleted = 0;
+    svv.missionsCompleted = param.missionSetProgress;
 
     // Maps label types to label names
     svv.labelNames = {

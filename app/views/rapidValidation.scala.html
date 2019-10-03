@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -404,6 +404,7 @@
             } else {
                 param.dataStoreUrl = '@routes.ValidationTaskController.post';
                 param.hasNextMission = @hasNextMission;
+                param.missionSetProgress = @missionSetProgress;
 
                 // Set information about panorama size (to be used by JS), number of panoramas
                 param.canvasHeight = 130;
