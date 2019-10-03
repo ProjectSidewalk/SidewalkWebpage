@@ -36,7 +36,7 @@ object AMTAssignmentTable {
   val TURKER_TUTORIAL_PAY: Double = 1.00D
   val TURKER_PAY_PER_MILE: Double = 5.00D
   val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
-  val TURKER_PAY_PER_LABEL_VALIDATION = 0.0D
+  val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
   val VOLUNTEER_PAY: Double = 0.0D
 
   def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
