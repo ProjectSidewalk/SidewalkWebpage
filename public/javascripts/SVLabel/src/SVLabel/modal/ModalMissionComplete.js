@@ -123,8 +123,9 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     };
 
     this._closeModal = function (e) {
-        if ((!svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted === 3) {
-            // Load the validation page since they've either completed their audit first mission or just finished 3.
+        if ((self._userModel.getUser().getProperty("role") !== "Turker" && !svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted === 3) {
+            // Load the validation page since they are either a non-turker who completed their audit first mission or
+            // they are anyone that just finished 3 audit missions.
             window.location.replace('/validate');
         }
         else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
