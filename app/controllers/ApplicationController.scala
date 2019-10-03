@@ -63,7 +63,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             request.identity match {
               case Some(user) =>
                 // Have different cases when the user.username is the same as the workerId and when it isn't.
-                user.username match{
+                user.username match {
                   case `workerId` =>
                     activityLogText = activityLogText + "_reattempt=true"
                     // Unless they are mid-assignment, create a new assignment.
@@ -93,7 +93,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             }
 
           case _ =>
-            val redirectTo: String = qString.get("to") match{
+            val redirectTo: String = qString.get("to") match {
               case Some(to) =>
                 to
               case None =>

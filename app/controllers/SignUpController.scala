@@ -238,8 +238,8 @@ class SignUpController @Inject() (
         activityLogText = activityLogText + "_reattempt=true"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
 
-        val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
-        val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
+        val turkerEmail: String = workerId + "@sidewalk.mturker.umd.edu"
+        val loginInfo = LoginInfo(CredentialsProvider.ID, turkerEmail)
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
             val session: Future[SessionAuthenticator#Value] = turkerSignIn(user, authenticator)
@@ -254,16 +254,16 @@ class SignUpController @Inject() (
 
       case None =>
         // Create a dummy email and password. Keep the username as the workerId.
-        val turker_email: String = workerId + "@sidewalk.mturker.umd.edu"
-        val turker_password: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
+        val turkerEmail: String = workerId + "@sidewalk.mturker.umd.edu"
+        val turkerPassword: String = hitId + assignmentId + s"${Random.alphanumeric take 16 mkString("")}"
 
-        val loginInfo = LoginInfo(CredentialsProvider.ID, turker_email)
-        val authInfo = passwordHasher.hash(turker_password)
+        val loginInfo = LoginInfo(CredentialsProvider.ID, turkerEmail)
+        val authInfo = passwordHasher.hash(turkerPassword)
         val user = User(
           userId = UUID.randomUUID(),
           loginInfo = loginInfo,
           username = workerId,
-          email = turker_email,
+          email = turkerEmail,
           role = None
         )
 
