@@ -17,6 +17,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class Region(regionId: Int, regionTypeId: Int, dataSource: String, description: String, geom: Polygon, deleted: Boolean)
 case class NamedRegion(regionId: Int, name: Option[String], geom: Polygon)
+case class NamedRegionAndUserCompletion(regionId: Int, name: Option[String], geom: Polygon, userCompleted: Boolean)
 
 class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
@@ -265,25 +266,23 @@ object RegionTable {
   }
 
   /**
-    * This method returns a list of NamedRegions
-    *
-    * @param regionType
-    * @return
-    */
-  def selectNamedRegionsOfAType(regionType: String): List[NamedRegion] = db.withSession { implicit session =>
+   * Gets all named neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
+   *
+   * @param userId
+   * @return
+   */
+  def getNeighborhoodsWithUserCompletionStatus(userId: UUID): List[NamedRegionAndUserCompletion] = db.withSession { implicit session =>
+    // Gets regions that the user has not fully audited.
+    val incompleteRegionsForUser = StreetEdgeRegionTable.streetEdgeRegionTable // FROM street_edge_region
+      .leftJoin(AuditTaskTable.completedTasks).on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
+      .filter(_._2.auditTaskId.?.isEmpty) // WHERE audit_task.audit_task_id IS NULL
+      .groupBy(_._1.regionId) // GROUP BY region_id
+      .map(_._1) // SELECT region_id
 
-    val _regions = for {
-      (_regions, _regionTypes) <- regionsWithoutDeleted.innerJoin(regionTypes).on(_.regionTypeId === _.regionTypeId)
-      if _regionTypes.regionType === regionType
-    } yield _regions
-
-
-    val _namedRegions = for {
-      (_regions, _regionProperties) <- _regions.leftJoin(regionProperties).on(_.regionId === _.regionId)
-      if _regionProperties.key === "Neighborhood Name"
-    } yield (_regions.regionId, _regionProperties.value.?, _regions.geom)
-
-    _namedRegions.list.map(x => NamedRegion.tupled(x))
+    // Left join named neighborhoods and incomplete neighborhoods to record completion status.
+    namedNeighborhoods
+      .leftJoin(incompleteRegionsForUser).on(_._1 === _).map(x => (x._1._1, x._1._2, x._1._3, x._2.?.isEmpty))
+      .list.map(NamedRegionAndUserCompletion.tupled)
   }
 
   /**

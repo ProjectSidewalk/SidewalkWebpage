@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -887,7 +887,8 @@
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok
-                    var newTask = svl.taskFactory.create(geojson, lat1, lng1, startPointReversed);
+                    var tutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId
+                    var newTask = svl.taskFactory.create(geojson, tutorialTask, lat1, lng1, startPointReversed);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
 
@@ -1055,6 +1056,7 @@
             mainParam.nextTemporaryLabelId = @nextTempLabelId;
             mainParam.mission = @Html(mission.toJSON.toString);
             mainParam.tutorialStreetId = @tutorialStreetId;
+            mainParam.missionSetProgress = @missionSetProgress;
             mainParam.hasCompletedAMission = @hasCompletedMission;
 
             svl.main = new Main(mainParam);

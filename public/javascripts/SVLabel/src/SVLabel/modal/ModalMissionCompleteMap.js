@@ -23,7 +23,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         accessToken: L.mapbox.accessToken
     }).addTo(this._map);
 
-    // these two are defined globaly so that they can be added in show and removed in hide
+    // These two are defined globally so that they can be added in show and removed in hide.
     this._overlayPolygon = null;
     this._overlayPolygonLayer = null;
     this._ui = uiModalMissionComplete;
@@ -31,7 +31,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
     this._animateMissionTasks = function (completedTasks, index, max){
         var collection = this._linestringToPoint(completedTasks[index].getGeoJSON());
-        var featuresdata = collection.features;
+        var featuresData = collection.features;
         var leafletMap = this._map;
         var completedTasksLayer = this._completedTasksLayer;
 
@@ -55,7 +55,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             });
 
         var linePath = g.selectAll(".lineConnect")
-            .data([featuresdata])
+            .data([featuresData])
             .enter()
             .append("path")
             .attr("class", "lineConnect");
@@ -92,13 +92,19 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                 .duration(transitionDuration)
                 .attrTween("stroke-dasharray", tweenDash)
                 .each("end", function() {
-                    if(index < max){
+                    if(index < max) {
                         // recursively call the next animation render when this one is done
                         self._animateMissionTasks(completedTasks, index + 1, max);
                     }
-                    else{
-                        //render the complete path as plain svg to avoid scaling issues
+                    else {
+                        // Render the complete path as plain svg to avoid scaling issues.
                         renderPath(completedTasks);
+
+                        // Remove after animation now that the scaling svg has been added (fixes #1839).
+                        d3.select(self._map.getPanes().overlayPane)
+                            .selectAll("svg")
+                            .selectAll(".lineConnect")
+                            .remove();
                     }
                 });
         } //end transition
@@ -135,7 +141,12 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
 
             var len = missionTasks.length;
             for (var i = 0; i < len; i++) {
-                var  geojsonFeature = missionTasks[i].getFeature();
+                var geojsonFeature = missionTasks[i].getFeature();
+                // If this is the last task (and it is incomplete), make a deep copy & only render audited parts.
+                if (i === len - 1 && !missionTasks[i].isComplete()) {
+                    geojsonFeature = JSON.parse(JSON.stringify(missionTasks[i].getFeature()));
+                    geojsonFeature.geometry.coordinates = missionTasks[i]._getPointsOnAuditedSegments();
+                }
                 var layer = L.geoJson(geojsonFeature).addTo(leafletMap);
                 layer.setStyle(missionTaskLayerStyle);
                 completedTasksLayer.push(layer);
@@ -151,6 +162,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
      *
      * @param missionTasks
      * @param completedTasks
+     * @param allCompletedTasks
      * @private
      */
     this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks) {
@@ -167,19 +179,13 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             leafletMap.removeLayer(element);
         });
 
-        // remove after animation, otherwise segments remain green from previous tasks
-        d3.select(this._map.getPanes().overlayPane)
-            .selectAll("svg")
-            .selectAll(".lineConnect")
-            .remove();
-
         var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
         var userOldStreets = completedTasks.map( function(t) { return t.getStreetEdgeId(); });
 
         // Add the other users' tasks layer
         for (i = 0; i < allCompletedTasks.length; i++) {
             var otherUserStreet = allCompletedTasks[i].getStreetEdgeId();
-            if(userOldStreets.indexOf(otherUserStreet) == -1 && newStreets.indexOf(otherUserStreet) == -1){
+            if(userOldStreets.indexOf(otherUserStreet) === -1 && newStreets.indexOf(otherUserStreet) === -1){
                 geojsonFeature = allCompletedTasks[i].getFeature();
                 layer = L.geoJson(geojsonFeature).addTo(this._map);
                 layer.setStyle(completedTaskAllUsersLayerStyle);
@@ -190,7 +196,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         // Add the completed task layer
         for (i = 0; i < completedTasks.length; i++) {
             var streetEdgeId = completedTasks[i].getStreetEdgeId();
-            if(newStreets.indexOf(streetEdgeId) == -1){
+            if(newStreets.indexOf(streetEdgeId) === -1){
                 geojsonFeature = completedTasks[i].getFeature();
                 layer = L.geoJson(geojsonFeature).addTo(this._map);
                 layer.setStyle(completedTaskLayerStyle);

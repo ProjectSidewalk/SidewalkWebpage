@@ -24,7 +24,7 @@ function Main (params) {
     svl.isOnboarding = function () {
         return svl.onboarding != null && svl.onboarding.isOnboarding();
     };
-    svl.missionsCompleted = 0;
+    svl.missionsCompleted = params.missionSetProgress;
     svl.canvasWidth = 720;
     svl.canvasHeight = 480;
     svl.svImageHeight = 6656;
@@ -201,11 +201,6 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        // Mark neighborhood as complete if there are no streets left with max priority (= 1).
-        if(!svl.taskContainer.hasMaxPriorityTask()) {
-            svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
-        }
-
         $("#toolbar-onboarding-link").on('click', function () {
             window.location.replace('/audit?retakeTutorial=true');
         });
@@ -272,13 +267,12 @@ function Main (params) {
 
     function loadData (taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
         // Fetch an onboarding task.
-
-        taskContainer.fetchATask("onboarding", tutorialStreetId, function () {
+        taskContainer.fetchATask(tutorialStreetId, {tutorialTask: true}, function () {
             loadingAnOnboardingTaskCompleted = true;
             handleDataLoadComplete();
         });
 
-        // Fetch tasks in the onboarding region.
+        // Fetch tasks in the current region.
         taskContainer.fetchTasks(function () {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
@@ -420,7 +414,13 @@ function Main (params) {
         if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted &&
             loadDifficultNeighborhoodsCompleted && loadLabelTags) {
-            // Check if the user has completed the onboarding tutorial..
+
+            // Mark neighborhood as complete if there are no streets left with max priority (= 1).
+            if(!svl.taskContainer.hasMaxPriorityTask()) {
+                svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+            }
+
+            // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;
             $("#page-loading").css({"visibility": "hidden"});
@@ -431,6 +431,7 @@ function Main (params) {
                 $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
+                svl.taskContainer.removeTutorialTask();
                 _calculateAndSetTasksMissionsOffset();
                 var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");

@@ -183,6 +183,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
         if (skipReasonLabel === "GSVNotAvailable") {
             taskContainer.endTask(task);
+            missionContainer.getCurrentMission().pushATaskToTheRoute(task);
             util.misc.reportNoStreetView(task.getStreetEdgeId());
         } else {
             // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
