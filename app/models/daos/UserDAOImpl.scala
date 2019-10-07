@@ -255,7 +255,7 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
+  def countAuditUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
 
     val tasks = if (taskCompleted) auditTaskTable.filter(_.completed) else auditTaskTable
 
@@ -280,8 +280,8 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countResearchersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-    countUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
+  def countAuditResearchersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countAuditUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
   }
 
   /**
@@ -290,8 +290,8 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countAllUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-    countUsersContributed(roleTable.map(_.role).list, taskCompleted)
+  def countAllAuditUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countAuditUsersContributed(roleTable.map(_.role).list, taskCompleted)
   }
 
   /**
@@ -302,7 +302,7 @@ object UserDAOImpl {
     * @param role
     * @return
     */
-  def countUsersContributedToday(role: String): Int = db.withSession { implicit session =>
+  def countAuditUsersContributedToday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
@@ -322,10 +322,10 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countResearchersContributedToday: Int = db.withSession { implicit session =>
-    countUsersContributedToday("Researcher") +
-      countUsersContributedToday("Administrator") +
-      countUsersContributedToday("Owner")
+  def countAuditResearchersContributedToday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedToday("Researcher") +
+      countAuditUsersContributedToday("Administrator") +
+      countAuditUsersContributedToday("Owner")
   }
 
   /**
@@ -333,11 +333,11 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countAllUsersContributedToday: Int = db.withSession { implicit session =>
-    countUsersContributedToday("Registered") +
-      countUsersContributedToday("Anonymous") +
-      countUsersContributedToday("Turker") +
-      countResearchersContributedToday
+  def countAllAuditUsersContributedToday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedToday("Registered") +
+      countAuditUsersContributedToday("Anonymous") +
+      countAuditUsersContributedToday("Turker") +
+      countAuditResearchersContributedToday
   }
 
   /**
@@ -348,7 +348,7 @@ object UserDAOImpl {
     * @param role
     * @return
     */
-  def countUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
+  def countAuditUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
@@ -368,10 +368,10 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countResearchersContributedYesterday: Int = db.withSession { implicit session =>
-    countUsersContributedYesterday("Researcher") +
-      countUsersContributedYesterday("Administrator") +
-      countUsersContributedYesterday("Owner")
+  def countAuditResearchersContributedYesterday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedYesterday("Researcher") +
+      countAuditUsersContributedYesterday("Administrator") +
+      countAuditUsersContributedYesterday("Owner")
   }
 
   /**
@@ -379,11 +379,11 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countAllUsersContributedYesterday: Int = db.withSession { implicit session =>
-    countUsersContributedYesterday("Registered") +
-      countUsersContributedYesterday("Anonymous") +
-      countUsersContributedYesterday("Turker") +
-      countResearchersContributedYesterday
+  def countAllAuditUsersContributedYesterday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedYesterday("Registered") +
+      countAuditUsersContributedYesterday("Anonymous") +
+      countAuditUsersContributedYesterday("Turker") +
+      countAuditResearchersContributedYesterday
   }
 
   /**
