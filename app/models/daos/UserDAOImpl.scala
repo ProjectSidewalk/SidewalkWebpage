@@ -109,6 +109,146 @@ object UserDAOImpl {
   }
 
   /**
+   * Count the number of users of the given role who have ever started (or completed) validating a label.
+   *
+   * @param roles
+   * @param labelValidated
+   * @return
+   */
+  def countValidationUsersContributed(roles: List[String], labelValidated: Boolean): Int = db.withSession { implicit session =>
+
+    val validationMissions =
+      if (labelValidated) MissionTable.validationMissions.filter(_.labelsProgress > 0)
+      else MissionTable.validationMissions
+
+    val users = for {
+      _mission <- validationMissions
+      _user <- userTable if _mission.userId === _user.userId
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      if _user.username =!= "anonymous"
+      if _role.role inSet roles
+    } yield _user.userId
+
+    // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
+    users.groupBy(x => x).map(_._1).list.length
+  }
+
+  /**
+   * Count the number of researchers who have ever started (or completed) validating a label.
+   *
+   * Researchers include the Researcher, Adminstrator, and Owner roles.
+   *
+   * @param labelValidated
+   * @return
+   */
+  def countValidationResearchersContributed(labelValidated: Boolean): Int = db.withSession { implicit session =>
+    countValidationUsersContributed(List("Researcher", "Administrator", "Owner"), labelValidated)
+  }
+
+  /**
+   * Count the number of users who have ever started (or completed) validating a label (across all roles).
+   *
+   * @param taskCompleted
+   * @return
+   */
+  def countAllValidationUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countValidationUsersContributed(roleTable.map(_.role).list, taskCompleted)
+  }
+
+  /**
+   * Count the number of users of the given role who contributed validations today.
+   *
+   * We consider a "contribution" to mean that a user has validated a label.
+   *
+   * @param role
+   * @return
+   */
+  def countValidationUsersContributedToday(role: String): Int = db.withSession { implicit session =>
+    val countQuery = Q.query[String, Int](
+      """SELECT COUNT(DISTINCT(mission.user_id))
+        |FROM label_validation
+        |INNER JOIN mission ON label_validation.user_id = mission.user_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
+        |WHERE label_validation.end_timestamp::date = now()::date
+        |    AND sidewalk_user.username <> 'anonymous'
+        |    AND role.role = ?""".stripMargin
+    )
+    countQuery(role).list.head
+  }
+
+  /**
+   * Count the number of researchers who contributed validations today (incl Researcher, Adminstrator, and Owner roles).
+   *
+   * @return
+   */
+  def countValidationResearchersContributedToday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedToday("Researcher") +
+      countValidationUsersContributedToday("Administrator") +
+      countValidationUsersContributedToday("Owner")
+  }
+
+  /**
+   * Count the number of users who contributed validations today (across all roles).
+   *
+   * @return
+   */
+  def countAllValidationUsersContributedToday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedToday("Registered") +
+      countValidationUsersContributedToday("Anonymous") +
+      countValidationUsersContributedToday("Turker") +
+      countValidationResearchersContributedToday
+  }
+
+  /**
+   * Count the number of users of the given role who contributed validations yesterday.
+   *
+   * We consider a "contribution" to mean that a user has validated at least one label.
+   *
+   * @param role
+   * @return
+   */
+  def countValidationUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
+    val countQuery = Q.query[String, Int](
+      """SELECT COUNT(DISTINCT(mission.user_id))
+        |FROM label_validation
+        |INNER JOIN mission ON label_validation.user_id = mission.user_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
+        |WHERE label_validation.end_timestamp::date = now()::date - interval '1' day
+        |    AND sidewalk_user.username <> 'anonymous'
+        |    AND role.role = ?""".stripMargin
+    )
+    countQuery(role).list.head
+  }
+
+  /**
+   * Count number of researchers who contributed validations yesterday (incl Researcher, Adminstrator, and Owner roles).
+   *
+   * @return
+   */
+  def countValidationResearchersContributedYesterday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedYesterday("Researcher") +
+      countValidationUsersContributedYesterday("Administrator") +
+      countValidationUsersContributedYesterday("Owner")
+  }
+
+  /**
+   * Count the number of users who contributed validations yesterday (across all roles).
+   *
+   * @return
+   */
+  def countAllValidationUsersContributedYesterday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedYesterday("Registered") +
+      countValidationUsersContributedYesterday("Anonymous") +
+      countValidationUsersContributedYesterday("Turker") +
+      countValidationResearchersContributedYesterday
+  }
+
+  /**
     * Count the number of users of the given role who have ever started (or completed) an audit task.
     *
     * @param roles
