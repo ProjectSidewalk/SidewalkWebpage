@@ -97,6 +97,11 @@ object MissionTable {
   }
   val auditMissions = missions.filter(_.missionTypeId === auditMissionTypeId)
 
+  val validationMissionTypeId: Int = db.withSession { implicit session =>
+    missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).list.head
+  }
+  val validationMissions = missions.filter(_.missionTypeId === validationMissionTypeId)
+
   val METERS_TO_MILES: Float = 0.000621371F
 
   val users = TableQuery[UserTable]

@@ -55,36 +55,38 @@
                                 <th>Today</th>
                                 <th>Yesterday</th>
                             </tr>
+
                             <tr>
-                                <th>Total Users</th>
-                                <th>@UserDAOImpl.countAllUsersContributed(false) (@UserDAOImpl.countAllUsersContributed(true))</th>
-                                <th>@UserDAOImpl.countAllUsersContributedToday</th>
-                                <th>@UserDAOImpl.countAllUsersContributedYesterday</th>
+                                <th>Total Audit Users</th>
+                                <th>@UserDAOImpl.countAllAuditUsersContributed(false) (@UserDAOImpl.countAllAuditUsersContributed(true))</th>
+                                <th>@UserDAOImpl.countAllAuditUsersContributedToday</th>
+                                <th>@UserDAOImpl.countAllAuditUsersContributedYesterday</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countUsersContributed(List("Registered"), false) (@UserDAOImpl.countUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOImpl.countUsersContributedToday("Registered")</td>
-                                <td>@UserDAOImpl.countUsersContributedYesterday("Registered")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributed(List("Registered"), false) (@UserDAOImpl.countAuditUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedToday("Registered")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Registered")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOImpl.countUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOImpl.countUsersContributedYesterday("Anonymous")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Anonymous")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOImpl.countUsersContributed(List("Turker"), false) (@UserDAOImpl.countUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOImpl.countUsersContributedToday("Turker")</td>
-                                <td>@UserDAOImpl.countUsersContributedYesterday("Turker")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributed(List("Turker"), false) (@UserDAOImpl.countAuditUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedToday("Turker")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Turker")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOImpl.countResearchersContributed(false) (@UserDAOImpl.countResearchersContributed(true))</td>
-                                <td>@UserDAOImpl.countResearchersContributedToday</td>
-                                <td>@UserDAOImpl.countResearchersContributedYesterday</td>
+                                <td>@UserDAOImpl.countAuditResearchersContributed(false) (@UserDAOImpl.countAuditResearchersContributed(true))</td>
+                                <td>@UserDAOImpl.countAuditResearchersContributedToday</td>
+                                <td>@UserDAOImpl.countAuditResearchersContributedYesterday</td>
                             </tr>
+
                             <tr>
                                 <th>Total Labels</th>
                                 <th>@LabelTable.countLabels</th>
@@ -134,6 +136,44 @@
                                 <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
                             </tr>
 
+                            <tr>
+                                <th>Audits</th>
+                                <th>@AuditTaskTable.countCompletedAudits</th>
+                                <th>@AuditTaskTable.countCompletedAuditsToday</th>
+                                <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
+                            </tr>
+
+                            <tr>
+                                <th>Total Validation Users</th>
+                                <th>@UserDAOImpl.countAllValidationUsersContributed(false) (@UserDAOImpl.countAllValidationUsersContributed(true))</th>
+                                <th>@UserDAOImpl.countAllValidationUsersContributedToday</th>
+                                <th>@UserDAOImpl.countAllValidationUsersContributedYesterday</th>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Registered</td>
+                                <td>@UserDAOImpl.countValidationUsersContributed(List("Registered"), false) (@UserDAOImpl.countValidationUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedToday("Registered")</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Registered")</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Anonymous</td>
+                                <td>@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Anonymous")</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Turkers</td>
+                                <td>@UserDAOImpl.countValidationUsersContributed(List("Turker"), false) (@UserDAOImpl.countValidationUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedToday("Turker")</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Turker")</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Researchers</td>
+                                <td>@UserDAOImpl.countValidationResearchersContributed(false) (@UserDAOImpl.countValidationResearchersContributed(true))</td>
+                                <td>@UserDAOImpl.countValidationResearchersContributedToday</td>
+                                <td>@UserDAOImpl.countValidationResearchersContributedYesterday</td>
+                            </tr>
+
                             <tr style="font-size: 90%;">
                                 <th>Total Validations</th>
                                 <td>@LabelValidationTable.countValidations</td>
@@ -161,17 +201,11 @@
                                 <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
                                 <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
                             </tr>
-
-                            <tr>
-                                <th>Audits</th>
-                                <th>@AuditTaskTable.countCompletedAudits</th>
-                                <th>@AuditTaskTable.countCompletedAuditsToday</th>
-                                <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
-                            </tr>
                         </table>
-                        <sup>*</sup>Numbers in the parenthesis represent #users who have completed at least 1 task <br/>
-                        Numbers outside the parenthesis represent total #users who opened the audit tool
-                        regardless of finishing a task
+                        <sup>*</sup>Number of users in the parentheses represent #users who have completed at least 1
+                        audit task (in the case of # of audit users) or have validated at least one label (in the case
+                        of # of validation users). Numbers outside the parenthesis represent total #users who opened
+                        the audit tool regardless of finishing a task.
                     </div>
                     <div class="col-lg-5">
                         <h1>Coverage</h1>
