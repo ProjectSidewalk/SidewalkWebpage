@@ -15,7 +15,7 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
-import models.mission.{Mission, MissionTable}
+import models.mission.{Mission, MissionTable, MissionSetProgress}
 import models.region._
 import models.street.StreetEdgePriorityTable
 import models.user.{User, UserCurrentRegionTable}
@@ -32,7 +32,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
-  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission])
+  case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission], switchToValidation: Boolean)
 
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
@@ -207,11 +207,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
-      val user = identity
+      val userOption = identity
       val streetEdgeId = data.auditTask.streetEdgeId
 
       if (data.auditTask.auditTaskId.isDefined) {
-        user match {
+        userOption match {
           case Some(user) =>
             // Update the street's priority only if the user has not completed this street previously
             if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
@@ -235,7 +235,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
       // Update the AuditTaskTable and get auditTaskId
       // Set the task to be completed and increment task completion count
-      val auditTaskId: Int = updateAuditTaskTable(user, data.auditTask, data.amtAssignmentId)
+      val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
       // Update the MissionTable and get missionId
@@ -244,7 +244,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val isCVGroundTruthMission: Boolean = MissionTable.isCVGroundTruthMission(missionId)
 
       val possibleNewMission: Option[Mission] = if (!isCVGroundTruthMission) {
-        updateMissionTable(user, data.missionProgress)
+        updateMissionTable(userOption, data.missionProgress)
       } else {
         None
       }
@@ -377,13 +377,19 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
       }
 
-      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission)
+      // If this user is a turker who has just finished 3 audit missions, switch them to validations.
+      val switchToValidation = userOption.isDefined &&
+        userOption.get.role.getOrElse("") == "Turker" &&
+        MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "audit"
+
+      TaskPostReturnValue(auditTaskId, data.auditTask.streetEdgeId, possibleNewMission, switchToValidation)
     }
 
     Future.successful(Ok(Json.obj(
       "audit_task_id" -> returnValues.head.auditTaskId,
       "street_edge_id" -> returnValues.head.streetEdgeId,
-      "mission" -> returnValues.head.mission.map(_.toJSON)
+      "mission" -> returnValues.head.mission.map(_.toJSON),
+      "switch_to_validation" -> returnValues.head.switchToValidation
     )))
   }
 
