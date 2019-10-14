@@ -253,6 +253,12 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
+
+                    // If the back-end says it is time to switch to validations, then do it immediately (mostly to
+                    // prevent turkers from modifying JS variables to prevent switching to validation).
+                    if (result.switch_to_validation) window.location.replace('/validate');
+
+                    // If a new mission was sent, create an object for it on the front-end.
                     if (result.mission) missionModel.createAMission(result.mission);
                 }
             },
