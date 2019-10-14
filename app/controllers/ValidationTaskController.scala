@@ -11,7 +11,7 @@ import formats.json.ValidationTaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
 import models.label.LabelTable.LabelValidationMetadata
-import models.mission.{Mission, MissionTable}
+import models.mission.{Mission, MissionTable, MissionSetProgress}
 import models.user.User
 import models.validation._
 import play.api.libs.json._
@@ -27,7 +27,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue], progress: Option[JsValue])
 
   def processValidationTaskSubmissions(submission: Seq[ValidationTaskSubmission], remoteAddress: String, identity: Option[User]) = {
-    val user = identity
+    val userOption = identity
     val returnValues: Seq[ValidationTaskPostReturnValue] = for (data <- submission) yield {
       ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
         ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
@@ -37,7 +37,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
       // We aren't always submitting labels, so check if data.labels exists.
       for (label: LabelValidationSubmission <- data.labels) {
-        user match {
+        userOption match {
           case Some(user) =>
             LabelValidationTable.save(LabelValidation(0, label.labelId, label.validationResult,
               user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading,
@@ -54,16 +54,16 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           val missionProgress: ValidationMissionProgress = data.missionProgress.get
           val missionId: Int = missionProgress.missionId
           val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
-          val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(user, missionProgress, Some(currentMissionLabelTypeId))
+          val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(userOption, missionProgress, Some(currentMissionLabelTypeId))
           nextMissionLabelTypeId match {
             // Load new mission, generate label list for validation
             case Some (nextMissionLabelTypeId) =>
-              val possibleNewMission: Option[Mission] = updateMissionTable(user, missionProgress, Some(nextMissionLabelTypeId))
-              val labelList: Option[JsValue] = getLabelList(user, missionProgress, nextMissionLabelTypeId)
+              val possibleNewMission: Option[Mission] = updateMissionTable(userOption, missionProgress, Some(nextMissionLabelTypeId))
+              val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId)
               val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
               ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
             case None =>
-              updateMissionTable(user, missionProgress, None)
+              updateMissionTable(userOption, missionProgress, None)
               // No more validation missions available
               if (missionProgress.completed) {
                 ValidationTaskPostReturnValue(None, None, None, None)
@@ -77,11 +77,17 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       }
     }
 
+    // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
+    val switchToAuditing = userOption.isDefined &&
+      userOption.get.role.getOrElse("") == "Turker" &&
+      MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "validation"
+
     Future.successful(Ok(Json.obj(
       "hasMissionAvailable" -> returnValues.head.hasMissionAvailable,
       "mission" -> returnValues.head.mission.map(_.toJSON),
       "labels" -> returnValues.head.labels,
-      "progress" -> returnValues.head.progress
+      "progress" -> returnValues.head.progress,
+      "switch_to_auditing" -> switchToAuditing
     )))
   }
 
