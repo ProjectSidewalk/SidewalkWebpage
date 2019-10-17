@@ -303,10 +303,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns the results page that contains a cool visualization.
-    *
-    * @return
-    */
+   * Returns the results page that contains a cool visualization.
+   *
+   * @return
+   */
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -317,6 +317,24 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(views.html.results("Project Sidewalk - Explore Accessibility", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/results"))
+    }
+  }
+
+  /**
+   * Returns the labelmap page that contains a cool visualization.
+   *
+   * @return
+   */
+  def labelMap = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Results", timestamp))
+        Future.successful(Ok(views.html.labelMap("Project Sidewalk - Explore Accessibility", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelmap"))
     }
   }
 

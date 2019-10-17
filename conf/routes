@@ -12,6 +12,7 @@ GET     /developer                                           @controllers.Applic
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
+GET     /labelmap                                            @controllers.ApplicationController.labelMap
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
@@ -66,6 +67,8 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
+
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
