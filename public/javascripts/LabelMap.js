@@ -357,4 +357,6 @@ function LabelMap(_, $) {
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
+
+    return self;
 }
