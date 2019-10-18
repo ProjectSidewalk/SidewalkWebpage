@@ -245,9 +245,9 @@ function LabelMap(_, $) {
 
 
     function onEachLabelFeature(feature, layer) {
-        // layer.on('click', function () {
-        //     self.adminGSVLabelView.showLabel(feature.properties.label_id);
-        // });
+        layer.on('click', function () {
+            self.adminGSVLabelView.showLabel(feature.properties.label_id);
+        });
         layer.on({
             'mouseover': function () {
                 layer.setRadius(15);
@@ -341,14 +341,14 @@ function LabelMap(_, $) {
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
-    // initializeAdminGSVLabelView();
+    initializeAdminGSVLabelView();
     setTimeout(function () {
         map.invalidateSize(false);
     }, 1);
 
-    // function initializeAdminGSVLabelView() {
-    //     self.adminGSVLabelView = AdminGSVLabelView();
-    // }
+    function initializeAdminGSVLabelView() {
+        self.adminGSVLabelView = AdminGSVLabelView();
+    }
 
 
     self.clearMap = clearMap;
