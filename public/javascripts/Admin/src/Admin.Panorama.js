@@ -48,7 +48,16 @@ function AdminPanorama(svHolder) {
             height: self.svHolder.height()
         })[0];
 
+        self.panoNotAvailable = $("<div id='pano-not-avail'>No imagery available, try another label!</div>").css({
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            top: '0',
+            'font-size': '200%'
+        })[0];
+
         self.svHolder.append($(self.panoCanvas));
+        self.svHolder.append($(self.panoNotAvailable));
 
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
         self.panorama.addListener('pano_changed', function() {
@@ -105,7 +114,16 @@ function AdminPanorama(svHolder) {
                 self.panorama.set('pov', {heading: heading, pitch: pitch});
                 self.panorama.set('zoom', zoomLevel[zoom]);
                 self.svHolder.css('visibility', 'visible');
-                renderLabel(self.label);
+
+                // Show pano if it exists, or an error message if there is no GSV imagery.
+                if (self.panorama.getStatus() === "OK") {
+                    $(self.panoCanvas).css('visibility', 'visible');
+                    $(self.panoNotAvailable).css('visibility', 'hidden');
+                    renderLabel(self.label);
+                } else {
+                    $(self.panoCanvas).css('visibility', 'hidden');
+                    $(self.panoNotAvailable).css('visibility', 'visible');
+                }
             }
             setTimeout(callback, 500);
         }
