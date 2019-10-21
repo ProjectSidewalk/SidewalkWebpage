@@ -347,7 +347,7 @@ function LabelMap(_, $) {
     }, 1);
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView();
+        self.adminGSVLabelView = AdminGSVLabelView(false);
     }
 
 

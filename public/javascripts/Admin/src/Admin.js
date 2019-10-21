@@ -480,7 +480,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView();
+        self.adminGSVLabelView = AdminGSVLabelView(true);
     }
 
     function initializeAdminLabelSearch() {

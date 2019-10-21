@@ -754,7 +754,7 @@ object LabelTable {
 //                           timestamp: java.sql.Timestamp,
 //                           labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
 //                           temporary: Boolean, description: Option[String])
-  def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
+  def labelMetadataToJsonAdmin(labelMetadata: LabelMetadata): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
@@ -769,6 +769,28 @@ object LabelTable {
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id" -> labelMetadata.userId,
       "username" -> labelMetadata.username,
+      "timestamp" -> labelMetadata.timestamp,
+      "label_type_key" -> labelMetadata.labelTypeKey,
+      "label_type_value" -> labelMetadata.labelTypeValue,
+      "severity" -> labelMetadata.severity,
+      "temporary" -> labelMetadata.temporary,
+      "description" -> labelMetadata.description,
+      "tags" -> labelMetadata.tags
+    )
+  }
+  // Has the label metadata excluding username, user_id, and audit_task_id.
+  def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
+    Json.obj(
+      "label_id" -> labelMetadata.labelId,
+      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
+      "tutorial" -> labelMetadata.tutorial,
+      "heading" -> labelMetadata.heading,
+      "pitch" -> labelMetadata.pitch,
+      "zoom" -> labelMetadata.zoom,
+      "canvas_x" -> labelMetadata.canvasX,
+      "canvas_y" -> labelMetadata.canvasY,
+      "canvas_width" -> labelMetadata.canvasWidth,
+      "canvas_height" -> labelMetadata.canvasHeight,
       "timestamp" -> labelMetadata.timestamp,
       "label_type_key" -> labelMetadata.labelTypeKey,
       "label_type_value" -> labelMetadata.labelTypeValue,

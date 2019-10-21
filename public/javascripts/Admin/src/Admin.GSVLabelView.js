@@ -1,13 +1,14 @@
-function AdminGSVLabelView() {
+function AdminGSVLabelView(admin) {
     var self = {};
+    self.admin = admin;
 
     var _init = function() {
         _resetModal();
     };
 
     function _resetModal() {
-        self.modal =
-            $('<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
+        var modalText =
+            '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
                 '<div class="modal-dialog" role="document" style="width: 570px">'+
                     '<div class="modal-content">'+
                         '<div class="modal-header">'+
@@ -19,39 +20,48 @@ function AdminGSVLabelView() {
                         '</div>'+
                         '<div class="modal-footer">'+
                             '<table class="table table-striped" style="font-size:small; margin-bottom: 0">'+
-                            '<tr>'+
-                                '<th>Label Type</th>'+
-                                '<td id="label-type-value"></td>'+
-                            '</tr>'+
-                            '<tr>' +
-                                '<th>Severity</th>'+
-                                '<td id="severity"></td>'+
-                            '</tr>'+
-                            '<tr>'+
-                                '<th>Task ID</th>' +
-                                '<td id="task"></td>' +
-                            '</tr>'+
-                            '<tr>' +
-                                '<th>Temporary</th>'+
-                                '<td id="temporary"></td>'+
-                            '</tr>'+
-                            '<tr>'+
-                                '<th>Tags</th>'+
-                                '<td colspan="3" id="tags"></td>'+
-                            '</tr>'+
-                            '<tr>'+
-                                '<th>Description</th>'+
-                                '<td colspan="3" id="label-description"></td>'+
-                            '</tr>'+
-                            '<tr>'+
-                            '<th>Time Submitted</th>'+
-                            '<td id="timestamp" colspan="3"></td>'+
-                            '</tr>'+
-                            '</table>'+
-                        '</div>'+
-                    '</div>'+
+                                '<tr>'+
+                                    '<th>Label Type</th>'+
+                                    '<td id="label-type-value"></td>'+
+                                '</tr>'+
+                                '<tr>' +
+                                    '<th>Severity</th>'+
+                                    '<td id="severity"></td>'+
+                                '</tr>'+
+                                '<tr>' +
+                                    '<th>Temporary</th>'+
+                                    '<td id="temporary"></td>'+
+                                '</tr>'+
+                                '<tr>'+
+                                    '<th>Tags</th>'+
+                                    '<td colspan="3" id="tags"></td>'+
+                                '</tr>'+
+                                '<tr>'+
+                                    '<th>Description</th>'+
+                                    '<td colspan="3" id="label-description"></td>'+
+                                '</tr>'+
+                                '<tr>'+
+                                    '<th>Time Submitted</th>'+
+                                    '<td id="timestamp" colspan="3"></td>'+
+                                '</tr>';
+        if (self.admin) {
+            modalText += '<tr>'+
+                '<th>Task ID</th>' +
+                '<td id="task"></td>' +
+                '</tr>'+
+                '</table>'+
                 '</div>'+
-            '</div>');
+                '</div>'+
+                '</div>'+
+                '</div>'
+        } else {
+            modalText += '</table>'+
+                '</div>'+
+                '</div>'+
+                '</div>'+
+                '</div>'
+        }
+        self.modal = $(modalText);
 
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0]);
 
@@ -70,9 +80,9 @@ function AdminGSVLabelView() {
         self.modal.modal({
             'show': true
         });
-        var adminLabelUrl = "/adminapi/label/" + labelId;
+        var adminLabelUrl = admin ? "/adminapi/label/" + labelId : "/label/" + labelId;
         $.getJSON(adminLabelUrl, function (data) {
-            _handleData(data);
+            _handleData(data, admin);
         });
     }
 
@@ -94,9 +104,12 @@ function AdminGSVLabelView() {
         //join is here to make the formatting nice, otherwise we don't have commas or spaces.
         self.modalTags.html(labelMetadata['tags'].join(', '));
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
-        self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
-            labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
-            labelMetadata['username'] + "</a>");
+
+        if (self.admin) {
+            self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
+                labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
+                labelMetadata['username'] + "</a>");
+        }
     }
 
     _init();

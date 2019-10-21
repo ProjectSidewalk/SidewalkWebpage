@@ -55,7 +55,7 @@ GET     /adminapi/labelLocations/:username                   @controllers.AdminC
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
 GET     /adminapi/labels/cv                                  @controllers.AdminController.getAllLabelCVMetadata
-GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
+GET     /adminapi/label/:labelId                             @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
@@ -69,6 +69,7 @@ GET     /adminapi/choroplethCounts                           @controllers.AdminC
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 
 GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
+GET     /label/:labelId                                      @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
