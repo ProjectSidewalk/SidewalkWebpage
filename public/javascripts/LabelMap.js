@@ -210,7 +210,6 @@ function LabelMap(_, $) {
     function initializeSubmittedLabels(map) {
 
         $.getJSON("/labels/all", function (data) {
-            console.log("doing the label thing");
             // Count a number of each label type
             var labelCounter = {
                 "CurbRamp": 0,
