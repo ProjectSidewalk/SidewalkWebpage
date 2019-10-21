@@ -77,10 +77,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // JSON APIs
 
   /**
-    * Get a list of all labels
-    *
-    * @return
-    */
+   * Get a list of all labels
+   *
+   * @return
+   */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
@@ -100,6 +100,27 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     } else {
       Future.successful(Redirect("/"))
     }
+  }
+
+  /**
+   * Get a list of all labels
+   *
+   * @return
+   */
+  def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
+    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
+    val features: List[JsObject] = labels.map { label =>
+      val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+      val properties = Json.obj(
+        "label_id" -> label.labelId,
+        "gsv_panorama_id" -> label.gsvPanoramaId,
+        "label_type" -> label.labelType,
+        "severity" -> label.severity
+      )
+      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+    }
+    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+    Future.successful(Ok(featureCollection))
   }
 
   /**
@@ -330,17 +351,37 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+  /**
+   * Get metadata for a given label ID (for admins; includes personal identifiers like username).
+   * @param labelId
+   * @return
+   */
+  def getAdminLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
           val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
-          val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
+          val labelMetadataJson: JsObject = LabelTable.labelMetadataToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
       }
     } else {
       Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+   * Get metadata for a given label ID (excludes personal identifiers like username).
+   * @param labelId
+   * @return
+   */
+  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+    LabelPointTable.find(labelId) match {
+      case Some(labelPointObj) =>
+        val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
+        val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
+        Future.successful(Ok(labelMetadataJson))
+      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }
   }
 
