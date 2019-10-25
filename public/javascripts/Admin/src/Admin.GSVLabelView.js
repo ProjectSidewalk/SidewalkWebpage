@@ -18,6 +18,21 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">'+
                             '<div id="svholder" style="width: 540px; height:360px">'+
                         '</div>'+
+                        '<div id="validation-button-holder">' +
+                            '<p>Is this label correct?</p>' +
+                            '<button id="validation-agree-button" class="validation-button"' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'Agree' +
+                            '</button>' +
+                            '<button id="validation-disagree-button" class="validation-button"' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'Disagree' +
+                            '</button>' +
+                            '<button id="validation-not-sure-button" class="validation-button"' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'Not sure' +
+                            '</button>' +
+                        '</div>' +
                         '<div class="modal-footer">'+
                             '<table class="table table-striped" style="font-size:small; margin-bottom: 0">'+
                                 '<tr>'+
@@ -65,6 +80,20 @@ function AdminGSVLabelView(admin) {
 
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0]);
 
+        self.agreeButton = self.modal.find("#validation-agree-button");
+        self.disagreeButton = self.modal.find("#validation-disagree-button");
+        self.notSureButton = self.modal.find("#validation-not-sure-button");
+
+        self.agreeButton.click(function() {
+            _validateLabel("Agree");
+        });
+        self.disagreeButton.click(function() {
+            _validateLabel("Disagree");
+        });
+        self.notSureButton.click(function() {
+            _validateLabel("NotSure");
+        });
+
         self.modalTimestamp = self.modal.find("#timestamp");
         self.modalLabelTypeValue = self.modal.find("#label-type-value");
         self.modalSeverity = self.modal.find("#severity");
@@ -72,6 +101,11 @@ function AdminGSVLabelView(admin) {
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
         self.modalTask = self.modal.find("#task");
+    }
+
+    function _validateLabel(action) {
+        var timestamp = new Date().getTime();
+        console.log("post req to say we clicked " + action);
     }
 
     function showLabel(labelId) {
