@@ -84,7 +84,7 @@ function AdminGSVLabelView(admin) {
         self.modal.modal({
             'show': true
         });
-        var adminLabelUrl = admin ? "/adminapi/label/" + labelId : "/label/" + labelId;
+        var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
         $.getJSON(adminLabelUrl, function (data) {
             _handleData(data, admin);
         });
