@@ -12,6 +12,7 @@ GET     /developer                                           @controllers.Applic
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
+GET     /labelmap                                            @controllers.ApplicationController.labelMap
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
@@ -54,7 +55,7 @@ GET     /adminapi/labelLocations/:username                   @controllers.AdminC
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
 GET     /adminapi/labels/cv                                  @controllers.AdminController.getAllLabelCVMetadata
-GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
+GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
@@ -66,6 +67,9 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
+
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
+GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)

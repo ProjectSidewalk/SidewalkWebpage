@@ -115,8 +115,8 @@ object LabelTable {
 
   case class LabelCountPerDay(date: String, count: Int)
 
-  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, heading: Float, pitch: Float,
-                           zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
+  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String, heading: Float,
+                           pitch: Float, zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
                            auditTaskId: Int,
                            userId: String, username: String,
                            timestamp: Option[java.sql.Timestamp],
@@ -339,12 +339,13 @@ object LabelTable {
 
   // TODO translate the following three queries to Slick
   def retrieveLabelMetadata(takeN: Int): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int, (Int, String, Boolean, Float, Float, Int, Int, Int, Int, Int,
+    val selectQuery = Q.query[Int, (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
       Option[String])](
       """SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
+        |       gsv_data.image_date,
         |       lp.heading,
         |       lp.pitch,
         |       lp.zoom,
@@ -362,6 +363,7 @@ object LabelTable {
         |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
+        |     sidewalk.gsv_data,
         |     sidewalk.audit_task AS at,
         |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
@@ -380,6 +382,7 @@ object LabelTable {
         |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
         |		  ) AS lb_big
         |WHERE lb1.deleted = FALSE
+        |    AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
         |    AND lb1.audit_task_id = at.audit_task_id
         |    AND lb1.label_id = lb_big.label_id
         |    AND at.user_id = u.user_id
@@ -391,12 +394,13 @@ object LabelTable {
   }
 
   def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
-    val selectQuery = Q.query[(String, Int),(Int, String, Boolean, Float, Float, Int, Int, Int, Int, Int,
+    val selectQuery = Q.query[(String, Int),(Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
       Option[String])](
       """SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
+        |       gsv_data.image_date,
         |       lp.heading,
         |       lp.pitch,
         |       lp.zoom,
@@ -414,6 +418,7 @@ object LabelTable {
         |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
+        |     sidewalk.gsv_data,
         |     sidewalk.audit_task AS at,
         |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
@@ -433,6 +438,7 @@ object LabelTable {
         |			) AS lb_big
         |WHERE u.user_id = ?
         |      AND lb1.deleted = FALSE
+        |      AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
         |      AND lb1.audit_task_id = at.audit_task_id
         |      AND lb1.label_id = lb_big.label_id
         |      AND at.user_id = u.user_id
@@ -444,12 +450,13 @@ object LabelTable {
   }
 
   def retrieveSingleLabelMetadata(labelId: Int): LabelMetadata = db.withSession { implicit session =>
-    val selectQuery = Q.query[Int,(Int, String, Boolean, Float, Float, Int, Int, Int, Int, Int,
+    val selectQuery = Q.query[Int,(Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
       Option[String])](
       """SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
+        |       gsv_data.image_date,
         |       lp.heading,
         |       lp.pitch,
         |       lp.zoom,
@@ -467,6 +474,7 @@ object LabelTable {
         |       lb_big.temp,
         |       lb_big.description
         |FROM sidewalk.label AS lb1,
+        |     sidewalk.gsv_data,
         |     sidewalk.audit_task AS at,
         |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
@@ -486,6 +494,7 @@ object LabelTable {
         |			) AS lb_big
         |WHERE lb1.label_id = ?
         |      AND lb1.audit_task_id = at.audit_task_id
+        |      AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
         |      AND lb1.label_id = lb_big.label_id
         |      AND at.user_id = u.user_id
         |      AND lb1.label_id = lp.label_id
@@ -741,10 +750,10 @@ object LabelTable {
     * @param tags list of tags as strings
     * @return LabelMetadata object
     */
-  def labelAndTagsToLabelMetadata(label: (Int, String, Boolean, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String]), tags: List[String]): LabelMetadata = {
+  def labelAndTagsToLabelMetadata(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String]), tags: List[String]): LabelMetadata = {
       LabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
                     label._9,label._10,label._11,label._12,label._13,label._14,label._15,label._16,
-                    label._17, label._18, label._19, tags)
+                    label._17, label._18, label._19, label._20, tags)
   }
 
 //  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean heading: Float, pitch: Float,
@@ -754,11 +763,12 @@ object LabelTable {
 //                           timestamp: java.sql.Timestamp,
 //                           labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
 //                           temporary: Boolean, description: Option[String])
-  def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
+  def labelMetadataToJsonAdmin(labelMetadata: LabelMetadata): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
+      "image_date" -> labelMetadata.imageDate,
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
       "zoom" -> labelMetadata.zoom,
@@ -769,6 +779,29 @@ object LabelTable {
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id" -> labelMetadata.userId,
       "username" -> labelMetadata.username,
+      "timestamp" -> labelMetadata.timestamp,
+      "label_type_key" -> labelMetadata.labelTypeKey,
+      "label_type_value" -> labelMetadata.labelTypeValue,
+      "severity" -> labelMetadata.severity,
+      "temporary" -> labelMetadata.temporary,
+      "description" -> labelMetadata.description,
+      "tags" -> labelMetadata.tags
+    )
+  }
+  // Has the label metadata excluding username, user_id, and audit_task_id.
+  def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
+    Json.obj(
+      "label_id" -> labelMetadata.labelId,
+      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
+      "tutorial" -> labelMetadata.tutorial,
+      "image_date" -> labelMetadata.imageDate,
+      "heading" -> labelMetadata.heading,
+      "pitch" -> labelMetadata.pitch,
+      "zoom" -> labelMetadata.zoom,
+      "canvas_x" -> labelMetadata.canvasX,
+      "canvas_y" -> labelMetadata.canvasY,
+      "canvas_width" -> labelMetadata.canvasWidth,
+      "canvas_height" -> labelMetadata.canvasHeight,
       "timestamp" -> labelMetadata.timestamp,
       "label_type_key" -> labelMetadata.labelTypeKey,
       "label_type_value" -> labelMetadata.labelTypeValue,
