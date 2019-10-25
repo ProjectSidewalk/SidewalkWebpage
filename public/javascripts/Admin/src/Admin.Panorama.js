@@ -2,16 +2,18 @@
  *
  *
  * @param svHolder: One single DOM element
+ * @param admin
  * @returns {{className: string}}
  * @constructor
  */
-function AdminPanorama(svHolder) {
+function AdminPanorama(svHolder, admin) {
     var self = {
         className: "AdminPanorama",
         label: undefined,
         labelMarker: undefined,
         panoId: undefined,
-        panorama: undefined
+        panorama: undefined,
+        admin: admin
     };
 
     var icons = {
@@ -73,7 +75,7 @@ function AdminPanorama(svHolder) {
 
         if (self.panorama) {
             self.panorama.set('addressControl', false);
-            self.panorama.set('clickToGo', true);
+            self.panorama.set('clickToGo', false);
             self.panorama.set('disableDefaultUI', true);
             self.panorama.set('linksControl', false);
             self.panorama.set('navigationControl', false);
@@ -83,6 +85,10 @@ function AdminPanorama(svHolder) {
             self.panorama.set('motionTracking', false);
             self.panorama.set('motionTrackingControl', false);
             self.panorama.set('showRoadLabels', false);
+
+            // Disable moving by clicking if on /labelmap, enable if on admin page.
+            if (admin) self.panorama.set('clickToGo', true);
+            else       self.panorama.set('clickToGo', false);
         }
 
         return this;
