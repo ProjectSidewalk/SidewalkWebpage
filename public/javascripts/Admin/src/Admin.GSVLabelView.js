@@ -66,7 +66,7 @@ function AdminGSVLabelView(admin) {
         }
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0]);
+        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], admin);
 
         self.modalTimestamp = self.modal.find("#timestamp");
         self.modalLabelTypeValue = self.modal.find("#label-type-value");
