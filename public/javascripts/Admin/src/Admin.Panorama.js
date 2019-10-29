@@ -115,23 +115,31 @@ function AdminPanorama(svHolder, admin) {
             // causes the screen to go black.
             // This callback gives time for the pano to load for 500ms. Afterwards, we trigger a
             // resize and reset the POV/Zoom.
-            function callback () {
+            function callback (n) {
                 google.maps.event.trigger(self.panorama, 'resize');
                 self.panorama.set('pov', {heading: heading, pitch: pitch});
                 self.panorama.set('zoom', zoomLevel[zoom]);
                 self.svHolder.css('visibility', 'visible');
 
-                // Show pano if it exists, or an error message if there is no GSV imagery.
+                // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we
+                // wait a full 2 seconds without getting a response from Google.
                 if (self.panorama.getStatus() === "OK") {
                     $(self.panoCanvas).css('visibility', 'visible');
                     $(self.panoNotAvailable).css('visibility', 'hidden');
                     renderLabel(self.label);
-                } else {
+                } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
+                    $(self.panoNotAvailable).text('No imagery available, try another label!');
                     $(self.panoCanvas).css('visibility', 'hidden');
                     $(self.panoNotAvailable).css('visibility', 'visible');
+                } else if (n < 1) {
+                    $(self.panoNotAvailable).text('We had trouble connecting to Google Street View, please try again later!');
+                    $(self.panoCanvas).css('visibility', 'hidden');
+                    $(self.panoNotAvailable).css('visibility', 'visible');
+                } else {
+                    setTimeout(callback, 100, n - 1);
                 }
             }
-            setTimeout(callback, 500);
+            setTimeout(callback, 100, 20);
         }
         return this;
     }
