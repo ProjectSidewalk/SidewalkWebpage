@@ -58,7 +58,10 @@ function AdminGSVLabelView(admin) {
                                 '<tr>'+
                                     '<th>Time Submitted</th>'+
                                     '<td id="timestamp" colspan="3"></td>'+
-                                '</tr>';
+                                '</tr>'+
+                                    '<th>Image Date</th>'+
+                                    '<td id="image-date" colspan="3"></td>'+
+            '                   </tr>';
         if (self.admin) {
             modalText += '<tr>'+
                 '<th>Task ID</th>' +
@@ -78,7 +81,7 @@ function AdminGSVLabelView(admin) {
         }
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0]);
+        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
@@ -100,6 +103,7 @@ function AdminGSVLabelView(admin) {
         self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
+        self.modalImageDate = self.modal.find("#image-date");
         self.modalTask = self.modal.find("#task");
     }
 
@@ -162,7 +166,7 @@ function AdminGSVLabelView(admin) {
         self.modal.modal({
             'show': true
         });
-        var adminLabelUrl = admin ? "/adminapi/label/" + labelId : "/label/" + labelId;
+        var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
         $.getJSON(adminLabelUrl, function (data) {
             _handleData(data, admin);
         });
@@ -179,13 +183,14 @@ function AdminGSVLabelView(admin) {
         self.panorama.setLabel(adminPanoramaLabel);
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
+        var imageDate = moment(new Date(labelMetadata['image_date']));
         self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
-        //join is here to make the formatting nice, otherwise we don't have commas or spaces.
-        self.modalTags.html(labelMetadata['tags'].join(', '));
+        self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalImageDate.html(imageDate.format('MMMM YYYY'));
 
         if (self.admin) {
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
