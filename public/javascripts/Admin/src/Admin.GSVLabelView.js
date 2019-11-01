@@ -3,6 +3,13 @@ function AdminGSVLabelView(admin) {
     self.admin = admin;
 
     var _init = function() {
+        self.panoProp = new PanoProperties();
+        self.resultOptions = {
+            "Agree": 1,
+            "Disagree": 2,
+            "NotSure": 3
+        };
+
         _resetModal();
     };
 
@@ -107,84 +114,62 @@ function AdminGSVLabelView(admin) {
         self.modalTask = self.modal.find("#task");
     }
 
+    /**
+     * Get together the data on the validation and submit as a POST request.
+     * @param action
+     * @private
+     */
     function _validateLabel(action) {
-        var timestamp = new Date().getTime();
-        console.log("post req to say we clicked " + action);
+        var validationTimestamp = new Date().getTime();
+        var canvasWidth = self.panorama.svHolder.width();
+        var canvasHeight = self.panorama.svHolder.height();
 
-
-        // svvalidate/src/util/panoproperties.js should be able to use self.panorama
-        let pos = self.panorama.getOriginalPosition();
-        let panomarkerPov = {
+        var pos = self.panorama.getOriginalPosition();
+        var panomarkerPov = {
             heading: pos.heading,
             pitch: pos.pitch
         };
 
         // This is the POV of the viewport center - this is where the user is looking.
-        let userPov = self.panorama.panorama.getPov();
-        let zoom = self.panorama.panorama.getZoom();
+        var userPov = self.panorama.panorama.getPov();
+        var zoom = self.panorama.panorama.getZoom();
 
-        // Calculates the center xy coordinates of the Label on the current viewport.
-        // svvalidate/src/util/panoproperties.js should be able to use self.panorama
-        console.log("blah");
-        console.log(self.panorama.svHolder.width());
-        console.log(self.panorama.svHolder.height());
-        var x = new PanoProperties();
-        let pixelCoordinates = x.povToPixel3d(panomarkerPov, userPov,
-            zoom, self.panorama.svHolder.width(), self.panorama.svHolder.height());
+        // Calculates the center xy coordinates of the kabel on the current viewport.
+        var pixelCoordinates = self.panoProp.povToPixel3d(panomarkerPov, userPov, zoom, canvasWidth, canvasHeight);
 
         // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
         // We add/subtract the radius of the label so that we still record these values when only a fraction of the
         // label is still visible.
-        let labelCanvasX = null;
-        let labelCanvasY = null;
+        var labelCanvasX = null;
+        var labelCanvasY = null;
         var labelRadius = 10;
         if (pixelCoordinates
             && pixelCoordinates.left + labelRadius > 0
-            && pixelCoordinates.left - labelRadius < self.panorama.svHolder.width()
+            && pixelCoordinates.left - labelRadius < canvasWidth
             && pixelCoordinates.top + labelRadius > 0
-            && pixelCoordinates.top - labelRadius < self.panorama.svHolder.height()) {
+            && pixelCoordinates.top - labelRadius < canvasHeight) {
 
             labelCanvasX = pixelCoordinates.left - labelRadius;
             labelCanvasY = pixelCoordinates.top - labelRadius;
         }
 
-        console.log("the final values!");
-        console.log("labelId: " + self.panorama.label.labelId);
-        console.log("label_type: " + self.panorama.label.label_type);
-        console.log("timestamp: " + new Date().getTime());
-        console.log("canvasX: " + labelCanvasX);
-        console.log("canvasWidth: " + self.panorama.svHolder.width());
-        console.log("canvasHeight: " + self.panorama.svHolder.height());
-        console.log("canvasY: " + labelCanvasY);
-        console.log("heading: " + userPov.heading);
-        console.log("pitch: " + userPov.pitch);
-        console.log("zoom: " + userPov.zoom);
-
-        var validationTimestamp = new Date().getTime();
-        var resultOptions = {
-            "Agree": 1,
-            "Disagree": 2,
-            "NotSure": 3
-        };
-    // case class LabelMapValidationSubmission(labelId: Int, labelTypeId: Int, validationResult: Int, canvasX: Option[Int],
-        // canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, isMobile: Boolean)
         var data = {
             label_id: self.panorama.label.labelId,
             label_type: self.panorama.label.label_type,
-            validation_result: resultOptions[action],
+            validation_result: self.resultOptions[action],
             canvas_x: labelCanvasX,
             canvas_y: labelCanvasY,
             heading: userPov.heading,
             pitch: userPov.pitch,
             zoom: userPov.zoom,
-            canvas_height: self.panorama.svHolder.height(),
-            canvas_width: self.panorama.svHolder.width(),
+            canvas_height: canvasHeight,
+            canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
             is_mobile: false
         };
 
-
+        // Submit the validation via POST request.
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',

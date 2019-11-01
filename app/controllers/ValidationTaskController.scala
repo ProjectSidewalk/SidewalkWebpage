@@ -127,16 +127,23 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     )
   }
 
+  /**
+   * Parse submitted validation data for a single label from the /labelmap endpoint.
+   * @return
+   */
   def postLabelMap = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val userId: UUID = request.identity.get.userId
     var submission = request.body.validate[LabelMapValidationSubmission]
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        // Get the (or create a) mission_id for this user_id and label_type_id
+        // Get the (or create a) mission_id for this user_id and label_type_id.
         val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
-        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(request.identity.get.userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
+        val mission: Mission =
+          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
+
         // Insert a label_validation entry for this label.
         LabelValidationTable.save(LabelValidation(0, submission.labelId, submission.validationResult,
           request.identity.get.userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
