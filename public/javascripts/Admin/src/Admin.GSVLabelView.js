@@ -88,7 +88,7 @@ function AdminGSVLabelView(admin) {
         }
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], admin);
+        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-button-holder"), admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
@@ -205,7 +205,7 @@ function AdminGSVLabelView(admin) {
         }
         var currButton = self.resultButtons[action];
         currButton.css('background-color', '#696969');
-        currButton.css('color', '#FFFFFF');
+        currButton.css('color', 'white');
     }
 
     function showLabel(labelId) {

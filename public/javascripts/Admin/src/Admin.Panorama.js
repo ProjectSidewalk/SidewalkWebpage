@@ -6,7 +6,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function AdminPanorama(svHolder, admin) {
+function AdminPanorama(svHolder, buttonHolder, admin) {
     var self = {
         className: "AdminPanorama",
         label: undefined,
@@ -37,6 +37,7 @@ function AdminPanorama(svHolder, admin) {
      * This function initializes the Panorama
      */
     function _init () {
+        self.buttonHolder = $(buttonHolder);
         self.svHolder = $(svHolder);
         self.svHolder.addClass("admin-panorama");
 
@@ -126,15 +127,18 @@ function AdminPanorama(svHolder, admin) {
                 if (self.panorama.getStatus() === "OK") {
                     $(self.panoCanvas).css('visibility', 'visible');
                     $(self.panoNotAvailable).css('visibility', 'hidden');
+                    $(self.buttonHolder).css('visibility', 'visible');
                     renderLabel(self.label);
                 } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
                     $(self.panoNotAvailable).text('No imagery available, try another label!');
                     $(self.panoCanvas).css('visibility', 'hidden');
                     $(self.panoNotAvailable).css('visibility', 'visible');
+                    $(self.buttonHolder).css('visibility', 'hidden');
                 } else if (n < 1) {
                     $(self.panoNotAvailable).text('We had trouble connecting to Google Street View, please try again later!');
                     $(self.panoCanvas).css('visibility', 'hidden');
                     $(self.panoNotAvailable).css('visibility', 'visible');
+                    $(self.buttonHolder).css('visibility', 'hidden');
                 } else {
                     setTimeout(callback, 100, n - 1);
                 }
