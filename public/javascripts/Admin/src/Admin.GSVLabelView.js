@@ -150,6 +150,7 @@ function AdminGSVLabelView(admin) {
 
         console.log("the final values!");
         console.log("labelId: " + self.panorama.label.labelId);
+        console.log("label_type: " + self.panorama.label.label_type);
         console.log("timestamp: " + new Date().getTime());
         console.log("canvasX: " + labelCanvasX);
         console.log("canvasWidth: " + self.panorama.svHolder.width());
@@ -158,6 +159,46 @@ function AdminGSVLabelView(admin) {
         console.log("heading: " + userPov.heading);
         console.log("pitch: " + userPov.pitch);
         console.log("zoom: " + userPov.zoom);
+
+        var validationTimestamp = new Date().getTime();
+        var resultOptions = {
+            "Agree": 1,
+            "Disagree": 2,
+            "NotSure": 3
+        };
+    // case class LabelMapValidationSubmission(labelId: Int, labelTypeId: Int, validationResult: Int, canvasX: Option[Int],
+        // canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, isMobile: Boolean)
+        var data = {
+            label_id: self.panorama.label.labelId,
+            label_type: self.panorama.label.label_type,
+            validation_result: resultOptions[action],
+            canvas_x: labelCanvasX,
+            canvas_y: labelCanvasY,
+            heading: userPov.heading,
+            pitch: userPov.pitch,
+            zoom: userPov.zoom,
+            canvas_height: self.panorama.svHolder.height(),
+            canvas_width: self.panorama.svHolder.width(),
+            start_timestamp: validationTimestamp,
+            end_timestamp: validationTimestamp,
+            is_mobile: false
+        };
+
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/validationLabelMap",
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                console.log(result);
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
     }
 
     function showLabel(labelId) {

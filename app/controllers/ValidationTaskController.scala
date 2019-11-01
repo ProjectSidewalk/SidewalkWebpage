@@ -2,10 +2,11 @@ package controllers
 
 import java.sql.Timestamp
 import java.util.UUID
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+
 import controllers.headers.ProvidesHeader
 import formats.json.ValidationTaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
@@ -122,6 +123,26 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       },
       submission => {
         processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
+      }
+    )
+  }
+
+  def postLabelMap = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[LabelMapValidationSubmission]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        // Get the (or create a) mission_id for this user_id and label_type_id
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+        val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(request.identity.get.userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
+        // Insert a label_validation entry for this label.
+        LabelValidationTable.save(LabelValidation(0, submission.labelId, submission.validationResult,
+          request.identity.get.userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
+          submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
+          new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.isMobile))
+        Future.successful(Ok(Json.obj("status" -> "Success")))
       }
     )
   }
