@@ -119,6 +119,7 @@ object MissionTable {
   // Number of labels for each type of validation mission
   val normalValidationMissionLength: Int = 10
   val rapidValidationMissionLength: Int = 10
+  val labelmapValidationMissionLength: Int = 1
 
   val normalValidationMissionLabelsToRetrieve: Int = 10
   val rapidValidationMissionLabelsToRetrieve: Int = 19
@@ -737,10 +738,9 @@ object MissionTable {
     */
   def getNextValidationMissionLength(userId: UUID, missionType: String): Int = {
     (missionType) match {
-      case "validation" =>
-        normalValidationMissionLength
-      case "rapidValidation" =>
-        rapidValidationMissionLength
+      case "validation" => normalValidationMissionLength
+      case "rapidValidation" => rapidValidationMissionLength
+      case "labelmapValidation" =>  labelmapValidationMissionLength
     }
   }
 

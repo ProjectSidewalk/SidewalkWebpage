@@ -223,6 +223,16 @@ function AdminPanorama(svHolder, admin) {
     }
 
     /**
+     * This calculates the heading and position for placing this Label onto the panorama from the same POV as when the
+     * user placed the label.
+     * @returns {{heading: number, pitch: number}}
+     */
+    function getOriginalPosition () {
+        return getPosition(self.label['canvasX'], self.label['canvasY'], self.label['originalCanvasWidth'],
+            self.label['originalCanvasHeight'], self.label['zoom'], self.label['heading'], self.label['pitch']);
+    }
+
+    /**
      * From panomarker spec
      * @param zoom
      * @returns {number}
@@ -239,5 +249,6 @@ function AdminPanorama(svHolder, admin) {
     self.setPano = setPano;
     self.setLabel = setLabel;
     self.renderLabel = renderLabel;
+    self.getOriginalPosition = getOriginalPosition;
     return self;
 }
