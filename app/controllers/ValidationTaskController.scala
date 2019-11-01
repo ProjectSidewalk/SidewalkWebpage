@@ -145,7 +145,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
 
         // Insert a label_validation entry for this label.
-        LabelValidationTable.save(LabelValidation(0, submission.labelId, submission.validationResult,
+        LabelValidationTable.insertOrUpdate(LabelValidation(0, submission.labelId, submission.validationResult,
           request.identity.get.userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
           submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
           new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.isMobile))
