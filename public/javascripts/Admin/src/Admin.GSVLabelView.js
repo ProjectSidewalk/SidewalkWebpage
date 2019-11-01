@@ -26,7 +26,7 @@ function AdminGSVLabelView(admin) {
                             '<div id="svholder" style="width: 540px; height:360px">'+
                         '</div>'+
                         '<div id="validation-button-holder">' +
-                            '<p>Is this label correct?</p>' +
+                            '<h3>Is this label correct?</h3>' +
                             '<button id="validation-agree-button" class="validation-button"' +
                                 'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                 'Agree' +
