@@ -93,6 +93,11 @@ function AdminGSVLabelView(admin) {
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
         self.notSureButton = self.modal.find("#validation-not-sure-button");
+        self.resultButtons = {
+            "Agree": self.agreeButton,
+            "Disagree": self.disagreeButton,
+            "NotSure": self.notSureButton
+        };
 
         self.agreeButton.click(function() {
             _validateLabel("Agree");
@@ -178,12 +183,29 @@ function AdminGSVLabelView(admin) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                console.log(result);
+                _resetButtonColors(action);
             },
             error: function (result) {
                 console.error(result);
             }
         });
+    }
+
+    /**
+     * Sets background color of clicked button to gray, resets all others to white.
+     * @param action
+     * @private
+     */
+    function _resetButtonColors(action) {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].css('background-color', 'white');
+                self.resultButtons[button].css('color', 'black');
+            }
+        }
+        var currButton = self.resultButtons[action];
+        currButton.css('background-color', '#696969');
+        currButton.css('color', '#FFFFFF');
     }
 
     function showLabel(labelId) {
