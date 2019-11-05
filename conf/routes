@@ -12,9 +12,11 @@ GET     /developer                                           @controllers.Applic
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
+GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
+GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
 GET     /labelingGuide/surfaceProblems                       @controllers.ApplicationController.labelingGuideSurfaceProblems
 GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
