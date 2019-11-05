@@ -361,6 +361,12 @@ function LabelMap(_, $) {
         self.adminGSVLabelView = AdminGSVLabelView(false);
     }
 
+    $('#minimize-button').click(function() {
+        //$("#legend-table").nextAll().slideToggle(0);
+        $("#legend-table").slideToggle(0);
+        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
+    });
+
 
     self.clearMap = clearMap;
     self.redrawLabels = redrawLabels;
