@@ -48,6 +48,9 @@ function LabelMap(_, $) {
     // Set the city-specific default zoom and location.
     $.getJSON('/cityMapParams', function(data) {
         map.setView([data.city_center.lat, data.city_center.lng]);
+        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
+        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
+        map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
         initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
