@@ -62,21 +62,28 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
         choropleth.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     // Initialize the map
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon(map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{
                 "type": "Feature", "geometry": {
                     "type": "Polygon", "coordinates": [
-                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36], [-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                     ]
                 }
             }]
@@ -613,7 +620,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
-            initializeOverlayPolygon(map);
             initializeNeighborhoodPolygons(map);
             initializeAuditedStreets(map);
             initializeSubmittedLabels(map);

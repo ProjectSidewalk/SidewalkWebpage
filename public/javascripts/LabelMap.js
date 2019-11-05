@@ -49,19 +49,26 @@ function LabelMap(_, $) {
     $.getJSON('/cityMapParams', function(data) {
         map.setView([data.city_center.lat, data.city_center.lng]);
         map.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
 
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon(map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{
                 "type": "Feature", "geometry": {
                     "type": "Polygon", "coordinates": [
-                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36], [-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                     ]
                 }
             }]
@@ -336,7 +343,6 @@ function LabelMap(_, $) {
     }
 
 
-    initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
