@@ -1,6 +1,9 @@
 function LabelMap(_, $) {
 
     var self = {};
+    var completedInitializingNeighborhoodPolygons = false;
+    var completedRetrievingLabels = false;
+
     self.markerLayer = null;
     self.curbRampLayers = [];
     self.missingCurbRampLayers = [];
@@ -48,20 +51,30 @@ function LabelMap(_, $) {
     // Set the city-specific default zoom and location.
     $.getJSON('/cityMapParams', function(data) {
         map.setView([data.city_center.lat, data.city_center.lng]);
+        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
+        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
+        map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
 
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon(map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{
                 "type": "Feature", "geometry": {
                     "type": "Polygon", "coordinates": [
-                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36], [-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                     ]
                 }
             }]
@@ -69,6 +82,24 @@ function LabelMap(_, $) {
         var layer = L.geoJson(overlayPolygon);
         layer.setStyle({color: "#ccc", fillColor: "#ccc"});
         layer.addTo(map);
+    }
+
+    /**
+     * If we drew the neighborhood polygons and receieved the labels, then draw the labels on top.
+     * @param map
+     */
+    function handleInitializationComplete(map) {
+        if (completedInitializingNeighborhoodPolygons && completedRetrievingLabels) {
+            Object.keys(self.allLayers).forEach(function (key) {
+                for (var i = 0; i < self.allLayers[key].length; i++) {
+                    self.allLayers[key][i] = createLayer({
+                        "type": "FeatureCollection",
+                        "features": self.allLayers[key][i]
+                    });
+                    self.allLayers[key][i].addTo(map);
+                }
+            })
+        }
     }
 
 
@@ -126,6 +157,8 @@ function LabelMap(_, $) {
                 onEachFeature: onEachNeighborhoodFeature
             })
                 .addTo(map);
+            completedInitializingNeighborhoodPolygons = true;
+            handleInitializationComplete(map);
         });
     }
 
@@ -173,40 +206,6 @@ function LabelMap(_, $) {
     }
 
 
-    function initializeAllLayers(data) {
-        for (var i = 0; i < data.features.length; i++) {
-            var labelType = data.features[i].properties.label_type;
-            if (labelType === "Occlusion") {
-                // console.log(data.features[i]);
-            }
-
-            if (data.features[i].properties.severity == 1) {
-                self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 2) {
-                self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 3) {
-                self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 4) {
-                self.allLayers[labelType][4].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 5) {
-                self.allLayers[labelType][5].push(data.features[i]);
-            } else { // No severity level
-                self.allLayers[labelType][0].push(data.features[i]);
-            }
-        }
-
-        Object.keys(self.allLayers).forEach(function (key) {
-            for (var i = 0; i < self.allLayers[key].length; i++) {
-                self.allLayers[key][i] = createLayer({
-                    "type": "FeatureCollection",
-                    "features": self.allLayers[key][i]
-                });
-                self.allLayers[key][i].addTo(map);
-            }
-        })
-    }
-
-
     function initializeSubmittedLabels(map) {
 
         $.getJSON("/labels/all", function (data) {
@@ -222,10 +221,6 @@ function LabelMap(_, $) {
             for (var i = data.features.length - 1; i >= 0; i--) {
                 labelCounter[data.features[i].properties.label_type] += 1;
             }
-            //document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
-            //document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
-            //document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
-            //document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
 
             document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
             document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
@@ -238,7 +233,25 @@ function LabelMap(_, $) {
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
             // Create layers for each of the 42 different label-severity combinations
-            initializeAllLayers(data);
+            for (var i = 0; i < data.features.length; i++) {
+                var labelType = data.features[i].properties.label_type;
+
+                if (data.features[i].properties.severity === 1) {
+                    self.allLayers[labelType][1].push(data.features[i]);
+                } else if (data.features[i].properties.severity === 2) {
+                    self.allLayers[labelType][2].push(data.features[i]);
+                } else if (data.features[i].properties.severity === 3) {
+                    self.allLayers[labelType][3].push(data.features[i]);
+                } else if (data.features[i].properties.severity === 4) {
+                    self.allLayers[labelType][4].push(data.features[i]);
+                } else if (data.features[i].properties.severity === 5) {
+                    self.allLayers[labelType][5].push(data.features[i]);
+                } else { // No severity level
+                    self.allLayers[labelType][0].push(data.features[i]);
+                }
+            }
+            completedRetrievingLabels = true;
+            handleInitializationComplete(map);
         });
     }
 
@@ -336,7 +349,6 @@ function LabelMap(_, $) {
     }
 
 
-    initializeOverlayPolygon(map);
     initializeNeighborhoodPolygons(map);
     initializeAuditedStreets(map);
     initializeSubmittedLabels(map);
