@@ -406,15 +406,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 // console.log(data.features[i]);
             }
 
-            if (data.features[i].properties.severity == 1) {
+            if (data.features[i].properties.severity === 1) {
                 self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 2) {
+            } else if (data.features[i].properties.severity === 2) {
                 self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 3) {
+            } else if (data.features[i].properties.severity === 3) {
                 self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 4) {
+            } else if (data.features[i].properties.severity === 4) {
                 self.allLayers[labelType][4].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 5) {
+            } else if (data.features[i].properties.severity === 5) {
                 self.allLayers[labelType][5].push(data.features[i]);
             } else { // No severity level
                 self.allLayers[labelType][0].push(data.features[i]);
