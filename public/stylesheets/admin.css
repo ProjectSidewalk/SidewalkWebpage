@@ -45,10 +45,23 @@
 #map-label-legend {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
-    left: 30px;
+    left: 20px;
     width: 400px;
-    bottom: 15px;
+    bottom: 5px;
     border: solid 1px #ccc;
+}
+
+#map-legend-title {
+    vertical-align:middle;
+    width:90%;
+    padding-left:10px;
+    margin-top:5px
+}
+
+#map-legend-minimize-button {
+    margin-right: 10px;
+    margin-top: 5px;
+    width: 20px;
 }
 
 #map-label-legend .table {
@@ -57,4 +70,9 @@
 
 #map-label-legend table td {
     border-top: 0;
+}
+
+.mapbox-logo {
+    left: 405px;
+    bottom: 5px
 }
