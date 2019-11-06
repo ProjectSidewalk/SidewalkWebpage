@@ -1,6 +1,7 @@
 package controllers
 
 import java.util.UUID
+
 import javax.inject.Inject
 import java.net.URLDecoder
 
@@ -13,7 +14,7 @@ import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.LabelMetadata
+import models.label.LabelTable.LabelMetadataWithValidation
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -360,8 +361,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
-          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
-          val labelMetadataJson: JsObject = LabelTable.labelMetadataToJsonAdmin(labelMetadata)
+          val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+          val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
       }
@@ -378,8 +379,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     LabelPointTable.find(labelId) match {
       case Some(labelPointObj) =>
-        val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
-        val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
+        val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+        val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
       case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }

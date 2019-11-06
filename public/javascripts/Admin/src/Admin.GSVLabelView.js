@@ -59,8 +59,12 @@ function AdminGSVLabelView(admin) {
                                     '<td colspan="3" id="tags"></td>'+
                                 '</tr>'+
                                 '<tr>'+
-                                    '<th>Description</th>'+
-                                    '<td colspan="3" id="label-description"></td>'+
+                                '<th>Description</th>'+
+                                '<td colspan="3" id="label-description"></td>'+
+                                '</tr>'+
+                                '<tr>'+
+                                '<th>Validations</th>'+
+                                '<td colspan="3" id="label-validations"></td>'+
                                 '</tr>'+
                                 '<tr>'+
                                     '<th>Time Submitted</th>'+
@@ -115,6 +119,7 @@ function AdminGSVLabelView(admin) {
         self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
+        self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-date");
         self.modalTask = self.modal.find("#task");
     }
@@ -230,6 +235,10 @@ function AdminGSVLabelView(admin) {
             labelMetadata['pitch'], labelMetadata['zoom']);
         self.panorama.setLabel(adminPanoramaLabel);
 
+        var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
+            labelMetadata['num_disagree'] + ' Disagree, ' +
+            labelMetadata['num_unsure'] + ' Not Sure';
+
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
         self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
@@ -238,6 +247,7 @@ function AdminGSVLabelView(admin) {
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
 
         if (self.admin) {
