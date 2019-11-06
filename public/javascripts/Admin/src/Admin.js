@@ -1403,5 +1403,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     $('.change-role').on('click', changeRole);
 
+    // Functionality for the legend's minimize button.
+    $('#map-legend-minimize-button').click(function() {
+        $("#legend-table").slideToggle(0);
+        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
+    });
+
     return self;
 }
