@@ -361,8 +361,8 @@ function LabelMap(_, $) {
         self.adminGSVLabelView = AdminGSVLabelView(false);
     }
 
-    $('#minimize-button').click(function() {
-        //$("#legend-table").nextAll().slideToggle(0);
+    // Functionality for the legend's minimize button.
+    $('#map-legend-minimize-button').click(function() {
         $("#legend-table").slideToggle(0);
         $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
     });
