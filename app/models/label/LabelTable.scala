@@ -123,6 +123,16 @@ object LabelTable {
                            labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
                            temporary: Boolean, description: Option[String], tags: List[String])
 
+  case class LabelMetadataWithValidation(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageDate: String,
+                                         heading: Float, pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
+                                         canvasWidth: Int, canvasHeight: Int,
+                                         auditTaskId: Int,
+                                         userId: String, username: String,
+                                         timestamp: Option[java.sql.Timestamp],
+                                         labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
+                                         temporary: Boolean, description: Option[String],
+                                         validations: Map[String, Int], tags: List[String])
+
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String,
                                      heading: Float, pitch: Float, zoom: Int, canvasX: Int,
@@ -449,7 +459,7 @@ object LabelTable {
     selectQuery((userId, takeN)).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
   }
 
-  def retrieveSingleLabelMetadata(labelId: Int): LabelMetadata = db.withSession { implicit session =>
+  def retrieveSingleLabelMetadata(labelId: Int): LabelMetadataWithValidation = db.withSession { implicit session =>
     val selectQuery = Q.query[Int,(Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
       Option[String])](
@@ -500,7 +510,11 @@ object LabelTable {
         |      AND lb1.label_id = lp.label_id
         |ORDER BY lb1.label_id DESC""".stripMargin
     )
-    selectQuery(labelId).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
+    val metadata = selectQuery(labelId).list
+    // Add tags and validations metadata separately.
+    val metadataWithTags: LabelMetadata =
+      metadata.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1))).head
+    labelAndValidationsToMetadata(metadataWithTags, getValidationsFromLabelId(metadataWithTags.labelId))
   }
 
   /**
@@ -756,14 +770,22 @@ object LabelTable {
                     label._17, label._18, label._19, label._20, tags)
   }
 
-//  case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean heading: Float, pitch: Float,
-//                           zoom: Int, canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int,
-//                           auditTaskId: Int,
-//                           userId: String, username: String,
-//                           timestamp: java.sql.Timestamp,
-//                           labelTypeKey:String, labelTypeValue: String, severity: Option[Int],
-//                           temporary: Boolean, description: Option[String])
-  def labelMetadataToJsonAdmin(labelMetadata: LabelMetadata): JsObject = {
+  /**
+   * Returns a labelAndValidationsToMetadata object that has the label properties as well as the validation counts.
+   * @param label
+   * @param validations
+   * @return
+   */
+  def labelAndValidationsToMetadata(label: LabelMetadata, validations: Map[String, Int]): LabelMetadataWithValidation = {
+    LabelMetadataWithValidation(
+      label.labelId, label.gsvPanoramaId, label.tutorial, label.imageDate, label.heading, label.pitch, label.zoom,
+      label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.auditTaskId, label.userId,
+      label.username, label.timestamp, label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary,
+      label.description, validations, label.tags
+    )
+  }
+
+  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadataWithValidation): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
@@ -785,11 +807,14 @@ object LabelTable {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
+      "num_agree" -> labelMetadata.validations("agree"),
+      "num_disagree" -> labelMetadata.validations("disagree"),
+      "num_unsure" -> labelMetadata.validations("unclear"),
       "tags" -> labelMetadata.tags
     )
   }
   // Has the label metadata excluding username, user_id, and audit_task_id.
-  def labelMetadataToJson(labelMetadata: LabelMetadata): JsObject = {
+  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadataWithValidation): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
@@ -808,6 +833,9 @@ object LabelTable {
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
+      "num_agree" -> labelMetadata.validations("agree"),
+      "num_disagree" -> labelMetadata.validations("disagree"),
+      "num_unsure" -> labelMetadata.validations("unclear"),
       "tags" -> labelMetadata.tags
     )
   }
@@ -832,11 +860,31 @@ object LabelTable {
       getTagsQuery(labelId).list
   }
 
+  /**
+   * Returns validation counts for a label ("agree" -> Int, "diagree" -> Int, "unclear" -> Int).
+   * @param labelId
+   * @return
+   */
+  def getValidationsFromLabelId(labelId: Int): Map[String, Int] = db.withSession {implicit session =>
+    val getValidationsQuery = Q.query[Int, (String, Int)](
+      """SELECT validation_options.text, COALESCE(count, 0)
+        |From (
+        |    SELECT validation_result, COUNT(label_validation_id) AS count
+        |    FROM label_validation
+        |    WHERE label_id = ?
+        |    GROUP BY validation_result
+        |) validations
+        |RIGHT JOIN validation_options ON validations.validation_result = validation_options.validation_option_id
+        |ORDER BY validation_option_id""".stripMargin
+    )
+    getValidationsQuery(labelId).list.toMap
+  }
+
   /*
    * Retrieve label metadata for a labelId
    * @param labelId
    */
-  def getLabelMetadata(labelId: Int): LabelMetadata= db.withSession { implicit session =>
+  def getLabelMetadata(labelId: Int): LabelMetadataWithValidation = db.withSession { implicit session =>
     retrieveSingleLabelMetadata(labelId)
   }
 
@@ -906,7 +954,7 @@ object LabelTable {
       (l, p) <- _slabels.leftJoin(labelPoints).on(_._1 === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, p.lat.getOrElse(0.toFloat), p.lng.getOrElse(0.toFloat))
 
-    val labelLocationList: List[LabelLocationWithSeverity] = _points.list.map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7))
+    val labelLocationList: List[LabelLocationWithSeverity] = _points.list.take(1000).map(label => LabelLocationWithSeverity(label._1, label._2, label._3, label._4, label._5, label._6, label._7))
     labelLocationList
   }
 
