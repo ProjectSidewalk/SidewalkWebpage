@@ -3,6 +3,13 @@ function AdminGSVLabelView(admin) {
     self.admin = admin;
 
     var _init = function() {
+        self.panoProp = new PanoProperties();
+        self.resultOptions = {
+            "Agree": 1,
+            "Disagree": 2,
+            "NotSure": 3
+        };
+
         _resetModal();
     };
 
@@ -18,6 +25,21 @@ function AdminGSVLabelView(admin) {
                         '<div class="modal-body">'+
                             '<div id="svholder" style="width: 540px; height:360px">'+
                         '</div>'+
+                        '<div id="validation-button-holder">' +
+                            '<h3>Is this label correct?</h3>' +
+                            '<button id="validation-agree-button" class="validation-button"' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'Agree' +
+                            '</button>' +
+                            '<button id="validation-disagree-button" class="validation-button"' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'Disagree' +
+                            '</button>' +
+                            '<button id="validation-not-sure-button" class="validation-button"' +
+                                'style="height: 50px; width: 179px; background-color: white; margin-right: 2px border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                'Not sure' +
+                            '</button>' +
+                        '</div>' +
                         '<div class="modal-footer">'+
                             '<table class="table table-striped" style="font-size:small; margin-bottom: 0">'+
                                 '<tr>'+
@@ -37,8 +59,12 @@ function AdminGSVLabelView(admin) {
                                     '<td colspan="3" id="tags"></td>'+
                                 '</tr>'+
                                 '<tr>'+
-                                    '<th>Description</th>'+
-                                    '<td colspan="3" id="label-description"></td>'+
+                                '<th>Description</th>'+
+                                '<td colspan="3" id="label-description"></td>'+
+                                '</tr>'+
+                                '<tr>'+
+                                '<th>Validations</th>'+
+                                '<td colspan="3" id="label-validations"></td>'+
                                 '</tr>'+
                                 '<tr>'+
                                     '<th>Time Submitted</th>'+
@@ -66,7 +92,26 @@ function AdminGSVLabelView(admin) {
         }
         self.modal = $(modalText);
 
-        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], admin);
+        self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-button-holder"), admin);
+
+        self.agreeButton = self.modal.find("#validation-agree-button");
+        self.disagreeButton = self.modal.find("#validation-disagree-button");
+        self.notSureButton = self.modal.find("#validation-not-sure-button");
+        self.resultButtons = {
+            "Agree": self.agreeButton,
+            "Disagree": self.disagreeButton,
+            "NotSure": self.notSureButton
+        };
+
+        self.agreeButton.click(function() {
+            _validateLabel("Agree");
+        });
+        self.disagreeButton.click(function() {
+            _validateLabel("Disagree");
+        });
+        self.notSureButton.click(function() {
+            _validateLabel("NotSure");
+        });
 
         self.modalTimestamp = self.modal.find("#timestamp");
         self.modalLabelTypeValue = self.modal.find("#label-type-value");
@@ -74,8 +119,98 @@ function AdminGSVLabelView(admin) {
         self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
         self.modalDescription = self.modal.find("#label-description");
+        self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-date");
         self.modalTask = self.modal.find("#task");
+    }
+
+    /**
+     * Get together the data on the validation and submit as a POST request.
+     * @param action
+     * @private
+     */
+    function _validateLabel(action) {
+        var validationTimestamp = new Date().getTime();
+        var canvasWidth = self.panorama.svHolder.width();
+        var canvasHeight = self.panorama.svHolder.height();
+
+        var pos = self.panorama.getOriginalPosition();
+        var panomarkerPov = {
+            heading: pos.heading,
+            pitch: pos.pitch
+        };
+
+        // This is the POV of the viewport center - this is where the user is looking.
+        var userPov = self.panorama.panorama.getPov();
+        var zoom = self.panorama.panorama.getZoom();
+
+        // Calculates the center xy coordinates of the kabel on the current viewport.
+        var pixelCoordinates = self.panoProp.povToPixel3d(panomarkerPov, userPov, zoom, canvasWidth, canvasHeight);
+
+        // If the user has panned away from the label and it is no longer visible on the canvas, set canvasX/Y to null.
+        // We add/subtract the radius of the label so that we still record these values when only a fraction of the
+        // label is still visible.
+        var labelCanvasX = null;
+        var labelCanvasY = null;
+        var labelRadius = 10;
+        if (pixelCoordinates
+            && pixelCoordinates.left + labelRadius > 0
+            && pixelCoordinates.left - labelRadius < canvasWidth
+            && pixelCoordinates.top + labelRadius > 0
+            && pixelCoordinates.top - labelRadius < canvasHeight) {
+
+            labelCanvasX = pixelCoordinates.left - labelRadius;
+            labelCanvasY = pixelCoordinates.top - labelRadius;
+        }
+
+        var data = {
+            label_id: self.panorama.label.labelId,
+            label_type: self.panorama.label.label_type,
+            validation_result: self.resultOptions[action],
+            canvas_x: labelCanvasX,
+            canvas_y: labelCanvasY,
+            heading: userPov.heading,
+            pitch: userPov.pitch,
+            zoom: userPov.zoom,
+            canvas_height: canvasHeight,
+            canvas_width: canvasWidth,
+            start_timestamp: validationTimestamp,
+            end_timestamp: validationTimestamp,
+            is_mobile: false
+        };
+
+        // Submit the validation via POST request.
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/validationLabelMap",
+            type: 'post',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                _resetButtonColors(action);
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    /**
+     * Sets background color of clicked button to gray, resets all others to white.
+     * @param action
+     * @private
+     */
+    function _resetButtonColors(action) {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].css('background-color', 'white');
+                self.resultButtons[button].css('color', 'black');
+            }
+        }
+        var currButton = self.resultButtons[action];
+        currButton.css('background-color', '#696969');
+        currButton.css('color', 'white');
     }
 
     function showLabel(labelId) {
@@ -94,11 +229,15 @@ function AdminGSVLabelView(admin) {
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom']);
 
-        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_type_key'],
+        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'],
             labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom']);
         self.panorama.setLabel(adminPanoramaLabel);
+
+        var validationsText = '' + labelMetadata['num_agree'] + ' Agree, ' +
+            labelMetadata['num_disagree'] + ' Disagree, ' +
+            labelMetadata['num_unsure'] + ' Not Sure';
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
@@ -108,6 +247,7 @@ function AdminGSVLabelView(admin) {
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
+        self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
 
         if (self.admin) {

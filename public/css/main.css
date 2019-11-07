@@ -1045,7 +1045,7 @@ video#bgvid {
 }
 
 .exploremaplink:link {
-    color: rgba(251, 215, 139, 1);
+    color: #fff;
     text-decoration:underline;
     font-family: raleway;
     font-size: 15px;
@@ -1056,10 +1056,10 @@ video#bgvid {
     cursor: pointer;
 }
 .exploremaplink:visited {
-    color: rgba(251, 215, 139, 1);
+    color: #fff;
 }
 .exploremaplink:hover {
-    color: #fff;
+    color: rgba(251, 215, 139, 1);
 }
 
 

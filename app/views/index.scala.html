@@ -34,7 +34,7 @@
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Exploring @cityShortName</a>
                     <br><br>
                     <span class="header-text">We are also in:</span>
-                    @for((cityName, cityURL) <- otherCityURLs) {
+                    @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "Columbus, OH")) {
                         <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
 

@@ -1,6 +1,5 @@
 function Progress (_, $, c3, L, role, difficultRegionIds) {
     var self = {};
-    var completedInitializingOverlayPolygon = false;
     var completedInitializingNeighborhoodPolygons = false;
     var completedInitializingAuditedStreets = false;
     var completedInitializingSubmittedLabels = false;
@@ -45,13 +44,13 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
     var popup = L.popup().setContent('<p>Hello!</p>');
 
     function handleInitializationComplete (map) {
-        if (completedInitializingOverlayPolygon &&
-            completedInitializingNeighborhoodPolygons &&
+        if (completedInitializingNeighborhoodPolygons &&
             completedInitializingAuditedStreets &&
             completedInitializingSubmittedLabels &&
             completedInitializingAuditCountChart &&
@@ -83,18 +82,24 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     }
 
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon (map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{"type": "Feature", "geometry": {
                 "type": "Polygon", "coordinates": [
-                    [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                 ]}}]};
-        L.geoJson(overlayPolygon).addTo(map);
-        completedInitializingOverlayPolygon = true;
-        handleInitializationComplete(map);
+        var layer = L.geoJson(overlayPolygon);
+        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
+        layer.addTo(map);
     }
 
     /**
@@ -544,7 +549,6 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
 
     $.getJSON('/adminapi/neighborhoodCompletionRate', function (neighborhoodCompletionData) {
-        initializeOverlayPolygon(map);
         initializeNeighborhoodPolygons(map, neighborhoodCompletionData);
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);

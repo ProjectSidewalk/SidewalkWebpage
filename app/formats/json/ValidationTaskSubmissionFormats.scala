@@ -12,6 +12,7 @@ object ValidationTaskSubmissionFormats {
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress])
+  case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, isMobile: Boolean)
 
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
@@ -57,6 +58,22 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "missionProgress").readNullable[ValidationMissionProgress]
     )(ValidationTaskSubmission.apply _) // .map(ValidationTaskSubmission(_))
+
+  implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
+    (JsPath \ "label_id").read[Int] and
+      (JsPath \ "label_type").read[String] and
+      (JsPath \ "validation_result").read[Int] and
+      (JsPath \ "canvas_x").readNullable[Int] and
+      (JsPath \ "canvas_y").readNullable[Int] and
+      (JsPath \ "heading").read[Float] and
+      (JsPath \ "pitch").read[Float] and
+      (JsPath \ "zoom").read[Float] and
+      (JsPath \ "canvas_height").read[Int] and
+      (JsPath \ "canvas_width").read[Int] and
+      (JsPath \ "start_timestamp").read[Long] and
+      (JsPath \ "end_timestamp").read[Long] and
+      (JsPath \ "is_mobile").read[Boolean]
+    )(LabelMapValidationSubmission.apply _)
 
   implicit val skipLabelReads: Reads[SkipLabelSubmission] = (
     (JsPath \ "labels").read[Seq[LabelValidationSubmission]]

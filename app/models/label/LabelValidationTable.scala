@@ -116,6 +116,26 @@ object LabelValidationTable {
   }
 
   /**
+   * Updates validation if one already exists for this mission. Inserts a new one o/w.
+   * @param label
+   * @return
+   */
+  def insertOrUpdate(label: LabelValidation): Int = db.withTransaction { implicit session =>
+    val oldValidation: Option[LabelValidation] =
+      validationLabels.filter(x => x.labelId === label.labelId && x.missionId === label.missionId).list.headOption
+
+    oldValidation match {
+      case Some(oldLabel) =>
+        val q = for {
+          validation <- validationLabels if validation.labelId === label.labelId && validation.missionId === label.missionId
+        } yield (validation.validationResult, validation. startTimestamp, validation. endTimestamp)
+        q.update((label.labelValidationId, label.startTimestamp, label.endTimestamp))
+      case None =>
+        save(label)
+    }
+  }
+
+  /**
     * Select validation counts per user.
     *
     * @return list of tuples of (labeler_id, validator_role, distinct_labels_validated, validation_count,
