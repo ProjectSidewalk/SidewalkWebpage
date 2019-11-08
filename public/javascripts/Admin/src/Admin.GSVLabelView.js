@@ -20,7 +20,7 @@ function AdminGSVLabelView(admin) {
                     '<div class="modal-content">'+
                         '<div class="modal-header">'+
                             '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-                            '<h4 class="modal-title" id="myModalLabel">Label</h4>'+
+                            '<h4 class="modal-title" id="myModalLabel"></h4>'+
                         '</div>'+
                         '<div class="modal-body">'+
                             '<div id="svholder" style="width: 540px; height:360px">'+
@@ -113,6 +113,7 @@ function AdminGSVLabelView(admin) {
             _validateLabel("NotSure");
         });
 
+        self.modalTitle = self.modal.find("#myModalLabel");
         self.modalTimestamp = self.modal.find("#timestamp");
         self.modalLabelTypeValue = self.modal.find("#label-type-value");
         self.modalSeverity = self.modal.find("#severity");
@@ -241,6 +242,7 @@ function AdminGSVLabelView(admin) {
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
+        self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
         self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
