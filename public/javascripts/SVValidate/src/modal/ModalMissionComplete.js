@@ -89,19 +89,25 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
 
-        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop).
+        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop). If they
+        // are a turker, only give them the option to audit. O/w let them choose b/w auditing and validating.
         if (svv.missionsCompleted % 3 === 0 && !isMobile()) {
             uiModalMissionComplete.closeButtonPrimary.html('Start an exploration mission');
             uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
-            uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
 
-            uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
-            uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
+            if (user.getProperty('role') === 'Turker') {
+                uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
+            } else {
+                uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
+                uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
+            }
         } else {
             uiModalMissionComplete.closeButtonPrimary.html('Validate more labels');
             uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
             uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
-            
+
             uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
         }
 
