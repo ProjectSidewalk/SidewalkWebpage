@@ -83,7 +83,8 @@ function Main (param) {
         svv.ui.modalMissionComplete = {};
         svv.ui.modalMissionComplete.agreeCount = $("#modal-mission-complete-agree-count");
         svv.ui.modalMissionComplete.background = $("#modal-mission-complete-background");
-        svv.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
+        svv.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
+        svv.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
         svv.ui.modalMissionComplete.disagreeCount = $("#modal-mission-complete-disagree-count");
         svv.ui.modalMissionComplete.foreground = $("#modal-mission-complete-foreground");
         svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
