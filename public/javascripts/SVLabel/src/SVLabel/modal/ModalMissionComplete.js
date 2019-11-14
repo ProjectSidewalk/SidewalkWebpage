@@ -121,15 +121,16 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     /**
      * Closes mission complete modal. Either starts a new mission or loads the validation page.
      *
-     * If the user clicks the 'Start validating' button (which only shows up if this was their first audit mission ever
-     * or their third in a row) send them to the validation page. If they just finished their neighborhood, reload the
-     * audit page with a new neighborhood. Otherwise start a new audit mission like normal.
+     * If the user clicks the 'Start validating' button send them to the validation page (only shows up if this was
+     * their third audit mission in a row or they are not a turker and this is their first audit mission ever). If they
+     * just finished a neighborhood, reload the audit page. Otherwise start a new audit mission like normal.
      * @param event
      * @private
      */
     this._closeModal = function (event) {
-        if (event.data.button === 'primary' &&
-            ((!svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted % 3 === 0)) {
+        var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
+        var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
+        if (event.data.button === 'primary' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0)) {
             window.location.replace('/validate');
         } else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
             // Reload the page to load another neighborhood.
@@ -177,10 +178,13 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         uiModalMissionComplete.background.off("click");
         uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
 
-        // If the user just completed their first audit mission ever or their third in a row, make the primary button
-        // they see a 'Start validating' button. If they are not a turker, then also show a secondary button that lets
-        // them continue auditing. On any other mission just show a 'Continue' button that has them audit more.
-        if ((!svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted % 3 === 0) {
+        // If the user just completed their first audit mission ever (and they aren't a turker) or they finished their
+        // third in a row, make the primary button they see a 'Start validating' button. If they are not a turker, then
+        // also show a secondary button that lets them continue auditing. On any other mission just show a 'Continue'
+        // button that has them audit more.
+        var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
+        var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
+        if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0) {
             uiModalMissionComplete.closeButtonPrimary.html('Start validating');
 
             if (self._userModel.getUser().getProperty("role") === 'Turker') {
