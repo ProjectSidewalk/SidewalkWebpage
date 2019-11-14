@@ -156,7 +156,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         this._modalMissionCompleteMap.hide();
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
-        if(this._uiModalMissionComplete.confirmationText!=null && this._uiModalMissionComplete.confirmationText!=undefined){
+        if (this._uiModalMissionComplete.confirmationText !== null
+            && this._uiModalMissionComplete.confirmationText !== undefined) {
             this._uiModalMissionComplete.confirmationText.empty();
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
@@ -211,11 +212,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
-        //If the user has completed their first mission then hide the continue button. Display the generate confirmation
-        // button. When clicked, remove this button completely and make the Continue button visible again.
-        if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
-            uiModalMissionComplete.closeButtonPrimary.css('visibility', "hidden");
-            // Assignment Completion Data
+        // If the user has completed their first mission then display the confirmation code and add show the
+        // confirmation code button on the left column UI.
+        if (uiModalMissionComplete.generateConfirmationButton !== null
+            && uiModalMissionComplete.generateConfirmationButton !== undefined) {
             var data = {
                 amt_assignment_id: svl.amtAssignmentId,
                 completed: true
@@ -244,7 +244,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
             uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
             uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
-            uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
             uiModalMissionComplete.generateConfirmationButton.remove();
             delete uiModalMissionComplete.generateConfirmationButton;
 
