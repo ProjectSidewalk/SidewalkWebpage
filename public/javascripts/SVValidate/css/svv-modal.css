@@ -148,6 +148,7 @@
     cursor: pointer;
     border: 1px solid transparent;
     font-size: 14pt;
+    opacity: 1.0;
 }
 
 .modal-foreground .btn-secondary {
@@ -156,6 +157,7 @@
     cursor: pointer;
     border: 1px solid black;
     font-size: 14pt;
+    opacity: 1.0;
 }
 
 .modal-foreground .btn-loading {
@@ -164,6 +166,7 @@
     cursor: wait;
     border: 1px solid transparent;
     font-size: 14pt;
+    opacity: 0.35;
 }
 
 .modal-foreground .blue-btn:focus {
