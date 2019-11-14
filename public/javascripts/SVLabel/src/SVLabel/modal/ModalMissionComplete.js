@@ -70,7 +70,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
-        uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+        uiModalMissionComplete.closeButtonPrimary.html('Audit Another Neighborhood');
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
             self._enableContinueButton();
@@ -90,62 +90,68 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     // Enables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
     this._enableContinueButton = function() {
-        uiModalMissionComplete.closeButton.on("click", self._handleCloseButtonClick); // enable clicking
-        uiModalMissionComplete.background.on("click", self._handleBackgroundClick);
+        uiModalMissionComplete.closeButtonPrimary.on("click", { button: 'primary' }, self._handleCloseButtonClick);
+        uiModalMissionComplete.closeButtonSecondary.on("click", { button: 'secondary' }, self._handleCloseButtonClick);
 
-        uiModalMissionComplete.closeButton.css('background', 'rgba(49,130,189,1)'); // un-gray out button
-        uiModalMissionComplete.closeButton.css('opacity', "1.0");
+        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
+        uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
 
-        uiModalMissionComplete.closeButton.css("cursor", "pointer"); // update cursor to pointer
+        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
+        uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
     };
 
     // Disables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
     this._disableContinueButton = function() {
-        uiModalMissionComplete.closeButton.off('click'); // disable clicking
-        uiModalMissionComplete.background.off("click");
+        uiModalMissionComplete.closeButtonPrimary.off('click');
+        uiModalMissionComplete.closeButtonSecondary.off('click');
 
-        uiModalMissionComplete.closeButton.css('background', 'rgba(100,100,100,1)'); // gray out button
-        uiModalMissionComplete.closeButton.css('opacity', "0.35");
+        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
+        uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
 
-        uiModalMissionComplete.closeButton.css("cursor", "wait"); // update cursor to waiting
+        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
+        uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
     };
 
     // TODO maybe deal with lost connection causing modal to not close
-    this._handleBackgroundClick = function (e) {
+    this._handleCloseButtonClick = function (event) {
         self._closeModalClicked = true;
-        self._closeModal();
+        self._closeModal(event);
     };
 
-    // TODO maybe deal with lost connection causing modal to not close
-    this._handleCloseButtonClick = function (e) {
-        self._closeModalClicked = true;
-        self._closeModal();
-    };
-
-    this._closeModal = function (e) {
-        if ((self._userModel.getUser().getProperty("role") !== "Turker" && !svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted === 3) {
-            // Load the validation page since they are either a non-turker who completed their audit first mission or
-            // they are anyone that just finished 3 audit missions.
+    /**
+     * Closes mission complete modal. Either starts a new mission or loads the validation page.
+     *
+     * If the user clicks the 'Start validating' button (which only shows up if this was their first audit mission ever
+     * or their third in a row) send them to the validation page. If they just finished their neighborhood, reload the
+     * audit page with a new neighborhood. Otherwise start a new audit mission like normal.
+     * @param event
+     * @private
+     */
+    this._closeModal = function (event) {
+        if (event.data.button === 'primary' &&
+            ((!svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted % 3 === 0)) {
             window.location.replace('/validate');
-        }
-        else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
+        } else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
             // Reload the page to load another neighborhood.
             window.location.replace('/audit');
         } else {
-            // TODO can we require that we have a new mission before doing this?
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
             self.hide();
         }
     };
 
+    // Hides all the pieces of the mission complete modal.
     this.hide = function () {
         this._status.isOpen = false;
         this._uiModalMissionComplete.holder.css('visibility', 'hidden');
         this._uiModalMissionComplete.foreground.css('visibility', "hidden");
         this._uiModalMissionComplete.background.css('visibility', "hidden");
-        this._uiModalMissionComplete.closeButton.css('visibility', "hidden");
-        // this._horizontalBarMissionLabel.style("visibility", "hidden");
+        this._uiModalMissionComplete.closeButtonPrimary.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButtonPrimary.off('click');
+        this._uiModalMissionComplete.closeButtonSecondary.off('click');
+
         this._modalMissionCompleteMap.hide();
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
@@ -160,12 +166,38 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         self.showingMissionCompleteScreen = false;
     };
 
+    /**
+     * Shows all components of mission complete modal. Decides which continue button(s) to show (audit or validation).
+     */
     this.show = function () {
         this._status.isOpen = true;
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
-        uiModalMissionComplete.closeButton.css('visibility', "visible");
+        uiModalMissionComplete.background.off("click");
+        uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
+
+        // If the user just completed their first audit mission ever or their third in a row, make the primary button
+        // they see a 'Start validating' button. If they are not a turker, then also show a secondary button that lets
+        // them continue auditing. On any other mission just show a 'Continue' button that has them audit more.
+        if ((!svl.userHasCompletedAMission && svl.missionsCompleted === 1) || svl.missionsCompleted % 3 === 0) {
+            uiModalMissionComplete.closeButtonPrimary.html('Start validating');
+
+            if (self._userModel.getUser().getProperty("role") === 'Turker') {
+                uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+            } else {
+                uiModalMissionComplete.closeButtonPrimary.css('width', "56%");
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
+                uiModalMissionComplete.closeButtonSecondary.css('width', "42%");
+                uiModalMissionComplete.closeButtonSecondary.html('Keep exploring');
+            }
+        } else {
+            uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
+            uiModalMissionComplete.closeButtonPrimary.html('Continue');
+            uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+        }
+
         self.showingMissionCompleteScreen = true;
         if (self._canShowContinueButton) {
             self._enableContinueButton();
@@ -175,12 +207,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
-        /*If the user has completed their first mission then hide the continue button.
-         Display the generate confirmation button. When clicked, remove this button completely
-         and make the Continue button visible again.
-         */
+        //If the user has completed their first mission then hide the continue button. Display the generate confirmation
+        // button. When clicked, remove this button completely and make the Continue button visible again.
         if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
-            uiModalMissionComplete.closeButton.css('visibility', "hidden");
+            uiModalMissionComplete.closeButtonPrimary.css('visibility', "hidden");
             // Assignment Completion Data
             var data = {
                 amt_assignment_id: svl.amtAssignmentId,
@@ -210,7 +240,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
             uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
             uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
-            uiModalMissionComplete.closeButton.css('visibility', "visible");
+            uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
             uiModalMissionComplete.generateConfirmationButton.remove();
             delete uiModalMissionComplete.generateConfirmationButton;
 
@@ -274,8 +304,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
-    uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
-    uiModalMissionComplete.closeButton.on("click", this._handleCloseButtonClick);
+    uiModalMissionComplete.closeButtonPrimary.on("click", { button: 'primary' }, this._handleCloseButtonClick);
     this.hide();
 }
 

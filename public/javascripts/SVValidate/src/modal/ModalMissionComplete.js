@@ -100,6 +100,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
             } else {
                 uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
+                uiModalMissionComplete.closeButtonSecondary.html('Continue validating');
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
                 uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
             }
