@@ -134,13 +134,39 @@
 
 #modal-mission-complete-table {
     height: 190px;
-    padding-left: 215px;
+    padding-left: 175px;
 }
 
 .modal-foreground .blue-btn {
     color: white;
     font-size: 14pt;
-    width: 100%;
+}
+
+.modal-foreground .btn-primary {
+    color: white;
+    background: #3182bd;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-size: 14pt;
+    opacity: 1.0;
+}
+
+.modal-foreground .btn-secondary {
+    color: black;
+    background: white;
+    cursor: pointer;
+    border: 1px solid black;
+    font-size: 14pt;
+    opacity: 1.0;
+}
+
+.modal-foreground .btn-loading {
+    color: white;
+    background: #7f7f7f;
+    cursor: wait;
+    border: 1px solid transparent;
+    font-size: 14pt;
+    opacity: 0.35;
 }
 
 .modal-foreground .blue-btn:focus {
