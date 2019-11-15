@@ -884,7 +884,6 @@
             svl.taskFactory = new TaskFactory(svl.taskModel);
             svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.taskModel, svl.tracker);
 
-            // Todo. Issue #43 Here, we may want to check if there is a previous task that is cached in user's browser.
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     // Ok

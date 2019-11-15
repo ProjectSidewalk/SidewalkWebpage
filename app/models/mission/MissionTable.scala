@@ -828,6 +828,17 @@ object MissionTable {
   }
 
   /**
+   * Get mission_type for a given mission_id.
+   * @param missionId
+   */
+  def getMissionType(missionId: Int): Option[String] = db.withSession { implicit session =>
+    (for {
+      _mission <- missions if _mission.missionId === missionId
+      _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
+    } yield _missionType.missionType).list.headOption
+  }
+
+  /**
     * Marks the specified mission as complete, filling in mission_end timestamp.
     *
     * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
