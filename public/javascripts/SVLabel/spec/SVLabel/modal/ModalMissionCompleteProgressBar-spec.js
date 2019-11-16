@@ -62,7 +62,7 @@ describe("ModalMissionCompleteProgressBar tests", function () {
             <td id="modal-mission-complete-remaining-distance" class="col-right"></td> \
         </tr> \
     </table> \
-    <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button> \
+    <button class="btn btn-primary" id="modal-mission-complete-close-button-primary">Continue</button> \
     </div> \
 </div> \
 </div> \

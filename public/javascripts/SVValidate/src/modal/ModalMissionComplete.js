@@ -74,6 +74,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
                 uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
                 uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
                 uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, _handleButtonClick);
+                if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
                 setProperty('clickable', false);
                 clearInterval(watch);
             }
@@ -111,6 +112,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
             uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
         }
+        if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
