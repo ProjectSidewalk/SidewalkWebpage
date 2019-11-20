@@ -71,37 +71,44 @@ class SignUpController @Inject() (
                 WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
                 Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
               case None =>
-                val authInfo = passwordHasher.hash(data.password)
-                val user = User(
-                  userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
-                  loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
-                  username = data.username,
-                  email = data.email,
-                  role = None
-                )
+                // Check if passwords match and are at least 6 characters.
+                if (data.password != data.passwordConfirm) {
+                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Passwords do not match")))
+                } else if (data.password.length < 6) {
+                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Password must be at least 6 characters")))
+                } else {
+                  val authInfo = passwordHasher.hash(data.password)
+                  val user = User(
+                    userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
+                    loginInfo = LoginInfo(CredentialsProvider.ID, data.email),
+                    username = data.username,
+                    email = data.email,
+                    role = None
+                  )
 
-                for {
-                  user <- userService.save(user)
-                  authInfo <- authInfoService.save(user.loginInfo, authInfo)
-                  authenticator <- env.authenticatorService.create(user.loginInfo)
-                  value <- env.authenticatorService.init(authenticator)
-                  result <- env.authenticatorService.embed(value, Future.successful(
-                    Redirect(url)
-                  ))
-                } yield {
-                  // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-                  UserRoleTable.setRole(user.userId, "Registered")
-                  UserCurrentRegionTable.assignEasyRegion(user.userId)
-                  UserStatTable.addUserStatIfNew(user.userId)
+                  for {
+                    user <- userService.save(user)
+                    authInfo <- authInfoService.save(user.loginInfo, authInfo)
+                    authenticator <- env.authenticatorService.create(user.loginInfo)
+                    value <- env.authenticatorService.init(authenticator)
+                    result <- env.authenticatorService.embed(value, Future.successful(
+                      Redirect(url)
+                    ))
+                  } yield {
+                    // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
+                    UserRoleTable.setRole(user.userId, "Registered")
+                    UserCurrentRegionTable.assignEasyRegion(user.userId)
+                    UserStatTable.addUserStatIfNew(user.userId)
 
-                  // Add Timestamp
-                  val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-                  WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
-                  WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+                    // Add Timestamp
+                    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+                    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
+                    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-                  env.eventBus.publish(SignUpEvent(user, request, request2lang))
-                  env.eventBus.publish(LoginEvent(user, request, request2lang))
-                  result
+                    env.eventBus.publish(SignUpEvent(user, request, request2lang))
+                    env.eventBus.publish(LoginEvent(user, request, request2lang))
+                    result
+                  }
                 }
             }
         }
