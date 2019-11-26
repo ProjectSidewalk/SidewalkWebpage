@@ -120,7 +120,7 @@ object StreetEdgeTable {
     * @return
     */
   def countTotalStreets(): Int = db.withSession { implicit session =>
-    all.size
+    streetEdgesWithoutDeleted.size.run
   }
 
   /**
@@ -132,7 +132,7 @@ object StreetEdgeTable {
     */
   def auditCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
     val auditedStreetCount = countAuditedStreets(1, userType).toFloat
-    val allEdgesCount: Int = streetEdgesWithoutDeleted.list.length
+    val allEdgesCount: Int = streetEdgesWithoutDeleted.size.run
     auditedStreetCount / allEdgesCount
   }
 
