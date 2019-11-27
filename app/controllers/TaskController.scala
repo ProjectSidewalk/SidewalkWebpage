@@ -92,16 +92,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-    * Insert or update the submitted audit task in the database
-    * @param auditTask
-    * @return
-    */
-  def updateAuditTaskTable(user: Option[User], auditTask: TaskSubmission, amtAssignmentId: Option[Int]): Int = {
+   * Insert or update the submitted audit task in the database
+   * @param user
+   * @param auditTask
+   * @param missionId
+   * @param amtAssignmentId
+   * @return
+   */
+  def updateAuditTaskTable(user: Option[User], auditTask: TaskSubmission, missionId: Int, amtAssignmentId: Option[Int]): Int = {
     if (auditTask.auditTaskId.isDefined) {
-      // Update the existing audit task row
+      // Update the existing audit task row (don't update if they are in the tutorial).
       val id = auditTask.auditTaskId.get
-      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-      AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng)
+      if (MissionTable.getMissionType(missionId) == "audit") {
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng)
+      }
       id
     } else {
       // Insert audit task
@@ -209,6 +214,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption = identity
       val streetEdgeId = data.auditTask.streetEdgeId
+      val missionId: Int = data.missionProgress.missionId
 
       if (data.auditTask.auditTaskId.isDefined) {
         userOption match {
@@ -235,12 +241,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
       // Update the AuditTaskTable and get auditTaskId
       // Set the task to be completed and increment task completion count
-      val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, data.amtAssignmentId)
+      val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
       // Update the MissionTable and get missionId
-      val missionId: Int = data.missionProgress.missionId
-
       val isCVGroundTruthMission: Boolean = MissionTable.isCVGroundTruthMission(missionId)
 
       val possibleNewMission: Option[Mission] = if (!isCVGroundTruthMission) {

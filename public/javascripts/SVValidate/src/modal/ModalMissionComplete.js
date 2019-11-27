@@ -5,9 +5,9 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     };
     let watch;
 
-    function _handleButtonClick() {
-        if (svv.missionsCompleted === 3 && !isMobile()) {
-            // Load the audit page since they've done 3 missions.
+    function _handleButtonClick(event) {
+        // If they've done three missions and clicked the audit button, load the audit page.
+        if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !isMobile()) {
             window.location.replace('/audit');
         } else {
             self.hide();
@@ -29,10 +29,13 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
             svv.keyboard.enableKeyboard();
         }
 
-        uiModalMissionComplete.closeButton.off('click');
+        uiModalMissionComplete.closeButtonPrimary.off('click');
+        uiModalMissionComplete.closeButtonSecondary.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
         uiModalMissionComplete.foreground.css('visibility', 'hidden');
+        uiModalMissionComplete.closeButtonPrimary.css('visibility', 'hidden');
+        uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
     }
 
     function setProperty(key, value) {
@@ -54,18 +57,24 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         let message = "You just validated " + totalLabels + " " +
             svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
 
-        // Disable user from clicking the "Validate next mission" button and set background to gray
-        uiModalMissionComplete.closeButton.css('background', '#7f7f7f');
-        uiModalMissionComplete.closeButton.css('cursor', 'wait');
+        // Disable user from clicking the "Validate next mission" button and set background to gray.
+        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
+        uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
+        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
+        uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
 
-        // Wait until next mission has been loaded before allowing the user to click the button
+        // Wait until next mission has been loaded before allowing the user to click the button.
         clearInterval(watch);
         watch = window.setInterval(function () {
             if (getProperty('clickable')) {
-                // Enable button clicks, change the background to blue
-                uiModalMissionComplete.closeButton.css('background', '#3182bd');
-                uiModalMissionComplete.closeButton.css('cursor', 'pointer');
-                uiModalMissionComplete.closeButton.on('click', _handleButtonClick);
+                // Enable button clicks, reset the CSS for primary/secondary close buttons.
+                uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
+                uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
+                uiModalMissionComplete.closeButtonPrimary.on('click', { button: 'primary' }, _handleButtonClick);
+                uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
+                uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
+                uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, _handleButtonClick);
+                if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
                 setProperty('clickable', false);
                 clearInterval(watch);
             }
@@ -81,12 +90,29 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
 
-        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop).
-        if (svv.missionsCompleted === 3 && !isMobile()) {
-            uiModalMissionComplete.closeButton.html('Start an exploration mission');
+        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop). If they
+        // are a turker, only give them the option to audit. O/w let them choose b/w auditing and validating.
+        if (svv.missionsCompleted % 3 === 0 && !isMobile()) {
+            uiModalMissionComplete.closeButtonPrimary.html('Start an exploration mission');
+            uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
+
+            if (user.getProperty('role') === 'Turker') {
+                uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
+            } else {
+                uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
+                uiModalMissionComplete.closeButtonSecondary.html('Continue validating');
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
+                uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
+            }
         } else {
-            uiModalMissionComplete.closeButton.html('Validate more labels');
+            uiModalMissionComplete.closeButtonPrimary.html('Validate more labels');
+            uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
+            uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
+
+            uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
         }
+        if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
