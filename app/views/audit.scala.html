@@ -758,7 +758,7 @@
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
-                <p>@Html(Messages("audit.tutorial.welcome"))</p>
+                <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
                 <p>
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v2.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
@@ -766,22 +766,17 @@
 
             </div>
             <div class="col-md-6">
-                <p>
-                    <span class="bold">We’ll begin with a short, interactive tutorial.</span>
-                </p>
+                <p><span class="bold">@Messages("audit.tutorial.welcome.2")</span></p>
             </div>
             <div class="col-md-offset-3 col-md-3">
                 <p>
-                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">Let's get started!</button>
+                    <button class="button onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
                 </p>
             </div>
 
                 <div class="col-md-12" id="onboarding-skip-option">
                     <p class="text-right"><span style='font-size: 65%;'>
-                        Already taken the tutorial? Have an account?
-                        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">&nbsp;Sign in</a>
-                        now
-                        or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+                        @Html(Messages("audit.tutorial.welcome.4"))
                     </span></p>
                 </div>
 

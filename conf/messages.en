@@ -1,1 +1,9 @@
-audit.tutorial.welcome = In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing missions to find and label accessibility features and problems in the environment, including:
+curb.ramps = Curb Ramps
+missing.ramps = Missing Curb Ramps
+obstacles = Sidewalk Obstacles
+surface.problems = Surface Problems
+
+audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing missions to find and label accessibility features and problems in the environment, including:
+audit.tutorial.welcome.2 = We'll begin with a short, interactive tutorial.
+audit.tutorial.welcome.3 = Let's get started!
+audit.tutorial.welcome.4 = Already taken the tutorial? Have an account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Sign in</a> now or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
