@@ -7,7 +7,7 @@
 @import play.api.libs.json.Json
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: NamedRegion, missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityShortName: String, tutorialStreetId: Int, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None, enableCVGroundTruthLabelingMode: Boolean = false)(implicit lang: Lang)
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
@@ -758,10 +758,7 @@
     <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
         <div class="row">
             <div class="col-md-12">
-                <p>
-                    In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing
-                        missions to find and label accessibility features and problems in the environment, including:
-                </p>
+                <p>@Html(Messages("audit.tutorial.welcome"))</p>
                 <p>
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v2.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
