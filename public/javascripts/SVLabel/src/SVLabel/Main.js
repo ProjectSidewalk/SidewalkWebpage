@@ -10,6 +10,18 @@ var svl = svl || {};
 function Main (params) {
     var self = { className: 'Main' };
 
+    // Gets all the text on the audit page for the correct language.
+    i18next.use(i18nextXHRBackend);
+    i18next.init({
+        backend: { loadPath: 'assets/locales/{{lng}}/{{ns}}.json' },
+        fallbackLng: 'en',
+        ns: ['audit'],
+        defaultNS: 'audit',
+        lng: params.language,
+        debug: true
+    }, function(err, t) {
+    });
+
     // Initialize things that needs data loading.
     var loadingAnOnboardingTaskCompleted = false;
     var loadingTasksCompleted = false;

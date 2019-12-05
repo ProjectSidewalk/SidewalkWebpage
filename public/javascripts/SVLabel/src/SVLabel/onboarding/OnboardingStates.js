@@ -64,8 +64,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 0
             },
             "message": {
-                "message": 'In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. ' +
-                'Click the flashing <span class="bold">"Curb Ramp" button</span> above.',
+                "message": i18next.t('tutorial.select-label-type-1'),
                 "position": "top-right"
             },
             "panoId": panoId,
