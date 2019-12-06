@@ -100,8 +100,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 0
             }],
             "message": {
-                "message": 'Good! Now <span class="bold">click the curb ramp</span> ' +
-                'beneath the flashing yellow arrow to label it.',
+                "message": i18next.t('tutorial.label-attribute-1'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -137,11 +136,9 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Now you can rate the quality of the curb ramp where 1 is passable and 5 is not passable ' +
-                    'for a wheelchair user. Because it points into traffic a bit ' +
-                '<span class="bold">let’s rate it as 2, somewhat passable.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
-                '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
+                "message": i18next.t('tutorial.rate-attribute-1') +
+                    '<br><img src="' + svl.rootDirectory + 'img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" ' +
+                    'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -166,10 +163,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. It is a high quality curb ' +
-                    'ramp but points into traffic a bit. ' +
-                '<span class="bold">Let’s click "2" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
+                "message": i18next.t('tutorial.redo-rate-attribute-1') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
@@ -192,9 +187,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Every label includes optional tags that add descriptive information. Choose appropriate tags for every label you place! ' +
-                    '<span class="bold">Let\'s add the “points into traffic” tag,</span> since this ramp points into the street.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
+                "message": i18next.t('tutorial.tag-attribute-1') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -219,9 +213,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'The "points into traffic" tag is the only tag that applies here, since the curb ramp has a ' +
-                    'friction strip, is not too narrow, and is not too steep. So add <span class="bold">only the "points into traffic" tag.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
+                "message": i18next.t('tutorial.redo-tag-attribute-1') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -244,8 +237,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Great! Let’s adjust the view to look at another corner of the intersection. ' +
-                '<span class="bold">Grab and drag the Street View image to look left.</span>',
+                "message": i18next.t('tutorial.adjust-heading-angle-1'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -268,8 +260,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Hmm, it looks like the intersection corner is too far away to see clearly. ' +
-                '<span class="bold">Click the “Zoom In” button</span> to get a closer look.',
+                "message": i18next.t('tutorial.zoom-in'),
                 "position": "top-right",
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
@@ -295,8 +286,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Great! Now you’ve found another curb ramp. Let’s label it! ' +
-                '<span class="bold">Click the “Curb Ramp” button</span> like before.',
+                "message": i18next.t('tutorial.select-label-type-2'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -333,7 +323,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             }],
             "message": {
-                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": i18next.t('tutorial.common.label-curb-ramp'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -368,8 +358,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 2
             },
             "message": {
-                "message": 'Good, now <span class="bold">rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" + '" ' +
+                "message": i18next.t('tutorial.rate-severity-2') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" + '" ' +
                 'class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, somewhat passable">',
                 "position": "top-right",
                 "parameters": null
@@ -395,10 +385,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 2
             },
             "message": {
-                "message": 'Uh-oh, you should rate this curb ramp as 2, somewhat passable. It is a high quality curb ' +
-                    'ramp but it has no landing space at the top of the ramp for making turns. ' +
-                '<span class="bold">Let’s click "2" to set its quality.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
+                "message": i18next.t('tutorial.redo-rate-attribute-2') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 2, ' +
                 'somewhat passable">',
                 "position": "top-right",
@@ -421,9 +409,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 2
             },
             "message": {
-                "message": 'Let\'s add the <span class="bold">"not enough landing space tag"</span> because there is ' +
-                    'not enough space for a wheelchair user to turn when they get to the top of the ramp.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
+                "message": i18next.t('tutorial.tag-attribute-2') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -448,10 +435,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 1
             },
             "message": {
-                "message": 'Only the "not enough landing space" tag applies here, since the curb ramp has a ' +
-                    'friction strip, is not too narrow nor steep, and does not point into traffic. ' +
-                    'So add <span class="bold">only the "not enough landing space" tag.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
+                "message": i18next.t('tutorial.redo-tag-attribute-2') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'points into traffic\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -473,8 +458,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 2
             },
             "message": {
-                "message": 'Notice that there is no curb ramp at the end of this crosswalk. ' +
-                '<span class="bold">Click the "Missing Curb Ramp" button</span> to label it.',
+                "message": i18next.t('tutorial.select-label-type-3'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -511,8 +495,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 2
             }],
             "message": {
-                "message": 'Now click beneath the flashing yellow arrow to <span class="bold">label the missing ' +
-                'curb ramp.</span>',
+                "message": i18next.t('tutorial.label-attribute-3'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -547,10 +530,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Since this missing curb ramp is next to an existing curb ramp, this accessibility problem' +
-                    ' is less severe. So <span class="bold">let’s rate it as a 3.</span> When you rate accessibility,' +
-                    ' we just ask that you <span class="bold">use your best judgment!</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                "message": i18next.t('tutorial.rate-severity-3') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as ' +
                     '3, a slightly severe problem">',
                 "position": "top-right",
@@ -577,10 +558,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility ' +
-                    'problem is less severe. ' +
-                '<span class="bold">Let’s click "3" to change the severity of the missing curb ramp.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                "message": i18next.t('tutorial.redo-rate-attribute-3') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no curb ramp quality as 3, ' +
                 'a slightly severe problem">',
                 "position": "top-right",
@@ -603,8 +582,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": '<span class="bold">Let\'s add the "alternate route present" tag</span> because there is a nearby curb ramp that could be used.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                "message": i18next.t('tutorial.tag-attribute-3') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -629,9 +608,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'The "alternate route present" tag is the only tag that applies here because there is a nearby curb ramp that could be used.' +
-                    ' So add <span class="bold">only the "alternate route present" tag.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
+                "message": i18next.t('tutorial.redo-tag-attribute-3') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingNoCurbRampSeverity-v2.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'alternate route present\' tag">',
                 "position": "top-right",
                 "parameters": null
@@ -653,8 +631,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Now let’s zoom out and look at the next intersection corner. ' +
-                '<span class="bold">Click the “Zoom Out” button</span>.',
+                "message": i18next.t('tutorial.zoom-out'),
                 "position": "top-right",
                 "fade-direction": "fadeInUp",
                 "arrow": "top",
@@ -681,7 +658,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Look to the left by <span class="bold">grabbing and dragging the Street View image.</span>',
+                "message": i18next.t('tutorial.adjust-heading-angle-2'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -705,7 +682,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'Keep looking <span class="bold">left</span>.',
+                "message": i18next.t('tutorial.adjust-heading-angle-3'),
                 "position": "top-right",
                 "width": 190
             },
@@ -728,8 +705,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 3
             },
             "message": {
-                "message": 'OK, this corner has two curb ramps. Let’s label them both! ' +
-                '<span class="bold">Click the "Curb Ramp" button.</span>',
+                "message": i18next.t('tutorial.select-label-type-4'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -783,7 +759,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "tolerance": 300
             }],
             "message": {
-                "message": 'Now <span class="bold">click on one of the curb ramps</span> to label it.',
+                "message": i18next.t('tutorial.label-both-curbs'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -834,9 +810,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
-                'Use your best judgment. You can also write notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.rate-severity-4') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -862,10 +837,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
-                    'friction strip, and doesn\'t point into traffic. ' +
-                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -887,7 +860,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
+                "message": i18next.t('tutorial.common.select-label-type-second-curb-ramp'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -924,7 +897,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             }],
             "message": {
-                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": i18next.t('tutorial.common.label-curb-ramp'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -959,8 +932,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -986,10 +959,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
-                    'friction strip, and doesn\'t point into traffic. ' +
-                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1011,7 +982,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": '<span class="bold">Click the "Curb Ramp" button</span> to label the other curb ramp now.',
+                "message": i18next.t('tutorial.common.select-label-type-second-curb-ramp'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1049,7 +1020,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             }],
             "message": {
-                "message": 'Now <span class="bold">click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": i18next.t('tutorial.common.label-curb-ramp'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1084,9 +1055,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Now <span class="bold">rate the curb ramp’s quality</span>. ' +
-                'Use your best judgment. You can also write notes in the <span class="bold">Description Box.</span><br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
+                "message": i18next.t('tutorial.common.rate-severity-4') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" + '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
             },
@@ -1111,10 +1081,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
-                    'friction strip, and doesn\'t point into traffic. ' +
-                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1137,8 +1105,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1164,10 +1132,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 4
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
-                    'friction strip, and doesn\'t point into traffic. ' +
-                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
                 "parameters": null
@@ -1189,8 +1155,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             },
             "message": {
-                "message": 'Notice that the sidewalk suddenly ends here. Let’s label this. ' +
-                'Click the <span class="bold">"No Sidewalk"</span> button to label it.',
+                "message": i18next.t('tutorial.select-label-type-6'),
                 "position": "top-left",
                 "parameters": null
             },
@@ -1227,7 +1192,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 5
             }],
             "message": {
-                "message": '<span class="bold">Click on the ground</span> where the sidewalk is missing.',
+                "message": i18next.t('tutorial.label-attribute-6'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1261,9 +1226,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": 'Since there is a sidewalk on the other side of the street, this accessibility problem is ' +
-                    'less severe. So <span class="bold">let’s rate it as a 3.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                "message": i18next.t('tutorial.rate-severity-6') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
                 "position": "top-right",
@@ -1291,10 +1255,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": 'Hmm, since there is a sidewalk on the other side of the street, this accessibility ' +
-                    'problem is less severe. <span class="bold">Let’s click "3" to change the severity of the no ' +
-                    'sidewalk label.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                "message": i18next.t('tutorial.redo-rate-attribute-6') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Rating the no sidewalk quality ' +
                     'as 3, a slightly severe problem">',
                 "position": "top-right",
@@ -1318,8 +1280,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": '<span class="bold">Let\'s add the "ends abruptly" and "street has a sidewalk" tags</span> because there is a sidewalk on the other side of the street.<br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                "message": i18next.t('tutorial.tag-attribute-6') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
                 "position": "top-right",
                 "parameters": null,
@@ -1358,9 +1320,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": 'The "ends abruptly" and "street has a sidewalk" tags are the only tags that apply here.' +
-                    ' So <span class="bold">make sure to add only those two tags.</span><br>' +
-                    '<img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
+                "message": i18next.t('tutorial.redo-tag-attribute-6') +
+                    '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingMissingSidewalk.gif" +
                     '" class="width-75" style="margin: 5px auto;display:block;" alt="Adding the \'ends abruptly\' and \'street has a sidewalk\' tags">',
                 "position": "top-right",
                 "parameters": null,
@@ -1402,8 +1363,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": 'Awesome! Let’s finish labeling the last curb ramp in the intersection. ' +
-                'First, <span class="bold">grab and drag the Street View image.</span>',
+                "message": i18next.t('tutorial.adjust-heading-angle-4'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1426,7 +1386,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             },
             "message": {
-                "message": 'Good! Now <span class="bold">click the "Curb Ramp" button</span> on the menu to label it.',
+                "message": i18next.t('tutorial.select-label-type-7'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1463,7 +1423,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 6
             }],
             "message": {
-                "message": '<span class="bold">Click the curb ramp</span> beneath the flashing yellow arrow to label it.',
+                "message": i18next.t('tutorial.label-attribute-7'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1499,8 +1459,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": '<span class="bold">Let’s rate the quality</span> of the curb ramp.<br>' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.rate-severity-curb-ramp') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
@@ -1527,10 +1487,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a ' +
-                    'friction strip, and doesn\'t point into traffic. ' +
-                '<span class="bold">Let’s click "1" to change its rating.</span><br> ' +
-                '<img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
+                "message": i18next.t('tutorial.common.redo-rate-curb-ramp-severity-1') +
+                '<br><img src="' + svl.rootDirectory + "img/onboarding/RatingCurbRampQuality-v3.gif" +
                 '" class="width-75" style="margin: 5px auto;display:block;" ' +
                 'alt="Rating curb ramp quality as 1, passable">',
                 "position": "top-right",
@@ -1554,8 +1512,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Great Job! We are almost done. Now let’s learn how to walk. ' +
-                '<span class="bold">Grab and drag the Street View image</span>.',
+                "message": i18next.t('tutorial.adjust-heading-angle-5'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1578,8 +1535,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Good! Now to figure out where to walk, you will follow the ' +
-                '<span class="bold" style="color: #ff0000;">red</span> line on this mini map.',
+                "message": i18next.t('tutorial.walk-1'),
                 "position": "top-right",
                 "fade-direction": "fadeInLeft",
                 "arrow": "right",
@@ -1596,8 +1552,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 // Set Compass Message
                 var uiCompassMessageHolder = compass.getCompassMessageHolder();
                 var image = "<img src='" + compass.directionToImagePath("straight") + "' class='compass-turn-images' alt='Turn icon' />";
-                var message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" +
-                    image + "<span class='bold'>Walk straight</span>";
+                var message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>Walk straight</span>";
                 uiCompassMessageHolder.message.html(message);
                 compass.showMessage();
                 return "walk-2";
@@ -1612,8 +1567,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'We will also guide you via <span class="bold">navigation messages</span> ' +
-                'shown in this area.',
+                "message": i18next.t('tutorial.walk-2'),
                 "position": "top-right",
                 "fade-direction": "fadeInDown",
                 "arrow": "bottom",
@@ -1640,9 +1594,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Now let’s actually take a step! <span class="bold">' +
-                'Double click on the street</span> in the direction you want to move. ' +
-                'In this case, double click in the circle below.',
+                "message": i18next.t('tutorial.walk-3'),
                 "position": "top-right",
                 "parameters": null
             },
@@ -1676,8 +1628,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Great! You just moved one step down the street. Visited parts of a route are marked in ' +
-                '<span class= "bold" style="color: #3c763d;">green</span> in the mini map.',
+                "message": i18next.t('tutorial.walk-4'),
                 "position": "top-right",
                 "width": 350,
                 "arrow": "right",
@@ -1704,8 +1655,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Now you can look for more issues at this ' +
-                'location. In this case, notice how there is a crosswalk with <span class="bold">no curb ramps</span>.',
+                "message": i18next.t('tutorial.walk-5'),
                 "position": "top-right",
                 "width": 400,
                 "fade-direction": "fadeIn"
@@ -1751,11 +1701,9 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ' +
-                '<img src="' + svl.rootDirectory + "img/cursors/Cursor_NoCurbRamp.png" +
-                '" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
-                'However, we want to get you started on actual missions, so let’s <span class="bold">finish this ' +
-                'tutorial!</span>',
+                "message": i18next.t('tutorial.walk-6-1') +
+                '<img src="' + svl.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png" style="width: 8%; height:auto" alt="Missing Curb Ramp Label">. ' +
+                    i18next.t('tutorial.walk-6-2'),
                 "position": "top-right",
                 "width": 400,
                 "fade-direction": "fadeIn"
@@ -1801,7 +1749,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'You can track <span class="bold">your labels</span> in the mini map!',
+                "message": i18next.t('tutorial.instruction-1'),
                 "position": "right",
                 "arrow": "right",
                 "fade-direction": "fadeInLeft",
@@ -1853,8 +1801,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": 'Finally, if you get stuck while walking, you can use the ' +
-                '<span class="bold">Jump button</span> to move to a different location.',
+                "message": i18next.t('tutorial.instruction-2'),
                 "position": "top-right",
                 "fade-direction": "fadeInRight",
                 "arrow": "left",
