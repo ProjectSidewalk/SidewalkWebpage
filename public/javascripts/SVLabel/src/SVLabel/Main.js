@@ -608,11 +608,6 @@ function Main (params) {
         // Zoom control
         svl.ui.zoomControl = {};
         svl.ui.zoomControl.holder = $("#zoom-control-holder");
-        svl.ui.zoomControl.holder.append('<button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">' +
-            '<img src="' + svl.rootDirectory + 'img/icons/ZoomIn.svg" class="zoom-button-icon" alt="Zoom in">' +
-            '<br /><u>Z</u>oom In</button>');
-        svl.ui.zoomControl.holder.append('<button id="zoom-out-button" class="button zoom-control-button" title="Press the &quot;Shift + Z&quot; keys" data-toggle="tooltip" data-placement="top">' +
-            '<img src="' + svl.rootDirectory + 'img/icons/ZoomOut.svg" class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>');
         svl.ui.zoomControl.zoomIn = $("#zoom-in-button");
         svl.ui.zoomControl.zoomOut = $("#zoom-out-button");
 

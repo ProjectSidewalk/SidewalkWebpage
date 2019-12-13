@@ -41,7 +41,7 @@
         "walk-5": "Now you can look for more issues at this location. In this case, notice how there is a crosswalk with <span class=\"bold\">no curb ramps</span>.",
         "walk-6-1": "Ordinarily, you would label the areas under the flashing arrows with a Missing Curb Ramp ",
         "walk-6-2": "However, we want to get you started on actual missions, so let’s <span class=\"bold\">finish this tutorial!</span>",
-        "instruction-1": "You can track <span class=\"bold\">your labels</span> in the mini map!",
+        "instruction-1": "You can track your labels in the mini map!",
         "instruction-2": "Finally, if you get stuck while walking, you can use the <span class=\"bold\">Jump button</span> to move to a different location.",
         "common": {
             "label-curb-ramp": "Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",

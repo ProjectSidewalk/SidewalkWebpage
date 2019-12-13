@@ -166,17 +166,17 @@
                     <div id="left-column-sound-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound.png")' id="left-column-sound-icon" class="visible" alt="Sound icon" align="">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/sound_mute.png")' id="left-column-mute-icon" class="hidden" alt="Mute icon" align="">
-                        Sound
+                        @Messages("audit.left.ui.sound")
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
-                        Jump
+                        @Messages("audit.left.ui.jump")
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
-                        Feedback
+                        @Messages("audit.left.ui.feedback")
                     </div>
                 </div>
             </div>
@@ -188,7 +188,7 @@
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Walker.png")'  id="icon-explore" class="icon-ribbon-menu-large" alt="Mode switch: Walk" align="">
                             </span>
-                            <span class="modeSwitch_Name" style="position:absolute; left: 0px;"><u>E</u>xplore</span>
+                            <span class="modeSwitch_Name" style="position:absolute; left: 0px;">@Html(Messages("audit.ribbon.explore"))</span>
                             <div id="ribbon-mode-switch-horizontal-line-walk" class="ribbon-menu-mode-switch-horizontal-line" val="Walk"></div>
                         </span>
                     </div>
@@ -202,44 +202,42 @@
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_CurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <div class="modeSwitch_Name"><u>C</u>urb Ramp</div>
+                            <div class="modeSwitch_Name">@Html(Messages("audit.ribbon.curb.ramp"))</div>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="CurbRamp"></div>
                         </span>
                         <span id="ModeSwitchButton_NoCurbRamp" class="modeSwitch" val="NoCurbRamp">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoCurbRamp.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><u>M</u>issing Curb Ramp</span>
+                            <span class="modeSwitch_Name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="NoCurbRamp"></div>
                         </span>
                         <span id="ModeSwitchButton_Obstacle" class="modeSwitch" val="Obstacle">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Obstacle.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><span class="underline">O</span>bstacle in <br /> Path</span>
+                            <span class="modeSwitch_Name">@Html(Messages("audit.ribbon.obstacle"))</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="Obstacle"></div>
                         </span>
                         <span id="ModeSwitchButton_SurfaceProblem" class="modeSwitch" val="SurfaceProblem">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_SurfaceProblem.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><span class="underline">S</span>urface Problem</span>
+                            <span class="modeSwitch_Name">@Html(Messages("audit.ribbon.surface.problem"))</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="SurfaceProblem"></div>
                         </span>
                         <span id="ModeSwitchButton_NoSidewalk" class="modeSwitch" val="NoSidewalk">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_NoSidewalk.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name"><span class="underline">N</span>o Sidewalk</span>
+                            <span class="modeSwitch_Name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="NoSidewalk"></div>
                         </span>
                         <span id="ModeSwitchButton_Other" class="modeSwitch" val="Other">
                             <span class="modeSwitch_Icon">
                                 <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other2.svg")' class="icon-ribbon-menu-large" alt="Mode switch:" align="">
                             </span>
-                            <span class="modeSwitch_Name">
-                                Other
-                            </span>
+                            <span class="modeSwitch_Name">@Messages("audit.ribbon.other")</span>
                             <div class="ribbon-menu-mode-switch-horizontal-line" val="Other"></div>
                             <div id="ribbon-menu-other-subcategory-holder">
                                 <div class="ribbon-menu-other-subcategories" val="Occlusion">
@@ -255,7 +253,16 @@
                     </div>
                 </span>
             </div>
-            <div id="zoom-control-holder"></div>
+            <div id="zoom-control-holder">
+                <button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
+                    <br>@Html(Messages("audit.ribbon.zoom.in"))
+                </button>
+                <button id="zoom-out-button" class="button zoom-control-button" title="Press the &quot;Shift + Z&quot; keys" data-toggle="tooltip" data-placement="top">
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
+                    <br>@Messages("audit.ribbon.zoom.out")
+                </button>
+            </div>
             <div id="action-stack-control-holder"></div>
             <div id="status-holder">
                 <div class="status-box">
@@ -274,7 +281,7 @@
                         </span>
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
-                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>labels</small></span>
+                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>
                 </div>
