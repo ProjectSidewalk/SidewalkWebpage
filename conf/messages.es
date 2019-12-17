@@ -8,6 +8,8 @@ audit.tutorial.welcome.1 = En <span class="bold">Project Sidewalk,</span> viajar
 audit.tutorial.welcome.2 = Comenzaremos con un breve tutorial interactivo.
 audit.tutorial.welcome.3 = ¡Empecemos!
 audit.tutorial.welcome.4 = ¿Ya tomaste el tutorial? ¿Tienes una cuenta? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Iniciar sesión</a> o <a value="Skip" class="onboarding-transition-trigger">saltar el tutorial</a>.
+audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <b>etiqueta los siguientes atributos de accesibilidad, en Google Street View</b>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
+audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
 audit.ribbon.explore = <u>E</u>xplorar
@@ -25,6 +27,7 @@ audit.left.ui.sound = Sonido
 audit.left.ui.jump = Saltar
 audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
 
-audit.right.ui.current.neighborhood = Barrio Actual
+audit.right.ui.current.neighborhood = Colonia Actual
 audit.right.ui.miles = millas
 audit.right.ui.current.mission = Misión Actual
+audit.right.ui.red.line = Sigue la línea roja

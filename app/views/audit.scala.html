@@ -446,7 +446,7 @@
             </div>
             <div id="google-maps-holder">
                 <div id="google-maps" class="google-maps-pane"></div>
-                <div id="google-maps-overlay" class="google-maps-pane">Follow the red line</div>
+                <div id="google-maps-overlay" class="google-maps-pane">@Messages("audit.right.ui.red.line")</div>
             </div>
             <div id="compass-holder" class="">
                 <div id="compass-message-holder" class="animated white-background-75">
@@ -793,18 +793,12 @@
     <template class="onboarding" val="outro" id="onboarding-outro">
         <div class="row">
             <div class="col-md-12">
-                <p>
-                    Great! You’ve learned how to use the interface! Now, go ahead and
-                    <span class="bold">label the following accessibility attributes in Google Street View</span> that
-                        significantly affect how wheelchair users move about the city:
-                </p>
+                <p>@Html(Messages("audit.tutorial.end.1"))</p>
                 <p>
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
-                <p>
-                    Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
-                </p>
+                <p>@Html(Messages("audit.tutorial.end.2"))</p>
             </div>
         </div>
         <div class="row">

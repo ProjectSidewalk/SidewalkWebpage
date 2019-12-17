@@ -11,7 +11,19 @@
     "surface-problems": "surface problems",
     "no-sidewalks": "no sidewalks",
     "others": "others",
+    "complete": "complete",
+    "instruction-text": "Audit the streets and find all the accessibility attributes",
+    "compass": {
+        "unlabeled-problems": "Do you see any unlabeled problems? If not,",
+        "straight": "Walk straight",
+        "left": "Turn left",
+        "right": "Turn right",
+        "slight-left": "Turn slightly left",
+        "slight-right": "Turn slightly right",
+        "u-turn": "U turn"
+    },
     "tutorial": {
+        "mission-message": "Complete the onboarding tutorial!",
         "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",
         "label-attribute-1": "Good! Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
         "rate-attribute-1": "Now you can rate the quality of the curb ramp where 1 is passable and 5 is not passable for a wheelchair user. Because it points into traffic a bit <span class=\"bold\">let’s rate it as 2, somewhat passable.</span>",

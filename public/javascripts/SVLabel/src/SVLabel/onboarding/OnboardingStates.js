@@ -1552,7 +1552,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 // Set Compass Message
                 var uiCompassMessageHolder = compass.getCompassMessageHolder();
                 var image = "<img src='" + compass.directionToImagePath("straight") + "' class='compass-turn-images' alt='Turn icon' />";
-                var message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" + image + "<span class='bold'>Walk straight</span>";
+                var message =  "<span class='compass-message-small'>" + i18next.t('compass.unlabeled-problems') +
+                    "</span><br/>" + image + "<span class='bold'>" + i18next.t('compass.straight') + "</span>";
                 uiCompassMessageHolder.message.html(message);
                 compass.showMessage();
                 return "walk-2";

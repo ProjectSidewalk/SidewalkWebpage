@@ -11,7 +11,19 @@
     "surface-problems": "problemas en superficie",
     "no-sidewalks": "no hay banquetas",
     "others": "otros",
+    "complete": "completado",
+    "instruction-text": "Audita las calles y encuentra todos los atributos de accesibilidad",
+    "compass": {
+        "unlabeled-problems": "¿Ves algún problema sin etiquetar? Si no,",
+        "straight": "Camina derecho",
+        "left": "Gira a la izquierda",
+        "right": "Gira a la derecha",
+        "slight-left": "Gira ligeramente a la izquierda",
+        "slight-right": "Gira ligeramente a la derecha",
+        "u-turn": "Da la vuelta"
+    },
     "tutorial": {
+        "mission-message": "¡Completar el tutorial introductorio!",
         "select-label-type-1": "En esta imagen de Google Street View, hemos dibujado una flecha hacia una rampa peatonal. Vamos a etiquetarla. Da clic en el <span class=\"bold\">botón parpadeante \"Rampa peatonal\"</span> ubicado en la parte superior.",
         "label-attribute-1": "¡Muy bien! Ahora haz <span class=\"bold\">clic en la rampa peatonal</span>, que está ubicada debajo de la flecha amarilla parpadeante, para etiquetarla.",
         "rate-attribute-1": "Ahora podrás calificar la calidad de la rampa peatonal en donde 1 es aceptable y 5 es no aceptable para una persona usuaria de silla de ruedas. Debido a que está orientada un poco al tráfico, <span class=\"bold\">califícalo como 2, algo aceptable.</span>",

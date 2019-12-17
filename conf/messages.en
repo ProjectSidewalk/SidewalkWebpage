@@ -9,6 +9,8 @@ audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’
 audit.tutorial.welcome.2 = We'll begin with a short, interactive tutorial.
 audit.tutorial.welcome.3 = Let's get started!
 audit.tutorial.welcome.4 = Already taken the tutorial? Have an account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Sign in</a> now or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
+audit.tutorial.end.1 = Great! You’ve learned how to use the interface! Now, go ahead and <span class="bold">label the following accessibility attributes in Google Street View</span> that significantly affect how wheelchair users move about the city:
+audit.tutorial.end.2 = Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
 
 audit.ribbon.find.and.label = Find and label the following
 audit.ribbon.explore = <u>E</u>xplore
@@ -27,4 +29,6 @@ audit.left.ui.jump = Jump
 audit.left.ui.feedback = Feedback
 
 audit.right.ui.current.neighborhood = Current Neighborhood
+audit.right.ui.miles = miles
 audit.right.ui.current.mission = Current Mission
+audit.right.ui.red.line = Follow the red line
