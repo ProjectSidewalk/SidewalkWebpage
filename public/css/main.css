@@ -804,7 +804,7 @@ video#bgvid {
     line-height: 1em;
     text-align: center;
     letter-spacing: 0.05em;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     font-weight: bold;
 }
 #press-list-header-2 {
@@ -813,7 +813,7 @@ video#bgvid {
     line-height: 1em;
     text-align: center;
     letter-spacing: 0.05em;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     font-weight: bold;
 }
 .newslink {
@@ -876,7 +876,7 @@ video#bgvid {
     vertical-align: middle;
     line-height: normal;
     font-family: adelle-regular;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
 
 }
 

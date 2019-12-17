@@ -1,4 +1,16 @@
 {
+    "curb-ramp": "curb ramp",
+    "missing-curb-ramp": "missing curb ramp",
+    "obstacle": "obstacle",
+    "surface-problem": "surface problem",
+    "no-sidewalk": "no sidewalk",
+    "other": "other",
+    "curb-ramps": "curb ramps",
+    "missing-curb-ramps": "missing curb ramps",
+    "obstacles": "obstacles",
+    "surface-problems": "surface problems",
+    "no-sidewalks": "no sidewalks",
+    "others": "others",
     "tutorial": {
         "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",
         "label-attribute-1": "Good! Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",

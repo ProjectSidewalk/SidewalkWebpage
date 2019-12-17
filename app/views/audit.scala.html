@@ -176,7 +176,7 @@
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
-                        @Messages("audit.left.ui.feedback")
+                        @Html(Messages("audit.left.ui.feedback"))
                     </div>
                 </div>
             </div>
@@ -195,7 +195,7 @@
                 </span>
                 <span id="label-type-holder">
                     <div id="ribbon-menu-label-type-title">
-                        Find and label the following
+                        @Messages("audit.ribbon.find.and.label")
                     </div>
                     <div id="ribbon-menu-label-type-button-holder">
                         <span id="ModeSwitchButton_CurbRamp" class="modeSwitch" val="CurbRamp">
@@ -242,11 +242,11 @@
                             <div id="ribbon-menu-other-subcategory-holder">
                                 <div class="ribbon-menu-other-subcategories" val="Occlusion">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
-                                    Can't see the sidewalk (<span class="underline">B</span>)
+                                    @Html(Messages("audit.ribbon.occlusion"))
                                 </div>
                                 <div class="ribbon-menu-other-subcategories" val="Other">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
-                                    Other
+                                    @Messages("audit.ribbon.other")
                                 </div>
                             </div>
                         </span>
@@ -266,7 +266,7 @@
             <div id="action-stack-control-holder"></div>
             <div id="status-holder">
                 <div class="status-box">
-                    <h1 class="status-holder-header-1">Current Neighborhood</h1>
+                    <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
 
                     <h2><span id="status-holder-neighborhood-name"></span>@cityShortName</h2>
 
@@ -277,7 +277,7 @@
                     <div class="status-row" id="neighborhood-status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WalkingFeet2.png")' class="status-icon" alt="Map icon" align="">
-                            <span><span class="bold" id="status-audited-distance">0.00</span> <small>miles</small></span>
+                            <span><span class="bold" id="status-audited-distance">0.00</span> <small>@Messages("audit.right.ui.miles")</small></span>
                         </span>
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
@@ -286,7 +286,7 @@
                     </div>
                 </div>
                 <div class="status-box">
-                    <h1>Current Mission</h1>
+                    <h1>@Messages("audit.right.ui.current.mission")</h1>
                     <h2 id="current-mission-description">Let's make this neighborhood accessible</h2>
                     <div id='status-current-mission-completion-bar'>
                         <div id='status-current-mission-completion-bar-filler'>
