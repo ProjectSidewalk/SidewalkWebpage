@@ -5,6 +5,42 @@ surface.problems = Surface Problems
 labels = labels
 miles = miles
 
+navbar.explore = Start Exploring
+navbar.validate = Start Validating
+navbar.howto = How to Label
+navbar.results = See Results
+navbar.help = Help
+navbar.signin = Sign in
+
+landing.create.path = Let's create a path for everyone
+landing.how.you.help = How you can help
+landing.how.you.help.content = Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
+landing.how.you.help.explore = EXPLORE
+landing.how.you.help.find = FIND PROBLEMS
+landing.how.you.help.assess = ASSESS SEVERITY
+landing.video.title = What is Project Sidewalk?
+landing.video.watch = Watch Now
+landing.choropleth.title = Pick a Neighborhood
+landing.choropleth.content = You are automatically assigned a neighborhood when you click 'Start Exploring', but you can also choose one by clicking on a region below!
+landing.choropleth.legend = Percent of Neighborhood Complete
+landing.stats.title = Your work is making a difference
+landing.stats.content.unfinished = Users like you have already mapped {0} miles of {1}, {2}—that's {3}% of the city!
+landing.stats.percent = of {0} mapped
+landing.stats.distance = miles covered
+landing.stats.labels = labels
+landing.stats.validations = validations
+landing.ml.title = What we do with your labels
+landing.ml.content = Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.
+landing.press.title = Press
+
+footer.about = About Us
+footer.terms = Terms of Use
+footer.help = Help
+footer.guide = Labeling Guide
+footer.developer = DEVELOPER
+footer.api = Sidewalk API
+footer.connect = CONNECT
+
 audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing missions to find and label accessibility features and problems in the environment, including:
 audit.tutorial.welcome.2 = We'll begin with a short, interactive tutorial.
 audit.tutorial.welcome.3 = Let's get started!
