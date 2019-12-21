@@ -105,3 +105,6 @@ nohup.out
 
 # docker db files
 db/dump
+db/sidewalk-dump
+db/sedfsRATN
+db/sedRvZhrj

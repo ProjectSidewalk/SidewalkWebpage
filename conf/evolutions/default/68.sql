@@ -1,4 +1,5 @@
 # --- !Ups
+SELECT setval('mission_type_mission_type_id_seq', (SELECT MAX(mission_type_id) from mission_type));
 INSERT INTO mission_type (mission_type) VALUES ('labelmapValidation');
 
 # --- !Downs
