@@ -1,0 +1,18 @@
+@import views.html.bootstrap._
+@import models.user.VersionTable
+
+@(showVersion: Boolean = false)
+
+<div id="mini-footer-audit">
+    Project Sidewalk is designed and operated by the
+    <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
+    <a href="http://www.cs.uw.edu/">University of Washington</a><br>
+    <span id="application-version">
+    @if(showVersion) {
+        Version @VersionTable.currentVersionId() | Last Updated:
+        <span class = "timestamp date">
+            @VersionTable.currentVersionTimestamp()
+        </span>
+    }
+    </span>
+</div>
