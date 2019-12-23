@@ -126,7 +126,7 @@ function UtilitiesMisc (JSON) {
         return {
             'Walk' : {
                 'id' : 'Walk',
-                'instructionalText' : 'Audit the streets and find all the accessibility attributes',
+                'instructionalText' : 'Explore the streets and find all the accessibility attributes',
                 'textColor' : 'rgba(255,255,255,1)'
             },
             CurbRamp: {

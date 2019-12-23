@@ -58,11 +58,11 @@ describe("ModalMissionComplete", function () {
                 <div id="modal-mission-complete-complete-bar"></div> \
                 <table class="table"> \
                 <tr> \
-                    <th>Audited in this mission</th> \
+                    <th>Explored in this mission</th> \
                     <td id="modal-mission-complete-mission-distance" class="col-right"></td> \
                 </tr> \
                 <tr> \
-                    <th>Audited in this neighborhood</th> \
+                    <th>Explored in this neighborhood</th> \
                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td> \
                 </tr> \
                 <tr> \
