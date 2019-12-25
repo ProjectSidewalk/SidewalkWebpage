@@ -365,7 +365,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['pole']['keyNumber']: // 'p' for 'pole'
                                 $('.pole-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['tree']['keyNumber']: // 't' for 'tree'
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['tree']['keyNumber']: // 'e' for 'tree'
                                 $('.tree-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['vegetation']['keyNumber']: // 'v' for 'vegetation'
@@ -376,6 +376,12 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 break;
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked bike']['keyNumber']: // 'i' for 'parked bike'
                                 $('.parkedBike-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['construction']['keyNumber']: // 't' for 'construction'
+                                $('.construction-obstacle-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['sign']['keyNumber']: // 'g' for 'sign'
+                                $('.sign-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'SurfaceProblem') { // Surface Problem
@@ -397,6 +403,12 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 break;
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['narrow sidewalk']['keyNumber']  : // 'a' for 'narrow sidewalk'
                                 $('.narrowSidewalk-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['brick']['keyNumber']  : // 'i' for 'brick'
+                                $('.brick-tag').first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['construction']['keyNumber']  : // 't' for 'construction'
+                                $('.construction-surface-problem-tag').first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'Other') { // Other
