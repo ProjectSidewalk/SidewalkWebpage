@@ -1,4 +1,10 @@
 $(document).ready(function() {
+    
+    // Tests to see if the current browser isMobile. If not, it redirects to the regular validate page
+    if(!isMobile()){
+        window.location.pathname = "validate";
+    }
+    
 
     // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that.
     let font = "<style> @@font-face{ font-family: 'raleway'; src: url('/assets/fonts/Raleway/Raleway-Regular.ttf');} </style>";
