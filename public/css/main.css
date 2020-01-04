@@ -136,7 +136,7 @@ footer {
 }
 
 .navbar-nav > li > a.navbarBtn {
-    background-color: #ffffff;
+    background-color: #ffffff !important;
     -moz-border-radius: 15px;
     -webkit-border-radius: 15px;
     border-radius: 10px;
@@ -156,7 +156,7 @@ footer {
 }
 
 .navbar-nav > li > a.navbarBtn:hover {
-    background-color: #FCECBE;
+    background-color: #FCECBE !important;
     border: 1px solid #FCECBE;
     color: #2D2A3F;
     text-shadow: none;
@@ -197,7 +197,37 @@ footer {
     top:1px;
 }
 
+@media only screen and (max-width: 768px) {
+    .navbar-right {
+        float: none !important;
+    }
 
+    .navbar-nav {
+        background-color: white;
+    }
+
+    .navbar-nav > li {
+        float: none !important;
+    }
+
+    .navbar-nav > li > a.navbarBtn {
+        -moz-border-radius: 0px;
+        -webkit-border-radius: 0px;
+        border-radius: 0px;
+        border: none;
+        display: block;
+        top: 0px;
+    }
+
+    .navbarLink {
+        margin-top: 0px;
+        margin-left: 0px;
+    }
+
+    .grayButton {
+        top: 0px;
+    }
+}
 
 .logintext {
     font: normal normal normal 14px/1.4em raleway,sans-serif;
