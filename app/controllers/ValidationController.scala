@@ -1,5 +1,7 @@
 package controllers
 
+import scala.util.matching.Regex
+
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -30,6 +32,20 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   val validationMissionStr: String = "validation"
   val mobileValidationMissionStr: String = "validation"
   val rapidValidationMissionStr: String = "rapidValidation"
+  val mobileOS: Regex = "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi)".r
+
+  /**
+    * Returns true if the user is on mobile, false if the user is not on mobile
+    * @return
+    */
+    def isMobile[A](implicit request: Request[A]): Boolean = {
+      request.headers.get("User-Agent").exists(agent => {
+        agent match{
+          case mobileOS(a) => true
+          case _ => false
+        }
+      })
+    }
 
   /**
     * Returns the validation page with a single panorama.
@@ -57,11 +73,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     */
   def mobileValidate = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
-
+    println(isMobile(request))
     request.identity match {
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, mobileValidationMissionStr, "Visit_MobileValidate")
-        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker") {
+        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/audit"))
         } else {
           Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
@@ -78,10 +94,12 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   def rapidValidate = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
 
+    
+
     request.identity match {
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 19, rapidValidationMissionStr, "Visit_Validate")
-        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker") {
+        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || isMobile) {
           Future.successful(Redirect("/audit"))
         } else {
           Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
