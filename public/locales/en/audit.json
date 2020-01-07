@@ -12,7 +12,7 @@
     "no-sidewalks": "no sidewalks",
     "others": "others",
     "complete": "complete",
-    "instruction-text": "Audit the streets and find all the accessibility attributes",
+    "instruction-text": "Explore the streets and find all the accessibility attributes",
     "compass": {
         "unlabeled-problems": "Do you see any unlabeled problems? If not,",
         "straight": "Walk straight",
@@ -68,6 +68,8 @@
         "instruction-1": "You can track your labels in the mini map!",
         "instruction-2": "Finally, if you get stuck while walking, you can use the <span class=\"bold\">Jump button</span> to move to a different location.",
         "common": {
+            "label-too-far": "Oops! Your label is too far away. Let's remove the misplaced label. <span class=\"bold\">Hover over the label and click the delete icon</span>",
+            "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> from above.",
             "label-curb-ramp": "Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
             "rate-severity-curb-ramp": "<span class=\"bold\">Let’s rate the quality</span> of the curb ramp.",
             "redo-rate-curb-ramp-severity-1": "Hmm, you should rate this curb ramp as 1, passable. This curb ramp is wide enough, has a friction strip, and doesn't point into traffic. <span class=\"bold\">Let’s click \"1\" to change its rating.</span>",
