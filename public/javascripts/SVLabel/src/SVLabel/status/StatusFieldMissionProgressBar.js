@@ -37,7 +37,7 @@ function StatusFieldMissionProgressBar (modalModel, statusModel, uiStatusField) 
         if (completionRate > 100) completionRate = 100;
         else if (completionRate < 100 && completionRate >= 99.5) completionRate = 99;
         completionRate = completionRate.toFixed(0, 10);
-        completionRate = completionRate + "% complete";
+        completionRate = completionRate + "% " + i18next.t('complete');
         $completionRate.html(completionRate);
     };
 
