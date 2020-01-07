@@ -81,6 +81,7 @@ function Form(url, beaconUrl) {
                         }
                     } else {
                         // Otherwise, display popup that says there are no more labels left.
+                        svv.modalMissionComplete.hide();
                         svv.modalNoNewMission.show();
                     }
                 }

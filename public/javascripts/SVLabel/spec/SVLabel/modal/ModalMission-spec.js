@@ -105,24 +105,24 @@ describe("ModalMission", function () {
 
         it("should set the title", function () {
             modalMission.setMissionMessage(mission_4000ft, neighborhood, null, null);
-            expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
+            expect(uiModalMission.missionTitle.text()).toBe("Explore ½mi of Test Neighborhood");
 
             modalMission.setMissionMessage(mission_1mi, neighborhood, null, null);
-            expect(uiModalMission.missionTitle.text()).toBe("Audit ¼mi of Test Neighborhood");
+            expect(uiModalMission.missionTitle.text()).toBe("Explore ¼mi of Test Neighborhood");
 
             modalMission.setMissionMessage(mission_2mi, neighborhood, null, null);
-            expect(uiModalMission.missionTitle.text()).toBe("Audit ½mi of Test Neighborhood");
+            expect(uiModalMission.missionTitle.text()).toBe("Explore ½mi of Test Neighborhood");
         });
 
         it("should set the body text", function () {
             modalMission.setMissionMessage(mission_4000ft, neighborhood, null, null);
-            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
+            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to explore ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
 
             modalMission.setMissionMessage(mission_1mi, neighborhood, null, null);
-            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ¼mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
+            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to explore ¼mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
 
             modalMission.setMissionMessage(mission_2mi, neighborhood, null, null);
-            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to audit ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
+            expect(uiModalMission.instruction.text().trim()).toBe("Your mission is to explore ½mi of Test Neighborhood and find all the accessibility features that affect mobility impaired travelers!");
         })
     });
 

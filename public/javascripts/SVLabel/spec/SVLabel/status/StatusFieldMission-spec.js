@@ -75,16 +75,16 @@ describe("StatusFieldMission module", function () {
     describe("`setMessage` method", function () {
         it("should set the mission instruction", function () {
             statusFieldMission.setMessage(mission1);
-            expect($missionMessage.text()).toBe("Audit 1000ft of this neighborhood");
+            expect($missionMessage.text()).toBe("Explore 1000ft of this neighborhood");
 
             statusFieldMission.setMessage(mission2);
-            expect($missionMessage.text()).toBe("Audit 1000ft of this neighborhood");
+            expect($missionMessage.text()).toBe("Explore 1000ft of this neighborhood");
 
             statusFieldMission.setMessage(mission3);
-            expect($missionMessage.text()).toBe("Audit ½mi of this neighborhood");
+            expect($missionMessage.text()).toBe("Explore ½mi of this neighborhood");
 
             statusFieldMission.setMessage(mission4);
-            expect($missionMessage.text()).toBe("Audit ¼mi of this neighborhood");
+            expect($missionMessage.text()).toBe("Explore ¼mi of this neighborhood");
         });
     });
 

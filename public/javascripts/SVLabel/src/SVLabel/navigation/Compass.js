@@ -230,7 +230,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function setBackToRouteMessage () {
-        var message = "Uh-oh, you're quite far away from the audit route. <br />" +
+        var message = "Uh-oh, you're quite far away from the route. <br />" +
             "<span class='bold'>Click here to jump back.</span>";
         uiCompass.message.html(message);
     }
