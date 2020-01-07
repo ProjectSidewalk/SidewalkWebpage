@@ -41,21 +41,21 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your <span class="bold">first mission</span> is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
+        <p>Your <span class="bold">first mission</span> is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
     var distanceMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
+        <p>Your mission is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
         <div class="spacer10"></div>';
 
     var returningToMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Continue auditing __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!</p>\
+        <p>Continue exploring __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!</p>\
         <div class="spacer10"></div>';
 
     this._handleBackgroundClick = function () {
@@ -112,7 +112,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         // Set the title and the instruction of this mission.
 
         var missionType = mission.getProperty("missionType");
-        var missionTitle = "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__";
+        var missionTitle = "Explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__";
         var templateHTML;
 
         svl.popUpMessage.disableInteractions();

@@ -70,7 +70,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
-        uiModalMissionComplete.closeButtonPrimary.html('Audit Another Neighborhood');
+        uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
         self._canShowContinueButton = true;
         if (self.showingMissionCompleteScreen) {
             self._enableContinueButton();

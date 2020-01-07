@@ -19,7 +19,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
         } else if (svl.missionContainer.isTheFirstMission()) {
             missionMessage = "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes"
         } else {
-            missionMessage = "Audit __PLACEHOLDER__ of this neighborhood";
+            missionMessage = "Explore __PLACEHOLDER__ of this neighborhood";
         }
 
         if (missionType === "audit") {
