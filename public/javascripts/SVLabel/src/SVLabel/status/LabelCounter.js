@@ -21,62 +21,68 @@ function LabelCounter (d3) {
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
-      "CurbRamp": {
-        id: "CurbRamp",
-        description: "curb ramp",
-        left: margin.left,
-        top: margin.top,
-        fillColor: colorScheme["CurbRamp"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_CurbRamp.png",
-        count: 0,
-        data: []
-      },
-      "NoCurbRamp": {
-          id: "NoCurbRamp",
-          description: "missing curb ramp",
-          left: margin.left,
-          top: (2 * margin.top) + margin.bottom + height,
-          // top: 2 * margin.top + margin.bottom + height,
-          fillColor: colorScheme["NoCurbRamp"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
-          count: 0,
-          data: []
-      },
-      "Obstacle": {
-        id: "Obstacle",
-        description: "obstacle",
-        left: margin.left,
-        // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
-        top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
-        fillColor: colorScheme["Obstacle"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
-        count: 0,
-        data: []
-      },
-      "SurfaceProblem": {
-        id: "SurfaceProblem",
-        description: "surface problem",
-        left: margin.left + (width/rightColumn),
-        //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
-          top: margin.top,
-        fillColor: colorScheme["SurfaceProblem"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
-        count: 0,
-        data: []
-      },
-      "NoSidewalk": {
-        id: "NoSidewalk",
-        description: "no sidewalk",
-        left: margin.left + (width/rightColumn),        
-        top: (2 * margin.top) + margin.bottom + height,  
-        fillColor: colorScheme["NoSidewalk"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoSidewalk.png",
-        count: 0,
-        data: []
-      },
+        "CurbRamp": {
+            id: "CurbRamp",
+            description: i18next.t("curb-ramp"),
+            descriptionPlural: i18next.t("curb-ramps"),
+            left: margin.left,
+            top: margin.top,
+            fillColor: colorScheme["CurbRamp"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_CurbRamp.png",
+            count: 0,
+            data: []
+        },
+        "NoCurbRamp": {
+            id: "NoCurbRamp",
+            description: i18next.t("missing-curb-ramp"),
+            descriptionPlural: i18next.t("missing-curb-ramps"),
+            left: margin.left,
+            top: (2 * margin.top) + margin.bottom + height,
+            // top: 2 * margin.top + margin.bottom + height,
+            fillColor: colorScheme["NoCurbRamp"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
+            count: 0,
+            data: []
+        },
+        "Obstacle": {
+            id: "Obstacle",
+            description: i18next.t("obstacle"),
+            descriptionPlural: i18next.t("obstacles"),
+            left: margin.left,
+            // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+            top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
+            fillColor: colorScheme["Obstacle"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
+            count: 0,
+            data: []
+        },
+        "SurfaceProblem": {
+            id: "SurfaceProblem",
+            description: i18next.t("surface-problem"),
+            descriptionPlural: i18next.t("surface-problems"),
+            left: margin.left + (width/rightColumn),
+            //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
+            top: margin.top,
+            fillColor: colorScheme["SurfaceProblem"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
+            count: 0,
+            data: []
+        },
+        "NoSidewalk": {
+            id: "NoSidewalk",
+            description: i18next.t("no-sidewalk"),
+            descriptionPlural: i18next.t("no-sidewalks"),
+            left: margin.left + (width/rightColumn),
+            top: (2 * margin.top) + margin.bottom + height,
+            fillColor: colorScheme["NoSidewalk"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoSidewalk.png",
+            count: 0,
+            data: []
+        },
         "Other": {
             id: "Other",
-            description: "other",
+            description: i18next.t("other"),
+            descriptionPlural: i18next.t("others"),
             left: margin.left + (width/rightColumn),
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
@@ -121,11 +127,11 @@ function LabelCounter (d3) {
             .enter()
             .append("text")
             .text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
+                var ret = dotPlots[key].count + " ";
+                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
                 return ret;
             })
-            .style("font-size", "9px")
+            .style("font-size", "8px")
             .attr("class", "visible")
             .attr('transform', 'translate(0,' + imageHeight + ')');
 
@@ -273,8 +279,8 @@ function LabelCounter (d3) {
                 .attr("r", setR);
             }
             dotPlots[key].label.text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
+                var ret = dotPlots[key].count + " ";
+                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
                 return ret;
             });
         }

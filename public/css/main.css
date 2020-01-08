@@ -56,7 +56,6 @@ html,
 body {
     padding-top: 35px;
     font-family:'Open Sans', 'Noto Sans', sans-serif;
-
     overflow-x: hidden; /* Prevent scroll on narrow devices */
 }
 footer {
@@ -126,7 +125,6 @@ footer {
     -webkit-box-shadow: 0 8px 6px -6px #999;
     -moz-box-shadow: 0 8px 6px -6px #999;
     box-shadow: 0 8px 6px -6px #999;
-
     /* the rest of your styling */
 }
 #navbar {
@@ -205,12 +203,10 @@ footer {
     letter-spacing: 0.1em;
     display: table-cell;
     vertical-align: middle;
-
 }
 
 #vidembed{
     position: relative;
-
     background-color:#ccc;
     max-height: 600px;
     overflow:hidden;
@@ -258,11 +254,9 @@ footer {
     width: 100%;
     height: 70%;
     max-height:600px;
-
 }
 
 video#bgvid {
-
     min-width:1100px;
     width:100%;
     background-size: cover;
@@ -287,11 +281,9 @@ video#bgvid {
     display:flex;
     justify-content: center;
     max-height:700px;
-
     height:700px;
     left:0;
     transition:background-color 300ms ease;
-
 }
 
 #graybar {
@@ -300,7 +292,6 @@ video#bgvid {
     height: 50px;
     background-color: #2d2a3f;
     font-family: adelle-regular;
-
 }
 
 #bartext {
@@ -314,7 +305,6 @@ video#bgvid {
     color: #fff;
     font-weight: bold;
     letter-spacing: 0.1em;
-
 }
 
 #computerimage {
@@ -326,7 +316,6 @@ video#bgvid {
 }
 
 .tagline {
-
     font-family: raleway-bold, sans-serif;
     font-size: 50px;
     letter-spacing: 0.05em;
@@ -338,7 +327,6 @@ video#bgvid {
 }
 
 #bigtext{
-
     display: flex;
     align-items: center;
     justify-content: center;
@@ -359,7 +347,6 @@ video#bgvid {
     font-style: normal;
     font-variant: normal;
     font-weight: normal;
-
     color: #fff;
 }
 
@@ -371,7 +358,6 @@ video#bgvid {
 
 #bannertext {
     min-width:700px;
-
     text-align: center;
 }
 
@@ -403,7 +389,6 @@ video#bgvid {
     min-height:700px;
     line-height: 40px;
     color: #2D2A3F;
-
 }
 
 .im-centered5 {
@@ -421,7 +406,6 @@ video#bgvid {
     min-height:700px;
     line-height: 1.1em;
     color: #2D2A3F;
-
 }
 
 .im-centered3 {
@@ -453,7 +437,6 @@ video#bgvid {
 
 #steps1 {
     padding-top: 100px;
-
 }
 
 .stepnumber {
@@ -470,7 +453,6 @@ video#bgvid {
     background-color: #58CEAB;
     min-width: 600px;
     min-height: 5px;
-
     position: relative;
     left: -20px;
     /*box-shadow: -2px 2px 5px #ccc;*/
@@ -513,17 +495,12 @@ video#bgvid {
     font-weight: bold;
     line-height: 10px;
     color: #2D2A3F;
-
 }
 
 
 
-
-
 #step2right {
-
     float: center;
-
 }
 
 #instructiongif{
@@ -541,13 +518,10 @@ video#bgvid {
     font-weight: normal;
     line-height: 1.8em;
     letter-spacing: 0.1em;
-
-
 }
 
 #quotebox-container{
     position: relative;
-
     width: 100%;
     background-image: url("/assets/assets/bw-background.png");
     min-height: 100%;
@@ -555,16 +529,12 @@ video#bgvid {
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-
-
 }
 #quotearea{
     max-width: 900px;
     margin: 0 auto;
-
 }
 #content-text-2 {
-
     font-family: adelle-regular, sans-serif;
     font-size: 16px;
     font-style: normal;
@@ -576,8 +546,6 @@ video#bgvid {
     margin: 0 auto;
     position: relative;
     top: 25px;
-
-
 }
 #content-text-3 {
     font-family: adelle-regular, sans-serif;
@@ -587,14 +555,11 @@ video#bgvid {
     font-weight: normal;
     line-height: 1.8em;
     letter-spacing: 0.1em;
-
-
 }
 
 #content-text-4 {
-
     font-family: adelle-regular, sans-serif;
-    font-size: 16px;
+    font-size: 15px;
     font-style: normal;
     font-variant: normal;
     font-weight: normal;
@@ -604,8 +569,6 @@ video#bgvid {
     margin: 0 auto;
     position: relative;
     top: 25px;
-
-
 }
 
 #mlgif{
@@ -654,7 +617,6 @@ video#bgvid {
 }
 
 .im-centered2 {
-
     margin: auto; max-width: 350px;
     text-align: center;
     padding-top: 50px;
@@ -665,8 +627,6 @@ video#bgvid {
     font-weight: bold;
     line-height: 20px;
     color: #2D2A3F;
-
-
 }
 
 #diffdesc {
@@ -683,9 +643,7 @@ video#bgvid {
 
 
 .compimage {
-
     float:left;
-
 }
 
 #exploreButton {
@@ -722,7 +680,6 @@ video#bgvid {
     top: -10px;
 }
 #count-container {
-
     position: relative;
     top: 50px;
     background-image: url(../assets/orange-map.PNG);
@@ -731,7 +688,6 @@ video#bgvid {
     min-height: 500px;
     display: flex;
     align-items: center;
-
 }
 
 #wrap {
@@ -783,7 +739,6 @@ video#bgvid {
 
 #press-container {
     position: relative;
-
     height: 200px;
 }
 
@@ -793,7 +748,6 @@ video#bgvid {
     position: relative;
     max-width: 900px;
     top: -20px;
-
     min-height: 300px;
 }
 
@@ -803,7 +757,7 @@ video#bgvid {
     line-height: 1em;
     text-align: center;
     letter-spacing: 0.05em;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     font-weight: bold;
 }
 #press-list-header-2 {
@@ -812,7 +766,7 @@ video#bgvid {
     line-height: 1em;
     text-align: center;
     letter-spacing: 0.05em;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     font-weight: bold;
 }
 .newslink {
@@ -821,10 +775,7 @@ video#bgvid {
     font-size: 16px;
     font-style: normal;
     font-variant: normal;
-
-
     line-height: 1.8em;
-
     color: #2d2a3f;
 }
 
@@ -875,7 +826,7 @@ video#bgvid {
     vertical-align: middle;
     line-height: normal;
     font-family: adelle-regular;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
 
 }
 
@@ -896,17 +847,14 @@ video#bgvid {
 }
 
 #mini-footer-audit{
-
     position: relative;
     width: 100%;
     min-height: 40px;
-
     text-align: center;
     color: #585c63;
     font-size: 12px;
     line-height: 1.6em;
     font-family: raleway, sans-serif;
-
 }
 
 #mini-footer-audit a{
@@ -915,27 +863,20 @@ video#bgvid {
 }
 
 #footer-container {
-
     position: relative;
-
     top: 00px;
     width: 100%;
-
     background-image: url(../assets/footer.jpg);
-
     min-height: 300px;
     background-attachment: fixed;
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-
     display: flex; justify-content: center;
     color: #2D2A3F;
     font-size: 12px;
     line-height: 1.8em;
     font-family: raleway, sans-serif;
-
-
 }
 
 #footer-container a{
@@ -953,7 +894,6 @@ video#bgvid {
     font-size: 12px;
     line-height: 2.1em;
     letter-spacing: 0.05em;
-
 }
 
 #info-footer {
@@ -1017,7 +957,6 @@ video#bgvid {
     font-family: 'Raleway', sans-serif;
     font-size:14px;
     padding:10px 75px;
-
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
@@ -1062,7 +1001,6 @@ video#bgvid {
 }
 
 
-
 #menubutton {
     position: relative;
     top: 15px;
@@ -1094,7 +1032,6 @@ kbd {
     text-align: center;
     position: fixed;
     font-size: 10pt;
-
     left: 50%;
     margin-left: -37.5%;
 }
@@ -1116,7 +1053,6 @@ kbd {
 .page-alert-dont-show {
     text-decoration: underline;
     margin: 0 10px 0 30px;
-
 }
 
 .tab-word.div{

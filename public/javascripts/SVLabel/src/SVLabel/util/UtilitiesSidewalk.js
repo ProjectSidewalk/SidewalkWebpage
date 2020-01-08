@@ -126,7 +126,7 @@ function UtilitiesMisc (JSON) {
         return {
             'Walk' : {
                 'id' : 'Walk',
-                'instructionalText' : 'Explore the streets and find all the accessibility attributes',
+                'instructionalText' : i18next.t('instruction-text'),
                 'textColor' : 'rgba(255,255,255,1)'
             },
             CurbRamp: {
@@ -314,9 +314,9 @@ function UtilitiesMisc (JSON) {
                         id: 'pole'
                     },
                     'tree': {
-                        keyNumber: 84,
-                        keyChar: 'T',
-                        text: '<tag-underline>t</tag-underline>ree',
+                        keyNumber: 69,
+                        keyChar: 'E',
+                        text: 'tr<tag-underline>e</tag-underline>e',
                         id: 'tree'
                     },
                     'vegetation': {
@@ -336,6 +336,18 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'I',
                         text: 'parked b<tag-underline>i</tag-underline>ke',
                         id: 'parkedBike'
+                    },
+                    'construction': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 'cons<tag-underline>t</tag-underline>ruction',
+                        id: 'construction-obstacle'
+                    },
+                    'sign': {
+                        keyNumber: 71,
+                        keyChar: 'G',
+                        text: 'si<tag-underline>g</tag-underline>n',
+                        id: 'sign'
                     }
                 }
             },
@@ -430,6 +442,18 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'A',
                         text: 'n<tag-underline>a</tag-underline>rrow sidewalk',
                         id: 'narrowSidewalk'
+                    },
+                    'brick': {
+                        keyNumber: 73,
+                        keyChar: 'I',
+                        text: 'br<tag-underline>i</tag-underline>ck',
+                        id: 'brick'
+                    },
+                    'construction': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: 'cons<tag-underline>t</tag-underline>ruction',
+                        id: 'construction-surface-problem'
                     }
                 }
             },

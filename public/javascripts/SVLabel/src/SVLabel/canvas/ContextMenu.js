@@ -227,6 +227,7 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleTagClick (e) {
         var label = getTargetLabel();
+        var labelType = label.getLabelType();
         var labelTags = label.getProperty('tagIds');
 
         // Use position of cursor to determine whether or not the click came from the mouse, or from a keyboard shortcut
@@ -237,7 +238,7 @@ function ContextMenu (uiContextMenu) {
                 var tagValue = e.target.textContent || e.target.innerText;
 
                 // Adds or removes tag from the label's current list of tags.
-                self.labelTags.forEach(function (tag) {
+                self.labelTags.filter(tag => tag.label_type === label.getLabelType()).forEach(function (tag) {
                     if (tag.tag === tagValue) {
                         if (!labelTags.includes(tag.tag_id)) {
                             var alternateRoutePresentStr = 'alternate route present';
@@ -453,7 +454,7 @@ function ContextMenu (uiContextMenu) {
                         // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
                         $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
 
-                        // Add tag name as a class so that finding the element is easier laster. For example, will add "narrowSidewalk-tag" as a class
+                        // Add tag name as a class so that finding the element is easier later. For example, will add "narrowSidewalk-tag" as a class
                         var newClass = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['id'] + "-tag";
                         $("body").find("button[id=" + count + "]").addClass(newClass);
 

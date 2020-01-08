@@ -652,10 +652,9 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         // Step 1: Show message to delete
         var message = {
-            "message": 'Oops! Your label is too far away. Let\'s remove the misplaced label. ' +
-                    '<span class="bold">Hover over the label and click the delete icon ' +
-                    '<img src="' + svl.rootDirectory + "img/icons/Icon_Delete.png" +
-                    '" style="width: 6%; height:auto" alt="Delete Icon"></span>',
+            "message": i18next.t('tutorial.common.label-too-far') +
+                ' <img src="' + svl.rootDirectory + "img/icons/Icon_Delete.png" +
+                '" style="width: 6%; height:auto" alt="Delete Icon">',
             "position": "top-right",
             "parameters": null
         };
@@ -704,8 +703,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
             // Step 2: Select the appropriate label Type
             var message = {
-                "message": 'Good! Now, let\'s label again. <span class="bold">Click the "' +
-                labelTypeToLabelString[labelType]+ '" button</span> from above.',
+                "message": i18next.t('tutorial.common.re-label', {label_type: labelTypeToLabelString[labelType]}),
                 "position": "top-right",
                 "parameters": null
             };
