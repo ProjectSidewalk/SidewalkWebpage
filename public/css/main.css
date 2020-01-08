@@ -197,47 +197,6 @@ footer {
     top:1px;
 }
 
-@media only screen and (max-width: 767px) {
-    .navbar-right {
-        float: none !important;
-    }
-
-    .navbar-nav {
-        background-color: white;
-        box-shadow: 0px 2px 5px darkgrey;
-        border-left: 1px solid #e7e7e7;
-        border-right: 1px solid #e7e7e7;
-        border-bottom: 1px solid #e7e7e7;
-        border-radius: 5px;
-    }
-
-    .navbar-nav > li {
-        float: none !important;
-    }
-
-    .navbar-nav > li > a.navbarBtn {
-        -moz-border-radius: 0px;
-        -webkit-border-radius: 0px;
-        border-radius: 0px;
-        border: none;
-        display: block;
-        top: 0px;
-    }
-
-    .navbarLink {
-        margin-top: 0px;
-        margin-left: 0px;
-    }
-
-    .grayButton {
-        top: 0px;
-    }
-
-    .container-fluid > .navbar-header {
-        margin-left: 0px;
-    }
-}
-
 .logintext {
     font: normal normal normal 14px/1.4em raleway,sans-serif;
     font-family: 'Raleway', sans-serif;
@@ -1257,17 +1216,6 @@ kbd {
     position: relative;
 }
 
-@media only screen and (max-width: 767px) {
-    .navbar-nav .open .dropdown-menu {
-        position: relative;
-        border: none;
-        -moz-border-radius: 0px;
-        -webkit-border-radius: 0px;
-        border-radius: 0px;
-        width: 100%;
-    }
-}
-
 /*Overlay box - start*/
 #advanced-overlay,
 #neighborhood-completion-overlay,
@@ -1448,4 +1396,74 @@ kbd {
     position: relative;
     top: -85px;
     visibility: hidden;
+}
+
+@media only screen and (max-width: 767px) {
+    .navbar-nav {
+        background-color: white;
+        -moz-box-shadow: 0px 1px 8px 0px #999;
+        -webkit-box-shadow: 0px 1px 8px 0px #999;
+        box-shadow: 0px 1px 8px 0px #999;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+        border-radius: 5px;
+        margin: 5px 0 5px 0;
+        padding-top: 10px;
+    }
+
+    .navbar-nav > li {
+        float: none;
+    }
+
+    .navbar-nav > :last-child {
+        padding-top: 5px;
+    }
+
+    .navbar-nav > li > a.navbarBtn {
+        -moz-border-radius: 0px;
+        -webkit-border-radius: 0px;
+        border-radius: 0px;
+        border: none;
+        display: block;
+        top: 0px;
+    }
+
+    .navbarLink {
+        margin-top: 0px;
+        margin-left: 0px;
+    }
+
+    .grayButton {
+        top: 0px;
+        border: none;
+        width: 100%;
+        -moz-border-radius: 0 0 5px 5px;
+        -webkit-border-radius: 0 0 5px 5px;
+        border-radius: 0 0 5px 5px;
+    }
+
+    .container-fluid > .navbar-header {
+        margin-left: 0px;
+    }
+
+    .navbar-nav > li > a.navbarBtn:hover {
+        border: none;
+    }
+
+    .navbar-collapse {
+        border: none;
+    }
+
+    .navbar-nav .open .dropdown-menu {
+        position: relative;
+        border: none;
+        -moz-border-radius: 0 0 5px 5px;
+        -webkit-border-radius: 0 0 5px 5px;
+        border-radius: 0 0 5px 5px;
+        width: 100%;
+    }
+
+    .navbar-nav.navbar-right:last-child {
+        margin-right: 0px;
+    }
 }
