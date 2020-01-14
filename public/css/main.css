@@ -1334,7 +1334,15 @@ kbd {
     visibility: hidden;
 }
 
-@media only screen and (max-width: 767px) {
+@media only screen and (max-width: 990px) {
+    .navbar-header {
+        float: none;
+    }
+
+    .navbar-toggle {
+        display: block;
+    }
+
     .navbar-nav {
         background-color: white;
         -moz-box-shadow: 0px 1px 8px 0px #999;
@@ -1388,6 +1396,15 @@ kbd {
 
     .navbar-collapse {
         border: none;
+    }
+
+    .navbar-collapse.collapse {
+        display: none !important;
+    }
+
+    .collapse.in{
+        display: block !important;
+        overflow: hidden !important;
     }
 
     .navbar-nav .open .dropdown-menu {
