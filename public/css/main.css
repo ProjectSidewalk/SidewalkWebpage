@@ -1396,8 +1396,9 @@ kbd {
         border: none;
     }
 
-    .navbar-collapse {
+    .navbar-fixed-top .navbar-collapse {
         border: none;
+        padding-right: 15px;
     }
 
     .navbar-collapse.collapse {
