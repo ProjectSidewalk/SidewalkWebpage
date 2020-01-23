@@ -76,7 +76,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     request.identity match {
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, mobileValidationMissionStr, "Visit_MobileValidate")
-        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || isMobile(request)) {
+        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/audit"))
         } else {
           Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
