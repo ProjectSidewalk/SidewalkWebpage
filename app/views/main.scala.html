@@ -1,6 +1,6 @@
 @import models.user.User
 @import models.user.VersionTable
-@(title: String, url: Option[String] = Some("/"))(content: Html)
+@(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
 
 
 @import views.html.bootstrap._
@@ -86,17 +86,17 @@
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
-                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">About Us</a> <br/>
-                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
-                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
-                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
+                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">@Messages("footer.about")</a> <br/>
+                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">@Messages("footer.terms")</a> <br/>
+                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">@Messages("footer.help")</a> <br/>
+                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">@Messages("footer.guide")</a> <br/>
             </div>
             <div class="col-sm-4 footerlink">
-                <span class="footerheader">DEVELOPER</span><br/>
-                <a href='@routes.ApplicationController.developer' id="developer-api-link">Sidewalk API </a><br/>
+                <span class="footerheader">@Messages("footer.developer")</span><br/>
+                <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a><br/>
             </div>
             <div class="col-sm-4 footerlink">
-                <span class="footerheader">CONNECT</span><br/>
+                <span class="footerheader">@Messages("footer.connect")</span><br/>
                 <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
                 <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
                 <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>

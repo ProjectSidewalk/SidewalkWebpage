@@ -15,7 +15,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
 
         var missionMessage;
         if (missionType === "auditOnboarding") {
-            missionMessage = "Complete the onboarding tutorial!";
+            missionMessage = i18next.t('tutorial.mission-message');
         } else if (svl.missionContainer.isTheFirstMission()) {
             missionMessage = "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes"
         } else {
