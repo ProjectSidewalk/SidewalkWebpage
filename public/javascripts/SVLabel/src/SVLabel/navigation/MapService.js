@@ -299,7 +299,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     worldSize: new google.maps.Size(4096, 2048),
                     centerHeading: 51,
                     getTileUrl: function(pano, zoom, tileX, tileY) {
-                        console.log(svl.rootDirectory);
                         return svl.rootDirectory + "img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
                     }
                 }

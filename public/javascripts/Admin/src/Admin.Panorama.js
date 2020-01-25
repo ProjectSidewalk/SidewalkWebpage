@@ -104,7 +104,6 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             else       self.panorama.set('clickToGo', false);
         }
 
-        console.log(self.panoId);
         return this;
     }
 
