@@ -54,7 +54,7 @@ if __name__ == '__main__':
         try:
             first_endpoint = requests.get(gsv_url + '&location=' + str(street.y1) + ',' + str(street.x1))
             second_endpoint = requests.get(gsv_url + '&location=' + str(street.y2) + ',' + str(street.x2))
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, KeyboardInterrupt) as e:
             write_output()
             print e
             exit(1)
