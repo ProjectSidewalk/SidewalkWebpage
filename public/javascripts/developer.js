@@ -3,8 +3,8 @@ $(document).ready(function () {
 
     // Construct a bounding box for this map that the user cannot move out of
     // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/
-    var southWest = L.latLng(38.761, -77.262),
-        northEast = L.latLng(39.060, -76.830),
+    var southWest = L.latLng(45.265, -123.010),
+        northEast = L.latLng(45.345, -122.900),
         bounds = L.latLngBounds(southWest, northEast),
 
     // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
@@ -21,7 +21,7 @@ $(document).ready(function () {
         zoomSnap: 0.5
     })
         .fitBounds(bounds)
-        .setView([38.910, -76.984], 15);
+        .setView([45.319, -122.975], 16);
     var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', "kotarohara.8e0c6890", {
         maxBounds: bounds,
         maxZoom: 19,
@@ -29,14 +29,14 @@ $(document).ready(function () {
         zoomSnap: 0.5
     })
         .fitBounds(bounds)
-        .setView([38.9195, -77.019], 14);
+        .setView([45.319, -122.975], 14);
     var mapAccesScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "kotarohara.8e0c6890", {
             maxBounds: bounds,
             maxZoom: 19,
             minZoom: 9
         })
         .fitBounds(bounds)
-        .setView([38.9195, -77.019], 14);
+        .setView([45.319, -122.975], 13);
 
     // Create 3 white overlay polygons. Add an overlay to each map.
     var overlay = L.geoJson({ "type": "FeatureCollection",
@@ -81,7 +81,7 @@ $(document).ready(function () {
     var colorMapping = util.misc.getLabelColors();
 
     // A map for Access Attribute
-    $.getJSON("/v2/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982&severity=3", function (data) {
+    $.getJSON("https://sidewalk-newberg.cs.washington.edu/v2/access/attributes?lat1=45.297&lat1=45.305&lng1=-123.000&lat2=45.327&lng2=-122.960", function (data) {
         function style(feature) {
             return {
                 weight: 1,
@@ -108,7 +108,7 @@ $(document).ready(function () {
     });
 
     // A map for Access Score: Streets
-    $.getJSON("/v2/access/score/streets?lat1=38.910&lng1=-77.028&lat2=38.929&lng2=-77.009", function (data) {
+    $.getJSON("https://sidewalk-newberg.cs.washington.edu/v2/access/score/streets?lat1=45.310&lng1=-123.000&lat2=45.327&lng2=-122.960", function (data) {
         function style(feature) {
             return {
                 weight: 5,
@@ -125,7 +125,7 @@ $(document).ready(function () {
 
     // A map for Access Score: Neighborhoods
     // Reference: http://leafletjs.com/examples/choropleth.html
-    $.getJSON("/v2/access/score/neighborhoods?lat1=38.910&lng1=-77.028&lat2=38.929&lng2=-77.009", function (data) {
+    $.getJSON("https://sidewalk-newberg.cs.washington.edu/v2/access/score/neighborhoods?lat1=45.305&lng1=-123.010&lat2=45.345&lng2=-122.950", function (data) {
         function style(feature) {
             return {
                 fillColor: getColor(feature.properties.score),

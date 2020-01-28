@@ -197,7 +197,6 @@ $(document).ready(function () {
     // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
     var helpText = "@Messages("navbar.help")";
     var howtoText = "@Messages("navbar.howto")";
-    console.log(howtoText);
     @if(url.isDefined && url.get == "/audit") {
         $(".navbarLink").on('click', function (e) {
             console.log(howtoText);
