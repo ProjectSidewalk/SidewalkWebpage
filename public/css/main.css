@@ -1254,9 +1254,13 @@ kbd {
     margin-bottom: 20px;
 }
 #loadingChoropleth{
-    position: absolute;
-    top: 47%;
-    right: 44%;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    height: 138px;
+    width: 138px;
+    margin-top: -69px;
+    margin-left: -69px;
 }
 .leaflet-bottom > .map-legends.wax-legends {
     right: 0px;
