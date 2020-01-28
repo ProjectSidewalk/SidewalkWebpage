@@ -3,12 +3,17 @@
 
 @import views.html.bootstrap._
 
-
     <!-- Fixed navbar -->
-<nav id="header" class="navbar navbar-fixed-top">
-    <div id="header-container" class="container navbar-container">
-        <div class="navbar-logo">
-            <a id="brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
+<nav id="header" class="navbar navbar-default navbar-fixed-top">
+    <div id="header-container" class="navbar-container container-fluid">
+        <div class="navbar-header">
+            <div class="navbar-logo">
+                <a id="brand navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
+            </div>
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <i class="fa fa-bars fa-2x" aria-hidden="true"></i>
+            </button>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
@@ -144,6 +149,8 @@
         <!-- /.container -->
 </nav>
     <!-- /.navbar -->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
