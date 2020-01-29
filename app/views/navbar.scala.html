@@ -1,14 +1,19 @@
 @import models.user.User
-@(user: Option[User] = None, url: Option[String] = Some("/"))
+@(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @import views.html.bootstrap._
 
-
     <!-- Fixed navbar -->
-<nav id="header" class="navbar navbar-fixed-top">
-    <div id="header-container" class="container navbar-container">
-        <div class="navbar-logo">
-            <a id="brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
+<nav id="header" class="navbar navbar-default navbar-fixed-top">
+    <div id="header-container" class="navbar-container container-fluid">
+        <div class="navbar-header">
+            <div class="navbar-logo">
+                <a id="brand navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/sidewalk-logo-new.png")'></a>
+            </div>
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <i class="fa fa-bars fa-2x" aria-hidden="true"></i>
+            </button>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
@@ -65,16 +70,16 @@
                 @if(url.isDefined && url.get != "/audit" && url.get != "/validate") {
 
                    <li class="active navbarLink">
-                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Exploring</a>
+                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
                     <li class="active navbarLink">
-                        <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">Start Validating</a>
+                        <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
                     <li class="active navbarLink">
-                        <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
+                        <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                     </li>
                     <li class="active navbarLink">
-                        <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
+                        <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                     </li>
 
                 } else {
@@ -84,25 +89,25 @@
                             <a class="navbarBtn" href="#" id="toolbar-onboarding-link">Retake Tutorial</a>
                         </li>
                         <li class="navbarLink">
-                            <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">Start Validating</a>
+                            <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                         </li>
                         <li class="navbarLink">
-                            <a class="navbarBtn navbarGuideBtn" href='@routes.ApplicationController.labelingGuide' id="toolbar-labeling-guide-link" target="_blank">How to Label</a>
+                            <a class="navbarBtn navbarGuideBtn" href='@routes.ApplicationController.labelingGuide' id="toolbar-labeling-guide-link" target="_blank">@Messages("navbar.howto")</a>
                         </li>
                         <li class = "navbarLink">
-                          <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">Help</a>
+                          <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
                         </li>
 
                     } else {
 
                         <li class="navbarLink">
-                            <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">Start Exploring</a>
+                            <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                         </li>
                         <li class="navbarLink">
-                            <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">How to Label</a>
+                            <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                         </li>
                         <li class="navbarLink">
-                            <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">See Results</a>
+                            <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
 
                     }
@@ -134,7 +139,7 @@
                             </li>
                         </ul>
                     } else {
-                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">Sign in</button>
+                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
             </ul>
@@ -144,6 +149,8 @@
         <!-- /.container -->
 </nav>
     <!-- /.navbar -->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
@@ -195,12 +202,17 @@ $(document).ready(function () {
 
     // Triggered when links in the navbar are pressed when on the Audit page
     // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
+    var helpText = "@Messages("navbar.help")";
+    var howtoText = "@Messages("navbar.howto")";
+    console.log(howtoText);
     @if(url.isDefined && url.get == "/audit") {
         $(".navbarLink").on('click', function (e) {
+            console.log(howtoText);
             var activity = "Click_module=RetakeTutorial";
-            if (e.currentTarget.innerHTML.includes("Help")) {
+            if (e.currentTarget.innerHTML.includes(helpText)) {
                 activity = "Click_module=Help";
-            } else if (e.currentTarget.innerHTML.includes("How to Label")) {
+            } else if (e.currentTarget.innerHTML.includes(howtoText)) {
+                console.log("hello");
                 activity = "Click_module=LabelingGuide";
             }
             logWebpageActivity(activity);
@@ -245,7 +257,7 @@ $(document).ready(function () {
             <div class="modal-content" id="sign-in-modal">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title" id="sign-in-label">Sign in</h4>
+                    <h4 class="modal-title" id="sign-in-label">@Messages("navbar.signin")</h4>
                 </div>
                 <div class="modal-body">
 
@@ -260,7 +272,7 @@ $(document).ready(function () {
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
                         @text(forms.SignInForm.form("identifier"), "Email address")
                         @password(forms.SignInForm.form("password"), "Password")
-                        <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">Sign in</button>
+                        <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.signin")</button>
                     }
                 </div>
                 <div class="modal-footer">
@@ -295,7 +307,7 @@ $(document).ready(function () {
                 </div>
                 <div class="modal-footer">
                     <div>
-                        Have an account? <a href="#" id="form-open-sign-in">Sign in!</a>
+                        Have an account? <a href="#" id="form-open-sign-in">@Messages("navbar.signin")</a>
                     </div>
                 </div>
             </div><!-- /.modal-content -->
@@ -508,7 +520,7 @@ $(document).ready(function () {
     </template>
     <template id="navbar-dropdown-list-signed-out">
         <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
-            Sign in
+            @Messages("navbar.signin")
         </a>
     </template>
 }
