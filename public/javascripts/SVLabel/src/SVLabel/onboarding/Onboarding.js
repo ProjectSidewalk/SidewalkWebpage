@@ -74,7 +74,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         fetchTutorialPointCloud();
 
-        $("#toolbar-onboarding-link").css("visibility", "hidden");
+        $("#toolbar-onboarding-link").css("display", "none");
 
         var canvasUI = uiOnboarding.canvas.get(0);
         if (canvasUI) ctx = canvasUI.getContext('2d');
