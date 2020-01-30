@@ -63,8 +63,8 @@ function StatusField() {
         svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         // Changes text on on the status field (right side of the validation interface).
-        svv.ui.status.labelTypeCounterexample.html("NOT ".italics() + prefix + labelName);
-        svv.ui.status.labelTypeExample.html(labelName);
+        svv.ui.status.labelTypeCounterexample.html("INCORRECT ".italics() + labelName);
+        svv.ui.status.labelTypeExample.html("CORRECT " + labelName);
     }
 
     /**
