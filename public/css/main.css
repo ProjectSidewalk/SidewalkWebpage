@@ -131,34 +131,38 @@ footer {
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
-    max-height: 30px;
 }
 
 .navbar-nav > li > a.navbarBtn {
-    background-color:#ffffff;
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:10px;
-    border:1px solid #2D2A3F;
-    display:inline-block;
+    -moz-border-radius: 15px;
+    -webkit-border-radius: 15px;
+    border-radius: 10px;
+    border: 1px solid #2D2A3F;
+    display: inline-block;
     position: relative;
-    top:8px;
-    cursor:pointer;
-    color:#2D2A3F;
-    font: normal normal normal 14px/1.4em raleway,sans-serif;
+    top: 8px;
+    cursor: pointer;
+    color: #2D2A3F;
+    font: normal normal normal 14px/1.4em raleway, sans-serif;
     font-family: 'Raleway', sans-serif;
-    font-size:14px;
-    padding:5px 25px;
-    text-decoration:none;
+    font-size: 14px;
+    padding: 5px 25px;
+    text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
     outline: none;
 }
-.navbar-nav > li > a.navbarBtn:hover {
-    background-color:#FCECBE;
-    border:1px solid #FCECBE;
+
+.navbar-default .navbar-nav > .active > a {
+    background-color: #ffffff;
+}
+
+.navbar-nav > .active > a.navbarBtn:hover {
+    background-color: #FCECBE;
+    border: 1px solid #FCECBE;
     color: #2D2A3F;
     text-shadow: none;
 }
+
 .navbarStartBtn:active {
     position:relative;
     top:8px;
@@ -193,8 +197,6 @@ footer {
     position:relative;
     top:1px;
 }
-
-
 
 .logintext {
     font: normal normal normal 14px/1.4em raleway,sans-serif;
@@ -1112,9 +1114,6 @@ kbd {
     margin-top: 5px;
     line-height: 20px;
 }
-.navbar-collapse.collapse {
-    display: block;
-}
 
 .navbar-nav>li, .navbar-nav {
     float: left;
@@ -1151,9 +1150,11 @@ kbd {
     -webkit-box-shadow: 0 6px 12px rgba(0,0,0,.175);
     box-shadow: 0 6px 12px rgba(0,0,0,.175);
 }
+
 .toolUI{
     position: relative;
 }
+
 /*Overlay box - start*/
 #advanced-overlay,
 #neighborhood-completion-overlay,
@@ -1170,7 +1171,9 @@ kbd {
 .overlay-text{
     height: 100%;
     width: 100%;
-    position: absolute;
+    position: fixed;
+    top: 0;
+    left: 0;
     background: rgba(0,0,0,0.89);
     z-index: 5;
 }
@@ -1253,9 +1256,13 @@ kbd {
     margin-bottom: 20px;
 }
 #loadingChoropleth{
-    position: absolute;
-    top: 47%;
-    right: 44%;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    height: 138px;
+    width: 138px;
+    margin-top: -69px;
+    margin-left: -69px;
 }
 .leaflet-bottom > .map-legends.wax-legends {
     right: 0px;
@@ -1334,4 +1341,98 @@ kbd {
     position: relative;
     top: -85px;
     visibility: hidden;
+}
+
+/*
+* Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
+* https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
+*/
+@media only screen and (max-width: 990px) {
+    .navbar-header {
+        float: none;
+    }
+
+    .navbar-toggle {
+        display: block;
+        margin-top: 1px;
+        margin-bottom: 0px;
+    }
+
+    .navbar-nav {
+        background-color: white;
+        -moz-box-shadow: 0px 1px 8px 0px #999;
+        -webkit-box-shadow: 0px 1px 8px 0px #999;
+        box-shadow: 0px 1px 8px 0px #999;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+        border-radius: 5px;
+        margin: 5px 0 5px 0;
+        padding-top: 10px;
+    }
+
+    .navbar-nav > li {
+        float: none;
+    }
+
+    .navbar-nav > :last-child {
+        padding-top: 5px;
+    }
+
+    .navbar-nav > li > a.navbarBtn {
+        -moz-border-radius: 0px;
+        -webkit-border-radius: 0px;
+        border-radius: 0px;
+        border: none;
+        display: block;
+        top: 0px;
+    }
+
+    .navbarLink {
+        margin-top: 0px;
+        margin-left: 0px;
+    }
+
+    .grayButton {
+        top: 0px;
+        border: none;
+        width: 100%;
+        -moz-border-radius: 0 0 5px 5px;
+        -webkit-border-radius: 0 0 5px 5px;
+        border-radius: 0 0 5px 5px;
+    }
+
+    .container-fluid > .navbar-header {
+        margin-left: 0px;
+    }
+
+    .navbar-nav > .active > a.navbarBtn:hover {
+        border: none;
+    }
+
+    .navbar-fixed-top .navbar-collapse {
+        border: none;
+        padding-right: 15px;
+    }
+
+    .navbar-collapse.collapse {
+        display: none !important;
+    }
+
+    .collapse.in{
+        display: block !important;
+        overflow: hidden !important;
+    }
+
+    .navbar-nav .open .dropdown-menu {
+        position: relative;
+        border: none;
+        -moz-border-radius: 0 0 5px 5px;
+        -webkit-border-radius: 0 0 5px 5px;
+        border-radius: 0 0 5px 5px;
+        width: 100%;
+    }
+
+    .navbar-nav.navbar-right:last-child {
+        margin-right: 0px;
+    }
 }
