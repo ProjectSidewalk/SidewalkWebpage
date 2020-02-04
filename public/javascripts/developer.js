@@ -34,18 +34,36 @@ $(document).ready(function () {
 
     // Get city-specific parameters for the maps.
     $.getJSON('/cityAPIDemoParams', function(data) {
+
+        // Use parameters to fill in example URLs.
+        var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
+        var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
+        var streetsURL = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`;
+        var regionsURL = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}`;
+
+        // Fill in example URLs in HTML.
+        $('#attributes-link').attr('href', attributesURL);
+        $('#attributes-code').html(attributesURL);
+        $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL);
+        $('#attributes-with-labels-code').html(attributeWithLabelsURL);
+        $('#streets-link').attr('href', streetsURL);
+        $('#streets-code').html(streetsURL);
+        $('#regions-link').attr('href', regionsURL);
+        $('#regions-code').html(regionsURL);
+
+        // Set view center and max bounds for each map.
+        mapAccessAttributes.setView([data.attribute.center_lat, data.attribute.center_lng], data.attribute.zoom);
+        mapAccessScoreStreets.setView([data.street.center_lat, data.street.center_lng], data.street.zoom);
+        mapAccessScoreNeighborhoods.setView([data.region.center_lat, data.region.center_lng], data.region.zoom);
+
         var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         mapAccessAttributes.setMaxBounds(L.latLngBounds(southWest, northEast));
         mapAccessScoreStreets.setMaxBounds(L.latLngBounds(southWest, northEast));
         mapAccessScoreNeighborhoods.setMaxBounds(L.latLngBounds(southWest, northEast));
 
-        mapAccessAttributes.setView([data.attribute.center_lat, data.attribute.center_lng], data.attribute.zoom);
-        mapAccessScoreStreets.setView([data.street.center_lat, data.street.center_lng], data.street.zoom);
-        mapAccessScoreNeighborhoods.setView([data.region.center_lat, data.region.center_lng], data.region.zoom);
-
-        // A map for Access Attribute
-        $.getJSON(`/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`, function (data) {
+        // Get data for map for Access Attribute.
+        $.getJSON(attributesURL, function (data) {
             function style(feature) {
                 return {
                     weight: 1,
@@ -71,8 +89,8 @@ $(document).ready(function () {
             }).addTo(mapAccessAttributes);
         });
 
-        // A map for Access Score: Streets
-        $.getJSON(`/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`, function (data) {
+        // Get data for map for Access Score: Streets.
+        $.getJSON(streetsURL, function (data) {
             function style(feature) {
                 return {
                     weight: 5,
@@ -85,9 +103,9 @@ $(document).ready(function () {
             L.geoJson(data, { style: style }).addTo(mapAccessScoreStreets);
         });
 
-        // A map for Access Score: Neighborhoods
+        // Get data for map for Access Score: Neighborhoods.
         // Reference: http://leafletjs.com/examples/choropleth.html
-        $.getJSON(`/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}`, function (data) {
+        $.getJSON(regionsURL, function (data) {
             function style(feature) {
                 return {
                     fillColor: getColor(feature.properties.score),
