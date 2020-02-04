@@ -40,6 +40,7 @@ POST    /authapi/signup                                      @controllers.SignUp
 # City config params
 GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
 GET     /cityShortNameParam                                  @controllers.ConfigController.getCityShortNameParam()
+GET     /cityAPIDemoParams                                   @controllers.ConfigController.getCityAPIDemoParams()
 
 # Admin
 GET     /admin                                               @controllers.AdminController.index

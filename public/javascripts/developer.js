@@ -15,28 +15,19 @@ $(document).ready(function () {
 
     // Maps
     var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', "kotarohara.8e0c6890", {
-        maxBounds: bounds,
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    })
-        .fitBounds(bounds)
-        .setView([45.319, -122.975], 16);
+    });
     var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', "kotarohara.8e0c6890", {
-        maxBounds: bounds,
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    })
-        .fitBounds(bounds)
-        .setView([45.319, -122.975], 14);
-    var mapAccesScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "kotarohara.8e0c6890", {
-            maxBounds: bounds,
+    });
+    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "kotarohara.8e0c6890", {
             maxZoom: 19,
             minZoom: 9
-        })
-        .fitBounds(bounds)
-        .setView([45.319, -122.975], 13);
+    });
 
     // Create 3 white overlay polygons. Add an overlay to each map.
     var overlay = L.geoJson({ "type": "FeatureCollection",
@@ -75,71 +66,83 @@ $(document).ready(function () {
         }
     }); });
     overlay.addTo(mapAccessAttributes);
-    overlays[0].addTo(mapAccesScoreNeighborhoods);
+    overlays[0].addTo(mapAccessScoreNeighborhoods);
     overlays[1].addTo(mapAccessScoreStreets);
 
     var colorMapping = util.misc.getLabelColors();
 
-    // A map for Access Attribute
-    $.getJSON("https://sidewalk-newberg.cs.washington.edu/v2/access/attributes?lat1=45.297&lat1=45.305&lng1=-123.000&lat2=45.327&lng2=-122.960", function (data) {
-        function style(feature) {
-            return {
-                weight: 1,
-                opacity:0.7,
-                color: "#fff"
-            }
-        }
 
-        L.geoJson(data, {
-            style: style,
-            pointToLayer: function (feature, latlng) {
-                var labelType = feature.properties.label_type,
-                    fillColor = labelType in colorMapping ? colorMapping[labelType].fillStyle : "#ccc";
-                return L.circleMarker(latlng, {
-                    radius: 5,
-                    fillColor: fillColor,
-                    color: "#fff",
+    // Get city-specific parameters for the maps.
+    $.getJSON('/cityAPIDemoParams', function(data) {
+        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
+        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
+        mapAccessAttributes.setMaxBounds(L.latLngBounds(southWest, northEast));
+        mapAccessScoreStreets.setMaxBounds(L.latLngBounds(southWest, northEast));
+        mapAccessScoreNeighborhoods.setMaxBounds(L.latLngBounds(southWest, northEast));
+
+        mapAccessAttributes.setView([data.attribute.center_lat, data.attribute.center_lng], data.attribute.zoom);
+        mapAccessScoreStreets.setView([data.street.center_lat, data.street.center_lng], data.street.zoom);
+        mapAccessScoreNeighborhoods.setView([data.region.center_lat, data.region.center_lng], data.region.zoom);
+
+        // A map for Access Attribute
+        $.getJSON(`/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`, function (data) {
+            function style(feature) {
+                return {
                     weight: 1,
+                    opacity:0.7,
+                    color: "#fff"
+                }
+            }
+
+            L.geoJson(data, {
+                style: style,
+                pointToLayer: function (feature, latlng) {
+                    var labelType = feature.properties.label_type,
+                        fillColor = labelType in colorMapping ? colorMapping[labelType].fillStyle : "#ccc";
+                    return L.circleMarker(latlng, {
+                        radius: 5,
+                        fillColor: fillColor,
+                        color: "#fff",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.75
+                    });
+                }
+            }).addTo(mapAccessAttributes);
+        });
+
+        // A map for Access Score: Streets
+        $.getJSON(`/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`, function (data) {
+            function style(feature) {
+                return {
+                    weight: 5,
+                    opacity:0.7,
+                    color: getColor(feature.properties.score),
+                    dashArray: '3'
+                }
+            }
+
+            L.geoJson(data, { style: style }).addTo(mapAccessScoreStreets);
+        });
+
+        // A map for Access Score: Neighborhoods
+        // Reference: http://leafletjs.com/examples/choropleth.html
+        $.getJSON(`/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}`, function (data) {
+            function style(feature) {
+                return {
+                    fillColor: getColor(feature.properties.score),
+                    weight: 3,
                     opacity: 1,
-                    fillOpacity: 0.75
-                });
+                    color: 'white',
+                    dashArray: '3',
+                    fillOpacity: 0.7
+                }
             }
-        }).addTo(mapAccessAttributes);
-    });
 
-    // A map for Access Score: Streets
-    $.getJSON("https://sidewalk-newberg.cs.washington.edu/v2/access/score/streets?lat1=45.310&lng1=-123.000&lat2=45.327&lng2=-122.960", function (data) {
-        function style(feature) {
-            return {
-                weight: 5,
-                opacity:0.7,
-                color: getColor(feature.properties.score),
-                dashArray: '3'
-            }
-        }
-
-
-
-        L.geoJson(data, { style: style }).addTo(mapAccessScoreStreets);
-    });
-
-    // A map for Access Score: Neighborhoods
-    // Reference: http://leafletjs.com/examples/choropleth.html
-    $.getJSON("https://sidewalk-newberg.cs.washington.edu/v2/access/score/neighborhoods?lat1=45.305&lng1=-123.010&lat2=45.345&lng2=-122.950", function (data) {
-        function style(feature) {
-            return {
-                fillColor: getColor(feature.properties.score),
-                weight: 3,
-                opacity: 1,
-                color: 'white',
-                dashArray: '3',
-                fillOpacity: 0.7
-            }
-        }
-
-        L.geoJson(data, {
-            style: style
-        }).addTo(mapAccesScoreNeighborhoods);
+            L.geoJson(data, {
+                style: style
+            }).addTo(mapAccessScoreNeighborhoods);
+        });
     });
 
     function getColor(d) {
