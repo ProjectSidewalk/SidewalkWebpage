@@ -66,6 +66,7 @@ function MissionContainer () {
             labelTypeId : missionMetadata.label_type_id,
             missionId : missionMetadata.mission_id,
             missionType : missionMetadata.mission_type,
+            missionsCompleted : svv.missionsCompleted,
             notSureCount: progressMetadata.not_sure_count,
             skipped : missionMetadata.skipped,
             pay: missionMetadata.pay

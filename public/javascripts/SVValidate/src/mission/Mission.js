@@ -11,6 +11,7 @@ function Mission(params) {
         disagreeCount: 0,
         missionId: undefined,
         missionType: undefined,
+        missionsCompleted: undefined,
         completed: undefined,
         labelsProgress: undefined,
         labelTypeId: undefined,
@@ -38,6 +39,7 @@ function Mission(params) {
         if ("labelTypeId" in params) setProperty("labelTypeId", params.labelTypeId);
         if ("notSureCount" in params) setProperty("notSureCount", params.notSureCount);
         if ("skipped" in params) setProperty("skipped", params.skipped);
+        if ("missionsCompleted" in params) setProperty("missionsCompleted", params.missionsCompleted);
     }
 
     /**
@@ -83,12 +85,14 @@ function Mission(params) {
      *                      progress will increase.
      */
     function updateMissionProgress(skip) {
+        console.log(getProperties());
         let labelsProgress = getProperty("labelsProgress");
+        let missionsCompleted = getProperty("missionsCompleted")
         if (labelsProgress < getProperty("labelsValidated")) {
             if (!skip) {
                 labelsProgress += 1;
             }
-            svv.statusField.updateLabelCounts(labelsProgress);
+            svv.statusField.updateLabelCounts(labelsProgress + 10 * missionsCompleted);
             setProperty("labelsProgress", labelsProgress);
 
             // Submit mission if mission is complete

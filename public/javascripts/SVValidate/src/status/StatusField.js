@@ -35,8 +35,8 @@ function StatusField() {
     }
 
     /**
-     * Updates the number of labels the user has validated.
-     * @param count {int} Number of labels the user has validated.
+     * Updates the number of labels the user has validated in all time.
+     * @param count {int} Number of labels the user has validated in all time.
      */
     function updateLabelCounts(count) {
         svv.ui.status.labelCount.html(count);
