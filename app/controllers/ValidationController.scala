@@ -37,7 +37,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * @return
     */
     def isMobile[A](implicit request: Request[A]): Boolean = {
-      val mobileOS: Regex = "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|iris|kindle|lge |maemo|midp|mmp|(android|bb\\d+|meego).+mobile|avantgo|bada|xda|xiino|android|ipad|playbook|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|jbro|jemu|jigs|kddi|keji|libw|lynx|nzph|o2im|oran|owg1|p800|your|zeto|zte|wmlb|wonu|x700)".r
+      
+      val mobileOS: Regex = "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
       request.headers.get("User-Agent").exists(agent => {
         agent match{
           case mobileOS(a) => true
@@ -75,6 +76,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
     request.identity match {
       case Some(user) =>
+        println(isMobile(request))
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, mobileValidationMissionStr, "Visit_MobileValidate")
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/audit"))
@@ -96,7 +98,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     request.identity match {
       case Some(user) =>
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 19, rapidValidationMissionStr, "Visit_Validate")
-        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || isMobile(request)) {
+        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker") {
           Future.successful(Redirect("/audit"))
         } else {
           Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
