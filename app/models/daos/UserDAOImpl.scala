@@ -2,9 +2,6 @@ package models.daos
 
 import java.sql.Timestamp
 import java.util.UUID
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAOImpl._
