@@ -449,13 +449,15 @@
 	// If this is a validation label, we want to add mouse-hovering event
 	// for popped up hide/show label.
 	if (this.id_ === "validate-pano-marker") {
-	    marker.addEventListener("mouseover", function () {
-		svv.labelVisibilityControl.showTagsAndDeleteButton();
-	    });
+	    if (!isMobile()) {
+            marker.addEventListener("mouseover", function () {
+                svv.labelVisibilityControl.showTagsAndDeleteButton();
+            });
 
-	    marker.addEventListener("mouseout", function () {
-		svv.labelVisibilityControl.hideTagsAndDeleteButton();
-	    });
+            marker.addEventListener("mouseout", function () {
+                svv.labelVisibilityControl.hideTagsAndDeleteButton();
+            });
+        }
 	}
 
         this.draw();

@@ -273,7 +273,6 @@ function Panorama (label, id) {
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
         // Only set description box if on /validate and not /rapidValidate.
-        console.log(typeof svv.labelDescriptionBox);
         if (typeof svv.labelDescriptionBox !== 'undefined') {
             svv.labelDescriptionBox.setDescription(label);
         }
