@@ -134,7 +134,7 @@ function Main (param) {
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
-        if (param.canvasCount === 1 && !isMobile()) {
+        if (param.canvasCount === 1 /*&& !isMobile()*/) {
            svv.labelDescriptionBox = new LabelDescriptionBox();
         }
         svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);

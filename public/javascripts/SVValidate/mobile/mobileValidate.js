@@ -44,6 +44,16 @@ $(document).ready(function() {
     });
 });
 
+$(window).on( "load", function() {
+    let label = document.getElementById("validate-pano-marker");
+    if (label == null) {
+        console.log("label is null");
+    }
+
+    label.addEventListener('touchstart', process_touchstart, false);
+    label.addEventListener('touchend', process_touchend, false);
+});
+
 /**
  * Resizes html elements based on phone size.
  */
@@ -93,4 +103,14 @@ function resizeMobileValidation() {
     // document.getElementById("validation-not-sure-button-0").style.width = w/5-30 + "px";
     // document.getElementById("left-column-jump-button").style.left = w - 600 + "px";
     // document.getElementById("info-button").style.left = w - 700 + "px";
+}
+
+// touchstart handler
+function process_touchstart(ev) {
+    console.log("touch started");
+}
+
+// touchend handler
+function process_touchend(ev) {
+    console.log("touch ended");
 }
