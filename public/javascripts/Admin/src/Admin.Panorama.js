@@ -116,6 +116,14 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
      */
     function setPano(panoId, heading, pitch, zoom) {
         if (typeof google != "undefined") {
+            self.panorama.registerPanoProvider(function(pano) {
+                if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
+                    return getCustomPanorama(pano);
+                }
+
+                return null;
+            });
+            
             self.svHolder.css('visibility', 'hidden');
             self.panoId = panoId;
 
@@ -136,7 +144,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
                 // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we
                 // wait a full 2 seconds without getting a response from Google.
-                if (self.panorama.getStatus() === "OK") {
+                if (self.panorama.getStatus() === "OK" || self.panoId == 'tutorial' || self.panoId == 'afterWalkTutorial') {
                     $(self.panoCanvas).css('visibility', 'visible');
                     $(self.panoNotAvailable).css('visibility', 'hidden');
                     $(self.panoNotAvailableDetails).css('visibility', 'hidden');
@@ -260,6 +268,55 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         return zoom <= 2 ?
             126.5 - zoom * 36.75 :  // linear descent
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
+    }
+
+    /**
+     * TODO: Find a way to use the method in MapService.js to avoid copied code.
+     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
+     * tutorial view or the "after walk" view.
+     * @param pano - the pano ID/name of the wanted custom panorama.
+     * @returns custom Google Street View panorama.
+     * */
+    function getCustomPanorama(pano) {
+        if (pano === 'tutorial') {
+            return {
+                location: {
+                    pano: 'tutorial',
+                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
+                },
+                links: [{
+                    heading: 342,
+                    description: 'Exit',
+                    pano: "afterWalkTutorial"
+                }],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(2048, 1024),
+                    worldSize: new google.maps.Size(4096, 2048),
+                    centerHeading: 51,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return "/assets/javascripts/SVLabel/img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                    }
+                }
+            };
+        } else if (pano === 'afterWalkTutorial') {
+            return {
+                location: {
+                    pano: 'afterWalkTutorial',
+                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
+                },
+                links: [],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(1700, 850),
+                    worldSize: new google.maps.Size(3400, 1700),
+                    centerHeading: 344,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return "/assets/javascripts/SVLabel/img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                    }
+                }
+            };
+        }
     }
 
     //init

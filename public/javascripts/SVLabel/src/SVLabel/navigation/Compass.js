@@ -218,7 +218,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             direction = _angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        message =  "<span class='compass-message-small'>Do you see any unlabeled problems? If not,</span><br/>" +
+        message =  "<span class='compass-message-small'>" + i18next.t('compass.unlabeled-problems') + "</span><br/>" +
             image + "<span class='bold'>" + _directionToDirectionMessage(direction) + "</span>";
         uiCompass.message.html(message);
     }
@@ -230,7 +230,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function setBackToRouteMessage () {
-        var message = "Uh-oh, you're quite far away from the audit route. <br />" +
+        var message = "Uh-oh, you're quite far away from the route. <br />" +
             "<span class='bold'>Click here to jump back.</span>";
         uiCompass.message.html(message);
     }
@@ -317,17 +317,17 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _directionToDirectionMessage (direction) {
         switch (direction) {
             case "straight":
-                return "Walk straight";
+                return i18next.t('compass.straight');
             case "slight-right":
-                return "Turn slightly towards right";
+                return i18next.t('compass.slight-right');
             case "slight-left":
-                return "Turn slightly towards left";
+                return i18next.t('compass.slight-left');
             case "right":
-                return "Turn right";
+                return i18next.t('compass.right');
             case "left":
-                return "Turn left";
+                return i18next.t('compass.left');
             case "u-turn":
-                return "U turn";
+                return i18next.t('compass.u-turn');
             default:
         }
     }

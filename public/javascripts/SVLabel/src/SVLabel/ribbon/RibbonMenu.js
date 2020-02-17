@@ -241,7 +241,7 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                     if (labelType !== status.mode) {
                         // Change background color if the labelType is not the currently selected mode.
                         $(this).css({
-                            "background": backgroundColor
+                            "background": "-webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee))"
                         });
                     }
                 }

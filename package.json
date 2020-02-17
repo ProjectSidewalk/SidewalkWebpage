@@ -5,7 +5,7 @@
     "grunt": "^1.0.4",
     "grunt-concat-css": "*",
     "grunt-contrib-concat": "*",
-    "grunt-contrib-jasmine": "*",
+    "grunt-contrib-jasmine": "^2.1.0",
     "grunt-contrib-jshint": "*",
     "grunt-contrib-nodeunit": "*",
     "grunt-contrib-uglify": "*",
