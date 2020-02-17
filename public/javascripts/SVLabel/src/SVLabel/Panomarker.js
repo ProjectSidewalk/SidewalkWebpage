@@ -167,6 +167,9 @@
         /** @private @type {Object} */
         this.markerContainer_ = opts.markerContainer || null;
 
+        /** @private @type {boolean} */
+        this.toggleDescription_ = false;
+
         // At last, call some methods which use the initialized parameters
         this.setPano(opts.pano || null, opts.container);
     };
@@ -446,19 +449,35 @@
 
         marker.addEventListener(eventName, this.onClick.bind(this), false);
 
-	// If this is a validation label, we want to add mouse-hovering event
-	// for popped up hide/show label.
-	if (this.id_ === "validate-pano-marker") {
-	    if (!isMobile()) {
-            marker.addEventListener("mouseover", function () {
-                svv.labelVisibilityControl.showTagsAndDeleteButton();
-            });
+        // If this is a validation label, we want to add mouse-hovering event
+        // for popped up hide/show label.
+        if (this.id_ === "validate-pano-marker") {
+            if (isMobile()) {
+                marker.addEventListener('touchstart', function () {
+                    let labelDescriptionBox = $("#label-description-box");
+                    let desBox = labelDescriptionBox[0];
+                    if (!this.toggleDescription_) {
+                        console.log("touch started");
+                        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
+                        desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
+                        desBox.style.zIndex = 1000;
+                        desBox.style.visibility = 'visible';
+                        this.toggleDescription_ = true;
+                    } else {
+                        desBox.style.visibility = 'hidden';
+                        this.toggleDescription_ = false;
+                    }
+                }, false);
+            } else {
+                marker.addEventListener("mouseover", function () {
+                    svv.labelVisibilityControl.showTagsAndDeleteButton();
+                });
 
-            marker.addEventListener("mouseout", function () {
-                svv.labelVisibilityControl.hideTagsAndDeleteButton();
-            });
+                marker.addEventListener("mouseout", function () {
+                    svv.labelVisibilityControl.hideTagsAndDeleteButton();
+                });
+            }
         }
-	}
 
         this.draw();
 
@@ -521,7 +540,6 @@
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');
     }
-
 
 //// Getter to be roughly equivalent to the regular google.maps.Marker ////
 
