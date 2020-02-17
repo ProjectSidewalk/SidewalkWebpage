@@ -45,8 +45,14 @@ function LabelDescriptionBox () {
             desBox.appendChild(htmlString);
             let img = document.createElement('img');
             img.setAttribute('src', smileyScale[severity]);
-            img.setAttribute('width', '12px');
-            img.setAttribute('height', '12px');
+            if (isMobile()) {
+                img.setAttribute('width', '20px');
+                img.setAttribute('height', '20px');
+            } else {
+                img.setAttribute('width', '12px');
+                img.setAttribute('height', '12px');
+            }
+
             img.style.verticalAlign = 'middle';
             desBox.appendChild(img);
             desBox.appendChild(document.createElement("br"));
@@ -77,9 +83,13 @@ function LabelDescriptionBox () {
         }
 
         // Set the width of the des box.
-        let bound = desBox.getBoundingClientRect();
-        let width = (bound.right - bound.left) + 'px';
-        desBox.style.width = width;
+        // let bound = desBox.getBoundingClientRect();
+        // let width = (bound.right - bound.left) + 'px';
+        // desBox.style.width = width;
+
+        if (isMobile()) {
+            desBox.style.fontSize = '20px';
+        }
     }
 
     self.setDescription = setDescription;

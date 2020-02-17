@@ -266,7 +266,6 @@ function Panorama (label, id) {
      */
     function setLabel (label) {
         currentLabel = label;
-        console.log(label);
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
@@ -276,7 +275,6 @@ function Panorama (label, id) {
         if (typeof svv.labelDescriptionBox !== 'undefined') {
             svv.labelDescriptionBox.setDescription(label);
         }
-        console.log("Got here in mobile");
         renderLabel();
     }
 
