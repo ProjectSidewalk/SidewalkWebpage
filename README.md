@@ -112,6 +112,8 @@ Database: sidewalk
     ```
 
 ## Running the application remotely
+NOTE: This has not been tested in a very long time and may not work.
+
 To run the application remotely,
 
 1. Use Play's dist tool to create jar files of the project (i,e., `activator dist`): https://www.playframework.com/documentation/2.3.x/ProductionDist
