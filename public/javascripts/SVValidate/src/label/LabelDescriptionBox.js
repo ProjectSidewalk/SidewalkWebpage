@@ -83,9 +83,9 @@ function LabelDescriptionBox () {
         }
 
         // Set the width of the des box.
-        // let bound = desBox.getBoundingClientRect();
-        // let width = (bound.right - bound.left) + 'px';
-        // desBox.style.width = width;
+        let bound = desBox.getBoundingClientRect();
+        let width = (bound.right - bound.left) + 'px';
+        desBox.style.width = width;
 
         if (isMobile()) {
             desBox.style.fontSize = '20px';

@@ -467,7 +467,8 @@
                         desBox.style.visibility = 'hidden';
                         this.toggleDescription_ = false;
                     }
-                }, false);
+                    console.log(this.toggleDescription_);
+                }.bind(this), false);
             } else {
                 marker.addEventListener("mouseover", function () {
                     svv.labelVisibilityControl.showTagsAndDeleteButton();
@@ -488,8 +489,17 @@
 
     /** @override */
     PanoMarker.prototype.draw = function() {
+        console.log("pov changed");
         if (!this.pano_) {
             return;
+        }
+
+        console.log(this.toggleDescription_ + " after pov change");
+        if (this.toggleDescription_) {
+            let labelDescriptionBox = $("#label-description-box");
+            let desBox = labelDescriptionBox[0];
+            desBox.style.visibility = 'hidden';
+            this.toggleDescription_ = false;
         }
 
         // Calculate the position according to the viewport. Even though the marker
