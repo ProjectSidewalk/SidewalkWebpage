@@ -11,8 +11,18 @@ navbar.howto = How to Label
 navbar.results = See Results
 navbar.help = Help
 navbar.signin = Sign in
+navbar.email = Email address
+navbar.password = Password
+navbar.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
+navbar.username = Username
+navbar.confirm.password = Confirm password
+navbar.terms = You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a>
+navbar.signup = Sign up
+navbar.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
 
 landing.create.path = Let''s create a path for everyone
+landing.also.in = We are also in:
+landing.mapathon = Live in {0}? Stop by <a class="exploremaplink" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
 landing.how.you.help.content = Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
 landing.how.you.help.explore = EXPLORE
@@ -31,6 +41,7 @@ landing.stats.labels = labels
 landing.stats.validations = validations
 landing.ml.title = What we do with your labels
 landing.ml.content = Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.
+landing.what.people.are.saying = What people<br>are saying
 landing.press.title = Press
 
 footer.about = About Us
@@ -40,6 +51,10 @@ footer.guide = Labeling Guide
 footer.developer = DEVELOPER
 footer.api = Sidewalk API
 footer.connect = CONNECT
+footer.email = Email Us
+footer.funding = WE ARE PROUDLY FUNDED BY
+footer.designed.operated = Project Sidewalk is designed and operated by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a href="http://www.cs.uw.edu/">University of Washington</a>
+footer.version = Version {0} | Last Updated: <span class = "timestamp date">{1}</span>
 
 audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing missions to find and label accessibility features and problems in the environment, including:
 audit.tutorial.welcome.2 = We''ll begin with a short, interactive tutorial.

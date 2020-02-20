@@ -10,8 +10,19 @@ navbar.howto = Cómo Etiquetar
 navbar.results = Ver Resultados
 navbar.help = Ayuda
 navbar.signin = Iniciar sesión
+navbar.email = Correo electrónico
+navbar.password = Contraseña
+navbar.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
+navbar.username = Nombre de usuario/a
+navbar.confirm.password = Confirmar contraseña
+navbar.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
+navbar.signup = Regístrate
+navbar.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
+
 
 landing.create.path = Creemos un camino para todas las personas
+landing.also.in = También estamos en:
+landing.mapathon = ¿Vives en {0}? ¡Pasa por <a class="exploremaplink" href="{1}" target="_blank">un evento “mapathon” en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
 landing.how.you.help.content = Explora virtualmente las calles de la ciudad para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
 landing.how.you.help.explore = EXPLORA
@@ -30,6 +41,7 @@ landing.stats.labels = etiquetas
 landing.stats.validations = validaciones
 landing.ml.title = Qué hacemos con tus etiquetas
 landing.ml.content = Utilizamos tus etiquetas para mejorar planificación urbana, crear herramientas de mapeo consciente de accesibilidad y entrenar algoritmos de aprendizaje de máquinas para encontrar problemas de accesibilidad urbana.
+landing.what.people.are.saying = Lo que la gente<br>está diciendo
 landing.press.title = Prensa
 
 footer.about = Sobre Nosotros
@@ -39,6 +51,10 @@ footer.guide = Guía de Etiquetado
 footer.developer = DESARROLLADORES
 footer.api = Sidewalk API
 footer.connect = CONECTA
+footer.email = Envíanos un Correo
+footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
+footer.designed.operated = Project Sidewalk está diseñado y operado por el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a href="http://www.cs.uw.edu/">Universidad de Washington</a>
+footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 
 audit.tutorial.welcome.1 = En <span class="bold">Project Sidewalk,</span> viajarás virtualmente por ciudades completando misiones para encontrar y etiquetar las características de accesibilidad y las problemáticas del entorno urbano, que incluyen: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, problemas en superficie.
 audit.tutorial.welcome.2 = Comenzaremos con un breve tutorial interactivo.
