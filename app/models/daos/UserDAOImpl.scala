@@ -166,8 +166,7 @@ object UserDAOImpl {
    */
   def countValidationUsersContributedToday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
-      """
-        |SELECT COUNT(DISTINCT(mission.user_id))
+      """SELECT COUNT(DISTINCT(mission.user_id))
         |FROM label_validation
         |INNER JOIN mission ON label_validation.user_id = mission.user_id
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
@@ -179,8 +178,6 @@ object UserDAOImpl {
     )
     countQuery(role).list.head
   }
-
-
 
   /**
    * Count the number of researchers who contributed validations today (incl Researcher, Adminstrator, and Owner roles).
