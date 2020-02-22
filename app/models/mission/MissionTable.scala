@@ -150,6 +150,16 @@ object MissionTable {
 
 
   /**
+    * Count the total number of labels the user has validated
+    *
+    * @param userId
+    * @return the total number of validation missions the user has completed
+    */
+  def countCompletedValidationMissionsByUserID(userId: UUID) : Int = db.withTransaction { implicit session =>
+      countCompletedMissions(userId, "validation")
+  }
+
+  /**
     * Count the number of missions completed by a user.
     *
     * @param userId
