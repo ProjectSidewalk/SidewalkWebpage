@@ -75,7 +75,6 @@ function AdminUser(params) {
         document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
         document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
         document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
-
         document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
         document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
         document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";

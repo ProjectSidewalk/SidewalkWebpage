@@ -122,6 +122,7 @@ function AdminPanorama(svHolder) {
      * @returns {renderLabel}
      */
     function renderLabel (label) {
+        console.log("pre:")
         var url = icons[label['label_type']];
         var pos = getPosition(label['canvasX'], label['canvasY'], label['originalCanvasWidth'],
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
