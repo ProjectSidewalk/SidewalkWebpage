@@ -162,6 +162,7 @@
         this.visible_ = (typeof opts.visible === 'boolean') ? opts.visible : true;
 
         /** @private @type {number} */
+        console.log(opts.zIndex + " z index");
         this.zIndex_ = opts.zIndex || 1;
 
         /** @private @type {Object} */
@@ -458,9 +459,9 @@
                     let desBox = labelDescriptionBox[0];
                     if (!this.toggleDescription_) {
                         console.log("touch started");
-                        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - 10) + 'px';
-                        desBox.style.top = (parseFloat(marker.style.top) + 10) + 'px';
-                        desBox.style.zIndex = 1000;
+                        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
+                        desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
+                        desBox.style.zIndex = 2;
                         desBox.style.visibility = 'visible';
                         this.toggleDescription_ = true;
                     } else {

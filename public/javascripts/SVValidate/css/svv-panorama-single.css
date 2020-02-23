@@ -68,7 +68,7 @@
     border-radius: 5px;
     border: white solid 2px;
     font-size: 12px;
-    word-break: break-all;
+    /* word-break: break-all; */
     z-index: 1;
 }
 
