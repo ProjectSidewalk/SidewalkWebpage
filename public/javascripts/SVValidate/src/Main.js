@@ -173,15 +173,28 @@ function Main (param) {
         });
     }
 
-    _initUI();
+    // Gets all the text on the validation page for the correct language.
+    i18next.use(i18nextXHRBackend);
+    i18next.init({
+        backend: { loadPath: 'assets/locales/{{lng}}/{{ns}}.json' },
+        fallbackLng: 'en',
+        ns: ['validate'],
+        defaultNS: 'validate',
+        lng: param.language,
+        debug: true
+    }, function(err, t) {
+        if(param.init !== "noInit") {
+            _initUI();
 
-    if (param.hasNextMission) {
-        _init();
-    } else {
-        svv.keyboard = new Keyboard(svv.ui.validation);
-        svv.form = new Form(param.dataStoreUrl);
-        svv.tracker = new Tracker();
-        svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-        svv.modalNoNewMission.show();
-    }
+            if (param.hasNextMission) {
+                _init();
+            } else {
+                svv.keyboard = new Keyboard(svv.ui.validation);
+                svv.form = new Form(param.dataStoreUrl);
+                svv.tracker = new Tracker();
+                svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+                svv.modalNoNewMission.show();
+            }
+        }
+    });
 }

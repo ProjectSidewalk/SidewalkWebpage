@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -288,6 +288,7 @@
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.canvasCount = 1;
+            param.language = "@lang.language";
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);

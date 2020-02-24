@@ -5,7 +5,7 @@ function ModalMission (uiModalMission, user) {
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!</p>\
+        <p>' + i18next.t("mission-start") + '</p>\
         <div class="spacer10"></div>';
 
     let validationResumeMissionHTML = ' <figure> \
