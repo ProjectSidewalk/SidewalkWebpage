@@ -259,7 +259,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       """SELECT v.label_id
         |FROM sidewalk.label_validation v
-        |WHERE v.end_timestamp::date = now()::date""".stripMargin
+        |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date""".stripMargin
     )
     countQuery.list.size
   }
@@ -271,7 +271,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       """SELECT v.label_id
         |FROM sidewalk.label_validation v
-        |WHERE v.end_timestamp::date = now()::date - interval '1' day""".stripMargin
+        |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day""".stripMargin
     )
     countQuery.list.size
   }
@@ -283,7 +283,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT v.label_id
         |FROM sidewalk.label_validation v
-        |WHERE v.end_timestamp::date = now()::date
+        |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
         |   AND v.validation_result = $result""".stripMargin
     )
     countQuery.list.size
@@ -296,7 +296,7 @@ object LabelValidationTable {
     val countQuery = Q.queryNA[(Int)](
       s"""SELECT v.label_id
          |FROM sidewalk.label_validation v
-         |WHERE v.end_timestamp::date = now()::date - interval '1' day
+         |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day
          |   AND v.validation_result = $result""".stripMargin
     )
     countQuery.list.size
