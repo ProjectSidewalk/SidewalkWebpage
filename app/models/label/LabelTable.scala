@@ -227,7 +227,7 @@ object LabelTable {
       """SELECT label.label_id
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE audit_task.task_end::date = now()::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
         |    AND label.deleted = false""".stripMargin
     )
     countQuery.list.size
@@ -245,7 +245,7 @@ object LabelTable {
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE audit_task.task_end::date = now()::date
+                         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin
@@ -263,7 +263,7 @@ object LabelTable {
       """SELECT label.label_id
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
         |    AND label.deleted = false""".stripMargin
     )
     countQuery.list.size
@@ -278,7 +278,7 @@ object LabelTable {
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
-                         |WHERE audit_task.task_end::date = now()::date - interval '1' day
+                         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
                          |  AND label.deleted = false AND label.label_type_id = (SELECT label_type_id
                          |														FROM sidewalk.label_type as lt
                          |														WHERE lt.label_type='$labelType')""".stripMargin
