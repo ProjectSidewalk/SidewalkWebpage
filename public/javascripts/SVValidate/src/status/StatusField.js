@@ -8,19 +8,6 @@ function StatusField() {
     let self = this;
 
     /**
-     * Creates the prefix that comes before a label.
-     * @param labelType
-     * @returns {string}
-     */
-    function createPrefix (labelType) {
-        if (labelType === "Obstacle") {
-            return "an ";
-        } else {
-            return "a ";
-        }
-    }
-
-    /**
      * Resets the status field whenever a new mission is introduced.
      * @param currentMission    Mission object for the current mission.
      */
@@ -47,15 +34,8 @@ function StatusField() {
      * @param labelType {String} Name of label without spaces.
      */
     function updateLabelText(labelType) {
-        let labelName = svv.labelNames[labelType];
-        let prefix = createPrefix(labelType);
-
         // Centers and updates title top of the validation interface.
-        if (labelName === "No Sidewalk") {
-            svv.ui.status.upperMenuTitle.html("Should there be a " + "No Sidewalk".bold() + " label here?");
-        } else {
-            svv.ui.status.upperMenuTitle.html("Is this " + prefix + labelName.bold() + "?");
-        }
+        svv.ui.status.upperMenuTitle.html(i18next.t("top-ui-title-" + labelType));
         let offset = svv.ui.status.zoomInButton.outerWidth()
             + svv.ui.status.zoomOutButton.outerWidth()
             + svv.ui.status.labelVisibilityControlButton.outerWidth();
@@ -63,8 +43,8 @@ function StatusField() {
         svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         // Changes text on on the status field (right side of the validation interface).
-        svv.ui.status.labelTypeCounterexample.html("INCORRECT ".italics() + labelName);
-        svv.ui.status.labelTypeExample.html("CORRECT " + labelName);
+        svv.ui.status.labelTypeCounterexample.html(i18next.t("right-ui-correct-" + labelType));
+        svv.ui.status.labelTypeExample.html(i18next.t("right-ui-incorrect-" + labelType));
     }
 
     /**
@@ -108,7 +88,6 @@ function StatusField() {
         svv.ui.status.progressText.html(completionRate);
     }
 
-    self.createPrefix = createPrefix;
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
     self.updateLabelCounts = updateLabelCounts;

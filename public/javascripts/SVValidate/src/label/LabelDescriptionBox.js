@@ -67,7 +67,7 @@ function LabelDescriptionBox () {
 
         if (!severity && !temporary && (!description || description.trim().length == 0) &&
            (!tags || tags.length == 0)) {
-            let htmlString = document.createTextNode('No available information');
+            let htmlString = document.createTextNode(i18next.t('center-ui-no-info'));
             desBox.appendChild(htmlString);
         }
 

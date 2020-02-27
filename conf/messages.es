@@ -83,3 +83,19 @@ audit.right.ui.current.neighborhood = Colonia Actual
 audit.right.ui.miles = millas
 audit.right.ui.current.mission = Misión Actual
 audit.right.ui.red.line = Sigue la línea roja
+
+validate.top.ui.hide.label = Ocultar (<u>H</u>)
+validate.top.ui.hide.label.help = Presiona la tecla "H"
+validate.top.ui.zoom.in = Acercar (<u>Z</u>)
+validate.top.ui.zoom.in.help = Presiona la tecla "Z"
+validate.top.ui.zoom.out = Alejar
+validate.top.ui.zoom.out.help = Presiona las teclas "Shift + Z"
+validate.left.ui.skip = Saltar
+validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+validate.bottom.ui.agree = De <u>a</u>cuerdo
+validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
+validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
+validate.mission.complete.category = Categoría
+validate.mission.complete.agree = De Acuerdo
+validate.mission.complete.disagree = No Estoy de Acuerdo
+validate.mission.complete.not.sure = No Estoy de Seguro

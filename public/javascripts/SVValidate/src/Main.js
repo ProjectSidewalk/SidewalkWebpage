@@ -13,25 +13,23 @@ function Main (param) {
 
     svv.missionsCompleted = param.missionSetProgress;
 
-    // Maps label types to label names
-    svv.labelNames = {
-        CurbRamp: "Curb Ramp",
-        NoCurbRamp: "Missing Curb Ramp",
-        Obstacle: "Obstacle in Path",
-        SurfaceProblem: "Surface Problem",
-        NoSidewalk: "No Sidewalk",
-        Occlusion: "Occlusion"
-    };
-
-    svv.labelTypeNames = {
-        1: "Curb Ramp",
-        2: "Missing Curb Ramp",
-        3: "Obstacle in Path",
-        4: "Surface Problem",
-        7: "No Sidewalk"
-    };
-
     function _initUI() {
+        // Maps label types to label names.
+        svv.labelNames = {
+            CurbRamp: i18next.t("curb-ramp-caps"),
+            NoCurbRamp: i18next.t("missing-curb-ramp-caps"),
+            Obstacle: i18next.t("obstacle-caps"),
+            SurfaceProblem: i18next.t("surface-problem-caps"),
+            NoSidewalk: i18next.t("no-sidewalk-caps")
+        };
+
+        svv.labelTypeNames = {
+            1: i18next.t("curb-ramp-caps"),
+            2: i18next.t("missing-curb-ramp-caps"),
+            3: i18next.t("obstacle-caps"),
+            4: i18next.t("surface-problem-caps"),
+            7: i18next.t("no-sidewalk-caps")
+        };
         svv.ui = {};
 
         svv.ui.validation = {};
@@ -105,7 +103,7 @@ function Main (param) {
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
         svv.ui.status.zoomInButton = $("#zoom-in-button");
         svv.ui.status.zoomOutButton = $("#zoom-out-button");
-        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-button");
+        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
 
         svv.ui.status.examples = {};
         svv.ui.status.examples.example1 = $("#example-image-1");
