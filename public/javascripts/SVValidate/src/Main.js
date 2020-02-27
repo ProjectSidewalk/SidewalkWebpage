@@ -164,6 +164,7 @@ function Main (param) {
         svv.missionContainer.createAMission(param.mission, param.progress);
 
         svv.missionsCompleted = 0;
+        svv.statusField.updateLabelCounts(10 * (svv.missionsCompleted + param.completedValidationMissions));
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
             $(".toolUI").css('opacity', 1);
