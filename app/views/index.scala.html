@@ -3,7 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, cityId: String, otherCityURLs: List[(String, String)])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String)])(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -23,8 +23,6 @@
         </div>
         <div class="container" id="banner">
             <div class="row" id="bigtext">
-
-
                 <div class="col-sm-3"></div>
                 <div class="col-sm-6" id="bannertext">
                     <p id="text">
@@ -37,7 +35,10 @@
                     @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "Mexico City, MX")) {
                         <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
-
+                    <br>
+                    @if(mapathonLink.isDefined) {
+                        <span class="header-text">Live in @cityName? Stop by <a class="exploremaplink" href="@mapathonLink.get" target="_blank">a mapathon event in your area!</a></span>
+                    }
                 </div>
                 <div class="col-sm-3"></div>
             </div>
