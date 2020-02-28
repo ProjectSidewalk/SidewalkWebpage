@@ -141,10 +141,7 @@
                         <span class="overlay-header">Assignment Expired!</span>
                     </p>
                     <p>
-                        You should receive your bonus amount in the next day or two. If you completed the HIT but did
-                        not submit your confirmation code on the mturk website, send us an email at
-                        <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your
-                        confirmation code (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        @Html(Messages("turk.expired")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
                     </p>
                 </div>
             </div>
@@ -364,7 +361,7 @@
                                 <div class="radio-inline" id="column-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible-2.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
-                                    <div class="label-severity-axis-label">Passable</div>
+                                    <div class="label-severity-axis-label">@Messages("audit.center.ui.passable")</div>
                                 </div>
                                 <div class="radio-inline" id="severity-one" data-toggle="tooltip" onmouseut="function(){}">
                                     <label class="radio-button-labels">
@@ -414,7 +411,7 @@
                                 <div class="radio-inline" id="column-not-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible-2.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
-                                    <div class="label-severity-axis-label">Not Passable</div>
+                                    <div class="label-severity-axis-label">@Html(Messages("audit.center.ui.not.passable"))</div>
                                 </div>
                             </div>
                         </div>
@@ -422,7 +419,7 @@
                             <div>
                                 <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                             </div>
-                            <div class="add-tags-label">Add Tags:</div>
+                            <div class="add-tags-label">@Messages("audit.center.ui.add.tags")</div>
                             <div id="context-menu-tag-holder">
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
@@ -436,7 +433,7 @@
                                 <button class="context-menu-tag" name='tag' id="9"></button>
                             </div>
                             <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
+                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">@Messages("audit.center.ui.temporary")</label>
                                 <button id="context-menu-ok-button">OK</button>
                             </div>
                         </div>

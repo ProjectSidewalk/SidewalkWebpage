@@ -31,10 +31,7 @@
                         <span class="overlay-header">Assignment Expired!</span>
                     </p>
                     <p>
-                        You should receive your bonus amount in the next day or two. If you completed the HIT but did
-                        not submit your confirmation code on the mturk website, send us an email at
-                        <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your
-                        confirmation code (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        @Html(Messages("turk.expired")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
                     </p>
                 </div>
             </div>

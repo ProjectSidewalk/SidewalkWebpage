@@ -527,7 +527,7 @@ function Label (svl, pathIn, params) {
             labelRows = 1,
             severityImage = new Image(),
             severityImagePath = undefined,
-            severityMessage = 'Please click to label a severity',
+            severityMessage = i18next.t('context-menu-severity'),
             msg = properties.labelDescription,
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };

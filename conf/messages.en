@@ -84,6 +84,11 @@ audit.right.ui.miles = miles
 audit.right.ui.current.mission = Current Mission
 audit.right.ui.red.line = Follow the red line
 
+audit.center.ui.passable = Passable
+audit.center.ui.not.passable = Not Passable
+audit.center.ui.add.tags = Add Tags:
+audit.center.ui.temporary = Temporary (e.g., construction, trash)
+
 validate.top.ui.hide.label = <u>H</u>ide Label
 validate.top.ui.hide.label.help = Press the "H" key
 validate.top.ui.zoom.in = <u>Z</u>oom In
@@ -99,3 +104,5 @@ validate.mission.complete.category = Category
 validate.mission.complete.agree = Agree
 validate.mission.complete.disagree = Disagree
 validate.mission.complete.not.sure = Not Sure
+
+turk.expired = You should receive your bonus amount in the next day or two. If you completed the HIT but did not submit your confirmation code on the mturk website, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code

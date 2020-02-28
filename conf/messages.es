@@ -84,6 +84,11 @@ audit.right.ui.miles = millas
 audit.right.ui.current.mission = Misión Actual
 audit.right.ui.red.line = Sigue la línea roja
 
+audit.center.ui.passable = Aceptable
+audit.center.ui.not.passable = No Aceptable
+audit.center.ui.add.tags = Agregar Etiquetas:
+audit.center.ui.temporary = Temporal (p. ej., construcción)
+
 validate.top.ui.hide.label = Ocultar (<u>H</u>)
 validate.top.ui.hide.label.help = Presiona la tecla "H"
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
@@ -99,3 +104,5 @@ validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de Acuerdo
 validate.mission.complete.not.sure = No Estoy de Seguro
+
+turk.expired = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
