@@ -126,42 +126,42 @@ function UtilitiesMisc (JSON) {
         return {
             'Walk' : {
                 'id' : 'Walk',
-                'instructionalText' : i18next.t('instruction-text'),
+                'instructionalText' : i18next.t('top-ui-instruction-text'),
                 'textColor' : 'rgba(255,255,255,1)'
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="CurbRamp">curb ramp</span>',
+                instructionalText: i18next.t('top-ui-instruction-text-curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="NoCurbRamp">missing curb ramp</span>',
+                instructionalText: i18next.t('top-ui-instruction-text-missing-curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Obstacle: {
                 id: 'Obstacle',
-                instructionalText: 'Locate and label an <span class="underline overlay-message-label-type" val="Obstacle">obstacle in path</span>',
+                instructionalText: i18next.t('top-ui-instruction-text-obstacle'),
                 textColor: 'rgba(255,255,255,1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="SurfaceProblem">surface problem</span>',
+                instructionalText: i18next.t('top-ui-instruction-text-surface-problem'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Other: {
                 id: 'Other',
-                instructionalText: 'Label mode',
+                instructionalText: i18next.t('top-ui-instruction-text-other'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Occlusion: {
                 id: 'Occlusion',
-                instructionalText: 'Label a <span class="underline">part of sidewalk that cannot be observed</span>',
+                instructionalText: i18next.t('top-ui-instruction-text-occlusion'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                instructionalText: 'Label <span class="underline">missing sidewalk</span>',
+                instructionalText: i18next.t('top-ui-instruction-text-no-sidewalk'),
                 textColor: 'rgba(255,255,255,1)'
             }
         }

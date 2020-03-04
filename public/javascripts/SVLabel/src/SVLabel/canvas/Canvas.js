@@ -225,7 +225,7 @@ function Canvas(ribbon) {
     function _mouseIsOverAnOverlayLink(e) {
         var x = e.clientX, y = e.clientY;
         var elementMouseIsOver = document.elementFromPoint(x, y);
-        return $(elementMouseIsOver).text() == "Explain this!";
+        return $(elementMouseIsOver).text() == i18next.t('top-ui-instruction-explain');
     }
 
     function _mouseIsOverAnOverlayMessageBox(e) {

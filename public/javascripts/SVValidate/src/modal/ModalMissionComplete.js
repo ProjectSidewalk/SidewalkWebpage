@@ -165,7 +165,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     // function _showConfirmationCode() {
     //     confirmationCode.css('visibility', "");
     //     confirmationCode.attr('data-toggle','popover');
-    //     confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+    //     confirmationCode.attr('title', i18next.t('common:left-ui-turk-submit-code'));
     //     confirmationCode.attr('data-content', svv.confirmationCode);
     //     confirmationCode.popover();
     //

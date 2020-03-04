@@ -176,7 +176,7 @@ function Main (param) {
     i18next.init({
         backend: { loadPath: 'assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
-        ns: ['validate'],
+        ns: ['validate', 'common'],
         defaultNS: 'validate',
         lng: param.language,
         debug: true

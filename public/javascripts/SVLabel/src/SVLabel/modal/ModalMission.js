@@ -169,7 +169,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             var missionReward = mission.getProperty("pay");
             var missionRewardText = i18next.t('mission-start-turk-reward') + '<span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
             missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
-            svl.ui.status.currentMissionReward.html(i18next.t('right-ui-turk-current-reward') + "<span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
+            svl.ui.status.currentMissionReward.html(i18next.t('common:right-ui-turk-current-reward') + "<span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
             uiModalMission.rewardText.html(missionRewardText);
 
             $.ajax({
@@ -177,7 +177,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 url: '/rewardEarned',
                 type: 'get',
                 success: function(rewardData) {
-                    svl.ui.status.totalMissionReward.html(i18next.t('right-ui-turk-total-reward') + "<span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
+                    svl.ui.status.totalMissionReward.html(i18next.t('common:right-ui-turk-total-reward') + "<span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
                     console.log(thrownError);

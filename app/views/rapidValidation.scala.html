@@ -39,15 +39,15 @@
             <div id="upper-menu-holder">
                 <div id="upper-menu-title-bar"></div>
                 <div id="label-visibility-control-holder">
-                    <button id="label-visibility-control-button" class="button label-visibility-control-button" title="Press the &quot;H&quot; key" data-toggle="tooltip" data-placement="top">
+                    <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
                         <br /><u>H</u>ide Label</button>
                 </div>
                 <div id="zoom-control-holder">
-                    <button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">
+                    <button id="zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
                         <br /><u>Z</u>oom In</button>
-                    <button id="zoom-out-button" class="button zoom-control-button" title="Press the &quot;Shift + Z&quot; keys" data-toggle="tooltip" data-placement="top">
+                    <button id="zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>
                 </div>
             </div>
@@ -219,10 +219,7 @@
                 <div id="modal-comment-box">
                     <form id="comment-form">
                         <div id="modal-comment-title" class="bold">
-                            <p>
-                                Any thoughts? Found something confusing? Spotted a bug? <br />
-                                Send us comments!
-                            </p>
+                            <p>@Html(Messages("feedback.title"))</p>
                         </div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
@@ -345,7 +342,7 @@
             @*                } else {*@
             @*                    $("#left-column-confirmation-code-button").css('visibility', "");*@
             @*                    $("#left-column-confirmation-code-button").attr('data-toggle','popover');*@
-            @*                    $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');*@
+            @*                    $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")');*@
             @*                    $("#left-column-confirmation-code-button").attr('data-content', svv.confirmationCode);*@
             @*                    $("#left-column-confirmation-code-button").popover();*@
 

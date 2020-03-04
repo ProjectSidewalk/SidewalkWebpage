@@ -950,17 +950,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             }
             else if (distance > 0.07) {
-
-                // Message versions:
-                // v3: "Don't walk too far");
-                // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
-                // v0: "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-
-                // var messageTitle = "Moved to a new location";
-                // svl.popUpMessage.notify(messageTitle,
-                //     "Looks like you finished labeling your current location. " +
-                //     "We have automatically moved you to a new location now."); //v2
-
                 svl.tracker.push('LabelBeforeJump_AutoJump');
 
                 // Finish the current task

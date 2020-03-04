@@ -1,8 +1,14 @@
-curb.ramps = Rampas Peatonales
-missing.ramps = Rampas Peatonales Ausentes
-obstacles = Obstáculos en la Banqueta
-surface.problems = Problemas en Superficie
+curb.ramp = Rampa Peatonal
+missing.ramp = Rampa Peatonal Ausente
+obstacle = Obstáculo en la Banqueta
+surface.problem = Problema en Superficie
+no.sidewalk = No Hay Banqueta
+other = Otro
 labels = etiquetas
+
+press.key = Presiona la tecla "{0}"
+press.keys = Presiona las teclas "{0}"
+feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
 
 navbar.explore = Comienza a Explorar
 navbar.validate = Comienza a Validir
@@ -18,7 +24,6 @@ navbar.confirm.password = Confirmar contraseña
 navbar.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
 navbar.signup = Regístrate
 navbar.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
-
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
@@ -76,8 +81,15 @@ audit.ribbon.zoom.in = Acercar (<u>Z</u>)
 audit.ribbon.zoom.out = Alejar
 
 audit.left.ui.sound = Sonido
-audit.left.ui.jump = Saltar
 audit.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
+audit.left.ui.jump = Saltar
+audit.left.ui.jump.title = Saltar a otra ubicación porque:
+audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!
+audit.left.ui.jump.button.unavailable = No puedo ir en la dirección que quieres que camine.
+audit.left.ui.jump.button.cancel = Cancelar
+audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o una nueva colonia?
+audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en esta colonia
+audit.left.ui.jump.explore.button.new.neighborhood = Ir a una nueva colonia
 
 audit.right.ui.current.neighborhood = Colonia Actual
 audit.right.ui.miles = millas
@@ -88,13 +100,37 @@ audit.center.ui.passable = Aceptable
 audit.center.ui.not.passable = No Aceptable
 audit.center.ui.add.tags = Agregar Etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., construcción)
+audit.center.ui.show.again = No mostrar de nuevo
+
+audit.mission.complete.labels.title = Etiquetas de la Misión
+audit.mission.complete.progress.title = Progreso de la Colonia
+audit.mission.complete.progress.mission.you = Exploraste en esta misión
+audit.mission.complete.progress.neighborhood.you = Exploraste en esta colonia
+audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en esta colonia
+audit.mission.complete.progress.neighborhood.remaining = Restante en este barrio
+audit.mission.complete.legend.this.mission = Esta Misión
+audit.mission.complete.legend.previous.missions = Misiones Anteriores
+audit.mission.complete.legend.others.missions = Misiones de Otras
+
+audit.help.rating.1 = Calificación 1: Transitable
+audit.help.rating.3 = Calificación 3: Neutral
+audit.help.rating.5 = Calificación 5: No es transitable
+audit.help.curb.ramp.1 = Limpia las rampas peatonales que están alineadas con los cruces peatonales.
+audit.help.curb.ramp.3 = Una rampa con un poste parado en el medio. Las personas que usan sillas de ruedas eléctricas grandes pueden tener problemas para usar esta rampa.
+audit.help.curb.ramp.5 = Se ha acumulado agua en esta rampa de peatonal debido al mal drenaje. Es difícil para las personas, usuarias de sillas de ruedas manuales, usar esta rampa peatonal.
+audit.help.missing.ramp.1 = Aunque no hay una rampa peatonal, la diferencia de nivel es pequeña y las personas usuarias de sillas de ruedas podrían subir o bajar de la banqueta. También, hay una rampa peatonal en la misma esquina que la gente podría usar, aunque no está alineada con el camino.
+audit.help.missing.ramp.3 = No hay una rampa al final del cruce peatonal. Las personas usuarias de sillas de ruedas se ven obligadas a usar la rampa que no está alineada con el cruce de peatones.
+audit.help.missing.ramp.5 = No hay rampa al final del cruce peatonal. Las personas usuarias de sillas de ruedas no pueden subir o bajar de la banqueta y cruzar la calle aquí.
+audit.help.obstacle.1 = Un semáforo que está en medio de la banqueta. Parece que hay suficiente espacio para que pasen las personas usuarias de sillas de ruedas, pero aquellas que usan sillas de ruedas más grandes podrían tener problemas para desplazarse.
+audit.help.obstacle.3 = La planta está obstruyendo el camino, lo que dificulta que las personas usuarias de sillas de ruedas usen esta banqueta.
+audit.help.obstacle.5 = El árbol está bloqueando completamente el camino, por lo que no es transitable para las personas usuarias de sillas de ruedas.
+audit.help.surface.problem.1 = Banqueta parcialmente dañada. Debido a que hay suficiente espacio al lado de la parte dañada de la banqueta, las personas usuarias de sillas de ruedas podrían pasar.
+audit.help.surface.problem.3 = Las personas usuarias de sillas de ruedas tendrían dificultades para navegar en las aceras y cruces de adoquines.
+audit.help.surface.problem.5 = Las personas usuarias de sillas de ruedas no pueden pasar por las superficies de las banquetas severamente deterioradas debido a la vegetación sobrecrecida.
 
 validate.top.ui.hide.label = Ocultar (<u>H</u>)
-validate.top.ui.hide.label.help = Presiona la tecla "H"
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
-validate.top.ui.zoom.in.help = Presiona la tecla "Z"
 validate.top.ui.zoom.out = Alejar
-validate.top.ui.zoom.out.help = Presiona las teclas "Shift + Z"
 validate.left.ui.skip = Saltar
 validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimentación</span>
 validate.bottom.ui.agree = De <u>a</u>cuerdo
@@ -105,4 +141,6 @@ validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de Acuerdo
 validate.mission.complete.not.sure = No Estoy de Seguro
 
-turk.expired = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
+turk.expired.title = ¡Asignación Vencida!
+turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
+turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk

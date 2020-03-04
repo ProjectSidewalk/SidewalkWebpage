@@ -28,10 +28,10 @@
             <div class="overlay-text">
                 <div id="HIT-expiration-text">
                     <p>
-                        <span class="overlay-header">Assignment Expired!</span>
+                        <span class="overlay-header">@Messages("turk.expired.title")</span>
                     </p>
                     <p>
-                        @Html(Messages("turk.expired")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
                     </p>
                 </div>
             </div>
@@ -58,16 +58,16 @@
                 <div id="upper-menu-title-bar"></div>
 
 		<div id="label-visibility-control-holder">
-                    <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("validate.top.ui.hide.label.help")" data-toggle="tooltip" data-placement="top">
+                    <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
                         <br/>@Html(Messages("validate.top.ui.hide.label"))</button>
                 </div>
 
                 <div id="zoom-control-holder">
-                    <button id="zoom-in-button" class="button zoom-control-button" title="@Messages("validate.top.ui.zoom.in.help")" data-toggle="tooltip" data-placement="top">
+                    <button id="zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
                         <br/>@Html(Messages("validate.top.ui.zoom.in"))</button>
-                    <button id="zoom-out-button" class="button zoom-control-button" title="@Messages("validate.top.ui.zoom.out.help")" data-toggle="tooltip" data-placement="top">
+                    <button id="zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
                         <br/>@Messages("validate.top.ui.zoom.out")</button>
                 </div>
@@ -76,7 +76,7 @@
                 <div id="svv-panorama-outline">
                     <div id="svv-panorama-0" class="single-panorama">
                         <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
-                            <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="Press the &quot;H&quot; key" data-toggle="tooltip" data-placement="top"><u>H</u>ide Label</button>
+                            <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"><u>H</u>ide Label</button>
                             <div id="label-description-box"></div>
                         </div>
                     </div>
@@ -103,10 +103,7 @@
                 <div id="modal-comment-box">
                     <form id="comment-form">
                         <div id="modal-comment-title" class="bold">
-                            <p>
-                                Any thoughts? Found something confusing? Spotted a bug? <br />
-                                Send us comments!
-                            </p>
+                            <p>@Html(Messages("feedback.title"))</p>
                         </div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
@@ -227,7 +224,7 @@
                 } else {
                     $("#left-column-confirmation-code-button").css('visibility', "");
                     $("#left-column-confirmation-code-button").attr('data-toggle','popover');
-                    $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+                    $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")');
                     $("#left-column-confirmation-code-button").attr('data-content', svv.confirmationCode);
                     $("#left-column-confirmation-code-button").popover();
 
