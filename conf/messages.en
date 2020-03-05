@@ -6,6 +6,8 @@ no.sidewalk = No Sidewalk
 other = Other
 labels = labels
 miles = miles
+ok = OK
+cancel = Cancel
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -87,7 +89,6 @@ audit.left.ui.jump = Jump
 audit.left.ui.jump.title = Jump to another location because:
 audit.left.ui.jump.button.explore = I want to explore another area!
 audit.left.ui.jump.button.unavailable = I cannot go the direction you want me to walk.
-audit.left.ui.jump.button.cancel = Cancel
 audit.left.ui.jump.explore.title = Go to a new location or a new neighborhood?
 audit.left.ui.jump.explore.button.same.neighborhood = Go to a new location in this neighborhood
 audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood

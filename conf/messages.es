@@ -5,6 +5,8 @@ surface.problem = Problema en Superficie
 no.sidewalk = No Hay Banqueta
 other = Otro
 labels = etiquetas
+ok = OK
+cancel = Cancelar
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -86,7 +88,6 @@ audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
 audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!
 audit.left.ui.jump.button.unavailable = No puedo ir en la dirección que quieres que camine.
-audit.left.ui.jump.button.cancel = Cancelar
 audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o una nueva colonia?
 audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en esta colonia
 audit.left.ui.jump.explore.button.new.neighborhood = Ir a una nueva colonia
