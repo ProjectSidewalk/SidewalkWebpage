@@ -54,7 +54,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         }
         let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
-        let message = i18next.t("mission-complete-body-" + mission.getProperty("labelTypeId"), { n: totalLabels });
+        let message = i18next.t('mission-complete-body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
 
         // Disable user from clicking the "Validate next mission" button and set background to gray.
         uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
@@ -80,7 +80,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         }, 100);
 
         uiModalMissionComplete.background.css('visibility', 'visible');
-        uiModalMissionComplete.missionTitle.html(i18next.t("mission-complete-title"));
+        uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete-title'));
         uiModalMissionComplete.message.html(message);
         uiModalMissionComplete.agreeCount.html(mission.getProperty("agreeCount"));
         uiModalMissionComplete.disagreeCount.html(mission.getProperty("disagreeCount"));

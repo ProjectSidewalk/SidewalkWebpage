@@ -5,7 +5,7 @@ function ModalMission (uiModalMission, user) {
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t("mission-start") + '</p>\
+        <p>' + i18next.t('mission-start') + '</p>\
         <div class="spacer10"></div>';
 
     let validationResumeMissionHTML = ' <figure> \
