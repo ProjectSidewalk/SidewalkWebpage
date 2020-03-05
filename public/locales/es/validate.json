@@ -9,6 +9,7 @@
   "top-ui-title-Obstacle": "¿Es esta un <b>Obstáculo</b>?",
   "top-ui-title-SurfaceProblem": "¿Es esta un <b>Problema en Superficie</b>?",
   "top-ui-title-NoSidewalk": "¿Debería haber una etiqueta de <b>No Hay Banqueta</b> aquí?",
+  "right-ui-validate-labels": "Valida {{n}} etiquetas",
   "right-ui-correct-CurbRamp": "Rampa Peatonal <i>CORRECTA</i>",
   "right-ui-correct-NoCurbRamp": "Rampa Peatonal Ausente <i>CORRECTA</i>",
   "right-ui-correct-Obstacle": "Obstáculo <i>CORRECTO</i>",
@@ -61,5 +62,12 @@
   "mission-complete-body-7": "Acabas de validar {{n}} etiquetas de que No Hay Banqueta!",
   "mission-complete-validate-more": "Validar más etiquetas",
   "mission-complete-continue": "Continuar validando",
-  "mission-complete-explore": "Comienza una misión de exploración"
+  "mission-complete-explore": "Comienza una misión de exploración",
+  "mobile": {
+    "info-title-title-CurbRamp": "¿Qué es una Rampa Peatonal?",
+    "info-title-title-NoCurbRamp": "¿Qué es una Rampa Peatonal Ausente?",
+    "info-title-title-Obstacle": "¿Qué es un Obstáculo?",
+    "info-title-title-SurfaceProblem": "¿Qué es un Problema en Superficie?",
+    "info-title-title-NoSidewalk": "¿Qué es un \"No Hay Banqueta\"?"
+  }
 }

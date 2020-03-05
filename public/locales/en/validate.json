@@ -9,6 +9,7 @@
   "top-ui-title-Obstacle": "Is this an <b>Obstacle</b>?",
   "top-ui-title-SurfaceProblem": "Is this a <b>Surface Problem</b>?",
   "top-ui-title-NoSidewalk": "Should there be a <b>No Sidewalk</b> label here?",
+  "right-ui-validate-labels": "Validate {{n}} labels",
   "right-ui-correct-CurbRamp": "<i>CORRECT</i> Curb Ramp",
   "right-ui-correct-NoCurbRamp": "<i>CORRECT</i> Missing Curb Ramp",
   "right-ui-correct-Obstacle": "<i>CORRECT</i> Obstacle",
@@ -61,5 +62,12 @@
   "mission-complete-body-7": "You just validated {{n}} No Sidewalk labels!",
   "mission-complete-validate-more": "Validate more labels",
   "mission-complete-continue": "Continue validating",
-  "mission-complete-explore": "Start an exploration mission"
+  "mission-complete-explore": "Start an exploration mission",
+  "mobile": {
+    "info-title-title-CurbRamp": "What is a Curb Ramp?",
+    "info-title-title-NoCurbRamp": "What is a Missing Curb Ramp?",
+    "info-title-title-Obstacle": "What is an Obstacle?",
+    "info-title-title-SurfaceProblem": "What is a Surface Problem?",
+    "info-title-title-NoSidewalk": "What is a \"No Sidewalk\""
+  }
 }

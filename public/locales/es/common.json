@@ -1,4 +1,5 @@
 {
+  "complete": "completado",
   "left-ui-turk-submit-code": "Envía este código para la verificación HIT en Amazon Mechanical Turk",
   "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
   "right-ui-turk-total-reward": "Recompensa total ganada: "

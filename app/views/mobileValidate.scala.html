@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
@@ -17,6 +17,8 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
     <div id='status-current-mission-completion-bar'>
         <div id='status-current-mission-completion-bar-filler'>
@@ -42,13 +44,13 @@
         </div>
         <div id="validation-button-holder">
             <button id="validation-disagree-button-0" class="validation-button">
-                ✗ Disagree
+                ✗ @Messages("validate.mission.complete.disagree")
             </button>
             <button id="validation-not-sure-button-0" class="validation-button">
-                ? Not sure
+                ? @Messages("validate.mission.complete.not.sure")
             </button>
             <button id="validation-agree-button-0" class="validation-button">
-                ✓ Agree
+                ✓ @Messages("validate.mission.complete.agree")
             </button>
         </div>
         <div id="modal-mission-holder">
@@ -80,7 +82,7 @@
                     </div>
                 </div>
                 <button class="button" id="modal-info-close-button">OK</button>
-                <button class="button" id="left-column-feedback-button">Leave Feedback</button>
+                <button class="button" id="left-column-feedback-button">@Messages("mobile.validate.leave.feedback")</button>
             </div>
             <div id="modal-comment-holder" class="hidden">
                 <div id="modal-comment-box" class="modal-foreground">
@@ -181,6 +183,7 @@
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
             param.canvasCount = 1;
+            param.language = "@lang.language";
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);

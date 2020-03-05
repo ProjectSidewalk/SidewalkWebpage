@@ -16,19 +16,27 @@ function Main (param) {
     function _initUI() {
         // Maps label types to label names.
         svv.labelNames = {
-            CurbRamp: i18next.t("curb-ramp-caps"),
-            NoCurbRamp: i18next.t("missing-curb-ramp-caps"),
-            Obstacle: i18next.t("obstacle-caps"),
-            SurfaceProblem: i18next.t("surface-problem-caps"),
-            NoSidewalk: i18next.t("no-sidewalk-caps")
+            CurbRamp: i18next.t('curb-ramp-caps'),
+            NoCurbRamp: i18next.t('missing-curb-ramp-caps'),
+            Obstacle: i18next.t('obstacle-caps'),
+            SurfaceProblem: i18next.t('surface-problem-caps'),
+            NoSidewalk: i18next.t('no-sidewalk-caps')
         };
 
         svv.labelTypeNames = {
-            1: i18next.t("curb-ramp-caps"),
-            2: i18next.t("missing-curb-ramp-caps"),
-            3: i18next.t("obstacle-caps"),
-            4: i18next.t("surface-problem-caps"),
-            7: i18next.t("no-sidewalk-caps")
+            1: i18next.t('curb-ramp-caps'),
+            2: i18next.t('missing-curb-ramp-caps'),
+            3: i18next.t('obstacle-caps'),
+            4: i18next.t('surface-problem-caps'),
+            7: i18next.t('no-sidewalk-caps')
+        };
+
+        svv.labelTypes = {
+            1: 'CurbRamp',
+            2: 'NoCurbRamp',
+            3: 'Obstacle',
+            4: 'SurfaceProblem',
+            7: 'NoSidewalk'
         };
         svv.ui = {};
 

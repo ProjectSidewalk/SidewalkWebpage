@@ -35,7 +35,7 @@ function StatusField() {
      */
     function updateLabelText(labelType) {
         // Centers and updates title top of the validation interface.
-        svv.ui.status.upperMenuTitle.html(i18next.t("top-ui-title-" + labelType));
+        svv.ui.status.upperMenuTitle.html(i18next.t('top-ui-title-' + labelType));
         let offset = svv.ui.status.zoomInButton.outerWidth()
             + svv.ui.status.zoomOutButton.outerWidth()
             + svv.ui.status.labelVisibilityControlButton.outerWidth();
@@ -43,8 +43,8 @@ function StatusField() {
         svv.ui.status.upperMenuTitle.css("left", width + "px");
 
         // Changes text on on the status field (right side of the validation interface).
-        svv.ui.status.labelTypeCounterexample.html(i18next.t("right-ui-correct-" + labelType));
-        svv.ui.status.labelTypeExample.html(i18next.t("right-ui-incorrect-" + labelType));
+        svv.ui.status.labelTypeCounterexample.html(i18next.t('right-ui-correct-' + labelType));
+        svv.ui.status.labelTypeExample.html(i18next.t('right-ui-incorrect-' + labelType));
     }
 
     /**
@@ -52,7 +52,7 @@ function StatusField() {
      * @param count {Number} Number of labels to validate this mission.
      */
     function updateMissionDescription(count) {
-        svv.ui.status.missionDescription.html("Validate " + count + " labels");
+        svv.ui.status.missionDescription.html(i18next.t('right-ui-validate-labels', { n: count }));
     }
 
     /**
@@ -84,7 +84,7 @@ function StatusField() {
         completionRate *= 100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
-        completionRate = completionRate + "% complete";
+        completionRate = completionRate + "% " + i18next.t('common:complete');
         svv.ui.status.progressText.html(completionRate);
     }
 
