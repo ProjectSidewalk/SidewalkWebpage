@@ -50,7 +50,8 @@ libraryDependencies ++= Seq(
   "org.geotools" % "gt-epsg-hsql" % "14.3",
   "org.geotools" % "gt-geotiff" % "14.3",
   "org.geotools" % "gt-main" % "14.3" exclude("javax.media", "jai_core"),
-  "org.geotools" % "gt-referencing" % "14.3"
+  "org.geotools" % "gt-referencing" % "14.3",
+  "org.geotools" % "gt-shapefile" % "14.3"
 ).map(_.force())
 
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-jdk14")) }
