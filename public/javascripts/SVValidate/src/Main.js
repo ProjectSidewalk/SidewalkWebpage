@@ -187,7 +187,7 @@ function Main (param) {
         ns: ['validate', 'common'],
         defaultNS: 'validate',
         lng: param.language,
-        debug: true
+        debug: false
     }, function(err, t) {
         if(param.init !== "noInit") {
             _initUI();

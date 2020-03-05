@@ -651,7 +651,7 @@ function Main (params) {
         ns: ['audit', 'common'],
         defaultNS: 'audit',
         lng: params.language,
-        debug: true
+        debug: false
     }, function(err, t) {
         if(params.init !== "noInit") {
             _initUI();
