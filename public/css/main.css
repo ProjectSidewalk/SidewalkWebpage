@@ -745,9 +745,19 @@ video#bgvid {
     height: 200px;
 }
 
+.column {
+    float: left;
+    width: 50%;
+    padding: 15px;
+}
 
+.row::after {
+    content:"";
+    display:table;
+    clear: both;
+}
 
-#press-container2 {
+#press-container2, #brought-to-you-by-container {
     position: relative;
     max-width: 900px;
     top: -20px;
