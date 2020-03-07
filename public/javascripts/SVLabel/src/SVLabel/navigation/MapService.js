@@ -275,6 +275,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     }
 
+    //     heading: 342,
+    //     description: 'Exit',
+    //     pano: "afterWalkTutorial"
+    // }],
     /**
      * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
      * tutorial view or the "after walk" view.
@@ -288,11 +292,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     pano: 'tutorial',
                     latLng: new google.maps.LatLng(38.94042608, -77.06766133)
                 },
-                links: [{
-                    heading: 342,
-                    description: 'Exit',
-                    pano: "afterWalkTutorial"
-                }],
+                links: [],
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
@@ -1262,6 +1262,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.disableWalking) {
             showLinks(2000);
         } else {
+            console.log("walking disabled");
             hideLinks();
         }
 
