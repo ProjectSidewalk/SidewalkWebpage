@@ -275,10 +275,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     }
 
-    //     heading: 342,
-    //     description: 'Exit',
-    //     pano: "afterWalkTutorial"
-    // }],
     /**
      * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
      * tutorial view or the "after walk" view.
@@ -1262,7 +1258,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.disableWalking) {
             showLinks(2000);
         } else {
-            console.log("walking disabled");
             hideLinks();
         }
 
