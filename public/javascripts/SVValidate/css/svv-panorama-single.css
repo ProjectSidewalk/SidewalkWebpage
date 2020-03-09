@@ -60,6 +60,7 @@
 #label-description-box {
     display: block;
     visibility: hidden;
+    min-width: 100px;
     max-width: 260px;
     position: absolute;
     color: white;
