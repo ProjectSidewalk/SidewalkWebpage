@@ -18,14 +18,19 @@ navbar.howto = Cómo Etiquetar
 navbar.results = Ver Resultados
 navbar.help = Ayuda
 navbar.signin = Iniciar sesión
+navbar.signin.with.credentials= Inicia sesión con tus credenciales
 navbar.email = Correo electrónico
 navbar.password = Contraseña
+navbar.submit = Enviar
 navbar.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
+navbar.non.member = ¿No eres un miembro? <a href="@routes.UserController.signUp()">Regístrate ahora</a>
 navbar.username = Nombre de usuario/a
 navbar.confirm.password = Confirmar contraseña
 navbar.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
 navbar.signup = Regístrate
+navbar.signup.new.account = Regístrate para una nueva cuenta
 navbar.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
+navbar.is.member = ¿Ya eres miembro? <a href="@routes.UserController.signIn()">Iniciar sesión ahora</a>
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:

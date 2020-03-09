@@ -186,15 +186,15 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
         if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0) {
-            uiModalMissionComplete.closeButtonPrimary.html('Start validating');
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-button-start-validating'));
 
             if (self._userModel.getUser().getProperty("role") === 'Turker') {
                 uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
             } else {
-                uiModalMissionComplete.closeButtonPrimary.css('width', "56%");
+                uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
-                uiModalMissionComplete.closeButtonSecondary.css('width', "42%");
+                uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
                 uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete-button-keep-exploring'));
             }
         } else {

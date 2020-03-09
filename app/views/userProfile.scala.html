@@ -2,7 +2,7 @@
 @import models.region.RegionTable
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
