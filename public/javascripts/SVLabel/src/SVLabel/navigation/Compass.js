@@ -224,15 +224,11 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     }
 
     function setLabelBeforeJumpMessage () {
-        var message = "<div style='width: 20%'>You have reached the end of this route. Finish labeling this intersection then <br/> " +
-            "<span class='bold'>click here to move to a new location.</span></div>";
-        uiCompass.message.html(message);
+        uiCompass.message.html("<div style='width: 20%'>" + i18next.t('compass.end-of-route') + "</div>");
     }
 
     function setBackToRouteMessage () {
-        var message = "Uh-oh, you're quite far away from the route. <br />" +
-            "<span class='bold'>Click here to jump back.</span>";
-        uiCompass.message.html(message);
+        uiCompass.message.html(i18next.t('compass.far-away'));
     }
 
     /**

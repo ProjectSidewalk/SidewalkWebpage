@@ -5,7 +5,7 @@ function ModalMission (uiModalMission, user) {
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!</p>\
+        <p>' + i18next.t('mission-start') + '</p>\
         <div class="spacer10"></div>';
 
     let validationResumeMissionHTML = ' <figure> \
@@ -62,8 +62,11 @@ function ModalMission (uiModalMission, user) {
      */
     function setMissionMessage(mission) {
         if (mission.getProperty("labelsProgress") === 0) {
-            let validationMissionStartTitle = "Validate " + mission.getProperty("labelsValidated")
-                + " " + svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels";
+            let validationMissionStartTitle = i18next.t('mission-start-title',
+                {
+                    n: mission.getProperty("labelsValidated"),
+                    label_type: svv.labelTypeNames[mission.getProperty("labelTypeId")]
+                });
             let validationStartMissionHTMLCopy = validationStartMissionHTML.replace("__LABELCOUNT_PLACEHOLDER__", mission.getProperty("labelsValidated"));
             validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace("__LABELTYPE_PLACEHOLDER__", svv.labelTypeNames[mission.getProperty("labelTypeId")]);
             show(validationMissionStartTitle, validationStartMissionHTMLCopy);
@@ -80,7 +83,7 @@ function ModalMission (uiModalMission, user) {
                 let missionReward = mission.getProperty("pay");
                 let missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
                 missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
-                svv.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
+                svv.ui.status.currentMissionReward.html(i18next.t('common:right-ui-turk-current-reward') + "<span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
                 uiModalMission.rewardText.html(missionRewardText);
 
                 $.ajax({
@@ -88,7 +91,7 @@ function ModalMission (uiModalMission, user) {
                     url: '/rewardEarned',
                     type: 'get',
                     success: function (rewardData) {
-                        svv.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
+                        svv.ui.status.totalMissionReward.html(i18next.t('common:right-ui-turk-total-reward') + "<span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
                     },
                     error: function (xhr, ajaxOptions, thrownError) {
                         console.log(thrownError);

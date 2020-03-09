@@ -1,16 +1,11 @@
 @import views.html.bootstrap._
 @import models.user.VersionTable
 
-@()
+@()(implicit lang: Lang)
 
 <div id="mini-footer-audit">
-    Project Sidewalk is designed and operated by the
-    <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
-    <a href="http://www.cs.uw.edu/">University of Washington</a><br>
+    @Html(Messages("footer.designed.operated"))<br>
     <span id="application-version">
-    Version @VersionTable.currentVersionId() | Last Updated:
-    <span class = "timestamp date">
-        @VersionTable.currentVersionTimestamp()
-    </span>
+        @Html(Messages("footer.version", VersionTable.currentVersionId(), VersionTable.currentVersionTimestamp()))
     </span>
 </div>

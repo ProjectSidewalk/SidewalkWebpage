@@ -157,30 +157,30 @@ function Canvas(ribbon) {
         svl.labelContainer.push(status.currentLabel);
 
 
-        // Todo. Instead of calling the contextMenu show, throw an Canvas:closeLabelPath event.
+        // TODO Instead of calling the contextMenu show, throw an Canvas:closeLabelPath event.
         if ('contextMenu' in svl) {
             svl.contextMenu.show(tempPath[0].x, tempPath[0].y, {
                 targetLabel: status.currentLabel,
                 targetLabelColor: labelColor.fillStyle
             });
-            if(labelType === "Other"){
+            if (labelType === "Other") {
               //no tooltips for other
               $('#severity-one').tooltip('destroy');
               $('#severity-three').tooltip('destroy');
               $('#severity-five').tooltip('destroy');
-            }else{
+            } else {
               //update tooltips
               $('#severity-one').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                  title: "Severity Level 1 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.PNG' height='110' alt='CRseverity 1'/><br/><i>Press Keys 1-5 for Severity</i>"
+                  title: i18next.t('context-menu-severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.PNG' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('context-menu-severity-shortcuts') + "</i>"
               });
               $('#severity-three').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                  title: "Severity Level 3 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.PNG' height='110' alt='CRseverity 3'/><br/><i>Press Keys 1-5 for Severity</i>"
+                  title: i18next.t('context-menu-severity-example', {n: 3}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.PNG' height='110' alt='CRseverity 3'/><br/><i>" + i18next.t('context-menu-severity-shortcuts') + "</i>"
               });
               $('#severity-five').tooltip('destroy').tooltip({
                   placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                  title: "Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.PNG' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"
+                  title: i18next.t('context-menu-severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.PNG' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('context-menu-severity-shortcuts') + "</i>"
               });
             }
           }
@@ -225,7 +225,7 @@ function Canvas(ribbon) {
     function _mouseIsOverAnOverlayLink(e) {
         var x = e.clientX, y = e.clientY;
         var elementMouseIsOver = document.elementFromPoint(x, y);
-        return $(elementMouseIsOver).text() == "Explain this!";
+        return $(elementMouseIsOver).text() == i18next.t('top-ui-instruction-explain');
     }
 
     function _mouseIsOverAnOverlayMessageBox(e) {
