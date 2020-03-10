@@ -1,7 +1,7 @@
 @import models.user.User
 @import models.region.RegionTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -68,6 +68,9 @@
             <div id="choropleth"></div>
             <div id="loadingChoropleth">
                 <img src='/assets/images/loader.gif' alt='loading' />
+            </div>
+            <div>
+                <a id="reset-button" href="javascript:null"> Reset View </a>
             </div>
         </div>
     </div>

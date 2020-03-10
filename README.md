@@ -1,17 +1,19 @@
 # Sidewalk Webpage
-The Project Sidewalk webpage.
+The Project Sidewalk webpage. 
 
 ## Development Instructions
 
 ### Setting up the development environment
-The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows PowerShell users may also need to install `make`.
+The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows PowerShell users may also need to install `make`. You will also need to clone the SidewalkWebpage Github repo by navigating to your desired location in the terminal and entering `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
+
+If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
 
 ### Running the application locally
 To run the web server locally, from the root of the SidewalkWebpage directory:
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. You will need the database dump later on. You can continue with the rest of the instructions here, but the website will not work fully until you've received these three files from Mikey.
 
-1. Run `make dev`. This will download the docker images and spin up the containers. The containers will have all the necessary packages and tools so no installation is necessary. Though, the container executes a bash shell running Ubuntu Jessie, which allows you to install whatever tool you prefer that can run on this flavor of linux (vi, etc.). This command also sets up the `sidewalk` database with the schema (just the schema, not the data - see Importing SQL dump in Additional Tools section) from the production dump, which lives in `db/schema.sql`. Successful output of this command will look like:
+1. Run `make dev`. This will download the docker images, spin up the containers, and open a Docker shell into the webpage container. The containers will have all the necessary packages and tools so no installation is necessary. Though, the container executes a bash shell running Ubuntu Stretch, which allows you to install whatever tool you prefer that can run on this flavor of linux (vi, etc.). This command also sets up the `sidewalk` database with the schema (just the schema, not the data - see Importing SQL dump in Additional Tools section) from the production dump, which lives in `db/schema.sql`. Successful output of this command will look like:
 
     ```
     Successfully built [container-id]
@@ -20,7 +22,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
     root@[container-id]:/opt#
     ```
 
-1. Run `npm start`. The result of this command is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (`~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
+1. Run `npm start` from inside the Docker shell. The result of this command is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (`~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
 
     ```
     > grunt watch & sbt clean "~ run"
@@ -43,12 +45,12 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 
 1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. Note that the first time compilation takes time.
 
-1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, rename the dump file you got from Mikey to `sidewalk-dump`, place it in the `db` folder, and run `make import-dump db=sidewalk` from the base folder outside the container. When that is done, rerun `npm start`.
+1. Importing SQL dump: The Postgres database schema has already been set up in the db docker container. To import production db dump, rename the dump file you got from Mikey to `sidewalk-dump`, place it in the `db` folder, and run `make import-dump db=sidewalk` from the base folder outside the Docker shell. When that is done, rerun `npm start` from inside the Docker shell.
 
 ### Setting up another database or city
 1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.
 
-1. Run `make import-dump db=[db-name]` from the root project directory outside the container. Using the example from step 1., this would be `make import-dump db=sidewalk-seattle`.
+1. Run `make import-dump db=[db-name]` from the root project directory outside the Docker shell. Using the example from step 1., this would be `make import-dump db=sidewalk-seattle`.
 
 1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/[db-name]`.
 
@@ -59,8 +61,23 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 ### Additional tools
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
 
+### Programming environment
+The IDE [IntelliJ IDEA](https://www.jetbrains.com/idea/) is highly recommended for development, particularly with Scala. You should be able to get a [student license](https://www.jetbrains.com/student/) to use get the "ultimate" edition of IntelliJ IDEA.
+
+To look at and run queries on your database, you will want to install a database client. [Valentina Studio](https://www.valentina-db.com/en/valentina-studio-overview) is a good cross-platform database client. People also like using [Postico](https://eggerapps.at/postico/) for Mac or [PGAdmin](https://www.pgadmin.org/download/) on Windows/Mac.
+
+You'll connect to the database using the following credentials:
+```
+Host: localhost:5432
+User: sidewalk
+Password: sidewalk
+Database: sidewalk
+```
+
 ### Making changes
-1. If you make any changes to the `build.sbt` or the configs, you'd need to press `Ctrl+D` and then `sbt clean` and then `npm start`.
+1. Before making changes, check out our [style guide](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Style-Guide) and [process for contributing new code](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Process-for-contributing-new-code) wiki pages.
+
+1. If you make any changes to the `build.sbt` or the configs, you'd need to press `Ctrl+D` and then `sbt clean` and then `npm start` from inside the Docker shell.
 
 1. If you make any changes to the views or other scala files, these changes will be automatically picked up by `sbt`. You'd need to reload the browser once the compilation finishes. For example, a change to `index.scala.html` file results in:
 
@@ -94,17 +111,9 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
     [success] Compiled in 90s
     ```
 
-### Debugging notes
-1. As mentioned above, `npm start` is a shorthand to run `grunt watch` and `sbt run`. If you prefer, you can manually run these separately (and can, for this matter, choose to use `activator` instead of `sbt`). `activator run` or `sbt run` needs to be run on the top directory where `build.sbt` is located. For `grunt`, run `grunt watch` so the changes you make to SVLabel JavaScript library will be automatically built on file updates. If `grunt watch` is not responding, you can run `grunt concat` and `grunt concat_css` to build the files.
-
-1. If you see an error like:
-    ```
-    Execution exception[[NoSuchElementException: None.get]]
-    ```
-
-    This is because the data from the database is missing and you'd need to import the sql dump. The schema import that's a part of init script only sets the schema and does not import the data.
-
 ## Running the application remotely
+NOTE: This has not been tested in a very long time and may not work.
+
 To run the application remotely,
 
 1. Use Play's dist tool to create jar files of the project (i,e., `activator dist`): https://www.playframework.com/documentation/2.3.x/ProductionDist

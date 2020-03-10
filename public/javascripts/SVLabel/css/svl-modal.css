@@ -21,11 +21,11 @@
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box {
+#modal-skip-box, #modal-comment-box, #modal-skip-box-neighborhood {
     background: rgba(255, 255, 255, 1);
     /*border: 3px solid rgba(200, 200, 200, 1);*/
     color: rgba(80, 80, 80, 1);
-    font-size: 14pt;
+    font-size: 13pt;
     padding: 10px;
     position: relative;
     top: 35%;
@@ -37,6 +37,22 @@
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+}
+
+#modal-skip-box .overlay-option, #modal-skip-box-neighborhood .overlay-option {
+    background-color: rgb(220, 220, 220);
+}
+
+#modal-skip-box .overlay-option:hover, #modal-skip-box-neighborhood .overlay-option:hover  {
+    background-color: rgb(190, 190, 190);
+}
+
+#modal-skip-box-neighborhood {
+    display: none;
+}
+
+.modal-skip-cancel-button {
+    text-align: right;
 }
 
 .modal-foreground {
@@ -98,10 +114,35 @@
 }
 
 .modal-foreground .blue-btn {
-    background: rgba(49,130,189,1);
     color: white;
     font-size: 14pt;
-    width: 100%;
+}
+
+.modal-foreground .btn-primary {
+    color: white;
+    background: #3182bd;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-size: 14pt;
+    opacity: 1.0;
+}
+
+.modal-foreground .btn-secondary {
+    color: black;
+    background: white;
+    cursor: pointer;
+    border: 1px solid black;
+    font-size: 14pt;
+    opacity: 1.0;
+}
+
+.modal-foreground .btn-loading {
+    color: white;
+    background: #7f7f7f;
+    cursor: wait;
+    border: 1px solid transparent;
+    font-size: 14pt;
+    opacity: 0.35;
 }
 
 .modal-foreground .button {
@@ -114,9 +155,9 @@
     font-size: 8pt;
     position: absolute;
     top: 360px;
-    right: 25px;
+    right: 20px;
     width: 140px;
-    height: 50px;
+    height: 55px;
     border-radius: 3px;
     background-color: rgba(240,240,240,1);
 }
@@ -220,8 +261,6 @@
     height: 100%;
     width: 110%;
 }
-
-
 
 .modal-close-button-holder {
     position: absolute;

@@ -1,4 +1,4 @@
-@(signInForm: Form[forms.SignUpForm.Data], url: String = "/")(implicit request: RequestHeader)
+@(signInForm: Form[forms.SignUpForm.Data], url: String = "/")(implicit request: RequestHeader, lang: Lang)
 @import views.html.bootstrap._
 
 @main("Project Sidewalk - Sign Up") {
@@ -11,24 +11,22 @@
         </div>
     }
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
-        <legend>Sign up for a new account</legend>
+        <legend>@Messages("navbar.signup.new.account")</legend>
         @helper.form(action = routes.SignUpController.signUp(url)) {
-            @text(signInForm("username"), "Username", icon = "person")
-            @text(signInForm("email"), "Email", icon = "at")
-            @password(signInForm("password"), "Password", icon = "key")
+            @text(signInForm("username"), Messages("navbar.username"), icon = "person")
+            @text(signInForm("email"), Messages("navbar.email"), icon = "at")
+            @password(signInForm("password"), Messages("navbar.password"), icon = "key")
+            @password(signInForm("passwordConfirm"), Messages("navbar.confirm.password"), icon = "key")
             <div class="form-group">
                 <div class="checkbox">
-                    <label><input type="checkbox" id="sign-up-page-agree-to-terms">
-                        You agree to our <a target="_blank" href="@routes.ApplicationController.terms">
-                            Terms of Use and Privacy Policy</a>
-                    </label>
+                    <label><input type="checkbox" id="sign-up-page-agree-to-terms">@Html(Messages("navbar.terms"))</label>
                 </div>
                 <div>
-                    <button id="sign-up-page-submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block" disabled>Submit</button>
+                    <button id="sign-up-page-submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block" disabled>@Messages("navbar.submit")</button>
                 </div>
             </div>
             <div class="sign-in-now">
-                <p>Already a member? <a href="@routes.UserController.signIn()">Sign in now</a></p>
+                <p>@Html(Messages("navbar.is.member"))</p>
             </div>
         }
     </fieldset>

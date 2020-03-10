@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -232,6 +232,23 @@
                                     <figcaption>Vehicle in motion. Hopefully self-explanatory.</figcaption>
                                 </figure>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h3 class="question" id="obstacles-in-a-crosswalk">How should I label obstacles in a crosswalk?
+                        <a href="#obstacles-in-a-crosswalk" title="Permalink to this sub-section" class="permalink-anchor">
+                            <img src='@routes.Assets.at("assets/link.png")' alt="A link" class="permalink-icon">
+                        </a>
+                    </h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Even though obstacles in a crosswalk are not part of the sidewalk, they are part of the
+                                route that pedestrians are meant to follow, so you should label obstacles on a crosswalk
+                                in the same manner as other obstacles.
+                            </p>
                         </div>
                     </div>
                 </div>

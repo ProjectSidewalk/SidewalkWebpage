@@ -12,14 +12,17 @@ GET     /developer                                           @controllers.Applic
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
+GET     /labelMap                                            @controllers.ApplicationController.labelMap
+GET     /labelmap                                            @controllers.ApplicationController.labelMap
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
+GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
 GET     /labelingGuide/surfaceProblems                       @controllers.ApplicationController.labelingGuideSurfaceProblems
 GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
 GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
-GET     /mobile                                              @controllers.ApplicationController.mobile
+GET     /mobile                                              @controllers.ValidationController.mobileValidate
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
 
@@ -37,6 +40,7 @@ POST    /authapi/signup                                      @controllers.SignUp
 # City config params
 GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
 GET     /cityShortNameParam                                  @controllers.ConfigController.getCityShortNameParam()
+GET     /cityAPIDemoParams                                   @controllers.ConfigController.getCityAPIDemoParams()
 
 # Admin
 GET     /admin                                               @controllers.AdminController.index
@@ -54,7 +58,7 @@ GET     /adminapi/labelLocations/:username                   @controllers.AdminC
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
 GET     /adminapi/labels/cv                                  @controllers.AdminController.getAllLabelCVMetadata
-GET     /adminapi/label/:labelId                             @controllers.AdminController.getLabelData(labelId: Int)
+GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
@@ -66,6 +70,9 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
+
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap
+GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
 GET     /audit                                               @controllers.AuditController.audit(nextRegion: Option[String] ?= None, retakeTutorial: Option[Boolean] ?= None)
@@ -82,6 +89,7 @@ POST    /audit/groundtruth/markComplete                      @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
+GET     /rapidValidate                                       @controllers.ValidationController.rapidValidate
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
@@ -89,7 +97,10 @@ GET     /task/street/:id                                     @controllers.TaskCo
 GET     /task/groundtruth/:panoid                            @controllers.TaskController.getCVGroundTruthTaskByPanoId(panoid: String)
 GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
 POST    /task                                                @controllers.TaskController.post
+POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
+POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
+POST    /validationLabelMap                                  @controllers.ValidationTaskController.postLabelMap
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
@@ -99,7 +110,8 @@ GET     /rewardEarned                                        @controllers.Missio
 # Labels
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
-POST    /label/geo/random/:labelType                         @controllers.ValidationTaskController.getRandomLabelData(labelType: Int)
+GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
+POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
 # Neighborhoods
@@ -128,8 +140,8 @@ POST    /userapi/logWebpageActivity                          @controllers.UserCo
 # Geometry API
 
 # Access Feature and Access Score APIs
-GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
+GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String])
+GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String])
 GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)

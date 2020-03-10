@@ -1,6 +1,7 @@
 /**
  *
- * @param label_type
+ * @param labelId
+ * @param labelType
  * @param canvasX
  * @param canvasY
  * @param originalCanvasWidth
@@ -11,7 +12,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function AdminPanoramaLabel(label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight,
+function AdminPanoramaLabel(labelId, labelType, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight,
                             heading, pitch, zoom) {
     var self = { className: "AdminPanoramaLabel" };
 
@@ -19,7 +20,8 @@ function AdminPanoramaLabel(label_type, canvasX, canvasY, originalCanvasWidth, o
      * This function initializes the Panorama
      */
     function _init () {
-        self.label_type = label_type;
+        self.labelId = labelId;
+        self.label_type = labelType;
         self.canvasX = canvasX;
         self.canvasY = canvasY;
         self.originalCanvasWidth = originalCanvasWidth;

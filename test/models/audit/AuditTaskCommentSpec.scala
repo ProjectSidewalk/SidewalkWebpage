@@ -14,7 +14,7 @@ import play.api.test._
 //      val auditTaskComments = TableQuery[AuditTaskCommentTable]
 //
 //      DB.withTransaction { implicit s: Session =>
-//        val originalLength = auditTaskComments.list.size
+//        val originalLength = auditTaskComments.length.run
 //        val calendar: Calendar = Calendar.getInstance
 //        val now: Date = calendar.getTime
 //        val currentTimestamp: Timestamp = new Timestamp(now.getTime)
@@ -22,7 +22,7 @@ import play.api.test._
 //        val comment: AuditTaskComment = AuditTaskComment(0, 0, "test", "0.0.0.0", Some("test"), Some(0.0), Some(0.0), Some(1), Some(0.0), Some(0.0), currentTimestamp, "comment")
 //        auditTaskComments.insert(comment)
 //
-//        val length = auditTaskComments.list.size
+//        val length = auditTaskComments.length.run
 //
 //        (length - originalLength) shouldEqual 1
 //

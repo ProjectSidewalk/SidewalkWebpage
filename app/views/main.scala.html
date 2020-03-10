@@ -1,6 +1,6 @@
 @import models.user.User
 @import models.user.VersionTable
-@(title: String, url: Option[String] = Some("/"))(content: Html)
+@(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
 
 
 @import views.html.bootstrap._
@@ -40,6 +40,7 @@
     <!--<link href='@routes.Assets.at("stylesheets/main.css")' rel="stylesheet"/>-->
     <link rel="stylesheet" href='@routes.Assets.at("css/main.css")'>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/isMobile.js")'></script>
     <!--<script src='@routes.Assets.at("assets/homepage.js")'></script>-->
     <script src='@routes.Assets.at("assets/countUp.js")'></script>
     <script src='@routes.Assets.at("assets/bowser.min.js")'></script>
@@ -74,14 +75,8 @@
             document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
 
-        <div id="mini-footer-audit">
-          Project Sidewalk is designed and operated by the
-          <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
-          <a href="http://www.umd.edu/">University of Maryland</a> and
-              <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-          <span id="application-version">@VersionTable.currentVersionStr()</span>
-        </div>
-
+        <!-- footer code found in app/views/footer.scala.html -->
+        @footer()
     } else{
 
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
@@ -91,40 +86,45 @@
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
-                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">About Us</a> <br/>
-                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
-                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
-                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
+                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">@Messages("footer.about")</a> <br/>
+                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">@Messages("footer.terms")</a> <br/>
+                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">@Messages("footer.help")</a> <br/>
+                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">@Messages("footer.guide")</a> <br/>
             </div>
             <div class="col-sm-4 footerlink">
-                <span class="footerheader">DEVELOPER</span><br/>
-                <a href='@routes.ApplicationController.developer' id="developer-api-link">Sidewalk API </a><br/>
+                <span class="footerheader">@Messages("footer.developer")</span><br/>
+                <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a><br/>
             </div>
             <div class="col-sm-4 footerlink">
-                <span class="footerheader">CONNECT</span><br/>
+                <span class="footerheader">@Messages("footer.connect")</span><br/>
                 <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
                 <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
-                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
+                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
                 <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.at("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
             </div>
         </div>
     </div>
     <div class="container" id="info-footer">
         <br>
-        <p><span id="funding-title">WE ARE PROUDLY FUNDED BY</span></p>
+        <p><span id="funding-title">@Messages("footer.funding")</span></p>
         <div class="row" style="max-width: 900px; margin: 0 auto;">
 
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
                     <img src="@routes.Assets.at("assets/nsf.png")">
                 </a>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <a href="https://sloan.org/fellowships/" id ="sloan-link">
                     <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
+                </a>
+            </div>
+            <div class="col-sm-3">
+                <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+                    <img src="@routes.Assets.at("assets/pactrans_logo.png")">
                 </a>
             </div>
 
@@ -140,11 +140,10 @@
 
         </div>
 
-        Project Sidewalk is designed and operated by the
-        <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
-        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
-        <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-        <span id="application-version">@VersionTable.currentVersionStr()</span>
+        @Html(Messages("footer.designed.operated"))<br>
+        <span id="application-version">
+            @Html(Messages("footer.version", VersionTable.currentVersionId(), VersionTable.currentVersionTimestamp()))
+        </span>
     </div>
 
   }
@@ -236,4 +235,6 @@
                 });
             });
     </script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
 </body>

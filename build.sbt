@@ -4,9 +4,9 @@ import scalariform.formatter.preferences._
 
 name := """sidewalk-webpage"""
 
-version := "6.3.5"
+version := "6.7.1"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.10.5"
 
 sources in (Compile,doc) := Seq.empty
 

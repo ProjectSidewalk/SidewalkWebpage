@@ -80,7 +80,172 @@ object UserDAOImpl {
   }
 
   def size: Int = db.withTransaction { implicit session =>
-    userTable.list.size
+    userTable.length.run
+  }
+
+  /**
+    * Get all users, excluding anonymous users who haven't placed any labels (so admin user table isn't too big).
+    *
+    * @return
+    */
+  def usersMinusAnonUsersWithNoLabels: Query[UserTable, DBUser, Seq] = {
+    val anonUsers = (for {
+      _user <- userTable
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      _mission <- MissionTable.missions if _user.userId === _mission.userId
+      _label <- LabelTable.labelsWithoutDeleted if _mission.missionId === _label.missionId
+      if _role.role === "Anonymous"
+    } yield _user).groupBy(x => x).map(_._1)
+
+    val otherUsers = for {
+      _user <- userTable
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      if _role.role =!= "Anonymous"
+    } yield _user
+
+    anonUsers ++ otherUsers
+  }
+
+  /**
+   * Count the number of users of the given role who have ever started (or completed) validating a label.
+   *
+   * @param roles
+   * @param labelValidated
+   * @return
+   */
+  def countValidationUsersContributed(roles: List[String], labelValidated: Boolean): Int = db.withSession { implicit session =>
+
+    val validationMissions =
+      if (labelValidated) MissionTable.validationMissions.filter(_.labelsProgress > 0)
+      else MissionTable.validationMissions
+
+    val users = for {
+      _mission <- validationMissions
+      _user <- userTable if _mission.userId === _user.userId
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      if _user.username =!= "anonymous"
+      if _role.role inSet roles
+    } yield _user.userId
+
+    // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
+    users.groupBy(x => x).map(_._1).list.length
+  }
+
+  /**
+   * Count the number of researchers who have ever started (or completed) validating a label.
+   *
+   * Researchers include the Researcher, Adminstrator, and Owner roles.
+   *
+   * @param labelValidated
+   * @return
+   */
+  def countValidationResearchersContributed(labelValidated: Boolean): Int = db.withSession { implicit session =>
+    countValidationUsersContributed(List("Researcher", "Administrator", "Owner"), labelValidated)
+  }
+
+  /**
+   * Count the number of users who have ever started (or completed) validating a label (across all roles).
+   *
+   * @param taskCompleted
+   * @return
+   */
+  def countAllValidationUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countValidationUsersContributed(roleTable.map(_.role).list, taskCompleted)
+  }
+
+  /**
+   * Count the number of users of the given role who contributed validations today.
+   *
+   * We consider a "contribution" to mean that a user has validated a label.
+   *
+   * @param role
+   * @return
+   */
+  def countValidationUsersContributedToday(role: String): Int = db.withSession { implicit session =>
+    val countQuery = Q.query[String, Int](
+      """SELECT COUNT(DISTINCT(mission.user_id))
+        |FROM label_validation
+        |INNER JOIN mission ON label_validation.user_id = mission.user_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
+        |WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
+        |    AND sidewalk_user.username <> 'anonymous'
+        |    AND role.role = ?""".stripMargin
+    )
+    countQuery(role).list.head
+  }
+
+  /**
+   * Count the number of researchers who contributed validations today (incl Researcher, Adminstrator, and Owner roles).
+   *
+   * @return
+   */
+  def countValidationResearchersContributedToday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedToday("Researcher") +
+      countValidationUsersContributedToday("Administrator") +
+      countValidationUsersContributedToday("Owner")
+  }
+
+  /**
+   * Count the number of users who contributed validations today (across all roles).
+   *
+   * @return
+   */
+  def countAllValidationUsersContributedToday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedToday("Registered") +
+      countValidationUsersContributedToday("Anonymous") +
+      countValidationUsersContributedToday("Turker") +
+      countValidationResearchersContributedToday
+  }
+
+  /**
+   * Count the number of users of the given role who contributed validations yesterday.
+   *
+   * We consider a "contribution" to mean that a user has validated at least one label.
+   *
+   * @param role
+   * @return
+   */
+  def countValidationUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
+    val countQuery = Q.query[String, Int](
+      """SELECT COUNT(DISTINCT(mission.user_id))
+        |FROM label_validation
+        |INNER JOIN mission ON label_validation.user_id = mission.user_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
+        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
+        |WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day
+        |    AND sidewalk_user.username <> 'anonymous'
+        |    AND role.role = ?""".stripMargin
+    )
+    countQuery(role).list.head
+  }
+
+  /**
+   * Count number of researchers who contributed validations yesterday (incl Researcher, Adminstrator, and Owner roles).
+   *
+   * @return
+   */
+  def countValidationResearchersContributedYesterday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedYesterday("Researcher") +
+      countValidationUsersContributedYesterday("Administrator") +
+      countValidationUsersContributedYesterday("Owner")
+  }
+
+  /**
+   * Count the number of users who contributed validations yesterday (across all roles).
+   *
+   * @return
+   */
+  def countAllValidationUsersContributedYesterday: Int = db.withSession { implicit session =>
+    countValidationUsersContributedYesterday("Registered") +
+      countValidationUsersContributedYesterday("Anonymous") +
+      countValidationUsersContributedYesterday("Turker") +
+      countValidationResearchersContributedYesterday
   }
 
   /**
@@ -90,7 +255,7 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
+  def countAuditUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
 
     val tasks = if (taskCompleted) auditTaskTable.filter(_.completed) else auditTaskTable
 
@@ -115,8 +280,8 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countResearchersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-    countUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
+  def countAuditResearchersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countAuditUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
   }
 
   /**
@@ -125,8 +290,8 @@ object UserDAOImpl {
     * @param taskCompleted
     * @return
     */
-  def countAllUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-    countUsersContributed(roleTable.map(_.role).list, taskCompleted)
+  def countAllAuditUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    countAuditUsersContributed(roleTable.map(_.role).list, taskCompleted)
   }
 
   /**
@@ -137,14 +302,14 @@ object UserDAOImpl {
     * @param role
     * @return
     */
-  def countUsersContributedToday(role: String): Int = db.withSession { implicit session =>
+  def countAuditUsersContributedToday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE audit_task.task_end::date = now()::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
@@ -157,10 +322,10 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countResearchersContributedToday: Int = db.withSession { implicit session =>
-    countUsersContributedToday("Researcher") +
-      countUsersContributedToday("Administrator") +
-      countUsersContributedToday("Owner")
+  def countAuditResearchersContributedToday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedToday("Researcher") +
+      countAuditUsersContributedToday("Administrator") +
+      countAuditUsersContributedToday("Owner")
   }
 
   /**
@@ -168,11 +333,11 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countAllUsersContributedToday: Int = db.withSession { implicit session =>
-    countUsersContributedToday("Registered") +
-      countUsersContributedToday("Anonymous") +
-      countUsersContributedToday("Turker") +
-      countResearchersContributedToday
+  def countAllAuditUsersContributedToday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedToday("Registered") +
+      countAuditUsersContributedToday("Anonymous") +
+      countAuditUsersContributedToday("Turker") +
+      countAuditResearchersContributedToday
   }
 
   /**
@@ -183,14 +348,14 @@ object UserDAOImpl {
     * @param role
     * @return
     */
-  def countUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
+  def countAuditUsersContributedYesterday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
@@ -203,10 +368,10 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countResearchersContributedYesterday: Int = db.withSession { implicit session =>
-    countUsersContributedYesterday("Researcher") +
-      countUsersContributedYesterday("Administrator") +
-      countUsersContributedYesterday("Owner")
+  def countAuditResearchersContributedYesterday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedYesterday("Researcher") +
+      countAuditUsersContributedYesterday("Administrator") +
+      countAuditUsersContributedYesterday("Owner")
   }
 
   /**
@@ -214,11 +379,11 @@ object UserDAOImpl {
     *
     * @return
     */
-  def countAllUsersContributedYesterday: Int = db.withSession { implicit session =>
-    countUsersContributedYesterday("Registered") +
-      countUsersContributedYesterday("Anonymous") +
-      countUsersContributedYesterday("Turker") +
-      countResearchersContributedYesterday
+  def countAllAuditUsersContributedYesterday: Int = db.withSession { implicit session =>
+    countAuditUsersContributedYesterday("Registered") +
+      countAuditUsersContributedYesterday("Anonymous") +
+      countAuditUsersContributedYesterday("Turker") +
+      countAuditResearchersContributedYesterday
   }
 
   /**
@@ -228,7 +393,7 @@ object UserDAOImpl {
     */
   def getUserStatsForAdminPage: List[UserStatsForAdminPage] = db.withSession { implicit session =>
 
-    // We run 6 queries for different bits of metadata that we need. We run each query and convert them to Scala maps
+    // We run different queries for each bit of metadata that we need. We run each query and convert them to Scala maps
     // with the user_id as the key. We then query for all the users in the `user` table and for each user, we lookup
     // the user's metadata in each of the maps from those 6 queries. This simulates a left join across the six sub-
     // queries. We are using Scala Map objects instead of Slick b/c Slick doesn't create very efficient queries for this
@@ -263,9 +428,9 @@ object UserDAOImpl {
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
           .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
-    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int))
+    // Map(user_id: String -> (role: String, distinct: Int, total: Int, agreed: Int, disagreed: Int, unsure: Int))
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
-      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
+      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6, valCount._7))
     }.toMap
 
     // Map(user_id: String -> (count: Int, agreed: Int))
@@ -274,12 +439,13 @@ object UserDAOImpl {
     }.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    userTable.list.map{ u =>
-      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
-      val ownValidatedTotal = ownValidatedCounts._2
-      val ownValidatedAgreed = ownValidatedCounts._3
-      val ownValidatedDisagreed = ownValidatedCounts._4
-      val ownValidatedUnsure = ownValidatedCounts._5
+    usersMinusAnonUsersWithNoLabels.list.map{ u =>
+      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0, 0))
+      val ownValidatedDistinct = ownValidatedCounts._2
+      val ownValidatedTotal = ownValidatedCounts._3
+      val ownValidatedAgreed = ownValidatedCounts._4
+      val ownValidatedDisagreed = ownValidatedCounts._5
+      val ownValidatedUnsure = ownValidatedCounts._6
 
       val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
       val otherValidatedTotal = otherValidatedCounts._1
@@ -309,7 +475,7 @@ object UserDAOImpl {
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
         labelCounts.getOrElse(u.userId, 0),
-        ownValidatedTotal,
+        ownValidatedDistinct,
         ownValidatedAgreedPct,
         ownValidatedDisagreedPct,
         ownValidatedUnsurePct,

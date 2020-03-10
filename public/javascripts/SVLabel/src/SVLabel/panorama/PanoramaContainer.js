@@ -65,8 +65,10 @@ function PanoramaContainer (streetViewService) {
                     if ("location" in data && "pano" in data.location) {
                         add(data.location.pano, new Panorama(data))
                     }
-                }
-                else {
+                } else if (panoramaId === "tutorial" || panoramaId === "tutorialAfterWalk") {
+                    // Shows tutorial panoramas as already submitted to server, no need to add to server
+                    add(panoramaId, new Panorama({submitted: true}));
+                } else {
                     console.error("Error retrieving Panoramas: " + status);
                     svl.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                 }

@@ -2,7 +2,7 @@ function AdminUser(params) {
     var self = {};
     var _data = {};
     self.username = params.username;
-    self.adminGSVLabelView = AdminGSVLabelView();
+    self.adminGSVLabelView = AdminGSVLabelView(true);
 
     // Initialize the map
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';

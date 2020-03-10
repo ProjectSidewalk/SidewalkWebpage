@@ -1,6 +1,6 @@
 @import models.user.User
 @import models.street.StreetEdgeTable
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -25,12 +25,14 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <h2 id="access-api-header">Access APIs</h2>
+                <a class="anchor" id="access-api-header"></a>
+                <h2>Access APIs</h2>
             </div>
         </div>
         <hr>
         <div class="spacer-20-pixel"></div>
-        <div class="row" id="access-api-access-attribute-row">
+        <a class="anchor" id="access-api-access-attribute-row"></a>
+        <div class="row">
             <div class="col-sm-4">
                 <div id="developer-access-attribute-map" class="map"></div>
             </div>
@@ -41,8 +43,8 @@
                         <td colspan="2">
                             This API serves point-level location data on accessibility attributes. The major categories
                             of attributes include: "Curb Ramp", "Missing Curb Ramp", "Obstacle", and "Surface Problem".
-                            The less common attributes are "No Sidewalk", "Occlusion", and "Other". Optionally, you can
-                            also query for the individual labels that make up the attributes.
+                            The less common attributes are "No Sidewalk", "Occlusion", and "Other". You can also query
+                            for the individual labels that make up the attributes.
                         </td>
                     </tr>
                     <tr>
@@ -62,7 +64,10 @@
                             <dl>
                                 <dt>Required:</dt>
                                 <dd>You need to pass a pair of latlng coordinates to define a bounding
-                                    box, which is used to specify where you want to query the data from.</dd>
+                                    box, which is used to specify where you want to query the data from.
+                                    Optionally, you can pass a specific severity to look for. Severity
+                                    can be an integer value from 1-5 or "none" to represent data without
+                                    a severity rating.</dd>
                             </dl>
                             <ul>
                                 <li>
@@ -76,6 +81,9 @@
                                 </li>
                                 <li>
                                     <code>lng2=[double]</code><br />
+                                </li>
+                                <li>
+                                    <code>severity=[int|string]</code><br />
                                 </li>
                             </ul>
                         </td>
@@ -101,11 +109,11 @@
                     <tr>
                         <th>Example</th>
                         <td>
-                            <a target="_blank" href='/v2/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982'>
-                                <code>/v2/access/attributes?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982</code>
+                            <a id="attributes-link" target="_blank" href=''>
+                                <code id="attributes-code"></code>
                             </a><br>
-                            <a target="_blank" href='/v2/access/attributesWithLabels?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982'>
-                                <code>/v2/access/attributesWithLabels?lat1=38.909&lng1=-76.989&lat2=38.912&lng2=-76.982</code>
+                            <a id="attributes-with-labels-link" target="_blank" href=''>
+                                <code id="attributes-with-labels-code"></code>
                             </a>
                         </td>
                     </tr>
@@ -114,7 +122,8 @@
         </div>
         <hr>
         <div class="spacer-20-pixel"></div>
-        <div class="row" id="access-api-access-score-street-row">
+        <a class="anchor" id="access-api-access-score-street-row"></a>
+        <div class="row">
             <div class="col-sm-4">
                 <div id="developer-access-score-streets-map" class="map"></div>
             </div>
@@ -176,8 +185,8 @@
                     <tr>
                         <th>Example</th>
                         <td>
-                            <a target="_blank" href='/v2/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971'>
-                                <code>/v2/access/score/streets?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971</code>
+                            <a id="streets-link" target="_blank">
+                                <code id="streets-code"></code>
                             </a>
                         </td>
                     </tr>
@@ -249,8 +258,8 @@
                     <tr>
                         <th>Example</th>
                         <td>
-                            <a target="_blank" href='/v2/access/score/neighborhoods?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971'>
-                                <code>/v2/access/score/neighborhoods?lat1=38.899&lng1=-77.008&lat2=38.920&lng2=-76.971</code>
+                            <a id="regions-link" target="_blank">
+                                <code id="regions-code"></code>
                             </a>
                         </td>
                     </tr>
@@ -281,7 +290,8 @@
                         the individual labels that are clustered into accessibility attributes.</li>
                 </ol>
 
-                <h2 id="disclaimer">Disclaimer</h2>
+                <a class="anchor" id="disclaimer"></a>
+                <h2>Disclaimer</h2>
                 <p class="text-justify">
                     We are still in the experimental stage of the project, so we want you to keep in mind a few things,
                     for example:
@@ -299,7 +309,8 @@
 
         <div class="row">
             <div class="col-sm-12">
-                <h2 id="contribute">Contribute</h2>
+                <a class="anchor" id="contribute"></a>
+                <h2>Contribute</h2>
                 <p class="text-justify">
                     All the code for Project Sidewalk is open source. You can find it in our
                         <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank">GitHub repo</a>.

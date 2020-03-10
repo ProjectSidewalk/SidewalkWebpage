@@ -41,21 +41,21 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your <span class="bold">first mission</span> is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
+        <p>' + i18next.t('mission-start-body-first') + '</p>\
         <div class="spacer10"></div>';
 
     var distanceMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Your mission is to audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!</p>\
+        <p>' + i18next.t('mission-start-body') + '</p>\
         <div class="spacer10"></div>';
 
     var returningToMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Continue auditing __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!</p>\
+        <p>' + i18next.t('mission-start-title-continue') + '</p>\
         <div class="spacer10"></div>';
 
     this._handleBackgroundClick = function () {
@@ -63,6 +63,21 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     };
 
     this._handleCloseButtonClick = function () {
+        mission = _missionContainer.getCurrentMission();
+        
+        // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later, another 
+        // MissionStart will not be triggered
+        if(mission.getProperty("distanceProgress") < 0.0001) { 
+            svl.tracker.push(
+                "MissionStart",
+                {
+                    missionId: mission.getProperty("missionId"),
+                    missionType: mission.getProperty("missionType"),
+                    distanceMeters: Math.round(mission.getDistance("meters")),
+                    regionId: mission.getProperty("regionId")
+                }
+            );
+        }
         self.hide();
     };
 
@@ -97,7 +112,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         // Set the title and the instruction of this mission.
 
         var missionType = mission.getProperty("missionType");
-        var missionTitle = "Audit __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__";
+        var missionTitle = i18next.t('mission-start-title');
         var templateHTML;
 
         svl.popUpMessage.disableInteractions();
@@ -106,11 +121,11 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             templateHTML = distanceMissionHTML;
 
             if (mission.getProperty("distanceProgress") > 0) { // In-progress mission
-                missionTitle = "Return to your mission";
+                missionTitle = i18next.t('mission-start-title-return');
                 templateHTML = returningToMissionHTML;
 
                 // Set returning-to-mission specific css
-                uiModalMission.closeButton.html('Resume Mission!');
+                uiModalMission.closeButton.html(i18next.t('mission-start-button-resume'));
                 uiModalMission.instruction.css('text-align', 'center');
                 uiModalMission.closeButton.css('font-size', '24px');
                 uiModalMission.closeButton.css('width', '40%');
@@ -118,7 +133,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 uiModalMission.closeButton.css('margin-left', '30%');
                 uiModalMission.closeButton.css('margin-top', '30px');
             } else if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) { // First mission
-                missionTitle = "First Mission: " + missionTitle;
+                missionTitle = i18next.t('mission-start-title-first') + missionTitle;
                 templateHTML = initialMissionHTML;
             } else {
                 // We have to reset the css from the resuming screen, otherwise the button will remain as set
@@ -152,9 +167,9 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         // Update the reward HTML if the user is a turker.
         if (_userModel.getUser().getProperty("role") === "Turker") {
             var missionReward = mission.getProperty("pay");
-            var missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+            var missionRewardText = i18next.t('mission-start-turk-reward') + '<span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
             missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
-            svl.ui.status.currentMissionReward.html("Current Mission Reward: <span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
+            svl.ui.status.currentMissionReward.html(i18next.t('common:right-ui-turk-current-reward') + "<span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
             uiModalMission.rewardText.html(missionRewardText);
 
             $.ajax({
@@ -162,7 +177,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 url: '/rewardEarned',
                 type: 'get',
                 success: function(rewardData) {
-                    svl.ui.status.totalMissionReward.html("Total Earned Reward: <span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
+                    svl.ui.status.totalMissionReward.html(i18next.t('common:right-ui-turk-total-reward') + "<span style='color:forestgreen'>$" + rewardData.reward_earned.toFixed(2)) + "</span>";
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
                     console.log(thrownError);
@@ -222,7 +237,6 @@ ModalMission.prototype._distanceToString = function  (distance, unit) {
         return (util.math.milesToFeet(distance)).toFixed(0) + "ft";
     }
 };
-
 
 ModalMission.prototype.isOpen = function () {
     return this._status.isOpen;

@@ -1,13 +1,15 @@
 /**
  * Task module.
  * @param geojson
+ * @param tutorialTask
  * @param currentLat
  * @param currentLng
+ * @param startPointReversed
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Task (geojson, currentLat, currentLng) {
+function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed) {
     var self = this;
     var _geojson;
     var _furthestPoint;
@@ -20,11 +22,16 @@ function Task (geojson, currentLat, currentLng) {
         auditTaskId: null,
         streetEdgeId: null,
         completedByAnyUser: null,
-        priority: null
+        priority: null,
+        currentLat: currentLat,
+        currentLng: currentLng,
+        startPointReversed: startPointReversed,
+        finishedReversing: false,
+        tutorialTask: tutorialTask
     };
 
     /**
-     * This method takes a task parameters and set up the cturrent task.
+     * This method takes a task parameters and set up the current task.
      * @param geojson Description of the next task in json format.
      * @param currentLat Current latitude
      * @param currentLng Current longitude
@@ -57,10 +64,18 @@ function Task (geojson, currentLat, currentLng) {
         var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng),
             d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
 
-        if (d2 < d1) {
-            self.reverseCoordinates();
-            _furthestPoint = turf.point([lng2, lat2]);
+        // If we already set reversed to true or we are at the 2nd endpoint, reverse the coordinates.
+        if (properties.startPointReversed
+            || ((properties.startPointReversed === null || properties.startPointReversed === undefined) && d2 < d1)) {
+            // Only reverse if we haven't already reversed.
+            if (!properties.finishedReversing) {
+                self.reverseCoordinates();
+                properties.finishedReversing = true;
+                properties.startPointReversed = true;
+                _furthestPoint = turf.point([lng2, lat2]);
+            }
         } else {
+            properties.startPointReversed = false;
             _furthestPoint = turf.point([lng1, lat1]);
         }
     };
@@ -301,6 +316,10 @@ function Task (geojson, currentLat, currentLng) {
         return { lat: lat, lng: lng };
     };
 
+    this.getCurrentLatLng = function() {
+        return { lat: properties.currentLat, lng: properties.currentLng };
+    };
+
     /**
      * Returns the street edge id of the current task.
      */
@@ -388,7 +407,7 @@ function Task (geojson, currentLat, currentLng) {
     };
 
     /**
-     * Returns if the task is completed or not
+     * Returns if the task was completed or not.
      * @returns {boolean}
      */
     this.isComplete = function () {

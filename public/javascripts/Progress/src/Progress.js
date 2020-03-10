@@ -1,6 +1,5 @@
 function Progress (_, $, c3, L, role, difficultRegionIds) {
     var self = {};
-    var completedInitializingOverlayPolygon = false;
     var completedInitializingNeighborhoodPolygons = false;
     var completedInitializingAuditedStreets = false;
     var completedInitializingSubmittedLabels = false;
@@ -45,13 +44,13 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
     var popup = L.popup().setContent('<p>Hello!</p>');
 
     function handleInitializationComplete (map) {
-        if (completedInitializingOverlayPolygon &&
-            completedInitializingNeighborhoodPolygons &&
+        if (completedInitializingNeighborhoodPolygons &&
             completedInitializingAuditedStreets &&
             completedInitializingSubmittedLabels &&
             completedInitializingAuditCountChart &&
@@ -83,18 +82,24 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     }
 
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon (map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{"type": "Feature", "geometry": {
                 "type": "Polygon", "coordinates": [
-                    [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                 ]}}]};
-        L.geoJson(overlayPolygon).addTo(map);
-        completedInitializingOverlayPolygon = true;
-        handleInitializationComplete(map);
+        var layer = L.geoJson(overlayPolygon);
+        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
+        layer.addTo(map);
     }
 
     /**
@@ -103,14 +108,15 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     function initializeNeighborhoodPolygons(map, rates) {
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                regionName = feature.properties.region_name,
-                url = "/audit/region/" + regionId,
-                // default popup content if we don't find neighborhood in list of neighborhoods from query
-                popupContent = "Do you want to find accessibility problems in " + regionName + "? " +
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>",
-                compRate = 0,
-                milesLeft = 0;
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var url = "/audit/region/" + regionId;
+            // default popup content if we don't find neighborhood in list of neighborhoods from query
+            var popupContent = "Do you want to find accessibility problems in " + regionName + "? " +
+                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            var compRate = 0;
+            var milesLeft = 0;
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(100.0 * rates[i].rate);
@@ -121,7 +127,10 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
-                    if (compRate === 100) {
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                            "Thanks for all your help!";
+                    } else if (compRate === 100) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to find accessibility issues in this neighborhood yourself!";
@@ -540,7 +549,6 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
 
     $.getJSON('/adminapi/neighborhoodCompletionRate', function (neighborhoodCompletionData) {
-        initializeOverlayPolygon(map);
         initializeNeighborhoodPolygons(map, neighborhoodCompletionData);
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);

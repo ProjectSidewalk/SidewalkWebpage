@@ -3,34 +3,6 @@
  *
  * TODO This module needs to be cleaned up.
  * TODO Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
- * @param navigationModel
- * @param neighborhoodModel
- * @param streetViewService
- * @param svl
- * @param taskModel
- * @param tracker
  * @param navigationModel
  * @param neighborhoodModel
  * @param streetViewService
@@ -48,11 +20,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var previousPaths = [];
 
     self._tasks = []; // TODO this started as self._tasks = {}; possibly to note that the tasks hadn't been fetched yet... not working anymore, not sure how I broke it
-
-    self._handleTaskFetchCompleted = function () {
-        var nextTask = self.nextTask();
-        self.initNextTask(nextTask);
-    };
 
     self.getFinishedAndInitNextTask = function (finished) {
         var newTask = self.nextTask(finished);
@@ -164,12 +131,13 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * Fetch a task based on the street id.
-     * @param regionId
      * @param streetEdgeId
+     * @param params
      * @param callback
      * @param async
      */
-    function fetchATask(regionId, streetEdgeId, callback, async) {
+    function fetchATask(streetEdgeId, params, callback, async) {
+        var tutorialTask = params.tutorialTask ? params.tutorialTask : false;
         if (typeof async == "undefined") async = true;
         $.ajax({
             url: "/task/street/" + streetEdgeId,
@@ -177,7 +145,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             success: function (json) {
                 var lat1 = json.features[0].geometry.coordinates[0][1],
                     lng1 = json.features[0].geometry.coordinates[0][0],
-                    newTask = svl.taskFactory.create(json, lat1, lng1);
+                    newTask = svl.taskFactory.create(json, tutorialTask, lat1, lng1);
                 if (json.features[0].properties.completed) newTask.complete();
                 storeTask(newTask);
                 if (callback) callback();
@@ -204,7 +172,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             success: function (result) {
                 var task;
                 for (var i = 0; i < result.length; i++) {
-                    task = svl.taskFactory.create(result[i]);
+                    task = svl.taskFactory.create(result[i], false);
                     if ((result[i].features[0].properties.completed)) task.complete();
                     storeTask(task);
                 }
@@ -368,7 +336,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * Used to set target distance for Mission Progress
      *
-     * TODO: 839 - Do we set that for completed tasks across all users?
      * @param unit {string} Distance unit
      */
     self.getIncompleteTaskDistance = function (unit) {
@@ -457,7 +424,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
                 console.log('finished neighborhood screen has appeared, logging debug info');
                 console.log('incompleteTasks.length:' +
-                    self.getIncompleteTasksAcrossAllUsersUsingPriority().length());
+                    self.getIncompleteTasksAcrossAllUsersUsingPriority().length);
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
 
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
@@ -572,14 +539,24 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
-     * Store a task into _tasks
+     * Store a task into _tasks. Make sure the tutorial task gets added, even if it has a duplicate streetEdgeId.
      * @param task {object} Task object
      */
     function storeTask(task) {
-        var streetEdgeIds = self._tasks.map(function (task) {
+        var nonTutorialTasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
+        var streetEdgeIds = nonTutorialTasks.map(function (task) {
             return task.getStreetEdgeId();
         });
-        if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) self._tasks.push(task);
+        if (task.getProperty('tutorialTask') || streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
+            self._tasks.push(task);
+        }
+    }
+
+    /**
+     * Removes the tutorial task.
+     */
+    function removeTutorialTask() {
+        self._tasks = self._tasks.filter(function (t) { return !t.getProperty('tutorialTask'); });
     }
 
     /**
@@ -636,6 +613,20 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         return this;
     }
 
+    /**
+     * Checks if there are any max priority tasks remaining (proxy for neighborhood being complete across all users.
+     * @returns {null|boolean}
+     */
+    function hasMaxPriorityTask() {
+        if (!Array.isArray(self._tasks)) {
+            console.error("_tasks is not an array. Probably the data is not loaded yet.");
+            return null;
+        }
+        return self._tasks.filter(function (task) {
+            return task.getStreetPriority() === 1;
+        }).length > 0;
+    }
+
     // self.endTask = endTask;
     self.fetchATask = fetchATask;
     self.getCompletedTasks = getCompletedTasks;
@@ -647,10 +638,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getBeforeJumpNewTask = getBeforeJumpTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
-    // self.nextTask = getNextTask;
     self.push = pushATask;
+    self.hasMaxPriorityTask = hasMaxPriorityTask;
 
     self.storeTask = storeTask;
+    self.removeTutorialTask = removeTutorialTask;
     self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
     self.update = update;
     self.updateAuditedDistance = updateAuditedDistance;

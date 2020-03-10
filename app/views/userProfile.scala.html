@@ -2,7 +2,7 @@
 @import models.region.RegionTable
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -28,7 +28,7 @@
         <div class="row">
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>Total Distance Audited</th>
+                    <th>Total Distance Explored</th>
                     <th>Number of Missions Completed</th>
                     @if(user){
                         @if(user.get.role.getOrElse("") == "Turker") {

@@ -1,13 +1,12 @@
+.button.label-visibility-control-button:focus {
+    outline: none;
+}
+
 .button.label-visibility-control-button {
     color: rgba(0,0,0,1);
     font-size: 9px;
     height: 36px;
     width: 65px;
-    margin-right: 2px;
-}
-
-.button.label-visibility-control-button:focus {
-    outline: none;
 }
 
 .label-visibility-control-button-icon {
@@ -18,8 +17,9 @@
 #label-visibility-control-holder {
     background: transparent;
     position: absolute;
-    left: 0px;
+    left: 524px;
     top: 30px;
     height: 55px;
-    width: 185px;
+    width: 65px;
 }
+

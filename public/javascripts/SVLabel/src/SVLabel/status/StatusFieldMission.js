@@ -15,11 +15,11 @@ function StatusFieldMission (modalModel, uiStatusField) {
 
         var missionMessage;
         if (missionType === "auditOnboarding") {
-            missionMessage = "Complete the onboarding tutorial!";
+            missionMessage = i18next.t('tutorial.mission-message');
         } else if (svl.missionContainer.isTheFirstMission()) {
-            missionMessage = "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes"
+            missionMessage = i18next.t('right-ui-mission-message-first-mission');
         } else {
-            missionMessage = "Audit __PLACEHOLDER__ of this neighborhood";
+            missionMessage = i18next.t('right-ui-mission-message');
         }
 
         if (missionType === "audit") {

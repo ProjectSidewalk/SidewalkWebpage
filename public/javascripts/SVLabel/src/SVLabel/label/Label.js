@@ -527,7 +527,7 @@ function Label (svl, pathIn, params) {
             labelRows = 1,
             severityImage = new Image(),
             severityImagePath = undefined,
-            severityMessage = 'Please click to label a severity',
+            severityMessage = i18next.t('context-menu-severity'),
             msg = properties.labelDescription,
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
@@ -898,8 +898,13 @@ function Label (svl, pathIn, params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates(),
+            var imageCoordinates = path.getImageCoordinates();
+            var pc = null;
+            if (properties.panoId === "tutorial") {
+                pc = svl.onboarding.getTutorialPointCloud();
+            } else  {
                 pc = svl.pointCloud.getPointCloud(properties.panoId);
+            }
             if (pc) {
                 var minDx = 1000, minDy = 1000, i, delta, latlng,
                     p, idx, dx, dy, r, minR;

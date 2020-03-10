@@ -2,16 +2,18 @@
  *
  *
  * @param svHolder: One single DOM element
+ * @param admin
  * @returns {{className: string}}
  * @constructor
  */
-function AdminPanorama(svHolder) {
+function AdminPanorama(svHolder, buttonHolder, admin) {
     var self = {
         className: "AdminPanorama",
         label: undefined,
         labelMarker: undefined,
         panoId: undefined,
-        panorama: undefined
+        panorama: undefined,
+        admin: admin
     };
 
     var icons = {
@@ -35,6 +37,7 @@ function AdminPanorama(svHolder) {
      * This function initializes the Panorama
      */
     function _init () {
+        self.buttonHolder = $(buttonHolder);
         self.svHolder = $(svHolder);
         self.svHolder.addClass("admin-panorama");
 
@@ -48,7 +51,28 @@ function AdminPanorama(svHolder) {
             height: self.svHolder.height()
         })[0];
 
+        self.panoNotAvailable = $("<div id='pano-not-avail'>Oops, our fault but there is no longer imagery available " +
+            "for this label.</div>").css({
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            top: '0',
+            'font-size': '200%'
+        })[0];
+
+        self.panoNotAvailableDetails =
+            $("<div id='pano-not-avail-2'>We use the Google Maps API to show the sidewalk images and sometimes Google" +
+                " removes these images so we can no longer access them. Sorry about that.</div>").css({
+            width: '95%',
+            height: '100%',
+            position: 'absolute',
+            top: '90px',
+            'font-size': '85%'
+        })[0];
+
         self.svHolder.append($(self.panoCanvas));
+        self.svHolder.append($(self.panoNotAvailable));
+        self.svHolder.append($(self.panoNotAvailableDetails));
 
         self.panorama = typeof google != "undefined" ? new google.maps.StreetViewPanorama(self.panoCanvas, { mode: 'html4' }) : null;
         self.panorama.addListener('pano_changed', function() {
@@ -64,7 +88,7 @@ function AdminPanorama(svHolder) {
 
         if (self.panorama) {
             self.panorama.set('addressControl', false);
-            self.panorama.set('clickToGo', true);
+            self.panorama.set('clickToGo', false);
             self.panorama.set('disableDefaultUI', true);
             self.panorama.set('linksControl', false);
             self.panorama.set('navigationControl', false);
@@ -74,6 +98,10 @@ function AdminPanorama(svHolder) {
             self.panorama.set('motionTracking', false);
             self.panorama.set('motionTrackingControl', false);
             self.panorama.set('showRoadLabels', false);
+
+            // Disable moving by clicking if on /labelmap, enable if on admin page.
+            if (admin) self.panorama.set('clickToGo', true);
+            else       self.panorama.set('clickToGo', false);
         }
 
         return this;
@@ -88,6 +116,14 @@ function AdminPanorama(svHolder) {
      */
     function setPano(panoId, heading, pitch, zoom) {
         if (typeof google != "undefined") {
+            self.panorama.registerPanoProvider(function(pano) {
+                if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
+                    return getCustomPanorama(pano);
+                }
+
+                return null;
+            });
+            
             self.svHolder.css('visibility', 'hidden');
             self.panoId = panoId;
 
@@ -100,14 +136,37 @@ function AdminPanorama(svHolder) {
             // causes the screen to go black.
             // This callback gives time for the pano to load for 500ms. Afterwards, we trigger a
             // resize and reset the POV/Zoom.
-            function callback () {
+            function callback (n) {
                 google.maps.event.trigger(self.panorama, 'resize');
                 self.panorama.set('pov', {heading: heading, pitch: pitch});
                 self.panorama.set('zoom', zoomLevel[zoom]);
                 self.svHolder.css('visibility', 'visible');
-                renderLabel(self.label);
+
+                // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we
+                // wait a full 2 seconds without getting a response from Google.
+                if (self.panorama.getStatus() === "OK" || self.panoId == 'tutorial' || self.panoId == 'afterWalkTutorial') {
+                    $(self.panoCanvas).css('visibility', 'visible');
+                    $(self.panoNotAvailable).css('visibility', 'hidden');
+                    $(self.panoNotAvailableDetails).css('visibility', 'hidden');
+                    $(self.buttonHolder).css('visibility', 'visible');
+                    renderLabel(self.label);
+                } else if (self.panorama.getStatus() === "ZERO_RESULTS") {
+                    $(self.panoNotAvailable).text('Oops, our fault but there is no longer imagery available for this label.');
+                    $(self.panoCanvas).css('visibility', 'hidden');
+                    $(self.panoNotAvailable).css('visibility', 'visible');
+                    $(self.panoNotAvailableDetails).css('visibility', 'visible');
+                    $(self.buttonHolder).css('visibility', 'hidden');
+                } else if (n < 1) {
+                    $(self.panoNotAvailable).text('We had trouble connecting to Google Street View, please try again later!');
+                    $(self.panoCanvas).css('visibility', 'hidden');
+                    $(self.panoNotAvailable).css('visibility', 'visible');
+                    $(self.panoNotAvailable).css('visibility', 'hidden');
+                    $(self.buttonHolder).css('visibility', 'hidden');
+                } else {
+                    setTimeout(callback, 100, n - 1);
+                }
             }
-            setTimeout(callback, 500);
+            setTimeout(callback, 100, 20);
         }
         return this;
     }
@@ -191,6 +250,16 @@ function AdminPanorama(svHolder) {
     }
 
     /**
+     * This calculates the heading and position for placing this Label onto the panorama from the same POV as when the
+     * user placed the label.
+     * @returns {{heading: number, pitch: number}}
+     */
+    function getOriginalPosition () {
+        return getPosition(self.label['canvasX'], self.label['canvasY'], self.label['originalCanvasWidth'],
+            self.label['originalCanvasHeight'], self.label['zoom'], self.label['heading'], self.label['pitch']);
+    }
+
+    /**
      * From panomarker spec
      * @param zoom
      * @returns {number}
@@ -201,11 +270,61 @@ function AdminPanorama(svHolder) {
             195.93 / Math.pow(1.92, zoom); // parameters determined experimentally
     }
 
+    /**
+     * TODO: Find a way to use the method in MapService.js to avoid copied code.
+     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
+     * tutorial view or the "after walk" view.
+     * @param pano - the pano ID/name of the wanted custom panorama.
+     * @returns custom Google Street View panorama.
+     * */
+    function getCustomPanorama(pano) {
+        if (pano === 'tutorial') {
+            return {
+                location: {
+                    pano: 'tutorial',
+                    latLng: new google.maps.LatLng(38.94042608, -77.06766133)
+                },
+                links: [{
+                    heading: 342,
+                    description: 'Exit',
+                    pano: "afterWalkTutorial"
+                }],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(2048, 1024),
+                    worldSize: new google.maps.Size(4096, 2048),
+                    centerHeading: 51,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return "/assets/javascripts/SVLabel/img/onboarding/tiles/tutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                    }
+                }
+            };
+        } else if (pano === 'afterWalkTutorial') {
+            return {
+                location: {
+                    pano: 'afterWalkTutorial',
+                    latLng: new google.maps.LatLng(38.94061618, -77.06768201)
+                },
+                links: [],
+                copyright: 'Imagery (c) 2010 Google',
+                tiles: {
+                    tileSize: new google.maps.Size(1700, 850),
+                    worldSize: new google.maps.Size(3400, 1700),
+                    centerHeading: 344,
+                    getTileUrl: function(pano, zoom, tileX, tileY) {
+                        return "/assets/javascripts/SVLabel/img/onboarding/tiles/afterwalktutorial/" + zoom + "-" + tileX + "-" + tileY + ".jpg";
+                    }
+                }
+            };
+        }
+    }
+
     //init
     _init();
 
     self.setPano = setPano;
     self.setLabel = setLabel;
     self.renderLabel = renderLabel;
+    self.getOriginalPosition = getOriginalPosition;
     return self;
 }

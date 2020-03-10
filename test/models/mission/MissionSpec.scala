@@ -24,11 +24,11 @@ import play.api.test.Helpers._
 //
 //
 ////      DB.withTransaction { implicit s: Session =>
-////        val originalLength = missions.list.size
+////        val originalLength = missions.length.run
 //////        missionId: Int, regionId: Option[Int], label: String, level: Int, distance: Option[Double], coverage: Option[Double], deleted: Boolean
 ////        val mission = Mission(-1, Some(-1), "Test Mission", 1, Some(1.0), Some(1.0), deleted=false)
 ////        missions.insert(mission)
-////        val length = missions.list.size
+////        val length = missions.length.run
 ////        (length - originalLength) shouldEqual 1
 ////
 ////        s.rollback

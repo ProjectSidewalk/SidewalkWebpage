@@ -8,11 +8,13 @@ function TaskFactory () {
     /**
      * Create a new task instance
      * @param geojson
+     * @param tutorialTask
      * @param lat
      * @param lng
+     * @param startPointReversed
      * @returns {svl.Task}
      */
-    this.create = function (geojson, lat, lng) {
-        return new Task(geojson, lat, lng);
+    this.create = function (geojson, tutorialTask, lat, lng, startPointReversed) {
+        return new Task(geojson, tutorialTask, lat, lng, startPointReversed);
     };
 }

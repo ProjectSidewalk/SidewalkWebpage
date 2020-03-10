@@ -6,7 +6,6 @@ import java.time.Instant
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory}
-import controllers.helper.LabelControllerHelper
 import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{Label, LabelTable, LabelType, LabelTypeTable}
@@ -117,7 +116,7 @@ class LabelTableSpec extends Specification  {
           )
           auditTaskInteractions ++= interactions
 
-          lazy val fetchedLabels = LabelControllerHelper._helpGetLabelsFromCurrentMission(1, uuid)
+          lazy val fetchedLabels = LabelTable.getLabelsFromCurrentAuditMission(1, uuid)
 
           fetchedLabels.length shouldEqual 1
           fetchedLabels.head shouldEqual label3

@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -20,62 +20,82 @@
     <script type="text/javascript" src='@routes.Assets.at("assets/detectUnsupportedBrowser.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
     <div class="container toolUI" style = "visibility: visible;">
-@*        TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.@
-@*        <div id="HIT-expiration-overlay">*@
-@*            <div class="overlay-text">*@
-@*                <div id="HIT-expiration-text">*@
-@*                    <p>*@
-@*                        <span class="overlay-header">Assignment Expired!</span>*@
-@*                    </p>*@
-@*                    <p>*@
-@*                        You should receive your bonus amount in the next day or two. If you completed the HIT but did*@
-@*                        not submit your confirmation code on the mturk website, send us an email at*@
-@*                        <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your*@
-@*                        confirmation code (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).*@
-@*                    </p>*@
-@*                </div>*@
-@*            </div>*@
-@*        </div>*@
+        <div id="HIT-expiration-overlay">
+            <div class="overlay-text">
+                <div id="HIT-expiration-text">
+                    <p>
+                        <span class="overlay-header">@Messages("turk.expired.title")</span>
+                    </p>
+                    <p>
+                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                    </p>
+                </div>
+            </div>
+        </div>
         <div id="svv-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
-@*                    TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.*@
-@*                    <div id="left-column-confirmation-code-button" class="button">*@
-@*                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon" align="">*@
-@*                        Mturk Code*@
-@*                    </div>*@
+                    <div id="left-column-confirmation-code-button" class="button">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")'  alt="Confirmation Code icon" align="">
+                        Mturk Code
+                    </div>
                     <div id="left-column-jump-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
-                        <br>Skip
+                        <br>@Messages("validate.left.ui.skip")
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
-                        Feedback
+                        @Html(Messages("validate.left.ui.feedback"))
                     </div>
                 </div>
             </div>
             <div id="upper-menu-holder">
                 <div id="upper-menu-title-bar"></div>
-                <div id="label-visibility-control-holder">
-                    <button id="label-visibility-control-button" class="button label-visibility-control-button" title="Press the &quot;H&quot; key" data-toggle="tooltip" data-placement="top">
+
+		<div id="label-visibility-control-holder">
+                    <button id="label-visibility-control-button" class="button label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVValidate/img/HideLabel.svg")' class="label-visibility-control-button-icon" alt="Hide Label">
-                        <br /><u>H</u>ide Label</button>
+                        <br/>@Html(Messages("validate.top.ui.hide.label"))</button>
                 </div>
+
                 <div id="zoom-control-holder">
-                    <button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">
+                    <button id="zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
-                        <br /><u>Z</u>oom In</button>
-                    <button id="zoom-out-button" class="button zoom-control-button" title="Press the &quot;Shift + Z&quot; keys" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>
+                        <br/>@Html(Messages("validate.top.ui.zoom.in"))</button>
+                    <button id="zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
+                        <br/>@Messages("validate.top.ui.zoom.out")</button>
                 </div>
             </div>
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama">
-
+                    <div id="svv-panorama-0" class="single-panorama">
+                        <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
+                            <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"><u>H</u>ide Label</button>
+                            <div id="label-description-box"></div>
+                        </div>
+                    </div>
+                    <div id="svv-panorama-date-holder-0" class="svv-panorama-date-holder">
+                        <span id="svv-panorama-date-0">no</span>
+                    </div>
+                    <div id="validation-button-holder-large">
+                        <button id="validation-agree-button-0" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
+                            @Html(Messages("validate.bottom.ui.agree"))
+                        </button>
+                        <button id="validation-disagree-button-0" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
+                            @Html(Messages("validate.bottom.ui.disagree"))
+                        </button>
+                        <button id="validation-not-sure-button-0" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
+                            @Html(Messages("validate.bottom.ui.not.sure"))
+                        </button>
                     </div>
                 </div>
             </div>
@@ -83,17 +103,14 @@
                 <div id="modal-comment-box">
                     <form id="comment-form">
                         <div id="modal-comment-title" class="bold">
-                            <p>
-                                Any thoughts? Found something confusing? Spotted a bug? <br />
-                                Send us comments!
-                            </p>
+                            <p>@Html(Messages("feedback.title"))</p>
                         </div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
                         </div>
                         <div>
-                            <button class="button" id="modal-comment-ok-button" type="button">OK</button>&nbsp;
-                            <button class="button" id="modal-comment-cancel-button" type="button">Cancel</button>
+                            <button class="button" id="modal-comment-ok-button" type="button">@Messages("ok")</button>&nbsp;
+                            <button class="button" id="modal-comment-cancel-button" type="button">@Messages("cancel")</button>
                         </div>
                     </form>
                 </div>
@@ -117,23 +134,24 @@
                     <h1 class="normal" id="modal-mission-complete-title"></h1>
                     <p><div id="modal-mission-complete-message"></div></p>
                     <div id="modal-mission-complete-table">
-                        <div class="col-sm-8">
-                            <h3>Category</h3>
+                        <div class="col-sm-10">
+                            <h3>@Messages("validate.mission.complete.category")</h3>
                             <table class="table">
                                 <tr>
-                                    <th>Agree</th>
+                                    <th>@Messages("validate.mission.complete.agree")</th>
                                     <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Disagree</th>
+                                    <th>@Messages("validate.mission.complete.disagree")</th>
                                     <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Not Sure</th>
+                                    <th>@Messages("validate.mission.complete.not.sure")</th>
                                     <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
                                 </tr>
                             </table>
-                            <button class="btn blue-btn" id="modal-mission-complete-close-button">Validate more labels</button>
+                            <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
+                            <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
                         </div>
                     </div>
                 </div>
@@ -143,12 +161,12 @@
                     <div class="status-row">
                         <span class="status-column-half">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Sidewalk/Icon_Other.png")' class="status-icon" alt="Total label count" align="">
-                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>labels</small></span>
+                            <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>
                 </div>
                 <div class="status-box">
-                    <h1>Current Mission</h1>
+                    <h1>@Messages("validate.right.ui.current.mission")</h1>
                     <h2 id="current-mission-description"></h2>
                     <div id='status-current-mission-completion-bar'>
                         <div id='status-current-mission-completion-bar-filler'>
@@ -184,79 +202,58 @@
                 <img id="example-image-popup">
                 <div id="example-image-popup-description"></div>
             </div>
-
-            <div id="validation-button-holder">
-                <button id="validation-agree-button" class="validation-button">
-                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
-                    <u>A</u>gree
-                </button>
-                <button id="validation-disagree-button" class="validation-button">
-                    <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
-                    <u>D</u>isagree
-                </button>
-                <button id="validation-not-sure-button" class="validation-button">
-                    <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
-                    <u>N</u>ot sure
-                </button>
-            </div>
             <div id="modal-comment-background"></div>
         </div>
-        <div id="mini-footer-audit">
-            Project Sidewalk is designed and operated by the
-            <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
-            <a href="http://www.umd.edu/">University of Maryland</a> and
-            <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-            <span id="application-version"></span>
-        </div>
-    </div>
 
+        <!-- footer code found in app/views/footer.scala.html -->
+        @footer()
+    </div>
 
     <script type="text/javascript">
         var svv = svv || {};
         var param = {};
 
         // Hide confirmation code if turker hasn't completed a mission.
-        // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
-@*        @if(user) {*@
-@*            @if(user.get.role.getOrElse("") == "Turker") {*@
-@*                svv.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";*@
-@*                svv.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);*@
-@*                svv.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";*@
-@*                @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {*@
-@*                    $("#left-column-confirmation-code-button").css('visibility', "hidden");*@
-@*                } else {*@
-@*                    $("#left-column-confirmation-code-button").css('visibility', "");*@
-@*                    $("#left-column-confirmation-code-button").attr('data-toggle','popover');*@
-@*                    $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');*@
-@*                    $("#left-column-confirmation-code-button").attr('data-content', svv.confirmationCode);*@
-@*                    $("#left-column-confirmation-code-button").popover();*@
+        @if(user) {
+            @if(user.get.role.getOrElse("") == "Turker") {
+                svv.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
+                svv.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
+                svv.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
+                @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
+                    $("#left-column-confirmation-code-button").css('visibility', 'hidden');
+                } else {
+                    $("#left-column-confirmation-code-button").css('visibility', "");
+                    $("#left-column-confirmation-code-button").attr('data-toggle','popover');
+                    $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")');
+                    $("#left-column-confirmation-code-button").attr('data-content', svv.confirmationCode);
+                    $("#left-column-confirmation-code-button").popover();
 
-@*                    //Hide the confirmation popover on clicking the background*@
-@*                    //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside*@
+                    //Hide the confirmation popover on clicking the background
+                    //https://stackoverflow.com/questions/11703093/how-to-dismiss-a-twitter-bootstrap-popover-by-clicking-outside
 
-@*                    $(document).on('click', function(e) {*@
-@*                        $("#left-column-confirmation-code-button").each(function () {*@
-@*                            //the 'is' for buttons that trigger popups*@
-@*                            //the 'has' for icons within a button that triggers a popup*@
-@*                            if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {*@
-@*                                (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false*@
-@*                            }*@
+                    $(document).on('click', function(e) {
+                        $("#left-column-confirmation-code-button").each(function () {
+                            //the 'is' for buttons that trigger popups
+                            //the 'has' for icons within a button that triggers a popup
+                            if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+                                (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+                            }
 
-@*                        });*@
-@*                    });*@
-@*                }*@
-@*                $("#current-mission-reward").show();*@
-@*                $("#total-mission-reward").show();*@
-@*                $("#modal-mission-reward-text").show();*@
-@*            } else {*@
-@*                $("#left-column-confirmation-code-button").css('visibility', "hidden");*@
-@*            }*@
-@*        } else{*@
-@*            $("#left-column-confirmation-code-button").css('visibility', "hidden");*@
-@*        }*@
+                        });
+                    });
+                }
+                $("#current-mission-reward").show();
+                $("#total-mission-reward").show();
+                $("#modal-mission-reward-text").show();
+            } else {
+                $("#left-column-confirmation-code-button").css('visibility', "hidden");
+            }
+        } else{
+            $("#left-column-confirmation-code-button").css('visibility', "hidden");
+        }
 
         // Store user object.
-        var userParam = {};
+        let userParam = {};
         @if(user) {
             userParam = {
                 username: '@user.get.username',
@@ -270,10 +267,10 @@
         }
         svv.user = new User(userParam);
 
-        var hitExpired = false;
+        let hitExpired = false;
         @if(user && user.get.role.getOrElse("") == "Turker") {
-            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
-            if (msRemaining < 0) {
+            let msRemainingInHIT = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
+            if (msRemainingInHIT < 0) {
                 hitExpired = true;
             }
         }
@@ -282,7 +279,13 @@
             $('#HIT-expiration-overlay').show();
         } else {
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
+            param.missionSetProgress = @missionSetProgress;
+            param.canvasHeight = 440;
+            param.canvasWidth = 720;
+            param.canvasCount = 1;
+            param.language = "@lang.language";
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
@@ -292,7 +295,7 @@
                 // Initializes an object of labels from label metadata.
                 // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
                 Object.keys(param.labelList).map(function (key, index) {
-                    var labelMetadata = {
+                    let labelMetadata = {
                         canvasHeight: param.labelList[key].canvas_height,
                         canvasWidth: param.labelList[key].canvas_width,
                         canvasX: param.labelList[key].canvas_x,
@@ -302,7 +305,11 @@
                         labelId: param.labelList[key].label_id,
                         labelType: param.labelList[key].label_type,
                         pitch: param.labelList[key].pitch,
-                        zoom: param.labelList[key].zoom
+                        zoom: param.labelList[key].zoom,
+                        severity: param.labelList[key].severity,
+                        temporary: param.labelList[key].temporary,
+                        description: param.labelList[key].description,
+                        tags: param.labelList[key].tags
                     };
                     param.labelList[key] = new Label(labelMetadata);
                 });

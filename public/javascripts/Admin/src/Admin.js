@@ -13,7 +13,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     var neighborhoodPolygonLayer;
 
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
         self.curbRampLayers[i] = [];
         self.missingCurbRampLayers[i] = [];
         self.obstacleLayers[i] = [];
@@ -62,21 +62,28 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
         choropleth.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
     L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     // Initialize the map
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon(map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{
                 "type": "Feature", "geometry": {
                     "type": "Polygon", "coordinates": [
-                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36], [-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                     ]
                 }
             }]
@@ -102,10 +109,17 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                url = "/audit/region/" + regionId,
+            var regionId = feature.properties.region_id;
+            var userCompleted = feature.properties.user_completed;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "???";
+
+            if (userCompleted) {
+                popupContent = "You already audited this entire neighborhood!";
+            } else {
                 popupContent = "Do you want to explore this area to find accessibility issues? " +
                     "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            }
             layer.bindPopup(popupContent);
             layers.push(layer);
 
@@ -189,12 +203,13 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                regionName = feature.properties.region_name,
-                compRate = -1.0,
-                milesLeft = -1.0,
-                url = "/audit/region/" + regionId,
-                popupContent = "???";
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var compRate = -1.0;
+            var milesLeft = -1.0;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "???";
             for (var i=0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     compRate = Math.round(rates[i].rate);
@@ -205,7 +220,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
-                    if (compRate === 100) {
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
+                            "Thanks for all your help!";
+                    } else if (compRate === 100) {
                         popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
                             "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
                             " to find accessibility issues in this neighborhood yourself!";
@@ -338,7 +356,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
-            // Create layers for each of the 35 different label-severity combinations
+            // Create layers for each of the 42 different label-severity combinations
             initializeAllLayers(data);
         });
     }
@@ -384,25 +402,31 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function initializeAllLayers(data) {
         for (var i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
-            if(labelType === "Occlusion" || labelType === "NoSidewalk"){
+            if (labelType === "Occlusion") {
                 // console.log(data.features[i]);
             }
-            if (data.features[i].properties.severity == 1) {
-                self.allLayers[labelType][0].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 2) {
+
+            if (data.features[i].properties.severity === 1) {
                 self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 3) {
+            } else if (data.features[i].properties.severity === 2) {
                 self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 4) {
+            } else if (data.features[i].properties.severity === 3) {
                 self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 5) {
+            } else if (data.features[i].properties.severity === 4) {
                 self.allLayers[labelType][4].push(data.features[i]);
+            } else if (data.features[i].properties.severity === 5) {
+                self.allLayers[labelType][5].push(data.features[i]);
+            } else { // No severity level
+                self.allLayers[labelType][0].push(data.features[i]);
             }
         }
 
         Object.keys(self.allLayers).forEach(function (key) {
             for (var i = 0; i < self.allLayers[key].length; i++) {
-                self.allLayers[key][i] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key][i]});
+                self.allLayers[key][i] = createLayer({
+                    "type": "FeatureCollection",
+                    "features": self.allLayers[key][i]
+                });
                 self.allLayers[key][i].addTo(map);
             }
         })
@@ -426,7 +450,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     function toggleLayers(label, checkboxId, sliderId) {
         if (document.getElementById(checkboxId).checked) {
-            if(checkboxId == "occlusion" || checkboxId == "nosidewalk"){
+            if(checkboxId == "occlusion"){
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])) {
                         map.addLayer(self.allLayers[label][i]);
@@ -436,11 +460,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             else {
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])
-                        && ($(sliderId).slider("option", "value") == i ||
-                        $(sliderId).slider("option", "value") == 5 )) {
+                        && ($(sliderId).slider("option", "values")[0] <= i &&
+                        $(sliderId).slider("option", "values")[1] >= i )) {
                         map.addLayer(self.allLayers[label][i]);
-                    } else if ($(sliderId).slider("option", "value") != 5
-                        && $(sliderId).slider("option", "value") != i) {
+                    } else if ($(sliderId).slider("option", "values")[0] > i
+                        || $(sliderId).slider("option", "values")[1] < i) {
                         map.removeLayer(self.allLayers[label][i]);
                     }
                 }
@@ -463,7 +487,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView();
+        self.adminGSVLabelView = AdminGSVLabelView(true);
     }
 
     function initializeAdminLabelSearch() {
@@ -596,7 +620,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
-            initializeOverlayPolygon(map);
             initializeNeighborhoodPolygons(map);
             initializeAuditedStreets(map);
             // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
@@ -656,9 +679,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+                var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
 
-                var subPlotHeight = 200;
-                var subPlotWidth = 199;
+                var subPlotHeight = 150;
+                var subPlotWidth = 149;
                 var chart = {
                     "hconcat": [
                         {
@@ -702,6 +726,17 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "Obstacle Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noSidewalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         }
@@ -1370,6 +1405,12 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
 
     $('.change-role').on('click', changeRole);
+
+    // Functionality for the legend's minimize button.
+    $('#map-legend-minimize-button').click(function() {
+        $("#legend-table").slideToggle(0);
+        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
+    });
 
     return self;
 }

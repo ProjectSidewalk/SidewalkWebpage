@@ -10,9 +10,10 @@ services:
     depends_on:
       - db
     volumes:
-      - "./:/opt/"
+      - "./:/opt"
+      - "/opt/node_modules"
     ports:
-      - "127.0.0.1:9000:9000"
+      - "9000:9000"
     environment:
       - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
 

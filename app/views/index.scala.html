@@ -3,7 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, cityId: String, otherCityURLs: List[(String, String)])
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String)])(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -23,21 +23,22 @@
         </div>
         <div class="container" id="banner">
             <div class="row" id="bigtext">
-
-
                 <div class="col-sm-3"></div>
                 <div class="col-sm-6" id="bannertext">
                     <p id="text">
-                        <span class="tagline">Let's create a path for everyone</span>
+                        <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">Start Exploring @cityShortName</a>
+                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
-                    <span class="header-text">We are also in:</span>
-                    @for((cityName, cityURL) <- otherCityURLs) {
+                    <span class="header-text">@Messages("landing.also.in")</span>
+                    @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "Mexico City, MX")) {
                         <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
-
+                    <br>
+                    @if(mapathonLink.isDefined) {
+                        <span class="header-text">@Html(Messages("landing.mapathon", cityShortName, mapathonLink.get))</span>
+                    }
                 </div>
                 <div class="col-sm-3"></div>
             </div>
@@ -51,28 +52,28 @@
         <div class="container" id="banner2" style="width: 100%;
             position: relative;">
             <div class="im-centered">
-                <div class="row">How you can help</div>
+                <div class="row">@Messages("landing.how.you.help")</div>
                 <br>
                 <div class="row" id="content-text-1">
                     <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
-                    Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
+                        @Messages("landing.how.you.help.content")
                     </div>
                         <br><br>
                     <div class="row" id="numbersrow">
                         <div class="col-sm-4" onclick="switchToVideo(1); autoAdvanceLaptop = false;">
                             <div id="firstnumbox">
-                            <span class="stepnumber" id="number1">01</span><br><span id="word1" class="stepword">EXPLORE</span>
+                            <span class="stepnumber" id="number1">01</span><br><span id="word1" class="stepword">@Messages("landing.how.you.help.explore")</span>
                             </div>
                         </div>
 
                         <div class="col-sm-4" onclick="switchToVideo(2); autoAdvanceLaptop = false;">
                             <div id="secondnumbox">
-                            <span class="stepnumber" id="number2">02</span><br><span id="word2" class="stepword">FIND PROBLEMS</span>
+                            <span class="stepnumber" id="number2">02</span><br><span id="word2" class="stepword">@Messages("landing.how.you.help.find")</span>
                             </div>
                             </div>
                         <div class="col-sm-4" onclick="switchToVideo(3); autoAdvanceLaptop = false;">
                             <div id="thirdnumbox">
-                            <span class="stepnumber" id="number3">03</span><br><span id="word3" class="stepword">ASSESS SEVERITY</span>
+                            <span class="stepnumber" id="number3">03</span><br><span id="word3" class="stepword">@Messages("landing.how.you.help.assess")</span>
                             </div>
                             </div>
                     </div>
@@ -152,9 +153,9 @@
         <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">
         <div id="videooverlay">
             <div id="videotext">
-                <span>What is Project Sidewalk?</span>
+                <span>@Messages("landing.video.title")</span>
                 <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
-                cursor: pointer;" onclick="playVideo()">Watch Now</span></span>
+                cursor: pointer;" onclick="playVideo()">@Messages("landing.video.watch")</span></span>
             </div>
         </div>
     </div>
@@ -162,18 +163,18 @@
     <div class="container" id="choropleth-container" style="width: 100%;
         position: relative;">
         <div class="im-centered3">
-            <div class="row">Pick a Neighborhood</div>
+            <div class="row">@Messages("landing.choropleth.title")</div>
             <br>
             <div class="row" id="content-text-1">
                 <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
-                    You are automatically assigned a neighborhood when you click 'Start Exploring', but you can also choose one by clicking on a region below!
+                    @Messages("landing.choropleth.content")
                 </div>
             </div>
         </div>
         <br>
         <div id="map-holder">
             <div id="legend" style="display:none;">
-                <strong style="font-size: 18px">Percent of Neighborhood Complete</strong>
+                <strong style="font-size: 18px">@Messages("landing.choropleth.legend")</strong>
                 <nav class='legend clearfix'>
                     <span style='background:#03152f;width:9.09%'></span>
                     <span style='background:#08306b;width:9.09%'></span>
@@ -196,35 +197,35 @@
     </div>
     <div class="container" id="difference-container">
         <div id="dcanim-div">
-            <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")" width="1400" style="position:relative;">
+            <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
         </div>
         <div class="im-centered5">
-            <div class="row" style="margin: 0 auto; width: 450px;">Your work is making a difference</div>
+            <div class="row" style="margin: 0 auto; width: 450px;">@Messages("landing.stats.title")</div>
             <div class="row" id="content-text-2">
                 <p id="conditional-text">Keep Mapping!</p>
             </div>
             <a id="exploreButton" href="@routes.ApplicationController.results">
-                See results</a>
+                @Messages("navbar.results")</a>
             <br><br><br><br><br><br><br><br>
             <div id="numberholder">
                 <div class="row" id="anim-numbers">
-                    <div class="col-sm-4 hidden-xs"><span id="percentage">45</span></div>
-                    <div class="col-sm-4 hidden-xs"><span id="nummiles">45</span></div>
-                    <div class="col-sm-4 hidden-xs"><span id="numlabels">36,583</span></div>
-
+                    <div class="col-md-3 col-sm-4"><span id="percentage">45</span></div>
+                    <div class="col-md-3 col-sm-4"><span id="nummiles">45</span></div>
+                    <div class="col-md-3 col-sm-4"><span id="numlabels">36,583</span></div>
+                    <div class="col-md-3 hidden-sm"><a href="/validate"><span id="numvalidation">123,583</span></a></div>
                 </div>
                 <br>
                 <div class="row" id="anim-labels">
-                    <div class="col-sm-4 hidden-xs">of @cityShortName mapped</div>
-                    <div class="col-sm-4 hidden-xs">miles covered</div>
-                    <div class="col-sm-4 hidden-xs">labels</div>
-
+                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.percent", cityShortName)</div>
+                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.distance")</div>
+                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.labels")</div>
+                    <div class="col-md-3 hidden-sm"><a href="/validate">@Messages("landing.stats.validations")</a></div>
                 </div>
 
             </div>
             <script language="javascript">
-                    if(@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))<100){
-                        document.getElementById('conditional-text').innerHTML = "Users like you have already mapped @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of @cityName, @stateAbbreviation&mdash;that's @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))% of the city!";
+                    if(@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))<100) {
+                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%.0f".format(StreetEdgeTable.auditedStreetDistance(1)), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
                     } else {
                         document.getElementById('conditional-text').innerHTML = "We did it! Users like you have mapped all @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of @cityName, @stateAbbreviation. However, we are not done. The more users who contribute, the better quality data. So start exploring today!";
                     }
@@ -232,6 +233,7 @@
                     var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
                     var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
                     var milesAnim = new CountUp("nummiles", 0, @("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))),1,2.5,{suffix:''});
+                    var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
             </script>
         </div>
     </div>
@@ -240,10 +242,8 @@
     <div class="container" id="machinelearning-container">
 
             <div class="im-centered3">
-                <div class="row" style="width: 450px;">What we do with your labels</div>
-                <div class="row" id="content-text-4">
-                    <p>Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.</p>
-                </div>
+                <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
+                <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
                 <br>
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" >
             </div>
@@ -256,7 +256,7 @@
     <div class="container" id="quotebox-container" style="min-height: 500px;">
         <div id="quotearea">
             <div class="im-centered3">
-                <div class="row">What people <br>are saying</div>
+                <div class="row">@Html(Messages("landing.what.people.are.saying"))</div>
             </div>
             <div class="row" style="padding-top: 40px;">
                 <div class="col-sm-6">
@@ -280,9 +280,7 @@
     </div>
     <div class="container" id="press-container">
         <div class="im-centered3">
-            <div class="row" ><br>Press<br></div>
-
-
+            <div class="row" ><br>@Messages("landing.press.title")<br></div>
         </div>
 
     </div>

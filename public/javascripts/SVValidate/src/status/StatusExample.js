@@ -5,14 +5,15 @@
  * @constructor
  */
 function StatusExample (statusUI) {
-    var self = this;
-    var labelType = undefined;
-    var labelName = undefined;
-    var examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
-    var counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';
+    let self = this;
+    let labelType = undefined;
+    let labelName = undefined;
+    let examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
+    let counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
-    $(".example-image").on('mouseover', _showExamplePopup);
-    $(".example-image").on('mouseout', _hideExamplePopup);
+    let exampleImage = $(".example-image");
+    exampleImage.on('mouseover', _showExamplePopup);
+    exampleImage.on('mouseout', _hideExamplePopup);
 
 
     /**
@@ -32,7 +33,7 @@ function StatusExample (statusUI) {
     }
 
     function _setPopupDescription (id) {
-        var description = undefined;
+        let description = undefined;
 
         switch (labelType) {
             case "CurbRamp":
@@ -83,19 +84,24 @@ function StatusExample (statusUI) {
      * @private
      */
     function _setPopupTitle (id) {
-        var prefix = svv.statusField.createPrefix(labelType);
         if (id.includes("counterexample")) {
-            statusUI.popupTitle.html("Not " + prefix + labelName);
-            statusUI.popup.css('top', '118px');
+            statusUI.popupTitle.html(i18next.t('right-ui-incorrect-' + labelType));
+            statusUI.popup.css('top', '208px');
         } else {
-            statusUI.popupTitle.html(labelName);
-            statusUI.popup.css('top', '-98px');
+            statusUI.popupTitle.html(i18next.t('right-ui-correct-' + labelType));
+            statusUI.popup.css('top', '-8px');
         }
     }
 
+    /**
+     * Handles mouseover events on examples/counterexamples. Displays an popup that shows an image
+     * of the label that was either correctly/incorrectly placed and a brief accompanying
+     * description.
+     * @private
+     */
     function _showExamplePopup() {
-        var imageSource = $(this).attr("src");
-        var id = $(this).attr("id");
+        let imageSource = $(this).attr("src");
+        let id = $(this).attr("id");
         statusUI.popupImage.attr('src', imageSource);
 
         _setPopupDescription(id);
@@ -106,8 +112,8 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Updates images that shows label counter-examples.
-     * @param labelType Type of label being displayed on the interface.
+     * Updates images that shows label counter-examples. Paths for label examples are found at:
+     * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeExampleX.png
      * @private
      */
     function _updateCounterExamples () {
@@ -118,8 +124,8 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Updates images that show label examples.
-     * @param labelType being displayed on the interface.
+     * Updates images that show label examples. Paths for label examples are found at:
+     * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeCounterExampleX.png
      * @private
      */
     function _updateExamples () {

@@ -12,10 +12,10 @@ import play.api.test._
 //      val missionUsers = TableQuery[MissionUserTable]
 //
 //      DB.withTransaction { implicit s: Session =>
-//        val originalLength = missionUsers.list.size
+//        val originalLength = missionUsers.length.run
 //        val missionUser = MissionUser(-1, -1, "Test")
 //        missionUsers.insert(missionUser)
-//        val length = missionUsers.list.size
+//        val length = missionUsers.length.run
 //        (length - originalLength) shouldEqual 1
 //
 //        s.rollback
@@ -26,10 +26,10 @@ import play.api.test._
 //      val missionUsers = TableQuery[MissionUserTable]
 //
 //      DB.withTransaction { implicit s: Session =>
-////        val originalLength = missionUsers.list.size
+////        val originalLength = missionUsers.length.run
 ////
 ////        // I have not inserted anything yet, so matchedSize should be zero
-////        val size1: Int = missionUsers.filter(m => m.missionId === -1 && m.userId.toString == "Test").list.size
+////        val size1: Int = missionUsers.filter(m => m.missionId === -1 && m.userId.toString == "Test").length.run
 ////        size1 shouldEqual 0
 ////        MissionUserTable.exists(-1, "Test") shouldEqual false
 ////

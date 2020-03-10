@@ -1,13 +1,17 @@
 function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
-    var self = this;
-    var properties = {
+    let self = this;
+    let properties = {
         clickable: false
     };
-    var watch;
+    let watch;
 
-    function _handleButtonClick() {
-        svv.tracker.push("ClickOk_MissionComplete");
-        self.hide();
+    function _handleButtonClick(event) {
+        // If they've done three missions and clicked the audit button, load the audit page.
+        if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !isMobile()) {
+            window.location.replace('/audit');
+        } else {
+            self.hide();
+        }
     }
 
     function getProperty(key) {
@@ -19,10 +23,19 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * first label has been loaded onto the screen.
      */
     function hide () {
-        uiModalMissionComplete.closeButton.off('click');
+        // Have to remove the effect since keyup event did not go through (but no keyboard use on /rapidValidate).
+        if (svv.keyboard) {
+            svv.keyboard.removeAllKeyPressVisualEffect();
+            svv.keyboard.enableKeyboard();
+        }
+
+        uiModalMissionComplete.closeButtonPrimary.off('click');
+        uiModalMissionComplete.closeButtonSecondary.off('click');
         uiModalMissionComplete.background.css('visibility', 'hidden');
         uiModalMissionComplete.holder.css('visibility', 'hidden');
         uiModalMissionComplete.foreground.css('visibility', 'hidden');
+        uiModalMissionComplete.closeButtonPrimary.css('visibility', 'hidden');
+        uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
     }
 
     function setProperty(key, value) {
@@ -35,31 +48,39 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
      * @param mission   Object for the mission that was just completed.
      */
     function show (mission) {
-        svv.keyboard.disableKeyboard();
-        var totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
+        // Disable keyboard on /validate (/rapidValidate doesn't have keyboard shortcuts right now).
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
+        let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
-        var message = "You just validated " + totalLabels + " " +
-            svv.labelTypeNames[mission.getProperty("labelTypeId")] + " labels!";
+        let message = i18next.t('mission-complete-body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
 
-        // Disable user from clicking the "Validate next mission" button and set background to gray
-        uiModalMissionComplete.closeButton.css('background', '#7f7f7f');
-        uiModalMissionComplete.closeButton.css('cursor', 'wait');
+        // Disable user from clicking the "Validate next mission" button and set background to gray.
+        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
+        uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
+        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
+        uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
 
-        // Wait until next mission has been loaded before allowing the user to click the button
+        // Wait until next mission has been loaded before allowing the user to click the button.
         clearInterval(watch);
         watch = window.setInterval(function () {
             if (getProperty('clickable')) {
-                // Enable button clicks, change the background to blue
-                uiModalMissionComplete.closeButton.css('background', '#3182bd');
-                uiModalMissionComplete.closeButton.css('cursor', 'pointer');
-                uiModalMissionComplete.closeButton.on('click', _handleButtonClick);
+                // Enable button clicks, reset the CSS for primary/secondary close buttons.
+                uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
+                uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
+                uiModalMissionComplete.closeButtonPrimary.on('click', { button: 'primary' }, _handleButtonClick);
+                uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
+                uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
+                uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, _handleButtonClick);
+                if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
                 setProperty('clickable', false);
                 clearInterval(watch);
             }
         }, 100);
 
         uiModalMissionComplete.background.css('visibility', 'visible');
-        uiModalMissionComplete.missionTitle.html("Great Job!");
+        uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete-title'));
         uiModalMissionComplete.message.html(message);
         uiModalMissionComplete.agreeCount.html(mission.getProperty("agreeCount"));
         uiModalMissionComplete.disagreeCount.html(mission.getProperty("disagreeCount"));
@@ -67,15 +88,39 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
 
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
-        uiModalMissionComplete.closeButton.html('Validate more labels');
+
+        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop). If they
+        // are a turker, only give them the option to audit. O/w let them choose b/w auditing and validating.
+        if (svv.missionsCompleted % 3 === 0 && !isMobile()) {
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-explore'));
+            uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
+
+            if (user.getProperty('role') === 'Turker') {
+                uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
+            } else {
+                uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
+                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete-continue'));
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
+                uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
+            }
+        } else {
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-validate-more'));
+            uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
+            uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
+
+            uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
+        }
+        if (isMobile()) uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
         // TODO this code was removed for issue #1693, search for "#1693" and uncomment all later.
         // If this is a turker and the confirmation code button hasn't been shown yet, mark amt_assignment as complete
-        // and reveal the confirmation code.
+        // and reveal the confirmation code. Take care to handle the mobile use case when this is added back in.
+
         // if (user.getProperty('role') === 'Turker' && confirmationCode.css('visibility') === 'hidden') {
         //     _markAmtAssignmentAsComplete();
         //     _showConfirmationCode();
-        //     var confirmationCodeElement = document.createElement("h3");
+        //     let confirmationCodeElement = document.createElement("h3");
         //     confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
         //         "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
         //         "Confirmation Code: " +
@@ -84,10 +129,20 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         //     confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
         //     uiModalMissionComplete.message.append(confirmationCodeElement);
         // }
+
+        svv.tracker.push(
+            "MissionComplete",
+            {
+                missionId: mission.getProperty("missionId"),
+                missionType: mission.getProperty("missionType"),
+                labelTypeId: mission.getProperty("labelTypeId"),
+                labelsValidated: mission.getProperty("labelsValidated")
+            }
+        );
     }
 
     function _markAmtAssignmentAsComplete() {
-        var data = {
+        let data = {
             amt_assignment_id: svv.amtAssignmentId,
             completed: true
         };
@@ -110,7 +165,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
     // function _showConfirmationCode() {
     //     confirmationCode.css('visibility', "");
     //     confirmationCode.attr('data-toggle','popover');
-    //     confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+    //     confirmationCode.attr('title', i18next.t('common:left-ui-turk-submit-code'));
     //     confirmationCode.attr('data-content', svv.confirmationCode);
     //     confirmationCode.popover();
     //

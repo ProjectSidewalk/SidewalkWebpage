@@ -55,36 +55,38 @@
                                 <th>Today</th>
                                 <th>Yesterday</th>
                             </tr>
+
                             <tr>
-                                <th>Total Users</th>
-                                <th>@UserDAOImpl.countAllUsersContributed(false) (@UserDAOImpl.countAllUsersContributed(true))</th>
-                                <th>@UserDAOImpl.countAllUsersContributedToday</th>
-                                <th>@UserDAOImpl.countAllUsersContributedYesterday</th>
+                                <th>Total Audit Users</th>
+                                <th>@UserDAOImpl.countAllAuditUsersContributed(false) (@UserDAOImpl.countAllAuditUsersContributed(true))</th>
+                                <th>@UserDAOImpl.countAllAuditUsersContributedToday</th>
+                                <th>@UserDAOImpl.countAllAuditUsersContributedYesterday</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countUsersContributed(List("Registered"), false) (@UserDAOImpl.countUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOImpl.countUsersContributedToday("Registered")</td>
-                                <td>@UserDAOImpl.countUsersContributedYesterday("Registered")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributed(List("Registered"), false) (@UserDAOImpl.countAuditUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedToday("Registered")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Registered")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOImpl.countUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOImpl.countUsersContributedYesterday("Anonymous")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Anonymous")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOImpl.countUsersContributed(List("Turker"), false) (@UserDAOImpl.countUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOImpl.countUsersContributedToday("Turker")</td>
-                                <td>@UserDAOImpl.countUsersContributedYesterday("Turker")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributed(List("Turker"), false) (@UserDAOImpl.countAuditUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedToday("Turker")</td>
+                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Turker")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOImpl.countResearchersContributed(false) (@UserDAOImpl.countResearchersContributed(true))</td>
-                                <td>@UserDAOImpl.countResearchersContributedToday</td>
-                                <td>@UserDAOImpl.countResearchersContributedYesterday</td>
+                                <td>@UserDAOImpl.countAuditResearchersContributed(false) (@UserDAOImpl.countAuditResearchersContributed(true))</td>
+                                <td>@UserDAOImpl.countAuditResearchersContributedToday</td>
+                                <td>@UserDAOImpl.countAuditResearchersContributedYesterday</td>
                             </tr>
+
                             <tr>
                                 <th>Total Labels</th>
                                 <th>@LabelTable.countLabels</th>
@@ -134,6 +136,44 @@
                                 <td>@LabelTable.countYesterdayLabelsBasedOnType("Occlusion")</td>
                             </tr>
 
+                            <tr>
+                                <th>Audits</th>
+                                <th>@AuditTaskTable.countCompletedAudits</th>
+                                <th>@AuditTaskTable.countCompletedAuditsToday</th>
+                                <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
+                            </tr>
+
+                            <tr>
+                                <th>Total Validation Users</th>
+                                <th>@UserDAOImpl.countAllValidationUsersContributed(false) (@UserDAOImpl.countAllValidationUsersContributed(true))</th>
+                                <th>@UserDAOImpl.countAllValidationUsersContributedToday</th>
+                                <th>@UserDAOImpl.countAllValidationUsersContributedYesterday</th>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Registered</td>
+                                <td>@UserDAOImpl.countValidationUsersContributed(List("Registered"), false) (@UserDAOImpl.countValidationUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedToday("Registered")</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Registered")</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Anonymous</td>
+                                <td>@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Anonymous")</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Turkers</td>
+                                <td>@UserDAOImpl.countValidationUsersContributed(List("Turker"), false) (@UserDAOImpl.countValidationUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedToday("Turker")</td>
+                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Turker")</td>
+                            </tr>
+                            <tr style="font-size: 90%;">
+                                <td style="padding-left: 30px">Researchers</td>
+                                <td>@UserDAOImpl.countValidationResearchersContributed(false) (@UserDAOImpl.countValidationResearchersContributed(true))</td>
+                                <td>@UserDAOImpl.countValidationResearchersContributedToday</td>
+                                <td>@UserDAOImpl.countValidationResearchersContributedYesterday</td>
+                            </tr>
+
                             <tr style="font-size: 90%;">
                                 <th>Total Validations</th>
                                 <td>@LabelValidationTable.countValidations</td>
@@ -161,17 +201,11 @@
                                 <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
                                 <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
                             </tr>
-
-                            <tr>
-                                <th>Audits</th>
-                                <th>@AuditTaskTable.countCompletedAudits</th>
-                                <th>@AuditTaskTable.countCompletedAuditsToday</th>
-                                <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
-                            </tr>
                         </table>
-                        <sup>*</sup>Numbers in the parenthesis represent #users who have completed at least 1 task <br/>
-                        Numbers outside the parenthesis represent total #users who opened the audit tool
-                        regardless of finishing a task
+                        <sup>*</sup>Number of users in the parentheses represent #users who have completed at least 1
+                        audit task (in the case of # of audit users) or have validated at least one label (in the case
+                        of # of validation users). Numbers outside the parenthesis represent total #users who opened
+                        the audit tool regardless of finishing a task.
                     </div>
                     <div class="col-lg-5">
                         <h1>Coverage</h1>
@@ -260,7 +294,8 @@
                                 <th class="col-md-2">Username</th>
                                 <th class="col-md-3" data-class-name="priority">Timestamp</th>
                                 <th class="col-md-2">Panorama Id</th>
-                                <th class="col-md-5">Comment</th>
+                                <th class="col-md-1">Interface</th>
+                                <th class="col-md-4">Comment</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -268,8 +303,9 @@
                             <tr>
                                 <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
                                 </td>
-                                <td>@comment.timestamp</td>
+                                <td class = 'timestamp'>@comment.timestamp</td>
                                 <td>@comment.gsvPanoramaId</td>
+                                <td>@comment.commentType</td>
                                 <td>@comment.comment</td>
                             </tr>
                             }
@@ -284,7 +320,11 @@
                         <div id="map-holder">
                             <div id="admin-map"></div>
                             <div id="map-label-legend">
-                                <table class="table filter">
+                                <div id="map-legend-title-holder">
+                                    <label id="map-legend-title">Legend</label>
+                                    <button id="map-legend-minimize-button" class="close">-</button>
+                                </div>
+                                <table class="table filter" id="legend-table">
                                     <tr>
                                         <td></td>
                                         <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
@@ -295,7 +335,7 @@
                                         <td width="190px">Curb Ramp</td>
                                         <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
                                         <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
-                                        <td width="60px" align= "center" ><span id="curb-ramp-severity-label">All</span></td>
+                                        <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
 
                                     </tr>
                                     <tr>
@@ -303,32 +343,34 @@
                                         <td>Missing Curb Ramp</td>
                                         <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
                                         <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="missing-curb-ramp-severity-label">All</span></td>
+                                        <td align= "center"><span id="missing-curb-ramp-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-obstacle"></td>
                                         <td>Obstacle in Path</td>
                                         <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
                                         <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="obstacle-severity-label">All</span></td>
+                                        <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr><td id="map-legend-surface-problem"></td>
                                         <td>Surface Problem</td>
                                         <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
                                         <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
-                                        <td align="center"><span id="surface-problem-severity-label">All</span></td>
+                                        <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-nosidewalk"></td>
                                         <td>No Sidewalk</td>
                                         <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
+                                        <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
+                                        <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-other"></td>
                                         <td>Other</td>
                                         <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
                                         <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
-                                        <td align= "center"><span id="other-severity-label">All</span></td>
+                                        <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-occlusion"></td>
@@ -613,7 +655,7 @@
                                     <tr>
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
-                                        <td>@label.timestamp</td>
+                                        <td class = 'timestamp'>@label.timestamp</td>
                                         <td>@label.labelTypeKey</td>
                                         <td>@label.severity</td>
                                         <td>@label.temporary</td>
@@ -687,8 +729,8 @@
                                 <td>@("%.0f".format(u.ownValidatedUnsurePct * 100))%</td>
                                 <td>@u.othersValidated</td>
                                 <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
-                                <td>@u.signUpTime</td>
-                                <td>@u.lastSignInTime</td>
+                                <td class = 'timestamp'>@u.signUpTime</td>
+                                <td class = 'timestamp'>@u.lastSignInTime</td>
                                 <td>@u.signInCount</td>
                             </tr>
                             }
@@ -733,6 +775,8 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
@@ -742,7 +786,7 @@
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 
 <script>
-        var labelArr = new Array(1, 2, 3, 4, 5, "All");
+        var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
         var sliderToLabelMap = {};
         sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
         sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
@@ -754,12 +798,17 @@
 
         $( "*[id*='slider']" ).each(function() {
             $(this).slider({
+                range: true,
                 min : 0,
                 max : 5,
                 step: 1,
-                value: 5,
+                values: [0,5],
                 slide: function(event, ui) {
-                    $(sliderToLabelMap[this.id]).text(labelArr[ui.value]);
+                    if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
+                    } else {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
+                    }
                 },
                 change: function(event,ui) {
                     if (this.id == "curb-ramp-slider") {

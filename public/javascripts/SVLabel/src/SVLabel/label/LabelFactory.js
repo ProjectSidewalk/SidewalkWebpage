@@ -3,8 +3,8 @@
  * @param svl Todo. Try to get rid of svl dependency
  * @constructor
  */
-function LabelFactory (svl) {
-    var temporaryLabelId = 1;
+function LabelFactory (svl, nextTemporaryLabelId) {
+    var temporaryLabelId = nextTemporaryLabelId ? nextTemporaryLabelId : 1;
 
     this.create = function (path, param) {
         if (path) {

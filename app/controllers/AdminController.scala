@@ -1,6 +1,7 @@
 package controllers
 
 import java.util.UUID
+
 import javax.inject.Inject
 import java.net.URLDecoder
 
@@ -13,7 +14,7 @@ import formats.json.UserRoleSubmissionFormats._
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.label.LabelTable.LabelMetadata
+import models.label.LabelTable.LabelMetadataWithValidation
 import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -77,10 +78,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // JSON APIs
 
   /**
-    * Get a list of all labels
-    *
-    * @return
-    */
+   * Get a list of all labels
+   *
+   * @return
+   */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
@@ -100,6 +101,27 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     } else {
       Future.successful(Redirect("/"))
     }
+  }
+
+  /**
+   * Get a list of all labels
+   *
+   * @return
+   */
+  def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
+    val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
+    val features: List[JsObject] = labels.map { label =>
+      val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
+      val properties = Json.obj(
+        "label_id" -> label.labelId,
+        "gsv_panorama_id" -> label.gsvPanoramaId,
+        "label_type" -> label.labelType,
+        "severity" -> label.severity
+      )
+      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
+    }
+    val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
+    Future.successful(Ok(featureCollection))
   }
 
   /**
@@ -330,17 +352,37 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+  /**
+   * Get metadata for a given label ID (for admins; includes personal identifiers like username).
+   * @param labelId
+   * @return
+   */
+  def getAdminLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       LabelPointTable.find(labelId) match {
         case Some(labelPointObj) =>
-          val labelMetadata: LabelMetadata = LabelTable.getLabelMetadata(labelId)
-          val labelMetadataJson: JsObject = LabelTable.labelMetadataToJson(labelMetadata)
+          val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+          val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
       }
     } else {
       Future.successful(Redirect("/"))
+    }
+  }
+
+  /**
+   * Get metadata for a given label ID (excludes personal identifiers like username).
+   * @param labelId
+   * @return
+   */
+  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+    LabelPointTable.find(labelId) match {
+      case Some(labelPointObj) =>
+        val labelMetadata: LabelMetadataWithValidation = LabelTable.getLabelMetadata(labelId)
+        val labelMetadataJson: JsObject = LabelTable.labelMetadataWithValidationToJson(labelMetadata)
+        Future.successful(Ok(labelMetadataJson))
+      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
     }
   }
 
@@ -379,7 +421,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     val validationCounts = LabelValidationTable.getValidationCountsPerUser
 
     val json = Json.arr(validationCounts.map(x => Json.obj(
-      "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
+      "user_id" -> x._1, "role" -> x._2, "count" -> x._4, "agreed" -> x._5
     )))
     Future.successful(Ok(json))
   }

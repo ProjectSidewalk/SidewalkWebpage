@@ -19,9 +19,8 @@ function KeyboardShortcutAlert(alertHandler) {
             if ('text' in labelDescription && 'shortcut' in labelDescription) {
                 var labelText = util.misc.getLabelDescriptions(labelType)['text'];
                 var labelKeyboardChar = util.misc.getLabelDescriptions(labelType)['shortcut']['keyChar'];
-
-                alertHandler.showAlert('You can also press the <kbd>'+ labelKeyboardChar +'</kbd> key for selecting the "' +
-                    labelText + '" label.', labelType, true);
+// i18next.t('popup.label-shortcuts-' + labelType, {key: util.misc.getLabelDescriptions(labelType)['shortcut']['keyChar'])})
+                alertHandler.showAlert(i18next.t('popup.label-shortcuts-' + labelType, {key: util.misc.getLabelDescriptions(labelType)['shortcut']['keyChar']}), labelType, true);
                 self['clickCount'][labelType] = 0;
             }
         }
