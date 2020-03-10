@@ -84,12 +84,11 @@ function StatusExample (statusUI) {
      * @private
      */
     function _setPopupTitle (id) {
-        let prefix = svv.statusField.createPrefix(labelType);
         if (id.includes("counterexample")) {
-            statusUI.popupTitle.html("Not " + prefix + labelName);
+            statusUI.popupTitle.html(i18next.t('right-ui-incorrect-' + labelType));
             statusUI.popup.css('top', '208px');
         } else {
-            statusUI.popupTitle.html(labelName);
+            statusUI.popupTitle.html(i18next.t('right-ui-correct-' + labelType));
             statusUI.popup.css('top', '-8px');
         }
     }

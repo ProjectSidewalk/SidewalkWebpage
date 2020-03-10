@@ -24,7 +24,7 @@ function OverlayMessageBox (modalModel, uiOverlayMessage) {
         var labelTypes = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
 
         if (labelTypes.indexOf(labelType) >= 0) {
-            $helpLink.html("<span val='" + labelType + "'>Explain this!</span>");
+            $helpLink.html("<span val='" + labelType + "'>" + i18next.t('top-ui-instruction-explain') + "</span>");
         } else {
             $helpLink.html("");
         }

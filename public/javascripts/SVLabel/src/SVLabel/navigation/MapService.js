@@ -326,7 +326,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /*
        Disable walking thoroughly and indicate that user is moving.
      */
-    function timeoutWalking(){
+    function timeoutWalking() {
         svl.panorama.set('linksControl', false);
         svl.keyboard.setStatus("disableKeyboard", true);
         disableWalking();
@@ -335,7 +335,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /*
      Enable walking and indicate that user has finished moving.
      */
-    function resetWalking(){
+    function resetWalking() {
         svl.panorama.set('linksControl', true);
         svl.keyboard.setStatus("disableKeyboard", false);
         enableWalking();
@@ -346,14 +346,14 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /*
      * Get the status of the labelBeforeJump listener
      */
-    function getLabelBeforeJumpListenerStatus(){
+    function getLabelBeforeJumpListenerStatus() {
         return status.labelBeforeJumpListenerSet;
     }
 
     /*
      * Set the status of the labelBeforeJump listener
      */
-    function setLabelBeforeJumpListenerStatus(statusToSet){
+    function setLabelBeforeJumpListenerStatus(statusToSet) {
         status.labelBeforeJumpListenerSet = statusToSet;
     }
 
@@ -401,17 +401,17 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (distance > 0.1) {
             self.setPosition(lat, lng, callback);
 
-            if(caller === "jumpImageryNotFound"){
+            if (caller === "jumpImageryNotFound") {
                 status.jumpImageryNotFoundStatus = true;
             }
         } else {
-            if(caller === "jumpImageryNotFound"){
+            if (caller === "jumpImageryNotFound") {
                 status.jumpImageryNotFoundStatus = false;
             }
         }
 
         /*
-        if (status.labelBeforeJumpListenerSet){
+        if (status.labelBeforeJumpListenerSet) {
             setLabelBeforeJumpListenerStatus(false);
             if ("compass" in svl) {svl.compass.update();}
         }*/
@@ -638,7 +638,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @param heading
      * @param round
      */
-    function findPanoramaWhereImageryExists(currentPosition, heading, round){
+    function findPanoramaWhereImageryExists(currentPosition, heading, round) {
         // Loop through 3 steps from the current position
         // and find if panorama exists. If no panorama found,
         // then skip to a random location within the neighborhood
@@ -675,7 +675,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                         console.error("[" + rId + "]\nPano:" + getPanoId() + " Panorama not found at location: " + JSON.stringify(newLatLng));
                         svl.tracker.push("PanoId_NotFound", {'Location': JSON.stringify(newLatLng)});
 
-                        if (round < 3){
+                        if (round < 3) {
                             findPanoramaWhereImageryExists(newLatLng, newHeading, round + 1);
                         } else {
                             jumpImageryNotFound();
@@ -689,7 +689,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function _jumpToNewTask(task, caller) {
         svl.taskContainer.setCurrentTask(task);
-        if (caller === undefined){
+        if (caller === undefined) {
             moveToTheTaskLocation(task);
         }
         else {
@@ -747,12 +747,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _jumpToNewLocation();
             var afterJumpStatus = status.jumpImageryNotFoundStatus;
 
-            if (!afterJumpStatus){
+            if (!afterJumpStatus) {
                 // Find another location
                 _jumpToNewLocation();// Reset variable after the jump
                 status.jumpImageryNotFoundStatus = undefined;
             }
-            else{
+            else {
                 // Reset variable after the jump
                 status.jumpImageryNotFoundStatus = undefined;
             }
@@ -868,7 +868,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
     }
 
-    function finishCurrentTaskBeforeJumping(mission){
+    function finishCurrentTaskBeforeJumping(mission) {
         if (mission === undefined) {
             mission = missionJump;
         }
@@ -929,7 +929,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // before jumping and checks if too far
 
         // Don't auto-jump in CV ground truth audits.
-        if(svl.isCVGroundTruthAudit) {
+        if (svl.isCVGroundTruthAudit) {
             return;
         }
 
@@ -950,17 +950,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
             }
             else if (distance > 0.07) {
-
-                // Message versions:
-                // v3: "Don't walk too far");
-                // v1: "Uh-oh, you walked too far away from the audit route. You will now be moved to a new location.");
-                // v0: "You have " + distanceLeft + " to go before you're done with this mission, keep it up!");
-
-                // var messageTitle = "Moved to a new location";
-                // svl.popUpMessage.notify(messageTitle,
-                //     "Looks like you finished labeling your current location. " +
-                //     "We have automatically moved you to a new location now."); //v2
-
                 svl.tracker.push('LabelBeforeJump_AutoJump');
 
                 // Finish the current task
@@ -1020,12 +1009,12 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         map.setCenter(position);
 
         // Hide context menu if walking started
-        if (svl.contextMenu.isOpen()){
+        if (svl.contextMenu.isOpen()) {
             svl.contextMenu.hide();
         }
 
         // Position updated, set delay until user can walk again to properly update canvas
-        if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")){
+        if (!svl.isOnboarding() && !svl.keyboard.getStatus("moving")) {
             timeoutWalking();
             setTimeout(resetWalking, moveDelay);
         }
@@ -1151,32 +1140,32 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             _canvas.setCurrentLabel(selectedLabel);
 
             if ('contextMenu' in svl) {
-              if(wasOpen){
+              if (wasOpen) {
                 svl.contextMenu.hide();
-              } else{
+              } else {
                 svl.contextMenu.show(canvasCoordinate.x, canvasCoordinate.y, {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                 });
                 var labelType = selectedLabel.getProperty("labelType");
-                if(labelType === "Other"){
-                  //no tooltips for other
+                if (labelType === "Other") {
+                  // No tooltips for other.
                   $('#severity-one').tooltip('destroy');
                   $('#severity-three').tooltip('destroy');
                   $('#severity-five').tooltip('destroy');
-                }else{
-                  //updatetooltips
+                } else {
+                  // Update tooltips.
                   $('#severity-one').tooltip('destroy').tooltip({
                       placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                      title: "Severity Level 1 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.PNG' height='110' alt='CRseverity 1'/><br/><i>Press Keys 1-5 for Severity</i>"
+                      title: i18next.t('context-menu-severity-example', {n: 1}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity1.PNG' height='110' alt='CRseverity 1'/><br/><i>" + i18next.t('context-menu-severity-shortcuts') + "</i>"
                   });
                   $('#severity-three').tooltip('destroy').tooltip({
                       placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                      title: "Severity Level 3 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.PNG' height='110' alt='CRseverity 3'/><br/><i>Press Keys 1-5 for Severity</i>"
+                      title: i18next.t('context-menu-severity-example', {n: 3}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity3.PNG' height='110' alt='CRseverity 3'/><br/><i>" + i18next.t('context-menu-severity-shortcuts') + "</i>"
                   });
                   $('#severity-five').tooltip('destroy').tooltip({
                       placement: "top", html: true, delay: { "show": 300, "hide": 10 },
-                      title: "Severity Level 5 Example<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.PNG' height='110' alt='CRseverity 5'/><br/><i>Press Keys 1-5 for Severity</i>"
+                      title: i18next.t('context-menu-severity-example', {n: 5}) + "<br/><img src='/assets/javascripts/SVLabel/img/severity_popups/" + labelType + "_Severity5.PNG' height='110' alt='CRseverity 5'/><br/><i>" + i18next.t('context-menu-severity-shortcuts') + "</i>"
                   });
                 }
               }
@@ -1213,9 +1202,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                                     self.setPano(streetViewPanoramaData.location.pano);
                                     //self.handlerPositionUpdate();
                                 }
-                                else{
+                                else {
                                     var currentTask = svl.taskContainer.getCurrentTask();
-                                    if (currentTask){
+                                    if (currentTask) {
                                         util.misc.reportNoStreetView(currentTask.getStreetEdgeId());
                                         console.error("Error Type:" + JSON.stringify(status)  +
                                             "\nNo street view found at this location: " + newLatlng +
@@ -1615,7 +1604,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /*
      * Gets the pov change tracking variable
      */
-    function getPovChangeStatus(){
+    function getPovChangeStatus() {
         return povChange;
     }
 
@@ -1626,7 +1615,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     /*
      * Gets the pano change tracking variable
      */
-    function getPanoChange(){
+    function getPanoChange() {
         return panoChange;
     }
 
@@ -1634,7 +1623,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Sets the pano change tracking variable
      * @param status
      */
-    function setPanoChangeStatus(status){
+    function setPanoChangeStatus(status) {
         panoChange["status"] = status;
     }
 
@@ -1661,11 +1650,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         return panoChange["newPos"];
     }
 
-    function isNewPanoApplied(){
+    function isNewPanoApplied() {
         return panoChange["newPos"]["applied"];
     }
 
-    function setPanoApplied(){
+    function setPanoApplied() {
         panoChange["newPos"]["applied"] = true;
     }
 
@@ -1942,18 +1931,18 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
 
     // Set a flag that triggers the POV being reset into the route direction upon the position changing
-    self.preparePovReset = function(){
+    self.preparePovReset = function() {
         initialPositionUpdate = true;
     };
     // Set the POV in the same direction as the route
-    function setPovToRouteDirection(){
+    function setPovToRouteDirection() {
         var pov = svl.panorama.getPov(),
             compassAngle = svl.compass.getCompassAngle();
         pov.heading = parseInt(pov.heading - compassAngle, 10) % 360;
         svl.panorama.setPov(pov);
     }
 
-    function getMoveDelay(){
+    function getMoveDelay() {
         return moveDelay;
     }
 

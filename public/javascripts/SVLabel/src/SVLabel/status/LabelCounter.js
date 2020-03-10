@@ -23,8 +23,8 @@ function LabelCounter (d3) {
     var dotPlots = {
         "CurbRamp": {
             id: "CurbRamp",
-            description: i18next.t("curb-ramp"),
-            descriptionPlural: i18next.t("curb-ramps"),
+            description: i18next.t('curb-ramp'),
+            descriptionPlural: i18next.t('curb-ramps'),
             left: margin.left,
             top: margin.top,
             fillColor: colorScheme["CurbRamp"].fillStyle,
@@ -34,8 +34,8 @@ function LabelCounter (d3) {
         },
         "NoCurbRamp": {
             id: "NoCurbRamp",
-            description: i18next.t("missing-curb-ramp"),
-            descriptionPlural: i18next.t("missing-curb-ramps"),
+            description: i18next.t('missing-curb-ramp'),
+            descriptionPlural: i18next.t('missing-curb-ramps'),
             left: margin.left,
             top: (2 * margin.top) + margin.bottom + height,
             // top: 2 * margin.top + margin.bottom + height,
@@ -46,8 +46,8 @@ function LabelCounter (d3) {
         },
         "Obstacle": {
             id: "Obstacle",
-            description: i18next.t("obstacle"),
-            descriptionPlural: i18next.t("obstacles"),
+            description: i18next.t('obstacle'),
+            descriptionPlural: i18next.t('obstacles'),
             left: margin.left,
             // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
@@ -58,8 +58,8 @@ function LabelCounter (d3) {
         },
         "SurfaceProblem": {
             id: "SurfaceProblem",
-            description: i18next.t("surface-problem"),
-            descriptionPlural: i18next.t("surface-problems"),
+            description: i18next.t('surface-problem'),
+            descriptionPlural: i18next.t('surface-problems'),
             left: margin.left + (width/rightColumn),
             //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
             top: margin.top,
@@ -70,8 +70,8 @@ function LabelCounter (d3) {
         },
         "NoSidewalk": {
             id: "NoSidewalk",
-            description: i18next.t("no-sidewalk"),
-            descriptionPlural: i18next.t("no-sidewalks"),
+            description: i18next.t('no-sidewalk'),
+            descriptionPlural: i18next.t('no-sidewalks'),
             left: margin.left + (width/rightColumn),
             top: (2 * margin.top) + margin.bottom + height,
             fillColor: colorScheme["NoSidewalk"].fillStyle,
@@ -81,8 +81,8 @@ function LabelCounter (d3) {
         },
         "Other": {
             id: "Other",
-            description: i18next.t("other"),
-            descriptionPlural: i18next.t("others"),
+            description: i18next.t('other'),
+            descriptionPlural: i18next.t('others'),
             left: margin.left + (width/rightColumn),
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
