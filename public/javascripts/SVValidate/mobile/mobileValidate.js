@@ -42,18 +42,18 @@ $(document).ready(function() {
             svv.modalLandscape.hide();
         }
     });
-
-    let doubleTouchStartTimestamp = 0;
-    document.addEventListener("touchstart", function(event){
-        let now = +(new Date());
-        if (doubleTouchStartTimestamp + 500 > now){
-            console.log("double tap detcted");
-            event.preventDefault();
-        }
-
-        doubleTouchStartTimestamp = now;
-    }, {passive: false});
 });
+
+let doubleTouchStartTimestamp = 0;
+document.addEventListener("touchstart", function(event){
+    let now = +(new Date());
+    if (doubleTouchStartTimestamp + 500 > now){
+        console.log("double tap detcted");
+        event.preventDefault();
+    }
+
+    doubleTouchStartTimestamp = now;
+}, {passive: false});
 
 /**
  * Resizes html elements based on phone size.
