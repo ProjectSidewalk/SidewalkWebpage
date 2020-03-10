@@ -186,20 +186,20 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
         if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0) {
-            uiModalMissionComplete.closeButtonPrimary.html('Start validating');
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-button-start-validating'));
 
             if (self._userModel.getUser().getProperty("role") === 'Turker') {
                 uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
             } else {
-                uiModalMissionComplete.closeButtonPrimary.css('width', "56%");
+                uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
-                uiModalMissionComplete.closeButtonSecondary.css('width', "42%");
-                uiModalMissionComplete.closeButtonSecondary.html('Keep exploring');
+                uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
+                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete-button-keep-exploring'));
             }
         } else {
             uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
-            uiModalMissionComplete.closeButtonPrimary.html('Continue');
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-button-continue'));
             uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
         }
 
@@ -248,7 +248,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             delete uiModalMissionComplete.generateConfirmationButton;
 
             svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
-            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+            svl.ui.leftColumn.confirmationCode.attr('title', i18next.t('common:left-ui-turk-submit-code'));
             svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
 
             //Hide the mTurk confirmation code popover on clicking the background (i.e. outside the popover)
@@ -297,7 +297,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
-        this.setMissionTitle(neighborhoodName + ": Mission Complete!");
+        this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete-title'));
 
         modalMissionCompleteMap.update(mission, neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);

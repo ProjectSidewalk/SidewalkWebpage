@@ -13,25 +13,31 @@ function Main (param) {
 
     svv.missionsCompleted = param.missionSetProgress;
 
-    // Maps label types to label names
-    svv.labelNames = {
-        CurbRamp: "Curb Ramp",
-        NoCurbRamp: "Missing Curb Ramp",
-        Obstacle: "Obstacle in Path",
-        SurfaceProblem: "Surface Problem",
-        NoSidewalk: "No Sidewalk",
-        Occlusion: "Occlusion"
-    };
-
-    svv.labelTypeNames = {
-        1: "Curb Ramp",
-        2: "Missing Curb Ramp",
-        3: "Obstacle in Path",
-        4: "Surface Problem",
-        7: "No Sidewalk"
-    };
-
     function _initUI() {
+        // Maps label types to label names.
+        svv.labelNames = {
+            CurbRamp: i18next.t('curb-ramp-caps'),
+            NoCurbRamp: i18next.t('missing-curb-ramp-caps'),
+            Obstacle: i18next.t('obstacle-caps'),
+            SurfaceProblem: i18next.t('surface-problem-caps'),
+            NoSidewalk: i18next.t('no-sidewalk-caps')
+        };
+
+        svv.labelTypeNames = {
+            1: i18next.t('curb-ramp-caps'),
+            2: i18next.t('missing-curb-ramp-caps'),
+            3: i18next.t('obstacle-caps'),
+            4: i18next.t('surface-problem-caps'),
+            7: i18next.t('no-sidewalk-caps')
+        };
+
+        svv.labelTypes = {
+            1: 'CurbRamp',
+            2: 'NoCurbRamp',
+            3: 'Obstacle',
+            4: 'SurfaceProblem',
+            7: 'NoSidewalk'
+        };
         svv.ui = {};
 
         svv.ui.validation = {};
@@ -105,7 +111,7 @@ function Main (param) {
         svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
         svv.ui.status.zoomInButton = $("#zoom-in-button");
         svv.ui.status.zoomOutButton = $("#zoom-out-button");
-        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-button");
+        svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
 
         svv.ui.status.examples = {};
         svv.ui.status.examples.example1 = $("#example-image-1");
@@ -173,15 +179,28 @@ function Main (param) {
         });
     }
 
-    _initUI();
+    // Gets all the text on the validation page for the correct language.
+    i18next.use(i18nextXHRBackend);
+    i18next.init({
+        backend: { loadPath: 'assets/locales/{{lng}}/{{ns}}.json' },
+        fallbackLng: 'en',
+        ns: ['validate', 'common'],
+        defaultNS: 'validate',
+        lng: param.language,
+        debug: false
+    }, function(err, t) {
+        if(param.init !== "noInit") {
+            _initUI();
 
-    if (param.hasNextMission) {
-        _init();
-    } else {
-        svv.keyboard = new Keyboard(svv.ui.validation);
-        svv.form = new Form(param.dataStoreUrl);
-        svv.tracker = new Tracker();
-        svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-        svv.modalNoNewMission.show();
-    }
+            if (param.hasNextMission) {
+                _init();
+            } else {
+                svv.keyboard = new Keyboard(svv.ui.validation);
+                svv.form = new Form(param.dataStoreUrl);
+                svv.tracker = new Tracker();
+                svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+                svv.modalNoNewMission.show();
+            }
+        }
+    });
 }

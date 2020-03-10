@@ -235,55 +235,52 @@ function ContextMenu (uiContextMenu) {
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
-                var tagValue = e.target.textContent || e.target.innerText;
+
+                // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
+                var currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                var tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];
 
                 // Adds or removes tag from the label's current list of tags.
-                self.labelTags.filter(tag => tag.label_type === label.getLabelType()).forEach(function (tag) {
-                    if (tag.tag === tagValue) {
-                        if (!labelTags.includes(tag.tag_id)) {
-                            var alternateRoutePresentStr = 'alternate route present';
-                            var noAlternateRouteStr = 'no alternate route';
-                            // Automatically deselect one of the tags above if the other one is selected
-                            if (tagValue === alternateRoutePresentStr) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(noAlternateRouteStr, labelTags);
-                                
-                            } else if (tagValue === noAlternateRouteStr) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
-                            }
-
-                            var streetHasOneSidewalk = 'street has a sidewalk';
-                            var streetHasNoSidewalks = 'street has no sidewalks';
-                            // Automatically deselect one of the tags above if the other one is selected
-                            if (tagValue === streetHasOneSidewalk) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasNoSidewalks, labelTags);
-
-                            } else if (tagValue === streetHasNoSidewalks) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalk, labelTags);
-                            }
-
-                            labelTags.push(tag.tag_id);
-                            if (wasClickedByMouse) {
-                                svl.tracker.push('ContextMenu_TagAdded',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            } else {
-                                svl.tracker.push('KeyboardShortcut_TagAdded',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            }
-                        } else {
-                            var index = labelTags.indexOf(tag.tag_id);
-                            labelTags.splice(index, 1);
-                            if (wasClickedByMouse) {
-                                svl.tracker.push('ContextMenu_TagRemoved',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            } else {
-                                svl.tracker.push('KeyboardShortcut_TagRemoved',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            }
-                        }
-                        _toggleTagColor(labelTags, tag.tag_id, e.target);
-                        label.setProperty('tagIds', labelTags);
+                if (!labelTags.includes(tag.tag_id)) {
+                    var alternateRoutePresentId = self.labelTags.filter(tag => tag.tag === 'alternate route present')[0].tag_id;
+                    var noAlternateRouteId = self.labelTags.filter(tag => tag.tag === 'no alternate route')[0].tag_id;
+                    // Automatically deselect one of the tags above if the other one is selected
+                    if (currTagId === alternateRoutePresentId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(noAlternateRouteId, labelTags);
+                    } else if (currTagId === noAlternateRouteId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentId, labelTags);
                     }
-                });
+
+                    var streetHasOneSidewalkId = self.labelTags.filter(tag => tag.tag === 'street has a sidewalk')[0].tag_id;
+                    var streetHasNoSidewalksId = self.labelTags.filter(tag => tag.tag === 'street has no sidewalks')[0].tag_id;
+                    // Automatically deselect one of the tags above if the other one is selected
+                    if (currTagId === streetHasOneSidewalkId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasNoSidewalksId, labelTags);
+                    } else if (currTagId === streetHasNoSidewalksId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalkId, labelTags);
+                    }
+
+                    labelTags.push(tag.tag_id);
+                    if (wasClickedByMouse) {
+                        svl.tracker.push('ContextMenu_TagAdded',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    } else {
+                        svl.tracker.push('KeyboardShortcut_TagAdded',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    }
+                } else {
+                    var index = labelTags.indexOf(tag.tag_id);
+                    labelTags.splice(index, 1);
+                    if (wasClickedByMouse) {
+                        svl.tracker.push('ContextMenu_TagRemoved',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    } else {
+                        svl.tracker.push('KeyboardShortcut_TagRemoved',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    }
+                }
+                _toggleTagColor(labelTags, tag.tag_id, e.target);
+                label.setProperty('tagIds', labelTags);
                 e.target.blur();
                 getContextMenuUI().tags.trigger('tagIds-updated'); // For events that depend on tagIds to be up-to-date
             }
@@ -291,14 +288,22 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
-     * Remove the alternate lable, update UI, and add the selected label.
-     * @param {*} labelName     The name of the label to be removed.
+     * Remove the alternate label, update UI, and add the selected label.
+     * @param {*} tagId     The name of the label to be removed.
      * @param {*} labelTags     List of tags that the current label has.
      */
-    function autoRemoveAlternateLabelAndUpdateUI(labelName, labelTags) {
-        $tags.each((index, tag) => {if (tag.innerText === labelName) {tag.style.backgroundColor = "white"; } });
+    function autoRemoveAlternateLabelAndUpdateUI(tagId, labelTags) {
+        // Find the tag that has the class named "tag-id-<tagId>" and change it's background color.
+        $tags.each((index, tag) => {
+            var classWithTagId = tag.className.split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0];
+            if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
+                tag.style.backgroundColor = "white";
+            }
+        });
+
+        // Remove tag from list of tags and log the automated removal.
         self.labelTags.forEach(tag => {
-            if (tag.tag === labelName && labelTags.includes(tag.tag_id)) {
+            if (tag.tag_id === tagId) {
                 labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
                 svl.tracker.push('ContextMenu_TagAutoRemoved',
                     { tagId: tag.tag_id, tagName: tag.tag });
@@ -454,9 +459,8 @@ function ContextMenu (uiContextMenu) {
                         // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
                         $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
 
-                        // Add tag name as a class so that finding the element is easier later. For example, will add "narrowSidewalk-tag" as a class
-                        var newClass = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['id'] + "-tag";
-                        $("body").find("button[id=" + count + "]").addClass(newClass);
+                        // Add tag id as a class so that finding the element is easier later.
+                        $("body").find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
 
                         // Set tag texts to new underlined version as defined in the util label description map
                         var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
@@ -562,7 +566,7 @@ function ContextMenu (uiContextMenu) {
                 if (description) {
                     $descriptionTextBox.val(description);
                 } else {
-                    var defaultText = "Description (optional)";
+                    var defaultText = i18next.t('context-menu-description');
                     $descriptionTextBox.prop("placeholder", defaultText);
                 }
                 var labelProperties = self.getTargetLabel().getProperties();

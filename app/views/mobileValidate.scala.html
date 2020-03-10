@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
@@ -17,6 +17,8 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
     <div id='status-current-mission-completion-bar'>
         <div id='status-current-mission-completion-bar-filler'>
@@ -46,13 +48,13 @@
         </div>
         <div id="validation-button-holder">
             <button id="validation-disagree-button-0" class="validation-button">
-                ✗ Disagree
+                ✗ @Messages("validate.mission.complete.disagree")
             </button>
             <button id="validation-not-sure-button-0" class="validation-button">
-                ? Not sure
+                ? @Messages("validate.mission.complete.not.sure")
             </button>
             <button id="validation-agree-button-0" class="validation-button">
-                ✓ Agree
+                ✓ @Messages("validate.mission.complete.agree")
             </button>
         </div>
         <div id="modal-mission-holder">
@@ -84,23 +86,20 @@
                     </div>
                 </div>
                 <button class="button" id="modal-info-close-button">OK</button>
-                <button class="button" id="left-column-feedback-button">Leave Feedback</button>
+                <button class="button" id="left-column-feedback-button">@Messages("mobile.validate.leave.feedback")</button>
             </div>
             <div id="modal-comment-holder" class="hidden">
                 <div id="modal-comment-box" class="modal-foreground">
                     <form id="comment-form">
                         <div id="modal-comment-title" class="bold">
-                            <p>
-                                Any thoughts? Found something confusing? Spotted a bug? <br />
-                                Send us comments!
-                            </p>
+                            <p>@Html(Messages("feedback.title"))</p>
                         </div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
                         </div>
                         <div>
-                            <button class="button" id="modal-comment-ok-button" type="button">OK</button>&nbsp;
-                            <button class="button" id="modal-comment-cancel-button" type="button">Cancel</button>
+                            <button class="button" id="modal-comment-ok-button" type="button">@Messages("ok")</button>&nbsp;
+                            <button class="button" id="modal-comment-cancel-button" type="button">@Messages("cancel")</button>
                         </div>
                     </form>
                 </div>
@@ -113,19 +112,19 @@
                 <h1 class="normal" id="modal-mission-complete-title"></h1>
                 <p><div id="modal-mission-complete-message"></div></p>
                 <div id="modal-mission-complete-table">
-                    <div class="col-sm-9">
-                        <h3>Category</h3>
+                    <div class="col-sm-10">
+                        <h3>@Messages("validate.mission.complete.category")</h3>
                         <table class="table">
                             <tr>
-                                <th>Agree</th>
+                                <th>@Messages("validate.mission.complete.agree")</th>
                                 <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
                             </tr>
                             <tr>
-                                <th>Disagree</th>
+                                <th>@Messages("validate.mission.complete.disagree")</th>
                                 <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
                             </tr>
                             <tr>
-                                <th>Not Sure</th>
+                                <th>@Messages("validate.mission.complete.not.sure")</th>
                                 <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
                             </tr>
                         </table>
@@ -188,6 +187,7 @@
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
             param.canvasCount = 1;
+            param.language = "@lang.language";
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
