@@ -1,5 +1,5 @@
 @import models.user.User
-@(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader)
+@(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, lang: Lang)
 
 @import views.html.bootstrap._
 
@@ -13,19 +13,19 @@
     </div>
     }
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
-        <legend>Sign in with your credentials</legend>
+        <legend>@Messages("navbar.signin.with.credentials")</legend>
         @helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
-        @text(signInForm("identifier"), "Email", icon = "at")
-        @password(signInForm("password"), "Password", icon = "key")
+        @text(signInForm("identifier"), Messages("navbar.email"), icon = "at")
+        @password(signInForm("password"), Messages("navbar.password"), icon = "key")
         <div class="form-group">
             <div>
-                <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">Submit</button>
+                <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("navbar.submit")</button>
             </div>
         </div>
         }
 
         <div>
-            <p class="not-a-member">Not a member? <a href="@routes.UserController.signUp()">Sign up now</a></p>
+            <p class="not-a-member">@Html(Messages("navbar.non.member"))</p>
         </div>
     </fieldset>
 }

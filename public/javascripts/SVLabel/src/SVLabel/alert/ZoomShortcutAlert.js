@@ -13,7 +13,7 @@ function ZoomShortcutAlert(alertHandler) {
 
         if (self['zoomCount'] >= MINIMUM_ZOOM_CLICKS_BEFORE_ALERT &&
             (svl.onboarding == null || svl.onboarding.isOnboarding() == false)) {
-                alertHandler.showAlert('You can also press the <kbd>Z</kbd> key to zoom in and the <kbd>Shift</kbd> + <kbd>Z</kbd> keys to zoom out.', 'zoomMessage', true);
+                alertHandler.showAlert(i18next.t('popup.zoom-shortcuts'), 'zoomMessage', true);
                 self['zoomCount'] = 0;
         }
     }
