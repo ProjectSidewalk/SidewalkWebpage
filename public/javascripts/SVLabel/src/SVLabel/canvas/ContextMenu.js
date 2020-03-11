@@ -303,7 +303,7 @@ function ContextMenu (uiContextMenu) {
 
         // Remove tag from list of tags and log the automated removal.
         self.labelTags.forEach(tag => {
-            if (tag.tag_id === tagId) {
+            if (tag.tag_id === tagId && labelTags.includes(tagId)) {
                 labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
                 svl.tracker.push('ContextMenu_TagAutoRemoved',
                     { tagId: tag.tag_id, tagName: tag.tag });
