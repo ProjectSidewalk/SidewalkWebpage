@@ -288,11 +288,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     pano: 'tutorial',
                     latLng: new google.maps.LatLng(38.94042608, -77.06766133)
                 },
-                links: [{
-                    heading: 342,
-                    description: 'Exit',
-                    pano: "afterWalkTutorial"
-                }],
+                links: [],
                 copyright: 'Imagery (c) 2010 Google',
                 tiles: {
                     tileSize: new google.maps.Size(2048, 1024),
