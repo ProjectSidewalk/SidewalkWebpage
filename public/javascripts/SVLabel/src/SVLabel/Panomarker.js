@@ -162,7 +162,6 @@
         this.visible_ = (typeof opts.visible === 'boolean') ? opts.visible : true;
 
         /** @private @type {number} */
-        console.log(opts.zIndex + " z index");
         this.zIndex_ = opts.zIndex || 1;
 
         /** @private @type {Object} */
@@ -458,7 +457,6 @@
                     let labelDescriptionBox = $("#label-description-box");
                     let desBox = labelDescriptionBox[0];
                     if (!this.toggleDescription_) {
-                        console.log("touch started");
                         desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
                         desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
                         desBox.style.zIndex = 2;
@@ -468,7 +466,6 @@
                         desBox.style.visibility = 'hidden';
                         this.toggleDescription_ = false;
                     }
-                    console.log(this.toggleDescription_);
                 }.bind(this), false);
             } else {
                 marker.addEventListener("mouseover", function () {
@@ -490,12 +487,10 @@
 
     /** @override */
     PanoMarker.prototype.draw = function() {
-        console.log("pov changed");
         if (!this.pano_) {
             return;
         }
 
-        console.log(this.toggleDescription_ + " after pov change");
         if (this.toggleDescription_) {
             let labelDescriptionBox = $("#label-description-box");
             let desBox = labelDescriptionBox[0];
