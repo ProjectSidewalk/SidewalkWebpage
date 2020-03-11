@@ -33,11 +33,6 @@ function LabelDescriptionBox () {
         let description = label.getAuditProperty('description');
         let tags = label.getAuditProperty('tags');
 
-        console.log(severity);
-        console.log(temporary);
-        console.log(description);
-        console.log(tags);
-
         desBox.style['background-color'] = util.misc.getLabelColors(label.getAuditProperty('labelType'));
 
         if (severity && severity != 0) {
