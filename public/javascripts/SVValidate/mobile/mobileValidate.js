@@ -44,6 +44,17 @@ $(document).ready(function() {
     });
 });
 
+// Prevents double tap functionality. We only want to pinch zoom in GSV.
+let doubleTouchStartTimestamp = 0;
+document.addEventListener("touchstart", function(event){
+    let now = +(new Date());
+    if (doubleTouchStartTimestamp + 500 > now){
+        event.preventDefault();
+    }
+
+    doubleTouchStartTimestamp = now;
+}, {passive: false});
+
 /**
  * Resizes html elements based on phone size.
  */
