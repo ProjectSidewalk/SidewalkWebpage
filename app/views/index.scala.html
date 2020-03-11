@@ -31,13 +31,13 @@
                     <br>
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
-                    <span class="header-text">We are also in:</span>
+                    <span class="header-text">@Messages("landing.also.in")</span>
                     @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "Mexico City, MX")) {
                         <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
-                        <span class="header-text">Live in @cityName? Stop by <a class="exploremaplink" href="@mapathonLink.get" target="_blank">a mapathon event in your area!</a></span>
+                        <span class="header-text">@Html(Messages("landing.mapathon", cityShortName, mapathonLink.get))</span>
                     }
                 </div>
                 <div class="col-sm-3"></div>
@@ -256,7 +256,7 @@
     <div class="container" id="quotebox-container" style="min-height: 500px;">
         <div id="quotearea">
             <div class="im-centered3">
-                <div class="row">What people <br>are saying</div>
+                <div class="row">@Html(Messages("landing.what.people.are.saying"))</div>
             </div>
             <div class="row" style="padding-top: 40px;">
                 <div class="col-sm-6">

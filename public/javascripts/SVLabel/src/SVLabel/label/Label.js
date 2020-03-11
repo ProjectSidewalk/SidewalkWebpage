@@ -509,7 +509,9 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This function renders a tag on a canvas to show a property of the label
+     * This function renders a tag on a canvas to show a property of the label.
+     *
+     * NOTE "tag" here means the box that is shown when hovering over a label. This doesn't refer to tags for a label.
      * @param ctx
      * @returns {boolean}
      */
@@ -527,8 +529,8 @@ function Label (svl, pathIn, params) {
             labelRows = 1,
             severityImage = new Image(),
             severityImagePath = undefined,
-            severityMessage = 'Please click to label a severity',
-            msg = properties.labelDescription,
+            severityMessage = i18next.t('context-menu-severity'),
+            msg = i18next.t(properties.labelType + '-description'),
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
 

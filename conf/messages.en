@@ -1,9 +1,17 @@
-curb.ramps = Curb Ramps
-missing.ramps = Missing Curb Ramps
-obstacles = Sidewalk Obstacles
-surface.problems = Surface Problems
+curb.ramp = Curb Ramp
+missing.ramp = Missing Curb Ramp
+obstacle = Obstacle in Path
+surface.problem = Surface Problem
+no.sidewalk = No Sidewalk
+other = Other
 labels = labels
 miles = miles
+ok = OK
+cancel = Cancel
+
+press.key = Press the "{0}" key
+press.keys = Press the "{0}" keys
+feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
 
 navbar.explore = Start Exploring
 navbar.validate = Start Validating
@@ -11,8 +19,23 @@ navbar.howto = How to Label
 navbar.results = See Results
 navbar.help = Help
 navbar.signin = Sign in
+navbar.signin.with.credentials = Sign in with your credentials
+navbar.email = Email address
+navbar.password = Password
+navbar.submit = Submit
+navbar.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
+navbar.non.member = Not a member? <a href="@routes.UserController.signUp()">Sign up now</a>
+navbar.username = Username
+navbar.confirm.password = Confirm password
+navbar.terms = You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a>
+navbar.signup = Sign up
+navbar.signup.new.account = Sign up for a new account
+navbar.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
+navbar.is.member = Already a member? <a href="@routes.UserController.signIn()">Sign in now</a>
 
 landing.create.path = Let''s create a path for everyone
+landing.also.in = We are also in:
+landing.mapathon = Live in {0}? Stop by <a class="exploremaplink" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
 landing.how.you.help.content = Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
 landing.how.you.help.explore = EXPLORE
@@ -31,6 +54,7 @@ landing.stats.labels = labels
 landing.stats.validations = validations
 landing.ml.title = What we do with your labels
 landing.ml.content = Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.
+landing.what.people.are.saying = What people<br>are saying
 landing.press.title = Press
 
 footer.about = About Us
@@ -40,6 +64,10 @@ footer.guide = Labeling Guide
 footer.developer = DEVELOPER
 footer.api = Sidewalk API
 footer.connect = CONNECT
+footer.email = Email Us
+footer.funding = WE ARE PROUDLY FUNDED BY
+footer.designed.operated = Project Sidewalk is designed and operated by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a href="http://www.cs.uw.edu/">University of Washington</a>
+footer.version = Version {0} | Last Updated: <span class = "timestamp date">{1}</span>
 
 audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing missions to find and label accessibility features and problems in the environment, including:
 audit.tutorial.welcome.2 = We''ll begin with a short, interactive tutorial.
@@ -61,10 +89,68 @@ audit.ribbon.zoom.in = <u>Z</u>oom In
 audit.ribbon.zoom.out = Zoom Out
 
 audit.left.ui.sound = Sound
-audit.left.ui.jump = Jump
 audit.left.ui.feedback = Feedback
+audit.left.ui.jump = Jump
+audit.left.ui.jump.title = Jump to another location because:
+audit.left.ui.jump.button.explore = I want to explore another area!
+audit.left.ui.jump.button.unavailable = I cannot go the direction you want me to walk.
+audit.left.ui.jump.explore.title = Go to a new location or a new neighborhood?
+audit.left.ui.jump.explore.button.same.neighborhood = Go to a new location in this neighborhood
+audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood
 
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.miles = miles
 audit.right.ui.current.mission = Current Mission
 audit.right.ui.red.line = Follow the red line
+
+audit.center.ui.passable = Passable
+audit.center.ui.not.passable = Not Passable
+audit.center.ui.add.tags = Add Tags:
+audit.center.ui.temporary = Temporary (e.g., construction, trash)
+audit.center.ui.show.again = Don''t show again
+
+audit.mission.complete.labels.title = Mission Labels
+audit.mission.complete.progress.title = Neighborhood Progress
+audit.mission.complete.progress.mission.you = You explored in this mission
+audit.mission.complete.progress.neighborhood.you = You explored in this neighborhood
+audit.mission.complete.progress.neighborhood.others = Others explored in this neighborhood
+audit.mission.complete.progress.neighborhood.remaining = Remaining in this neighborhood
+audit.mission.complete.legend.this.mission = This Mission
+audit.mission.complete.legend.previous.missions = Previous Missions
+audit.mission.complete.legend.others.missions = Other Users'' Missions
+
+audit.help.rating.1 = Rating 1: Passable
+audit.help.rating.3 = Rating 3: Neutral
+audit.help.rating.5 = Rating 5: Not passable
+audit.help.curb.ramp.1 = Clean curb ramps that are aligned with crosswalks.
+audit.help.curb.ramp.3 = A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs may have trouble using this curb ramp.
+audit.help.curb.ramp.5 = Water has accumulated in this curb ramp due to poor drainage. It is hard for manual wheelchair users to use this curb ramp.
+audit.help.missing.ramp.1 = Although there is no curb ramp, the level difference is small and wheelchair users would be able to get on or off the sidewalk. There is also a curb ramp at the same corner that people could use, although it is not aligned to the path.
+audit.help.missing.ramp.3 = There is no curb ramp at the end of the crosswalk. Wheelchair users are forced to used the curb ramp that is not aligned with the crosswalk.
+audit.help.missing.ramp.5 = No curb ramp at the end of the crosswalk. Wheelchair users cannot get on or off the sidewalk and cross the street here.
+audit.help.obstacle.1 = A traffic light standing in the middle of the sidewalk. There seems to be enough space for wheelchair users to pass, but those who are using larger chairs could have trouble navigating.
+audit.help.obstacle.3 = The plant is obstructing the path, making it hard for wheelchair users to use this sidewalk.
+audit.help.obstacle.5 = The tree is completely blocking the path, making it not passable for wheelchair users.
+audit.help.surface.problem.1 = Partially damaged sidewalk. Because there is enough space next to the damaged part of the sidewalk, wheelchair users would be able to pass.
+audit.help.surface.problem.3 = Wheelchair users would have difficulty navigating on the cobblestone sidewalks and crosswalks.
+audit.help.surface.problem.5 = Wheelchair users cannot pass severely degraded sidewalk surfaces due to the over-grown vegetation.
+
+validate.top.ui.hide.label = <u>H</u>ide Label
+validate.top.ui.zoom.in = <u>Z</u>oom In
+validate.top.ui.zoom.out = Zoom Out
+validate.left.ui.skip = Skip
+validate.left.ui.feedback = Feedback
+validate.bottom.ui.agree = <u>A</u>gree
+validate.bottom.ui.disagree = <u>D</u>isagree
+validate.bottom.ui.not.sure = <u>N</u>ot sure
+validate.right.ui.current.mission = Current Mission
+validate.mission.complete.category = Category
+validate.mission.complete.agree = Agree
+validate.mission.complete.disagree = Disagree
+validate.mission.complete.not.sure = Not Sure
+
+mobile.validate.leave.feedback = Leave Feedback
+
+turk.expired.title = Assignment Expired!
+turk.expired.body = You should receive your bonus amount in the next day or two. If you completed the HIT but did not submit your confirmation code on the mturk website, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
+turk.submit.code = Submit this code for HIT verification on Amazon Mechanical Turk
