@@ -220,16 +220,17 @@ function Panorama (label, id) {
         let pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
-            let controlLayer = document.getElementById("viewControlLayer");
+            let controlLayer = isMobile() ? document.getElementById("viewControlLayerMobile") : document.getElementById("viewControlLayer");
             self.labelMarker = new PanoMarker({
-		id: "validate-pano-marker",
+                id: "validate-pano-marker",
                 markerContainer: controlLayer,
                 container: panoCanvas,
                 pano: panorama,
                 position: {heading: pos.heading, pitch: pos.pitch},
                 icon: url,
                 size: new google.maps.Size(currentLabel.getRadius() * 2, currentLabel.getRadius() * 2),
-                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius())
+                anchor: new google.maps.Point(currentLabel.getRadius(), currentLabel.getRadius()),
+                zIndex: 2
             });
         } else {
             self.labelMarker.setPano(panorama, panoCanvas);
