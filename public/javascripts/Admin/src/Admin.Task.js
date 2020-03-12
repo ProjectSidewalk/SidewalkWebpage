@@ -9,7 +9,7 @@ function AdminTask(params) {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
 
-    var map = L.mapbox.map('map', "kotarohara.8e0c6890", {zoomControl: false})
+    var map = L.mapbox.map('map', "mapbox.streets", {zoomControl: false})
     // .addLayer(mapboxTiles)
         .setView([38.910, -77.040], 17);
 
