@@ -122,6 +122,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+              val mapathonLink: Option[String] = Play.configuration.getString("city-params.mapathon-event-link." + cityStr)
               // Get names and URLs for other cities so we can link to them on landing page.
               val otherCities: List[String] =
                 Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == cityStr)
@@ -131,7 +132,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + otherCity).get
                 (otherName + ", " + otherState, otherURL)
               }
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, cityStr, otherCityUrls)))
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))

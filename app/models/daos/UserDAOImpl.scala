@@ -172,7 +172,7 @@ object UserDAOImpl {
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE label_validation.end_timestamp::date = now()::date
+        |WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
     )
@@ -218,7 +218,7 @@ object UserDAOImpl {
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE label_validation.end_timestamp::date = now()::date - interval '1' day
+        |WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
     )
@@ -309,7 +309,7 @@ object UserDAOImpl {
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE audit_task.task_end::date = now()::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin
@@ -355,7 +355,7 @@ object UserDAOImpl {
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN sidewalk.role ON user_role.role_id = sidewalk.role.role_id
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
         |    AND audit_task.completed = true""".stripMargin

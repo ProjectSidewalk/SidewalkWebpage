@@ -187,7 +187,7 @@ object AuditTaskTable {
     val countTasksQuery = Q.queryNA[Int](
       """SELECT audit_task_id
         |FROM sidewalk.audit_task
-        |WHERE audit_task.task_end::date = now()::date
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
         |    AND audit_task.completed = TRUE""".stripMargin
     )
     countTasksQuery.list.size
@@ -203,7 +203,7 @@ object AuditTaskTable {
     val countTasksQuery = Q.queryNA[Int](
       """SELECT audit_task_id
         |FROM sidewalk.audit_task
-        |WHERE audit_task.task_end::date = now()::date - interval '1' day
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
         |    AND audit_task.completed = TRUE""".stripMargin
     )
     countTasksQuery.list.size
