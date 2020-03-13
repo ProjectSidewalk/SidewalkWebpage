@@ -16,7 +16,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('choropleth', "kotarohara.8e0c6890", {
+    var choropleth = L.mapbox.map('choropleth', "mapbox.light", {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: false,
@@ -39,8 +39,6 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             choropleth.setView([data.city_center.lat, data.city_center.lng], data.default_zoom);
         }
     });
-
-    L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     L.control.zoomslider().addTo(choropleth);
 
