@@ -414,7 +414,7 @@ video#bgvid {
 .im-centered3 {
     position: relative;
     top: 0px;
-    margin: auto; max-width: 400px;
+    margin: auto; max-width: 340px;
     text-align: center;
     padding-top: 50px;
     font-family: raleway, sans-serif;
@@ -749,12 +749,6 @@ video#bgvid {
     float: left;
     width: 50%;
     padding: 15px;
-}
-
-.row::after {
-    content:"";
-    display:table;
-    clear: both;
 }
 
 #press-container2, #brought-to-you-by-container {
