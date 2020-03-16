@@ -56,6 +56,7 @@ landing.ml.title = What we do with your labels
 landing.ml.content = Your labels are used to improve city planning, build accessibility-aware mapping tools, and train machine learning algorithms to automatically find accessibility issues.
 landing.what.people.are.saying = What people<br>are saying
 landing.press.title = Press
+landing.collaborators.title = Collaborators
 
 footer.about = About Us
 footer.terms = Terms of Use
