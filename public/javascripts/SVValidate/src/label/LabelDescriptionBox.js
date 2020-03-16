@@ -36,7 +36,7 @@ function LabelDescriptionBox () {
         desBox.style['background-color'] = util.misc.getLabelColors(label.getAuditProperty('labelType'));
 
         if (severity && severity != 0) {
-            let htmlString = document.createTextNode('Severity: ' + severity + ' ');
+            let htmlString = document.createTextNode(i18next.t('severity') + severity + ' ');
             desBox.appendChild(htmlString);
             let img = document.createElement('img');
             img.setAttribute('src', smileyScale[severity]);
@@ -48,13 +48,14 @@ function LabelDescriptionBox () {
         }
 
         if (temporary) {
-            let htmlString = document.createTextNode('Temporary');
+            let htmlString = document.createTextNode(i18next.t('temporary'));
             desBox.appendChild(htmlString);
             desBox.appendChild(document.createElement("br"));
         }
 
         if (tags && tags.length > 0) {
-            let tag = tags.join(', ');
+            // Translate to correct language and separate tags with a comma.
+            let tag = tags.map(t => i18next.t('tag.' + t)).join(', ');
             let htmlString = document.createTextNode('tags: ' + tag);
             desBox.appendChild(htmlString);
             desBox.appendChild(document.createElement("br"));
@@ -67,7 +68,7 @@ function LabelDescriptionBox () {
 
         if (!severity && !temporary && (!description || description.trim().length == 0) &&
            (!tags || tags.length == 0)) {
-            let htmlString = document.createTextNode('No available information');
+            let htmlString = document.createTextNode(i18next.t('center-ui-no-info'));
             desBox.appendChild(htmlString);
         }
 
