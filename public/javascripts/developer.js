@@ -8,17 +8,17 @@ $(document).ready(function () {
     });
 
     // Maps
-    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', "kotarohara.8e0c6890", {
+    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
     });
-    var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', "kotarohara.8e0c6890", {
+    var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
     });
-    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "kotarohara.8e0c6890", {
+    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9
     });

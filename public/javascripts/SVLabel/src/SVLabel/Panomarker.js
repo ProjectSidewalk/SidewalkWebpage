@@ -167,6 +167,9 @@
         /** @private @type {Object} */
         this.markerContainer_ = opts.markerContainer || null;
 
+        /** @private @type {boolean} */
+        this.toggleDescription_ = false;
+
         // At last, call some methods which use the initialized parameters
         this.setPano(opts.pano || null, opts.container);
     };
@@ -446,17 +449,34 @@
 
         marker.addEventListener(eventName, this.onClick.bind(this), false);
 
-	// If this is a validation label, we want to add mouse-hovering event
-	// for popped up hide/show label.
-	if (this.id_ === "validate-pano-marker") {
-	    marker.addEventListener("mouseover", function () {
-		svv.labelVisibilityControl.showTagsAndDeleteButton();
-	    });
+        // If this is a validation label, we want to add mouse-hovering event
+        // for popped up hide/show label.
+        if (this.id_ === "validate-pano-marker") {
+            if (isMobile()) {
+                marker.addEventListener('touchstart', function () {
+                    let labelDescriptionBox = $("#label-description-box");
+                    let desBox = labelDescriptionBox[0];
+                    if (!this.toggleDescription_) {
+                        desBox.style.right = (svv.canvasWidth - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)) + 'px';
+                        desBox.style.top = (parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)) + 'px';
+                        desBox.style.zIndex = 2;
+                        desBox.style.visibility = 'visible';
+                        this.toggleDescription_ = true;
+                    } else {
+                        desBox.style.visibility = 'hidden';
+                        this.toggleDescription_ = false;
+                    }
+                }.bind(this), false);
+            } else {
+                marker.addEventListener("mouseover", function () {
+                    svv.labelVisibilityControl.showTagsAndDeleteButton();
+                });
 
-	    marker.addEventListener("mouseout", function () {
-		svv.labelVisibilityControl.hideTagsAndDeleteButton();
-	    });
-	}
+                marker.addEventListener("mouseout", function () {
+                    svv.labelVisibilityControl.hideTagsAndDeleteButton();
+                });
+            }
+        }
 
         this.draw();
 
@@ -469,6 +489,13 @@
     PanoMarker.prototype.draw = function() {
         if (!this.pano_) {
             return;
+        }
+
+        if (this.toggleDescription_) {
+            let labelDescriptionBox = $("#label-description-box");
+            let desBox = labelDescriptionBox[0];
+            desBox.style.visibility = 'hidden';
+            this.toggleDescription_ = false;
         }
 
         // Calculate the position according to the viewport. Even though the marker
@@ -519,7 +546,6 @@
         // Fire 'remove' event once the marker has been destroyed.
         google.maps.event.trigger(this, 'remove');
     }
-
 
 //// Getter to be roughly equivalent to the regular google.maps.Marker ////
 
