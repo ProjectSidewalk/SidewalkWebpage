@@ -17,8 +17,12 @@ navbar.validate = Comienza a Validir
 navbar.howto = Cómo Etiquetar
 navbar.results = Ver Resultados
 navbar.help = Ayuda
+navbar.retake.tutorial = Volver a Tomar el Tutorial
 navbar.signin = Iniciar sesión
-navbar.signin.with.credentials= Inicia sesión con tus credenciales
+navbar.signin.with.credentials = Inicia sesión con tus credenciales
+navbar.signout = Cerrar sesión
+navbar.dashboard = Tu panel
+navbar.admin = Administrador
 navbar.email = Correo electrónico
 navbar.password = Contraseña
 navbar.submit = Enviar
@@ -34,7 +38,7 @@ navbar.is.member = ¿Ya eres miembro? <a href="@routes.UserController.signIn()">
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
-landing.mapathon = ¿Vives en {0}? ¡Pasa por <a class="exploremaplink" href="{1}" target="_blank">un evento “mapathon” en tu área!</a>
+landing.mapathon = ¿Vives en {0}? ¡Pasa por <a class="exploremaplink" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
 landing.how.you.help.content = Explora virtualmente las calles de la ciudad para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
 landing.how.you.help.explore = EXPLORA
@@ -103,8 +107,8 @@ audit.right.ui.miles = millas
 audit.right.ui.current.mission = Misión Actual
 audit.right.ui.red.line = Sigue la línea roja
 
-audit.center.ui.passable = Aceptable
-audit.center.ui.not.passable = No Aceptable
+audit.center.ui.passable = Transitable
+audit.center.ui.not.passable = No es transitable
 audit.center.ui.add.tags = Agregar Etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., construcción)
 audit.center.ui.show.again = No mostrar de nuevo
@@ -118,6 +122,8 @@ audit.mission.complete.progress.neighborhood.remaining = Restante en este barrio
 audit.mission.complete.legend.this.mission = Esta Misión
 audit.mission.complete.legend.previous.missions = Misiones Anteriores
 audit.mission.complete.legend.others.missions = Misiones de Otras
+
+audit.survey.title = Por favor, realiza esta encuesta sobre Project Sidewalk
 
 audit.help.rating.1 = Calificación 1: Transitable
 audit.help.rating.3 = Calificación 3: Neutral
@@ -154,3 +160,9 @@ mobile.validate.leave.feedback = Retroalimentación
 turk.expired.title = ¡Asignación Vencida!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
 turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
+
+labeling.guide.curb.ramp.summary =Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
+labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
+labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
+labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
+labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.

@@ -65,6 +65,9 @@
   "mission-complete-validate-more": "Validate more labels",
   "mission-complete-continue": "Continue validating",
   "mission-complete-explore": "Start an exploration mission",
+  "mission-complete-no-new-mission-title": "No more validation missions left",
+  "mission-complete-no-new-mission-body": "Click the button to start exploring",
+  "mission-complete-no-new-mission-button": "Start Exploring",
   "tag": {
     "narrow": "narrow",
     "missing friction strip": "missing friction strip",

@@ -65,6 +65,9 @@
   "mission-complete-validate-more": "Validar más etiquetas",
   "mission-complete-continue": "Continuar validando",
   "mission-complete-explore": "Comienza una misión de exploración",
+  "mission-complete-no-new-mission-title": "No quedan más misiones de validación",
+  "mission-complete-no-new-mission-body": "Haz clic en el botón para comenzar a explorar",
+  "mission-complete-no-new-mission-button": "Comienza a explorar",
   "tag": {
     "narrow": "estrecha",
     "missing friction strip": "pavimento de advertencia táctil ausente",

@@ -449,27 +449,27 @@ function UtilitiesMisc (JSON) {
     function getSeverityDescription() {
         return {
             1: {
-                message: 'Passable',
+                message: i18next.t('context-menu-tag-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
             },
 
             2: {
-                message: 'Somewhat Passable',
+                message: i18next.t('context-menu-tag-somewhat-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
             },
 
             3: {
-                message: 'Difficult to pass',
+                message: i18next.t('context-menu-tag-difficult-to-pass'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
             },
 
             4: {
-                message: 'Very difficult to pass',
+                message: i18next.t('context-menu-tag-very-difficult-to-pass'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png'
             },
 
             5: {
-                message: 'Not passable',
+                message: i18next.t('context-menu-tag-not-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
             }
         };
