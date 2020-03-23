@@ -13,7 +13,7 @@
     @navbar(user, Some("/audit"))
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
 
-    @if(Some(User)){
+    @if(Some(User)) {
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content" id="survey-modal">
@@ -27,41 +27,41 @@
                     <div class="modal-body">
                         <form id="surveyForm" method="post">
                             <ol>
-                            @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                            @for(surveyQuestion <- SurveyQuestionTable.listAll) {
                                 <li>
                                 @if(surveyQuestion.required == true) {
                                     <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
                                 } else {
                                     <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question"))</h4>
                                 }
-                                @if(surveyQuestion.surveyInputType == "radio"){
+                                @if(surveyQuestion.surveyInputType == "radio") {
                                     <ul class="survey-option-holder">
-                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
                                         <li class="survey-option">
-                                            @if(surveyQuestion.required == true){
+                                            @if(surveyQuestion.required == true) {
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
-                                            } else{
+                                            } else {
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                             }
                                             <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                         </li>
                                     }
                                     </ul>
-                                }else{
-                                    @if(surveyQuestion.surveyInputType == "checkbox"){
+                                } else {
+                                    @if(surveyQuestion.surveyInputType == "checkbox") {
                                         <ul class="survey-option-holder">
-                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
                                             <li class="survey-option">
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                                 <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                             </li>
                                         }
                                         </ul>
-                                    } else{
-                                        @if(surveyQuestion.surveyInputType == "free-text-feedback"){
-                                            @if(surveyQuestion.required == true){
+                                    } else {
+                                        @if(surveyQuestion.surveyInputType == "free-text-feedback") {
+                                            @if(surveyQuestion.required == true) {
                                                 <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
-                                            } else{
+                                            } else {
                                                 <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
                                             }
                                         }
@@ -569,7 +569,7 @@
                             <h3>@Messages("audit.mission.complete.progress.title")</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
-                                @if(user){
+                                @if(user) {
                                     @if(user.get.role.getOrElse("") == "Turker") {
                                         <tr>
                                             <th>Earned in this mission</th>
@@ -594,7 +594,7 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            @if(user){
+                            @if(user) {
                                 @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
@@ -767,7 +767,7 @@
                     var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
                     if (role === 'Turker' && numMissionsCompleted === 0) {
                         $("#onboarding-skip-option").hide();
-                    } else{
+                    } else {
                         $("#onboarding-skip-option").show();
                     }
             </script>
@@ -875,7 +875,7 @@
                     // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
                     @if(panoId) {
                         try {
-                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData){
+                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
                                 var lat = panoData.location.latLng.lat();
                                 var lng = panoData.location.latLng.lng();
                                 svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
@@ -898,34 +898,34 @@
             $('#already-completed-neighborhood-overlay').show();
         }
 
-        $(document).ready(function(){
+        $(document).ready(function() {
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
             enableTouchSupport();
 
             // Advanced Neighborhood Overlay
-            $('#continue-advanced').on('click', function(){
+            $('#continue-advanced').on('click', function() {
                 mainParam.advancedOverlay = false;
                 $('#advanced-overlay').hide();
             });
 
-            $('#redirect-advanced').on('click', function(){
+            $('#redirect-advanced').on('click', function() {
                 mainParam.advancedOverlay = false;
                 $(location).attr('href', '/audit?nextRegion=easy');
             });
 
             // Neighborhood Completion Overlay
-            $('#continue-current').on('click', function(){
+            $('#continue-current').on('click', function() {
                 $('#neighborhood-completion-overlay').hide();
             });
 
-            $('#redirect-new').on('click', function(){
+            $('#redirect-new').on('click', function() {
                 $(location).attr('href', '/audit?nextRegion=regular');
             });
 
             // Already Completed Neighborhood Overlay
-            $('#accept-redirect').on('click', function(){
+            $('#accept-redirect').on('click', function() {
                 $(location).attr('href', '/audit');
             });
 
@@ -984,14 +984,14 @@
             mainParam.initLat = initialLocation.lat;
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
-            @if(user){
+            @if(user) {
                 @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)){
+                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                    } else{
+                    } else {
                         $("#left-column-confirmation-code-button").css('visibility', "");
                         $("#left-column-confirmation-code-button").attr('data-toggle','popover');
                         $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")k');
@@ -1015,10 +1015,10 @@
                     $("#current-mission-reward").show();
                     $("#total-mission-reward").show();
                     $("#modal-mission-reward-text").show();
-                } else{
+                } else {
                     $("#left-column-confirmation-code-button").css('visibility', "hidden");
                 }
-            } else{
+            } else {
                 $("#left-column-confirmation-code-button").css('visibility', "hidden");
             }
             var missionDescriptionParam = {};
@@ -1028,7 +1028,7 @@
             mainParam.regionId = @region.regionId;
             mainParam.regionName = '@region.name';
             mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
-            if(@RegionTable.difficultRegionIds.contains(region.regionId)){
+            if(@RegionTable.difficultRegionIds.contains(region.regionId)) {
                    $('#advanced-overlay').show();
                    mainParam.advancedOverlay = true
             }
@@ -1044,7 +1044,7 @@
             svl.main = new Main(mainParam);
         }
 
-        @if(user){
+        @if(user) {
         //Survey Submission
         $("#surveyForm").submit(function submitSurvey(e) {
             var formData = $('#surveyForm').serializeArray();
@@ -1078,7 +1078,7 @@
 
     // Log whether the survey was skipped or completed to WebpageActivityTable
     // Log is of form: "SurveySkip"
-    $('#survey-skip-button').on('click', function(){
+    $('#survey-skip-button').on('click', function() {
         var activity = "SurveySkip";
         var url = "/userapi/logWebpageActivity";
         var async = true;
