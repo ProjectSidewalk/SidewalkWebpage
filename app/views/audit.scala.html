@@ -22,7 +22,7 @@
                         @if(user.get.role.getOrElse("") != "Turker") {
                             <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
                         }
-                        <h4 class="modal-title" id="sign-in-label">Please take this one-time survey about Project Sidewalk</h4>
+                        <h4 class="modal-title" id="sign-in-label">@Html(Messages("audit.survey." + "title"))</h4>
                     </div>
                     <div class="modal-body">
                         <form id="surveyForm" method="post">
@@ -30,9 +30,9 @@
                             @for(surveyQuestion <- SurveyQuestionTable.listAll){
                                 <li>
                                 @if(surveyQuestion.required == true) {
-                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
+                                    <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
                                 } else {
-                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                    <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question"))</h4>
                                 }
                                 @if(surveyQuestion.surveyInputType == "radio"){
                                     <ul class="survey-option-holder">
@@ -43,7 +43,7 @@
                                             } else{
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                             }
-                                            <label>@surveyOption.surveyOptionText</label>
+                                            <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                         </li>
                                     }
                                     </ul>
@@ -53,7 +53,7 @@
                                         @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
                                             <li class="survey-option">
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                                <label>@surveyOption.surveyOptionText</label>
+                                                <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                             </li>
                                         }
                                         </ul>
@@ -70,7 +70,7 @@
                                 </li>
                             }
                         </ol>
-                            <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
+                            <button value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.submit")</button>
                         </form>
                     </div>
                     <div class="modal-footer">

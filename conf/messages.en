@@ -125,6 +125,26 @@ audit.mission.complete.legend.previous.missions = Previous Missions
 audit.mission.complete.legend.others.missions = Other Users'' Missions
 
 audit.survey.title = Please take this one-time survey about Project Sidewalk
+audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
+audit.survey.enjoyment.option.1 = Very boring
+audit.survey.enjoyment.option.2 = Boring
+audit.survey.enjoyment.option.3 = Neutral
+audit.survey.enjoyment.option.4 = Enjoyable
+audit.survey.enjoyment.option.5 = Very enjoyable
+audit.survey.difficulty.question = How easy or difficult is it to use Project Sidewalk?
+audit.survey.difficulty.option.1 = Very difficult
+audit.survey.difficulty.option.2 = Difficult
+audit.survey.difficulty.option.3 = Neutral
+audit.survey.difficulty.option.4 = Easy
+audit.survey.difficulty.option.5 = Very easy
+audit.survey.performance.question = How well do you think you are performing on the labeling tasks?
+audit.survey.performance.option.1 = Poor
+audit.survey.performance.option.2 = Fair
+audit.survey.performance.option.3 = Good
+audit.survey.performance.option.4 = Very Good
+audit.survey.performance.option.5 = Excellent
+audit.survey.rationale.question = Why did you choose to contribute to Project Sidewalk?
+audit.survey.feedback.question = Do you have any feedback, design ideas, or questions?
 
 audit.help.rating.1 = Rating 1: Passable
 audit.help.rating.3 = Rating 3: Neutral
