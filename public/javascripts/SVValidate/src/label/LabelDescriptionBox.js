@@ -63,7 +63,7 @@ function LabelDescriptionBox () {
 
         if (tags && tags.length > 0) {
             // Translate to correct language and separate tags with a comma.
-            let tag = tags.map(t => i18next.t('tag.' + t)).join(', ');
+            let tag = tags.map(t => i18next.t('center-ui.tag.' + t)).join(', ');
             let htmlString = document.createTextNode('tags: ' + tag);
             desBox.appendChild(htmlString);
             desBox.appendChild(document.createElement("br"));

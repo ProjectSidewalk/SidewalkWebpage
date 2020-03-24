@@ -188,6 +188,16 @@
             param.canvasWidth = window.innerWidth;
             param.canvasCount = 1;
             param.language = "@lang.language";
+            param.modalText = {
+                1: "@Messages("labeling.guide.curb.ramp.summary")",
+                2: "@Messages("labeling.guide.curb.ramp.summary")",
+                3: "@Messages("labeling.guide.obstacle.summary")",
+                4: "@Messages("labeling.guide.surface.problem.summary")",
+                5: "",
+                6: "@Messages("labeling.guide.occlusion.summary")",
+                7: "@Messages("labeling.guide.no.sidewalk.summary")",
+                8: ""
+            };
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);
