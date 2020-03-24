@@ -25,7 +25,7 @@ function ModalInfo (uiModal, modalText) {
     }
 
     function setMissionInfo(mission) {
-        infoHeaderHTML = i18next.t('mobile.info-title-title-' + svv.labelTypes[mission.getProperty("labelTypeId")]);
+        infoHeaderHTML = i18next.t('mobile.info-title-' + svv.labelTypes[mission.getProperty("labelTypeId")]);
         descriptionHTML = modalText[mission.getProperty("labelTypeId")];
     }
 

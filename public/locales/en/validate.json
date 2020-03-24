@@ -6,95 +6,133 @@
   "no-sidewalk-caps": "No Sidewalk",
   "severity": "Severity: ",
   "temporary": "Temporary",
-  "top-ui-title-CurbRamp": "Is this a <b>Curb Ramp</b>?",
-  "top-ui-title-NoCurbRamp": "Is this a <b>Missing Curb Ramp</b>?",
-  "top-ui-title-Obstacle": "Is this an <b>Obstacle</b>?",
-  "top-ui-title-SurfaceProblem": "Is this a <b>Surface Problem</b>?",
-  "top-ui-title-NoSidewalk": "Should there be a <b>No Sidewalk</b> label here?",
-  "right-ui-validate-labels": "Validate {{n}} labels",
-  "right-ui-correct-CurbRamp": "<i>CORRECT</i> Curb Ramp",
-  "right-ui-correct-NoCurbRamp": "<i>CORRECT</i> Missing Curb Ramp",
-  "right-ui-correct-Obstacle": "<i>CORRECT</i> Obstacle",
-  "right-ui-correct-SurfaceProblem": "<i>CORRECT</i> Surface Problem",
-  "right-ui-correct-NoSidewalk": "<i>CORRECT</i> No Sidewalk",
-  "right-ui-incorrect-CurbRamp": "<i>INCORRECT</i> Curb Ramp",
-  "right-ui-incorrect-NoCurbRamp": "<i>INCORRECT</i> Missing Curb Ramp",
-  "right-ui-incorrect-Obstacle": "<i>INCORRECT</i> Obstacle",
-  "right-ui-incorrect-SurfaceProblem": "<i>INCORRECT</i> Surface Problem",
-  "right-ui-incorrect-NoSidewalk": "<i>INCORRECT</i> No Sidewalk",
-  "right-ui-curb-ramp-example-1-to-4": "This label is correctly placed at the bottom of a curb ramp",
-  "right-ui-curb-ramp-counterexample-1-to-2": "Sidewalk to driveway transitions are not curb ramps",
-  "right-ui-curb-ramp-counterexample-3-to-4": "Driveways are not curb ramps",
-  "right-ui-missing-ramp-example-1-to-3": "This intersection is lacking a curb ramp",
-  "right-ui-missing-ramp-example-4": "This crosswalk indicates there should be a curb ramp here",
-  "right-ui-missing-ramp-counterexample-1": "Residential walkways should not be labeled as a missing curb ramp",
-  "right-ui-missing-ramp-counterexample-2-and-4": "This is not located on a pedestrian path",
-  "right-ui-missing-ramp-counterexample-3": "This is not an intersection pedestrians should cross at",
-  "right-ui-obstacle-example-1": "These construction cones are blocking a pedestrian crosswalk",
-  "right-ui-obstacle-example-2": "This tree blocks the entire sidewalk",
-  "right-ui-obstacle-example-3": "This pole blocks the sidewalk and a curb ramp entrance",
-  "right-ui-obstacle-example-4": "This fire hydrant blocks the sidewalk",
-  "right-ui-obstacle-counterexample-1": "There is enough space to comfortably maneuver around this pole",
-  "right-ui-obstacle-counterexample-2": "This pole located between, but not on these curb ramps",
-  "right-ui-obstacle-counterexample-3": "This tree is not on the pedestrian path",
-  "right-ui-obstacle-counterexample-4": "There is enough space to comfortably maneuver around this lid",
-  "right-ui-surface-problem-example-1": "This sidewalk is very uneven",
-  "right-ui-surface-problem-example-2": "Brick sidewalks are bumpy and can be difficult to pass",
-  "right-ui-surface-problem-example-3": "This sidewalk is cracked",
-  "right-ui-surface-problem-example-4": "There is a lot of grass growing between the sidewalk cracks",
-  "right-ui-surface-problem-counterexample-1": "Surface problems on curb ramps should be marked with a curb ramp label with a higher severity",
-  "right-ui-surface-problem-counterexample-2": "This gravel is not on the pedestrian path",
-  "right-ui-surface-problem-counterexample-3": "This grass is not on the pedestrian path",
-  "right-ui-surface-problem-counterexample-4": "Normal sidewalk tiles are not surface problems",
-  "right-ui-no-sidewalk-example-1-to-2": "This is an abruptly ending sidewalk",
-  "right-ui-no-sidewalk-example-3": "This street has no sidewalk",
-  "right-ui-no-sidewalk-example-4": "This intersection has no sidewalk",
-  "right-ui-no-sidewalk-counterexample-1": "Narrow sidewalks should not be labeled as no sidewalk",
-  "right-ui-no-sidewalk-counterexample-2": "Driveways should not be labeled as no sidewalk",
-  "right-ui-no-sidewalk-counterexample-3": "Traffic medians should not be labeled as no sidewalk",
-  "right-ui-no-sidewalk-counterexample-4": "Alleyways and side streets should not be labeled as no sidewalk",
-  "center-ui-no-info": "No available information",
-  "mission-start-title": "Validate {{n}} {{label_type}} labels",
-  "mission-start": "Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!",
-  "mission-complete-title": "Great Job!",
-  "mission-complete-body-1": "You just validated {{n}} Curb Ramp labels!",
-  "mission-complete-body-2": "You just validated {{n}} Missing Curb Ramp labels!",
-  "mission-complete-body-3": "You just validated {{n}} Obstacle labels!",
-  "mission-complete-body-4": "You just validated {{n}} Surface Problem labels!",
-  "mission-complete-body-7": "You just validated {{n}} No Sidewalk labels!",
-  "mission-complete-validate-more": "Validate more labels",
-  "mission-complete-continue": "Continue validating",
-  "mission-complete-explore": "Start an exploration mission",
-  "mission-complete-no-new-mission-title": "No more validation missions left",
-  "mission-complete-no-new-mission-body": "Click the button to start exploring",
-  "mission-complete-no-new-mission-button": "Start Exploring",
-  "tag": {
-    "narrow": "narrow",
-    "missing friction strip": "missing friction strip",
-    "steep": "steep",
-    "not enough landing space": "not enough landing space",
-    "points into traffic": "points into traffic",
-    "unclear if needed": "unclear if needed",
-    "no alternate route": "no alternate route",
-    "alternate route present": "alternate route present",
-    "vegetation": "vegetation",
-    "pole": "pole",
-    "trash/recycling can": "trash/recycling can",
-    "construction": "construction",
-    "parked bike": "parked bike",
-    "parked car": "parked car",
-    "fire hydrant": "fire hydrant",
-    "sign": "sign",
-    "tree": "tree",
-    "bumpy": "bumpy",
-    "uneven": "uneven",
-    "cracks": "cracks",
-    "grass": "grass",
-    "narrow sidewalk": "narrow sidewalk",
-    "brick": "brick",
-    "street has a sidewalk": "street has a sidewalk",
-    "ends abruptly": "ends abruptly",
-    "street has no sidewalks": "street has no sidewalks"
+  "top-ui": {
+    "title": {
+      "CurbRamp": "Is this a <b>Curb Ramp</b>?",
+      "NoCurbRamp": "Is this a <b>Missing Curb Ramp</b>?",
+      "Obstacle": "Is this an <b>Obstacle</b>?",
+      "SurfaceProblem": "Is this a <b>Surface Problem</b>?",
+      "NoSidewalk": "Should there be a <b>No Sidewalk</b> label here?"
+    }
+  },
+  "right-ui": {
+    "current-mission": {
+      "validate-labels": "Validate {{n}} labels"
+    },
+    "correct": {
+      "CurbRamp": {
+        "title": "<i>CORRECT</i> Curb Ramp",
+        "example-1-to-4": "This label is correctly placed at the bottom of a curb ramp"
+      },
+      "NoCurbRamp": {
+        "title": "<i>CORRECT</i> Missing Curb Ramp",
+        "example-1-to-3": "This intersection is lacking a curb ramp",
+        "example-4": "This crosswalk indicates there should be a curb ramp here"
+      },
+      "Obstacle": {
+        "title": "<i>CORRECT</i> Obstacle",
+        "example-1": "These construction cones are blocking a pedestrian crosswalk",
+        "example-2": "This tree blocks the entire sidewalk",
+        "example-3": "This pole blocks the sidewalk and a curb ramp entrance",
+        "example-4": "This fire hydrant blocks the sidewalk"
+      },
+      "SurfaceProblem": {
+        "title": "<i>CORRECT</i> Surface Problem",
+        "example-1": "This sidewalk is very uneven",
+        "example-2": "Brick sidewalks are bumpy and can be difficult to pass",
+        "example-3": "This sidewalk is cracked",
+        "example-4": "There is a lot of grass growing between the sidewalk cracks"
+      },
+      "NoSidewalk": {
+        "title": "<i>CORRECT</i> No Sidewalk",
+        "example-1-to-2": "This is an abruptly ending sidewalk",
+        "example-3": "This street has no sidewalk",
+        "example-4": "This intersection has no sidewalk"
+      }
+    },
+    "incorrect": {
+      "CurbRamp": {
+        "title": "<i>INCORRECT</i> Curb Ramp",
+        "example-1-to-2": "Sidewalk to driveway transitions are not curb ramps",
+        "example-3-to-4": "Driveways are not curb ramps"
+      },
+      "NoCurbRamp": {
+        "title": "<i>INCORRECT</i> Missing Curb Ramp",
+        "example-1": "Residential walkways should not be labeled as a missing curb ramp",
+        "example-2-and-4": "This is not located on a pedestrian path",
+        "example-3": "This is not an intersection pedestrians should cross at"
+      },
+      "Obstacle": {
+        "title": "<i>INCORRECT</i> Obstacle",
+        "example-1": "There is enough space to comfortably maneuver around this pole",
+        "example-2": "This pole located between, but not on these curb ramps",
+        "example-3": "This tree is not on the pedestrian path",
+        "example-4": "There is enough space to comfortably maneuver around this lid"
+      },
+      "SurfaceProblem": {
+        "title": "<i>INCORRECT</i> Surface Problem",
+        "example-1": "Surface problems on curb ramps should be marked with a curb ramp label with a higher severity",
+        "example-2": "This gravel is not on the pedestrian path",
+        "example-3": "This grass is not on the pedestrian path",
+        "example-4": "Normal sidewalk tiles are not surface problems"
+      },
+      "NoSidewalk": {
+        "title": "<i>INCORRECT</i> No Sidewalk",
+        "example-1": "Narrow sidewalks should not be labeled as no sidewalk",
+        "example-2": "Driveways should not be labeled as no sidewalk",
+        "example-3": "Traffic medians should not be labeled as no sidewalk",
+        "example-4": "Alleyways and side streets should not be labeled as no sidewalk"
+      }
+    }
+  },
+  "center-ui": {
+    "no-info": "No available information",
+    "tag": {
+      "narrow": "narrow",
+      "missing friction strip": "missing friction strip",
+      "steep": "steep",
+      "not enough landing space": "not enough landing space",
+      "points into traffic": "points into traffic",
+      "unclear if needed": "unclear if needed",
+      "no alternate route": "no alternate route",
+      "alternate route present": "alternate route present",
+      "vegetation": "vegetation",
+      "pole": "pole",
+      "trash/recycling can": "trash/recycling can",
+      "construction": "construction",
+      "parked bike": "parked bike",
+      "parked car": "parked car",
+      "fire hydrant": "fire hydrant",
+      "sign": "sign",
+      "tree": "tree",
+      "bumpy": "bumpy",
+      "uneven": "uneven",
+      "cracks": "cracks",
+      "grass": "grass",
+      "narrow sidewalk": "narrow sidewalk",
+      "brick": "brick",
+      "street has a sidewalk": "street has a sidewalk",
+      "ends abruptly": "ends abruptly",
+      "street has no sidewalks": "street has no sidewalks"
+    }
+  },
+  "mission-start": {
+    "title": "Validate {{n}} {{label_type}} labels",
+    "body": "Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!"
+  },
+  "mission-complete": {
+    "title": "Great Job!",
+    "body-1": "You just validated {{n}} Curb Ramp labels!",
+    "body-2": "You just validated {{n}} Missing Curb Ramp labels!",
+    "body-3": "You just validated {{n}} Obstacle labels!",
+    "body-4": "You just validated {{n}} Surface Problem labels!",
+    "body-7": "You just validated {{n}} No Sidewalk labels!",
+    "validate-more": "Validate more labels",
+    "continue": "Continue validating",
+    "explore": "Start an exploration mission",
+    "no-new-mission-title": "No more validation missions left",
+    "no-new-mission-body": "Click the button to start exploring",
+    "no-new-mission-button": "Start Exploring"
   },
   "mobile": {
     "info-title-title-CurbRamp": "What is a Curb Ramp?",

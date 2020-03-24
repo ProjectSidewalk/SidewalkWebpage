@@ -126,42 +126,42 @@ function UtilitiesMisc (JSON) {
         return {
             'Walk' : {
                 'id' : 'Walk',
-                'instructionalText' : i18next.t('top-ui-instruction-text'),
+                'instructionalText' : i18next.t('top-ui.instruction.explore'),
                 'textColor' : 'rgba(255,255,255,1)'
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                instructionalText: i18next.t('top-ui-instruction-text-curb-ramp'),
+                instructionalText: i18next.t('top-ui.instruction.curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                instructionalText: i18next.t('top-ui-instruction-text-missing-curb-ramp'),
+                instructionalText: i18next.t('top-ui.instruction.missing-curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Obstacle: {
                 id: 'Obstacle',
-                instructionalText: i18next.t('top-ui-instruction-text-obstacle'),
+                instructionalText: i18next.t('top-ui.instruction.obstacle'),
                 textColor: 'rgba(255,255,255,1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                instructionalText: i18next.t('top-ui-instruction-text-surface-problem'),
+                instructionalText: i18next.t('top-ui.instruction.surface-problem'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Other: {
                 id: 'Other',
-                instructionalText: i18next.t('top-ui-instruction-text-other'),
+                instructionalText: i18next.t('top-ui.instruction.other'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Occlusion: {
                 id: 'Occlusion',
-                instructionalText: i18next.t('top-ui-instruction-text-occlusion'),
+                instructionalText: i18next.t('top-ui.instruction.occlusion'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                instructionalText: i18next.t('top-ui-instruction-text-no-sidewalk'),
+                instructionalText: i18next.t('top-ui.instruction.no-sidewalk'),
                 textColor: 'rgba(255,255,255,1)'
             }
         }
@@ -230,27 +230,27 @@ function UtilitiesMisc (JSON) {
                     'narrow': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: i18next.t('tag.narrow')
+                        text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
                     'points into traffic': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: i18next.t('tag.points-into-traffic')
+                        text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
                     'missing friction strip': {
                         keyNumber: 70,
                         keyChar: 'F',
-                        text: i18next.t('tag.missing-friction-strip')
+                        text: i18next.t('center-ui.context-menu.tag.missing-friction-strip')
                     },
                     'steep': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: i18next.t('tag.steep')
+                        text: i18next.t('center-ui.context-menu.tag.steep')
                     },
                     'not enough landing space': {
                         keyNumber: 76,
                         keyChar: 'L',
-                        text: i18next.t('tag.not-enough-landing-space')
+                        text: i18next.t('center-ui.context-menu.tag.not-enough-landing-space')
                     }
                 }
             },
@@ -265,17 +265,17 @@ function UtilitiesMisc (JSON) {
                     'alternate route present': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: i18next.t('tag.alternate-route-present')
+                        text: i18next.t('center-ui.context-menu.tag.alternate-route-present')
                     },
                     'no alternate route': {
                         keyNumber: 76,
                         keyChar: 'L',
-                        text: i18next.t('tag.no-alternate-route')
+                        text: i18next.t('center-ui.context-menu.tag.no-alternate-route')
                     },
                     'unclear if needed': {
                         keyNumber: 85,
                         keyChar: 'U',
-                        text: i18next.t('tag.unclear-if-needed')
+                        text: i18next.t('center-ui.context-menu.tag.unclear-if-needed')
                     }
                 }
             },
@@ -290,47 +290,47 @@ function UtilitiesMisc (JSON) {
                     'trash/recycling can': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: i18next.t('tag.trash-recycling-can')
+                        text: i18next.t('center-ui.context-menu.tag.trash-recycling-can')
                     },
                     'fire hydrant': {
                         keyNumber: 70,
                         keyChar: 'F',
-                        text: i18next.t('tag.fire-hydrant')
+                        text: i18next.t('center-ui.context-menu.tag.fire-hydrant')
                     },
                     'pole': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: i18next.t('tag.pole')
+                        text: i18next.t('center-ui.context-menu.tag.pole')
                     },
                     'tree': {
                         keyNumber: 69,
                         keyChar: 'E',
-                        text: i18next.t('tag.tree')
+                        text: i18next.t('center-ui.context-menu.tag.tree')
                     },
                     'vegetation': {
                         keyNumber: 86,
                         keyChar: 'V',
-                        text: i18next.t('tag.vegetation')
+                        text: i18next.t('center-ui.context-menu.tag.vegetation')
                     },
                     'parked car': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: i18next.t('tag.parked-car')
+                        text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
                         keyNumber: 73,
                         keyChar: 'I',
-                        text: i18next.t('tag.parked-bike')
+                        text: i18next.t('center-ui.context-menu.tag.parked-bike')
                     },
                     'construction': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: i18next.t('tag.construction')
+                        text: i18next.t('center-ui.context-menu.tag.construction')
                     },
                     'sign': {
                         keyNumber: 71,
                         keyChar: 'G',
-                        text: i18next.t('tag.sign')
+                        text: i18next.t('center-ui.context-menu.tag.sign')
                     }
                 }
             },
@@ -341,12 +341,12 @@ function UtilitiesMisc (JSON) {
                     'missing crosswalk': {
                         keyNumber: 73,
                         keyChar: 'I',
-                        text: i18next.t('tag.missing-crosswalk')
+                        text: i18next.t('center-ui.context-menu.tag.missing-crosswalk')
                     },
                     'no bus stop access': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: i18next.t('tag.no-bus-stop-access')
+                        text: i18next.t('center-ui.context-menu.tag.no-bus-stop-access')
                     }
                 }
             },
@@ -369,17 +369,17 @@ function UtilitiesMisc (JSON) {
                     'ends abruptly': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: i18next.t('tag.ends-abruptly')
+                        text: i18next.t('center-ui.context-menu.tag.ends-abruptly')
                     },
                     'street has a sidewalk': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: i18next.t('tag.street-has-a-sidewalk')
+                        text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk')
                     },
                     'street has no sidewalks': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: i18next.t('tag.street-has-no-sidewalks')
+                        text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks')
                     }
                 }
             },
@@ -394,37 +394,37 @@ function UtilitiesMisc (JSON) {
                     'bumpy': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: i18next.t('tag.bumpy')
+                        text: i18next.t('center-ui.context-menu.tag.bumpy')
                     },
                     'uneven': {
                         keyNumber: 85,
                         keyChar: 'U',
-                        text: i18next.t('tag.uneven')
+                        text: i18next.t('center-ui.context-menu.tag.uneven')
                     },
                     'cracks': {
                         keyNumber: 75,
                         keyChar: 'K',
-                        text: i18next.t('tag.cracks')
+                        text: i18next.t('center-ui.context-menu.tag.cracks')
                     },
                     'grass': {
                         keyNumber: [71, 82],
                         keyChar: ['G', 'R'],
-                        text: i18next.t('tag.grass')
+                        text: i18next.t('center-ui.context-menu.tag.grass')
                     },
                     'narrow sidewalk': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: i18next.t('tag.narrow-sidewalk')
+                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     },
                     'brick': {
                         keyNumber: 73,
                         keyChar: 'I',
-                        text: i18next.t('tag.brick')
+                        text: i18next.t('center-ui.context-menu.tag.brick')
                     },
                     'construction': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: i18next.t('tag.construction')
+                        text: i18next.t('center-ui.context-menu.tag.construction')
                     }
                 }
             },
@@ -449,27 +449,27 @@ function UtilitiesMisc (JSON) {
     function getSeverityDescription() {
         return {
             1: {
-                message: i18next.t('context-menu-tag-passable'),
+                message: i18next.t('center-ui.context-menu.tooltip.passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
             },
 
             2: {
-                message: i18next.t('context-menu-tag-somewhat-passable'),
+                message: i18next.t('center-ui.context-menu.tooltip.somewhat-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
             },
 
             3: {
-                message: i18next.t('context-menu-tag-difficult-to-pass'),
+                message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
             },
 
             4: {
-                message: i18next.t('context-menu-tag-very-difficult-to-pass'),
+                message: i18next.t('center-ui.context-menu.tooltip.very-difficult-to-pass'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png'
             },
 
             5: {
-                message: i18next.t('context-menu-tag-not-passable'),
+                message: i18next.t('center-ui.context-menu.tooltip.not-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
             }
         };

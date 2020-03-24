@@ -218,17 +218,17 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
             direction = _angleToDirection(angle);
 
         image = "<img src='" + directionToImagePath(direction) + "' class='compass-turn-images' alt='Turn icon' />";
-        message =  "<span class='compass-message-small'>" + i18next.t('compass.unlabeled-problems') + "</span><br/>" +
+        message =  "<span class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') + "</span><br/>" +
             image + "<span class='bold'>" + _directionToDirectionMessage(direction) + "</span>";
         uiCompass.message.html(message);
     }
 
     function setLabelBeforeJumpMessage () {
-        uiCompass.message.html("<div style='width: 20%'>" + i18next.t('compass.end-of-route') + "</div>");
+        uiCompass.message.html("<div style='width: 20%'>" + i18next.t('center-ui.compass.end-of-route') + "</div>");
     }
 
     function setBackToRouteMessage () {
-        uiCompass.message.html(i18next.t('compass.far-away'));
+        uiCompass.message.html(i18next.t('center-ui.compass.far-away'));
     }
 
     /**
@@ -313,17 +313,17 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _directionToDirectionMessage (direction) {
         switch (direction) {
             case "straight":
-                return i18next.t('compass.straight');
+                return i18next.t('center-ui.compass.straight');
             case "slight-right":
-                return i18next.t('compass.slight-right');
+                return i18next.t('center-ui.compass.slight-right');
             case "slight-left":
-                return i18next.t('compass.slight-left');
+                return i18next.t('center-ui.compass.slight-left');
             case "right":
-                return i18next.t('compass.right');
+                return i18next.t('center-ui.compass.right');
             case "left":
-                return i18next.t('compass.left');
+                return i18next.t('center-ui.compass.left');
             case "u-turn":
-                return i18next.t('compass.u-turn');
+                return i18next.t('center-ui.compass.u-turn');
             default:
         }
     }
