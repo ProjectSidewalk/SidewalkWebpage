@@ -566,7 +566,7 @@ function ContextMenu (uiContextMenu) {
                 if (description) {
                     $descriptionTextBox.val(description);
                 } else {
-                    var defaultText = i18next.t('context-menu-description');
+                    var defaultText = i18next.t('center-ui.context-menu.description');
                     $descriptionTextBox.prop("placeholder", defaultText);
                 }
                 var labelProperties = self.getTargetLabel().getProperties();

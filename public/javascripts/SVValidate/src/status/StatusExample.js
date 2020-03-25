@@ -85,10 +85,10 @@ function StatusExample (statusUI) {
      */
     function _setPopupTitle (id) {
         if (id.includes("counterexample")) {
-            statusUI.popupTitle.html(i18next.t('right-ui-incorrect-' + labelType));
+            statusUI.popupTitle.html(i18next.t('right-ui.incorrect.' + labelType + ".title"));
             statusUI.popup.css('top', '208px');
         } else {
-            statusUI.popupTitle.html(i18next.t('right-ui-correct-' + labelType));
+            statusUI.popupTitle.html(i18next.t('right-ui.correct.' + labelType + ".title"));
             statusUI.popup.css('top', '-8px');
         }
     }

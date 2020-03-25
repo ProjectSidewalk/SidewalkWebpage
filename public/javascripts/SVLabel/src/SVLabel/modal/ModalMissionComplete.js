@@ -186,7 +186,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
         if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0) {
-            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-button-start-validating'));
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
 
             if (self._userModel.getUser().getProperty("role") === 'Turker') {
                 uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
@@ -195,11 +195,11 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
                 uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
                 uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
-                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete-button-keep-exploring'));
+                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
             }
         } else {
             uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
-            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-button-continue'));
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-continue'));
             uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
         }
 
@@ -297,7 +297,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
-        this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete-title'));
+        this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title'));
 
         modalMissionCompleteMap.update(mission, neighborhood);
         modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);

@@ -17,9 +17,9 @@ function StatusFieldMission (modalModel, uiStatusField) {
         if (missionType === "auditOnboarding") {
             missionMessage = i18next.t('tutorial.mission-message');
         } else if (svl.missionContainer.isTheFirstMission()) {
-            missionMessage = i18next.t('right-ui-mission-message-first-mission');
+            missionMessage = i18next.t('right-ui.current-mission.message-first-mission');
         } else {
-            missionMessage = i18next.t('right-ui-mission-message');
+            missionMessage = i18next.t('right-ui.current-mission.message');
         }
 
         if (missionType === "audit") {
