@@ -9,7 +9,8 @@ import scala.slick.lifted.ForeignKeyQuery
 case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, missionId: Int, browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
-                                screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String])
+                                screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
+                                language: String)
 
 /**
  *
@@ -28,9 +29,10 @@ class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](ta
   def screenHeight = column[Option[Int]]("screen_height", O.Nullable)
   def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
   def ipAddress = column[Option[String]]("ip_address", O.Nullable)
+  def language = column[String]("language", O.NotNull)
 
   def * = (auditTaskEnvironmentId, auditTaskId, missionId, browser, browserVersion, browserWidth, browserHeight,
-    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)
+    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("audit_task_environment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
