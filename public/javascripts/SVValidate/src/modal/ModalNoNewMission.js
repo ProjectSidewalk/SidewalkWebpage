@@ -12,7 +12,7 @@ function ModalNoNewMission (uiModalMission) {
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Click the button to start exploring.</p>\
+        <p>' + i18next.t('mission-complete.no-new-mission-body') + '</p>\
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
@@ -24,10 +24,10 @@ function ModalNoNewMission (uiModalMission) {
         svv.keyboard.disableKeyboard();
         uiModalMission.background.css('visibility', 'visible');
         uiModalMission.instruction.html(noMissionsRemaining);
-        uiModalMission.missionTitle.html("No more validation missions left");
+        uiModalMission.missionTitle.html(i18next.t('mission-complete.no-new-mission-title'));
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
-        uiModalMission.closeButton.html('Start Exploring');
+        uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button'));
         uiModalMission.closeButton.on('click', _handleButtonClick);
     }
 

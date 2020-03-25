@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -40,14 +40,7 @@
 
                 <div class="help-item">
                     <h2 id="obstacles">Surface Problems</h2>
-                    <p>
-                        A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience
-                        for someone using a wheelchair or other assistive devices. If something on a surface would make
-                        it hard or impossible to cross, it should be labeled as a <i>Surface Problem</i>. For surface
-                        problems that cover a large area, you should place a <i>Surface Problem</i> label at the start
-                        of the problem, and then continue placing labels every few feet (about 1 per panorama) until the
-                        end of the problem.
-                    </p>
+                    <p>@Html(Messages("labeling.guide.surface.problem.summary"))</p>
 
                     <h3 class="question" id="sidewalk-cracks">How should I label sidewalk cracks?
                         <a href="#sidewalk-cracks" title="Permalink to this sub-section" class="permalink-anchor">
