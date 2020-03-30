@@ -1,5 +1,4 @@
-$(document).ready(function() {
-     
+$(document).ready(function() {     
 
     // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that.
     let font = "<style> @@font-face{ font-family: 'raleway'; src: url('/assets/fonts/Raleway/Raleway-Regular.ttf');} </style>";
