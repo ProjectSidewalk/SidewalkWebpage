@@ -57,7 +57,7 @@ class UserDAOSlick extends UserDAO {
           _.userId === userID.toString
         ).firstOption match {
           case Some(user) =>
-            slickUserLoginInfos.filter(_.userID === user.userId).firstOption match {
+            slickUserLoginInfos.filter(_.userID === user.userId).drop(1).take(1).firstOption match {
               case Some(info) =>
                 slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
                   case Some(loginInfo) =>
@@ -118,9 +118,9 @@ class UserDAOSlick extends UserDAO {
         // Now make sure they are connected
         slickUserLoginInfos.filter(info => info.userID === dbUser.userId && info.loginInfoId === dbLoginInfo.id).firstOption match {
           case Some(info) =>
-          // They are connected already, we could as well omit this case ;)
+            Logger.debug("Nothing to insert since user login info already exists: " + info)
           case None =>
-            slickUserLoginInfos += DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get)
+            slickUserLoginInfos.insert(DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get))
         }
         user // We do not change the user => return it
       }

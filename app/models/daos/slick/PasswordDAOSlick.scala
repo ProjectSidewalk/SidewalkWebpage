@@ -17,11 +17,12 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
   import play.api.Play.current
 
   /**
-   * Saves the password info.
+   * Updates the password info if user password info already exists, otherwise
+   * saves the password info.
    *
    * @param loginInfo The login info for which the auth info should be saved.
    * @param authInfo The password info to save.
-   * @return The saved password info or None if the password info couldn't be saved.
+   * @return The updated/saved password info or None if the password info couldn't be updated/saved.
    */
   def save(loginInfo: LoginInfo, authInfo: PasswordInfo): Future[PasswordInfo] = {
     /*
@@ -33,7 +34,13 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
         val infoId = slickLoginInfos.filter(
           x => x.providerID === loginInfo.providerID && x.providerKey === loginInfo.providerKey
         ).first.id.get
-        slickPasswordInfos insert DBPasswordInfo(authInfo.hasher, authInfo.password, authInfo.salt, infoId)
+        slickPasswordInfos.filter(p => p.loginInfoId === infoId).firstOption match {
+          case Some(passInfo) =>
+            val q = for { p <- slickPasswordInfos if p.loginInfoId === infoId } yield p.password
+            q.update(authInfo.password)
+          case None =>
+            slickPasswordInfos insert DBPasswordInfo(authInfo.hasher, authInfo.password, authInfo.salt, infoId)
+        }
         authInfo
       }
     }
@@ -57,4 +64,5 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
       }
     }
   }
+
 }

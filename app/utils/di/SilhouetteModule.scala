@@ -15,7 +15,7 @@ import com.mohiva.play.silhouette.impl.services._
 import com.mohiva.play.silhouette.impl.util._
 import models.daos._
 import models.daos.slick._
-import models.services.{ UserService, UserServiceImpl }
+import models.services.{ UserService, UserServiceImpl, AuthTokenService, AuthTokenServiceImpl }
 import models.user.User
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Play
@@ -35,6 +35,8 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[UserService].to[UserServiceImpl]
     //bind[UserDAO].to[UserDAOImpl]
     bind[UserDAO].to[UserDAOSlick]
+    bind[AuthTokenService].to[AuthTokenServiceImpl]
+    bind[AuthTokenDAO].to[AuthTokenDAOImpl]
     bind[DelegableAuthInfoDAO[PasswordInfo]].to[PasswordInfoDAOSlick]
     bind[CacheLayer].to[PlayCacheLayer]
     bind[HTTPLayer].to[PlayHTTPLayer]
@@ -42,6 +44,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[PasswordHasher].toInstance(new BCryptPasswordHasher)
     bind[FingerprintGenerator].toInstance(new DefaultFingerprintGenerator(false))
     bind[EventBus].toInstance(EventBus())
+    bind[Clock].toInstance(Clock())
   }
 
   /**
