@@ -49,7 +49,8 @@ object DBTableDefinitions {
   class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, "auth_tokens") {
     def id = column[String]("id")
     def userID = column[String]("user_id")
-    def timestamp = solumn[Timestamp]("timestamp")
+    def timestamp = column[Timestamp]("timestamp")
+    def * = (id, userID, timestamp) <> (DBAuthToken.tupled, DBAuthToken.unapply)
   }
 
 

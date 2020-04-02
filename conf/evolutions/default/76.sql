@@ -4,3 +4,6 @@ CREATE TABLE auth_tokens (
   id character varying(254) NOT NULL,
   timestamp TIMESTAMPTZ
 );
+
+# --- !Downs
+DROP TABLE label_validation;
