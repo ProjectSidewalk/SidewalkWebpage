@@ -104,6 +104,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
 
     new DelegableAuthInfoService(passwordInfoDAO)
   }
+
   /**
    * Provides the avatar service.
    *

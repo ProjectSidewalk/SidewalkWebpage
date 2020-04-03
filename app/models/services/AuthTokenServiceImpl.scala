@@ -22,10 +22,7 @@ import play.api.libs.concurrent.Execution.Implicits._
  * @param clock        The clock instance.
  * @param ex           The execution context.
  */
-class AuthTokenServiceImpl @Inject() (
-                                       authTokenDAO: AuthTokenDAO,
-                                       clock: Clock
-                                     ) extends AuthTokenService {
+class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTokenService {
 
   /**
    * Creates a new auth token and saves it in the backing store.

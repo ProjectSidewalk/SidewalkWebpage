@@ -78,7 +78,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   def remove(id: UUID) = {
     DB withSession { implicit session =>
       Future.successful {
-        slickAuthTokens.filter(x => x.userID === id.toString).delete
+        slickAuthTokens.filter(x => x.id === id.toString).delete
       }
     }
   }
