@@ -57,7 +57,7 @@ class UserDAOSlick extends UserDAO {
           _.userId === userID.toString
         ).firstOption match {
           case Some(user) =>
-            slickUserLoginInfos.filter(_.userID === user.userId).drop(1).take(1).firstOption match {
+            slickUserLoginInfos.filter(_.userID === user.userId).firstOption match {
               case Some(info) =>
                 slickLoginInfos.filter(_.loginInfoId === info.loginInfoId).firstOption match {
                   case Some(loginInfo) =>
@@ -115,12 +115,14 @@ class UserDAOSlick extends UserDAO {
           case Some(info) => Logger.debug("Nothing to insert since info already exists: " + info)
         }
         dbLoginInfo = slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).first
+        val dbUserLoginInfo = DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get)
         // Now make sure they are connected
-        slickUserLoginInfos.filter(info => info.userID === dbUser.userId && info.loginInfoId === dbLoginInfo.id).firstOption match {
+        slickUserLoginInfos.filter(info => info.userID === dbUser.userId).firstOption match {
           case Some(info) =>
-            Logger.debug("Nothing to insert since user login info already exists: " + info)
+            slickUserLoginInfos.filter(info => info.userID === dbUser.userId).update(dbUserLoginInfo)
+            Logger.debug("Updated user login info: " + info)
           case None =>
-            slickUserLoginInfos.insert(DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get))
+            slickUserLoginInfos.insert(dbUserLoginInfo)
         }
         user // We do not change the user => return it
       }
