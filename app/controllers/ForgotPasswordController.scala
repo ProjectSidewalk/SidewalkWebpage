@@ -47,12 +47,12 @@ class ForgotPasswordController @Inject() (
               val url = routes.UserController.resetPassword(authToken.id).absoluteURL()
 
               val resetEmail = Email(
-                "Reset your Password",
+                "Reset Your Project Sidewalk Account Password",
                 "test email <sidewalkemailtest@gmail.com>",
                 Seq(email),
-                bodyText = Some("Click on this link to reset your password!"),
-                bodyHtml = Some("<html><body><a href=" + url + ">Reset Password</a></body></html>")
+                bodyHtml = Some(views.html.emails.resetPasswordEmail(user, url).body)
               )
+
               MailerPlugin.send(resetEmail)
               result
             }
