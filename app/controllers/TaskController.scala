@@ -361,7 +361,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val env: EnvironmentSubmission = data.environment
       val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, missionId, env.browser,
         env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-        env.screenHeight, env.operatingSystem, Some(remoteAddress))
+        env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language)
       AuditTaskEnvironmentTable.save(taskEnv)
 
       // Insert Street View metadata

@@ -54,7 +54,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         }
         let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
             + mission.getProperty("notSureCount");
-        let message = i18next.t('mission-complete-body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
+        let message = i18next.t('mission-complete.body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
 
         // Disable user from clicking the "Validate next mission" button and set background to gray.
         uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
@@ -80,7 +80,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         }, 100);
 
         uiModalMissionComplete.background.css('visibility', 'visible');
-        uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete-title'));
+        uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete.title'));
         uiModalMissionComplete.message.html(message);
         uiModalMissionComplete.agreeCount.html(mission.getProperty("agreeCount"));
         uiModalMissionComplete.disagreeCount.html(mission.getProperty("disagreeCount"));
@@ -92,7 +92,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop). If they
         // are a turker, only give them the option to audit. O/w let them choose b/w auditing and validating.
         if (svv.missionsCompleted % 3 === 0 && !isMobile()) {
-            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-explore'));
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.explore'));
             uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
 
             if (user.getProperty('role') === 'Turker') {
@@ -100,12 +100,12 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
             } else {
                 uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
-                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete-continue'));
+                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.continue'));
                 uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
                 uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
             }
         } else {
-            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete-validate-more'));
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.validate-more'));
             uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
             uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
 

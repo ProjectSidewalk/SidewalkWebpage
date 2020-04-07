@@ -13,6 +13,7 @@
     @navbar(user, Some("/validate"))
 
     <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/jquery.base64.min.js")'></script>
@@ -407,6 +408,16 @@
                 param.canvasWidth = 240;
                 param.canvasCount = 9;
                 param.language = "@lang.language";
+                param.modalText = {
+                    1: "@Messages("labeling.guide.curb.ramp.summary")",
+                    2: "@Messages("labeling.guide.curb.ramp.summary")",
+                    3: "@Messages("labeling.guide.obstacle.summary")",
+                    4: "@Messages("labeling.guide.surface.problem.summary")",
+                    5: "",
+                    6: "@Messages("labeling.guide.occlusion.summary")",
+                    7: "@Messages("labeling.guide.no.sidewalk.summary")",
+                    8: ""
+                };
 
                 if (@hasNextMission) {
                     param.mission = @Html(mission.getOrElse("\"\"").toString);

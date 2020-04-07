@@ -36,6 +36,13 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           new Timestamp(interaction.timestamp), interaction.isMobile)
       })
 
+      // Insert Environment
+      val env: EnvironmentSubmission = data.environment
+      val taskEnv: ValidationTaskEnvironment = ValidationTaskEnvironment(0, env.missionId, env.browser,
+        env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
+        env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language)
+      ValidationTaskEnvironmentTable.save(taskEnv)
+
       // We aren't always submitting labels, so check if data.labels exists.
       for (label: LabelValidationSubmission <- data.labels) {
         userOption match {

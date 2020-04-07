@@ -162,7 +162,7 @@ function Main (param) {
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, svv.ui.modalConfirmation.confirmationCode);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
-        svv.modalInfo = new ModalInfo(svv.ui.modalInfo);
+        svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 

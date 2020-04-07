@@ -41,21 +41,21 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t('mission-start-body-first') + '</p>\
+        <p>' + i18next.t('mission-start.body-first') + '</p>\
         <div class="spacer10"></div>';
 
     var distanceMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t('mission-start-body') + '</p>\
+        <p>' + i18next.t('mission-start.body') + '</p>\
         <div class="spacer10"></div>';
 
     var returningToMissionHTML = ' <figure> \
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t('mission-start-title-continue') + '</p>\
+        <p>' + i18next.t('mission-start.title-continue') + '</p>\
         <div class="spacer10"></div>';
 
     this._handleBackgroundClick = function () {
@@ -112,7 +112,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         // Set the title and the instruction of this mission.
 
         var missionType = mission.getProperty("missionType");
-        var missionTitle = i18next.t('mission-start-title');
+        var missionTitle = i18next.t('mission-start.title');
         var templateHTML;
 
         svl.popUpMessage.disableInteractions();
@@ -121,11 +121,11 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
             templateHTML = distanceMissionHTML;
 
             if (mission.getProperty("distanceProgress") > 0) { // In-progress mission
-                missionTitle = i18next.t('mission-start-title-return');
+                missionTitle = i18next.t('mission-start.title-return');
                 templateHTML = returningToMissionHTML;
 
                 // Set returning-to-mission specific css
-                uiModalMission.closeButton.html(i18next.t('mission-start-button-resume'));
+                uiModalMission.closeButton.html(i18next.t('mission-start.button-resume'));
                 uiModalMission.instruction.css('text-align', 'center');
                 uiModalMission.closeButton.css('font-size', '24px');
                 uiModalMission.closeButton.css('width', '40%');
@@ -133,7 +133,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
                 uiModalMission.closeButton.css('margin-left', '30%');
                 uiModalMission.closeButton.css('margin-top', '30px');
             } else if (missionContainer.onlyMissionOnboardingDone() || missionContainer.isTheFirstMission()) { // First mission
-                missionTitle = i18next.t('mission-start-title-first') + missionTitle;
+                missionTitle = i18next.t('mission-start.title-first') + missionTitle;
                 templateHTML = initialMissionHTML;
             } else {
                 // We have to reset the css from the resuming screen, otherwise the button will remain as set
@@ -167,7 +167,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         // Update the reward HTML if the user is a turker.
         if (_userModel.getUser().getProperty("role") === "Turker") {
             var missionReward = mission.getProperty("pay");
-            var missionRewardText = i18next.t('mission-start-turk-reward') + '<span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+            var missionRewardText = i18next.t('mission-start.turk-reward') + '<span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
             missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
             svl.ui.status.currentMissionReward.html(i18next.t('common:right-ui-turk-current-reward') + "<span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
             uiModalMission.rewardText.html(missionRewardText);
