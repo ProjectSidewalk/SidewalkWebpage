@@ -7,6 +7,8 @@ other = Otro
 labels = etiquetas
 ok = OK
 cancel = Cancelar
+error = ¡Error!
+thanks = ¡Gracias!
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -154,3 +156,29 @@ mobile.validate.leave.feedback = Retroalimentación
 turk.expired.title = ¡Asignación Vencida!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
 turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
+
+sign.up.email.exists.error = El correo electrónico ya existe
+sign.up.username.exists.error = El nombre de usuario ya existe
+sign.up.password.length.error = La contraseña debe tener al menos 6 caracteres
+sign.up.password.mismatch.error = Las contraseñas no coinciden
+
+sign.in.invalid.credentials = Credenciales inválidas
+
+forgot.password.title = Olvidaste tu contraseña
+forgot.password.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+
+email.hello = Hola {0},
+email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
+email.send.link = Enviar Correo Electrónico
+email.reset.password.sent = Se ha enviado un correo electrónico para restablecer tu contraseña.
+email.valid.required = Se requiere un correo electrónico válido
+email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
+email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
+email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 5 minutos
+
+reset.password.submit.new.password = Escribe tu nueva contraseña
+reset.password.message = Restablecer la contraseña
+reset.password.successful = ¡Contraseña restablecida!
+reset.password.invalid.reset.link = Enlace de reinicio inválido
+
+project.sidewalk.team = El equipo de Project Sidewalk

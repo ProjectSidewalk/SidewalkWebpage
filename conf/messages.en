@@ -8,6 +8,8 @@ labels = labels
 miles = miles
 ok = OK
 cancel = Cancel
+error = Error!
+thanks = Thanks!
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -155,3 +157,29 @@ mobile.validate.leave.feedback = Leave Feedback
 turk.expired.title = Assignment Expired!
 turk.expired.body = You should receive your bonus amount in the next day or two. If you completed the HIT but did not submit your confirmation code on the mturk website, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
 turk.submit.code = Submit this code for HIT verification on Amazon Mechanical Turk
+
+sign.up.email.exists.error = Email already exists
+sign.up.username.exists.error = Username already exists
+sign.up.password.length.error = Password must be at least 6 characters
+sign.up.password.mismatch.error = Passwords do not match
+
+sign.in.invalid.credentials = Invalid credentials!
+
+forgot.password.title = Forgot your password?
+forgot.password.submit.email = No worries, type in your email and we’ll send you a link to reset your password.
+
+email.hello = Hi {0},
+email.reset.title = Reset Your Project Sidewalk Account Password
+email.send.link = Send Email
+email.reset.password.sent = An email to reset your password has been sent.
+email.valid.required = Valid email required
+email.reset.request.message = You recently asked to reset your password for your Project Sidewalk account. Click the link below to reset your password:
+email.reset.not.requested = If you did not request a password reset, please ignore this message or send us an email to let us know.
+email.reset.valid.duration = This password reset will be valid for the next 5 minutes
+
+reset.password.submit.new.password = Type in your new password.
+reset.password.message = Reset password
+reset.password.successful = Password reset!
+reset.password.invalid.reset.link = Invalid Reset Link
+
+project.sidewalk.team = The Project Sidewalk team

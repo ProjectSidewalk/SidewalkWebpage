@@ -44,12 +44,12 @@ class ResetPasswordController @Inject() (
             case Some(user) if user.loginInfo.providerID == CredentialsProvider.ID =>
               val passwordInfo = passwordHasher.hash(password)
               authInfoService.save(user.loginInfo, passwordInfo).map { _ =>
-                Redirect(routes.UserController.signIn()).flashing("success" -> "Password Reset!")
+                Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.password.successful"))
               }
-            case _ => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> "Invalid Reset Link"))
+            case _ => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.password.invalid.reset.link")))
           }
         )
-      case None => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> "Invalid Reset Link"))
+      case None => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.password.invalid.reset.link")))
     }
   }
 }
