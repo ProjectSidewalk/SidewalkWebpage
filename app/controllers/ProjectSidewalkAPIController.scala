@@ -65,7 +65,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param severity
     * @return
     */
-  def getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val minLat:Float = min(lat1, lat2).toFloat
@@ -73,10 +73,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
 
-    val features: List[JsObject] =
-      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
-
-    Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    if(filetype != None) {  // in CSV format
+      val file = new java.io.File("access_attributes_with_labels.csv")
+      val writer = new java.io.PrintStream(file)
+      writer.println("Global Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Neighborhood Name,Label ID,GSV Panorama ID,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity,Label Temporary")
+      for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
+        val currString: String = current.attributesToArray.mkString(",")
+        writer.println(currString)
+      }
+      Future.successful(Ok.sendFile(file))
+    } else {  // in GeoJSON format
+      val features: List[JsObject] = 
+        GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
+      Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    }
   }
 
   /**
@@ -89,7 +99,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param severity
     * @return
     */
-  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val minLat:Float = min(lat1, lat2).toFloat
@@ -97,10 +107,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
 
-    val features: List[JsObject] =
-      GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
-
-    Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    if(filetype != None) {  // CSV format
+      val file = new java.io.File("access_attributes.csv")
+      val writer = new java.io.PrintStream(file)
+      writer.println("Global Attribute ID,Label Type,Latitude,Longitude,Severity,Label Temporary,Neighborhood Name")
+      for(current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
+        val currString: String = current.attributesToArray.mkString(",")
+        writer.println(currString)
+      }
+      Future.successful(Ok.sendFile(file))
+    } else {  // GeoJSON format
+      val features: List[JsObject] =
+        GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
+      Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
+    }
   }
 
   def getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
@@ -164,7 +184,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     Future.successful(Ok(getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 2, request.toString)))
   }
@@ -287,7 +307,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     Future.successful(Ok(getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2)))
   }

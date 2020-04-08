@@ -22,8 +22,8 @@ case class GlobalAttribute(globalAttributeId: Int,
                            regionId: Int,
                            lat: Float, lng: Float,
                            severity: Option[Int],
-                           temporary: Boolean)
-
+                           temporary: Boolean) 
+                           
 case class GlobalAttributeForAPI(globalAttributeId: Int,
                                  labelType: String,
                                  lat: Float, lng: Float,
@@ -43,6 +43,9 @@ case class GlobalAttributeForAPI(globalAttributeId: Int,
       )
     )
   }
+  val attributesToArray = Array("" + globalAttributeId, "" + labelType, 
+                                 "" + lat, "" + lng, "" + severity, "" + temporary, "" + neighborhoodName)
+  attributesToArray(4) = "" + severity.getOrElse("null")
 }
 
 case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
@@ -86,6 +89,12 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
       )
     )
   }
+  val attributesToArray = Array("" + globalAttributeId, labelType, "" + attributeSeverity, "" + attributeTemporary,
+                                 neighborhoodName, "" + labelId, "" + gsvPanoramaId, "" + heading, "" + pitch, "" + zoom, 
+                                 "" + canvasX, "" + canvasY, "" + canvasWidth, "" + canvasHeight, "" + labelSeverity,
+                                 "" + labelTemporary)
+  attributesToArray(2) = "" + attributeSeverity.getOrElse("null")
+  attributesToArray(14) = attributesToArray(2)
 }
 
 
