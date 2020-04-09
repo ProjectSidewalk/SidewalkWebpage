@@ -21,7 +21,8 @@ $(document).ready(function() {
 
     resizeMobileValidation();
 
-    //add the 'animate-button-0' class to all validaton buttons so an animation is performed on click
+    // Add the 'animate-button-0' class to all validaton buttons so an animation is performed to
+    // confirm click.
     document.getElementById("validation-agree-button-0").classList.add("animate-button-0");
     document.getElementById("validation-not-sure-button-0").classList.add("animate-button-0");
     document.getElementById("validation-disagree-button-0").classList.add("animate-button-0");
