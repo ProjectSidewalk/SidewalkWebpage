@@ -18,6 +18,7 @@ services:
       - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk-newberg
       - SIDEWALK_EMAIL_ADDRESS=DUMMY_EMAIL_ADDRESS
       - SIDEWALK_EMAIL_PASSWORD=DUMMY_EMAIL_PASSWORD
+
   db:
     image: projectsidewalk/db
     container_name: projectsidewalk-db
