@@ -64,5 +64,4 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
       }
     }
   }
-
 }

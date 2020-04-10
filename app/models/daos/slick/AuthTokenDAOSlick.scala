@@ -23,10 +23,8 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   def find(id: UUID) = {
     DB withSession { implicit session =>
       Future.successful {
-        slickAuthTokens.filter(
-          x => x.id === id.toString
-        ).firstOption match {
-          case Some(info) => Some(AuthToken(UUID.fromString(info.id), UUID.fromString(info.userID), info.timestamp))
+        slickAuthTokens.filter(_.id === id.toString).firstOption match {
+          case Some(info) => Some(AuthToken(UUID.fromString(info.id), UUID.fromString(info.userID), info.expirationTimestamp))
           case None => None
         }
       }
@@ -37,12 +35,13 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
    * Finds expired tokens.
    *
    * @param dateTime The current date time.
+   * @return A Sequence of expired tokens
    */
   def findExpired(currentTime: Timestamp) = {
     DB withSession { implicit session =>
       Future.successful {
-        val expiredTokens = slickAuthTokens.filter(_.timestamp < currentTime).list.map { authToken =>
-          AuthToken(UUID.fromString(authToken.id), UUID.fromString(authToken.userID), authToken.timestamp)
+        val expiredTokens = slickAuthTokens.filter(_.expirationTimestamp < currentTime).list.map { authToken =>
+          AuthToken(UUID.fromString(authToken.id), UUID.fromString(authToken.userID), authToken.expirationTimestamp)
         }.seq
         expiredTokens
       }
@@ -59,7 +58,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
     DB withSession { implicit session =>
       Future.successful {
         val dbAuthToken = DBAuthToken(token.id.toString, token.userID.toString, token.expiry)
-        slickAuthTokens.filter(x => x.userID === dbAuthToken.userID).firstOption match {
+        slickAuthTokens.filter(_.userID === dbAuthToken.userID).firstOption match {
           case Some(authToken) => Logger.debug("Auth Token for user already exists: " + authToken)
           case None =>
             slickAuthTokens insert dbAuthToken
@@ -78,7 +77,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   def remove(id: UUID) = {
     DB withSession { implicit session =>
       Future.successful {
-        slickAuthTokens.filter(x => x.id === id.toString).delete
+        slickAuthTokens.filter(_.id === id.toString).delete
       }
     }
   }

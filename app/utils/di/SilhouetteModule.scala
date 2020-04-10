@@ -45,7 +45,6 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[PasswordHasher].toInstance(new BCryptPasswordHasher)
     bind[FingerprintGenerator].toInstance(new DefaultFingerprintGenerator(false))
     bind[EventBus].toInstance(EventBus())
-    bind[Clock].toInstance(Clock())
   }
 
   /**

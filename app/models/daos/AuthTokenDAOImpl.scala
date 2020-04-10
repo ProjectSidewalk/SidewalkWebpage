@@ -28,6 +28,7 @@ class AuthTokenDAOImpl extends AuthTokenDAO {
    * Finds expired tokens.
    *
    * @param dateTime The current date time.
+   * @return A Sequence of expired tokens
    */
   def findExpired(currentTime: Timestamp) = Future.successful {
     tokens.filter {

@@ -61,6 +61,4 @@ object AuthTokenCleanerActor {
   val Name = "auth-token-cleaner-actor"
   def props = Props(new AuthTokenCleanerActor)
   case object Tick
-
 }
-

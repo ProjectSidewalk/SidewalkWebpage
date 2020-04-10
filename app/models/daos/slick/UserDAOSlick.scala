@@ -117,9 +117,9 @@ class UserDAOSlick extends UserDAO {
         dbLoginInfo = slickLoginInfos.filter(info => info.providerID === dbLoginInfo.providerID && info.providerKey === dbLoginInfo.providerKey).first
         val dbUserLoginInfo = DBUserLoginInfo(dbUser.userId, dbLoginInfo.id.get)
         // Now make sure they are connected
-        slickUserLoginInfos.filter(info => info.userID === dbUser.userId).firstOption match {
+        slickUserLoginInfos.filter(_.userID === dbUser.userId).firstOption match {
           case Some(info) =>
-            slickUserLoginInfos.filter(info => info.userID === dbUser.userId).update(dbUserLoginInfo)
+            slickUserLoginInfos.filter(_.userID === dbUser.userId).update(dbUserLoginInfo)
             Logger.debug("Updated user login info: " + info)
           case None =>
             slickUserLoginInfos.insert(dbUserLoginInfo)

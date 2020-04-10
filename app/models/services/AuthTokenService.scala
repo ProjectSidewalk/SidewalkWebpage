@@ -36,4 +36,5 @@ trait AuthTokenService {
    * @return The list of deleted tokens.
    */
   def clean: Future[Seq[AuthToken]]
+
 }

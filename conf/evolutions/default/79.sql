@@ -2,7 +2,7 @@
 CREATE TABLE auth_tokens (
   user_id character varying(254) NOT NULL,
   id character varying(254) NOT NULL,
-  timestamp TIMESTAMPTZ
+  expiration_timestamp TIMESTAMPTZ NOT NULL
 );
 
 DELETE FROM user_login_info T1

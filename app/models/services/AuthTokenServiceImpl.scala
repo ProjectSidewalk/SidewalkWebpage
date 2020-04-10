@@ -5,10 +5,8 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 
-import com.mohiva.play.silhouette.api.util.Clock
 import models.AuthToken
 import models.daos.AuthTokenDAO
-import org.joda.time.DateTimeZone
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -19,8 +17,6 @@ import play.api.libs.concurrent.Execution.Implicits._
  * Handles actions to auth tokens.
  *
  * @param authTokenDAO The auth token DAO implementation.
- * @param clock        The clock instance.
- * @param ex           The execution context.
  */
 class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTokenService {
 
@@ -54,4 +50,5 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
       authTokenDAO.remove(token.id).map(_ => token)
     })
   }
+
 }
