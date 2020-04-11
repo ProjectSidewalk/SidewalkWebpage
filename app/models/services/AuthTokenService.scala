@@ -37,4 +37,11 @@ trait AuthTokenService {
    */
   def clean: Future[Seq[AuthToken]]
 
+  /**
+   * Remove token associated with given token id
+   *
+   * @param id the id of the token to remove
+   * @return A future to wait for the process to be completed.
+   */
+  def remove(id: UUID): Future[Unit]
 }

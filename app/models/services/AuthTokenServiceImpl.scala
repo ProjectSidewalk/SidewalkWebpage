@@ -51,4 +51,11 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
     })
   }
 
+  /**
+   * Remove token associated with given token id
+   *
+   * @param id the id of the token to remove
+   * @return A future to wait for the process to be completed.
+   */
+  def remove(id: UUID) = authTokenDAO.remove(id)
 }

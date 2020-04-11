@@ -40,11 +40,18 @@ class ResetPasswordController @Inject() (
       case Some(authToken) =>
         ResetPasswordForm.form.bindFromRequest.fold(
           form => Future.successful(BadRequest(views.html.resetPassword(form, token))),
-          password => userService.retrieve(authToken.userID).flatMap {
+          passwordData => userService.retrieve(authToken.userID).flatMap {
             case Some(user) if user.loginInfo.providerID == CredentialsProvider.ID =>
-              val passwordInfo = passwordHasher.hash(password)
-              authInfoService.save(user.loginInfo, passwordInfo).map { _ =>
-                Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.password.successful"))
+              if (passwordData.password != passwordData.passwordConfirm) {
+                Future.successful(Redirect(routes.UserController.resetPassword(token)).flashing("error" -> Messages("sign.up.password.mismatch.error")))
+              } else if (passwordData.password.length < 6) {
+                Future.successful(Redirect(routes.UserController.resetPassword(token)).flashing("error" -> Messages("sign.up.password.length.error")))
+              } else {
+                val passwordInfo = passwordHasher.hash(passwordData.password)
+                authInfoService.save(user.loginInfo, passwordInfo).map { _ =>
+                  authTokenService.remove(token)
+                  Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.password.successful"))
+                }
               }
             case _ => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.password.invalid.reset.link")))
           }
