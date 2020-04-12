@@ -200,7 +200,7 @@ email.reset.password.sent = Se ha enviado un correo electrónico para restablece
 email.valid.required = Se requiere un correo electrónico válido
 email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
 email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
-email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 5 minutos
+email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 60 minutos
 
 reset.password.submit.new.password = Escribe tu nueva contraseña
 reset.password.message = Restablecer la contraseña

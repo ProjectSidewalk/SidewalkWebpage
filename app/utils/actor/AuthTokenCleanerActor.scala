@@ -29,7 +29,7 @@ class AuthTokenCleanerActor extends Actor {
     cancellable = Some(
       context.system.scheduler.schedule(
         1.second,
-        5.minutes,
+        60.minutes,
         self,
         AuthTokenCleanerActor.Tick
       )(context.dispatcher)

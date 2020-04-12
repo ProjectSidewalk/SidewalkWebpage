@@ -201,7 +201,7 @@ email.reset.password.sent = An email to reset your password has been sent.
 email.valid.required = Valid email required
 email.reset.request.message = You recently asked to reset your password for your Project Sidewalk account. Click the link below to reset your password:
 email.reset.not.requested = If you did not request a password reset, please ignore this message or send us an email to let us know.
-email.reset.valid.duration = This password reset will be valid for the next 5 minutes
+email.reset.valid.duration = This password reset will be valid for the next 60 minutes
 
 reset.password.submit.new.password = Type in your new password.
 reset.password.message = Reset password

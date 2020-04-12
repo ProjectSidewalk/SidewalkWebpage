@@ -27,7 +27,7 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
    * @param expiry The duration a token expires.
    * @return The saved auth token.
    */
-  def create(userID: UUID, expiry: FiniteDuration = 5 minutes) = {
+  def create(userID: UUID, expiry: FiniteDuration = 60 minutes) = {
     val token = AuthToken(UUID.randomUUID(), userID, new Timestamp(Instant.now.toEpochMilli + expiry.toMillis.toLong))
     authTokenDAO.save(token)
   }
@@ -38,7 +38,13 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
    * @param id The token ID to validate.
    * @return The token if it's valid, None otherwise.
    */
-  def validate(id: UUID) = authTokenDAO.find(id)
+  def validate(id: UUID) = authTokenDAO.find(id).flatMap {
+    case Some(authToken) => Future.successful {
+      if (authToken.expiry.before(new Timestamp(Instant.now.toEpochMilli))) None else Some(authToken)
+    }
+
+    case None => Future.successful(None)
+  }
 
   /**
    * Cleans expired tokens.
