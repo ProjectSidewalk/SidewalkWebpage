@@ -170,9 +170,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    Future.successful(Ok(getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 1, request.toString)))
+    Future.successful(Ok(getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 1, request.toString, filetype)))
   }
 
   /**
@@ -186,10 +186,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     */
   def getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    Future.successful(Ok(getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 2, request.toString)))
+    Future.successful(Ok(getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 2, request.toString, filetype)))
   }
 
-  def getAccessScoreNeighborhoodsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, requestStr: String) = {
+  def getAccessScoreNeighborhoodsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, requestStr: String, filetype: Option[String]) = {
     // Retrieve data and cluster them by location and label type.
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
@@ -292,9 +292,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
+  def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    Future.successful(Ok(getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1)))
+    Future.successful(Ok(getGeoJSONAccessScoreStreetsGeneric(getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1, filetype))))
   }
 
   /**
@@ -309,7 +309,25 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     */
   def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    Future.successful(Ok(getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2)))
+    val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2, filetype)
+    if(filetype != None) {  // CSV format
+      val file = new java.io.File("access_score_streets.csv")
+      val writer = new java.io.PrintStream(file)
+      writer.println("Coordinates,Street Edge ID,Access Score,Curb Ramp Count,No Curb Ramp Count,Obstacle Count,Surface Problem Count,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance")
+      for(streetAccessScore <- streetAccessScores) {
+        var coordinates: String = "["
+        for(coordinate <- streetAccessScore.streetEdge.geom.getCoordinates) {
+          coordinates += "(" + coordinate.x + " - " + coordinate.y + ") "
+        }
+        coordinates += "]"
+        writer.println(coordinates + "," + streetAccessScore.streetEdge.streetEdgeId + "," + streetAccessScore.score + "," + streetAccessScore.attributes(0) + "," + streetAccessScore.attributes(1) + 
+                       "," + streetAccessScore.attributes(2) + "," + streetAccessScore.attributes(3) + "," + streetAccessScore.significance(0) + "," + streetAccessScore.significance(1) + 
+                       "," + streetAccessScore.significance(2) + "," + streetAccessScore.significance(3))
+      }
+      Future.successful(Ok.sendFile(file))
+    } else {  // GeoJSON format
+      Future.successful(Ok(getGeoJSONAccessScoreStreetsGeneric(streetAccessScores)))
+    }
   }
 
   /**
@@ -325,7 +343,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param requestStr
     * @return
     */
-  def getAccessScoreStreetsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int): JsObject = {
+  def getAccessScoreStreetsGeneric(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, filetype: Option[String]): List[AccessScoreStreet]  = {
     val minLat = min(lat1, lat2)
     val maxLat = max(lat1, lat2)
     val minLng = min(lng1, lng2)
@@ -343,8 +361,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType))
     }
     val streetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsWithin(minLat, minLng, maxLat, maxLng)
-    val streetAccessScores = computeAccessScoresForStreets(streetEdges, labelsForScore)
+    computeAccessScoresForStreets(streetEdges, labelsForScore) 
+  }
 
+  def getGeoJSONAccessScoreStreetsGeneric(streetAccessScores: List[AccessScoreStreet]): JsObject  = {
     val streetJson = streetAccessScores.map { streetAccessScore =>
       val latlngs: List[JsonLatLng] = streetAccessScore.streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
       val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
