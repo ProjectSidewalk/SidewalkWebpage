@@ -161,7 +161,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     Future.successful(Ok(getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 1, request.toString, Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2)))))
   }
@@ -349,9 +349,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @return
     */
-  def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    Future.successful(Ok(getGeoJSONAccessScoreStreetsGeneric(getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1, filetype))))
+    Future.successful(Ok(getGeoJSONAccessScoreStreetsGeneric(getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 1, None))))
   }
 
   /**
