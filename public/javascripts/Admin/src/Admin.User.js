@@ -2,6 +2,7 @@ function AdminUser(params) {
     var self = {};
     var _data = {};
     self.username = params.username;
+    self.adminGSVLabelView = AdminGSVLabelView(true);
 
     // Initialize the map
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
@@ -11,7 +12,7 @@ function AdminUser(params) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+    var map = L.mapbox.map('admin-map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
@@ -74,7 +75,6 @@ function AdminUser(params) {
         document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
         document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
         document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
-
         document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
         document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
         document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
@@ -88,9 +88,24 @@ function AdminUser(params) {
                 var style = $.extend(true, {}, geojsonMarkerOptions);
                 style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
                 return L.circleMarker(latlng, style);
-            }
+            },
+            onEachFeature: onEachLabelFeature
         }).addTo(map);
     });
+
+    function onEachLabelFeature(feature, layer) {
+        layer.on('click', function () {
+            self.adminGSVLabelView.showLabel(feature.properties.label_id);
+        });
+        layer.on({
+            'mouseover': function () {
+                layer.setRadius(15);
+            },
+            'mouseout': function () {
+                layer.setRadius(5);
+            }
+        })
+    }
     
     $.getJSON("/adminapi/tasks/" + self.username, function (data) {
         _data.tasks = data;

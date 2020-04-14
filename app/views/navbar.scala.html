@@ -86,7 +86,7 @@
                     @if(url.isDefined && url.get != "/validate") {
 
                         <li class="navbarLink">
-                            <a class="navbarBtn" href="#" id="toolbar-onboarding-link">Retake Tutorial</a>
+                            <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
                         </li>
                         <li class="navbarLink">
                             <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
@@ -124,18 +124,18 @@
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
                                 <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
-                                    Your dashboard
+                                    @Messages("navbar.dashboard")
                                 </a>
                             </li>
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
                                     <a href='@routes.AdminController.index' role="menuitem">
-                                        Admin
+                                        @Messages("navbar.admin")
                                     </a>
                                 </li>
                             }
                             <li role="presentation">
-                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
                             </li>
                         </ul>
                     } else {
@@ -206,12 +206,10 @@ $(document).ready(function () {
     var howtoText = "@Messages("navbar.howto")";
     @if(url.isDefined && url.get == "/audit") {
         $(".navbarLink").on('click', function (e) {
-            console.log(howtoText);
             var activity = "Click_module=RetakeTutorial";
             if (e.currentTarget.innerHTML.includes(helpText)) {
                 activity = "Click_module=Help";
             } else if (e.currentTarget.innerHTML.includes(howtoText)) {
-                console.log("hello");
                 activity = "Click_module=LabelingGuide";
             }
             logWebpageActivity(activity);
@@ -269,45 +267,43 @@ $(document).ready(function () {
 
 
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
-                        @text(forms.SignInForm.form("identifier"), "Email address")
-                        @password(forms.SignInForm.form("password"), "Password")
+                        @text(forms.SignInForm.form("identifier"), Messages("navbar.email"))
+                        @password(forms.SignInForm.form("password"), Messages("navbar.password"))
                         <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.signin")</button>
                     }
                 </div>
                 <div class="modal-footer">
                     <div>
-                        Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
+                        @Html(Messages("navbar.new"))
                     </div>
                 </div>
             </div><!-- /.modal-content -->
             <div class="modal-content hidden" id="sign-up-modal">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title" id="sign-up-label">Sign up</h4>
+                    <h4 class="modal-title" id="sign-up-label">@Messages("navbar.signup")</h4>
                 </div>
                 <div class="modal-body">
                     <div id="incorrect-signup-alert"></div>
                     <div id="invalid-signup-alert"></div>
 
                     @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/")), args ='id -> "sign-up-form") {
-                    @text(forms.SignUpForm.form("username"), "Username", icon = "person")
-                    @text(forms.SignUpForm.form("email"), "Email", icon = "at")
-                    @password(forms.SignUpForm.form("password"), "Password", icon = "key")
-                    @password(forms.SignUpForm.form("passwordConfirm"), "Confirm password", icon = "key")
+                    @text(forms.SignUpForm.form("username"), Messages("navbar.username"), icon = "person")
+                    @text(forms.SignUpForm.form("email"), Messages("navbar.email"), icon = "at")
+                    @password(forms.SignUpForm.form("password"), Messages("navbar.password"), icon = "key")
+                    @password(forms.SignUpForm.form("passwordConfirm"), Messages("navbar.confirm.password"), icon = "key")
                     <div class="form-group">
                         <div class="checkbox">
-                            <label><input type="checkbox" id="navbar-agree-to-terms">You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a></label>
+                            <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("navbar.terms"))</label>
                         </div>
                         <div>
-                            <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>Sign up</button>
+                            <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>@Messages("navbar.signup")</button>
                         </div>
                     </div>
                 }
                 </div>
                 <div class="modal-footer">
-                    <div>
-                        Have an account? <a href="#" id="form-open-sign-in">@Messages("navbar.signin")</a>
-                    </div>
+                    <div>@Html(Messages("navbar.has.account"))</div>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
@@ -508,12 +504,10 @@ $(document).ready(function () {
         </a>
         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
             <li role="presentation" id="dashboard-link">
-                <a href='/contribution/__USERNAME__' role="menuitem">
-                    Your dashboard
-                </a>
+                <a href='/contribution/__USERNAME__' role="menuitem">@Messages("navbar.dashboard")</a>
             </li>
             <li role="presentation">
-                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
             </li>
         </ul>
     </template>

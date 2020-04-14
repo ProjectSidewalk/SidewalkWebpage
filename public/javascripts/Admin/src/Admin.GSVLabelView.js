@@ -59,12 +59,12 @@ function AdminGSVLabelView(admin) {
                                     '<td colspan="3" id="tags"></td>'+
                                 '</tr>'+
                                 '<tr>'+
-                                '<th>Description</th>'+
-                                '<td colspan="3" id="label-description"></td>'+
+                                    '<th>Description</th>'+
+                                    '<td colspan="3" id="label-description"></td>'+
                                 '</tr>'+
                                 '<tr>'+
-                                '<th>Validations</th>'+
-                                '<td colspan="3" id="label-validations"></td>'+
+                                    '<th>Validations</th>'+
+                                    '<td colspan="3" id="label-validations"></td>'+
                                 '</tr>'+
                                 '<tr>'+
                                     '<th>Time Submitted</th>'+
@@ -74,13 +74,18 @@ function AdminGSVLabelView(admin) {
                                     '<td id="image-date" colspan="3"></td>'+
             '                   </tr>';
         if (self.admin) {
-            modalText += '<tr>'+
-                '<th>Task ID</th>' +
-                '<td id="task"></td>' +
-                '</tr>'+
-                '</table>'+
-                '</div>'+
-                '</div>'+
+            modalText +=
+                                '<tr>'+
+                                    '<th>Label ID</th>'+
+                                    '<td id="label-id" colspan="3"></td>'+
+                                '</tr>'+
+                                '<tr>'+
+                                    '<th>Task ID</th>' +
+                                    '<td id="task"></td>' +
+                                '</tr>'+
+                            '</table>'+
+                        '</div>'+
+                    '</div>'+
                 '</div>'+
                 '</div>'
         } else {
@@ -123,6 +128,7 @@ function AdminGSVLabelView(admin) {
         self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-date");
         self.modalTask = self.modal.find("#task");
+        self.modalLabelId = self.modal.find("#label-id")
     }
 
     /**
@@ -251,8 +257,8 @@ function AdminGSVLabelView(admin) {
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
         self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
-
         if (self.admin) {
+            self.modalLabelId.html(labelMetadata['label_id']);
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
                 labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + labelMetadata['username'] + "'>" +
                 labelMetadata['username'] + "</a>");

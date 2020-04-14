@@ -1,0 +1,144 @@
+{
+  "curb-ramp-caps": "Rampa Peatonal",
+  "missing-curb-ramp-caps": "Rampa Peatonal Ausente",
+  "obstacle-caps": "Obstáculo",
+  "surface-problem-caps": "Problema en Superficie",
+  "no-sidewalk-caps": "No Hay Banqueta",
+  "severity": "Calificación: ",
+  "temporary": "Temporal",
+  "top-ui": {
+    "title": {
+      "CurbRamp": "¿Es esta una <b>Rampa Peatonal</b>?",
+      "NoCurbRamp": "¿Es esta una <b>Rampa Peatonal Ausente</b>?",
+      "Obstacle": "¿Es esta un <b>Obstáculo</b>?",
+      "SurfaceProblem": "¿Es esta un <b>Problema en Superficie</b>?",
+      "NoSidewalk": "¿Debería haber una etiqueta de <b>No Hay Banqueta</b> aquí?"
+    }
+  },
+  "right-ui": {
+    "current-mission": {
+      "validate-labels": "Valida {{n}} etiquetas"
+    },
+    "correct": {
+      "CurbRamp": {
+        "title": "Rampa Peatonal <i>CORRECTA</i>",
+        "example-1-to-4": "Esta etiqueta está colocada correctamente en la parte inferior de una rampa peatonal"
+      },
+      "NoCurbRamp": {
+        "title": "Rampa Peatonal Ausente <i>CORRECTA</i>",
+        "example-1-to-3": "Esta intersección carece de una rampa peatonal",
+        "example-4": "Este cruce peatonal indica que debería haber una rampa peatonal aquí"
+      },
+      "Obstacle": {
+        "title": "Obstáculo <i>CORRECTO</i>",
+        "example-1": "Estos conos de construcción están bloqueando un paso peatonal",
+        "example-2": "Este árbol bloquea toda la banqueta",
+        "example-3": "Este poste bloquea la banqueta y la entrada de la rampa peatonal",
+        "example-4": "Este hidrante contra incendio bloquea la banqueta"
+      },
+      "SurfaceProblem": {
+        "title": "Problema en Superficie <i>CORRECTO</i>",
+        "example-1": "La banqueta está muy dispareja",
+        "example-2": "Las banquetas de ladrillo son irregulares y pueden ser difíciles de transitar",
+        "example-3": "La banqueta está agrietada",
+        "example-4": "Hay mucha hierba creciendo entre las grietas de la banqueta"
+      },
+      "NoSidewalk": {
+        "title": "No Hay Banqueta <i>CORRECTO</i>",
+        "example-1-to-2": "Esta es una banqueta que termina abruptamente",
+        "example-3": "Esta calle no tiene banqueta",
+        "example-4": "Esta intersección no tiene banqueta"
+      }
+    },
+    "incorrect": {
+      "CurbRamp": {
+        "title": "Rampa Peatonal <i>INCORRECTA</i>",
+        "example-1-to-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
+        "example-3-to-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
+      },
+      "NoCurbRamp": {
+        "title": "Rampa Peatonal Ausente <i>INCORRECTA</i>",
+        "example-1": "Los caminos de las entradas residenciales no deben marcarse como una rampa peatonal ausente",
+        "example-2-and-4": "Esto no está ubicado en un camino peatonal",
+        "example-3": "Esta no es una intersección en la que las personas peatonas deben cruzar"
+      },
+      "Obstacle": {
+        "title": "Obstáculo <i>INCORRECTO</i>",
+        "example-1": "Hay suficiente espacio para maniobrar cómodamente alrededor de este poste",
+        "example-2": "Este poste está ubicado entre las rampas peatonales, pero en ellas",
+        "example-3": "Este árbol no está en el camino peatonal",
+        "example-4": "Hay suficiente espacio para maniobrar cómodamente alrededor de esta tapadera"
+      },
+      "SurfaceProblem": {
+        "title": "Problema en Superficie <i>INCORRECTO</i>",
+        "example-1": "Los problemas en la superficie de las rampas peatonales deben marcarse con una etiqueta de rampa peatonal más grave",
+        "example-2": "Este cascajo no está en el camino peatonal",
+        "example-3": "Esta hierba no está en el camino peatonal",
+        "example-4": "Las baldosas normales de las banquetas no son un problemas de superficie"
+      },
+      "NoSidewalk": {
+        "title": "No Hay Banqueta <i>INCORRECTO</i>",
+        "example-1": "Las banquetas estrechas no deben etiquetarse como sin banqueta",
+        "example-2": "Los caminos de las entradas residenciales no deben etiquetarse como \"no hay banqueta\"",
+        "example-3": "Los camellones no deben etiquetarse como \"no hay banqueta\"",
+        "example-4": "Los callejones no deben etiquetarse como \"no hay banqueta\""
+      }
+    }
+  },
+  "center-ui": {
+    "no-info": "No hay información disponible",
+    "tag": {
+      "narrow": "estrecha",
+      "missing friction strip": "pavimento de advertencia táctil ausente",
+      "steep": "empinada",
+      "not enough landing space": "área de aproximación insuficiente",
+      "points into traffic": "orientada hacia el tráfico",
+      "unclear if needed": "poco claro si es necesario",
+      "no alternate route": "sin ruta alternativa",
+      "alternate route present": "ruta alternativa presente",
+      "vegetation": "vegetación",
+      "pole": "poste",
+      "trash/recycling can": "bote de basura / contenedor de reciclaje",
+      "construction": "construcción",
+      "parked bike": "bicicleta estacionada",
+      "parked car": "auto estacionado",
+      "fire hydrant": "hidrante contra incendio",
+      "sign": "señalamiento",
+      "tree": "árbol",
+      "bumpy": "con baches",
+      "uneven": "dispareja",
+      "cracks": "grietas",
+      "grass": "césped",
+      "narrow sidewalk": "banqueta estrecha",
+      "brick": "ladrillo",
+      "street has a sidewalk": "la calle tiene una banqueta",
+      "ends abruptly": "termina abruptamente",
+      "street has no sidewalks": "la calle no tiene banquetas"
+    }
+  },
+  "mission-start": {
+    "title": "Valida {{n}} etiquetas de {{label_type}}",
+    "body": "¡Tu misión es determinar la exactitud de  __LABELCOUNT_PLACEHOLDER__ etiquetas de __LABELTYPE_PLACEHOLDER__</span> colocadas por otras personas usuarias!"
+  },
+  "mission-compmlete": {
+    "title": "¡Gran trabajo!",
+    "body-1": "¡Acabas de validar {{n}} etiquetas de Rampas Peatonales!",
+    "body-2": "Acabas de validar {{n}} etiquetas de Rampas Peatonales Ausentes!",
+    "body-3": "Acabas de validar {{n}} etiquetas de Obstáculos!",
+    "body-4": "Acabas de validar {{n}} etiquetas de Problemas en Superficie!",
+    "body-7": "Acabas de validar {{n}} etiquetas de que No Hay Banqueta!",
+    "validate-more": "Validar más etiquetas",
+    "continue": "Continuar validando",
+    "explore": "Comienza una misión de exploración",
+    "no-new-mission-title": "No quedan más misiones de validación",
+    "no-new-mission-body": "Haz clic en el botón para comenzar a explorar",
+    "no-new-mission-button": "Comienza a explorar"
+  },
+  "mobile": {
+    "info-title-CurbRamp": "¿Qué es una Rampa Peatonal?",
+    "info-title-NoCurbRamp": "¿Qué es una Rampa Peatonal Ausente?",
+    "info-title-Obstacle": "¿Qué es un Obstáculo?",
+    "info-title-SurfaceProblem": "¿Qué es un Problema en Superficie?",
+    "info-title-NoSidewalk": "¿Qué es un \"No Hay Banqueta\"?"
+  }
+}

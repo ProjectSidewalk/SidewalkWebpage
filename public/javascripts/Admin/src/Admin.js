@@ -38,7 +38,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+    var map = L.mapbox.map('admin-map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
@@ -46,7 +46,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('admin-choropleth', "kotarohara.8e0c6890", {
+    var choropleth = L.mapbox.map('admin-choropleth', "mapbox.light", {
         maxZoom: 19,
         minZoom: 9,
         legendControl: {
@@ -64,8 +64,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         choropleth.setZoom(data.default_zoom);
         initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
-
-    L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     // Initialize the map
     /**
@@ -622,7 +620,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
             initializeNeighborhoodPolygons(map);
             initializeAuditedStreets(map);
-            initializeSubmittedLabels(map);
+            // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
+            setTimeout(function(){
+                initializeSubmittedLabels(map);
+            }, 1000);
             initializeAdminGSVLabelView();
             setTimeout(function () {
                 map.invalidateSize(false);

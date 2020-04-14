@@ -13,7 +13,7 @@
     @navbar(user, Some("/audit"))
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
 
-    @if(Some(User)){
+    @if(Some(User)) {
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content" id="survey-modal">
@@ -22,46 +22,46 @@
                         @if(user.get.role.getOrElse("") != "Turker") {
                             <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
                         }
-                        <h4 class="modal-title" id="sign-in-label">Please take this one-time survey about Project Sidewalk</h4>
+                        <h4 class="modal-title" id="sign-in-label">@Html(Messages("audit.survey." + "title"))</h4>
                     </div>
                     <div class="modal-body">
                         <form id="surveyForm" method="post">
                             <ol>
-                            @for(surveyQuestion <- SurveyQuestionTable.listAll){
+                            @for(surveyQuestion <- SurveyQuestionTable.listAll) {
                                 <li>
                                 @if(surveyQuestion.required == true) {
-                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText *</h4>
+                                    <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
                                 } else {
-                                    <h4 class="survey-question">@surveyQuestion.surveyQuestionText</h4>
+                                    <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question"))</h4>
                                 }
-                                @if(surveyQuestion.surveyInputType == "radio"){
+                                @if(surveyQuestion.surveyInputType == "radio") {
                                     <ul class="survey-option-holder">
-                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
                                         <li class="survey-option">
-                                            @if(surveyQuestion.required == true){
+                                            @if(surveyQuestion.required == true) {
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
-                                            } else{
+                                            } else {
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                             }
-                                            <label>@surveyOption.surveyOptionText</label>
+                                            <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                         </li>
                                     }
                                     </ul>
-                                }else{
-                                    @if(surveyQuestion.surveyInputType == "checkbox"){
+                                } else {
+                                    @if(surveyQuestion.surveyInputType == "checkbox") {
                                         <ul class="survey-option-holder">
-                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get){
+                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
                                             <li class="survey-option">
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                                <label>@surveyOption.surveyOptionText</label>
+                                                <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                             </li>
                                         }
                                         </ul>
-                                    } else{
-                                        @if(surveyQuestion.surveyInputType == "free-text-feedback"){
-                                            @if(surveyQuestion.required == true){
+                                    } else {
+                                        @if(surveyQuestion.surveyInputType == "free-text-feedback") {
+                                            @if(surveyQuestion.required == true) {
                                                 <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
-                                            } else{
+                                            } else {
                                                 <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
                                             }
                                         }
@@ -70,7 +70,7 @@
                                 </li>
                             }
                         </ol>
-                            <button value="Submit" class="btn btn-sm btn-primary btn-block">Submit</button>
+                            <button value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.submit")</button>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -138,13 +138,10 @@
             <div class="overlay-text">
                 <div id="HIT-expiration-text">
                     <p>
-                        <span class="overlay-header">Assignment Expired!</span>
+                        <span class="overlay-header">@Messages("turk.expired.title")</span>
                     </p>
                     <p>
-                        You should receive your bonus amount in the next day or two. If you completed the HIT but did
-                        not submit your confirmation code on the mturk website, send us an email at
-                        <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your
-                        confirmation code (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
                     </p>
                 </div>
             </div>
@@ -254,11 +251,11 @@
                 </span>
             </div>
             <div id="zoom-control-holder">
-                <button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">
+                <button id="zoom-in-button" class="button zoom-control-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' class="zoom-button-icon" alt="Zoom in">
                     <br>@Html(Messages("audit.ribbon.zoom.in"))
                 </button>
-                <button id="zoom-out-button" class="button zoom-control-button" title="Press the &quot;Shift + Z&quot; keys" data-toggle="tooltip" data-placement="top">
+                <button id="zoom-out-button" class="button zoom-control-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' class="zoom-button-icon" alt="Zoom out">
                     <br>@Messages("audit.ribbon.zoom.out")
                 </button>
@@ -312,7 +309,7 @@
                 <div id="alert-holder" style="display: none">
                     <div id="alert">
                         <span id="alert-message"></span>
-                        <a id="alert-dont-show" href="#">Don't show again</a>
+                        <a id="alert-dont-show" href="#">@Messages("audit.center.ui.show.again")</a>
                         <a id="alert-close" href="#"><span class="glyphicon glyphicon-remove"></span></a>
                     </div>
                 </div>
@@ -364,7 +361,7 @@
                                 <div class="radio-inline" id="column-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible-2.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">
-                                    <div class="label-severity-axis-label">Passable</div>
+                                    <div class="label-severity-axis-label">@Messages("audit.center.ui.passable")</div>
                                 </div>
                                 <div class="radio-inline" id="severity-one" data-toggle="tooltip" onmouseut="function(){}">
                                     <label class="radio-button-labels">
@@ -414,7 +411,7 @@
                                 <div class="radio-inline" id="column-not-passable">
                                     <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible-2.png")'
                                         class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">
-                                    <div class="label-severity-axis-label">Not Passable</div>
+                                    <div class="label-severity-axis-label">@Html(Messages("audit.center.ui.not.passable"))</div>
                                 </div>
                             </div>
                         </div>
@@ -422,7 +419,7 @@
                             <div>
                                 <input type="text" class="form-control" placeholder="Description" id="context-menu-problem-description-text-box">
                             </div>
-                            <div class="add-tags-label">Add Tags:</div>
+                            <div class="add-tags-label">@Messages("audit.center.ui.add.tags")</div>
                             <div id="context-menu-tag-holder">
                                 <button class="context-menu-tag" name='tag' id="0"></button>
                                 <button class="context-menu-tag" name='tag' id="1"></button>
@@ -436,7 +433,7 @@
                                 <button class="context-menu-tag" name='tag' id="9"></button>
                             </div>
                             <div class="checkbox-inline" id="context-menu-temporary-problem-checkbox-holder">
-                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">Temporary (e.g., construction, trash)</label>
+                                <label><input type="checkbox" style= "cursor: pointer;" id="context-menu-temporary-problem-checkbox" value="temporary-problem">@Messages("audit.center.ui.temporary")</label>
                                 <button id="context-menu-ok-button">OK</button>
                             </div>
                         </div>
@@ -472,26 +469,26 @@
                     <div id="modal-skip-box-new-location"></div>
                     <div id="modal-skip-box-new-neighborhood"></div>
                     <div id="modal-skip-title" class="bold">
-                        <p>Jump to another location because:</p>
+                        <p>@Messages("audit.left.ui.jump.title")</p>
                     </div>
                     <div id="modal-skip-box-content">
-                        <input type="button" class="overlay-option" id="modal-skip-explore" value="I want to explore another area!">
-                        <input type="button" class="overlay-option" id="modal-skip-unavailable" value="I cannot go the direction you want me to walk.">
+                        <input type="button" class="overlay-option" id="modal-skip-explore" value="@Messages("audit.left.ui.jump.button.explore")">
+                        <input type="button" class="overlay-option" id="modal-skip-unavailable" value="@Messages("audit.left.ui.jump.button.unavailable")">
                     </div>
                     <div class="modal-skip-cancel-button">
-                        <button class="button" id="modal-skip-cancel-first-button">Cancel</button>
+                        <button class="button" id="modal-skip-cancel-first-button">@Messages("cancel")</button>
                     </div>
                 </div>
                 <div id="modal-skip-box-neighborhood">
                     <div id="modal-skip-neighborhood-title" class="bold">
-                        <p>Go to a new location or a new neighborhood?</p>
+                        <p>@Messages("audit.left.ui.jump.explore.title")</p>
                     </div>
                     <div id="modal-skip-neighborhood-content">
-                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="Go to a new location in this neighborhood">
-                        <input type="button" class="overlay-option" id="modal-skip-redirect-jump" value="Go to a new neighborhood">
+                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="@Messages("audit.left.ui.jump.explore.button.same.neighborhood")">
+                        <input type="button" class="overlay-option" id="modal-skip-redirect-jump" value="@Messages("audit.left.ui.jump.explore.button.new.neighborhood")">
                     </div>
                     <div class="modal-skip-cancel-button">
-                        <button class="button" id="modal-skip-cancel-second-button">Cancel</button>
+                        <button class="button" id="modal-skip-cancel-second-button">@Messages("cancel")</button>
                     </div>
                 </div>
             </div>
@@ -500,17 +497,14 @@
                 <div id="modal-comment-box">
                     <form id="comment-form">
                         <div id="modal-comment-title" class="bold">
-                            <p>
-                                Any thoughts? Found something confusing? Spotted a bug? <br />
-                                Send us comments!
-                            </p>
+                            <p>@Html(Messages("feedback.title"))</p>
                         </div>
                         <div id="modal-comment-content">
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
                         </div>
                         <div>
-                            <button class="button" id="modal-comment-ok-button">OK</button>&nbsp;
-                            <button class="button" id="modal-comment-cancel-button">Cancel</button>
+                            <button class="button" id="modal-comment-ok-button">@Messages("ok")</button>&nbsp;
+                            <button class="button" id="modal-comment-cancel-button">@Messages("cancel")</button>
                         </div>
                     </form>
                 </div>
@@ -537,45 +531,45 @@
                             <div id="modal-mission-complete-map">
                             </div>
                             <div id="map-legend">
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> This Mission</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> Previous Missions</span><br>
-                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg> Other Users' Missions</span>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="green-square"></rect></svg> @Messages("audit.mission.complete.legend.this.mission")</span><br>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="blue-square"></rect></svg> @Messages("audit.mission.complete.legend.previous.missions")</span><br>
+                                <span><svg class="legend-label" width="15" height="10"><rect width="15" height="10" id="gray-square"></rect></svg> @Messages("audit.mission.complete.legend.others.missions")</span>
                             </div>
 
                         </div>
                         <div class="col-sm-5">
                             <p><span id="modal-mission-complete-message"></span></p>
-                            <h3>Mission Labels</h3>
+                            <h3>@Messages("audit.mission.complete.labels.title")</h3>
                             <table class="table">
                                 <tr>
-                                    <th class="width-50-percent">Curb Ramp</th>
+                                    <th class="width-50-percent">@Messages("curb.ramp")</th>
                                     <td id="modal-mission-complete-curb-ramp-count" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Missing Curb Ramp</th>
+                                    <th>@Messages("mission.ramp")</th>
                                     <td id="modal-mission-complete-no-curb-ramp-count" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Obstacle in Path</th>
+                                    <th>@Messages("obstacle")</th>
                                     <td id="modal-mission-complete-obstacle-count" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Surface Problem</th>
+                                    <th>@Messages("surface.problem")</th>
                                     <td id="modal-mission-complete-surface-problem-count" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>No Sidewalk</th>
+                                    <th>@Messages("no.sidewalk")</th>
                                     <td id="modal-mission-complete-no-sidewalk-count" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Other</th>
+                                    <th>@Messages("other")</th>
                                     <td id="modal-mission-complete-other-count" class="col-right"></td>
                                 </tr>
                             </table>
-                            <h3>Neighborhood Progress</h3>
+                            <h3>@Messages("audit.mission.complete.progress.title")</h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
-                                @if(user){
+                                @if(user) {
                                     @if(user.get.role.getOrElse("") == "Turker") {
                                         <tr>
                                             <th>Earned in this mission</th>
@@ -584,23 +578,23 @@
                                     }
                                 }
                                 <tr>
-                                    <th>You explored in this mission</th>
+                                    <th>@Messages("audit.mission.complete.progress.mission.you")</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>You explored in this neighborhood</th>
+                                    <th>@Messages("audit.mission.complete.progress.neighborhood.you")</th>
                                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Others explored in this neighborhood</th>
+                                    <th>@Messages("audit.mission.complete.progress.neighborhood.others")</th>
                                     <td id="modal-mission-complete-others-distance" class="col-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>Remaining in this neighborhood</th>
+                                    <th>@Messages("audit.mission.complete.progress.neighborhood.remaining")</th>
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            @if(user){
+                            @if(user) {
                                 @if(user.get.role.getOrElse("") == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                                     <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
                                 }
@@ -616,7 +610,7 @@
                 <div class="modal-foreground" id="modal-curb-ramp-foreground">
                     <div class="row">
                         <div class="col-md-12">
-                            <h1 class="text-center bold">Curb Ramp</h1>
+                            <h1 class="text-center bold">@Messages("curb.ramp")</h1>
                         </div>
                         <div class="modal-close-button-holder">
                             <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -625,19 +619,18 @@
                     <div class="row">
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_Passable.png")' class="img-responsive" alt="Two good curb ramps" />
-                            <p class="bold">Rating 1: Passable</p>
-                            <p>Clean curb ramps that are aligned with crosswalks.</p>
+                            <p class="bold">@Messages("audit.help.rating.1")</p>
+                            <p>@Messages("audit.help.curb.ramp.1")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_HardToPass.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
-                            <p class="bold">Rating 3: Neutral</p>
-                            <p>A curb ramp with a pole standing in the middle. People who use large electrical wheelchairs
-                                may have trouble using this curb ramp.</p>
+                            <p class="bold">@Messages("audit.help.rating.3")</p>
+                            <p>@Messages("audit.help.curb.ramp.3")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/CurbRamp_NotPassable.png")' class="img-responsive" alt="Water has accumulated in the curb ramp" />
-                            <p class="bold">Rating 5: Not passable</p>
-                            <p>Water has accumulated in this curb ramp due to poor drainage. It is hard for manual wheelchair users to use this curb ramp.</p>
+                            <p class="bold">@Messages("audit.help.rating.5")</p>
+                            <p>@Messages("audit.help.curb.ramp.5")</p>
                         </div>
                     </div>
                 </div>
@@ -647,7 +640,7 @@
                 <div class="modal-foreground" id="modal-no-curb-ramp-foreground">
                     <div class="row">
                         <div class="col-md-12">
-                            <h1 class="text-center bold">No Curb Ramp</h1>
+                            <h1 class="text-center bold">@Messages("missing.ramp")</h1>
                         </div>
                         <div class="modal-close-button-holder">
                             <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -656,22 +649,18 @@
                     <div class="row">
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/NoCurbRamp_Passable.png")' class="img-responsive" alt="Curb ramp is not aligned to the crosswalk" />
-                            <p class="bold">Rating 1: Passable</p>
-                            <p>Although there is no curb ramp, the level difference is small and
-                                wheelchair users would be able to get on or off the sidewalk.
-                                There is also a curb ramp at the same corner that people could use,
-                                although it is not aligned to the path.</p>
+                            <p class="bold">@Messages("audit.help.rating.1")</p>
+                            <p>@Messages("audit.help.missing.ramp.1")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/NoCurbRamp_HardToPass.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
-                            <p class="bold">Rating 3: Neutral</p>
-                            <p>There is no curb ramp at the end of the crosswalk.
-                                Wheelchair users are forced to used the curb ramp that is not aligned with the crosswalk.</p>
+                            <p class="bold">@Messages("audit.help.rating.3")</p>
+                            <p>@Messages("audit.help.missing.ramp.3")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/NoCurbRamp_NotPassable.png")' class="img-responsive" alt="No curb ramp at the end of the crosswalk" />
-                            <p class="bold">Rating 5: Not passable</p>
-                            <p>No curb ramp at the end of the crosswalk. Wheelchair users cannot get on or off the sidewalk and cross the street here.</p>
+                            <p class="bold">@Messages("audit.help.rating.5")</p>
+                            <p>@Messages("audit.help.missing.ramp.5")</p>
                         </div>
                     </div>
                 </div>
@@ -681,7 +670,7 @@
                 <div class="modal-foreground" id="modal-obstacle-foreground">
                     <div class="row">
                         <div class="col-md-12">
-                            <h1 class="text-center bold">Obstacle</h1>
+                            <h1 class="text-center bold">@Messages("obstacle")</h1>
                         </div>
                         <div class="modal-close-button-holder">
                             <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -690,20 +679,18 @@
                     <div class="row">
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_Passable.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
-                            <p class="bold">Rating 1: Passable</p>
-                            <p>A traffic light standing in the middle of the sidewalk. There seems to be enough space
-                            for wheelchair users to pass, but those who are using larger chairs
-                            could have trouble navigating.</p>
+                            <p class="bold">@Messages("audit.help.rating.1")</p>
+                            <p>@Messages("audit.help.obstacle.1")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_HardToPass.png")' class="img-responsive" alt="Overgrown bush is partly blocking the path." />
-                            <p class="bold">Rating 3: Neutral</p>
-                            <p>The plant is obstructing the path, making it hard for wheelchair users to use this sidewalk.</p>
+                            <p class="bold">@Messages("audit.help.rating.3")</p>
+                            <p>@Messages("audit.help.obstacle.3")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/Obstacle_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
-                            <p class="bold">Rating 5: Not passable</p>
-                            <p>The tree is completely blocking the path, making it not passable for wheelchair users.</p>
+                            <p class="bold">@Messages("audit.help.rating.5")</p>
+                            <p>@Messages("audit.help.obstacle.5")</p>
                         </div>
                     </div>
                 </div>
@@ -713,7 +700,7 @@
                 <div class="modal-foreground" id="modal-surface-problem-foreground">
                     <div class="row">
                         <div class="col-md-12">
-                            <h1 class="text-center bold">Surface Problem</h1>
+                            <h1 class="text-center bold">@Messages("surface.problem")</h1>
                         </div>
                         <div class="modal-close-button-holder">
                             <button type="button" class="close modal-example-close-buttons" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -722,21 +709,18 @@
                     <div class="row">
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_Passable.png")' class="img-responsive" alt="A partially damaged sidewalk." />
-                            <p class="bold">Rating 1: Passable</p>
-                            <p>Partially damaged sidewalk. Because there is enough space next to the damaged part of
-                            the sidewalk, wheelchair users would be able to pass. </p>
+                            <p class="bold">@Messages("audit.help.rating.1")</p>
+                            <p>@Messages("audit.help.surface.problem.1")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_HardToPass.png")' class="img-responsive" alt="Cobblestone sidewalks and crosswalks." />
-                            <p class="bold">Rating 3: Neutral</p>
-                            <p>Wheelchair users would have difficulty navigating on the cobblestone
-                                sidewalks and crosswalks.</p>
+                            <p class="bold">@Messages("audit.help.rating.3")</p>
+                            <p>@Messages("audit.help.surface.problem.3")</p>
                         </div>
                         <div class="col-md-4">
                             <img src='@routes.Assets.at("javascripts/SVLabel/img/examples/SurfaceProblem_NotPassable.png")' class="img-responsive" alt="A tree is completely blocking the path." />
-                            <p class="bold">Rating 5: Not passable</p>
-                            <p>Wheelchair users cannot pass severely degraded sidewalk surfaces
-                                due to the over-grown vegetation.</p>
+                            <p class="bold">@Messages("audit.help.rating.5")</p>
+                            <p>@Messages("audit.help.surface.problem.5")</p>
                         </div>
                     </div>
                 </div>
@@ -783,7 +767,7 @@
                     var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
                     if (role === 'Turker' && numMissionsCompleted === 0) {
                         $("#onboarding-skip-option").hide();
-                    } else{
+                    } else {
                         $("#onboarding-skip-option").show();
                     }
             </script>
@@ -891,7 +875,7 @@
                     // Handle query strings for panoId or latLng (panoId, lat, lng only Some[] when user is Admin)
                     @if(panoId) {
                         try {
-                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData){
+                            svl.streetViewService.getPanorama({pano: "@panoId.get"}, function(panoData) {
                                 var lat = panoData.location.latLng.lat();
                                 var lng = panoData.location.latLng.lng();
                                 svl.map.setPositionByIdAndLatLng("@panoId.get", lat, lng);
@@ -914,34 +898,34 @@
             $('#already-completed-neighborhood-overlay').show();
         }
 
-        $(document).ready(function(){
+        $(document).ready(function() {
             // Solutions to annoying text selection cursor.
             // http://forum.jquery.com/topic/chrome-text-select-cursor-on-drag
             document.onselectstart = function () { return false; };
             enableTouchSupport();
 
             // Advanced Neighborhood Overlay
-            $('#continue-advanced').on('click', function(){
+            $('#continue-advanced').on('click', function() {
                 mainParam.advancedOverlay = false;
                 $('#advanced-overlay').hide();
             });
 
-            $('#redirect-advanced').on('click', function(){
+            $('#redirect-advanced').on('click', function() {
                 mainParam.advancedOverlay = false;
                 $(location).attr('href', '/audit?nextRegion=easy');
             });
 
             // Neighborhood Completion Overlay
-            $('#continue-current').on('click', function(){
+            $('#continue-current').on('click', function() {
                 $('#neighborhood-completion-overlay').hide();
             });
 
-            $('#redirect-new').on('click', function(){
+            $('#redirect-new').on('click', function() {
                 $(location).attr('href', '/audit?nextRegion=regular');
             });
 
             // Already Completed Neighborhood Overlay
-            $('#accept-redirect').on('click', function(){
+            $('#accept-redirect').on('click', function() {
                 $(location).attr('href', '/audit');
             });
 
@@ -1000,17 +984,17 @@
             mainParam.initLat = initialLocation.lat;
             mainParam.initLng = initialLocation.lng;
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
-            @if(user){
+            @if(user) {
                 @if(user.get.role.getOrElse("") == "Turker") {
                     svl.assignmentId = "@AMTAssignmentTable.getMostRecentAssignmentId(user.get.username)";
                     svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);
                     svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";
-                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)){
+                    @if(!MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                         $("#left-column-confirmation-code-button").css('visibility', "hidden");
-                    } else{
+                    } else {
                         $("#left-column-confirmation-code-button").css('visibility', "");
                         $("#left-column-confirmation-code-button").attr('data-toggle','popover');
-                        $("#left-column-confirmation-code-button").attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+                        $("#left-column-confirmation-code-button").attr('title','@Messages("turk.submit.code")k');
                         $("#left-column-confirmation-code-button").attr('data-content',svl.confirmationCode);
                         $("#left-column-confirmation-code-button").popover();
 
@@ -1031,10 +1015,10 @@
                     $("#current-mission-reward").show();
                     $("#total-mission-reward").show();
                     $("#modal-mission-reward-text").show();
-                } else{
+                } else {
                     $("#left-column-confirmation-code-button").css('visibility', "hidden");
                 }
-            } else{
+            } else {
                 $("#left-column-confirmation-code-button").css('visibility', "hidden");
             }
             var missionDescriptionParam = {};
@@ -1044,7 +1028,7 @@
             mainParam.regionId = @region.regionId;
             mainParam.regionName = '@region.name';
             mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
-            if(@RegionTable.difficultRegionIds.contains(region.regionId)){
+            if(@RegionTable.difficultRegionIds.contains(region.regionId)) {
                    $('#advanced-overlay').show();
                    mainParam.advancedOverlay = true
             }
@@ -1060,7 +1044,7 @@
             svl.main = new Main(mainParam);
         }
 
-        @if(user){
+        @if(user) {
         //Survey Submission
         $("#surveyForm").submit(function submitSurvey(e) {
             var formData = $('#surveyForm').serializeArray();
@@ -1094,7 +1078,7 @@
 
     // Log whether the survey was skipped or completed to WebpageActivityTable
     // Log is of form: "SurveySkip"
-    $('#survey-skip-button').on('click', function(){
+    $('#survey-skip-button').on('click', function() {
         var activity = "SurveySkip";
         var url = "/userapi/logWebpageActivity";
         var async = true;

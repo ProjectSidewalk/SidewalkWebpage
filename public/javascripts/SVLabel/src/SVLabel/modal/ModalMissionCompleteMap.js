@@ -2,7 +2,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     // Map visualization
     L.mapbox.accessToken = 'pk.eyJ1IjoicHJvamVjdHNpZGV3YWxrIiwiYSI6ImNpdmZtODFobjAxcjEydHBkbmg0Y2F0MGgifQ.tDBFPXecLVjgJA0Z1LFhhw';
     var self = this;
-    this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), "kotarohara.8e0c6890", {
+    this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), "mapbox.streets", {
         maxZoom: 19,
         minZoom: 10,
         style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj',

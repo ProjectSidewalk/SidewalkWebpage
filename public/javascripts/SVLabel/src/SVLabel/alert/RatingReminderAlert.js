@@ -18,8 +18,7 @@ function RatingReminderAlert(alertHandler) {
         if (self['ratingCount'] >= MINIMUM_NO_RATING_BEFORE_ALERT
             && (svl.onboarding == null || !svl.onboarding.isOnboarding())) {
 
-            alertHandler.showAlert('Please provide severity ratings for each label by pressing' +
-                ' keys <kbd>' + 1 + '</kbd> through <kbd>' + 5 + '</kbd>', 'reminderMessage', true);
+            alertHandler.showAlert(i18next.t('popup.severity-shortcuts'), 'reminderMessage', true);
             self['ratingCount'] = 0;
 
         }//not in tutorial screen
