@@ -199,7 +199,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @return
     */
   def getAccessScoreNeighborhoodsGenericCSV(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, requestStr: String, coordinates: Array[Double]) = {
-    val file = new java.io.File("access_score_streets.csv")
+    val file = new java.io.File("access_score_neighborhoods.csv")
     val writer = new java.io.PrintStream(file)
     writer.println("Coordinates,Coverage,Region_ID,Region_Name,Neighborhood Score,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Average Curb Ramp Score,Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score")
     def prepareFeatureCollectionCSV = {
