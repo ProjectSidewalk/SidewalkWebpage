@@ -121,10 +121,10 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
      */
     this.promptSignIn = function () {
         uiPopUpMessage.buttonHolder.html("");
-        self._setTitle("You've been contributing a lot!");
-        self._setMessage("Do you want to create an account to keep track of your progress?");
+        self._setTitle(i18next.t('popup.signup-title'));
+        self._setMessage(i18next.t('popup.signup-body'));
         disableInteractions(); //disable interactions while msg up
-        self._appendButton('<button id="pop-up-message-sign-up-button" class="float" style = "margin-right:10px">Let me sign up!</button>', function () {
+        self._appendButton('<button id="pop-up-message-sign-up-button" class="float" style = "margin-right:10px">' + i18next.t('popup.signup-button-signup') + '</button>', function () {
             // Store the data in LocalStorage.
             var task = taskContainer.getCurrentTask();
 
@@ -142,7 +142,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             $("#sign-up-modal").removeClass("hidden");
             $('#sign-in-modal-container').modal('show');
         });
-        self._appendButton('<button id="pop-up-message-cancel-button" class="float">No</button>', function () {
+        self._appendButton('<button id="pop-up-message-cancel-button" class="float">' + i18next.t('popup.signup-button-no') + '</button>', function () {
 
             // Submit the data as an anonymous user.
             user.setProperty('firstTask', false);
@@ -157,7 +157,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
             form.submit(data, task);
         });
         appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in">' +
-            '<small><span style="text-decoration: underline; cursor: pointer;">I do have an account! Let me sign in.</span></small>' +
+            '<small><span style="text-decoration: underline; cursor: pointer;">' + i18next.t('popup.signup-button-signin') + '</span></small>' +
             '</a></p>', function () {
 
             var task = taskContainer.getCurrentTask();

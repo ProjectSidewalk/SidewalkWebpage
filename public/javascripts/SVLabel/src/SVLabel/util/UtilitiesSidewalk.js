@@ -126,42 +126,42 @@ function UtilitiesMisc (JSON) {
         return {
             'Walk' : {
                 'id' : 'Walk',
-                'instructionalText' : i18next.t('instruction-text'),
+                'instructionalText' : i18next.t('top-ui.instruction.explore'),
                 'textColor' : 'rgba(255,255,255,1)'
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="CurbRamp">curb ramp</span>',
+                instructionalText: i18next.t('top-ui.instruction.curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="NoCurbRamp">missing curb ramp</span>',
+                instructionalText: i18next.t('top-ui.instruction.missing-curb-ramp'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Obstacle: {
                 id: 'Obstacle',
-                instructionalText: 'Locate and label an <span class="underline overlay-message-label-type" val="Obstacle">obstacle in path</span>',
+                instructionalText: i18next.t('top-ui.instruction.obstacle'),
                 textColor: 'rgba(255,255,255,1)'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                instructionalText: 'Locate and label a <span class="underline overlay-message-label-type" val="SurfaceProblem">surface problem</span>',
+                instructionalText: i18next.t('top-ui.instruction.surface-problem'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Other: {
                 id: 'Other',
-                instructionalText: 'Label mode',
+                instructionalText: i18next.t('top-ui.instruction.other'),
                 textColor: 'rgba(255,255,255,1)'
             },
             Occlusion: {
                 id: 'Occlusion',
-                instructionalText: 'Label a <span class="underline">part of sidewalk that cannot be observed</span>',
+                instructionalText: i18next.t('top-ui.instruction.occlusion'),
                 textColor: 'rgba(255,255,255,1)'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                instructionalText: 'Label <span class="underline">missing sidewalk</span>',
+                instructionalText: i18next.t('top-ui.instruction.no-sidewalk'),
                 textColor: 'rgba(255,255,255,1)'
             }
         }
@@ -230,32 +230,27 @@ function UtilitiesMisc (JSON) {
                     'narrow': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'n<tag-underline>a</tag-underline>rrow',
-                        id: 'narrow'
+                        text: i18next.t('center-ui.context-menu.tag.narrow')
                     },
                     'points into traffic': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: '<tag-underline>p</tag-underline>oints into traffic',
-                        id: 'pointIntoTraffic'
+                        text: i18next.t('center-ui.context-menu.tag.points-into-traffic')
                     },
                     'missing friction strip': {
                         keyNumber: 70,
                         keyChar: 'F',
-                        text: 'missing <tag-underline>f</tag-underline>riction strip',
-                        id: 'missingFrictionStrip'
+                        text: i18next.t('center-ui.context-menu.tag.missing-friction-strip')
                     },
                     'steep': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: 's<tag-underline>t</tag-underline>eep',
-                        id: 'steep'
+                        text: i18next.t('center-ui.context-menu.tag.steep')
                     },
                     'not enough landing space': {
                         keyNumber: 76,
                         keyChar: 'L',
-                        text: 'not enough <tag-underline>l</tag-underline>anding space',
-                        id: 'notEnoughLandingSpace'
+                        text: i18next.t('center-ui.context-menu.tag.not-enough-landing-space')
                     }
                 }
             },
@@ -270,20 +265,17 @@ function UtilitiesMisc (JSON) {
                     'alternate route present': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: '<tag-underline>a</tag-underline>lternate route present',
-                        id: 'alternateRoutePresent'
+                        text: i18next.t('center-ui.context-menu.tag.alternate-route-present')
                     },
                     'no alternate route': {
                         keyNumber: 76,
                         keyChar: 'L',
-                        text: 'no a<tag-underline>l</tag-underline>ternate route',
-                        id: 'noAlternateRoute'
+                        text: i18next.t('center-ui.context-menu.tag.no-alternate-route')
                     },
                     'unclear if needed': {
                         keyNumber: 85,
                         keyChar: 'U',
-                        text: '<tag-underline>u</tag-underline>nclear if needed',
-                        id: 'unclearIfNeeded'
+                        text: i18next.t('center-ui.context-menu.tag.unclear-if-needed')
                     }
                 }
             },
@@ -298,56 +290,47 @@ function UtilitiesMisc (JSON) {
                     'trash/recycling can': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: 't<tag-underline>r</tag-underline>ash/recycling can',
-                        id: 'trashCan'
+                        text: i18next.t('center-ui.context-menu.tag.trash-recycling-can')
                     },
                     'fire hydrant': {
                         keyNumber: 70,
                         keyChar: 'F',
-                        text: '<tag-underline>f</tag-underline>ire hydrant',
-                        id: 'fireHydrant'
+                        text: i18next.t('center-ui.context-menu.tag.fire-hydrant')
                     },
                     'pole': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: '<tag-underline>p</tag-underline>ole',
-                        id: 'pole'
+                        text: i18next.t('center-ui.context-menu.tag.pole')
                     },
                     'tree': {
                         keyNumber: 69,
                         keyChar: 'E',
-                        text: 'tr<tag-underline>e</tag-underline>e',
-                        id: 'tree'
+                        text: i18next.t('center-ui.context-menu.tag.tree')
                     },
                     'vegetation': {
                         keyNumber: 86,
                         keyChar: 'V',
-                        text: '<tag-underline>v</tag-underline>egetation',
-                        id: 'vegetation'
+                        text: i18next.t('center-ui.context-menu.tag.vegetation')
                     },
                     'parked car': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'p<tag-underline>a</tag-underline>rked car',
-                        id: 'parkedCar'
+                        text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
                         keyNumber: 73,
                         keyChar: 'I',
-                        text: 'parked b<tag-underline>i</tag-underline>ke',
-                        id: 'parkedBike'
+                        text: i18next.t('center-ui.context-menu.tag.parked-bike')
                     },
                     'construction': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: 'cons<tag-underline>t</tag-underline>ruction',
-                        id: 'construction-obstacle'
+                        text: i18next.t('center-ui.context-menu.tag.construction')
                     },
                     'sign': {
                         keyNumber: 71,
                         keyChar: 'G',
-                        text: 'si<tag-underline>g</tag-underline>n',
-                        id: 'sign'
+                        text: i18next.t('center-ui.context-menu.tag.sign')
                     }
                 }
             },
@@ -358,14 +341,12 @@ function UtilitiesMisc (JSON) {
                     'missing crosswalk': {
                         keyNumber: 73,
                         keyChar: 'I',
-                        text: 'm<tag-underline>i</tag-underline>ssing crosswalk',
-                        id: 'missingCrosswalk'
+                        text: i18next.t('center-ui.context-menu.tag.missing-crosswalk')
                     },
                     'no bus stop access': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'no bus stop <tag-underline>a</tag-underline>ccess',
-                        id: 'noBusStopAccess'
+                        text: i18next.t('center-ui.context-menu.tag.no-bus-stop-access')
                     }
                 }
             },
@@ -388,20 +369,17 @@ function UtilitiesMisc (JSON) {
                     'ends abruptly': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'ends <tag-underline>a</tag-underline>bruptly',
-                        id: 'endsAbruptly'
+                        text: i18next.t('center-ui.context-menu.tag.ends-abruptly')
                     },
                     'street has a sidewalk': {
                         keyNumber: 82,
                         keyChar: 'R',
-                        text: 'st<tag-underline>r</tag-underline>eet has a sidewalk',
-                        id: 'streetHasASidewalk'
+                        text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk')
                     },
                     'street has no sidewalks': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: 's<tag-underline>t</tag-underline>reet has no sidewalks',
-                        id: 'streetHasNoSidewalks'
+                        text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks')
                     }
                 }
             },
@@ -416,44 +394,37 @@ function UtilitiesMisc (JSON) {
                     'bumpy': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: 'bum<tag-underline>p</tag-underline>y',
-                        id: 'bumpy'
+                        text: i18next.t('center-ui.context-menu.tag.bumpy')
                     },
                     'uneven': {
                         keyNumber: 85,
                         keyChar: 'U',
-                        text: '<tag-underline>u</tag-underline>neven',
-                        id: 'uneven'
+                        text: i18next.t('center-ui.context-menu.tag.uneven')
                     },
                     'cracks': {
                         keyNumber: 75,
                         keyChar: 'K',
-                        text: 'crac<tag-underline>k</tag-underline>s',
-                        id: 'cracks'
+                        text: i18next.t('center-ui.context-menu.tag.cracks')
                     },
                     'grass': {
                         keyNumber: [71, 82],
                         keyChar: ['G', 'R'],
-                        text: 'g<tag-underline>r</tag-underline>ass',
-                        id: 'grass'
+                        text: i18next.t('center-ui.context-menu.tag.grass')
                     },
                     'narrow sidewalk': {
                         keyNumber: 65,
                         keyChar: 'A',
-                        text: 'n<tag-underline>a</tag-underline>rrow sidewalk',
-                        id: 'narrowSidewalk'
+                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
                     },
                     'brick': {
                         keyNumber: 73,
                         keyChar: 'I',
-                        text: 'br<tag-underline>i</tag-underline>ck',
-                        id: 'brick'
+                        text: i18next.t('center-ui.context-menu.tag.brick')
                     },
                     'construction': {
                         keyNumber: 84,
                         keyChar: 'T',
-                        text: 'cons<tag-underline>t</tag-underline>ruction',
-                        id: 'construction-surface-problem'
+                        text: i18next.t('center-ui.context-menu.tag.construction')
                     }
                 }
             },
@@ -478,27 +449,27 @@ function UtilitiesMisc (JSON) {
     function getSeverityDescription() {
         return {
             1: {
-                message: 'Passable',
+                message: i18next.t('center-ui.context-menu.tooltip.passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_1_White_Small.png'
             },
 
             2: {
-                message: 'Somewhat Passable',
+                message: i18next.t('center-ui.context-menu.tooltip.somewhat-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_2_White_Small.png'
             },
 
             3: {
-                message: 'Difficult to pass',
+                message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_3_White_Small.png'
             },
 
             4: {
-                message: 'Very difficult to pass',
+                message: i18next.t('center-ui.context-menu.tooltip.very-difficult-to-pass'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_4_White_Small.png'
             },
 
             5: {
-                message: 'Not passable',
+                message: i18next.t('center-ui.context-menu.tooltip.not-passable'),
                 severityImage: svl.rootDirectory + 'img/misc/SmileyScale_5_White_Small.png'
             }
         };

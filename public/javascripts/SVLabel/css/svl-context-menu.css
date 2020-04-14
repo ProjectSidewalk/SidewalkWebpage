@@ -129,6 +129,7 @@
 
 .label-severity-axis-label{
     cursor: default;
+    font-size: 8pt;
 }
 
 #context-menu-problem-description-text-box {
@@ -156,13 +157,15 @@
 
 #context-menu-tag-holder {
     width: 311px;
-    margin: -17px 0px 0px 48px;
+    margin: -27px 0px 0px 48px;
 }
 
 .add-tags-label {
     display: inline-block;
     position: inherit;
     font-size: 10px;
+    width: 50px;
+    height: 25px;
 }
 
 #context-menu-tag-holder button {
