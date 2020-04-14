@@ -18,7 +18,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable}
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
-import play.api.cache.Cache
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
@@ -150,15 +149,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       Json.obj("type" -> "FeatureCollection", "features" -> features)
     }
-
-    val featureCollection = if (request.toString == "GET /v1/access/attributes?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
-      Cache.getOrElse(request.toString, 1800){
-        prepareFeatureCollection
-      }
-    } else {
-      prepareFeatureCollection
-    }
-    Future.successful(Ok(featureCollection))
+    Future.successful(Ok(prepareFeatureCollection))
   }
 
   /**
@@ -345,17 +336,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodJson)
     }
-
-    // Cache. https://www.playframework.com/documentation/2.3.x/ScalaCache
-    val featureCollection = if (requestStr == "GET /v1/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830"
-                                || requestStr == "GET /v2/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830") {
-      Cache.getOrElse(requestStr, 1800){
-        prepareFeatureCollection
-      }
-    } else {
-      prepareFeatureCollection
-    }
-    featureCollection
+    prepareFeatureCollection
   }
 
   /**
