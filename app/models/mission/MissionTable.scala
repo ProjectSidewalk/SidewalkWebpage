@@ -153,11 +153,16 @@ object MissionTable {
     * Count the total number of labels the user has validated
     *
     * @param userId
-    * @return the total number of validation missions the user has completed
+    * @return the total number of labels the user has validated
     */
-  def countCompletedValidationMissionsByUserID(userId: UUID) : Int = db.withTransaction { implicit session =>
-      countCompletedMissions(userId, "validation")
+   def countCompletedValidationMissionsByUserID(userId: UUID): Int = db.withSession { implicit session =>
+    (for {
+      _missionType <- missionTypes
+      _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
+      if _missionType.missionType === "validation" && _mission.userId === userId.toString
+    } yield _mission.labelsProgress).list.flatten.sum
   }
+
 
   /**
     * Count the number of missions completed by a user.
