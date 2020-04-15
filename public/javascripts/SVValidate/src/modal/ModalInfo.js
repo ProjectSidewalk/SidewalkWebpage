@@ -1,11 +1,12 @@
 /**
  * Handles info button functionality. Used for mobile. Pops up information about the current label.
  * @param uiModal
+ * @param modalText
  * @returns {Modal Info}
  * @constructor
  */
 
-function ModalInfo (uiModal) {
+function ModalInfo (uiModal, modalText) {
     let self = this;
 
     let infoHeaderHTML = '<p>What is a __LABELTYPE_PLACEHOLDER__?</p>';
@@ -24,8 +25,8 @@ function ModalInfo (uiModal) {
     }
 
     function setMissionInfo(mission) {
-        infoHeaderHTML = i18next.t('mobile.info-title-title-' + svv.labelTypes[mission.getProperty("labelTypeId")]);
-        descriptionHTML = mission.getLabelTypeDescription(mission.getProperty("labelTypeId"));
+        infoHeaderHTML = i18next.t('mobile.info-title-' + svv.labelTypes[mission.getProperty("labelTypeId")]);
+        descriptionHTML = modalText[mission.getProperty("labelTypeId")];
     }
 
     function show () {

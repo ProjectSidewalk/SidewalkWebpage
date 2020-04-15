@@ -529,7 +529,7 @@ function Label (svl, pathIn, params) {
             labelRows = 1,
             severityImage = new Image(),
             severityImagePath = undefined,
-            severityMessage = i18next.t('context-menu-severity'),
+            severityMessage = i18next.t('center-ui.context-menu.severity'),
             msg = i18next.t(properties.labelType + '-description'),
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };

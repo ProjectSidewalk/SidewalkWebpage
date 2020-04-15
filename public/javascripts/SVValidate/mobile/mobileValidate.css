@@ -224,6 +224,32 @@ html {
     color: #2C293E;
 }
 
+.animate-button-0:active {
+    -webkit-transition: all 0.3s ease-in;
+    transition: all 0.3s ease-in;
+    -webkit-animation-name: confirm-press;
+    animation-name: confirm-press;
+    -webkit-animation-duration: 0.4s;
+    animation-duration: 0.4s;
+    -webkit-animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
+}
+
+@keyframes confirm-press {
+    0% {
+    -webkit-transform: scale(0.7);
+            transform: scale(0.7);
+    }
+    50% {
+    -webkit-transform: scale(1.2);
+            transform: scale(1.2);
+    }
+    100% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    }
+}
+
 #validation-disagree-button-0 {
     background-color: #EB7350;
     color: #2C293E;

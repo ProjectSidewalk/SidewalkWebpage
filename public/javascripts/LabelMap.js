@@ -42,7 +42,7 @@ function LabelMap(_, $) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+    var map = L.mapbox.map('admin-map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5

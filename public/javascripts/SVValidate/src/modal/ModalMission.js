@@ -5,7 +5,7 @@ function ModalMission (uiModalMission, user) {
         <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t('mission-start') + '</p>\
+        <p>' + i18next.t('mission-start.body') + '</p>\
         <div class="spacer10"></div>';
 
     let validationResumeMissionHTML = ' <figure> \
@@ -62,7 +62,7 @@ function ModalMission (uiModalMission, user) {
      */
     function setMissionMessage(mission) {
         if (mission.getProperty("labelsProgress") === 0) {
-            let validationMissionStartTitle = i18next.t('mission-start-title',
+            let validationMissionStartTitle = i18next.t('mission-start.title',
                 {
                     n: mission.getProperty("labelsValidated"),
                     label_type: svv.labelTypeNames[mission.getProperty("labelTypeId")]
