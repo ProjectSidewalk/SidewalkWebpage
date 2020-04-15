@@ -11,7 +11,7 @@ function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
 
-    svv.validationMissionsCompleted = param.completedValidationMissions;
+    svv.validationsCompleted = param.completedValidations;
 
     function _initUI() {
         // Maps label types to label names.
@@ -170,7 +170,7 @@ function Main (param) {
         svv.missionContainer.createAMission(param.mission, param.progress);
 
         svv.missionsCompleted = 0;
-        svv.statusField.updateLabelCounts(10 * (svv.missionsCompleted + param.completedValidationMissions));
+        svv.statusField.updateLabelCounts(10*svv.missionsCompleted + param.completedValidations);
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
             $(".toolUI").css('opacity', 1);

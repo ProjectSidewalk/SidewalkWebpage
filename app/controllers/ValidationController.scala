@@ -93,7 +93,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Get the data needed by the /validate or /rapidValidate endpoints.
-    * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedValidationMissions)
+    * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedValidations)
     */
   def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, validationTypeStr: String, visitTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int) = {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -107,7 +107,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, labelCount, None)
     val hasWork: Boolean = possibleLabTypeIds.nonEmpty
 
-    val completedValidationMissions: Int = MissionTable.countCompletedValidationMissionsByUserID(user.userId)
+    val completedValidations: Int = MissionTable.countCompletedValidationsByUserID(user.userId)
     // Checks if there are still labels in the database for the user to validate.
     if (hasWork && missionSetProgress.missionType == "validation") {
       // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
@@ -123,11 +123,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       val missionJsObject: JsObject = mission.toJSON
       val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
 
-      return (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, true, completedValidationMissions)
+      return (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, true, completedValidations)
     } else {
       // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
       //      no validation missions that can be done.
-      return (None, None, None, missionSetProgress, false, completedValidationMissions)
+      return (None, None, None, missionSetProgress, false, completedValidations)
     }
   }
 

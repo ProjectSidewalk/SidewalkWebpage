@@ -155,7 +155,7 @@ object MissionTable {
     * @param userId
     * @return the total number of labels the user has validated
     */
-   def countCompletedValidationMissionsByUserID(userId: UUID): Int = db.withSession { implicit session =>
+   def countCompletedValidationsByUserID(userId: UUID): Int = db.withSession { implicit session =>
     (for {
       _missionType <- missionTypes
       _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId

@@ -85,19 +85,19 @@ function Mission(params) {
      *                      progress will increase.
      */
     function updateMissionProgress(skip) {
-        console.log(getProperties());
+        // console.log(getProperties());
         let labelsProgress = getProperty("labelsProgress");
         let missionsCompleted = getProperty("missionsCompleted")
         if (labelsProgress < getProperty("labelsValidated")) {
             if (!skip) {
                 labelsProgress += 1;
             }
-            var missionLabelNumber = labelsProgress + 10 * svv.validationMissionsCompleted;
+            var missionLabelNumber = labelsProgress + svv.validationsCompleted;
             if (missionsCompleted != undefined){
                 missionLabelNumber += 10 * missionsCompleted;
             }
             svv.statusField.updateLabelCounts(missionLabelNumber);
-            console.log(missionsCompleted);
+            // console.log(missionsCompleted);
             setProperty("labelsProgress", labelsProgress);
 
             // Submit mission if mission is complete
