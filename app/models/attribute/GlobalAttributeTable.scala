@@ -43,9 +43,9 @@ case class GlobalAttributeForAPI(globalAttributeId: Int,
       )
     )
   }
-  val attributesToArray = Array("" + globalAttributeId, "" + labelType, 
-                                 "" + lat, "" + lng, "" + severity, "" + temporary, "" + neighborhoodName)
-  attributesToArray(4) = "" + severity.getOrElse("null")
+  val attributesToArray = Array(globalAttributeId, labelType, neighborhoodName,
+                                 "" + lat, "" + lng, severity, "" + temporary)
+  attributesToArray(5) = "" + severity.getOrElse("NA")
 }
 
 case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
@@ -89,12 +89,13 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
       )
     )
   }
-  val attributesToArray = Array("" + globalAttributeId, labelType, "" + attributeSeverity, "" + attributeTemporary,
-                                 neighborhoodName, "" + labelId, "" + gsvPanoramaId, "" + heading, "" + pitch, "" + zoom, 
-                                 "" + canvasX, "" + canvasY, "" + canvasWidth, "" + canvasHeight, "" + labelSeverity,
-                                 "" + labelTemporary)
-  attributesToArray(2) = "" + attributeSeverity.getOrElse("null")
-  attributesToArray(14) = attributesToArray(2)
+  val attributesToArray = Array("" + globalAttributeId, labelType, attributeSeverity, "" + attributeTemporary,
+                                 neighborhoodName, "" + labelId, gsvPanoramaId, "" + attributeLat, "" + attributeLng,
+                                "" + labelLat, "" + labelLng, "" + heading, "" + pitch, "" + zoom, 
+                                "" + canvasX, "" + canvasY, "" + canvasWidth, "" + canvasHeight, labelSeverity,
+                                "" + labelTemporary)
+  attributesToArray(2) = "" + attributeSeverity.getOrElse("NA")
+  attributesToArray(18) = attributesToArray(2)
 }
 
 

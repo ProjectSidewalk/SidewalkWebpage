@@ -72,15 +72,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
 
-    if(filetype != None) {  // in CSV format
+    if(filetype != None && filetype.get == "csv") {  // in CSV format
       val file = new java.io.File("access_attributes_with_labels.csv")
       val writer = new java.io.PrintStream(file)
-      writer.println("Global Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Neighborhood Name,Label ID,GSV Panorama ID,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity,Label Temporary")
+      writer.println("Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Neighborhood Name,Label ID,GSV Panorama ID,Attribute Latitude, Attribute Longitude, Label Latitude, Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity,Temporary")
       for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currString: String = current.attributesToArray.mkString(",")
         writer.println(currString)
       }
-      Future.successful(Ok.sendFile(file))
+      writer.close()
+      Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else {  // in GeoJSON format
       val features: List[JsObject] = 
         GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
@@ -106,15 +107,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng:Float = min(lng1, lng2).toFloat
     val maxLng:Float = max(lng1, lng2).toFloat
 
-    if(filetype != None) {  // CSV format
-      val file = new java.io.File("access_attributes.csv")
-      val writer = new java.io.PrintStream(file)
-      writer.println("Global Attribute ID,Label Type,Latitude,Longitude,Severity,Label Temporary,Neighborhood Name")
+    if(filetype != None && filetype.get == "csv") {  // CSV format
+      val AccessAttributesfile = new java.io.File("access_attributes.csv")
+      val writer = new java.io.PrintStream(AccessAttributesfile)
+      writer.println("Global Attribute ID,Label Type,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary")
       for(current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currString: String = current.attributesToArray.mkString(",")
         writer.println(currString)
       }
-      Future.successful(Ok.sendFile(file))
+      writer.close()
+      Future.successful(Ok.sendFile(content = AccessAttributesfile, onClose = () => AccessAttributesfile.delete()))
     } else {  // GeoJSON format
       val features: List[JsObject] =
         GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
@@ -178,8 +180,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
-    if(filetype != None) {  // CSV format
-      Future.successful(Ok.sendFile(getAccessScoreNeighborhoodsGenericCSV(lat1, lng1, lat2, lng2, version = 2, request.toString, coordinates)))
+    if(filetype != None && filetype.get == "csv") {  // CSV format
+      val file = getAccessScoreNeighborhoodsGenericCSV(lat1, lng1, lat2, lng2, version = 2, request.toString, coordinates)
+      Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else {  // GeoJSON format
       Future.successful(Ok(getAccessScoreNeighborhoodsGeneric(lat1, lng1, lat2, lng2, version = 2, request.toString, coordinates)))
     }
@@ -201,7 +204,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreNeighborhoodsGenericCSV(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, requestStr: String, coordinates: Array[Double]) = {
     val file = new java.io.File("access_score_neighborhoods.csv")
     val writer = new java.io.PrintStream(file)
-    writer.println("Coordinates,Coverage,Region_ID,Region_Name,Neighborhood Score,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Average Curb Ramp Score,Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score")
+    writer.println("Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Average Curb Ramp Score,Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score")
     def prepareFeatureCollectionCSV = {
       val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version, coordinates)
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
@@ -211,11 +214,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       for(neighborhood <- neighborhoods) {
         val coordinates: Array[Coordinate] = neighborhood.geom.getCoordinates
         val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
-        var coordinatesToString: String = "["
+        var coordinatesToString: String = "\"["
         for(coordinate <- coordinates) {
-          coordinatesToString += "(" + coordinate.x + " - " + coordinate.y + ")"
+          coordinatesToString += "(" + coordinate.x + "," + coordinate.y + "),"
         }
-        coordinatesToString += "]"
+        if(coordinates.length > 0) {  // correct formatting for commas
+          coordinatesToString = coordinatesToString.substring(0, coordinatesToString.length() - 1)
+        }
+        coordinatesToString += "]\""
         if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
           val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
           val averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
@@ -226,12 +232,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
           assert(coverage <= 1.0)
 
-          writer.println(coordinatesToString + "," + coverage + "," + neighborhood.regionId + "," + neighborhood.name.getOrElse("null") + "," + accessScore + "," + significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3) + "," + 
+          writer.println(neighborhood.regionId + "," + neighborhood.name.getOrElse("NA") + "," + accessScore + "," + coordinatesToString + "," + coverage + "," + significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3) + "," + 
                          averagedStreetFeatures(0) + "," + averagedStreetFeatures(1) + "," + averagedStreetFeatures(2) + "," + averagedStreetFeatures(3)) 
         } else {
-          writer.println("," + coordinatesToString + "," + neighborhood.regionId + "," + neighborhood.name + "," + None.asInstanceOf[Option[Double]] + "," + significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3) + "," + 
+          writer.println(neighborhood.regionId + "," + neighborhood.name.getOrElse("NA") + "," + None.asInstanceOf[Option[Double]] + "," + coordinatesToString + ",," + significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3) + "," + 
                          None.asInstanceOf[Option[Array[Double]]])
         }
+        writer.close()
       }
       file
     }
@@ -367,21 +374,25 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
     val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2, filetype)
-    if(filetype != None) {  // CSV format
+    if(filetype != None && filetype.get == "csv") {  // CSV format
       val file = new java.io.File("access_score_streets.csv")
       val writer = new java.io.PrintStream(file)
-      writer.println("Coordinates,Street Edge ID,Access Score,Curb Ramp Count,No Curb Ramp Count,Obstacle Count,Surface Problem Count,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance")
+      writer.println("Street ID,Access Score,Coordinates,Curb Ramp Count,No Curb Ramp Count,Obstacle Count,Surface Problem Count,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance")
       for(streetAccessScore <- streetAccessScores) {
-        var coordinates: String = "["
+        var coordinates: String = "\"["
         for(coordinate <- streetAccessScore.streetEdge.geom.getCoordinates) {
-          coordinates += "(" + coordinate.x + " - " + coordinate.y + ")"
+          coordinates += "(" + coordinate.x + "," + coordinate.y + "),"
         }
-        coordinates += "]"
-        writer.println(coordinates + "," + streetAccessScore.streetEdge.streetEdgeId + "," + streetAccessScore.score + "," + streetAccessScore.attributes(0) + "," + streetAccessScore.attributes(1) + 
+        if(coordinates.length > 0) {  // correct formatting for commas
+          coordinates = coordinates.substring(0, coordinates.length() - 1)
+        }
+        coordinates += "]\""
+        writer.println(streetAccessScore.streetEdge.streetEdgeId + "," + streetAccessScore.score + "," + coordinates + "," + "," + streetAccessScore.attributes(0) + "," + streetAccessScore.attributes(1) + 
                        "," + streetAccessScore.attributes(2) + "," + streetAccessScore.attributes(3) + "," + streetAccessScore.significance(0) + "," + streetAccessScore.significance(1) + 
                        "," + streetAccessScore.significance(2) + "," + streetAccessScore.significance(3))
       }
-      Future.successful(Ok.sendFile(file))
+      writer.close();
+      Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
     } else {  // GeoJSON format
       Future.successful(Ok(getGeoJSONAccessScoreStreetsGeneric(streetAccessScores)))
     }
