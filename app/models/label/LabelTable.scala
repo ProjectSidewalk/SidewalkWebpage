@@ -417,7 +417,7 @@ object LabelTable {
     , group.head._6, group.head._7, group.head._8, group.head._9, group.head._10, group.head._11, group.head._12, group.head._13
     , group.head._14, group.head._15, group.head._16, group.head._17, group.head._18, group.head._19, group.head._20
     , group.map(z => (z._21, z._22)).toMap)}.toList;
-    allMetadata.map(label => labelAndTagsToLabelMetadataModified(label, getTagsFromLabelId(label._1)))
+    allMetadata.map(label => labelAndTagsToLabelMetadataWithValidation(label, getTagsFromLabelId(label._1)))
   }
 
   def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
@@ -803,13 +803,13 @@ object LabelTable {
   }
 
   /**
-    * Returns a LabelMetadata object that has the label properties as well as the tags.
+    * Returns a LabelMetadataWithValidation object that has the label properties, tags, and includes validation results.
     *
     * @param label label from query
     * @param tags list of tags as strings
     * @return LabelMetadata object
     */
-  def labelAndTagsToLabelMetadataModified(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String],Map[String,Int]), tags: List[String]):
+  def labelAndTagsToLabelMetadataWithValidation(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String],Map[String,Int]), tags: List[String]):
   LabelMetadataWithValidation = {
       LabelMetadataWithValidation(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
                     label._9,label._10,label._11,label._12,label._13,label._14,label._15,label._16,
