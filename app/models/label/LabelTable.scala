@@ -372,7 +372,7 @@ object LabelTable {
         |       lb_big.severity,
         |       lb_big.temp,
         |       lb_big.description,
-        |       val.validation_option_id,
+        |       val.text,
         |       val.count 
         |FROM sidewalk.label AS lb1,
         |     sidewalk.gsv_data,
@@ -394,7 +394,7 @@ object LabelTable {
         |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
         |     ) AS lb_big,
         |     (
-        |        SELECT label.label_id, validation_option_id, COUNT(label_validation_id) AS count
+        |        SELECT label.label_id, text, COUNT(label_validation_id) AS count
         |        FROM label
         |        FULL JOIN validation_options ON TRUE
         |        LEFT JOIN label_validation ON label.label_id = label_validation.label_id
@@ -412,19 +412,11 @@ object LabelTable {
         | ORDER BY lb1.label_id DESC
         | LIMIT ?""".stripMargin
     )
-    /*
-    val lst = List((1, 10, 1, 4), (1, 10, 2, 0), (1, 10, 3, 2), (2, 15, 1, 3), (2, 15, 2, 5), (2, 15, 3, 0))
-    println(lst.groupBy(_._1).map{ case (y, group) => (y, group.head._2, group.map(z => (z._3, z._4)).toMap) }.toList)
-    // Output: List((2,15,Map(1 -> 3, 2 -> 5, 3 -> 0)), (1,10,Map(1 -> 4, 2 -> 0, 3 -> 2)))
-    */
     val lst = selectQuery(takeN).list;
     val allMetadata = lst.groupBy(_._1).map{ case (y,group) => (y, group.head._2, group.head._3, group.head._4, group.head._5
     , group.head._6, group.head._7, group.head._8, group.head._9, group.head._10, group.head._11, group.head._12, group.head._13
     , group.head._14, group.head._15, group.head._16, group.head._17, group.head._18, group.head._19, group.head._20
     , group.map(z => (z._21, z._22)).toMap)}.toList;
-
-    printf("" + allMetadata.head._21)
-
     allMetadata.map(label => labelAndTagsToLabelMetadataModified(label, getTagsFromLabelId(label._1)))
   }
 
