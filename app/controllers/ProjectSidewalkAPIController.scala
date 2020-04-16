@@ -75,7 +75,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     if(filetype != None && filetype.get == "csv") {  // in CSV format
       val file = new java.io.File("access_attributes_with_labels.csv")
       val writer = new java.io.PrintStream(file)
-      writer.println("Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Neighborhood Name,Label ID,GSV Panorama ID,Attribute Latitude, Attribute Longitude, Label Latitude, Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity,Temporary")
+      writer.println("Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Neighborhood Name,Label ID,GSV Panorama ID,Attribute Latitude, Attribute Longitude, Label Latitude, Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,Label Severity,Label Temporary")
       for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currString: String = current.attributesToArray.mkString(",")
         writer.println(currString)
@@ -110,7 +110,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     if(filetype != None && filetype.get == "csv") {  // CSV format
       val AccessAttributesfile = new java.io.File("access_attributes.csv")
       val writer = new java.io.PrintStream(AccessAttributesfile)
-      writer.println("Global Attribute ID,Label Type,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary")
+      writer.println("Attribute ID,Label Type,Neighborhood Name,Attribute Latitude,Attribute Longitude,Severity,Temporary")
       for(current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currString: String = current.attributesToArray.mkString(",")
         writer.println(currString)
@@ -204,7 +204,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   def getAccessScoreNeighborhoodsGenericCSV(lat1: Double, lng1: Double, lat2: Double, lng2: Double, version: Int, requestStr: String, coordinates: Array[Double]) = {
     val file = new java.io.File("access_score_neighborhoods.csv")
     val writer = new java.io.PrintStream(file)
-    writer.println("Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Average Curb Ramp Score,Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score")
+    writer.println("Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Average Curb Ramp Score,Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score,Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance")
     def prepareFeatureCollectionCSV = {
       val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version, coordinates)
       val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
@@ -232,14 +232,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
           assert(coverage <= 1.0)
 
-          writer.println(neighborhood.regionId + "," + neighborhood.name.getOrElse("NA") + "," + accessScore + "," + coordinatesToString + "," + coverage + "," + significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3) + "," + 
-                         averagedStreetFeatures(0) + "," + averagedStreetFeatures(1) + "," + averagedStreetFeatures(2) + "," + averagedStreetFeatures(3)) 
+          writer.println(neighborhood.name.getOrElse("NA") + "," + neighborhood.regionId + "," + accessScore + "," + coordinatesToString + "," + coverage + "," + averagedStreetFeatures(0) + "," + averagedStreetFeatures(1) + "," + averagedStreetFeatures(2) + "," + averagedStreetFeatures(3) + "," + 
+                        significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3))                
         } else {
-          writer.println(neighborhood.regionId + "," + neighborhood.name.getOrElse("NA") + "," + None.asInstanceOf[Option[Double]] + "," + coordinatesToString + ",," + significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3) + "," + 
-                         None.asInstanceOf[Option[Array[Double]]])
+          writer.println(neighborhood.name.getOrElse("NA") + "," + neighborhood.regionId + "," + None.asInstanceOf[Option[Double]] + "," + coordinatesToString + ",,,,,," + significance(0) + "," + significance(1) + "," + significance(2) + "," + significance(3))
         }
-        writer.close()
       }
+      writer.close()
       file
     }
     prepareFeatureCollectionCSV
@@ -387,7 +386,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
           coordinates = coordinates.substring(0, coordinates.length() - 1)
         }
         coordinates += "]\""
-        writer.println(streetAccessScore.streetEdge.streetEdgeId + "," + streetAccessScore.score + "," + coordinates + "," + "," + streetAccessScore.attributes(0) + "," + streetAccessScore.attributes(1) + 
+        writer.println(streetAccessScore.streetEdge.streetEdgeId + "," + streetAccessScore.score + "," + coordinates + "," + streetAccessScore.attributes(0) + "," + streetAccessScore.attributes(1) + 
                        "," + streetAccessScore.attributes(2) + "," + streetAccessScore.attributes(3) + "," + streetAccessScore.significance(0) + "," + streetAccessScore.significance(1) + 
                        "," + streetAccessScore.significance(2) + "," + streetAccessScore.significance(3))
       }
