@@ -654,7 +654,7 @@
                             </thead>
                             <!-- using this id to locate the labelTags so we can insert the tags-->
                             <tbody id = 'labelRows'>
-                                @LabelTable.selectTopLabelsAndMetadata(5000).map { label =>
+                                @LabelTable.selectTopLabelsAndMetadata(15000).map { label =>
                                     <tr>
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
@@ -664,9 +664,9 @@
                                         <td>@label.temporary</td>
                                         <td>@label.tags.mkString(", ")</td>
                                         <td>@label.description</td>
-                                        <td>@LabelTable.getLabelMetadata(label.labelId).validations("agree")</td>
-                                        <td>@LabelTable.getLabelMetadata(label.labelId).validations("disagree")</td>
-                                        <td>@LabelTable.getLabelMetadata(label.labelId).validations("unclear")</td>
+                                        <td>label.validations("agree")</td>
+                                        <td>label.validations("disagree")</td>
+                                        <td>label.validations("unclear")</td>
                                         <td>
                                             <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
                                         </td>
