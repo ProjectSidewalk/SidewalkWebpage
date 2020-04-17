@@ -25,11 +25,29 @@ class AuthTokenCleanerActor extends Actor {
   override def preStart(): Unit = {
     super.preStart()
 
-    // Run auth token cleaner every 5 minutes
+    // If we want to update the user_stat table at 2:00am every day, we need to figure out how much time there
+    // is b/w now and the next 2:00am, then we can set the update interval to be 24 hours. So we make a calendar object
+    // for right now, and one for 2:00am today. If it is after 2:00am right now, we set the 2:00am object to be 2:00am
+    // tomorrow. Then we get the time difference between the 2:00am object and now.
+    val currentTime: Calendar = Calendar.getInstance(TIMEZONE)
+    var timeOfNextUpdate: Calendar = Calendar.getInstance(TIMEZONE)
+    timeOfNextUpdate.set(Calendar.HOUR_OF_DAY, 9)
+    timeOfNextUpdate.set(Calendar.MINUTE, 0)
+    timeOfNextUpdate.set(Calendar.SECOND, 0)
+
+    // If already past 2:00am, set next update to 2:00am tomorrow.
+    if (currentTime.after(timeOfNextUpdate)) {
+      timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
+    }
+    // If it is after 2:00am, this should have just incremented.
+    val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
+    val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
+
+    // Run auth token cleaner every 24 hours
     cancellable = Some(
       context.system.scheduler.schedule(
-        1.second,
-        60.minutes,
+        durationToNextUpdate,
+        24.hour,
         self,
         AuthTokenCleanerActor.Tick
       )(context.dispatcher)

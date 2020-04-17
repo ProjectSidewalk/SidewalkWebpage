@@ -2,6 +2,7 @@ package models.daos.slick
 
 import java.sql.Timestamp
 import java.util.UUID
+import java.security.MessageDigest
 import models.AuthToken
 import play.api.db.slick._
 import models.utils.MyPostgresDriver.simple._
@@ -15,16 +16,24 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   import play.api.Play.current
 
   /**
+   * AuthToken hasher
+   *
+   * @return A cryptographic hasher utilizing SHA-256
+   */
+  def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
+
+  /**
    * Finds a token by its ID.
    *
    * @param id The unique token ID.
    * @return The found token or None if no token for the given ID could be found.
    */
   def find(id: UUID) = {
+    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
     DB withSession { implicit session =>
       Future.successful {
-        slickAuthTokens.filter(_.id === id.toString).firstOption match {
-          case Some(info) => Some(AuthToken(UUID.fromString(info.id), UUID.fromString(info.userID), info.expirationTimestamp))
+        slickAuthTokens.filter(_.id === hashedTokenID).firstOption match {
+          case Some(info) => Some(AuthToken(info.id, UUID.fromString(info.userID), info.expirationTimestamp))
           case None => None
         }
       }
@@ -32,18 +41,15 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   }
 
   /**
-   * Finds expired tokens.
+   * Removes expired tokens.
    *
    * @param dateTime The current date time.
-   * @return A Sequence of expired tokens
+   * @return A future to wait for process to be completed
    */
-  def findExpired(currentTime: Timestamp) = {
+  def removeExpired(currentTime: Timestamp) = {
     DB withSession { implicit session =>
       Future.successful {
-        val expiredTokens = slickAuthTokens.filter(_.expirationTimestamp < currentTime).list.map { authToken =>
-          AuthToken(UUID.fromString(authToken.id), UUID.fromString(authToken.userID), authToken.expirationTimestamp)
-        }.seq
-        expiredTokens
+        slickAuthTokens.filter(_.expirationTimestamp < currentTime).delete
       }
     }
   }
@@ -57,7 +63,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   def save(token: AuthToken) = {
     DB withSession { implicit session =>
       Future.successful {
-        val dbAuthToken = DBAuthToken(token.id.toString, token.userID.toString, token.expiry)
+        val dbAuthToken = DBAuthToken(token.id, token.userID.toString, token.expiry)
         slickAuthTokens.filter(_.userID === dbAuthToken.userID).firstOption match {
           case Some(authToken) => Logger.debug("Auth Token for user already exists: " + authToken)
           case None =>
@@ -75,9 +81,10 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
    * @return A future to wait for the process to be completed.
    */
   def remove(id: UUID) = {
+    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
     DB withSession { implicit session =>
       Future.successful {
-        slickAuthTokens.filter(_.id === id.toString).delete
+        slickAuthTokens.filter(_.id === hashedTokenID).delete
       }
     }
   }

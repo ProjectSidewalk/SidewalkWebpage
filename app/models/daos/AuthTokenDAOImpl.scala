@@ -1,11 +1,13 @@
 package models.daos
 
+import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
 import models.AuthToken
 import models.daos.AuthTokenDAOImpl._
+
 import org.joda.time.DateTime
 
 import scala.collection.mutable
@@ -17,24 +19,38 @@ import scala.concurrent.Future
 class AuthTokenDAOImpl extends AuthTokenDAO {
 
   /**
+   * AuthToken hasher
+   *
+   * @return A cryptographic hasher utilizing SHA-256
+   */
+  def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
+
+  /**
    * Finds a token by its ID.
    *
    * @param id The unique token ID.
    * @return The found token or None if no token for the given ID could be found.
    */
-  def find(id: UUID) = Future.successful(tokens.get(id))
+  def find(id: UUID) = Future.successful {
+    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
+    tokens.get(hashedTokenID)
+  }
 
   /**
-   * Finds expired tokens.
+   * Removes expired tokens.
    *
    * @param dateTime The current date time.
-   * @return A Sequence of expired tokens
+   * @return A future to wait for the process to be completed
    */
-  def findExpired(currentTime: Timestamp) = Future.successful {
-    tokens.filter {
+  def removeExpired(currentTime: Timestamp) = Future.successful {
+    val expiredTokens = tokens.filter {
       case (_, token) =>
         token.expiry.before(currentTime)
-    }.values.toSeq
+    }
+
+    expiredTokens.foreach { expiredToken =>
+      tokens -= expiredToken._1
+    }
   }
 
   /**
@@ -55,7 +71,8 @@ class AuthTokenDAOImpl extends AuthTokenDAO {
    * @return A future to wait for the process to be completed.
    */
   def remove(id: UUID) = {
-    tokens -= id
+    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
+    tokens -= hashedTokenID
     Future.successful(())
   }
 }
@@ -68,5 +85,5 @@ object AuthTokenDAOImpl {
   /**
    * The list of tokens.
    */
-  val tokens: mutable.HashMap[UUID, AuthToken] = mutable.HashMap()
+  val tokens: mutable.HashMap[String, AuthToken] = mutable.HashMap()
 }

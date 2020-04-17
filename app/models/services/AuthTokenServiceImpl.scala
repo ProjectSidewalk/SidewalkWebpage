@@ -3,6 +3,7 @@ package models.services
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import java.security.MessageDigest
 import javax.inject.Inject
 
 import models.AuthToken
@@ -21,15 +22,26 @@ import play.api.libs.concurrent.Execution.Implicits._
 class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTokenService {
 
   /**
+   * AuthToken hasher
+   *
+   * @return A cryptographic hasher utilizing SHA-256
+   */
+  def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
+
+  /**
    * Creates a new auth token and saves it in the backing store.
    *
    * @param userID The user ID for which the token should be created.
    * @param expiry The duration a token expires.
    * @return The saved auth token.
    */
-  def create(userID: UUID, expiry: FiniteDuration = 60 minutes) = {
-    val token = AuthToken(UUID.randomUUID(), userID, new Timestamp(Instant.now.toEpochMilli + expiry.toMillis.toLong))
-    authTokenDAO.save(token)
+  def create(userID: UUID, expiry: FiniteDuration = 5 minutes) = {
+    val tokenID = UUID.randomUUID()
+    val hashedTokenID = new String(sha256Hasher.digest(tokenID.toString.getBytes))
+    val token = AuthToken(hashedTokenID, userID, new Timestamp(Instant.now.toEpochMilli + expiry.toMillis.toLong))
+    authTokenDAO.save(token).flatMap {
+      case _ => Future.successful(tokenID)
+    }
   }
 
   /**
@@ -51,11 +63,7 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
    *
    * @return The list of deleted tokens.
    */
-  def clean = authTokenDAO.findExpired(new Timestamp(Instant.now.toEpochMilli)).flatMap { tokens =>
-    Future.sequence(tokens.map { token =>
-      authTokenDAO.remove(token.id).map(_ => token)
-    })
-  }
+  def clean = authTokenDAO.removeExpired(new Timestamp(Instant.now.toEpochMilli))
 
   /**
    * Remove token associated with given token id
