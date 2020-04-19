@@ -32,7 +32,7 @@ class AuthTokenDAOImpl extends AuthTokenDAO {
    * @return The found token or None if no token for the given ID could be found.
    */
   def find(id: UUID) = Future.successful {
-    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
+    val hashedTokenID = sha256Hasher.digest(id.toString.getBytes)
     tokens.get(hashedTokenID)
   }
 
@@ -71,7 +71,7 @@ class AuthTokenDAOImpl extends AuthTokenDAO {
    * @return A future to wait for the process to be completed.
    */
   def remove(id: UUID) = {
-    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
+    val hashedTokenID = sha256Hasher.digest(id.toString.getBytes)
     tokens -= hashedTokenID
     Future.successful(())
   }
@@ -85,5 +85,5 @@ object AuthTokenDAOImpl {
   /**
    * The list of tokens.
    */
-  val tokens: mutable.HashMap[String, AuthToken] = mutable.HashMap()
+  val tokens: mutable.HashMap[Array[Byte], AuthToken] = mutable.HashMap()
 }

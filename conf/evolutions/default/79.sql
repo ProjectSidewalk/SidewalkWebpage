@@ -1,7 +1,7 @@
 # --- !Ups
 CREATE TABLE auth_tokens (
   user_id character varying(254) NOT NULL,
-  id character varying(254) NOT NULL,
+  id bytea NOT NULL,
   expiration_timestamp TIMESTAMPTZ NOT NULL
 );
 

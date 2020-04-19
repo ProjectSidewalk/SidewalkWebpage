@@ -29,7 +29,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
    * @return The found token or None if no token for the given ID could be found.
    */
   def find(id: UUID) = {
-    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
+    val hashedTokenID = sha256Hasher.digest(id.toString.getBytes)
     DB withSession { implicit session =>
       Future.successful {
         slickAuthTokens.filter(_.id === hashedTokenID).firstOption match {
@@ -81,7 +81,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
    * @return A future to wait for the process to be completed.
    */
   def remove(id: UUID) = {
-    val hashedTokenID = new String(sha256Hasher.digest(id.toString.getBytes))
+    val hashedTokenID = sha256Hasher.digest(id.toString.getBytes)
     DB withSession { implicit session =>
       Future.successful {
         slickAuthTokens.filter(_.id === hashedTokenID).delete

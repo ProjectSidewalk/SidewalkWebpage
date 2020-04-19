@@ -37,7 +37,7 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
    */
   def create(userID: UUID, expiry: FiniteDuration = 5 minutes) = {
     val tokenID = UUID.randomUUID()
-    val hashedTokenID = new String(sha256Hasher.digest(tokenID.toString.getBytes))
+    val hashedTokenID = sha256Hasher.digest(tokenID.toString.getBytes)
     val token = AuthToken(hashedTokenID, userID, new Timestamp(Instant.now.toEpochMilli + expiry.toMillis.toLong))
     authTokenDAO.save(token).flatMap {
       case _ => Future.successful(tokenID)

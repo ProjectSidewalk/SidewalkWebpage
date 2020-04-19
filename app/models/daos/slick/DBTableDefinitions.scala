@@ -44,10 +44,10 @@ object DBTableDefinitions {
     def * = (hasher, password, salt, loginInfoId) <> (DBPasswordInfo.tupled, DBPasswordInfo.unapply)
   }
 
-  case class DBAuthToken (id: String, userID: String, expirationTimestamp: Timestamp)
+  case class DBAuthToken (id: Array[Byte], userID: String, expirationTimestamp: Timestamp)
 
   class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, "auth_tokens") {
-    def id = column[String]("id")
+    def id = column[Array[Byte]]("id")
     def userID = column[String]("user_id")
     def expirationTimestamp = column[Timestamp]("expiration_timestamp")
     def * = (id, userID, expirationTimestamp) <> (DBAuthToken.tupled, DBAuthToken.unapply)
