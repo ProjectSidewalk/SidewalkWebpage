@@ -22,8 +22,8 @@ case class GlobalAttribute(globalAttributeId: Int,
                            regionId: Int,
                            lat: Float, lng: Float,
                            severity: Option[Int],
-                           temporary: Boolean) 
-                           
+                           temporary: Boolean)
+
 case class GlobalAttributeForAPI(globalAttributeId: Int,
                                  labelType: String,
                                  lat: Float, lng: Float,
@@ -44,8 +44,7 @@ case class GlobalAttributeForAPI(globalAttributeId: Int,
     )
   }
   val attributesToArray = Array(globalAttributeId, labelType, neighborhoodName,
-                                 "" + lat, "" + lng, severity, "" + temporary)
-  attributesToArray(5) = "" + severity.getOrElse("NA")
+                                lat.toString, lng.toString, severity.getOrElse("NA").toString, temporary.toString)
 }
 
 case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
@@ -89,13 +88,12 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
       )
     )
   }
-  val attributesToArray = Array("" + globalAttributeId, labelType, attributeSeverity, "" + attributeTemporary,
-                                 neighborhoodName, "" + labelId, gsvPanoramaId, "" + attributeLat, "" + attributeLng,
-                                "" + labelLat, "" + labelLng, "" + heading, "" + pitch, "" + zoom, 
-                                "" + canvasX, "" + canvasY, "" + canvasWidth, "" + canvasHeight, labelSeverity,
-                                "" + labelTemporary)
-  attributesToArray(2) = "" + attributeSeverity.getOrElse("NA")
-  attributesToArray(18) = attributesToArray(2)
+  val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
+                                attributeTemporary.toString, neighborhoodName, labelId.toString, gsvPanoramaId,
+                                attributeLat.toString, attributeLng.toString, labelLat.toString, labelLng.toString,
+                                heading.toString, pitch.toString, zoom.toString, canvasX.toString, canvasY.toString,
+                                canvasWidth.toString, canvasHeight.toString,
+                                attributeSeverity.getOrElse("NA").toString, labelTemporary.toString)
 }
 
 
