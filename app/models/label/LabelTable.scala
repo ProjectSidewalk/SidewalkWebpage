@@ -412,11 +412,23 @@ object LabelTable {
         | ORDER BY lb1.label_id DESC
         | LIMIT ?""".stripMargin
     )
-    val lst = selectQuery(takeN).list;
-    val allMetadata = lst.groupBy(_._1).map{ case (y,group) => (y, group.head._2, group.head._3, group.head._4, group.head._5
-    , group.head._6, group.head._7, group.head._8, group.head._9, group.head._10, group.head._11, group.head._12, group.head._13
-    , group.head._14, group.head._15, group.head._16, group.head._17, group.head._18, group.head._19, group.head._20
-    , group.map(z => (z._21, z._22)).toMap)}.toList;
+    val lst = selectQuery(takeN * 3).list
+
+    /*
+      In the query above, each label is returned with three rows, each of which are the same but 
+      contain a value for the validation counts of 'agree', 'disagree', and 'unclear' respectively.
+      Thus, we want to combine these three rows into one row that has all three counts, which is
+      what the statement below accomplishes. allMetaData groups the rows by their labelid
+      and then carries on the value that each row stores for the different validation options.
+      This allows each label to be in one row and to have the data for all the validation options.
+    */
+    val allMetadata = lst.groupBy(_._1).map{ case (labelId,group) => (
+    labelId, group.head._2, group.head._3, group.head._4, group.head._5 ,group.head._6, group.head._7,
+    group.head._8, group.head._9, group.head._10, group.head._11, group.head._12, group.head._13 ,group.head._14,
+    group.head._15, group.head._16, group.head._17, group.head._18, group.head._19, group.head._20,
+    group.map(label => (label._21, label._22)).toMap
+    )}.toList
+
     allMetadata.map(label => labelAndTagsToLabelMetadataWithValidation(label, getTagsFromLabelId(label._1)))
   }
 
@@ -782,9 +794,10 @@ object LabelTable {
     * @return LabelMetadata object
     */
   def labelAndTagsToLabelMetadata(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String]), tags: List[String]): LabelMetadata = {
-    LabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
-                    label._9,label._10,label._11,label._12,label._13,label._14,label._15,label._16,
-                    label._17, label._18, label._19, label._20, tags)
+    LabelMetadata(
+      label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8, label._9, label._10,label._11,
+      label._12,label._13,label._14,label._15,label._16, label._17, label._18, label._19, label._20, tags
+    )
   }
 
   /**
@@ -803,17 +816,18 @@ object LabelTable {
   }
 
   /**
-    * Returns a LabelMetadataWithValidation object that has the label properties, tags, and includes validation results.
+    * Returns a LabelMetadataWithValidation object that has the label properties, tags, and includes 
+    * validation results.
     *
     * @param label label from query
     * @param tags list of tags as strings
     * @return LabelMetadata object
     */
-  def labelAndTagsToLabelMetadataWithValidation(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String],Map[String,Int]), tags: List[String]):
-  LabelMetadataWithValidation = {
-      LabelMetadataWithValidation(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
-                    label._9,label._10,label._11,label._12,label._13,label._14,label._15,label._16,
-                    label._17, label._18, label._19, label._20, label._21, tags)
+  def labelAndTagsToLabelMetadataWithValidation(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String],Map[String,Int]), tags: List[String]): LabelMetadataWithValidation = {
+    LabelMetadataWithValidation(
+      label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8, label._9,label._10,label._11,
+      label._12,label._13,label._14,label._15,label._16, label._17, label._18, label._19, label._20, label._21, tags
+    )
   }
 
   def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadataWithValidation): JsObject = {

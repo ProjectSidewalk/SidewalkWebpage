@@ -654,7 +654,7 @@
                             </thead>
                             <!-- using this id to locate the labelTags so we can insert the tags-->
                             <tbody id = 'labelRows'>
-                                @LabelTable.selectTopLabelsAndMetadata(15000).map { label =>
+                                @LabelTable.selectTopLabelsAndMetadata(5000).map { label =>
                                     <tr>
                                         <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
                                         </td>
