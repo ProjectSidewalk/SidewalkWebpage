@@ -64,13 +64,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
     DB withSession { implicit session =>
       Future.successful {
         val dbAuthToken = DBAuthToken(token.id, token.userID.toString, token.expiry)
-        slickAuthTokens.filter(_.userID === dbAuthToken.userID).firstOption match {
-          case Some(authToken) =>
-            val q = for { t <- slickAuthTokens if t.userID === dbAuthToken.userID } yield t
-            q.update(dbAuthToken)
-          case None =>
-            slickAuthTokens insert dbAuthToken
-        }
+        slickAuthTokens.insertOrUpdate(dbAuthToken)
         token
       }
     }

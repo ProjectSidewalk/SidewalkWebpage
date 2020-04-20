@@ -48,7 +48,7 @@ object DBTableDefinitions {
 
   class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, "auth_tokens") {
     def id = column[Array[Byte]]("id")
-    def userID = column[String]("user_id")
+    def userID = column[String]("user_id", O.PrimaryKey)
     def expirationTimestamp = column[Timestamp]("expiration_timestamp")
     def * = (id, userID, expirationTimestamp) <> (DBAuthToken.tupled, DBAuthToken.unapply)
   }
