@@ -65,7 +65,9 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
       Future.successful {
         val dbAuthToken = DBAuthToken(token.id, token.userID.toString, token.expiry)
         slickAuthTokens.filter(_.userID === dbAuthToken.userID).firstOption match {
-          case Some(authToken) => Logger.debug("Auth Token for user already exists: " + authToken)
+          case Some(authToken) =>
+            val q = for { t <- slickAuthTokens if t.userID === dbAuthToken.userID } yield t
+            q.update(dbAuthToken)
           case None =>
             slickAuthTokens insert dbAuthToken
         }
