@@ -351,7 +351,7 @@ object LabelTable {
   def retrieveLabelMetadata(takeN: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
     val selectQuery = Q.query[Int, (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String],String,Int)](
+      Option[String], String, Int)](
       """SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
@@ -415,18 +415,17 @@ object LabelTable {
     val lst = selectQuery(takeN * 3).list
 
     /*
-      In the query above, each label is returned with three rows, each of which are the same but 
-      contain a value for the validation counts of 'agree', 'disagree', and 'unclear' respectively.
-      Thus, we want to combine these three rows into one row that has all three counts, which is
-      what the statement below accomplishes. allMetaData groups the rows by their labelid
-      and then carries on the value that each row stores for the different validation options.
+      In the query above, each label is returned with three rows, each of which are the same but contain a value for
+      the validation counts of 'agree', 'disagree', and 'unclear' respectively. Thus, we want to combine these three
+      rows into one row that has all three counts, which is what the statement below accomplishes. allMetaData groups
+      the rows by their labelid and then carries on the value that each row stores for the different validation options.
       This allows each label to be in one row and to have the data for all the validation options.
     */
     val allMetadata = lst.groupBy(_._1).map{ case (labelId,group) => (
-    labelId, group.head._2, group.head._3, group.head._4, group.head._5 ,group.head._6, group.head._7,
-    group.head._8, group.head._9, group.head._10, group.head._11, group.head._12, group.head._13 ,group.head._14,
-    group.head._15, group.head._16, group.head._17, group.head._18, group.head._19, group.head._20,
-    group.map(label => (label._21, label._22)).toMap
+      labelId, group.head._2, group.head._3, group.head._4, group.head._5 ,group.head._6, group.head._7,
+      group.head._8, group.head._9, group.head._10, group.head._11, group.head._12, group.head._13 ,group.head._14,
+      group.head._15, group.head._16, group.head._17, group.head._18, group.head._19, group.head._20,
+      group.map(label => (label._21, label._22)).toMap
     )}.toList
 
     allMetadata.map(label => labelAndTagsToLabelMetadataWithValidation(label, getTagsFromLabelId(label._1)))
@@ -816,9 +815,7 @@ object LabelTable {
   }
 
   /**
-    * Returns a LabelMetadataWithValidation object that has the label properties, tags, and includes 
-    * validation results.
-    *
+    * Returns a LabelMetadataWithValidation object that has label properties, tags, and validation results.
     * @param label label from query
     * @param tags list of tags as strings
     * @return LabelMetadata object
