@@ -641,11 +641,14 @@
                             <tr>
                                 <th class="col-md-1">Username</th>
                                 <th class="col-md-1" data-class-name="priority">Timestamp</th>
-                                <th class="col-md-1">Label Type</th>
+                                <th class="col-md-1" style="min-width: 100px;">Label Type</th>
                                 <th class="col-md-1">Severity</th>
-                                <th class="col-md-1">Temporary?</th>
+                                <th class="col-md-1">Temp?</th>
                                 <th class="col-md-3">Tags</th>
                                 <th class="col-md-2">Description</th>
+                                <th class="col-md-1">Agree</th>
+                                <th class="col-md-1">Disagree</th>
+                                <th class="col-md-1">Unsure</th>
                                 <th class="col-md-1">GSV</th>
                             </tr>
                             </thead>
@@ -661,6 +664,9 @@
                                         <td>@label.temporary</td>
                                         <td>@label.tags.mkString(", ")</td>
                                         <td>@label.description</td>
+                                        <td>@label.validations("agree")</td>
+                                        <td>@label.validations("disagree")</td>
+                                        <td>@label.validations("unclear")</td>
                                         <td>
                                             <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
                                         </td>
