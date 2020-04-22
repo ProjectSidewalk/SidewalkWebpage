@@ -17,8 +17,7 @@ class PasswordInfoDAOSlick extends DelegableAuthInfoDAO[PasswordInfo] {
   import play.api.Play.current
 
   /**
-   * Updates the password info if user password info already exists, otherwise
-   * saves the password info.
+   * Updates the password info if user password info already exists, otherwise saves the password info.
    *
    * @param loginInfo The login info for which the auth info should be saved.
    * @param authInfo The password info to save.

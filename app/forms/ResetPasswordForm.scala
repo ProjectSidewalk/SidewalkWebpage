@@ -24,8 +24,5 @@ object ResetPasswordForm {
    * @param password The new password of the user.
    * @param passwordConfirm The confirmed new password of the user
    */
-  case class PasswordData(
-                   password: String,
-                   passwordConfirm: String
-                 )
+  case class PasswordData(password: String, passwordConfirm: String)
 }

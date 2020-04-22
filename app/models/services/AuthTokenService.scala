@@ -20,7 +20,7 @@ trait AuthTokenService {
    * @param expiry The duration a token expires.
    * @return The saved auth token id.
    */
-  def create(userID: UUID, expiry: FiniteDuration = 5 minutes): Future[UUID]
+  def create(userID: UUID, expiry: FiniteDuration = 60 minutes): Future[UUID]
 
   /**
    * Validates a token ID.
@@ -38,9 +38,9 @@ trait AuthTokenService {
   def clean: Future[Unit]
 
   /**
-   * Remove token associated with given token id
+   * Remove token associated with given token id.
    *
-   * @param id the id of the token to remove
+   * @param id the id of the token to remove.
    * @return A future to wait for the process to be completed.
    */
   def remove(id: UUID): Future[Unit]

@@ -19,9 +19,9 @@ import scala.concurrent.Future
 class AuthTokenDAOImpl extends AuthTokenDAO {
 
   /**
-   * AuthToken hasher
+   * AuthToken hasher.
    *
-   * @return A cryptographic hasher utilizing SHA-256
+   * @return A cryptographic hasher utilizing SHA-256.
    */
   def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
 
@@ -37,7 +37,7 @@ class AuthTokenDAOImpl extends AuthTokenDAO {
   }
 
   /**
-   * Removes expired tokens.
+   * Removes tokens that have expired before specified Timestamp
    *
    * @param dateTime The current date time.
    * @return A future to wait for the process to be completed

@@ -25,7 +25,7 @@ class AuthTokenCleanerActor extends Actor {
   override def preStart(): Unit = {
     super.preStart()
 
-    // If we want to update the user_stat table at 2:00am every day, we need to figure out how much time there
+    // If we want to clean the auth_tokens table at 2:00am every day, we need to figure out how much time there
     // is b/w now and the next 2:00am, then we can set the update interval to be 24 hours. So we make a calendar object
     // for right now, and one for 2:00am today. If it is after 2:00am right now, we set the 2:00am object to be 2:00am
     // tomorrow. Then we get the time difference between the 2:00am object and now.

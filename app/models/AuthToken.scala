@@ -12,7 +12,4 @@ import org.joda.time.DateTime
  * @param userID The unique ID of the user the token is associated with.
  * @param expiry The date-time the token expires.
  */
-case class AuthToken(
-                      id: Array[Byte],
-                      userID: UUID,
-                      expiry: Timestamp)
+case class AuthToken(id: Array[Byte], userID: UUID, expiry: Timestamp)

@@ -22,9 +22,9 @@ import play.api.libs.concurrent.Execution.Implicits._
 class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTokenService {
 
   /**
-   * AuthToken hasher
+   * AuthToken hasher.
    *
-   * @return A cryptographic hasher utilizing SHA-256
+   * @return A cryptographic hasher utilizing SHA-256.
    */
   def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
 
@@ -35,7 +35,7 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
    * @param expiry The duration a token expires.
    * @return The saved auth token.
    */
-  def create(userID: UUID, expiry: FiniteDuration = 5 minutes) = {
+  def create(userID: UUID, expiry: FiniteDuration = 60 minutes) = {
     val tokenID = UUID.randomUUID()
     val hashedTokenID = sha256Hasher.digest(tokenID.toString.getBytes)
     val token = AuthToken(hashedTokenID, userID, new Timestamp(Instant.now.toEpochMilli + expiry.toMillis.toLong))
@@ -50,12 +50,14 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
    * @param id The token ID to validate.
    * @return The token if it's valid, None otherwise.
    */
-  def validate(id: UUID) = authTokenDAO.find(id).flatMap {
-    case Some(authToken) => Future.successful {
-      if (authToken.expiry.before(new Timestamp(Instant.now.toEpochMilli))) None else Some(authToken)
-    }
+  def validate(id: UUID) = {
+    authTokenDAO.find(id).flatMap {
+      case Some(authToken) => Future.successful {
+        if (authToken.expiry.before(new Timestamp(Instant.now.toEpochMilli))) None else Some(authToken)
+      }
 
-    case None => Future.successful(None)
+      case None => Future.successful(None)
+    }
   }
 
   /**
@@ -66,9 +68,9 @@ class AuthTokenServiceImpl @Inject() (authTokenDAO: AuthTokenDAO) extends AuthTo
   def clean = authTokenDAO.removeExpired(new Timestamp(Instant.now.toEpochMilli))
 
   /**
-   * Remove token associated with given token id
+   * Remove token associated with given token id.
    *
-   * @param id the id of the token to remove
+   * @param id the id of the token to remove.
    * @return A future to wait for the process to be completed.
    */
   def remove(id: UUID) = authTokenDAO.remove(id)

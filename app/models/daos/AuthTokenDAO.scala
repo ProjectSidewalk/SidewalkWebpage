@@ -23,7 +23,7 @@ trait AuthTokenDAO {
   def find(id: UUID): Future[Option[AuthToken]]
 
   /**
-   * Finds expired tokens.
+   * Removes tokens that have expired before specified Timestamp
    *
    * @param dateTime The current date time.
    * @return a future to wait for the process to be completed

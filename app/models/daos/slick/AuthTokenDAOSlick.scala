@@ -16,9 +16,9 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   import play.api.Play.current
 
   /**
-   * AuthToken hasher
+   * AuthToken hasher.
    *
-   * @return A cryptographic hasher utilizing SHA-256
+   * @return A cryptographic hasher utilizing SHA-256.
    */
   def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
 
@@ -41,7 +41,7 @@ class AuthTokenDAOSlick extends AuthTokenDAO {
   }
 
   /**
-   * Removes expired tokens.
+   * Removes tokens that have expired before specified Timestamp
    *
    * @param dateTime The current date time.
    * @return A future to wait for process to be completed
