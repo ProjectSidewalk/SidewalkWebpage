@@ -125,67 +125,12 @@ function Mission(params) {
         }
     }
 
-    /**
-     * Function that returns the appropriate description for the current mission label type.
-     * @param result Validation result - Can either be agree, disagree, or not sure.
-     */
-    function getLabelTypeDescription(labelTypeId) {
-        let description = "";
-        switch(labelTypeId) {
-            //if curb ramp
-            case 1:
-                description = "A curb ramp is a short ramp that cuts through or builds up to a curb." +
-                    " An accessible curb ramp is one that provides an accessible route for people with mobility impairments " +
-                    "to safely transition from a curbed sidewalk to a roadway, or vice versa.";
-                return description;
-            // if missing curb ramp
-            case 2:
-                description = "A curb ramp is a short ramp that cuts through or builds up to a curb." +
-                    " An accessible curb ramp is one that provides an accessible route for people with mobility impairments " +
-                    "to safely transition from a curbed sidewalk to a roadway, or vice versa.";
-                return description;
-            //if obstacle
-            case 3:
-                description = "Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. " +
-                    "The ADA (Americans with Disabilities Act) requires a \"clear floor or ground space\" along accessible pedestrian " +
-                    "routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. " +
-                    "Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.";
-                return description;
-            //if surface problem
-            case 4:
-                description = "A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience for someone using a " +
-                    "wheelchair or other assistive devices. If something on a surface would make it hard or impossible to cross, it should be " +
-                    "labeled as a Surface Problem.";
-                return description;
-            //if other
-            case 5:
-                description = "";
-                return description;
-            //if occlusion
-            case 6:
-                description = "Occlusion is when you can't see something at all. In these cases, you should place an Occlusion label. " +
-                    "This should rarely be used, so only place the Occlusion label when a sidewalk, ramp, or other accessibility problem " +
-                    "cannot be viewed from any angle due to obstructions, such as cars.";
-                return description;
-            //if no sidewalk
-            case 7:
-                description = "A No Sidewalk label should be placed if there is a missing sidewalk where there should be one.";
-                return description;
-            //if problem
-            case 8:
-                description = "";
-                return description;
-        }
-
-    }
-
     self.isComplete = isComplete;
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     self.updateMissionProgress = updateMissionProgress;
     self.updateValidationResult = updateValidationResult;
-    self.getLabelTypeDescription = getLabelTypeDescription;
 
     _init();
     return self;

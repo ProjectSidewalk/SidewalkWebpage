@@ -22,6 +22,7 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
     <div class="container toolUI" style = "visibility: visible;">
         <div id="HIT-expiration-overlay">
@@ -287,6 +288,16 @@
             param.canvasWidth = 720;
             param.canvasCount = 1;
             param.language = "@lang.language";
+            param.modalText = {
+                1: "@Messages("labeling.guide.curb.ramp.summary")",
+                2: "@Messages("labeling.guide.curb.ramp.summary")",
+                3: "@Messages("labeling.guide.obstacle.summary")",
+                4: "@Messages("labeling.guide.surface.problem.summary")",
+                5: "",
+                6: "@Messages("labeling.guide.occlusion.summary")",
+                7: "@Messages("labeling.guide.no.sidewalk.summary")",
+                8: ""
+            };
 
             if (@hasNextMission) {
                 param.mission = @Html(mission.getOrElse("\"\"").toString);

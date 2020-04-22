@@ -32,7 +32,7 @@
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "Mexico City, MX")) {
+                    @for((cityName, cityURL) <- otherCityURLs) {
                         <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
                     <br>
@@ -245,7 +245,7 @@
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
                 <br>
-                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" >
+                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
             </div>
 
 
@@ -278,9 +278,31 @@
             </div>
         </div>
     </div>
+
+    <div class= "container" id="brought-to-you-container">
+        <div class="row" style=" padding-bottom: 10px;
+        width: 100%;
+        text-align: center;
+        display: inline-block;
+        vertical-align: middle;
+        "> 
+            <div class="im-centered3" style = "font-size: 40px; margin-bottom: 20px;">
+                <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
+            </div>
+
+            <div class="column">
+                <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' height="220" alt='Makeability_Logo'>
+            </div>
+
+            <div class="column">
+                <img src='@routes.Assets.at("assets/LigaLogo.png")' height="220" alt='LIGA_Logo'>
+            </div>
+        </div>
+    </div>
+
     <div class="container" id="press-container">
         <div class="im-centered3">
-            <div class="row" ><br>@Messages("landing.press.title")<br></div>
+            <div class="row"><br>@Messages("landing.press.title")<br></div>
         </div>
 
     </div>

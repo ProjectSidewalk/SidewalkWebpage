@@ -86,7 +86,7 @@
                     @if(url.isDefined && url.get != "/validate") {
 
                         <li class="navbarLink">
-                            <a class="navbarBtn" href="#" id="toolbar-onboarding-link">Retake Tutorial</a>
+                            <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
                         </li>
                         <li class="navbarLink">
                             <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
@@ -124,18 +124,18 @@
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
                                 <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
-                                    Your dashboard
+                                    @Messages("navbar.dashboard")
                                 </a>
                             </li>
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
                                     <a href='@routes.AdminController.index' role="menuitem">
-                                        Admin
+                                        @Messages("navbar.admin")
                                     </a>
                                 </li>
                             }
                             <li role="presentation">
-                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
                             </li>
                         </ul>
                     } else {
@@ -206,12 +206,10 @@ $(document).ready(function () {
     var howtoText = "@Messages("navbar.howto")";
     @if(url.isDefined && url.get == "/audit") {
         $(".navbarLink").on('click', function (e) {
-            console.log(howtoText);
             var activity = "Click_module=RetakeTutorial";
             if (e.currentTarget.innerHTML.includes(helpText)) {
                 activity = "Click_module=Help";
             } else if (e.currentTarget.innerHTML.includes(howtoText)) {
-                console.log("hello");
                 activity = "Click_module=LabelingGuide";
             }
             logWebpageActivity(activity);
@@ -506,12 +504,10 @@ $(document).ready(function () {
         </a>
         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
             <li role="presentation" id="dashboard-link">
-                <a href='/contribution/__USERNAME__' role="menuitem">
-                    Your dashboard
-                </a>
+                <a href='/contribution/__USERNAME__' role="menuitem">@Messages("navbar.dashboard")</a>
             </li>
             <li role="presentation">
-                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">Sign out</a>
+                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
             </li>
         </ul>
     </template>

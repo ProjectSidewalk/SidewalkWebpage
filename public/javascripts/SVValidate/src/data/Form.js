@@ -37,6 +37,20 @@ function Form(url, beaconUrl) {
             data.labels = [];
         }
 
+        data.environment = {
+            mission_id: mission ? mission.getProperty("missionId") : null,
+            browser: util.getBrowser(),
+            browser_version: util.getBrowserVersion(),
+            browser_width: $(window).width(),
+            browser_height: $(window).height(),
+            screen_width: screen.width,
+            screen_height: screen.height,
+            avail_width: screen.availWidth,              // total width - interface (taskbar)
+            avail_height: screen.availHeight,            // total height - interface };
+            operating_system: util.getOperatingSystem(),
+            language: i18next.language
+        };
+
         data.interactions = svv.tracker.getActions();
         svv.tracker.refresh();
         return data;
