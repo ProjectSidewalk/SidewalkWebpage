@@ -348,10 +348,10 @@ object LabelTable {
   }
 
   // TODO translate the following three queries to Slick
-  def retrieveLabelMetadata(takeN: Int): List[LabelMetadata] = db.withSession { implicit session =>
+  def retrieveLabelMetadata(takeN: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
     val selectQuery = Q.query[Int, (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int,
       Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean,
-      Option[String])](
+      Option[String], String, Int)](
       """SELECT lb1.label_id,
         |       lb1.gsv_panorama_id,
         |       lb1.tutorial,
@@ -371,13 +371,15 @@ object LabelTable {
         |       lb_big.label_type_desc,
         |       lb_big.severity,
         |       lb_big.temp,
-        |       lb_big.description
+        |       lb_big.description,
+        |       val.text,
+        |       val.count 
         |FROM sidewalk.label AS lb1,
         |     sidewalk.gsv_data,
         |     sidewalk.audit_task AS at,
         |     sidewalk_user AS u,
         |     sidewalk.label_point AS lp,
-        |			(
+        |     (
         |         SELECT lb.label_id,
         |                lb.gsv_panorama_id,
         |                lbt.label_type,
@@ -390,17 +392,43 @@ object LabelTable {
         |  				LEFT JOIN sidewalk.label_severity as sev ON lb.label_id = sev.label_id
         |				  LEFT JOIN sidewalk.label_description as lab_desc ON lb.label_id = lab_desc.label_id
         |				  LEFT JOIN sidewalk.label_temporariness as lab_temp ON lb.label_id = lab_temp.label_id
-        |		  ) AS lb_big
-        |WHERE lb1.deleted = FALSE
+        |     ) AS lb_big,
+        |     (
+        |        SELECT label.label_id, text, COUNT(label_validation_id) AS count
+        |        FROM label
+        |        FULL JOIN validation_options ON TRUE
+        |        LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+        |            AND label_validation.validation_result = validation_options.validation_option_id
+        |        WHERE label.deleted = FALSE
+        |        GROUP BY label.label_id, validation_option_id
+        | ) AS val
+        | WHERE lb1.deleted = FALSE
         |    AND lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
         |    AND lb1.audit_task_id = at.audit_task_id
         |    AND lb1.label_id = lb_big.label_id
         |    AND at.user_id = u.user_id
         |    AND lb1.label_id = lp.label_id
-        |ORDER BY lb1.label_id DESC
-        |LIMIT ?""".stripMargin
+        |    AND lb1.label_id = val.label_id
+        | ORDER BY lb1.label_id DESC
+        | LIMIT ?""".stripMargin
     )
-    selectQuery(takeN).list.map(label => labelAndTagsToLabelMetadata(label, getTagsFromLabelId(label._1)))
+    val lst = selectQuery(takeN * 3).list
+
+    /*
+      In the query above, each label is returned with three rows, each of which are the same but contain a value for
+      the validation counts of 'agree', 'disagree', and 'unclear' respectively. Thus, we want to combine these three
+      rows into one row that has all three counts, which is what the statement below accomplishes. allMetaData groups
+      the rows by their labelid and then carries on the value that each row stores for the different validation options.
+      This allows each label to be in one row and to have the data for all the validation options.
+    */
+    val allMetadata = lst.groupBy(_._1).map{ case (labelId,group) => (
+      labelId, group.head._2, group.head._3, group.head._4, group.head._5 ,group.head._6, group.head._7,
+      group.head._8, group.head._9, group.head._10, group.head._11, group.head._12, group.head._13 ,group.head._14,
+      group.head._15, group.head._16, group.head._17, group.head._18, group.head._19, group.head._20,
+      group.map(label => (label._21, label._22)).toMap
+    )}.toList
+
+    allMetadata.map(label => labelAndTagsToLabelMetadataWithValidation(label, getTagsFromLabelId(label._1)))
   }
 
   def retrieveLabelMetadata(takeN: Int, userId: String): List[LabelMetadata] = db.withSession { implicit session =>
@@ -765,9 +793,10 @@ object LabelTable {
     * @return LabelMetadata object
     */
   def labelAndTagsToLabelMetadata(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String]), tags: List[String]): LabelMetadata = {
-      LabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8,
-                    label._9,label._10,label._11,label._12,label._13,label._14,label._15,label._16,
-                    label._17, label._18, label._19, label._20, tags)
+    LabelMetadata(
+      label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8, label._9, label._10,label._11,
+      label._12,label._13,label._14,label._15,label._16, label._17, label._18, label._19, label._20, tags
+    )
   }
 
   /**
@@ -782,6 +811,19 @@ object LabelTable {
       label.canvasX, label.canvasY, label.canvasWidth, label.canvasHeight, label.auditTaskId, label.userId,
       label.username, label.timestamp, label.labelTypeKey, label.labelTypeValue, label.severity, label.temporary,
       label.description, validations, label.tags
+    )
+  }
+
+  /**
+    * Returns a LabelMetadataWithValidation object that has label properties, tags, and validation results.
+    * @param label label from query
+    * @param tags list of tags as strings
+    * @return LabelMetadata object
+    */
+  def labelAndTagsToLabelMetadataWithValidation(label: (Int, String, Boolean, String, Float, Float, Int, Int, Int, Int, Int, Int, String, String, Option[java.sql.Timestamp], String, String, Option[Int], Boolean, Option[String],Map[String,Int]), tags: List[String]): LabelMetadataWithValidation = {
+    LabelMetadataWithValidation(
+      label._1, label._2, label._3, label._4, label._5, label._6, label._7, label._8, label._9,label._10,label._11,
+      label._12,label._13,label._14,label._15,label._16, label._17, label._18, label._19, label._20, label._21, tags
     )
   }
 
@@ -905,7 +947,7 @@ object LabelTable {
    * Retrieves label and its metadata
    * Date: Sep 1, 2016
    */
-  def selectTopLabelsAndMetadata(n: Int): List[LabelMetadata] = db.withSession { implicit session =>
+  def selectTopLabelsAndMetadata(n: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
     retrieveLabelMetadata(n)
   }
 
@@ -914,7 +956,6 @@ object LabelTable {
    * Date: Sep 2, 2016
    */
   def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
-
     retrieveLabelMetadata(n, userId.toString)
   }
 
