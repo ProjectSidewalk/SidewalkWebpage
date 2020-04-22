@@ -96,7 +96,6 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
                                 attributeSeverity.getOrElse("NA").toString, labelTemporary.toString)
 }
 
-
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
   def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull)
