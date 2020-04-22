@@ -10,7 +10,7 @@ var svv = svv || {};
 function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
-
+    svv.missionsCompleted = param.missionSetProgress;
     svv.validationsCompleted = param.completedValidations;
 
     function _initUI() {
@@ -169,8 +169,7 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
-        svv.missionsCompleted = 0;
-        svv.statusField.updateLabelCounts(10*svv.missionsCompleted + param.completedValidations);
+        svv.statusField.updateLabelCounts(svv.validationsCompleted);
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
             $(".toolUI").css('opacity', 1);
