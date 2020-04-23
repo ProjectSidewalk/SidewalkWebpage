@@ -1,5 +1,8 @@
 package controllers
 
+import java.sql.Timestamp
+import java.time.Instant
+
 import javax.inject.Inject
 
 import com.mohiva.play.silhouette.api._
@@ -36,6 +39,9 @@ class ForgotPasswordController @Inject() (
    * @return The result to display.
    */
   def submit = UserAwareAction.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
     ForgotPasswordForm.form.bindFromRequest.fold (
       form => Future.successful(BadRequest(views.html.forgotPassword(form))),
       email => {
@@ -54,6 +60,7 @@ class ForgotPasswordController @Inject() (
               )
 
               MailerPlugin.send(resetEmail)
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "PasswordResetRequest to " + email, timestamp))
               result
             }
 
