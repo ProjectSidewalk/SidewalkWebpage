@@ -201,6 +201,13 @@
                                 <td>@LabelValidationTable.countTodayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
                                 <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
                             </tr>
+
+                            <tr style="font-size: 90%;">
+                                <th>Total Audited Distance</th>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
                         </table>
                         <sup>*</sup>Number of users in the parentheses represent #users who have completed at least 1
                         audit task (in the case of # of audit users) or have validated at least one label (in the case
