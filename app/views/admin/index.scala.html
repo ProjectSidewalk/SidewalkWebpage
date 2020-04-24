@@ -205,8 +205,8 @@
                             <tr style="font-size: 90%;">
                                 <th>Total Audited Distance</th>
                                 <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
-                                <td></td>
-                                <td></td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceToday())) miles</td>
+                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceYesterday())) miles</td>
                             </tr>
                         </table>
                         <sup>*</sup>Number of users in the parentheses represent #users who have completed at least 1
