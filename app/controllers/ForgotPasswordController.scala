@@ -60,7 +60,7 @@ class ForgotPasswordController @Inject() (
               )
 
               MailerPlugin.send(resetEmail)
-              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "PasswordResetRequest to " + email, timestamp))
+              WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "PasswordResetRequest=" + email, timestamp))
               result
             }
 
