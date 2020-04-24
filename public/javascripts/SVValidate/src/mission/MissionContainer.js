@@ -66,7 +66,6 @@ function MissionContainer () {
             labelTypeId : missionMetadata.label_type_id,
             missionId : missionMetadata.mission_id,
             missionType : missionMetadata.mission_type,
-            missionsCompleted : svv.missionsCompleted,
             notSureCount: progressMetadata.not_sure_count,
             skipped : missionMetadata.skipped,
             pay: missionMetadata.pay
@@ -75,7 +74,7 @@ function MissionContainer () {
         addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
         svv.modalInfo.setMissionInfo(mission);
-        svv.statusField.updateLabelCounts(svv.validationsCompleted + 10*svv.missionsCompleted);
+        svv.statusField.updateLabelCounts(svv.validationsCompleted);
     }
 
     /**

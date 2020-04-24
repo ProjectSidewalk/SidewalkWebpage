@@ -30,12 +30,6 @@ function StatusField() {
     }
 
     /**
-     * Increments the number of labels the user has validated by 1
-     */
-    function incrementLabelCounts(){
-        updateLabelCounts(parseInt(svv.ui.status.labelCount.html()) + 1);
-    }
-    /**
      * Updates the label name that is displayed in the status field and title bar.
      * @param labelType {String} Name of label without spaces.
      */
@@ -97,7 +91,6 @@ function StatusField() {
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
     self.updateLabelCounts = updateLabelCounts;
-    self.incrementLabelCounts = incrementLabelCounts;
     self.updateLabelText = updateLabelText;
     self.updateMissionDescription = updateMissionDescription;
     self.reset = reset;
