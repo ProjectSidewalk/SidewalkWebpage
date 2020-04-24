@@ -32,6 +32,7 @@ libraryDependencies ++= Seq(
   "com.vividsolutions" % "jts" % "1.13",
   "com.typesafe.slick" %% "slick" % "2.1.0",
   "com.typesafe.play" %% "play-slick" % "0.8.0",
+  "com.typesafe.play" %% "play-mailer" % "2.4.1",
   "org.postgresql" % "postgresql" % "9.3-1102-jdbc4",
   "com.mohiva" %% "play-silhouette" % "2.0",
   "com.mohiva" %% "play-silhouette-testkit" % "2.0" % "test",

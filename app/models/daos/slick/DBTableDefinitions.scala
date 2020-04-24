@@ -1,6 +1,7 @@
 package models.daos.slick
 
 import models.utils.MyPostgresDriver.simple._
+import java.sql.Timestamp
 import java.util.UUID
 
 import play.api.db.slick
@@ -43,11 +44,21 @@ object DBTableDefinitions {
     def * = (hasher, password, salt, loginInfoId) <> (DBPasswordInfo.tupled, DBPasswordInfo.unapply)
   }
 
+  case class DBAuthToken (id: Array[Byte], userID: String, expirationTimestamp: Timestamp)
+
+  class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, "auth_tokens") {
+    def id = column[Array[Byte]]("id")
+    def userID = column[String]("user_id", O.PrimaryKey)
+    def expirationTimestamp = column[Timestamp]("expiration_timestamp")
+    def * = (id, userID, expirationTimestamp) <> (DBAuthToken.tupled, DBAuthToken.unapply)
+  }
+
 
   val slickUsers = TableQuery[UserTable]
   val slickLoginInfos = TableQuery[LoginInfos]
   val slickUserLoginInfos = TableQuery[UserLoginInfoTable]
   val slickPasswordInfos = TableQuery[PasswordInfoTable]
+  val slickAuthTokens = TableQuery[AuthTokenTable]
 
   object UserTable {
     import play.api.Play.current

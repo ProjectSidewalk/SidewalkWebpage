@@ -30,12 +30,16 @@ GET     /turkerIdExists                                      @controllers.Applic
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
 GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
 GET     /signOut                                             @controllers.UserController.signOut(url: String ?= "/")
+GET     /forgotPassword                                      @controllers.UserController.forgotPassword(url: String ?= "/")
+GET     /resetPassword                                       @controllers.UserController.resetPassword(token: java.util.UUID)
 GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
 GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
 POST    /signUp                                              @controllers.SignUpController.signUp(url: String ?= "/")
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
 POST    /authapi/signup                                      @controllers.SignUpController.postSignUp
+POST    /forgotPassword                                      @controllers.ForgotPasswordController.submit
+POST    /resetPassword                                       @controllers.ResetPasswordController.reset(token: java.util.UUID)
 
 # City config params
 GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()

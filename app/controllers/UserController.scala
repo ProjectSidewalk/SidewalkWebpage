@@ -2,6 +2,7 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -10,8 +11,10 @@ import formats.json.UserFormats._
 import forms._
 import models.user._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.services.AuthTokenService
 import play.api.mvc.BodyParsers
 import play.api.libs.json._
+import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
 /**
@@ -19,7 +22,7 @@ import scala.concurrent.Future
  *
  * @param env The Silhouette environment.
  */
-class UserController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
+class UserController @Inject() (implicit val env: Environment[User, SessionAuthenticator], authTokenService: AuthTokenService)
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
 
   /**
@@ -63,6 +66,27 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
     env.eventBus.publish(LogoutEvent(request.identity, request, request2lang))
     request.authenticator.discard(result)
   }
+
+  /**
+   * Handles the 'forgot password' action
+   *
+   * @return The result to display
+   */
+  def forgotPassword(url: String) = UserAwareAction.async { implicit request =>
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.forgotPassword(ForgotPasswordForm.form)))
+    } else {
+      Future.successful(Redirect(url))
+    }
+  }
+
+  def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
+    authTokenService.validate(token).map {
+      case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token))
+      case None => Redirect(routes.UserController.signIn()).flashing("error" -> "Invalid Reset Link")
+    }
+  }
+
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     request.identity match {
