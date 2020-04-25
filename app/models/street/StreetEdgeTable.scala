@@ -199,6 +199,48 @@ object StreetEdgeTable {
     }
   }
 
+
+  /**
+    * Calculates the distance audited today by all users
+    * 
+    * Author: Aroosh Kumar
+    * Date: 4/24/2020
+    * 
+    * @return The distance audited today by all users in miles
+    */
+  def auditedStreetDistanceToday(): Float = db.withSession { implicit session =>
+    val getDistanceQuery = Q.queryNA[Float](
+      """SELECT ST_Length(ST_Transform(geom, 26918))
+        |FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.audit_task ON (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
+        |     AND street_edge.deleted = FALSE
+        |     AND audit_task.completed = TRUE
+        |     AND street_edge.street_edge_id = audit_task.street_edge_id""".stripMargin
+    )
+    (getDistanceQuery.list.sum * 0.000621371).toFloat;
+  }
+
+  /**
+    * Calculates the distance audited yesterday by all users
+    * 
+    * Author: Aroosh Kumar
+    * Date: 4/24/2020
+    * 
+    * @return The distance audited yesterday by all users in miles
+    */
+  def auditedStreetDistanceYesterday(): Float = db.withSession { implicit session =>
+    val getDistanceQuery = Q.queryNA[Float](
+        """SELECT ST_Length(ST_Transform(geom, 26918))
+        |FROM sidewalk.street_edge
+        |INNER JOIN sidewalk.audit_task ON (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+        |     AND street_edge.deleted = FALSE
+        |     AND audit_task.completed = TRUE
+        |     AND street_edge.street_edge_id = audit_task.street_edge_id""".stripMargin
+    )
+
+    (getDistanceQuery.list.sum * 0.000621371).toFloat;
+  }
+
   /**
     * Computes percentage of the city audited over time.
     *
