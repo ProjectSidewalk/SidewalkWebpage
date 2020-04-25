@@ -27,3 +27,6 @@ services:
       - "./db:/opt"
     ports:
       - "5432:5432"
+    environment:
+      - POSTGRESS_USER=sidewalk
+      - POSTGRES_PASSWORD=sidewalk
