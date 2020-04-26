@@ -142,7 +142,12 @@
                                 <th>@AuditTaskTable.countCompletedAuditsToday</th>
                                 <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
                             </tr>
-
+                            <tr>
+                                <th>Audited Distance</th>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceToday())) miles</td>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceYesterday())) miles</td>
+                            </tr>
                             <tr>
                                 <th>Total Validation Users</th>
                                 <th>@UserDAOImpl.countAllValidationUsersContributed(false) (@UserDAOImpl.countAllValidationUsersContributed(true))</th>
