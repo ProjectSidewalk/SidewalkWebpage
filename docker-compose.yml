@@ -30,4 +30,3 @@ services:
     environment:
       - POSTGRESS_USER=sidewalk
       - POSTGRES_PASSWORD=sidewalk
-      
