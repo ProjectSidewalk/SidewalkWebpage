@@ -21,6 +21,12 @@ $(document).ready(function() {
 
     resizeMobileValidation();
 
+    // Add the 'animate-button-0' class to all validaton buttons so an animation is performed to
+    // confirm click.
+    document.getElementById("validation-agree-button-0").classList.add("animate-button-0");
+    document.getElementById("validation-not-sure-button-0").classList.add("animate-button-0");
+    document.getElementById("validation-disagree-button-0").classList.add("animate-button-0");
+ 
     // If the site is loaded in landscape mode first, 'loadedScreenLandscape' will be set to true
     // and when the screen is flipped back to portrait mode the site will be reloaded to set the panoramas
     // correctly.
