@@ -69,66 +69,37 @@
                         }, 1000);
                     </script>
                 }
-                @if(url.isDefined && url.get != "/audit" && url.get != "/validate") {
-                   <li class="active navbarLink">
-                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                @if(url.isDefined && url.get == "/audit") {
+                    <li class="navbarLink">
+                        <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
                     </li>
-                    <li class="active navbarLink">
+                }
+                @if(url.isDefined && url.get != "/validate") {
+                    <li class="navbarLink">
                         <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
+                }
+                @if(url.isDefined && url.get != "/audit") {
                     <li class="active navbarLink">
-                        <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
+                }
+                <li class="active navbarLink">
+                    <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                </li>
+                <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
                     <li class="active navbarLink">
-                        <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                        <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                     </li>
-                    <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                    @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
-                        <li class="active navbarLink">
-                            <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
-                        </li>
-                    }
-
-                } else {
-                    @if(url.isDefined && url.get != "/validate") {
-                        <li class="navbarLink">
-                            <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarGuideBtn" href='@routes.ApplicationController.labelingGuide' id="toolbar-labeling-guide-link" target="_blank">@Messages("navbar.howto")</a>
-                        </li>
-                        <li class = "navbarLink">
-                          <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
-                        </li>
-                        <li class="active navbarLink">
-                            <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                        </li>
-                            <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
-                            <li class="active navbarLink">
-                                <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
-                            </li>
-                        }
-                    } else {
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                        </li>
-                            <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
-                            <li class="active navbarLink">
-                                <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
-                            </li>
-                        }
-                    }
+                }
+                <li class="active navbarLink">
+                    <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                </li>
+                @if(url.isDefined && url.get == "/audit") {
+                    <li class = "navbarLink">
+                        <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
+                    </li>
                 }
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
