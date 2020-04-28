@@ -19,6 +19,7 @@ navbar.explore = Start Exploring
 navbar.validate = Start Validating
 navbar.howto = How to Label
 navbar.results = See Results
+navbar.labelmap = Label Map
 navbar.help = Help
 navbar.retake.tutorial = Retake Tutorial
 navbar.signin = Sign in
@@ -30,14 +31,14 @@ navbar.email = Email address
 navbar.password = Password
 navbar.submit = Submit
 navbar.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
-navbar.non.member = Not a member? <a href="@routes.UserController.signUp()">Sign up now</a>
+navbar.non.member = Not a member? <a href="/signUp">Sign up now</a>
 navbar.username = Username
 navbar.confirm.password = Confirm password
 navbar.terms = You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a>
 navbar.signup = Sign up
 navbar.signup.new.account = Sign up for a new account
 navbar.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
-navbar.is.member = Already a member? <a href="@routes.UserController.signIn()">Sign in now</a>
+navbar.is.member = Already a member? <a href="/signIn">Sign in now</a>
 
 landing.create.path = Let''s create a path for everyone
 landing.also.in = We are also in:

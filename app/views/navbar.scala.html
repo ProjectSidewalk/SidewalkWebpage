@@ -1,4 +1,6 @@
 @import models.user.User
+@import play.api.Play
+@import play.api.Play.current
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @import views.html.bootstrap._
@@ -67,50 +69,37 @@
                         }, 1000);
                     </script>
                 }
-                @if(url.isDefined && url.get != "/audit" && url.get != "/validate") {
-
-                   <li class="active navbarLink">
-                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                @if(url.isDefined && url.get == "/audit") {
+                    <li class="navbarLink">
+                        <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
                     </li>
-                    <li class="active navbarLink">
+                }
+                @if(url.isDefined && url.get != "/validate") {
+                    <li class="navbarLink">
                         <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
+                }
+                @if(url.isDefined && url.get != "/audit") {
                     <li class="active navbarLink">
-                        <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
+                }
+                <li class="active navbarLink">
+                    <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                </li>
+                <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
                     <li class="active navbarLink">
-                        <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                        <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                     </li>
-
-                } else {
-                    @if(url.isDefined && url.get != "/validate") {
-
-                        <li class="navbarLink">
-                            <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarGuideBtn" href='@routes.ApplicationController.labelingGuide' id="toolbar-labeling-guide-link" target="_blank">@Messages("navbar.howto")</a>
-                        </li>
-                        <li class = "navbarLink">
-                          <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
-                        </li>
-
-                    } else {
-
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
-                        </li>
-                        <li class="navbarLink">
-                            <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                        </li>
-
-                    }
+                }
+                <li class="active navbarLink">
+                    <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                </li>
+                @if(url.isDefined && url.get == "/audit") {
+                    <li class = "navbarLink">
+                        <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
+                    </li>
                 }
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
@@ -181,26 +170,31 @@ $(document).ready(function () {
     });
 
     // Triggered when 'Start Exploring' in navbar is clicked
-    // Logs "Click_module=StartExploring_location=Navbar_route=</|/audit|/help|...>"
     $(".navbarStartBtn").on('click', function(){
         logWebpageActivity("Click_module=StartExploring");
     });
 
+    // Triggered when 'Start Validating' in navbar is clicked.
     $(".navbarValidateBtn").on('click', function(){
         logWebpageActivity("Click_module=StartValidating");
     });
 
+    // Triggered when 'How to Label' in navbar is clicked.
     $(".navbarGuideBtn").on('click', function() {
         logWebpageActivity("Click_module=LabelingGuide");
     });
 
-    // Triggered when 'Results' in navbar is clicked
-    // Logs "Click_module=Results_location=Navbar_route=</|/audit|/help|...>"
+    // Triggered when 'Results' in navbar is clicked.
     $(".navbarResultsBtn ").on('click', function(){
         logWebpageActivity("Click_module=Results");
     });
 
-    // Triggered when links in the navbar are pressed when on the Audit page
+    // Triggered when 'Label Map' in navbar is clicked.
+    $(".navbarLabelMapBtn ").on('click', function(){
+        logWebpageActivity("Click_module=LabelMap");
+    });
+
+    // Triggered when links that are only shown on the audit page are clicked.
     // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
     var helpText = "@Messages("navbar.help")";
     var howtoText = "@Messages("navbar.howto")";
