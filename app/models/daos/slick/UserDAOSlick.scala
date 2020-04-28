@@ -158,8 +158,6 @@ object UserDAOSlick {
   val auditTaskEnvironmentTable = TableQuery[AuditTaskEnvironmentTable]
   val auditTaskInteractionTable = TableQuery[AuditTaskInteractionTable]
 
-  //val users: mutable.HashMap[UUID, User] = mutable.HashMap()
-
   def all: List[DBUser] = db.withTransaction { implicit session =>
     userTable.list
   }
