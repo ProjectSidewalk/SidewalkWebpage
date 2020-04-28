@@ -256,7 +256,7 @@ $(document).ready(function () {
                     <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
                     <div class="alert alert-danger alert-error" id="incorrect-login-modal-alert" role="alert" style="display:none;">
                         <a href="#" class="close" data-hide="alert">&times;</a>
-                        <strong>Whoops!&nbsp;</strong>We can't find this username and password pair.
+                        <strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>We can't find this username and password pair.
                     </div>
 
 
@@ -382,7 +382,7 @@ $(document).ready(function () {
                     $('#incorrect-signin-alert').html(
                             '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Whoops!&nbsp;</strong>' + message +
+                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
                             '</div>'
                     );
                     $('#incorrect-signin-alert').show();
@@ -392,7 +392,7 @@ $(document).ready(function () {
                     $('#incorrect-signup-alert').html(
                             '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Whoops!&nbsp;</strong>' + message +
+                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
                             '</div>'
                     );
                     $('#incorrect-signup-alert').show();
@@ -441,28 +441,28 @@ $(document).ready(function () {
 		var passwordConfirm = formData[3].value;
 
                 if(!username){
-                    invalidSignInUpAlert(false, 'Please enter a username.');
+                    invalidSignInUpAlert(false, @Messages("authenticate.error.missing.username"));
                     return false;
                 }
 
                 //if not a valid email address, do not submit form
                 if(!email){
-                    invalidSignInUpAlert(false, 'Please enter a valid email address.');
+                    invalidSignInUpAlert(false, @Messages("authenticate.error.missing.email"));
                     return false;
                 }
 
                 if(!password){
-                    invalidSignInUpAlert(false, 'Please enter your password.');
+                    invalidSignInUpAlert(false, @Messages("authenticate.error.missing.password"));
                     return false;
                 }
 
 		if (password !== passwordConfirm) {
-		    invalidSignInUpAlert(false, 'Passwords do not match.');
+		    invalidSignInUpAlert(false, @Messages("sign.up.password.mismatch.error"));
 		    return false;
 		}
 
 		if (password.length < 6) {
-		    invalidSignInUpAlert(false, 'Password must be at least 6 characters.');
+		    invalidSignInUpAlert(false, @Messages("sign.up.password.length.error"));
 		    return false;
 		}
 
@@ -473,10 +473,10 @@ $(document).ready(function () {
                     var errorMessage = "";
                     if(e.status === 409){
                         if(e.responseText.toLowerCase().includes("email")){
-                            errorMessage = "That email address already exists. Please try another one."
+                            errorMessage = @Messages("sign.up.email.exists.error")
                         }
                         else{
-                            errorMessage = "That username already exists. Please try another one."
+                            errorMessage = @Messages("sign.up.username.exists.error")
                         }
                     }
                     else{ // Some other Bad Request
@@ -487,7 +487,7 @@ $(document).ready(function () {
                     $('#invalid-signup-alert').html(
                             '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Uh-oh!&nbsp;</strong>' + errorMessage +
+                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + errorMessage +
                             '</div>'
                     );
                 });

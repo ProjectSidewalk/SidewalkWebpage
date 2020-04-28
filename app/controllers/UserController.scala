@@ -14,6 +14,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.services.AuthTokenService
 import play.api.mvc.BodyParsers
 import play.api.libs.json._
+import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 
@@ -83,7 +84,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
     authTokenService.validate(token).map {
       case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token))
-      case None => Redirect(routes.UserController.signIn()).flashing("error" -> "Invalid Reset Link")
+      case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.password.invalid.reset.link"))
     }
   }
 

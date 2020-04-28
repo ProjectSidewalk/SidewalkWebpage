@@ -184,6 +184,11 @@ turk.expired.title = ¡Asignación Vencida!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
 turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
 
+authenticate.error.uhoh = Oh-oh!
+authenticate.error.missing.username = Por favor, ingrese un nombre de usuario
+authenticate.error.missing.email = Por favor, ingrese un correo electrónico válido
+authenticate.error.missing.password = Por favor, ingrese su contraseña
+
 sign.up.email.exists.error = El correo electrónico ya existe
 sign.up.username.exists.error = El nombre de usuario ya existe
 sign.up.password.length.error = La contraseña debe tener al menos 6 caracteres
