@@ -1,4 +1,6 @@
 @import models.user.User
+@import play.api.Play
+@import play.api.Play.current
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @import views.html.bootstrap._
@@ -68,7 +70,6 @@
                     </script>
                 }
                 @if(url.isDefined && url.get != "/audit" && url.get != "/validate") {
-
                    <li class="active navbarLink">
                         <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
@@ -81,13 +82,15 @@
                     <li class="active navbarLink">
                         <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                     </li>
-                    <li class="active navbarLink">
-                        <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
-                    </li>
+                    <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                    @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
+                        <li class="active navbarLink">
+                            <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                        </li>
+                    }
 
                 } else {
                     @if(url.isDefined && url.get != "/validate") {
-
                         <li class="navbarLink">
                             <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
                         </li>
@@ -103,12 +106,13 @@
                         <li class="active navbarLink">
                             <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
-                        <li class="active navbarLink">
-                            <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
-                        </li>
-
+                            <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
+                            <li class="active navbarLink">
+                                <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                            </li>
+                        }
                     } else {
-
                         <li class="navbarLink">
                             <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                         </li>
@@ -118,10 +122,12 @@
                         <li class="navbarLink">
                             <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
-                        <li class="active navbarLink">
-                            <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
-                        </li>
-
+                            <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
+                            <li class="active navbarLink">
+                                <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                            </li>
+                        }
                     }
                 }
 
