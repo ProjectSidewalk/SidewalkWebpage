@@ -18,6 +18,7 @@ navbar.explore = Comienza a Explorar
 navbar.validate = Comienza a Validir
 navbar.howto = Cómo Etiquetar
 navbar.results = Ver Resultados
+navbar.labelmap = Mapa de Etiquetas
 navbar.help = Ayuda
 navbar.retake.tutorial = Volver a Tomar el Tutorial
 navbar.signin = Iniciar sesión
