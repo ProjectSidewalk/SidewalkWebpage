@@ -20,7 +20,6 @@ import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
-import models.daos.UserDAOImpl
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
