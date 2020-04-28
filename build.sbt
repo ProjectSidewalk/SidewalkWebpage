@@ -20,8 +20,7 @@ resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
 resolvers ++= Seq(
-  "geosolutions" at "http://maven.geo-solutions.it/",
-  "osgeo" at "http://download.osgeo.org/webdav/geotools/"
+  "geosolutions" at "http://maven.geo-solutions.it/"
 )
 
 libraryDependencies ++= Seq(
@@ -46,7 +45,6 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api"       % "1.7.7",
   "org.slf4j" % "jcl-over-slf4j"  % "1.7.7",
   "joda-time" % "joda-time" % "2.9.4",
-  "javax.media" % "jai_core" % "1.1.3" from "http://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
   "org.geotools" % "gt-coverage" % "14.3",
   "org.geotools" % "gt-epsg-hsql" % "14.3",
   "org.geotools" % "gt-geotiff" % "14.3",

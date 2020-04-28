@@ -2,7 +2,7 @@
 @import models.user.WebpageActivityTable
 @import models.region.RegionTable
 @import models.user.UserRoleTable
-@import models.daos._
+@import models.daos.slick._
 @import models.audit._
 @import models.label._
 @import models.mission.MissionTable
@@ -58,33 +58,33 @@
 
                             <tr>
                                 <th>Total Audit Users</th>
-                                <th>@UserDAOImpl.countAllAuditUsersContributed(false) (@UserDAOImpl.countAllAuditUsersContributed(true))</th>
-                                <th>@UserDAOImpl.countAllAuditUsersContributedToday</th>
-                                <th>@UserDAOImpl.countAllAuditUsersContributedYesterday</th>
+                                <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
+                                <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
+                                <th>@UserDAOSlick.countAllAuditUsersContributedYesterday</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countAuditUsersContributed(List("Registered"), false) (@UserDAOImpl.countAuditUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedToday("Registered")</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Registered")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributed(List("Registered"), false) (@UserDAOSlick.countAuditUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedToday("Registered")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Registered")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Anonymous")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Anonymous")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOImpl.countAuditUsersContributed(List("Turker"), false) (@UserDAOImpl.countAuditUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedToday("Turker")</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Turker")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributed(List("Turker"), false) (@UserDAOSlick.countAuditUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedToday("Turker")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Turker")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOImpl.countAuditResearchersContributed(false) (@UserDAOImpl.countAuditResearchersContributed(true))</td>
-                                <td>@UserDAOImpl.countAuditResearchersContributedToday</td>
-                                <td>@UserDAOImpl.countAuditResearchersContributedYesterday</td>
+                                <td>@UserDAOSlick.countAuditResearchersContributed(false) (@UserDAOSlick.countAuditResearchersContributed(true))</td>
+                                <td>@UserDAOSlick.countAuditResearchersContributedToday</td>
+                                <td>@UserDAOSlick.countAuditResearchersContributedYesterday</td>
                             </tr>
 
                             <tr>
@@ -145,33 +145,33 @@
 
                             <tr>
                                 <th>Total Validation Users</th>
-                                <th>@UserDAOImpl.countAllValidationUsersContributed(false) (@UserDAOImpl.countAllValidationUsersContributed(true))</th>
-                                <th>@UserDAOImpl.countAllValidationUsersContributedToday</th>
-                                <th>@UserDAOImpl.countAllValidationUsersContributedYesterday</th>
+                                <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
+                                <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
+                                <th>@UserDAOSlick.countAllValidationUsersContributedYesterday</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countValidationUsersContributed(List("Registered"), false) (@UserDAOImpl.countValidationUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedToday("Registered")</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Registered")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Registered")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Anonymous")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Anonymous")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOImpl.countValidationUsersContributed(List("Turker"), false) (@UserDAOImpl.countValidationUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedToday("Turker")</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Turker")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Turker")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOImpl.countValidationResearchersContributed(false) (@UserDAOImpl.countValidationResearchersContributed(true))</td>
-                                <td>@UserDAOImpl.countValidationResearchersContributedToday</td>
-                                <td>@UserDAOImpl.countValidationResearchersContributedYesterday</td>
+                                <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
+                                <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
+                                <td>@UserDAOSlick.countValidationResearchersContributedYesterday</td>
                             </tr>
 
                             <tr style="font-size: 90%;">
@@ -703,7 +703,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @UserDAOImpl.getUserStatsForAdminPage.map { u =>
+                            @UserDAOSlick.getUserStatsForAdminPage.map { u =>
                             <tr>
                                 <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
                                 <td>@u.userId</td>
