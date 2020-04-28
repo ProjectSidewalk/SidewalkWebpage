@@ -15,7 +15,7 @@ press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
 
 navbar.explore = Comienza a Explorar
-navbar.validate = Comienza a Validir
+navbar.validate = Comienza a Validar
 navbar.howto = Cómo Etiquetar
 navbar.results = Ver Resultados
 navbar.labelmap = Mapa de Etiquetas

@@ -86,7 +86,7 @@
     },
     "mission-complete": {
         "title": "¡Misión Cumplida!",
-        "button-start-validating": "Comienza a validir",
+        "button-start-validating": "Comienza a validar",
         "button-keep-exploring": "Seguir explorando",
         "button-continue": "Continuar"
     },
