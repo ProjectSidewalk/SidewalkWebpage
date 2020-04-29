@@ -332,7 +332,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Results", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_LabelMap", timestamp))
         Future.successful(Ok(views.html.labelMap("Project Sidewalk - Explore Accessibility", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/labelmap"))
