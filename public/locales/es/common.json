@@ -1,6 +1,18 @@
 {
+  "missing-sidewalks": "Banqueta ausente",
+  "missing-ramps": "Rampa peatonal ausente",
+  "surface-problems": "Problemas en superficie",
+  "sidewalk-obstacles": "Obstáculos en la banqueta",
   "complete": "completado",
   "left-ui-turk-submit-code": "Envía este código para la verificación HIT en Amazon Mechanical Turk",
   "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
-  "right-ui-turk-total-reward": "Recompensa total ganada: "
+  "right-ui-turk-total-reward": "Recompensa total ganada: ",
+  "map": {
+    "miles-left": "Sólo faltan {{n}} millas!",
+    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar esta colonia!",
+    "thanks": "¡Gracias por tu ayuda!",
+    "100-percent-complete": "¡100% Completa!",
+    "percent-complete": "{{percent}}% Completa",
+    "less-than-mile-left": "¡Queda menos de una milla!"
+  }
 }

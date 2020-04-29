@@ -215,6 +215,23 @@ reset.password.invalid.reset.link = Enlace de reinicio inválido
 
 project.sidewalk.team = El equipo de Project Sidewalk
 
+results.reset.view = Restablecer vista
+results.problems.per.mile = Problemas de Banqueta por Milla
+results.legend.high = Alto
+results.legend.low = Bajo
+results.legend.body = Las colonias grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier colonia para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
+
+dashboard.audited.street = Calle auditada
+dashboard.distance = Distancia total explorada
+dashboard.missions = Número de misiones completadas
+dashboard.label.type = Tipo de etiqueta
+dashboard.number.of.labels = Número de etiquetas
+dashboard.contributions = Contribuciones diarias
+dashboard.labels.per.mission = Etiquetas por misión
+dashboard.mission.number = Número de misión
+dashboard.date = Fecha
+dashboard.neighborhood = Colonia
+
 labeling.guide.curb.ramp.summary =Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".

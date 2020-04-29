@@ -216,6 +216,23 @@ reset.password.invalid.reset.link = Invalid Reset Link
 
 project.sidewalk.team = The Project Sidewalk team
 
+results.reset.view = Reset view
+results.problems.per.mile = Sidewalk Problems per Mile
+results.legend.high = High
+results.legend.low = Low
+results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
+
+dashboard.audited.street = Audited Street
+dashboard.distance = Total Distance Explored
+dashboard.missions = Number of Missions Completed
+dashboard.label.type = Label Type
+dashboard.number.of.labels = Number of Labels
+dashboard.contributions = Daily Contributions
+dashboard.labels.per.mission = Labels per Mission
+dashboard.mission.number = Mission Number
+dashboard.date = Date
+dashboard.neighborhood = Neighborhood
+
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
 labeling.guide.surface.problem.summary = A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience for someone using a wheelchair or other assistive devices. If something on a surface would make it hard or impossible to cross, it should be labeled as a Surface Problem. For surface problems that cover a large area, you should place a Surface Problem label at the start of the problem, and then continue placing labels every few feet (about 1 per panorama) until the end of the problem.

@@ -12,7 +12,7 @@
 @import java.util.UUID
 @import play.api.libs.json.Json
 
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 @main(title) {
 @navbar(user)
 <style>
@@ -790,67 +790,78 @@
 
 <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
 <script>
-        var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
-        var sliderToLabelMap = {};
-        sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
-        sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
-        sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
-        sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
-        sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
-        sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
-        sliderToLabelMap["other-slider"] = "#other-severity-label";
+    var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
+    var sliderToLabelMap = {};
+    sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
+    sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
+    sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
+    sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
+    sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
+    sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
+    sliderToLabelMap["other-slider"] = "#other-severity-label";
 
-        $( "*[id*='slider']" ).each(function() {
-            $(this).slider({
-                range: true,
-                min : 0,
-                max : 5,
-                step: 1,
-                values: [0,5],
-                slide: function(event, ui) {
-                    if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
-                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
-                    } else {
-                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
-                    }
-                },
-                change: function(event,ui) {
-                    if (this.id == "curb-ramp-slider") {
-                        admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
-                    } else if (this.id == "missing-curb-ramp-slider") {
-                        admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
-                    } else if (this.id == "obstacle-slider") {
-                        admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
-                    } else if (this.id == 'surface-problem-slider') {
-                        admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
-                    } else if (this.id == 'occlusion-slider') {
-                        admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
-                    } else if (this.id == 'no-sidewalk-slider') {
-                        admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
-                    } else if (this.id == 'other-slider') {
-                        admin.toggleLayers('Other', 'other', '#other-slider');
-                    }
+    $( "*[id*='slider']" ).each(function() {
+        $(this).slider({
+            range: true,
+            min : 0,
+            max : 5,
+            step: 1,
+            values: [0,5],
+            slide: function(event, ui) {
+                if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
+                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
+                } else {
+                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
                 }
-            });
+            },
+            change: function(event,ui) {
+                if (this.id == "curb-ramp-slider") {
+                    admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
+                } else if (this.id == "missing-curb-ramp-slider") {
+                    admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
+                } else if (this.id == "obstacle-slider") {
+                    admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
+                } else if (this.id == 'surface-problem-slider') {
+                    admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
+                } else if (this.id == 'occlusion-slider') {
+                    admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
+                } else if (this.id == 'no-sidewalk-slider') {
+                    admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
+                } else if (this.id == 'other-slider') {
+                    admin.toggleLayers('Other', 'other', '#other-slider');
+                }
+            }
         });
+    });
 
-    </script>
-    <script>
-        $(document).ready(function () {
-
-        var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-        window.admin = Admin(_, $, c3, turf, difficultRegionIds);
-        $('#commentsTable').dataTable();
-        $('#labelTable').dataTable();
-        $('#userTable').dataTable();
-        $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
-        $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
-
+</script>
+<script>
+    $(document).ready(function () {
+        // Gets all translations before loading the choropleths.
+        i18next.use(i18nextXHRBackend);
+        i18next.init({
+            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+            fallbackLng: 'en',
+            ns: ['common'],
+            defaultNS: 'common',
+            lng: "@lang.language",
+            debug: false
+        }, function(err, t) {
+            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
+            window.admin = Admin(_, $, c3, turf, difficultRegionIds);
+            $('#commentsTable').dataTable();
+            $('#labelTable').dataTable();
+            $('#userTable').dataTable();
+            $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
+            $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
         });
-        $(window).load(function() {
-            $(".loader").fadeOut("slow");
-        })
-    </script>
+    });
+    $(window).load(function() {
+        $(".loader").fadeOut("slow");
+    })
+</script>
 }
