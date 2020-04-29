@@ -11,22 +11,22 @@
         </div>
     }
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
-        <legend>@Messages("navbar.signup.new.account")</legend>
+        <legend>@Messages("authenticate.signup.new.account")</legend>
         @helper.form(action = routes.SignUpController.signUp(url)) {
-            @text(signInForm("username"), Messages("navbar.username"), icon = "person")
-            @text(signInForm("email"), Messages("navbar.email"), icon = "at")
-            @password(signInForm("password"), Messages("navbar.password"), icon = "key")
-            @password(signInForm("passwordConfirm"), Messages("navbar.confirm.password"), icon = "key")
+            @text(signInForm("username"), Messages("authenticate.username"), icon = "person")
+            @text(signInForm("email"), Messages("authenticate.email"), icon = "at")
+            @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
+            @password(signInForm("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
             <div class="form-group">
                 <div class="checkbox">
-                    <label><input type="checkbox" id="sign-up-page-agree-to-terms">@Html(Messages("navbar.terms"))</label>
+                    <label><input type="checkbox" id="sign-up-page-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
                 </div>
                 <div>
-                    <button id="sign-up-page-submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block" disabled>@Messages("navbar.submit")</button>
+                    <button id="sign-up-page-submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block" disabled>@Messages("authenticate.submit")</button>
                 </div>
             </div>
             <div class="sign-in-now">
-                <p>@Html(Messages("navbar.is.member"))</p>
+                <p>@Html(Messages("authenticate.is.member"))</p>
             </div>
         }
     </fieldset>

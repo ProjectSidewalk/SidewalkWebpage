@@ -84,7 +84,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
     authTokenService.validate(token).map {
       case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token))
-      case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.password.invalid.reset.link"))
+      case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link"))
     }
   }
 

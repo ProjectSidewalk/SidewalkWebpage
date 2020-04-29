@@ -22,22 +22,9 @@ navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
 navbar.retake.tutorial = Volver a tomar el tutorial
 navbar.signin = Iniciar sesión
-navbar.signin.with.credentials = Inicia sesión con tus credenciales
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
-navbar.email = Correo electrónico
-navbar.password = Contraseña
-navbar.submit = Enviar
-navbar.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
-navbar.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
-navbar.username = Nombre de usuario/a
-navbar.confirm.password = Confirmar contraseña
-navbar.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
-navbar.signup = Regístrate
-navbar.signup.new.account = Regístrate para una nueva cuenta
-navbar.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
-navbar.is.member = ¿Ya eres miembro? <a href="/signIn">Iniciar sesión ahora</a>
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
@@ -184,36 +171,46 @@ turk.expired.title = ¡Asignación vencida!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
 turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
 
+authenticate.email = Correo electrónico
+authenticate.password = Contraseña
+authenticate.submit = Enviar
+authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
+authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
+authenticate.username = Nombre de usuario/a
+authenticate.confirm.password = Confirmar contraseña
+authenticate.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
+authenticate.signup = Regístrate
+authenticate.signup.new.account = Regístrate para una nueva cuenta
+authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
+authenticate.is.member = ¿Ya eres miembro? <a href="/signIn">Iniciar sesión ahora</a>
+authenticate.signin.with.credentials = Inicia sesión con tus credenciales
+
 authenticate.error.uhoh = Oh-oh!
 authenticate.error.missing.username = Por favor, ingrese un nombre de usuario
 authenticate.error.missing.email = Por favor, ingrese un correo electrónico válido
 authenticate.error.missing.password = Por favor, ingrese su contraseña
+authenticate.error.email.exists = El correo electrónico ya existe
+authenticate.error.username.exists = El nombre de usuario ya existe
+authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
+authenticate.error.password.mismatch = Las contraseñas no coinciden
+authenticate.error.invalid.credentials = Credenciales inválidas
 
-sign.up.email.exists.error = El correo electrónico ya existe
-sign.up.username.exists.error = El nombre de usuario ya existe
-sign.up.password.length.error = La contraseña debe tener al menos 6 caracteres
-sign.up.password.mismatch.error = Las contraseñas no coinciden
+reset.pw.forgot.title = Olvidaste tu contraseña
+reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
 
-sign.in.invalid.credentials = Credenciales inválidas
+reset.pw.email.hello = Hola {0},
+reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
+reset.pw.email.send.link = Enviar correo electrónico
+reset.pw.email.reset.pw.sent = Se ha enviado un correo electrónico para restablecer tu contraseña.
+reset.pw.email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
+reset.pw.email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
+reset.pw.email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 60 minutos
+reset.pw.email.signature = El equipo de Project Sidewalk
 
-forgot.password.title = Olvidaste tu contraseña
-forgot.password.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
-
-email.hello = Hola {0},
-email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
-email.send.link = Enviar correo electrónico
-email.reset.password.sent = Se ha enviado un correo electrónico para restablecer tu contraseña.
-email.valid.required = Se requiere un correo electrónico válido
-email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
-email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
-email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 60 minutos
-
-reset.password.submit.new.password = Escribe tu nueva contraseña
-reset.password.message = Restablecer la contraseña
-reset.password.successful = ¡Contraseña restablecida!
-reset.password.invalid.reset.link = Enlace de reinicio inválido
-
-project.sidewalk.team = El equipo de Project Sidewalk
+reset.pw.submit.new.pw = Escribe tu nueva contraseña
+reset.pw.message = Restablecer la contraseña
+reset.pw.successful = ¡Contraseña restablecida!
+reset.pw.invalid.reset.link = Enlace de reinicio inválido
 
 results.reset.view = Restablecer vista
 results.problems.per.mile = Problemas de banqueta por milla
@@ -237,4 +234,3 @@ labeling.guide.obstacle.summary = Los obstáculos son objetos que están directa
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
 labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
-
