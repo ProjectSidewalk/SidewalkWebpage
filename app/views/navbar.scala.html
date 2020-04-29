@@ -441,28 +441,28 @@ $(document).ready(function () {
 		var passwordConfirm = formData[3].value;
 
                 if(!username){
-                    invalidSignInUpAlert(false, @Messages("authenticate.error.missing.username"));
+                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
                     return false;
                 }
 
                 //if not a valid email address, do not submit form
                 if(!email){
-                    invalidSignInUpAlert(false, @Messages("authenticate.error.missing.email"));
+                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
                     return false;
                 }
 
                 if(!password){
-                    invalidSignInUpAlert(false, @Messages("authenticate.error.missing.password"));
+                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
                     return false;
                 }
 
 		if (password !== passwordConfirm) {
-		    invalidSignInUpAlert(false, @Messages("sign.up.password.mismatch.error"));
+		    invalidSignInUpAlert(false, "@Messages("sign.up.password.mismatch.error")");
 		    return false;
 		}
 
 		if (password.length < 6) {
-		    invalidSignInUpAlert(false, @Messages("sign.up.password.length.error"));
+		    invalidSignInUpAlert(false, "@Messages("sign.up.password.length.error")");
 		    return false;
 		}
 
@@ -473,10 +473,10 @@ $(document).ready(function () {
                     var errorMessage = "";
                     if(e.status === 409){
                         if(e.responseText.toLowerCase().includes("email")){
-                            errorMessage = @Messages("sign.up.email.exists.error")
+                            errorMessage = "@Messages("sign.up.email.exists.error")"
                         }
                         else{
-                            errorMessage = @Messages("sign.up.username.exists.error")
+                            errorMessage = "@Messages("sign.up.username.exists.error")"
                         }
                     }
                     else{ // Some other Bad Request
