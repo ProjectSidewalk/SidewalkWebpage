@@ -13,12 +13,12 @@
                     <div id="map"></div>
                     <div id="map-label-legend">
                         <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td></tr>
-                            <tr><td id="map-legend-no-sidewalk"></td><td>No Sidewalk</td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td></tr>
+                            <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td></tr>
+                            <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td></tr>
+                            <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td></tr>
+                            <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td></tr>
+                            <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td></tr>
+                            <tr><td id="map-legend-audited-street"></td><td>@Messages("dashboard.audited.street")</td></tr>
                         </table>
                     </div>
                 </div>
@@ -28,8 +28,8 @@
         <div class="row">
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>Total Distance Explored</th>
-                    <th>Number of Missions Completed</th>
+                    <th>@Messages("dashboard.distance")</th>
+                    <th>@Messages("dashboard.missions")</th>
                     @if(user){
                         @if(user.get.role.getOrElse("") == "Turker") {
                             <th>Total Reward Earned</th>
@@ -44,15 +44,15 @@
             </table>
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>Label Type</th>
-                    <th>Curb Ramps</th>
-                    <th>Missing Curb Ramps</th>
-                    <th>Obstacles</th>
-                    <th>Surface Problems</th>
-                    <th>No Sidewalk</th>
+                    <th>@Messages("dashboard.label.type")</th>
+                    <th>@Messages("curb.ramp")</th>
+                    <th>@Messages("missing.ramp")</th>
+                    <th>@Messages("obstacle")</th>
+                    <th>@Messages("surface.problem")</th>
+                    <th>@Messages("no.sidewalk")</th>
                 </tr>
                 <tr>
-                    <th>Number of Labels</th>
+                    <th>@Messages("dashboard.number.of.labels")</th>
                     <td id="td-number-of-curb-ramps"></td>
                     <td id="td-number-of-missing-curb-ramps"></td>
                     <td id="td-number-of-obstacles"></td>
@@ -63,7 +63,7 @@
         </div>
         <div class="row">
             <table class="table table-striped table-condensed">
-                <tr><th>Daily Contributions</th></tr>
+                <tr><th>@Messages("dashboard.contributions")</th></tr>
                 <tr><td><div id="audit-count-chart"></div></td></tr>
             </table>
         </div>
@@ -71,18 +71,18 @@
             <table class="table table-striped table-fixed">
                 <thead>
                     <tr>
-                        <th class="col-xs-12">Labels per Mission</th>
+                        <th class="col-xs-12">@Messages("dashboard.labels.per.mission")</th>
                     </tr>
                     <tr>
-                    <th class="col-xxs-1">Mission Number</th>
-                    <th class="col-date">Date</th>
-                    <th class="col-neighborhood">Neighborhood</th>
-                    <th class="col-xxs-1">Curb Ramp</th>
-                    <th class="col-xxs-1">Missing Curb Ramp</th>
-                    <th class="col-xxs-1">Obstacle</th>
-                    <th class="col-xxs-1">Surface Problem</th>
-                    <th class="col-xxs-1">No Sidewalk</th>
-                    <th class="col-xxs-1">Other</th>
+                    <th class="col-xxs-1">@Messages("dashboard.mission.number")</th>
+                    <th class="col-date">@Messages("dashboard.date")</th>
+                    <th class="col-neighborhood">@Messages("dashboard.neighborhood")</th>
+                    <th class="col-xxs-1">@Messages("curb.ramp")</th>
+                    <th class="col-xxs-1">@Messages("missing.ramp")</th>
+                    <th class="col-xxs-1">@Messages("obstacle")</th>
+                    <th class="col-xxs-1">@Messages("surface.problem")</th>
+                    <th class="col-xxs-1">@Messages("no.sidewalk")</th>
+                    <th class="col-xxs-1">@Messages("other")</th>
                 </tr></thead>
                 <tbody id="task-contribution-table" ></tbody>
             </table>
@@ -95,10 +95,23 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script>
     $(document).ready(function () {
-        var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-        window.progress = Progress(_, $, c3, L, "@user.get.role", difficultRegionIds);
+        // Gets all translations before loading the choropleth.
+        i18next.use(i18nextXHRBackend);
+        i18next.init({
+            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+            fallbackLng: 'en',
+            ns: ['dashboard', 'common'],
+            defaultNS: 'dashboard',
+            lng: "@lang.language",
+            debug: false
+        }, function(err, t) {
+            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
+            window.progress = Progress(_, $, c3, L, "@user.get.role", difficultRegionIds);
+        });
     });
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>

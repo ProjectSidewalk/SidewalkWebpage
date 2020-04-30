@@ -1,40 +1,30 @@
-curb.ramp = Rampa Peatonal
-missing.ramp = Rampa Peatonal Ausente
-obstacle = Obstáculo en la Banqueta
-surface.problem = Problema en Superficie
-no.sidewalk = No Hay Banqueta
+curb.ramp = Rampa peatonal
+missing.ramp = Rampa peatonal ausente
+obstacle = Obstáculo en la banqueta
+surface.problem = Problema en superficie
+no.sidewalk = No hay banqueta
 other = Otro
 labels = etiquetas
 ok = OK
 cancel = Cancelar
+error = ¡Error!
+thanks = ¡Gracias!
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
 
-navbar.explore = Comienza a Explorar
-navbar.validate = Comienza a Validir
-navbar.howto = Cómo Etiquetar
-navbar.results = Ver Resultados
+navbar.explore = Comienza a explorar
+navbar.validate = Comienza a validar
+navbar.howto = Cómo etiquetar
+navbar.results = Ver resultados
+navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
-navbar.retake.tutorial = Volver a Tomar el Tutorial
+navbar.retake.tutorial = Volver a tomar el tutorial
 navbar.signin = Iniciar sesión
-navbar.signin.with.credentials = Inicia sesión con tus credenciales
 navbar.signout = Cerrar sesión
 navbar.dashboard = Tu panel
 navbar.admin = Administrador
-navbar.email = Correo electrónico
-navbar.password = Contraseña
-navbar.submit = Enviar
-navbar.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
-navbar.non.member = ¿No eres un miembro? <a href="@routes.UserController.signUp()">Regístrate ahora</a>
-navbar.username = Nombre de usuario/a
-navbar.confirm.password = Confirmar contraseña
-navbar.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
-navbar.signup = Regístrate
-navbar.signup.new.account = Regístrate para una nueva cuenta
-navbar.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
-navbar.is.member = ¿Ya eres miembro? <a href="@routes.UserController.signIn()">Iniciar sesión ahora</a>
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
@@ -46,7 +36,7 @@ landing.how.you.help.find = ENCUENTRA PROBLEMAS
 landing.how.you.help.assess = EVALÚA LA GRAVEDAD
 landing.video.title = ¿Qué es Project Sidewalk?
 landing.video.watch = Ver Ahora
-landing.choropleth.title = Elige una Colonia
+landing.choropleth.title = Elige una colonia
 landing.choropleth.content = Se te asignará automáticamente una colonia al hacer click en ''Comienza a explorar'', pero también puedes elegir una haciendo clic en cualquier zona del siguiente mapa.
 landing.choropleth.legend = Porcentaje de la colonia completa
 landing.stats.title = Tu trabajo está haciendo la diferencia
@@ -61,14 +51,14 @@ landing.what.people.are.saying = Lo que la gente<br>está diciendo
 landing.press.title = Prensa
 landing.collaborators.title = Colaboradores
 
-footer.about = Sobre Nosotros
-footer.terms = Términos de Uso
+footer.about = Sobre nosotros
+footer.terms = Términos de uso
 footer.help = Ayuda
-footer.guide = Guía de Etiquetado
+footer.guide = Guía de etiquetado
 footer.developer = DESARROLLADORES
 footer.api = Sidewalk API
 footer.connect = CONECTA
-footer.email = Envíanos un Correo
+footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
@@ -82,13 +72,13 @@ audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más 
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
 audit.ribbon.explore = <u>E</u>xplorar
-audit.ribbon.curb.ramp = Rampa Peatonal (<u>C</u>)
-audit.ribbon.missing.ramp = <span style="font-size: 8px;">Rampa Peatonal Ausente (<u>M</u>)</span>
-audit.ribbon.obstacle = <span style="font-size: 10px;"><u>O</u>bstáculo en la Banqueta</span>
-audit.ribbon.surface.problem = <span style="font-size: 10px;">Problema en <u>S</u>uperficie</span>
-audit.ribbon.no.sidewalk = <u>N</u>o Hay Banqueta
+audit.ribbon.curb.ramp = Rampa peatonal (<u>C</u>)
+audit.ribbon.missing.ramp = <span style="font-size: 8px;">Rampa peatonal ausente (<u>M</u>)</span>
+audit.ribbon.obstacle = <span style="font-size: 10px;"><u>O</u>bstáculo en la banqueta</span>
+audit.ribbon.surface.problem = <span style="font-size: 10px;">Problema en <u>s</u>uperficie</span>
+audit.ribbon.no.sidewalk = <u>N</u>o hay banqueta
 audit.ribbon.other = Otro
-audit.ribbon.occlusion = <span style="font-size: 13px;">No Puedo Ver la <u>B</u>anqueta</span>
+audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
 audit.ribbon.zoom.in = Acercar (<u>Z</u>)
 audit.ribbon.zoom.out = Alejar
 
@@ -102,26 +92,26 @@ audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o una nueva colon
 audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en esta colonia
 audit.left.ui.jump.explore.button.new.neighborhood = Ir a una nueva colonia
 
-audit.right.ui.current.neighborhood = Colonia Actual
+audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.miles = millas
-audit.right.ui.current.mission = Misión Actual
+audit.right.ui.current.mission = Misión actual
 audit.right.ui.red.line = Sigue la línea roja
 
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
-audit.center.ui.add.tags = Agregar Etiquetas:
+audit.center.ui.add.tags = Agregar etiquetas:
 audit.center.ui.temporary = Temporal (p. ej., construcción)
 audit.center.ui.show.again = No mostrar de nuevo
 
-audit.mission.complete.labels.title = Etiquetas de la Misión
-audit.mission.complete.progress.title = Progreso de la Colonia
+audit.mission.complete.labels.title = Etiquetas de la misión
+audit.mission.complete.progress.title = Progreso de la colonia
 audit.mission.complete.progress.mission.you = Exploraste en esta misión
 audit.mission.complete.progress.neighborhood.you = Exploraste en esta colonia
 audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en esta colonia
 audit.mission.complete.progress.neighborhood.remaining = Restante en este barrio
-audit.mission.complete.legend.this.mission = Esta Misión
-audit.mission.complete.legend.previous.missions = Misiones Anteriores
-audit.mission.complete.legend.others.missions = Misiones de Otras
+audit.mission.complete.legend.this.mission = Esta misión
+audit.mission.complete.legend.previous.missions = Misiones anteriores
+audit.mission.complete.legend.others.missions = Misiones de otras
 
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?
@@ -169,19 +159,77 @@ validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimen
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
-validate.right.ui.current.mission = Misión Actual
+validate.right.ui.current.mission = Misión actual
 validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
-validate.mission.complete.disagree = No Estoy de Acuerdo
-validate.mission.complete.not.sure = No Estoy de Seguro
+validate.mission.complete.disagree = No Estoy de acuerdo
+validate.mission.complete.not.sure = No Estoy de seguro
 
 mobile.validate.leave.feedback = Retroalimentación
 
-turk.expired.title = ¡Asignación Vencida!
+turk.expired.title = ¡Asignación vencida!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
 turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
 
-labeling.guide.curb.ramp.summary =Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
+authenticate.email = Correo electrónico
+authenticate.password = Contraseña
+authenticate.submit = Enviar
+authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
+authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
+authenticate.username = Nombre de usuario/a
+authenticate.confirm.password = Confirmar contraseña
+authenticate.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
+authenticate.signup = Regístrate
+authenticate.signup.new.account = Regístrate para una nueva cuenta
+authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
+authenticate.is.member = ¿Ya eres miembro? <a href="/signIn">Iniciar sesión ahora</a>
+authenticate.signin.with.credentials = Inicia sesión con tus credenciales
+
+authenticate.error.uhoh = Oh-oh!
+authenticate.error.missing.username = Por favor, ingrese un nombre de usuario
+authenticate.error.missing.email = Por favor, ingrese un correo electrónico válido
+authenticate.error.missing.password = Por favor, ingrese su contraseña
+authenticate.error.email.exists = El correo electrónico ya existe
+authenticate.error.username.exists = El nombre de usuario ya existe
+authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
+authenticate.error.password.mismatch = Las contraseñas no coinciden
+authenticate.error.invalid.credentials = Credenciales inválidas
+
+reset.pw.forgot.title = Olvidaste tu contraseña
+reset.pw.forgot.submit.email = No te preocupes, escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+
+reset.pw.email.hello = Hola {0},
+reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
+reset.pw.email.send.link = Enviar correo electrónico
+reset.pw.email.reset.pw.sent = Se ha enviado un correo electrónico para restablecer tu contraseña.
+reset.pw.email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
+reset.pw.email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
+reset.pw.email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 60 minutos
+reset.pw.email.signature = El equipo de Project Sidewalk
+
+reset.pw.submit.new.pw = Escribe tu nueva contraseña
+reset.pw.message = Restablecer la contraseña
+reset.pw.successful = ¡Contraseña restablecida!
+reset.pw.invalid.reset.link = Enlace de reinicio inválido
+
+results.reset.view = Restablecer vista
+results.problems.per.mile = Problemas de banqueta por milla
+results.legend.high = Alto
+results.legend.low = Bajo
+results.legend.body = Las colonias grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier colonia para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
+
+dashboard.audited.street = Calle auditada
+dashboard.distance = Distancia total explorada
+dashboard.missions = Número de misiones completadas
+dashboard.label.type = Tipo de etiqueta
+dashboard.number.of.labels = Número de etiquetas
+dashboard.contributions = Contribuciones diarias
+dashboard.labels.per.mission = Etiquetas por misión
+dashboard.mission.number = Número de misión
+dashboard.date = Fecha
+dashboard.neighborhood = Colonia
+
+labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
