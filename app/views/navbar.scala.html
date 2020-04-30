@@ -256,51 +256,51 @@ $(document).ready(function () {
                     <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
                     <div class="alert alert-danger alert-error" id="incorrect-login-modal-alert" role="alert" style="display:none;">
                         <a href="#" class="close" data-hide="alert">&times;</a>
-                        <strong>Whoops!&nbsp;</strong>We can't find this username and password pair.
+                        <strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>We can't find this username and password pair.
                     </div>
 
 
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
-                        @text(forms.SignInForm.form("identifier"), Messages("navbar.email"))
-                        @password(forms.SignInForm.form("password"), Messages("navbar.password"))
+                        @text(forms.SignInForm.form("identifier"), Messages("authenticate.email"))
+                        @password(forms.SignInForm.form("password"), Messages("authenticate.password"))
                         <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.signin")</button>
                     }
                 </div>
                 <div class="modal-footer">
                     <div>
-                        @Html(Messages("navbar.new"))
+                        @Html(Messages("authenticate.new"))
                     </div>
                     <div class="forgot-password-modal">
-                        <a href="@routes.UserController.forgotPassword()">@Messages("forgot.password.title")</a>
+                        <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
                     </div>
                 </div>
             </div><!-- /.modal-content -->
             <div class="modal-content hidden" id="sign-up-modal">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title" id="sign-up-label">@Messages("navbar.signup")</h4>
+                    <h4 class="modal-title" id="sign-up-label">@Messages("authenticate.signup")</h4>
                 </div>
                 <div class="modal-body">
                     <div id="incorrect-signup-alert"></div>
                     <div id="invalid-signup-alert"></div>
 
                     @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/")), args ='id -> "sign-up-form") {
-                    @text(forms.SignUpForm.form("username"), Messages("navbar.username"), icon = "person")
-                    @text(forms.SignUpForm.form("email"), Messages("navbar.email"), icon = "at")
-                    @password(forms.SignUpForm.form("password"), Messages("navbar.password"), icon = "key")
-                    @password(forms.SignUpForm.form("passwordConfirm"), Messages("navbar.confirm.password"), icon = "key")
+                    @text(forms.SignUpForm.form("username"), Messages("authenticate.username"), icon = "person")
+                    @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
+                    @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
+                    @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
                     <div class="form-group">
                         <div class="checkbox">
-                            <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("navbar.terms"))</label>
+                            <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
                         </div>
                         <div>
-                            <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>@Messages("navbar.signup")</button>
+                            <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>@Messages("authenticate.signup")</button>
                         </div>
                     </div>
                 }
                 </div>
                 <div class="modal-footer">
-                    <div>@Html(Messages("navbar.has.account"))</div>
+                    <div>@Html(Messages("authenticate.has.account"))</div>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
@@ -382,7 +382,7 @@ $(document).ready(function () {
                     $('#incorrect-signin-alert').html(
                             '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Whoops!&nbsp;</strong>' + message +
+                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
                             '</div>'
                     );
                     $('#incorrect-signin-alert').show();
@@ -392,7 +392,7 @@ $(document).ready(function () {
                     $('#incorrect-signup-alert').html(
                             '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Whoops!&nbsp;</strong>' + message +
+                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + message +
                             '</div>'
                     );
                     $('#incorrect-signup-alert').show();
@@ -441,28 +441,28 @@ $(document).ready(function () {
 		var passwordConfirm = formData[3].value;
 
                 if(!username){
-                    invalidSignInUpAlert(false, 'Please enter a username.');
+                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
                     return false;
                 }
 
                 //if not a valid email address, do not submit form
                 if(!email){
-                    invalidSignInUpAlert(false, 'Please enter a valid email address.');
+                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
                     return false;
                 }
 
                 if(!password){
-                    invalidSignInUpAlert(false, 'Please enter your password.');
+                    invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
                     return false;
                 }
 
 		if (password !== passwordConfirm) {
-		    invalidSignInUpAlert(false, 'Passwords do not match.');
+		    invalidSignInUpAlert(false, "@Messages("authenticate.error.password.mismatch")");
 		    return false;
 		}
 
 		if (password.length < 6) {
-		    invalidSignInUpAlert(false, 'Password must be at least 6 characters.');
+		    invalidSignInUpAlert(false, "@Messages("authenticate.error.password.length")");
 		    return false;
 		}
 
@@ -473,10 +473,10 @@ $(document).ready(function () {
                     var errorMessage = "";
                     if(e.status === 409){
                         if(e.responseText.toLowerCase().includes("email")){
-                            errorMessage = "That email address already exists. Please try another one."
+                            errorMessage = "@Messages("authenticate.error.email.exists")"
                         }
                         else{
-                            errorMessage = "That username already exists. Please try another one."
+                            errorMessage = "@Messages("authenticate.error.username.exists")"
                         }
                     }
                     else{ // Some other Bad Request
@@ -487,7 +487,7 @@ $(document).ready(function () {
                     $('#invalid-signup-alert').html(
                             '<div class="alert alert-danger alert-error" id="invalid-signup-alert">'+
                             '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
-                            '<strong>Uh-oh!&nbsp;</strong>' + errorMessage +
+                            '<strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>' + errorMessage +
                             '</div>'
                     );
                 });

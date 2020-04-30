@@ -30,24 +30,24 @@
     }
 
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
-        <legend>@Messages("navbar.signin.with.credentials")</legend>
+        <legend>@Messages("authenticate.signin.with.credentials")</legend>
         @helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
-        @text(signInForm("identifier"), Messages("navbar.email"), icon = "at")
-        @password(signInForm("password"), Messages("navbar.password"), icon = "key")
+        @text(signInForm("identifier"), Messages("authenticate.email"), icon = "at")
+        @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
         <div class="form-group">
             <div>
-                <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("navbar.submit")</button>
+                <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("authenticate.submit")</button>
             </div>
         </div>
         }
 
         <div>
-            <p class="not-a-member">@Html(Messages("navbar.non.member"))</p>
+            <p class="not-a-member">@Html(Messages("authenticate.non.member"))</p>
         </div>
 
         <div>
             <p class="forgot-password">
-                <a href="@routes.UserController.forgotPassword()">@Messages("forgot.password.title")</a>
+                <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
             </p>
         </div>
     </fieldset>
