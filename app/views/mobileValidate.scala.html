@@ -61,6 +61,7 @@
         <div id="modal-mission-holder">
             <div id="modal-mission-background" class="modal-background"></div>
             <div id="modal-mission-foreground" class="modal-foreground">
+                <button class="button" id="modal-mission-sign-in-button">Sign In</button>
                 <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
@@ -154,6 +155,10 @@
     </div>
 
     <script type="text/javascript">
+        $( "#modal-mission-sign-in-button" ).click(() => {
+            window.location.replace('@routes.UserController.signIn()');
+        });
+
         let param = {};
         let userParam = {};
 
