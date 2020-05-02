@@ -203,6 +203,13 @@ $( document ).ready(function() {
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
+    //Triggered when the city or mapathon links are clicked
+    // Logs"Click_module=ExploreMapLink_Location=<cityName or "mapathon">
+    $(".exploremaplink").on("click", function(e){
+        var cityName = e.currentTarget.id;
+        logWebpageActivity("Click_module=ExploreMapLink_Location="+cityName);
+    });
+
     // Setup video lazyPlay
     $(window).on("scroll", onScroll);
 

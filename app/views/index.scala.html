@@ -33,7 +33,7 @@
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
                     @for((cityName, cityURL) <- otherCityURLs) {
-                        <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
+                        <a id="@cityName" class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
