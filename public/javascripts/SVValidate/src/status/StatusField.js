@@ -1,12 +1,14 @@
 /**
  * Updates items that appear on the right side of the validation interface (i.e., label counts)
+ * @param param must have:
+ *                  - completedValidations: the number of validations the user has completed in all time. 
  * @returns {StatusField}
  * @constructor
  */
-function StatusField() {
+function StatusField(param) {
     let containerWidth = 730;
     let self = this;
-
+    let completedValidations = param.completedValidations;
     /**
      * Resets the status field whenever a new mission is introduced.
      * @param currentMission    Mission object for the current mission.
@@ -27,6 +29,31 @@ function StatusField() {
      */
     function updateLabelCounts(count) {
         svv.ui.status.labelCount.html(count);
+    }
+
+    /**
+     * Author: Aroosh Kumar
+     * Date: 5/2/2020
+     * 
+     * Increments the number of labels the user has validated in all time and 
+     * refreshes the number count displayed to the user.
+     */
+
+    function incrementLabelCounts(){
+        completedValidations++;
+        refreshLabelCountsDisplay();
+    }
+
+    /**
+     * Author: Aroosh Kumar
+     * Date: 5/2/2020
+     * 
+     * Refreshes the number count displayed to the user to reflect the completedValidations
+     * value stored.
+     */
+
+    function refreshLabelCountsDisplay(){
+        updateLabelCounts(completedValidations);
     }
 
     /**
@@ -93,6 +120,8 @@ function StatusField() {
     self.updateLabelCounts = updateLabelCounts;
     self.updateLabelText = updateLabelText;
     self.updateMissionDescription = updateMissionDescription;
+    self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
+    self.incrementLabelCounts = incrementLabelCounts;
     self.reset = reset;
 
     return this;

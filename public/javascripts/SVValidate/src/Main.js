@@ -11,8 +11,7 @@ function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
-    svv.validationsCompleted = param.completedValidations;
-
+    
     function _initUI() {
         // Maps label types to label names.
         svv.labelNames = {
@@ -136,7 +135,11 @@ function Main (param) {
         svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
-        svv.statusField = new StatusField();
+
+        let statusFieldParam = {
+            completedValidations: param.completedValidations  
+        };
+        svv.statusField = new StatusField(statusFieldParam);
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
@@ -169,7 +172,7 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
-        svv.statusField.updateLabelCounts(svv.validationsCompleted);
+        svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
             $(".toolUI").css('opacity', 1);
