@@ -205,7 +205,7 @@ $( document ).ready(function() {
 
     //Triggered when the city or mapathon links are clicked
     // Logs"Click_module=ExploreMapLink_Location=<cityName or "mapathon">
-    $(".otherCityLinks").on("click", function(e){
+    $(".otherCityLink").on("click", function(e){
         var cityName = e.currentTarget.id;
         if(cityName === "mapathonLink"){
             logWebpageActivity("Click_module=mapathonLink");
