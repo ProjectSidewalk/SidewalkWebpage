@@ -105,6 +105,7 @@
         }
     },
     "right-ui": {
+        "distance-type": "miles",
         "current-mission": {
             "message-first-mission": "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
             "message": "Explore __PLACEHOLDER__ of this neighborhood"
