@@ -205,9 +205,13 @@ $( document ).ready(function() {
 
     //Triggered when the city or mapathon links are clicked
     // Logs"Click_module=ExploreMapLink_Location=<cityName or "mapathon">
-    $(".exploremaplink").on("click", function(e){
+    $(".otherCityLinks").on("click", function(e){
         var cityName = e.currentTarget.id;
-        logWebpageActivity("Click_module=ExploreMapLink_Location="+cityName);
+        if(cityName === "mapathonLink"){
+            logWebpageActivity("Click_module=mapathonLink");
+        }else{
+            logWebpageActivity("Click_module=OtherCityLink_City="+cityName);
+        }
     });
 
     // Setup video lazyPlay
