@@ -85,6 +85,8 @@
         "turk-reward": "Reward on satisfactory completion: "
     },
     "mission-complete": {
+        "distance-type-display-string": "miles",
+        "distance-type": "miles",
         "title": "Mission Complete!",
         "button-start-validating": "Start validating",
         "button-keep-exploring": "Keep exploring",

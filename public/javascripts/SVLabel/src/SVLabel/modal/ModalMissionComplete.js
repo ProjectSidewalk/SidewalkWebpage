@@ -269,7 +269,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     this.update = function (mission, neighborhood) {
         // Update the horizontal bar chart to show how much distance the user has audited
-        var unit = {units: 'miles'};
+        var unit = {units: i18next.t('mission-complete.distance-type', 'kilometers')};
         var regionId = neighborhood.getProperty("regionId");
 
         var missionDistance = mission.getDistance("miles");
@@ -331,12 +331,13 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
 
 ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance, unit) {
     if (!unit) unit = {units: 'kilometers'};
+    var distanceType = i18next.t('mission-complete.distance-type-display-string', 'kilómetros')
     var positiveRemainingDistance = Math.max(remainingDistance, 0);
     var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
-    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.othersAuditedDistance.html(positiveOthersAuditedDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.remainingDistance.html(positiveRemainingDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.othersAuditedDistance.html(positiveOthersAuditedDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.remainingDistance.html(positiveRemainingDistance.toFixed(1) + " " + distanceType);
 
     // Update the reward HTML if the user is a turker.
     if (this._userModel.getUser().getProperty("role") === "Turker") {
