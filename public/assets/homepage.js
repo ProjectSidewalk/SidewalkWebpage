@@ -203,8 +203,8 @@ $( document ).ready(function() {
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
-    //Triggered when the city or mapathon links are clicked
-    // Logs"Click_module=ExploreMapLink_Location=<cityName or "mapathon">
+    // Triggered when the city or mapathon links are clicked.
+    // Logs "Click_module=ExploreMapLink_Location=<cityName or "mapathonLink">"
     $(".otherCityLink").on("click", function(e){
         var cityName = e.currentTarget.id;
         if(cityName === "mapathonLink"){
