@@ -204,7 +204,8 @@ $( document ).ready(function() {
     });
 
     // Triggered when the city or mapathon links are clicked.
-    // Logs "Click_module=OtherCityLink_City=<cityName or "mapathonLink">"
+    // If a city link is clicked logs "Click_module=OtherCityLink_City=cityName"
+    // If a mapathon link is clicked logs "Click_module=mapathonLink"
     $(".otherCityLink").on("click", function(e){
         var cityName = e.currentTarget.id;
         if(cityName === "mapathonLink"){
