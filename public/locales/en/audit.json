@@ -75,6 +75,7 @@
         }
     },
     "mission-start": {
+        "distance-type": "feet",
         "title": "Explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
         "title-first": "First Mission: ",
         "title-return": "Return to your mission",

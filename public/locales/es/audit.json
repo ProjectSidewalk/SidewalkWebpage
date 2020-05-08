@@ -75,6 +75,7 @@
         }
     },
     "mission-start": {
+        "distance-type": "meters",
         "title": "Explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__",
         "title-first": "Primera misión: ",
         "title-return": "Vuelve a tu misión",
