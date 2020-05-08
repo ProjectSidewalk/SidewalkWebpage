@@ -218,22 +218,31 @@ ModalMission.prototype._distanceToString = function  (distance, unit) {
     else if (unit === "kilometers") distance = util.math.kilometersToMiles(distance);
 
     distance = distance.toPrecision(4);
+    var distanceType = i18next.t('mission-start.distance-type', 'meters');
 
-    if (distance === "0.0947") {
+    if (distance === "0.0947"){
+        if(distanceType === "meters") return Math.trunc(500 * 0.3048) + "m";
         return "500ft";
     } else if (distance === "0.1420") {
+        if(distanceType === "meters") return Math.trunc(750 * 0.3048) + "m";
         return "750ft";
     } else if (distance === "0.1894") {
+        if(distanceType === "meters") return Math.trunc(1000 * 0.3048) + "m";
         return "1000ft";
     } else if (distance === "0.2500") {
+        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
         return "&frac14;mi";
     } else if (distance === "0.3788") {
+        if(distanceType === "meters") return Math.trunc(2000 * 0.3048) + "m";
         return "2000ft";
     } else if (distance === "0.5000") {
+        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
         return "&frac12;mi";
     } else if (distance === "0.7500") {
+        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
         return "&frac34;mi";
     } else {
+        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
         return (util.math.milesToFeet(distance)).toFixed(0) + "ft";
     }
 };
