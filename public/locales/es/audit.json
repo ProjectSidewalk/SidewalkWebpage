@@ -1,4 +1,5 @@
 {
+    "measurement-system": "metric",
     "curb-ramp": "rampa peatonal",
     "missing-curb-ramp": "rampa peatonal ausente",
     "obstacle": "obstáculo",
@@ -75,7 +76,6 @@
         }
     },
     "mission-start": {
-        "distance-type": "meters",
         "title": "Explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__",
         "title-first": "Primera misión: ",
         "title-return": "Vuelve a tu misión",
@@ -87,7 +87,6 @@
     },
     "mission-complete": {
         "distance-type-display-string": "kilómetros",
-        "distance-type": "kilometers",
         "title": "¡Misión cumplida!",
         "button-start-validating": "Comienza a validar",
         "button-keep-exploring": "Seguir explorando",
@@ -108,7 +107,6 @@
         }
     },
     "right-ui": {
-        "distance-type": "kilometers",
         "current-mission": {
             "message-first-mission": "Camina __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
             "message": "Explora __PLACEHOLDER__ de esta colonia"

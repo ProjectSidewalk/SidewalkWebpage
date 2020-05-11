@@ -403,8 +403,11 @@ function Main (params) {
                     googleMarker.setMap(svl.map.getMap());
                 }
             });
-
-        var unit = {units: i18next.t('right-ui.distance-type', 'kilometers')};
+        
+        var measurementSystem = i18next.t('measurement-system');
+        var unit;
+        if(measurementSystem === "metric") unit = {units: "kilometers"};
+        else unit = {units: "miles"};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
     }

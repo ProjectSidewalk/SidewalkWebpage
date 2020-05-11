@@ -1,4 +1,5 @@
 {
+    "measurement-system": "metric",
     "curb-ramp": "curb ramp",
     "missing-curb-ramp": "missing curb ramp",
     "obstacle": "obstacle",
@@ -75,7 +76,6 @@
         }
     },
     "mission-start": {
-        "distance-type": "feet",
         "title": "Explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__",
         "title-first": "First Mission: ",
         "title-return": "Return to your mission",
@@ -86,8 +86,7 @@
         "turk-reward": "Reward on satisfactory completion: "
     },
     "mission-complete": {
-        "distance-type-display-string": "miles",
-        "distance-type": "miles",
+        "distance-type-display-string": "kilometers",
         "title": "Mission Complete!",
         "button-start-validating": "Start validating",
         "button-keep-exploring": "Keep exploring",
@@ -108,7 +107,6 @@
         }
     },
     "right-ui": {
-        "distance-type": "miles",
         "current-mission": {
             "message-first-mission": "Walk for __PLACEHOLDER__ and find all the sidewalk accessibility attributes",
             "message": "Explore __PLACEHOLDER__ of this neighborhood"

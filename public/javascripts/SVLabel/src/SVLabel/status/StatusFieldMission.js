@@ -29,6 +29,15 @@ function StatusFieldMission (modalModel, uiStatusField) {
 
         $missionDescription.html(missionMessage);
     };
+
+    /**
+     *  This method takes in an integer feet and converts it to meters, truncuating all decimals
+     *  @param feet to convert to meters
+     *  @return conversion as a String
+     */
+    this.convertToMetric = function(feet) {
+        return Math.trunc(feet * 0.3048) + "m";
+    };
 }
 
 StatusFieldMission.prototype._distanceToString = function (distance, unit) {
@@ -40,31 +49,31 @@ StatusFieldMission.prototype._distanceToString = function (distance, unit) {
     else if (unit === "kilometers") distance = util.math.kilometersToMiles(distance);
 
     distance = distance.toPrecision(4);
-    var distanceType = i18next.t('mission-start.distance-type', 'meters');
+    var distanceType = i18next.t('measurement-system');
 
     if (distance === "0.0947"){
-        if(distanceType === "meters") return Math.trunc(500 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(500);
         return "500ft";
     } else if (distance === "0.1420") {
-        if(distanceType === "meters") return Math.trunc(750 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(750);
         return "750ft";
     } else if (distance === "0.1894") {
-        if(distanceType === "meters") return Math.trunc(1000 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(1000);
         return "1000ft";
     } else if (distance === "0.2500") {
-        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(distance * 5280);
         return "&frac14;mi";
     } else if (distance === "0.3788") {
-        if(distanceType === "meters") return Math.trunc(2000 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(2000);
         return "2000ft";
     } else if (distance === "0.5000") {
-        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(distance * 5280);
         return "&frac12;mi";
     } else if (distance === "0.7500") {
-        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(distance * 5280);
         return "&frac34;mi";
     } else {
-        if(distanceType === "meters") return Math.trunc(distance * 5280 * 0.3048) + "m";
+        if(distanceType === "metric") return this.convertToMetric(distance * 5280);
         return (util.math.milesToFeet(distance)).toFixed(0) + "ft";
     }
 };
