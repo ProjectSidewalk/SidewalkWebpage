@@ -1,0 +1,20 @@
+{
+  "missing-sidewalks": "Missing Sidewalks",
+  "missing-ramps": "Missing Ramps",
+  "surface-problems": "Surface Problems",
+  "sidewalk-obstacles": "Sidewalk Obstacles",
+  "complete": "complete",
+  "left-ui-turk-submit-code": "Submit this code for HIT verification on Amazon Mechanical Turk",
+  "right-ui-turk-current-reward": "Current mission reward: ",
+  "right-ui-turk-total-reward": "Total earned reward: ",
+  "mission-complete-confirmation-code": "Confirmation Code: ",
+  "mission-start-turk-reward": "Reward on satisfactory completion: ",
+  "map": {
+    "miles-left": "Only {{n}}  miles left!",
+    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighborhood",
+    "thanks": "Thanks for all your help!",
+    "100-percent-complete": "100% Complete!",
+    "percent-complete": "{{percent}}% Complete",
+    "less-than-mile-left": "Less than a mile left!"
+  }
+}

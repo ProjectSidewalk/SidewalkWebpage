@@ -31,7 +31,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('map', "kotarohara.8e0c6890", {
+    var map = L.mapbox.map('map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
@@ -128,30 +128,28 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                     }
 
                     if (userCompleted) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
-                            "Thanks for all your help!";
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.100-percent-complete") + "<br>" +
+                            i18next.t("common:map.thanks");
                     } else if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to find accessibility issues in this neighborhood yourself!";
-                    }
-                    else if (milesLeft === 0) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else if (milesLeft === 1) {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.100-percent-complete") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else if (milesLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.less-than-mile-left") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else if (milesLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", {percent: compRate}) + "<br>" +
+                            i18next.t("common:map.miles-left", {n: milesLeft}) + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", {url: url, regionId: regionId});
+                    } else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
                     }
                     break;
                 }
@@ -398,8 +396,8 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     function initializeAuditCountChart (c3, map) {
         $.getJSON("/contribution/auditCounts", function (data) {
-            var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-                counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
+            var dates = ['Date'].concat(data[0].map(function (x) { return x.date; }));
+            var counts = [i18next.t("audit-count")].concat(data[0].map(function (x) { return x.count; }));
             var chart = c3.generate({
                 bindto: "#audit-count-chart",
                 data: {
@@ -413,7 +411,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                         tick: { format: '%Y-%m-%d' }
                     },
                     y: {
-                        label: "Street Audit Count",
+                        label: i18next.t("street-audit-count"),
                         min: 0,
                         padding: { top: 50, bottom: 10 }
                     }
@@ -522,7 +520,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 if (grouped[missionId][0]["completed"]) {
                     dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
                 } else {
-                    dateString = "In Progress";
+                    dateString = i18next.t("in-progress");
                 }
 
                 missionNumber++;

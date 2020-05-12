@@ -75,6 +75,7 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
     Akka.system.actorOf(RecalculateStreetPriorityActor.props, RecalculateStreetPriorityActor.Name)
     Akka.system.actorOf(ClusterLabelAttributesActor.props, ClusterLabelAttributesActor.Name)
     Akka.system.actorOf(UserStatActor.props, UserStatActor.Name)
+    Akka.system.actorOf(AuthTokenCleanerActor.props, AuthTokenCleanerActor.Name)
   }
 
   /**

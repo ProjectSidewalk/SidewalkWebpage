@@ -1552,8 +1552,8 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 // Set Compass Message
                 var uiCompassMessageHolder = compass.getCompassMessageHolder();
                 var image = "<img src='" + compass.directionToImagePath("straight") + "' class='compass-turn-images' alt='Turn icon' />";
-                var message =  "<span class='compass-message-small'>" + i18next.t('compass.unlabeled-problems') +
-                    "</span><br/>" + image + "<span class='bold'>" + i18next.t('compass.straight') + "</span>";
+                var message =  "<span class='compass-message-small'>" + i18next.t('center-ui.compass.unlabeled-problems') +
+                    "</span><br/>" + image + "<span class='bold'>" + i18next.t('center-ui.compass.straight') + "</span>";
                 uiCompassMessageHolder.message.html(message);
                 compass.showMessage();
                 return "walk-2";
@@ -1656,7 +1656,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 "maxLabelCount": 7
             },
             "message": {
-                "message": i18next.t('tutorial.walk-5'),
+                "message": i18next.t('tutorial.walk-5-1'),
                 "position": "top-right",
                 "width": 400,
                 "fade-direction": "fadeIn"
@@ -1685,7 +1685,7 @@ function OnboardingStates (compass, mapService, statusModel, tracker) {
                 }
 
             ],
-            okButtonText: "Yes! I see the missing curb ramps.",
+            okButtonText: i18next.t('tutorial.walk-5-2'),
             "transition": function () {
                 var completedRate = 38 / numStates;
                 statusModel.setMissionCompletionRate(completedRate);

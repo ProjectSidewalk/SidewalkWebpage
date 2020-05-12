@@ -243,7 +243,7 @@ function Main (params) {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'top',
-                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
                 });
             }
         });
@@ -255,7 +255,7 @@ function Main (params) {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'left',
-                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
                 });
             }
         });
@@ -646,12 +646,12 @@ function Main (params) {
     // Gets all the text on the audit page for the correct language.
     i18next.use(i18nextXHRBackend);
     i18next.init({
-        backend: { loadPath: 'assets/locales/{{lng}}/{{ns}}.json' },
+        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
-        ns: ['audit'],
+        ns: ['audit', 'common'],
         defaultNS: 'audit',
         lng: params.language,
-        debug: true
+        debug: false
     }, function(err, t) {
         if(params.init !== "noInit") {
             _initUI();

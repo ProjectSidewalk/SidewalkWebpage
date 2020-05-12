@@ -414,7 +414,7 @@ video#bgvid {
 .im-centered3 {
     position: relative;
     top: 0px;
-    margin: auto; max-width: 400px;
+    margin: auto; max-width: 340px;
     text-align: center;
     padding-top: 50px;
     font-family: raleway, sans-serif;
@@ -745,9 +745,13 @@ video#bgvid {
     height: 200px;
 }
 
+.column {
+    float: left;
+    width: 50%;
+    padding: 15px;
+}
 
-
-#press-container2 {
+#press-container2, #brought-to-you-by-container {
     position: relative;
     max-width: 900px;
     top: -20px;
@@ -1347,7 +1351,7 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 990px) {
+@media only screen and (max-width: 1250px) {
     .navbar-header {
         float: none;
     }

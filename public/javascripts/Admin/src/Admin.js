@@ -38,7 +38,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+    var map = L.mapbox.map('admin-map', "mapbox.streets", {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
@@ -46,7 +46,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('admin-choropleth', "kotarohara.8e0c6890", {
+    var choropleth = L.mapbox.map('admin-choropleth', "mapbox.light", {
         maxZoom: 19,
         minZoom: 9,
         legendControl: {
@@ -64,8 +64,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         choropleth.setZoom(data.default_zoom);
         initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
-
-    L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     // Initialize the map
     /**
@@ -221,30 +219,28 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     }
 
                     if (userCompleted) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" +
-                            "Thanks for all your help!";
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.100-percent-complete") + "<br>" +
+                            i18next.t("map.thanks");
                     } else if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to find accessibility issues in this neighborhood yourself!";
-                    }
-                    else if (milesLeft === 0) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else if (milesLeft === 1) {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else if (milesLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.less-than-mile-left") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else if (milesLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     }
                     break;
                 }
@@ -622,7 +618,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
             initializeNeighborhoodPolygons(map);
             initializeAuditedStreets(map);
-            initializeSubmittedLabels(map);
+            // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
+            setTimeout(function(){
+                initializeSubmittedLabels(map);
+            }, 1000);
             initializeAdminGSVLabelView();
             setTimeout(function () {
                 map.invalidateSize(false);

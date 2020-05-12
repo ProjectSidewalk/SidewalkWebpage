@@ -61,9 +61,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             browser_height: $(window).height(),
             screen_width: screen.width,
             screen_height: screen.height,
-            avail_width: screen.availWidth,		// total width - interface (taskbar)
-            avail_height: screen.availHeight,		// total height - interface };
-            operating_system: util.getOperatingSystem()
+            avail_width: screen.availWidth,              // total width - interface (taskbar)
+            avail_height: screen.availHeight,            // total height - interface };
+            operating_system: util.getOperatingSystem(),
+            language: i18next.language
         };
 
         data.interactions = tracker.getActions();

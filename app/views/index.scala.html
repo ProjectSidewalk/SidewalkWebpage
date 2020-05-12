@@ -31,13 +31,13 @@
                     <br>
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
-                    <span class="header-text">We are also in:</span>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "Mexico City, MX")) {
+                    <span class="header-text">@Messages("landing.also.in")</span>
+                    @for((cityName, cityURL) <- otherCityURLs) {
                         <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
-                        <span class="header-text">Live in @cityName? Stop by <a class="exploremaplink" href="@mapathonLink.get" target="_blank">a mapathon event in your area!</a></span>
+                        <span class="header-text">@Html(Messages("landing.mapathon", cityShortName, mapathonLink.get))</span>
                     }
                 </div>
                 <div class="col-sm-3"></div>
@@ -245,7 +245,7 @@
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
                 <br>
-                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")" >
+                <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
             </div>
 
 
@@ -256,7 +256,7 @@
     <div class="container" id="quotebox-container" style="min-height: 500px;">
         <div id="quotearea">
             <div class="im-centered3">
-                <div class="row">What people <br>are saying</div>
+                <div class="row">@Html(Messages("landing.what.people.are.saying"))</div>
             </div>
             <div class="row" style="padding-top: 40px;">
                 <div class="col-sm-6">
@@ -278,9 +278,31 @@
             </div>
         </div>
     </div>
+
+    <div class= "container" id="brought-to-you-container">
+        <div class="row" style=" padding-bottom: 10px;
+        width: 100%;
+        text-align: center;
+        display: inline-block;
+        vertical-align: middle;
+        "> 
+            <div class="im-centered3" style = "font-size: 40px; margin-bottom: 20px;">
+                <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
+            </div>
+
+            <div class="column">
+                <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' height="220" alt='Makeability_Logo'>
+            </div>
+
+            <div class="column">
+                <img src='@routes.Assets.at("assets/LigaLogo.png")' height="220" alt='LIGA_Logo'>
+            </div>
+        </div>
+    </div>
+
     <div class="container" id="press-container">
         <div class="im-centered3">
-            <div class="row" ><br>@Messages("landing.press.title")<br></div>
+            <div class="row"><br>@Messages("landing.press.title")<br></div>
         </div>
 
     </div>
@@ -341,13 +363,26 @@
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
 
 <script>
-        $(document).ready(function () {
+    $(document).ready(function () {
+        // Gets all translations before loading the choropleth.
+        i18next.use(i18nextXHRBackend);
+        i18next.init({
+            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+            fallbackLng: 'en',
+            ns: ['common'],
+            defaultNS: 'common',
+            lng: "@lang.language",
+            debug: false
+        }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             window.choropleth = Choropleth(_, $, difficultRegionIds);
         });
+    });
 </script>
 }
