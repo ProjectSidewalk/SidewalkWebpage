@@ -208,8 +208,8 @@ object StreetEdgeTable {
   def auditedStreetDistanceToday(): Float = db.withSession { implicit session =>
     val getDistanceQuery = Q.queryNA[Float](
       """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
-        |FROM sidewalk.street_edge
-        |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |FROM street_edge
+        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
         |     AND street_edge.deleted = FALSE
         |     AND audit_task.completed = TRUE""".stripMargin
@@ -225,8 +225,8 @@ object StreetEdgeTable {
   def auditedStreetDistanceYesterday(): Float = db.withSession { implicit session =>
     val getDistanceQuery = Q.queryNA[Float](
         """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
-            |FROM sidewalk.street_edge
-            |INNER JOIN sidewalk.audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+            |FROM street_edge
+            |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
             |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
             |     AND street_edge.deleted = FALSE
             |     AND audit_task.completed = TRUE""".stripMargin
