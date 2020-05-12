@@ -17,24 +17,13 @@ function StatusField(param) {
         let progress = currentMission.getProperty('labelsProgress');
         let total = currentMission.getProperty('labelsValidated');
         let completionRate = progress / total;
-        updateLabelCounts(progress);
+        refreshLabelCountsDisplay();
         updateMissionDescription(total);
         setProgressText(completionRate);
         setProgressBar(completionRate);
     }
 
     /**
-     * Updates the number of labels the user has validated in all time.
-     * @param count {int} Number of labels the user has validated in all time.
-     */
-    function updateLabelCounts(count) {
-        svv.ui.status.labelCount.html(count);
-    }
-
-    /**
-     * Author: Aroosh Kumar
-     * Date: 5/2/2020
-     * 
      * Increments the number of labels the user has validated in all time and 
      * refreshes the number count displayed to the user.
      */
@@ -45,15 +34,12 @@ function StatusField(param) {
     }
 
     /**
-     * Author: Aroosh Kumar
-     * Date: 5/2/2020
-     * 
      * Refreshes the number count displayed to the user to reflect the completedValidations
      * value stored.
      */
 
     function refreshLabelCountsDisplay(){
-        updateLabelCounts(completedValidations);
+        svv.ui.status.labelCount.html(completedValidations);
     }
 
     /**
@@ -117,7 +103,6 @@ function StatusField(param) {
 
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
-    self.updateLabelCounts = updateLabelCounts;
     self.updateLabelText = updateLabelText;
     self.updateMissionDescription = updateMissionDescription;
     self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
