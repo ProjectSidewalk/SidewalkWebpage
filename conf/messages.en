@@ -171,6 +171,7 @@ mobile.validate.leave.feedback = Leave Feedback
 turk.expired.title = Assignment Expired!
 turk.expired.body = You should receive your bonus amount in the next day or two. If you completed the HIT but did not submit your confirmation code on the mturk website, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
 turk.submit.code = Submit this code for HIT verification on Amazon Mechanical Turk
+turk.mturk.code = Mturk Code
 
 authenticate.email = Email address
 authenticate.password = Password

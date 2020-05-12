@@ -81,7 +81,7 @@ function ModalMission (uiModalMission, user) {
         if (!isMobile()) {
             if (user.getProperty("role") === "Turker") {
                 let missionReward = mission.getProperty("pay");
-                let missionRewardText = 'Reward on satisfactory completion: <span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+                let missionRewardText = i18next.t('common:mission-start-turk-reward') + '<span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
                 missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
                 svv.ui.status.currentMissionReward.html(i18next.t('common:right-ui-turk-current-reward') + "<span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
                 uiModalMission.rewardText.html(missionRewardText);
