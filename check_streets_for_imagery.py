@@ -12,6 +12,7 @@ def write_output():
     print # Adds newline after the progress percentage.
     # Convert street_edge_id column from float to int.
     streets_with_no_imagery.street_edge_id = streets_with_no_imagery.street_edge_id.astype('int32')
+    streets_with_no_imagery.region_id = streets_with_no_imagery.region_id.astype('int32')
 
     # Output both_endpoints_data and one_endpoint_data as CSVs.
     streets_with_no_imagery.to_csv('streets_with_no_imagery.csv', mode='a', header=incl_headers, index=False)
@@ -33,7 +34,7 @@ if __name__ == '__main__':
     n_streets = max(street_data.street_edge_id)
 
     # Create dataframe that will hold output data.
-    streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id'])
+    streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id', 'region_id'])
 
     # Get current progress and remove data we've already checked.
     incl_headers = True
@@ -64,6 +65,6 @@ if __name__ == '__main__':
 
         # If there is no GSV data at either endpoint, add to streets_with_no_imagery.
         if first_endpoint_status == 'ZERO_RESULTS' or second_endpoint_status == 'ZERO_RESULTS':
-            streets_with_no_imagery = streets_with_no_imagery.append({'street_edge_id': street.street_edge_id}, ignore_index=True)
+            streets_with_no_imagery = streets_with_no_imagery.append({'street_edge_id': street.street_edge_id, 'region_id': street.region_id}, ignore_index=True)
 
     write_output()
