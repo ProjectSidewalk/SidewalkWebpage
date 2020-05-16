@@ -30,8 +30,9 @@ if __name__ == '__main__':
 
     # Read street edge data from CSV.
     street_data = pd.read_csv('street_edge_endpoints.csv')
-    street_data = street_data.sort_values('street_edge_id')
-    n_streets = max(street_data.street_edge_id)
+    street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
+    n_streets = len(street_data)
+    street_data['id'] = range(1, n_streets + 1)
 
     # Create dataframe that will hold output data.
     streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id', 'region_id'])
@@ -40,17 +41,19 @@ if __name__ == '__main__':
     incl_headers = True
     if os.path.isfile('streets_with_no_imagery.csv'):
         no_imagery_progress_data = pd.read_csv('streets_with_no_imagery.csv')
-        progress = max(no_imagery_progress_data.street_edge_id)
-        street_data = street_data[street_data.street_edge_id > progress]
+        progress = no_imagery_progress_data.iloc[-1]['street_edge_id']
+        progress_index = int(street_data[street_data.street_edge_id == progress]['id'])
+        street_data = street_data[street_data.id > progress_index]
         incl_headers = False
 
+    street_data = street_data.set_index('id')
     for index, street in street_data.iterrows():
         # Print a progress percentage.
-        percent_complete = 100 * round(float(street.street_edge_id + 1) / n_streets, 3)
-        sys.stdout.write("\r%.1f%% complete" % percent_complete)
+        percent_complete = 100 * round(float(index) / n_streets, 4)
+        sys.stdout.write("\r%.2f%% complete" % percent_complete)
         sys.stdout.flush()
 
-        # Check if there is imagery at each endpoint
+        # Check if there is imagery at each endpoint.
         gsv_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&radius=25&key=' + api_key
         try:
             first_endpoint = requests.get(gsv_url + '&location=' + str(street.y1) + ',' + str(street.x1))
