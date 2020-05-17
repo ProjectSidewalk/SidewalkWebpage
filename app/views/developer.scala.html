@@ -65,9 +65,7 @@
                                 <dt>Required:</dt>
                                 <dd>You need to pass a pair of latlng coordinates to define a bounding
                                     box, which is used to specify where you want to query the data from.
-                                    Optionally, you can pass a specific severity to look for. Severity
-                                    can be an integer value from 1-5 or "none" to represent data without
-                                    a severity rating.</dd>
+                                    </dd>
                             </dl>
                             <ul>
                                 <li>
@@ -82,8 +80,22 @@
                                 <li>
                                     <code>lng2=[double]</code><br />
                                 </li>
+                            </ul>
+                            <dl>
+                                <dt>Optional:</dt>
+                                <dd>You can pass a specific severity to look for and/or a specific filetype
+                                    for the returned dataset. Severity can be an integer value from 1-5 or
+                                    "none" to represent data without a severity rating.You can pass a 
+                                    filetype that can be a string "csv" to represent data returned in
+                                    CSV format or "geojson" for the GeoJSON format. The GeoJSON format
+                                    is returned by default.</dd>
+                            </dl>
+                            <ul>
                                 <li>
                                     <code>severity=[int|string]</code><br />
+                                </li>
+                                <li>
+                                    <code>filetype=csv|geojson</code><br />
                                 </li>
                             </ul>
                         </td>
@@ -107,13 +119,16 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Example</th>
+                        <th>Examples</th>
                         <td>
                             <a id="attributes-link" target="_blank" href=''>
                                 <code id="attributes-code"></code>
                             </a><br>
                             <a id="attributes-with-labels-link" target="_blank" href=''>
                                 <code id="attributes-with-labels-code"></code>
+                            </a><br>
+                            <a id="attributes-link-CSV" target="_blank" href=''>
+                                <code id="attributes-code-CSV"></code>
                             </a>
                         </td>
                     </tr>
@@ -167,6 +182,17 @@
                                     <code>lng2=[double]</code><br />
                                 </li>
                             </ul>
+                            <dl>
+                                <dt>Optional:</dt>
+                                <dd>You can pass a filetype that can be a string "csv" to represent data
+                                    returned in CSV format or "geojson" for the GeoJSON format. The GeoJSON
+                                    format is returned by default.</dd>
+                            </dl>
+                            <ul>
+                                <li>
+                                    <code>filetype=csv|geojson</code><br />
+                                </li>
+                            </ul>
                         </td>
                     </tr>
                     <tr>
@@ -183,10 +209,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Example</th>
+                        <th>Examples</th>
                         <td>
                             <a id="streets-link" target="_blank">
                                 <code id="streets-code"></code>
+                            </a><br>
+                            <a id="streets-link-CSV" target="_blank">
+                                <code id="streets-code-CSV"></code>
                             </a>
                         </td>
                     </tr>
@@ -223,8 +252,8 @@
                         <td>
                             <dl>
                                 <dt>Required:</dt>
-                                <dd>You need to pass a pair of latlng coordinates to define a bounding
-                                    box, which is used to specify where you want to query the data from.</dd>
+                                <dd>You can pass a filetype that can be a string "csv" to represent data
+                                    returned in CSV format instead of the GeoJSON format returned by default.</dd>
                             </dl>
                             <ul>
                                 <li>
@@ -238,6 +267,17 @@
                                 </li>
                                 <li>
                                     <code>lng2=[double]</code><br />
+                                </li>
+                            </ul>
+                            <dl>
+                                <dt>Optional:</dt>
+                                <dd>You can pass a filetype that can be a string "csv" to represent data
+                                    returned in CSV format or "geojson" for the GeoJSON format. The GeoJSON
+                                    format is returned by default.</dd>
+                            </dl>
+                            <ul>
+                                <li>
+                                    <code>filetype=csv|geojson</code><br />
                                 </li>
                             </ul>
                         </td>
@@ -256,10 +296,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Example</th>
+                        <th>Examples</th>
                         <td>
                             <a id="regions-link" target="_blank">
                                 <code id="regions-code"></code>
+                            </a><br>
+                            <a id="regions-link-CSV" target="_blank">
+                                <code id="regions-code-CSV"></code>
                             </a>
                         </td>
                     </tr>

@@ -646,7 +646,7 @@ function Main (params) {
     // Gets all the text on the audit page for the correct language.
     i18next.use(i18nextXHRBackend);
     i18next.init({
-        backend: { loadPath: 'assets/locales/{{lng}}/{{ns}}.json' },
+        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
         ns: ['audit', 'common'],
         defaultNS: 'audit',

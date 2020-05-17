@@ -62,20 +62,20 @@ class SignUpController @Inject() (
         UserTable.find(data.username) match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
-            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Username already exists")))
+            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
           case None =>
 
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
                 WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
-                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Email already exists")))
+                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
               case None =>
                 // Check if passwords match and are at least 6 characters.
                 if (data.password != data.passwordConfirm) {
-                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Passwords do not match")))
+                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.password.mismatch")))
                 } else if (data.password.length < 6) {
-                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("Password must be at least 6 characters")))
+                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.password.length")))
                 } else {
                   val authInfo = passwordHasher.hash(data.password)
                   val user = User(
@@ -129,14 +129,14 @@ class SignUpController @Inject() (
         UserTable.find(data.username) match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
-            Future.successful(Status(409)("Username already exists"))
+            Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
           case None =>
 
             // Check presence of user by email
             UserTable.findEmail(data.email) match {
               case Some(user) =>
                 WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
-                Future.successful(Status(409)("Email already exists"))
+                Future.successful(Status(409)(Messages("authenticate.error.email.exists")))
               case None =>
                 val loginInfo = LoginInfo(CredentialsProvider.ID, data.email)
                 val authInfo = passwordHasher.hash(data.password)
