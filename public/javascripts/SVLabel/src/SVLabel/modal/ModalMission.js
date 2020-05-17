@@ -167,7 +167,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
         // Update the reward HTML if the user is a turker.
         if (_userModel.getUser().getProperty("role") === "Turker") {
             var missionReward = mission.getProperty("pay");
-            var missionRewardText = i18next.t('mission-start.turk-reward') + '<span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
+            var missionRewardText = i18next.t('common:mission-start-turk-reward') + '<span class="bold" style="color: forestgreen;">$__REWARD_PLACEHOLDER__</span>';
             missionRewardText = missionRewardText.replace("__REWARD_PLACEHOLDER__", missionReward.toFixed(2));
             svl.ui.status.currentMissionReward.html(i18next.t('common:right-ui-turk-current-reward') + "<span style='color:forestgreen'>$" + missionReward.toFixed(2)) + "</span>";
             uiModalMission.rewardText.html(missionRewardText);

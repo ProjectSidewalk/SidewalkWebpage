@@ -120,7 +120,7 @@
     "title": "Valida {{n}} etiquetas de {{label_type}}",
     "body": "¡Tu misión es determinar la exactitud de  __LABELCOUNT_PLACEHOLDER__ etiquetas de __LABELTYPE_PLACEHOLDER__</span> colocadas por otras personas usuarias!"
   },
-  "mission-compmlete": {
+  "mission-complete": {
     "title": "¡Gran trabajo!",
     "body-1": "¡Acabas de validar {{n}} etiquetas de Rampas Peatonales!",
     "body-2": "Acabas de validar {{n}} etiquetas de Rampas Peatonales Ausentes!",
