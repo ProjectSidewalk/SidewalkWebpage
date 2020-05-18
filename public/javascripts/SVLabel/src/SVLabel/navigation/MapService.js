@@ -864,13 +864,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         svl.tracker.push("NeighborhoodComplete_ByUser", {'RegionId': currentNeighborhoodId});
     }
 
-    function finishCurrentTaskBeforeJumping(mission) {
+    function finishCurrentTaskBeforeJumping(mission, nextTask) {
         if (mission === undefined) {
             mission = missionJump;
         }
         // Finish the current task
         var currentTask = svl.taskContainer.getCurrentTask();
-        svl.taskContainer.endTask(currentTask);
+        svl.taskContainer.endTask(currentTask, nextTask);
         mission.pushATaskToTheRoute(currentTask);
     }
 
@@ -902,8 +902,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 } catch (err) {}
             }
             else {
-                finishCurrentTaskBeforeJumping(missionJump);
-
+                finishCurrentTaskBeforeJumping(missionJump, nextTask); 
+                
                 // Move to the new task if the neighborhood has not finished
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);
@@ -1019,8 +1019,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             if ("compass" in svl) {
                 svl.compass.update();
             }
-            svl.missionModel.updateMissionProgress(currentMission, neighborhood);
-
             if ("taskContainer" in svl) {
                 svl.taskContainer.update();
 
@@ -1030,6 +1028,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     _endTheCurrentTask(task, currentMission, neighborhood);
                 }
             }
+            svl.missionModel.updateMissionProgress(currentMission, neighborhood);
         }
 
         // Set the heading angle when the user is dropped to the new position
