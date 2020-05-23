@@ -12,7 +12,7 @@
     }
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
         <legend>@Messages("authenticate.signup.new.account")</legend>
-        @helper.form(action = routes.SignUpController.signUp(url)) {
+        @helper.form(action = routes.SignUpController.signUp(Some(url))) {
             @text(signInForm("username"), Messages("authenticate.username"), icon = "person")
             @text(signInForm("email"), Messages("authenticate.email"), icon = "at")
             @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
