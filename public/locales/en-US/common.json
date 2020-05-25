@@ -1,0 +1,6 @@
+{
+    "map": {
+        "distance-left": "Only {{n}}  miles left!",
+        "less-than-one-unit-left": "Less than a mile left!"
+    }
+}

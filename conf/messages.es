@@ -1,3 +1,4 @@
+measurement.system = metric
 curb.ramp = Rampa peatonal
 missing.ramp = Rampa peatonal ausente
 obstacle = Obstáculo en la banqueta
@@ -42,7 +43,7 @@ landing.choropleth.legend = Porcentaje de la colonia completa
 landing.stats.title = Tu trabajo está haciendo la diferencia
 landing.stats.content.unfinished = Personas usuarias como tú ya han mapeado {0} millas de {1}, {2}—¡eso es el {3}% de la ciudad!
 landing.stats.percent = de {0} mapeado
-landing.stats.distance = millas cubiertos
+landing.stats.distance = kilómetros cubiertos
 landing.stats.labels = etiquetas
 landing.stats.validations = validaciones
 landing.ml.title = Qué hacemos con tus etiquetas

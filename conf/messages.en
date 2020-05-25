@@ -1,3 +1,4 @@
+measurement.system = metric
 curb.ramp = Curb Ramp
 missing.ramp = Missing Curb Ramp
 obstacle = Obstacle in Path
@@ -43,7 +44,7 @@ landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
 landing.stats.content.unfinished = Users like you have already mapped {0} miles of {1}, {2}—that''s {3}% of the city!
 landing.stats.percent = of {0} mapped
-landing.stats.distance = miles covered
+landing.stats.distance = kilometers covered
 landing.stats.labels = labels
 landing.stats.validations = validations
 landing.ml.title = What we do with your labels

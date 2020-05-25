@@ -8,11 +8,11 @@
   "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
   "right-ui-turk-total-reward": "Recompensa total ganada: ",
   "map": {
-    "miles-left": "Sólo faltan {{n}} millas!",
+    "distance-left": "Sólo faltan {{n}}  kilómetros!",
     "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar esta colonia!",
     "thanks": "¡Gracias por tu ayuda!",
     "100-percent-complete": "¡100% Completa!",
     "percent-complete": "{{percent}}% Completa",
-    "less-than-mile-left": "¡Queda menos de una milla!"
+    "less-than-one-unit-left": "¡Queda menos de un kilómetro!"
   }
 }

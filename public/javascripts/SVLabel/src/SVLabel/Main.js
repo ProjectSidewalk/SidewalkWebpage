@@ -645,7 +645,6 @@ function Main (params) {
         svl.ui.onboarding.canvas = $("#onboarding-canvas");
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
-
     // Gets all the text on the audit page for the correct language.
     i18next.use(i18nextXHRBackend);
     i18next.init({

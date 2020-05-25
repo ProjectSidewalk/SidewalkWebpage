@@ -3,7 +3,7 @@
 @import models.label._
 @import models.street.StreetEdgeTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String)])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityName: String, stateAbbreviation: String, cityShortName: String, mapathonLink: Option[String], cityId: String, otherCityURLs: List[(String, String)], auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user)
@@ -229,10 +229,9 @@
                     } else {
                         document.getElementById('conditional-text').innerHTML = "We did it! Users like you have mapped all @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1))) miles of @cityName, @stateAbbreviation. However, we are not done. The more users who contribute, the better quality data. So start exploring today!";
                     }
-
                     var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
                     var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
-                    var milesAnim = new CountUp("nummiles", 0, @("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))),1,2.5,{suffix:''});
+                    var milesAnim = new CountUp("nummiles", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
                     var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
             </script>
         </div>
@@ -377,7 +376,7 @@
             fallbackLng: 'en',
             ns: ['common'],
             defaultNS: 'common',
-            lng: "@lang.language",
+            lng: "@lang.code",
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);

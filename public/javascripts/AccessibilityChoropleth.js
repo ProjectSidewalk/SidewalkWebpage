@@ -114,8 +114,12 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             var popupContent = "";
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
-                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    distanceLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
+                    // if distance is in metric instead of IS.
+                    if(measurementSystem === "metric") distanceLeft *= 1.60934;
+                    distanceLeft = Math.round(distanceLeft);
 
                     var advancedMessage = '';
                     if(difficultRegionIds.includes(feature.properties.region_id)) {
@@ -130,20 +134,20 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 0) {
+                    } else if (distanceLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.less-than-mile-left") + "<br>" + advancedMessage +
+                            i18next.t("map.less-than-one-unit-left") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 1) {
+                    } else if (distanceLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     } else {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     }
 
