@@ -12,6 +12,22 @@
     justify-content: space-between;
 }
 
+.validation-comment-box {
+    height: 60px;
+    width: 726px;
+    background-color: "#F5F5F5";
+    margin-top: 5px;
+    color: black;
+    border-radius: 5px;
+    margin-left: -3px;
+    padding: 5px;
+    line-height: normal;
+    border-width: 2px;
+    border-color: grey;
+    resize: none;    
+    outline: none;
+}
+
 /* Put buttons here */
 .validation-button-large {
     height: 70px;

@@ -4,7 +4,8 @@ function Keyboard(menuUI) {
     let status = {
         disableKeyboard: false,
         keyPressed: false,
-        shiftDown: false
+        shiftDown: false,
+        addingComment: true
     };
 
     function disableKeyboard () {
@@ -47,7 +48,8 @@ function Keyboard(menuUI) {
     }
 
     this._documentKeyDown = function (e) {
-        if (!status.disableKeyboard && !status.keyPressed) {
+        status.addingComment = document.getElementById('validation-label-comment').value !== "";
+        if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.keyCode) {
@@ -111,7 +113,7 @@ function Keyboard(menuUI) {
     };
 
     this._documentKeyUp = function (e) {
-        if (!status.disableKeyboard) {
+        if (!status.disableKeyboard && !status.addingComment) {
             switch (e.keyCode) {
                 // "a" key
                 case 65:

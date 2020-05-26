@@ -38,10 +38,13 @@ function MenuButton(id) {
         self.agreeButton.removeClass("validate");
         self.disagreeButton.removeClass("validate");
         self.notSureButton.removeClass("validate");
+        let comment = '';
+        if(document.getElementById('validation-label-comment').value !== '') comment = document.getElementById('validation-label-comment').value
+        document.getElementById('validation-label-comment').value = ''
 
         // If enough time has passed between validations, log validations
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
-            svv.panoramaContainer.validateLabelFromPano(id, action, timestamp);
+            svv.panoramaContainer.validateLabelFromPano(id, action, timestamp, comment);
         }
     }
 
