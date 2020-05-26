@@ -253,6 +253,7 @@ function Label(params) {
         setProperty("isMobile", isMobile());
 
         if(comment) {
+            svv.tracker.push("ValidationTextField_DataEntered");
             let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov, zoom);
             submitComment(data);
         }
