@@ -64,14 +64,16 @@ class SignUpController @Inject() (
         UserTable.find(data.username) match {
           case Some(user) =>
             WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
-            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
+//            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
+            Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
           case None =>
 
             // Check presence of user by email.
             UserTable.findEmail(data.email) match {
               case Some(user) =>
                 WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
-                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
+//                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
+                Future.successful(Status(409)(Messages("authenticate.error.email.exists")))
               case None =>
                 // Check if passwords match and are at least 6 characters.
                 if (data.password != data.passwordConfirm) {
