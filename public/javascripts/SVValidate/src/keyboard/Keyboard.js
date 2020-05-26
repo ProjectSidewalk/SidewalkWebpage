@@ -5,7 +5,7 @@ function Keyboard(menuUI) {
         disableKeyboard: false,
         keyPressed: false,
         shiftDown: false,
-        addingComment: true
+        addingComment: false
     };
 
     function disableKeyboard () {
@@ -16,12 +16,17 @@ function Keyboard(menuUI) {
         status.disableKeyboard = false;
     }
 
+    function textAreaSelected() {
+        let selected = document.getElementById("validation-label-comment");
+        document.activeElement === selected ?  status.addingComment = true : status.addingComment = false;
+    }
+
     /**
      * Validate a single label using keyboard shortcuts.
      * @param button    jQuery element for the button clicked.
      * @param action    {String} Validation action. Must be either agree, disagree, or not sure.
      */
-    function validateLabel (button, action) {
+    function validateLabel (button, action, comment) {
         // Want at least 800ms in-between to allow GSV Panorama to load. (Value determined
         // experimentally).
 
@@ -31,7 +36,7 @@ function Keyboard(menuUI) {
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);
-            svv.panorama.getCurrentLabel().validate(action, svv.panorama);
+            svv.panorama.getCurrentLabel().validate(action, svv.panorama, comment);
             svv.panorama.setProperty('validationTimestamp', timestamp);
             status.keyPressed = true;
         }
@@ -48,7 +53,8 @@ function Keyboard(menuUI) {
     }
 
     this._documentKeyDown = function (e) {
-        status.addingComment = document.getElementById('validation-label-comment').value !== "";
+        textAreaSelected();
+        let comment = document.getElementById('validation-label-comment').value;
         if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
@@ -61,13 +67,13 @@ function Keyboard(menuUI) {
                     break;
                 // "a" key
                 case 65:
-                    validateLabel(menuUI.agreeButton, "Agree");
+                    validateLabel(menuUI.agreeButton, "Agree", comment);
                     menuUI.disagreeButton.removeClass("validate");
                     menuUI.notSureButton.removeClass("validate");
                     break;
                 // "d" key
                 case 68:
-                    validateLabel(menuUI.disagreeButton, "Disagree");
+                    validateLabel(menuUI.disagreeButton, "Disagree", comment);
                     menuUI.agreeButton.removeClass("validate");
                     menuUI.notSureButton.removeClass("validate");
                     break;
@@ -87,7 +93,7 @@ function Keyboard(menuUI) {
                     break;
                 // "n" key
                 case 78:
-                    validateLabel(menuUI.notSureButton, "NotSure");
+                    validateLabel(menuUI.notSureButton, "NotSure", comment);
                     menuUI.agreeButton.removeClass("validate");
                     menuUI.disagreeButton.removeClass("validate");
                     break;
@@ -108,7 +114,7 @@ function Keyboard(menuUI) {
                         });
                     }
                     break;
-            }
+            }   
         }
     };
 
