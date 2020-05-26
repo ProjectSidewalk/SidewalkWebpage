@@ -284,7 +284,8 @@ $(document).ready(function () {
                     <div id="incorrect-signup-alert"></div>
                     <div id="invalid-signup-alert"></div>
 
-                    @helper.form(action = routes.SignUpController.signUp(url.getOrElse("/")), args ='id -> "sign-up-form") {
+                    <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
+                    <form action="javascript:void(0);" id="sign-up-form">
                     @text(forms.SignUpForm.form("username"), Messages("authenticate.username"), icon = "person")
                     @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
                     @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
@@ -297,7 +298,7 @@ $(document).ready(function () {
                             <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>@Messages("authenticate.signup")</button>
                         </div>
                     </div>
-                }
+                    </form>
                 </div>
                 <div class="modal-footer">
                     <div>@Html(Messages("authenticate.has.account"))</div>
@@ -399,7 +400,7 @@ $(document).ready(function () {
                 }
             }
 
-            // Handles sign-in event and refresh the webpage.
+            // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
             $('#sign-in-form').submit(function () {
                 var formData = $('#sign-in-form :input');
                 var email = formData[0].value;
@@ -433,6 +434,7 @@ $(document).ready(function () {
                 });
             });
 
+            // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
             $('#sign-up-form').submit(function () {
                 var formData = $('#sign-up-form :input');
                 var username = formData[0].value;
@@ -440,17 +442,15 @@ $(document).ready(function () {
                 var password = formData[2].value;
 		var passwordConfirm = formData[3].value;
 
+                // If not a valid username/email/password, do not submit form.
                 if(!username){
                     invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.username")");
                     return false;
                 }
-
-                //if not a valid email address, do not submit form
                 if(!email){
                     invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.email")");
                     return false;
                 }
-
                 if(!password){
                     invalidSignInUpAlert(false, "@Messages("authenticate.error.missing.password")");
                     return false;
@@ -468,7 +468,7 @@ $(document).ready(function () {
 
                 var data = $(this).serialize();
 
-                var url = '/authapi/signup';
+                var url = '/signUp';
                 $.post(url, data, handleSignIn).fail(function(e){
                     var errorMessage = "";
                     if(e.status === 409){

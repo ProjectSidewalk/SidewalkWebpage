@@ -2,7 +2,7 @@
 @(title: String, user: Option[User] = None, cityShortName: String)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/demo"))
     <div id="map-holder">
         <div id="map"></div>
         <div id="map-legend" class="map-text-box">
