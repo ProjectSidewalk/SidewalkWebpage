@@ -4,7 +4,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/results"))
     <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
 
     <!--
@@ -37,7 +37,7 @@
         position: relative;">
         <div id="map-holder">
             <div id="legend" style="display:none;">
-                <strong style="font-size: 18px">Sidewalk Problems per Mile</strong>
+                <strong style="font-size: 18px">@Messages("results.problems.per.mile")</strong>
                 <nav class='legend clearfix'>
                     <span style='background:#99000a;'></span>
                     <span style='background:#b3000c;'></span>
@@ -49,7 +49,7 @@
                     <span style='background:#ff6670;'></span>
                     <span style='background:#ff8088;'></span>
                     <span style='background:#ff99a0;'></span>
-                    <label style='font-size: 14px; text-align: right;'>High</label>
+                    <label style='font-size: 14px; text-align: right;'>@Messages("results.legend.high")</label>
                     <label></label>
                     <label></label>
                     <label></label>
@@ -58,19 +58,17 @@
                     <label></label>
                     <label></label>
                     <label></label>
-                    <label style='font-size: 14px;'>Low</label>
+                    <label style='font-size: 14px;'>@Messages("results.legend.low")</label>
                 </nav>
                 <div>
-                    <p style="font-size: 11px;margin-top: 7px;line-height: 14px;">Gray neighborhoods lack sufficient data to assess sidewalk problems.
-                        Click on any neighborhood to start contributing.
-                        Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!</div>
+                    <p style="font-size: 11px;margin-top: 7px;line-height: 14px;">@Messages("results.legend.body")</div>
             </div>
             <div id="choropleth"></div>
             <div id="loadingChoropleth">
                 <img src='/assets/images/loader.gif' alt='loading' />
             </div>
             <div>
-                <a id="reset-button" href="javascript:null"> Reset View </a>
+                <a id="reset-button" href="javascript:null"> @Messages("results.reset.view") </a>
             </div>
         </div>
     </div>
@@ -80,15 +78,28 @@
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/AccessibilityChoropleth.js")'></script>
 
 
 <script>
-        $(document).ready(function () {
+    $(document).ready(function () {
+        // Gets all translations before loading the choropleth.
+        i18next.use(i18nextXHRBackend);
+        i18next.init({
+            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+            fallbackLng: 'en',
+            ns: ['common'],
+            defaultNS: 'common',
+            lng: "@lang.language",
+            debug: false
+        }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             window.choropleth = AccessibilityChoropleth(_, $, turf, difficultRegionIds);
         });
+    });
 </script>
 }

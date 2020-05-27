@@ -15,7 +15,7 @@ import com.mohiva.play.silhouette.impl.services._
 import com.mohiva.play.silhouette.impl.util._
 import models.daos._
 import models.daos.slick._
-import models.services.{ UserService, UserServiceImpl }
+import models.services.{ UserService, UserServiceImpl, AuthTokenService, AuthTokenServiceImpl }
 import models.user.User
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Play
@@ -33,8 +33,9 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   def configure() {
     bind[UserService].to[UserServiceImpl]
-    //bind[UserDAO].to[UserDAOImpl]
     bind[UserDAO].to[UserDAOSlick]
+    bind[AuthTokenService].to[AuthTokenServiceImpl]
+    bind[AuthTokenDAO].to[AuthTokenDAOSlick]
     bind[DelegableAuthInfoDAO[PasswordInfo]].to[PasswordInfoDAOSlick]
     bind[CacheLayer].to[PlayCacheLayer]
     bind[HTTPLayer].to[PlayHTTPLayer]
@@ -100,6 +101,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
 
     new DelegableAuthInfoService(passwordInfoDAO)
   }
+
   /**
    * Provides the avatar service.
    *

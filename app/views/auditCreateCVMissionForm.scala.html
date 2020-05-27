@@ -2,7 +2,7 @@
 @(title: String, user: Option[User] = None)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/audit/groundtruth"))
     <script>
             /**
              * After user provides list of panoIds and clicks submit, this method checks that the provided panoIds are valid
