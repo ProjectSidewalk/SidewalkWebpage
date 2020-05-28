@@ -16,6 +16,7 @@ function Keyboard(menuUI) {
         status.disableKeyboard = false;
     }
 
+    // Returns true if the user is currently typing in the validation comment text field, false otherwise.
     function textAreaSelected() {
         let selected = document.getElementById("validation-label-comment");
         document.activeElement === selected ?  status.addingComment = true : status.addingComment = false;
@@ -53,6 +54,8 @@ function Keyboard(menuUI) {
     }
 
     this._documentKeyDown = function (e) {
+        // When the user is typing in the validation comment text field, temporarily disable keyboard
+        // shortcuts that can be used to validate a label.
         textAreaSelected();
         let comment = document.getElementById('validation-label-comment').value;
         if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
@@ -137,7 +140,7 @@ function Keyboard(menuUI) {
                     status.keyPressed = false;
                     break;
             }
-         }
+        }
     };
 
     $(document).bind('keyup', this._documentKeyUp);
