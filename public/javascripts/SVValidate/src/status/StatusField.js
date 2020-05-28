@@ -24,20 +24,16 @@ function StatusField(param) {
     }
 
     /**
-     * Increments the number of labels the user has validated in all time and 
-     * refreshes the number count displayed to the user.
+     * Increments the number of labels the user has validated.
      */
-
     function incrementLabelCounts(){
         completedValidations++;
         refreshLabelCountsDisplay();
     }
 
     /**
-     * Refreshes the number count displayed to the user to reflect the completedValidations
-     * value stored.
+     * Refreshes the number count displayed.
      */
-
     function refreshLabelCountsDisplay(){
         svv.ui.status.labelCount.html(completedValidations);
     }
