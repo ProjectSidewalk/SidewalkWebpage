@@ -103,7 +103,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     if (auditTask.auditTaskId.isDefined) {
       // Update the existing audit task row (don't update if they are in the tutorial).
       val id = auditTask.auditTaskId.get
-      if (MissionTable.getMissionType(missionId) == "audit") {
+      if (MissionTable.getMissionType(missionId) == Some("audit")) {
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng)
       }

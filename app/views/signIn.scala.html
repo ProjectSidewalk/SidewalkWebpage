@@ -5,27 +5,50 @@
 
 @main("Project Sidewalk - Sign In") {
     @navbar(None, Some(url))
+    @request.flash.get("success").map { msg =>
+        <div class="col-md-6 col-md-offset-3 alert alert-success"
+        style="float:none;margin-top:20px;margin-bottom:0px">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            @msg
+        </div>
+    }
+
     @request.flash.get("error").map { msg =>
     <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error"
          style="float:none;margin-top:20px;margin-bottom:0px">
         <a href="#" class="close" data-dismiss="alert">&times;</a>
-        <strong>Error!</strong> @msg
+        <strong>@Messages("error")</strong> @msg
     </div>
     }
+
+    @request.flash.get("info").map { msg =>
+        <div class="col-md-6 col-md-offset-3 alert alert-info"
+        style="float:none;margin-top:20px;margin-bottom:0px">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            @msg
+        </div>
+    }
+
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
-        <legend>@Messages("navbar.signin.with.credentials")</legend>
+        <legend>@Messages("authenticate.signin.with.credentials")</legend>
         @helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
-        @text(signInForm("identifier"), Messages("navbar.email"), icon = "at")
-        @password(signInForm("password"), Messages("navbar.password"), icon = "key")
+        @text(signInForm("identifier"), Messages("authenticate.email"), icon = "at")
+        @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
         <div class="form-group">
             <div>
-                <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("navbar.submit")</button>
+                <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("authenticate.submit")</button>
             </div>
         </div>
         }
 
         <div>
-            <p class="not-a-member">@Html(Messages("navbar.non.member"))</p>
+            <p class="not-a-member">@Html(Messages("authenticate.non.member"))</p>
+        </div>
+
+        <div>
+            <p class="forgot-password">
+                <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+            </p>
         </div>
     </fieldset>
 }

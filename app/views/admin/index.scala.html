@@ -2,7 +2,7 @@
 @import models.user.WebpageActivityTable
 @import models.region.RegionTable
 @import models.user.UserRoleTable
-@import models.daos._
+@import models.daos.slick._
 @import models.audit._
 @import models.label._
 @import models.mission.MissionTable
@@ -12,9 +12,9 @@
 @import java.util.UUID
 @import play.api.libs.json.Json
 
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 @main(title) {
-@navbar(user)
+@navbar(user, Some("/admin"))
 <style>
     .no-js #loader { display: none;  }
     .js #loader { display: block; position: absolute; left: 100px; top: 0; }
@@ -58,33 +58,33 @@
 
                             <tr>
                                 <th>Total Audit Users</th>
-                                <th>@UserDAOImpl.countAllAuditUsersContributed(false) (@UserDAOImpl.countAllAuditUsersContributed(true))</th>
-                                <th>@UserDAOImpl.countAllAuditUsersContributedToday</th>
-                                <th>@UserDAOImpl.countAllAuditUsersContributedYesterday</th>
+                                <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
+                                <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
+                                <th>@UserDAOSlick.countAllAuditUsersContributedYesterday</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countAuditUsersContributed(List("Registered"), false) (@UserDAOImpl.countAuditUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedToday("Registered")</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Registered")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributed(List("Registered"), false) (@UserDAOSlick.countAuditUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedToday("Registered")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Registered")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countAuditUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Anonymous")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Anonymous")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOImpl.countAuditUsersContributed(List("Turker"), false) (@UserDAOImpl.countAuditUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedToday("Turker")</td>
-                                <td>@UserDAOImpl.countAuditUsersContributedYesterday("Turker")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributed(List("Turker"), false) (@UserDAOSlick.countAuditUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedToday("Turker")</td>
+                                <td>@UserDAOSlick.countAuditUsersContributedYesterday("Turker")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOImpl.countAuditResearchersContributed(false) (@UserDAOImpl.countAuditResearchersContributed(true))</td>
-                                <td>@UserDAOImpl.countAuditResearchersContributedToday</td>
-                                <td>@UserDAOImpl.countAuditResearchersContributedYesterday</td>
+                                <td>@UserDAOSlick.countAuditResearchersContributed(false) (@UserDAOSlick.countAuditResearchersContributed(true))</td>
+                                <td>@UserDAOSlick.countAuditResearchersContributedToday</td>
+                                <td>@UserDAOSlick.countAuditResearchersContributedYesterday</td>
                             </tr>
 
                             <tr>
@@ -142,36 +142,41 @@
                                 <th>@AuditTaskTable.countCompletedAuditsToday</th>
                                 <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
                             </tr>
-
+                            <tr>
+                                <th>Audited Distance</th>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceToday())) miles</td>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceYesterday())) miles</td>
+                            </tr>
                             <tr>
                                 <th>Total Validation Users</th>
-                                <th>@UserDAOImpl.countAllValidationUsersContributed(false) (@UserDAOImpl.countAllValidationUsersContributed(true))</th>
-                                <th>@UserDAOImpl.countAllValidationUsersContributedToday</th>
-                                <th>@UserDAOImpl.countAllValidationUsersContributedYesterday</th>
+                                <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
+                                <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
+                                <th>@UserDAOSlick.countAllValidationUsersContributedYesterday</th>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@UserDAOImpl.countValidationUsersContributed(List("Registered"), false) (@UserDAOImpl.countValidationUsersContributed(List("Registered"), true))</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedToday("Registered")</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Registered")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Registered")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOImpl.countValidationUsersContributed(List("Anonymous"), true))</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedToday("Anonymous")</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Anonymous")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Anonymous")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turkers</td>
-                                <td>@UserDAOImpl.countValidationUsersContributed(List("Turker"), false) (@UserDAOImpl.countValidationUsersContributed(List("Turker"), true))</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedToday("Turker")</td>
-                                <td>@UserDAOImpl.countValidationUsersContributedYesterday("Turker")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
+                                <td>@UserDAOSlick.countValidationUsersContributedYesterday("Turker")</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researchers</td>
-                                <td>@UserDAOImpl.countValidationResearchersContributed(false) (@UserDAOImpl.countValidationResearchersContributed(true))</td>
-                                <td>@UserDAOImpl.countValidationResearchersContributedToday</td>
-                                <td>@UserDAOImpl.countValidationResearchersContributedYesterday</td>
+                                <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
+                                <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
+                                <td>@UserDAOSlick.countValidationResearchersContributedYesterday</td>
                             </tr>
 
                             <tr style="font-size: 90%;">
@@ -641,11 +646,14 @@
                             <tr>
                                 <th class="col-md-1">Username</th>
                                 <th class="col-md-1" data-class-name="priority">Timestamp</th>
-                                <th class="col-md-1">Label Type</th>
+                                <th class="col-md-1" style="min-width: 100px;">Label Type</th>
                                 <th class="col-md-1">Severity</th>
-                                <th class="col-md-1">Temporary?</th>
+                                <th class="col-md-1">Temp?</th>
                                 <th class="col-md-3">Tags</th>
                                 <th class="col-md-2">Description</th>
+                                <th class="col-md-1">Agree</th>
+                                <th class="col-md-1">Disagree</th>
+                                <th class="col-md-1">Unsure</th>
                                 <th class="col-md-1">GSV</th>
                             </tr>
                             </thead>
@@ -661,6 +669,9 @@
                                         <td>@label.temporary</td>
                                         <td>@label.tags.mkString(", ")</td>
                                         <td>@label.description</td>
+                                        <td>@label.validations("agree")</td>
+                                        <td>@label.validations("disagree")</td>
+                                        <td>@label.validations("unclear")</td>
                                         <td>
                                             <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
                                         </td>
@@ -697,7 +708,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @UserDAOImpl.getUserStatsForAdminPage.map { u =>
+                            @UserDAOSlick.getUserStatsForAdminPage.map { u =>
                             <tr>
                                 <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
                                 <td>@u.userId</td>
@@ -784,67 +795,78 @@
 
 <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
 <script>
-        var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
-        var sliderToLabelMap = {};
-        sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
-        sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
-        sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
-        sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
-        sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
-        sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
-        sliderToLabelMap["other-slider"] = "#other-severity-label";
+    var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
+    var sliderToLabelMap = {};
+    sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
+    sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
+    sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
+    sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
+    sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
+    sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
+    sliderToLabelMap["other-slider"] = "#other-severity-label";
 
-        $( "*[id*='slider']" ).each(function() {
-            $(this).slider({
-                range: true,
-                min : 0,
-                max : 5,
-                step: 1,
-                values: [0,5],
-                slide: function(event, ui) {
-                    if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
-                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
-                    } else {
-                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
-                    }
-                },
-                change: function(event,ui) {
-                    if (this.id == "curb-ramp-slider") {
-                        admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
-                    } else if (this.id == "missing-curb-ramp-slider") {
-                        admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
-                    } else if (this.id == "obstacle-slider") {
-                        admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
-                    } else if (this.id == 'surface-problem-slider') {
-                        admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
-                    } else if (this.id == 'occlusion-slider') {
-                        admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
-                    } else if (this.id == 'no-sidewalk-slider') {
-                        admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
-                    } else if (this.id == 'other-slider') {
-                        admin.toggleLayers('Other', 'other', '#other-slider');
-                    }
+    $( "*[id*='slider']" ).each(function() {
+        $(this).slider({
+            range: true,
+            min : 0,
+            max : 5,
+            step: 1,
+            values: [0,5],
+            slide: function(event, ui) {
+                if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
+                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
+                } else {
+                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
                 }
-            });
+            },
+            change: function(event,ui) {
+                if (this.id == "curb-ramp-slider") {
+                    admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
+                } else if (this.id == "missing-curb-ramp-slider") {
+                    admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
+                } else if (this.id == "obstacle-slider") {
+                    admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
+                } else if (this.id == 'surface-problem-slider') {
+                    admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
+                } else if (this.id == 'occlusion-slider') {
+                    admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
+                } else if (this.id == 'no-sidewalk-slider') {
+                    admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
+                } else if (this.id == 'other-slider') {
+                    admin.toggleLayers('Other', 'other', '#other-slider');
+                }
+            }
         });
+    });
 
-    </script>
-    <script>
-        $(document).ready(function () {
-
-        var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-        window.admin = Admin(_, $, c3, turf, difficultRegionIds);
-        $('#commentsTable').dataTable();
-        $('#labelTable').dataTable();
-        $('#userTable').dataTable();
-        $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
-        $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
-
+</script>
+<script>
+    $(document).ready(function () {
+        // Gets all translations before loading the choropleths.
+        i18next.use(i18nextXHRBackend);
+        i18next.init({
+            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+            fallbackLng: 'en',
+            ns: ['common'],
+            defaultNS: 'common',
+            lng: "@lang.language",
+            debug: false
+        }, function(err, t) {
+            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
+            window.admin = Admin(_, $, c3, turf, difficultRegionIds);
+            $('#commentsTable').dataTable();
+            $('#labelTable').dataTable();
+            $('#userTable').dataTable();
+            $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
+            $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
         });
-        $(window).load(function() {
-            $(".loader").fadeOut("slow");
-        })
-    </script>
+    });
+    $(window).load(function() {
+        $(".loader").fadeOut("slow");
+    })
+</script>
 }
