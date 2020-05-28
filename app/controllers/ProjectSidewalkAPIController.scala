@@ -8,9 +8,23 @@ import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
+import java.io.{File, Serializable}
+import java.util.{Map, HashMap}
 import java.time.Instant
 import javax.inject.Inject
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable}
+
+import org.opengis.feature.simple.{SimpleFeatureType}
+import org.opengis.geometry.coordinate.{GeometryFactory => GisGeometryFactory}
+
+import org.locationtech.jts.geom.{GeometryFactory => JTSGeometryFactory, Coordinate => JTSCoordinate, Point => JTSPoint}
+
+import org.geotools.data.shapefile.{ShapefileDataStoreFactory, ShapefileDumper, ShapefileDataStore}
+import org.geotools.data.{FileDataStoreFactorySpi, DataStore, DataUtilities, Transaction, DefaultTransaction, FeatureSource}
+import org.geotools.feature.{DefaultFeatureCollection}
+import org.geotools.feature.simple.{SimpleFeatureBuilder}
+import org.geotools.geometry.jts.JTSFactoryFinder
+import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureStore}
 
 import math._
 import models.region._
@@ -148,7 +162,67 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       writer.close()
       Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
-    } else {  // In GeoJSON format.
+
+    } else if (filetype != None && filetype.get == "shapefile"){ // Shapefiles Format.
+
+      // Create the shapefile.
+      val factory: FileDataStoreFactorySpi = new ShapefileDataStoreFactory()
+      val file: File = new File("access_attributes.shp")
+      // Define the features of the shapefile
+      val features = DataUtilities.createType(
+        "feature",
+        "geom:Point,attribute_id:Integer,label_type:String,neighborhood:String,severity:Integer,is_temporary:Boolean"
+      )
+      val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(features)
+      // Collection that will store the data
+      val collection: DefaultFeatureCollection = new DefaultFeatureCollection()
+      // Data that will be stored
+      val data: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity);
+      val geometryFactory: JTSGeometryFactory = JTSFactoryFinder.getGeometryFactory(null)
+      for(attributes <- data){
+        def point: JTSPoint = geometryFactory.createPoint(new JTSCoordinate(attributes.lat.asInstanceOf[Double], attributes.lng.asInstanceOf[Double]))
+        def attribute_id: Integer = attributes.globalAttributeId
+        def label_type: String = attributes.labelType
+        def neighborhoodName: String = attributes.neighborhoodName
+        def severity: Integer = attributes.severity.getOrElse(0).asInstanceOf[Integer]
+        def is_temporary: Boolean = attributes.temporary
+        def featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(features)
+        featureBuilder.add(point)
+        featureBuilder.add(attribute_id)
+        featureBuilder.add(label_type)
+        featureBuilder.add(neighborhoodName)
+        featureBuilder.add(severity)
+        featureBuilder.add(is_temporary)
+        
+        collection.add(featureBuilder.buildFeature(null));
+      }
+      // Putting data in datastore.
+      val params: Map[String, Serializable] = new HashMap()
+      params.put("url", file.toURI().toURL().asInstanceOf[Serializable])
+      params.put("create spatial index", true.asInstanceOf[Serializable])
+      val dataStoreFactory: ShapefileDataStoreFactory = new ShapefileDataStoreFactory();
+      val dataStore: ShapefileDataStore = dataStoreFactory.createNewDataStore(params).asInstanceOf[ShapefileDataStore]
+      dataStore.createSchema(features)
+      // Putting in shapefile.
+      val transaction: Transaction = new DefaultTransaction("create")
+      val typeName: String = dataStore.getTypeNames()(0)
+      val featureSource: SimpleFeatureSource = dataStore.getFeatureSource(typeName)
+
+      if(featureSource.isInstanceOf[SimpleFeatureStore]){
+        val featureStore: SimpleFeatureStore = featureSource.asInstanceOf[SimpleFeatureStore]
+        featureStore.setTransaction(transaction)
+        try{
+          featureStore.addFeatures(collection)
+          transaction.commit()
+        } catch {
+          case e: Exception => transaction.rollback()
+        } finally {
+          transaction.close()
+        }
+      }
+
+      Future.successful(Ok.sendFile(content = file))
+   } else {  // In GeoJSON format.
       val features: List[JsObject] =
         GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
       Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
