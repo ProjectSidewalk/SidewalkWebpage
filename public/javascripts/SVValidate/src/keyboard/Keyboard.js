@@ -117,7 +117,7 @@ function Keyboard(menuUI) {
                         });
                     }
                     break;
-            }   
+            }
         }
     };
 

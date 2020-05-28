@@ -52,7 +52,7 @@ function MenuButton(id) {
         
         let comment = '';
         let validationTextArea = document.getElementById('validation-label-comment');
-        if(validationTextArea && validationTextArea.value !== '') comment = validationTextArea.value
+        if(validationTextArea && validationTextArea.value !== '') comment = validationTextArea.value;
 
         // If enough time has passed between validations, log validations
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
