@@ -249,14 +249,14 @@ function AdminGSVLabelView(admin) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageDate = moment(new Date(labelMetadata['image_date']));
         self.modalTitle.html('Label Type: ' + labelMetadata['label_type_value']);
-        self.modalTimestamp.html(labelDate.format('MMMM Do YYYY, h:mm:ss') + " (" + labelDate.fromNow() + ")");
+        self.modalTimestamp.html(labelDate.format('LL, LTS') + " (" + labelDate.fromNow() + ")");
         self.modalLabelTypeValue.html(labelMetadata['label_type_value']);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? "True": "False");
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
         self.modalValidations.html(validationsText);
-        self.modalImageDate.html(imageDate.format('MMMM YYYY'));
+        self.modalImageDate.html(imageDate.format('LL'));
         if (self.admin) {
             self.modalLabelId.html(labelMetadata['label_id']);
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
