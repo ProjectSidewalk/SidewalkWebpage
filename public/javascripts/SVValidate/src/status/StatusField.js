@@ -1,12 +1,14 @@
 /**
  * Updates items that appear on the right side of the validation interface (i.e., label counts)
+ * @param param must have:
+ *                  - completedValidations: the number of validations the user has completed in all time. 
  * @returns {StatusField}
  * @constructor
  */
-function StatusField() {
+function StatusField(param) {
     let containerWidth = 730;
     let self = this;
-
+    let completedValidations = param.completedValidations;
     /**
      * Resets the status field whenever a new mission is introduced.
      * @param currentMission    Mission object for the current mission.
@@ -15,18 +17,25 @@ function StatusField() {
         let progress = currentMission.getProperty('labelsProgress');
         let total = currentMission.getProperty('labelsValidated');
         let completionRate = progress / total;
-        updateLabelCounts(progress);
+        refreshLabelCountsDisplay();
         updateMissionDescription(total);
         setProgressText(completionRate);
         setProgressBar(completionRate);
     }
 
     /**
-     * Updates the number of labels the user has validated.
-     * @param count {int} Number of labels the user has validated.
+     * Increments the number of labels the user has validated.
      */
-    function updateLabelCounts(count) {
-        svv.ui.status.labelCount.html(count);
+    function incrementLabelCounts(){
+        completedValidations++;
+        refreshLabelCountsDisplay();
+    }
+
+    /**
+     * Refreshes the number count displayed.
+     */
+    function refreshLabelCountsDisplay(){
+        svv.ui.status.labelCount.html(completedValidations);
     }
 
     /**
@@ -90,9 +99,10 @@ function StatusField() {
 
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
-    self.updateLabelCounts = updateLabelCounts;
     self.updateLabelText = updateLabelText;
     self.updateMissionDescription = updateMissionDescription;
+    self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
+    self.incrementLabelCounts = incrementLabelCounts;
     self.reset = reset;
 
     return this;
