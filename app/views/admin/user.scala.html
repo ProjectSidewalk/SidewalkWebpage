@@ -9,7 +9,7 @@
 @import models.user.UserCurrentRegionTable
 @import models.region.RegionPropertyTable
 
-@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))
+@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))(implicit lang: Lang)
 
 @main(title) {
     @navbar(admin)
@@ -185,6 +185,7 @@
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore.min.js")'></script>
@@ -197,7 +198,32 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript">
+            $(document).ready(function () {
+                $(".timestamp").each(function() {
+                    if ($(this).hasClass('local')) {
+                        return;
+                    }
+                    $(this).addClass('local');
+
+                    let timestampText = this.textContent;
+
+                    // Adds a sorting attribute, if it's part of a table it will be sorted by this instead of the nicely
+                    // formatted timestamp.
+                    $(this).attr("data-order", timestampText);
+                    
+                    // check if correct locale has been loaded to reduce redundant loading
+                    if(moment.locale() !== "@lang.code") moment.locale("@lang.code");
+
+                    let localDate = moment(new Date(timestampText + " UTC"));
+
+                    // If the date cannot be parsed, ignore it and leave the text as-is. O/w, parse into local datetime format.
+                    if (localDate.format('LL') !== "Invalid date") {
+                        this.textContent = localDate.format('LL');
+                    }
+                });
+            });
+    </script>
 
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />

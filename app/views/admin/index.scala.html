@@ -770,6 +770,7 @@
 <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
@@ -782,7 +783,32 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+<script type="text/javascript">
+        $(document).ready(function () {
+                $(".timestamp").each(function() {
+                    if ($(this).hasClass('local')) {
+                        return;
+                    }
+                    $(this).addClass('local');
+
+                    let timestampText = this.textContent;
+
+                    // Adds a sorting attribute, if it's part of a table it will be sorted by this instead of the nicely
+                    // formatted timestamp.
+                    $(this).attr("data-order", timestampText);
+                    
+                    // check if correct locale has been loaded to reduce redundant loading
+                    if(moment.locale() !== "@lang.code") moment.locale("@lang.code");
+
+                    let localDate = moment(new Date(timestampText + " UTC"));
+
+                    // If the date cannot be parsed, ignore it and leave the text as-is. O/w, parse into local datetime format.
+                    if (localDate.format('LL') !== "Invalid date") {
+                        this.textContent = localDate.format('LL');
+                    }
+                });
+            });
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
