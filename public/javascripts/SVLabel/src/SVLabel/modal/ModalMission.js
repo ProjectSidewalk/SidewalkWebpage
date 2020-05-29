@@ -104,7 +104,7 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
     /**
      *  This method takes in an integer feet and converts it to meters, truncuating all decimals
      *  @param feet to convert to meters
-     *  @return conversion as a String
+     *  @return
      */
     this.convertToMetric = function(feet) {
         return Math.trunc(feet * 0.3048) + "m";
