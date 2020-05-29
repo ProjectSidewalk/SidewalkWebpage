@@ -3,7 +3,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/api"))
     <div class="container">
         <h1>Developer Zone</h1>
         <p class="text-justify">

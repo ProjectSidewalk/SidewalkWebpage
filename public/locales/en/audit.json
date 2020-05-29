@@ -82,8 +82,7 @@
         "title-continue": "Continue exploring __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> for accessibility features!",
         "body-first": "Your <span class=\"bold\">first mission</span> is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
         "body": "Your mission is to explore __DISTANCE_PLACEHOLDER__ in __NEIGHBORHOOD_PLACEHOLDER__</span> and find all the accessibility features that affect mobility impaired travelers!",
-        "button-resume": "Resume Mission!",
-        "turk-reward": "Reward on satisfactory completion: "
+        "button-resume": "Resume Mission!"
     },
     "mission-complete": {
         "distance-type-display-string": "kilometers",

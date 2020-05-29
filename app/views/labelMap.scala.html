@@ -4,7 +4,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/labelmap"))
     <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
 
 

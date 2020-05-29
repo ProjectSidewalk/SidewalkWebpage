@@ -14,7 +14,7 @@
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @main(title) {
-@navbar(user)
+@navbar(user, Some("/admin"))
 <style>
     .no-js #loader { display: none;  }
     .js #loader { display: block; position: absolute; left: 100px; top: 0; }
@@ -142,7 +142,12 @@
                                 <th>@AuditTaskTable.countCompletedAuditsToday</th>
                                 <th>@AuditTaskTable.countCompletedAuditsYesterday</th>
                             </tr>
-
+                            <tr>
+                                <th>Audited Distance</th>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceToday())) miles</td>
+                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceYesterday())) miles</td>
+                            </tr>
                             <tr>
                                 <th>Total Validation Users</th>
                                 <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
