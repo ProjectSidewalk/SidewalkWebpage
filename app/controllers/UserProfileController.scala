@@ -14,6 +14,8 @@ import models.label.{LabelTable, LabelValidationTable}
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.extras.geojson
+import play.api.Play
+import play.api.Play.current
 
 
 import scala.concurrent.Future
@@ -31,7 +33,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         val username: String = user.username
-        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user))))
+        val cityStr: String = Play.configuration.getString("city-id").get
+        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user), cityStr)))
       case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }
   }
@@ -40,7 +43,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         val username: String = user.username
-        Future.successful(Ok(views.html.previousAudit(s"Project Sidewalk - $username", Some(user))))
+        val cityStr: String = Play.configuration.getString("city-id").get
+        Future.successful(Ok(views.html.previousAudit(s"Project Sidewalk - $username", Some(user), cityStr)))
       case None => Future.successful(Redirect("/anonSignUp?url=/contribution/previousAudit"))
     }
   }

@@ -1,8 +1,8 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/"), cityId)
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Help/build/help.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
 

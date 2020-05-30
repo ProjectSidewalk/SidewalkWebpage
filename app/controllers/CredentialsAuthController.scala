@@ -41,8 +41,9 @@ class CredentialsAuthController @Inject() (
     * @return The result to display.
     */
   def authenticate(url: String) = Action.async { implicit request =>
+    val cityStr: String = Play.configuration.getString("city-id").get
     SignInForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signIn(form))),
+      form => Future.successful(BadRequest(views.html.signIn(form, "/", cityStr))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
@@ -70,8 +71,9 @@ class CredentialsAuthController @Inject() (
     * @return
     */
   def postAuthenticate = Action.async { implicit request =>
+    val cityStr: String = Play.configuration.getString("city-id").get
     SignInForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signIn(form))),
+      form => Future.successful(BadRequest(views.html.signIn(form, "/", cityStr))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(credentials)
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))

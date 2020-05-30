@@ -1,8 +1,8 @@
 @import models.user.User
 
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
 @main(title) {
-    @navbar(user, Some("/clustering"))
+    @navbar(user, Some("/clustering"), cityId)
     <div id="content">
         <div class="container">
             <h1>Clustering labels into attributes</h1>

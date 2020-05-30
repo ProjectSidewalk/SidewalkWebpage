@@ -16,6 +16,8 @@ import play.api.mvc.BodyParsers
 import play.api.libs.json._
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.Play.current
+import play.api.Play
 import scala.concurrent.Future
 
 /**
@@ -33,7 +35,8 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signIn(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
-      Future.successful(Ok(views.html.signIn(SignInForm.form, url)))
+      val cityStr: String = Play.configuration.getString("city-id").get
+      Future.successful(Ok(views.html.signIn(SignInForm.form, url, cityStr)))
     } else {
       Future.successful(Redirect(url))
     }
@@ -46,7 +49,8 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def signUp(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
-      Future.successful(Ok(views.html.signUp(SignUpForm.form)))
+      val cityStr: String = Play.configuration.getString("city-id").get
+      Future.successful(Ok(views.html.signUp(SignUpForm.form, "/", cityStr)))
     } else {
       Future.successful(Redirect(url))
     }
@@ -75,15 +79,17 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
    */
   def forgotPassword(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
-      Future.successful(Ok(views.html.forgotPassword(ForgotPasswordForm.form)))
+      val cityStr: String = Play.configuration.getString("city-id").get
+      Future.successful(Ok(views.html.forgotPassword(ForgotPasswordForm.form, cityStr)))
     } else {
       Future.successful(Redirect(url))
     }
   }
 
   def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
+    val cityStr: String = Play.configuration.getString("city-id").get
     authTokenService.validate(token).map {
-      case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token))
+      case Some(_) => Ok(views.html.resetPassword(ResetPasswordForm.form, token, cityStr))
       case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link"))
     }
   }

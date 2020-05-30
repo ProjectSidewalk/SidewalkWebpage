@@ -12,9 +12,9 @@
 @import java.util.UUID
 @import play.api.libs.json.Json
 
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
 @main(title) {
-@navbar(user, Some("/admin"))
+@navbar(user, Some("/admin"), cityId)
 <style>
     .no-js #loader { display: none;  }
     .js #loader { display: block; position: absolute; left: 100px; top: 0; }

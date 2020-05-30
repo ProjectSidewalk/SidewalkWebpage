@@ -1,8 +1,8 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None, cityId: String)
 
 @main(title) {
-@navbar(user, Some("/contribution/previousAudit"))
+@navbar(user, Some("/contribution/previousAudit"), cityId)
     <div class="container">
         <div class="row">
             <div class="col-lg-12">

@@ -1,8 +1,8 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
+@(title: String, cityId: String, user: Option[User] = None, url: Option[String] = Some("/"))
 
 @main(title) {
-    @navbar(user, Some("/turkerIdExists"))
+    @navbar(user, Some("/turkerIdExists"), cityId)
     <div id="content">
         <div class="container">
             <h2>This HIT cannot be started</h2>

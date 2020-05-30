@@ -14,6 +14,8 @@ import models.user.User
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.libs.json.Json
+import play.api.Play.current
+import play.api.Play
 import formats.json.AttributeFormats
 import models.attribute._
 import models.label.LabelTypeTable
@@ -30,7 +32,8 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
+      val cityStr: String = Play.configuration.getString("city-id").get
+      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity, cityStr)))
     } else {
       Future.successful(Redirect("/"))
     }

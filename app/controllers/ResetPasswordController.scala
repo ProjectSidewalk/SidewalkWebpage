@@ -20,6 +20,8 @@ import models.user._
 
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.i18n.Messages
+import play.api.Play.current
+import play.api.Play
 
 import scala.concurrent.Future
 
@@ -47,8 +49,9 @@ class ResetPasswordController @Inject() (
 
     authTokenService.validate(token).flatMap {
       case Some(authToken) =>
+        val cityStr: String = Play.configuration.getString("city-id").get
         ResetPasswordForm.form.bindFromRequest.fold(
-          form => Future.successful(BadRequest(views.html.resetPassword(form, token))),
+          form => Future.successful(BadRequest(views.html.resetPassword(form, token, cityStr))),
           passwordData => userService.retrieve(authToken.userID).flatMap {
             case Some(user) if user.loginInfo.providerID == CredentialsProvider.ID =>
               if (passwordData.password != passwordData.passwordConfirm) {
