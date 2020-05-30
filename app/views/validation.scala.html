@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, cityId: String)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"), cityId)

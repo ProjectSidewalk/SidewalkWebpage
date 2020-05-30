@@ -62,7 +62,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation") {
           Future.successful(Redirect("/audit"))
         } else {
-          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+          val cityStr: String = Play.configuration.getString("city-id").get
+          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, cityStr)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
