@@ -5,6 +5,8 @@
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.Json
 @import play.api.libs.json.JsValue
+@import play.api.Play
+@import play.api.Play.current
 @import views.html.bootstrap._
 
 @(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
@@ -61,7 +63,7 @@
         <div id="modal-mission-holder">
             <div id="modal-mission-background" class="modal-background"></div>
             <div id="modal-mission-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' id="ps-logo-mission"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo-new.png")' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
                 <button class="button" id="modal-mission-close-button">OK</button>
@@ -109,7 +111,7 @@
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' id="ps-logo-mission-complete"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo-new.png")' id="ps-logo-mission-complete"></img>
                 <h1 class="normal" id="modal-mission-complete-title"></h1>
                 <p><div id="modal-mission-complete-message"></div></p>
                 <div id="modal-mission-complete-table">
@@ -138,7 +140,7 @@
         <div id="modal-landscape-holder">
             <div id="modal-landscape-background" class="modal-background"></div>
             <div id="modal-landscape-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("javascripts/SVValidate/img/logo.png")' id="ps-logo-landscape"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo-new.png")' id="ps-logo-landscape"></img>
                 <div>
                     <p id="modal-landscape-header">
                         Welcome to Project Sidewalk!
