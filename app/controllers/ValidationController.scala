@@ -22,8 +22,6 @@ import models.user._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
-import play.api.Play
-import play.api.Play.current
 
 import scala.concurrent.Future
 
@@ -62,8 +60,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation") {
           Future.successful(Redirect("/audit"))
         } else {
-          val cityStr: String = Play.configuration.getString("city-id").get
-          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, cityStr)))
+          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
@@ -83,8 +80,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/audit"))
         } else {
-          val cityStr: String = Play.configuration.getString("city-id").get
-          Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, cityStr)))
+          Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
@@ -104,8 +100,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker") {
           Future.successful(Redirect("/audit"))
         } else {
-          val cityStr: String = Play.configuration.getString("city-id").get
-          Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, cityStr)))
+          Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/rapidValidate"));
