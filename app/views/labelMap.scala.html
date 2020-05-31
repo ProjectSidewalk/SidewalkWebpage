@@ -1,10 +1,10 @@
 @import models.user.User
 @import models.region.RegionTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user, Some("/labelmap"), cityId)
+    @navbar(user, Some("/labelmap"))
     <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
 
 

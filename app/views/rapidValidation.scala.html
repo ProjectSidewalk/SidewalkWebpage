@@ -7,10 +7,10 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, cityId: String)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
-    @navbar(user, Some("/validate"), cityId)
+    @navbar(user, Some("/validate"))
 
     <script type="text/javascript" src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>

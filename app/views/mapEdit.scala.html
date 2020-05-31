@@ -1,8 +1,8 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String)
+@(title: String, user: Option[User] = None)
 
 @main(title) {
-    @navbar(user, Some("/map/edit"), cityId)
+    @navbar(user, Some("/map/edit"))
     <div class="container">
         <div id="map-edit-holder">
             <div id="map">

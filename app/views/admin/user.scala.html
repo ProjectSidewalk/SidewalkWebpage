@@ -9,10 +9,10 @@
 @import models.user.UserCurrentRegionTable
 @import models.region.RegionPropertyTable
 
-@(title: String, admin: Option[User] = None, cityId: String, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))
+@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))
 
 @main(title) {
-    @navbar(admin, Some("/"), cityId)
+    @navbar(admin)
     <div class="container">
         <div class="row">
             <div class="col-lg-12">

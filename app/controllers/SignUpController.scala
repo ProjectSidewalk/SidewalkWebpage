@@ -21,7 +21,6 @@ import play.api.libs.json.{Json, JsError}
 import play.api.mvc.{Action, RequestHeader}
 import play.api.{Play, Logger}
 import play.api.Play.current
-import play.api.Play
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.daos.UserDAO
 
@@ -57,10 +56,9 @@ class SignUpController @Inject() (
     val anonymousUser: DBUser = UserTable.find("anonymous").get
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
-    val cityStr: String = Play.configuration.getString("city-id").get
 
     SignUpForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signUp(form, "/", cityStr))),
+      form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
         // Check presence of user by username.
         UserTable.find(data.username) match {

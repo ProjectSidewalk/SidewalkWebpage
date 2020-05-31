@@ -1,8 +1,8 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user, Some("/labelingGuide/noSidewalk"), cityId)
+    @navbar(user, Some("/labelingGuide/noSidewalk"))
     <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>

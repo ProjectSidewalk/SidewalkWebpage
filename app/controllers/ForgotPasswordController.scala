@@ -17,7 +17,6 @@ import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 import play.api.libs.mailer._
 import play.api.Play.current
-import play.api.Play
 
 /**
  * The `Forgot Password` controller.
@@ -42,10 +41,9 @@ class ForgotPasswordController @Inject() (
   def submit = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val cityStr: String = Play.configuration.getString("city-id").get
 
     ForgotPasswordForm.form.bindFromRequest.fold (
-      form => Future.successful(BadRequest(views.html.forgotPassword(form, cityStr))),
+      form => Future.successful(BadRequest(views.html.forgotPassword(form))),
       email => {
         val loginInfo = LoginInfo(CredentialsProvider.ID, email)
         val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))

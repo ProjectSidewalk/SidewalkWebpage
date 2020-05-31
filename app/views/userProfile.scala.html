@@ -2,10 +2,10 @@
 @import models.region.RegionTable
 @import models.mission.MissionTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None, cityId: String)(implicit lang: Lang)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user, user.map(u=> "/contribution/" + u.username), cityId)
+    @navbar(user, user.map(u=> "/contribution/" + u.username))
     <div class="container">
         <div class="row" id="maprow">
             <div class="col-lg-12" id="mapcolumn">

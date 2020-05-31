@@ -25,8 +25,6 @@ import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
-import play.api.Play.current
-import play.api.Play
 
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
@@ -48,8 +46,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   // Pages
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val cityStr: String = Play.configuration.getString("city-id").get
-      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity, cityStr)))
+      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
     } else {
       Future.successful(Redirect("/"))
     }
@@ -57,10 +54,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def userProfile(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val cityStr: String = Play.configuration.getString("city-id").get
       UserTable.find(username) match {
-        case Some(user) => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, cityStr, Some(user))))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, cityStr)))
+        case Some(user) => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, Some(user))))
+        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -69,9 +65,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def task(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val cityStr: String = Play.configuration.getString("city-id").get
       AuditTaskTable.find(taskId) match {
-        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task, cityStr)))
+        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
         case _ => Future.successful(Redirect("/"))
       }
     } else {
@@ -276,7 +271,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val cityStr: String = Play.configuration.getString("city-id").get
       UserTable.find(username) match {
         case Some(user) =>
           val labels = LabelTable.selectLocationsOfLabelsByUserId(UUID.fromString(user.userId))
@@ -292,7 +286,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           }
           val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Future.successful(Ok(featureCollection))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, cityStr)))
+        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -301,7 +295,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def getStreetsAuditedByAUser(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val cityStr: String = Play.configuration.getString("city-id").get
       UserTable.find(username) match {
         case Some(user) =>
           val streets = AuditTaskTable.selectStreetsAuditedByAUser(UUID.fromString(user.userId))
@@ -317,7 +310,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           }
           val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Future.successful(Ok(featureCollection))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, cityStr)))
+        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
       Future.successful(Redirect("/"))
@@ -332,12 +325,11 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getSubmittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val cityStr: String = Play.configuration.getString("city-id").get
       UserTable.find(username) match {
         case Some(user) =>
           val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
           Future.successful(Ok(JsArray(tasksWithLabels)))
-        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity, cityStr)))
+        case _ => Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity)))
       }
     } else {
       Future.successful(Redirect("/"))

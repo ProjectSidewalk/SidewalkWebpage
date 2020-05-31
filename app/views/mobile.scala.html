@@ -1,5 +1,5 @@
 @import models.user.User
-@(title: String, user: Option[User] = None, cityId: String)
+@(title: String, user: Option[User] = None)
 
 @main(title) {
     <script>
@@ -41,7 +41,7 @@
         });
     </script>
     <div id="mobile-content">
-        <img src="@routes.Assets.at("assets/" + cityId + "/sidewalk-logo-new.png")"/>
+        <img src="/assets/assets/logo-high-res.png"/>
         <br />
         <div>
             <p id="mobile-thanks">

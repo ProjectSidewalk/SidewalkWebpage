@@ -1,8 +1,8 @@
 @import models.user.User
-@(title: String, cityId: String, user: Option[User] = None, url: Option[String] = Some("/"))
+@(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
 
 @main(title) {
-    @navbar(user, Some("/noAvailableMissionIndex"), cityId)
+    @navbar(user, Some("/noAvailableMissionIndex"))
     <div id="content">
         <div class="container">
             <h2>You've already completed this HIT!</h2>
