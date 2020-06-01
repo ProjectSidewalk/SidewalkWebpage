@@ -443,14 +443,6 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
 
-            // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
-            var monthNames = [
-                "Jan.", "Feb.", "Mar.",
-                "Apr.", "May", "June", "July",
-                "Aug.", "Sept.", "Oct.",
-                "Nov.", "Dec."
-            ];
-
 
             // sorts all labels the user has completed by mission
             var grouped = _.groupBy(_data.tasks, function (o) { return o.mission_id });
@@ -506,12 +498,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                         labelCounter[labelType] += 1;
                     }
                 }
-
-                var date = new Date(grouped[missionId][0]["mission_end"]);
-                var day = date.getDate();
-                var monthIndex = date.getMonth();
-                var year = date.getFullYear();
-
+                
+                // no need to load locale, correct locale loaded for footer
+                var localDate = moment(new Date(grouped[missionId][0]["mission_end"]));
 
                 var neighborhood;
                 // neighborhood name is tutorial if there is no neighborhood
@@ -525,7 +514,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var dateString;
                 // Date is "In Progress" if the mission has not yet been completed
                 if (grouped[missionId][0]["completed"]) {
-                    dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
+                    dateString = localDate.format('LL');
                 } else {
                     dateString = i18next.t("in-progress");
                 }
