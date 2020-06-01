@@ -1,4 +1,5 @@
 {
+    "measurement-system": "IS",
     "map": {
         "distance-left": "Only {{n}}  miles left!",
         "distance-left-one-unit": "Only {{n}}  mile left!",

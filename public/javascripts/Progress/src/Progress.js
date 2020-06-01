@@ -314,7 +314,11 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             for (var i = data.features.length - 1; i >= 0; i--) {
                 distanceAudited += turf.length(data.features[i], {units: 'miles'});
             }
-            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
+            var measurementSystem = i18next.t("common:measurement-system");
+            var unitAbbreviation = " mi";
+            // user is in a country that uses metric, not IS
+            if(measurementSystem === "metric") distanceAudited *= 1.60934, unitAbbreviation = " km";
+            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + unitAbbreviation;
 
             // Get total reward if a turker
             if (role === 'Turker') {
