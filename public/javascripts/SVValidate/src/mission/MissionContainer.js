@@ -74,6 +74,7 @@ function MissionContainer () {
         addAMission(mission);
         svv.modalMission.setMissionMessage(mission);
         svv.modalInfo.setMissionInfo(mission);
+        svv.statusField.refreshLabelCountsDisplay();
     }
 
     /**
