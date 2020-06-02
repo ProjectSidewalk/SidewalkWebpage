@@ -60,7 +60,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation") {
           Future.successful(Redirect("/audit"))
         } else {
-          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
+          Future.successful(Ok(views.html.validation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
@@ -109,9 +109,9 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Get the data needed by the /validate or /rapidValidate endpoints.
-    * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission)
+    * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedValidations)
     */
-  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, validationTypeStr: String, visitTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean) = {
+  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, validationTypeStr: String, visitTypeStr: String): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int) = {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, visitTypeStr, timestamp))
@@ -123,6 +123,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, labelCount, None)
     val hasWork: Boolean = possibleLabTypeIds.nonEmpty
 
+    val completedValidations: Int = MissionTable.countCompletedValidationsByUserID(user.userId)
     // Checks if there are still labels in the database for the user to validate.
     if (hasWork && missionSetProgress.missionType == "validation") {
       // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
@@ -138,11 +139,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       val missionJsObject: JsObject = mission.toJSON
       val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
 
-      return (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, true)
+      return (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, true, completedValidations)
     } else {
       // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
       //      no validation missions that can be done.
-      return (None, None, None, missionSetProgress, false)
+      return (None, None, None, missionSetProgress, false, completedValidations)
     }
   }
 
