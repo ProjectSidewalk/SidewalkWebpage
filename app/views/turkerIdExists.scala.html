@@ -2,7 +2,7 @@
 @(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/turkerIdExists"))
     <div id="content">
         <div class="container">
             <h2>This HIT cannot be started</h2>

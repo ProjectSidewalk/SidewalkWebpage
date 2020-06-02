@@ -88,7 +88,7 @@ function Mission(params) {
             if (!skip) {
                 labelsProgress += 1;
             }
-            svv.statusField.updateLabelCounts(labelsProgress);
+            svv.statusField.incrementLabelCounts();
             setProperty("labelsProgress", labelsProgress);
 
             // Submit mission if mission is complete
