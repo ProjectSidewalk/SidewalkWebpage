@@ -11,7 +11,7 @@
   "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
   "map": {
     "miles-left": "Sólo faltan {{n}} millas!",
-    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar esta colonia!",
+    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio!",
     "thanks": "¡Gracias por tu ayuda!",
     "100-percent-complete": "¡100% Completa!",
     "percent-complete": "{{percent}}% Completa",
