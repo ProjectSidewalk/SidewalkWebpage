@@ -902,8 +902,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 } catch (err) {}
             }
             else {
-                finishCurrentTaskBeforeJumping(missionJump, nextTask); 
-                
+                finishCurrentTaskBeforeJumping(missionJump, nextTask);
+
                 // Move to the new task if the neighborhood has not finished
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);

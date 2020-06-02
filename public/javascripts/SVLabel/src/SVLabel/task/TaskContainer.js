@@ -125,9 +125,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }));
         paths = null;
 
-        // updates the segments that the user has already explored
+        // Updates the segments that the user has already explored.
         self.update();
-        // updates the next group of segments that the user will explore
+        // Renders the next street that the user will explore.
         if(nextTask) nextTask.render();
         
         return task;
