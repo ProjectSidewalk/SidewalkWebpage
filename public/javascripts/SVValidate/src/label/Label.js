@@ -165,6 +165,43 @@ function Label(params) {
         auditProperties[key] = value;
         return this;
     }
+    
+    function prepareLabelCommentData(comment, position, pov, zoom) {
+        let data = {
+            comment: comment,
+            label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
+            gsv_panorama_id: svv.panorama.getPanoId(),
+            heading: pov.heading,
+            lat: position.lat,
+            lng: position.lng,
+            pitch: pov.pitch,
+            mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
+            zoom: zoom
+        };
+        return data;
+    }
+
+    /**
+     * Submit the comment.
+     */
+    function submitComment (data) {
+        let url = "/validate/comment";
+        let async = true;
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'POST',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {},
+            error: function(xhr, textStatus, error){
+                console.error(xhr.statusText);
+                console.error(textStatus);
+                console.error(error);
+            }
+        });
+    }
 
     /**
      * Updates validation status for Label, StatusField and logs interactions into Tracker. Occurs
@@ -175,7 +212,7 @@ function Label(params) {
      * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
      * @param panorama          Panorama object that this label was placed on.
      */
-    function validate(validationResult, panorama) {
+    function validate(validationResult, panorama, comment) {
         // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center
         // of the viewport.
         let pos = getPosition();
@@ -214,6 +251,13 @@ function Label(params) {
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
         setProperty("isMobile", isMobile());
+
+        if (comment) {
+            document.getElementById('validation-label-comment').value = '';
+            svv.tracker.push("ValidationTextField_DataEntered");
+            let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov, zoom);
+            submitComment(data);
+        }
 
         switch (validationResult) {
             // Agree option selected.
