@@ -167,7 +167,7 @@ function Label(params) {
     }
     
     function prepareLabelCommentData(comment, position, pov, zoom) {
-        let data =  {
+        let data = {
             comment: comment,
             label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
             gsv_panorama_id: svv.panorama.getPanoId(),
@@ -252,7 +252,7 @@ function Label(params) {
         setProperty("zoom", userPov.zoom);
         setProperty("isMobile", isMobile());
 
-        if(comment) {
+        if (comment) {
             document.getElementById('validation-label-comment').value = '';
             svv.tracker.push("ValidationTextField_DataEntered");
             let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov, zoom);
