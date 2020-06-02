@@ -159,6 +159,7 @@ validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimen
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
+validate.bottom.ui.add.comment = Agrega un comentario aquí...
 validate.right.ui.current.mission = Misión actual
 validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
