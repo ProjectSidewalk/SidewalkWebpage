@@ -117,13 +117,6 @@ function Mission(parameters) {
 
                 var missionDistance = svl.missionContainer.getCompletedMissionDistance();
                 currentMissionCompletedDistance = taskDistance - missionDistance + offset;
-                // Hotfix for an issue where the mission completion distance was negative. Need to find root cause.
-                // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2120
-                if (currentMissionCompletedDistance < 0) {
-                    svl.missionContainer.setTasksMissionsOffset(offset - currentMissionCompletedDistance);
-                    console.error(`Mission progress was set to ${currentMissionCompletedDistance}, resetting to 0.`);
-                    currentMissionCompletedDistance = 0;
-                }
             }
             setProperty("distanceProgress", currentMissionCompletedDistance);
         }

@@ -76,7 +76,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     /**
      * End the current task.
      */
-    self.endTask = function (task, nextTask) {
+    self.endTask = function (task) {
         if (tracker) tracker.push("TaskEnd");
 
         task.complete();
@@ -125,11 +125,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }));
         paths = null;
 
-        // Updates the segments that the user has already explored.
-        self.update();
-        // Renders the next street that the user will explore.
-        if(nextTask) nextTask.render();
-        
         return task;
     };
 

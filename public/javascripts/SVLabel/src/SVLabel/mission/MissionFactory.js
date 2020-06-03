@@ -27,6 +27,8 @@ function MissionFactory (missionModel) {
             parameters.distance = parameters.distance_meters;
         if (!parameters.hasOwnProperty("distanceProgress") && parameters.hasOwnProperty("distance_progress"))
             parameters.distanceProgress = parameters.distance_progress;
+        if (!parameters.hasOwnProperty("skipped") && parameters.hasOwnProperty("skipped"))
+            parameters.skipped = parameters.skipped;
 
         var mission = self.create(parameters.missionId, parameters.missionType, parameters.regionId,
             parameters.isComplete, parameters.pay, parameters.paid, parameters.distance, parameters.distanceProgress,

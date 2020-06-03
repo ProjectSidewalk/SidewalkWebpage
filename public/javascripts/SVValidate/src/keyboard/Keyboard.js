@@ -4,8 +4,7 @@ function Keyboard(menuUI) {
     let status = {
         disableKeyboard: false,
         keyPressed: false,
-        shiftDown: false,
-        addingComment: false
+        shiftDown: false
     };
 
     function disableKeyboard () {
@@ -16,18 +15,12 @@ function Keyboard(menuUI) {
         status.disableKeyboard = false;
     }
 
-    // Returns true if the user is currently typing in the validation comment text field, false otherwise.
-    function textAreaSelected() {
-        let selected = document.getElementById("validation-label-comment");
-        document.activeElement === selected ?  status.addingComment = true : status.addingComment = false;
-    }
-
     /**
      * Validate a single label using keyboard shortcuts.
      * @param button    jQuery element for the button clicked.
      * @param action    {String} Validation action. Must be either agree, disagree, or not sure.
      */
-    function validateLabel (button, action, comment) {
+    function validateLabel (button, action) {
         // Want at least 800ms in-between to allow GSV Panorama to load. (Value determined
         // experimentally).
 
@@ -37,7 +30,7 @@ function Keyboard(menuUI) {
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);
-            svv.panorama.getCurrentLabel().validate(action, svv.panorama, comment);
+            svv.panorama.getCurrentLabel().validate(action, svv.panorama);
             svv.panorama.setProperty('validationTimestamp', timestamp);
             status.keyPressed = true;
         }
@@ -54,11 +47,7 @@ function Keyboard(menuUI) {
     }
 
     this._documentKeyDown = function (e) {
-        // When the user is typing in the validation comment text field, temporarily disable keyboard
-        // shortcuts that can be used to validate a label.
-        textAreaSelected();
-        let comment = document.getElementById('validation-label-comment').value;
-        if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
+        if (!status.disableKeyboard && !status.keyPressed) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.keyCode) {
@@ -70,13 +59,13 @@ function Keyboard(menuUI) {
                     break;
                 // "a" key
                 case 65:
-                    validateLabel(menuUI.agreeButton, "Agree", comment);
+                    validateLabel(menuUI.agreeButton, "Agree");
                     menuUI.disagreeButton.removeClass("validate");
                     menuUI.notSureButton.removeClass("validate");
                     break;
                 // "d" key
                 case 68:
-                    validateLabel(menuUI.disagreeButton, "Disagree", comment);
+                    validateLabel(menuUI.disagreeButton, "Disagree");
                     menuUI.agreeButton.removeClass("validate");
                     menuUI.notSureButton.removeClass("validate");
                     break;
@@ -96,7 +85,7 @@ function Keyboard(menuUI) {
                     break;
                 // "n" key
                 case 78:
-                    validateLabel(menuUI.notSureButton, "NotSure", comment);
+                    validateLabel(menuUI.notSureButton, "NotSure");
                     menuUI.agreeButton.removeClass("validate");
                     menuUI.disagreeButton.removeClass("validate");
                     break;
@@ -122,7 +111,7 @@ function Keyboard(menuUI) {
     };
 
     this._documentKeyUp = function (e) {
-        if (!status.disableKeyboard && !status.addingComment) {
+        if (!status.disableKeyboard) {
             switch (e.keyCode) {
                 // "a" key
                 case 65:
@@ -140,7 +129,7 @@ function Keyboard(menuUI) {
                     status.keyPressed = false;
                     break;
             }
-        }
+         }
     };
 
     $(document).bind('keyup', this._documentKeyUp);
