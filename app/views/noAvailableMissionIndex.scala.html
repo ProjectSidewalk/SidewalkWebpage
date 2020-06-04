@@ -2,7 +2,7 @@
 @(title: String, user: Option[User] = None, url: Option[String] = Some("/"))
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/noAvailableMissionIndex"))
     <div id="content">
         <div class="container">
             <h2>You've already completed this HIT!</h2>

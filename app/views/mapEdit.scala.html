@@ -2,7 +2,7 @@
 @(title: String, user: Option[User] = None)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/map/edit"))
     <div class="container">
         <div id="map-edit-holder">
             <div id="map">

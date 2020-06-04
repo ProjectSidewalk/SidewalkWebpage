@@ -72,7 +72,11 @@ function AdminGSVLabelView(admin) {
                                 '</tr>'+
                                     '<th>Image Date</th>'+
                                     '<td id="image-date" colspan="3"></td>'+
-            '                   </tr>';
+            '                   </tr>'+
+                                '<tr>'+
+                                    '<th>Pano ID</th>' +
+                                    '<td id="pano-id" colspan="3"></td>' +
+                                '</tr>';
         if (self.admin) {
             modalText +=
                                 '<tr>'+
@@ -128,7 +132,8 @@ function AdminGSVLabelView(admin) {
         self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-date");
         self.modalTask = self.modal.find("#task");
-        self.modalLabelId = self.modal.find("#label-id")
+        self.modalLabelId = self.modal.find("#label-id");
+        self.modalPanoId = self.modal.find('#pano-id');
     }
 
     /**
@@ -257,6 +262,7 @@ function AdminGSVLabelView(admin) {
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
         self.modalValidations.html(validationsText);
         self.modalImageDate.html(imageDate.format('MMMM YYYY'));
+        self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
         if (self.admin) {
             self.modalLabelId.html(labelMetadata['label_id']);
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+

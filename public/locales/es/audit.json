@@ -81,8 +81,7 @@
         "title-continue": "¡Continúa explorando __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> para encontrar elementos de accesibilidad urbana!",
         "body-first": "¡Tu <span class=\"bold\">primera misión</span> es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
         "body": "¡Tu misión es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "button-resume": "¡Reanuda tu misión!",
-        "turk-reward": "Recompensa por completar satisfactoriamente: "
+        "button-resume": "¡Reanuda tu misión!"
     },
     "mission-complete": {
         "title": "¡Misión cumplida!",
@@ -107,7 +106,7 @@
     "right-ui": {
         "current-mission": {
             "message-first-mission": "Camina __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
-            "message": "Explora __PLACEHOLDER__ de esta colonia"
+            "message": "Explora __PLACEHOLDER__ de este barrio"
         }
     },
     "center-ui": {

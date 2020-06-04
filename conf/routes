@@ -34,10 +34,10 @@ GET     /forgotPassword                                      @controllers.UserCo
 GET     /resetPassword                                       @controllers.UserController.resetPassword(token: java.util.UUID)
 GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
 GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
-POST    /signUp                                              @controllers.SignUpController.signUp(url: String ?= "/")
+GET     /finishSignUp                                        @controllers.SignUpController.finishSignUp(url: Option[String])
+POST    /signUp                                              @controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
-POST    /authapi/signup                                      @controllers.SignUpController.postSignUp
 POST    /forgotPassword                                      @controllers.ForgotPasswordController.submit
 POST    /resetPassword                                       @controllers.ResetPasswordController.reset(token: java.util.UUID)
 
