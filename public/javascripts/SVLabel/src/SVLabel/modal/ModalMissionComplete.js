@@ -269,10 +269,13 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     this.update = function (mission, neighborhood) {
         // Update the horizontal bar chart to show how much distance the user has audited
-        var unit = {units: i18next.t('mission-complete.distance-type', 'kilometers')};
+        var measurementSystem = i18next.t('measurement-system');
+        var unit = {units: "kilometers"};
+        // for countries that use the IS measurement system
+        if(measurementSystem === "IS") unit.units = "miles";
         var regionId = neighborhood.getProperty("regionId");
 
-        var missionDistance = mission.getDistance("miles");
+        var missionDistance = mission.getDistance(unit.units);
         var missionPay = mission.getProperty("pay");
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
         var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority(unit);
@@ -303,7 +306,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance, unit);
+        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
@@ -329,8 +332,7 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance, unit) {
-    if (!unit) unit = {units: 'kilometers'};
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance) {
     var distanceType = i18next.t('mission-complete.distance-type-display-string');
     var positiveRemainingDistance = Math.max(remainingDistance, 0);
     var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);

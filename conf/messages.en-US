@@ -1,3 +1,5 @@
 measurement.system = IS
 
 landing.stats.distance = miles covered
+
+audit.right.ui.distance = miles
