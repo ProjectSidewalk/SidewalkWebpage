@@ -33,7 +33,7 @@
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
                     @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "San Pedro Garza García, MX-NLE")) {
-                        <a class="exploremaplink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
+                        <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
