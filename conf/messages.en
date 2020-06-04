@@ -29,7 +29,7 @@ navbar.admin = Admin
 
 landing.create.path = Let''s create a path for everyone
 landing.also.in = We are also in:
-landing.mapathon = Live in {0}? Stop by <a class="exploremaplink" href="{1}" target="_blank">a mapathon event in your area!</a>
+landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="otherCityLink" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
 landing.how.you.help.content = Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
 landing.how.you.help.explore = EXPLORE
