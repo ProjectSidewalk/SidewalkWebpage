@@ -14,6 +14,7 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.street.StreetEdgeTable
 import play.api.Play
 import play.api.Play.current
+import play.i18n.Messages
 import java.util.Calendar
 import play.api.mvc._
 
@@ -136,7 +137,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val language = request.acceptLanguages(0).code
               var auditedDistance = StreetEdgeTable.auditedStreetDistance(1)
               // if I want to use metric measurement system, not IS.
-              if(language == "es") auditedDistance *= 1.60934.toFloat
+              if(Messages.get("measurement.system") == "metric") auditedDistance *= 1.60934.toFloat
               Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))

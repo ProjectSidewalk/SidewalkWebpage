@@ -210,7 +210,7 @@
             <div id="numberholder">
                 <div class="row" id="anim-numbers">
                     <div class="col-md-3 col-sm-4"><span id="percentage">45</span></div>
-                    <div class="col-md-3 col-sm-4"><span id="nummiles">45</span></div>
+                    <div class="col-md-3 col-sm-4"><span id="distance">45</span></div>
                     <div class="col-md-3 col-sm-4"><span id="numlabels">36,583</span></div>
                     <div class="col-md-3 hidden-sm"><a href="/validate"><span id="numvalidation">123,583</span></a></div>
                 </div>
@@ -224,8 +224,6 @@
 
             </div>
             <script language="javascript">
-                    var auditedDistance = @("%.0f".format(StreetEdgeTable.auditedStreetDistance(1)));
-                    if("@Messages("measurement.system")" == "metric") auditedDistance *= 1.60934;
                     if(@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))<100) {
                         document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", auditedDistance, cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
                     } else {
@@ -233,7 +231,7 @@
                     }
                     var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
                     var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
-                    var milesAnim = new CountUp("nummiles", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
+                    var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
                     var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
             </script>
         </div>

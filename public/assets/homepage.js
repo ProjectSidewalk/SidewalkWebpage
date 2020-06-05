@@ -29,7 +29,7 @@ function numbersInView(){
         if(percentageAnim && labelsAnim) {
             percentageAnim.start();
             labelsAnim.start();
-            milesAnim.start();
+            distanceAnim.start();
             validationsAnim.start();
         }
     }
