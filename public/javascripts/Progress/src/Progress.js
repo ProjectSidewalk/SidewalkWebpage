@@ -514,7 +514,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var dateString;
                 // Date is "In Progress" if the mission has not yet been completed
                 if (grouped[missionId][0]["completed"]) {
-                    dateString = localDate.format('LL');
+                    dateString = localDate.format('L');
                 } else {
                     dateString = i18next.t("in-progress");
                 }
