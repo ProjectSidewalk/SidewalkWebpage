@@ -415,7 +415,11 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 axis: {
                     x: {
                         type: 'timeseries',
-                        tick: { format: '%Y-%m-%d' }
+                        tick: {
+                            format: function(x) {
+                                return moment(x).format('L');
+                            }
+                        }
                     },
                     y: {
                         label: i18next.t("street-audit-count"),
