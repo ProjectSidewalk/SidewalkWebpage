@@ -119,7 +119,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             var milesLeft = 0;
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
-                    var measurementSystem = i18next.t('measurement-system');
+                    var measurementSystem = i18next.t('common:measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
                     distanceLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
                     // distance in metric
