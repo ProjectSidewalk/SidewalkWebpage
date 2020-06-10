@@ -989,7 +989,7 @@ video#bgvid {
     /*left: -30px;*/
 }
 
-.exploremaplink:link {
+.otherCityLink:link {
     color: #fff;
     text-decoration:underline;
     font-family: raleway;
@@ -1000,10 +1000,10 @@ video#bgvid {
     position:relative;
     cursor: pointer;
 }
-.exploremaplink:visited {
+.otherCityLink:visited {
     color: #fff;
 }
-.exploremaplink:hover {
+.otherCityLink:hover {
     color: rgba(251, 215, 139, 1);
 }
 

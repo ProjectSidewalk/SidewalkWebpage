@@ -28,7 +28,7 @@ navbar.admin = Administrador
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
-landing.mapathon = ¿Vives en {0}? ¡Pasa por <a class="exploremaplink" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
+landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="otherCityLink" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
 landing.how.you.help.content = Explora virtualmente las calles de la ciudad para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
 landing.how.you.help.explore = EXPLORA
@@ -36,9 +36,9 @@ landing.how.you.help.find = ENCUENTRA PROBLEMAS
 landing.how.you.help.assess = EVALÚA LA GRAVEDAD
 landing.video.title = ¿Qué es Project Sidewalk?
 landing.video.watch = Ver Ahora
-landing.choropleth.title = Elige una colonia
-landing.choropleth.content = Se te asignará automáticamente una colonia al hacer click en ''Comienza a explorar'', pero también puedes elegir una haciendo clic en cualquier zona del siguiente mapa.
-landing.choropleth.legend = Porcentaje de la colonia completa
+landing.choropleth.title = Elige un barrio
+landing.choropleth.content = Se te asignará automáticamente un barrio al hacer click en ''Comienza a explorar'', pero también puedes elegir una haciendo clic en cualquier zona del siguiente mapa.
+landing.choropleth.legend = Porcentaje del barrio completo
 landing.stats.title = Tu trabajo está haciendo la diferencia
 landing.stats.content.unfinished = Personas usuarias como tú ya han mapeado {0} millas de {1}, {2}—¡eso es el {3}% de la ciudad!
 landing.stats.percent = de {0} mapeado
@@ -88,9 +88,9 @@ audit.left.ui.jump = Saltar
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
 audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!
 audit.left.ui.jump.button.unavailable = No puedo ir en la dirección que quieres que camine.
-audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o una nueva colonia?
-audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en esta colonia
-audit.left.ui.jump.explore.button.new.neighborhood = Ir a una nueva colonia
+audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o un nuevo barrio?
+audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en este barrio
+audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
 
 audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.miles = millas
@@ -104,10 +104,10 @@ audit.center.ui.temporary = Temporal (p. ej., construcción)
 audit.center.ui.show.again = No mostrar de nuevo
 
 audit.mission.complete.labels.title = Etiquetas de la misión
-audit.mission.complete.progress.title = Progreso de la colonia
+audit.mission.complete.progress.title = Progreso del barrio
 audit.mission.complete.progress.mission.you = Exploraste en esta misión
-audit.mission.complete.progress.neighborhood.you = Exploraste en esta colonia
-audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en esta colonia
+audit.mission.complete.progress.neighborhood.you = Exploraste en este barrio
+audit.mission.complete.progress.neighborhood.others = Otras personas exploraron en este barrio
 audit.mission.complete.progress.neighborhood.remaining = Restante en este barrio
 audit.mission.complete.legend.this.mission = Esta misión
 audit.mission.complete.legend.previous.missions = Misiones anteriores
@@ -159,6 +159,7 @@ validate.left.ui.feedback = <span style="overflow-wrap: break-word;">Retroalimen
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
+validate.bottom.ui.add.comment = Agrega un comentario aquí...
 validate.right.ui.current.mission = Misión actual
 validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
@@ -217,7 +218,7 @@ results.reset.view = Restablecer vista
 results.problems.per.mile = Problemas de banqueta por milla
 results.legend.high = Alto
 results.legend.low = Bajo
-results.legend.body = Las colonias grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier colonia para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
+results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
 
 dashboard.audited.street = Calle auditada
 dashboard.distance = Distancia total explorada
