@@ -70,8 +70,12 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         data.interactions = tracker.getActions();
         tracker.refresh();
 
+        //TODO: Figure out what is needed to mark a label as
+        // edited and figure out how to get a label edited
+        // Also figure out where dataStoreUrl comes from and if it's defined
         data.labels = [];
         var labels = labelContainer.getCurrentLabels();
+        console.log(labels);
         for(var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
             var label = labels[i];
             var prop = label.getProperties();
@@ -86,7 +90,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 && interaction.audit_task_id === auditTaskId);
             var timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
-
+            // TODO: temp label to push to compiled submission data
+            //  uses prop to get stuff like pano data. Make sure to
+            //  add a check for our rerendering to not replace the data
             var temp = {
                 deleted : label.isDeleted(),
                 label_id : label.getLabelId(),

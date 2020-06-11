@@ -1143,7 +1143,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     targetLabel: selectedLabel,
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                 });
+
+                console.log("Labels that were rerendered detected and context menu for them can be opened");
                 var labelType = selectedLabel.getProperty("labelType");
+                console.log(labelType);
                 if (labelType === "Other") {
                   // No tooltips for other.
                   $('#severity-one').tooltip('destroy');

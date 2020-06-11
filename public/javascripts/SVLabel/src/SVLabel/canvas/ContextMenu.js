@@ -142,6 +142,7 @@ function ContextMenu (uiContextMenu) {
 
     }
 
+    //TODO: figure out what this does
     function handleSeverityPopup () {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
@@ -160,6 +161,7 @@ function ContextMenu (uiContextMenu) {
      * @param e
      */
     function _handleRadioChange (e) {
+        console.log("radio change");
         var severity = parseInt($(this).val(), 10);
         var label = getTargetLabel();
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });

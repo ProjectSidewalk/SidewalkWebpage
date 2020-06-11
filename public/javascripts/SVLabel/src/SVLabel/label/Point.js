@@ -113,6 +113,7 @@ function Point (svl, x, y, pov, params) {
             // It is ok if iconImagePath is not specified
             if(propName === "iconImagePath") {
                 if (params.iconImagePath) {
+                    console.log("image icon path: " + params.iconImagePath);
                     properties.iconImagePath = params.iconImagePath;
                 } else {
                     continue;

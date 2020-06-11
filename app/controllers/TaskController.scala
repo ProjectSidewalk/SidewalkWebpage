@@ -210,6 +210,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
+  // Are we having any issues with the task not being submitted
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption = identity
@@ -261,7 +262,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
 
       // Insert labels
-      for (label: LabelSubmission <- data.labels) {
+      for (label: LabelSubmission <- data.labels) { //LabelSubmission doesn't contain a place for labelId, so make sure to pop that in
+        // TODO: check for labelId in data sent over; if it exists, that means we are updating data for a
+        // label that was already placed (a rerendered label)
+        if (label.labelId.isDefined) {
+          Logger.debug("This label is a rerendered one, make sure to appropriately update")
+        }
+
         val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
 
         val existingLabelId: Option[Int] = label.temporaryLabelId match {
@@ -275,9 +282,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // If the label already exists, update deleted field, o/w insert the new label.
         val labelId: Int = existingLabelId match {
           case Some(labId) =>
+            Logger.debug("labelID found and going to update delete field")
             LabelTable.updateDeleted(labId, label.deleted.value)
             labId
           case None =>
+            Logger.debug("labelId not found")
             // get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp
             val timeCreated: Option[Timestamp] = label.timeCreated match {
               case Some(time) => Some(new Timestamp(time))

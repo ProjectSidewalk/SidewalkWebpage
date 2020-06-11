@@ -404,6 +404,12 @@ function Main (params) {
                 }
             });
 
+        svl.labelContainer.fetchLabelsToResumeMission(
+            neighborhood.getProperty("regionId"),
+            function (result) {
+                console.log(result);
+            });
+
         var unit = {units: 'miles'};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);

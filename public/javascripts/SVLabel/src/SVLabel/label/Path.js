@@ -439,6 +439,7 @@ function Path (svl, points, params) {
      * @param ctx
      */
     function render (pov, ctx) {
+        // TODO: Figure out how path rendering work
         if (status.visibility === 'visible') {
             var j, pathLen, point, currCoord, prevCoord;
 

@@ -767,6 +767,7 @@ function Canvas(ribbon) {
         var i, j, label, lenLabels,
             labels = svl.labelContainer.getCanvasLabels();
         status.totalLabelCount = 0;
+
         var pov = svl.map.getPov();
 
         var povChange = svl.map.getPovChangeStatus();

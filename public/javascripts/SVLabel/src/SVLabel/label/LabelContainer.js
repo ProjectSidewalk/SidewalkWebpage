@@ -64,6 +64,49 @@ function LabelContainer($) {
             });
     };
 
+    // TODO: Right now the labels just have no audit_task_id,
+    //  make sure to set that and retrieve from database.
+    this.fetchLabelsToResumeMission = function (regionId, callback) {
+        //TODO: This method is ugly af, clean it up
+        $.getJSON(
+            '/label/resumeMission',
+            { regionId: regionId },
+            function (result) {
+                let labelArr = result.labels;
+                let len = labelArr.length;
+                console.log(labelArr.length)
+                for (let i = 0; i < len; i++) {
+                    let pov = {
+                        heading: labelArr[i].panoramaHeading,
+                        pitch: labelArr[i].panoramaPitch,
+                        zoom: labelArr[i].panoramaZoom
+                    };
+
+                    let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
+
+                    var pointParameters = {
+                        'fillStyleInnerCircle': util.misc.getLabelColors()[labelArr[i].labelType].fillStyle,
+                        'lineWidthOuterCircle': 2,
+                        'iconImagePath': iconImagePath,
+                        'radiusInnerCircle': 13,
+                        'radiusOuterCircle': 14,
+                        'strokeStyleOuterCircle': 'rgba(255,255,255,1)',
+                        'storedInDatabase': true
+                    };
+
+                    let path = new Path(svl, [new Point(svl, labelArr[i].canvasX, labelArr[i].canvasY, pov, pointParameters)]);
+                    let label = svl.labelFactory.create(path, labelArr[i]);
+                    label.setProperty("audit_task_id", labelArr[i].audit_task_id);
+
+                    //TODO: Can't push to current labels since it counts the labels too many times
+                    self.push(label);
+                }
+
+                if (callback) callback(result);
+            }
+        )
+    }
+
     /**
      * Returns canvas labels.
      */
