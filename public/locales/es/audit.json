@@ -11,13 +11,13 @@
     "surface-problems": "problemas en superficie",
     "no-sidewalks": "no hay banquetas",
     "others": "otros",
-    "CurbRamp-description": "Rampa Peatonal",
-    "NoCurbRamp-description": "Rampa Peatonal Ausente",
-    "Obstacle-description": "Obstáculo en la Banqueta",
-    "SurfaceProblem-description": "Problema en Superficie",
+    "CurbRamp-description": "Rampa peatonal",
+    "NoCurbRamp-description": "Rampa peatonal ausente",
+    "Obstacle-description": "Obstáculo en la banqueta",
+    "SurfaceProblem-description": "Problema en superficie",
     "Other-description": "Otro",
-    "Occlusion-description": "No Puedo Ver la Banqueta",
-    "NoSidewalk-description": "No Hay Banqueta",
+    "Occlusion-description": "No puedo ver la banqueta",
+    "NoSidewalk-description": "No hay banqueta",
     "tutorial": {
         "mission-message": "¡Completar el tutorial introductorio!",
         "select-label-type-1": "En esta imagen de Google Street View, hemos dibujado una flecha hacia una rampa peatonal. Vamos a etiquetarla. Da clic en el <span class=\"bold\">botón parpadeante \"Rampa peatonal\"</span> ubicado en la parte superior.",
@@ -76,17 +76,16 @@
     },
     "mission-start": {
         "title": "Explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__",
-        "title-first": "Primera Misión: ",
+        "title-first": "Primera misión: ",
         "title-return": "Vuelve a tu misión",
         "title-continue": "¡Continúa explorando __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> para encontrar elementos de accesibilidad urbana!",
         "body-first": "¡Tu <span class=\"bold\">primera misión</span> es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
         "body": "¡Tu misión es explorar __DISTANCE_PLACEHOLDER__ en __NEIGHBORHOOD_PLACEHOLDER__</span> y encontrar todas las funciones de accesibilidad que afectan a las personas con movilidad reducida!",
-        "button-resume": "¡Reanuda tu Misión!",
-        "turk-reward": "Recompensa por completar satisfactoriamente: "
+        "button-resume": "¡Reanuda tu misión!"
     },
     "mission-complete": {
-        "title": "¡Misión Cumplida!",
-        "button-start-validating": "Comienza a validir",
+        "title": "¡Misión cumplida!",
+        "button-start-validating": "Comienza a validar",
         "button-keep-exploring": "Seguir explorando",
         "button-continue": "Continuar"
     },
@@ -107,15 +106,15 @@
     "right-ui": {
         "current-mission": {
             "message-first-mission": "Camina __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
-            "message": "Explora __PLACEHOLDER__ de esta colonia"
+            "message": "Explora __PLACEHOLDER__ de este barrio"
         }
     },
     "center-ui": {
         "context-menu": {
             "description": "Descripción (opcional)",
             "severity": "Por favor haz clic para etiquetar la gravedad",
-            "severity-example": "Ejemplo de Nivel de Gravedad {{n}}",
-            "severity-shortcuts": "Presiona las Teclas 1-5 para Gravedad",
+            "severity-example": "Ejemplo de nivel de gravedad {{n}}",
+            "severity-shortcuts": "Presiona las teclas 1-5 para gravedad",
             "tag": {
                 "narrow": "estrech<tag-underline>a</tag-underline>",
                 "points-into-traffic": "orientada hacia el tráfico (<tag-underline>p</tag-underline>)",

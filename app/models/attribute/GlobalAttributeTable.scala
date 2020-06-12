@@ -43,6 +43,8 @@ case class GlobalAttributeForAPI(globalAttributeId: Int,
       )
     )
   }
+  val attributesToArray = Array(globalAttributeId, labelType, neighborhoodName,
+                                lat.toString, lng.toString, severity.getOrElse("NA").toString, temporary.toString)
 }
 
 case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
@@ -86,8 +88,13 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int,
       )
     )
   }
+  val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
+                                attributeTemporary.toString, neighborhoodName, labelId.toString, gsvPanoramaId,
+                                attributeLat.toString, attributeLng.toString, labelLat.toString, labelLng.toString,
+                                heading.toString, pitch.toString, zoom.toString, canvasX.toString, canvasY.toString,
+                                canvasWidth.toString, canvasHeight.toString,
+                                attributeSeverity.getOrElse("NA").toString, labelTemporary.toString)
 }
-
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
   def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)

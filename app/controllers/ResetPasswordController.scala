@@ -52,21 +52,21 @@ class ResetPasswordController @Inject() (
           passwordData => userService.retrieve(authToken.userID).flatMap {
             case Some(user) if user.loginInfo.providerID == CredentialsProvider.ID =>
               if (passwordData.password != passwordData.passwordConfirm) {
-                Future.successful(Redirect(routes.UserController.resetPassword(token)).flashing("error" -> Messages("sign.up.password.mismatch.error")))
+                Future.successful(Redirect(routes.UserController.resetPassword(token)).flashing("error" -> Messages("authenticate.error.password.mismatch")))
               } else if (passwordData.password.length < 6) {
-                Future.successful(Redirect(routes.UserController.resetPassword(token)).flashing("error" -> Messages("sign.up.password.length.error")))
+                Future.successful(Redirect(routes.UserController.resetPassword(token)).flashing("error" -> Messages("authenticate.error.password.length")))
               } else {
                 val passwordInfo = passwordHasher.hash(passwordData.password)
                 authInfoService.save(user.loginInfo, passwordInfo).map { _ =>
                   authTokenService.remove(token)
                   WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "PasswordReset", timestamp))
-                  Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.password.successful"))
+                  Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.pw.successful"))
                 }
               }
-            case _ => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.password.invalid.reset.link")))
+            case _ => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link")))
           }
         )
-      case None => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.password.invalid.reset.link")))
+      case None => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link")))
     }
   }
 }

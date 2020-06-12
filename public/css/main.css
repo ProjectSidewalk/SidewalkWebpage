@@ -989,7 +989,7 @@ video#bgvid {
     /*left: -30px;*/
 }
 
-.exploremaplink:link {
+.otherCityLink:link {
     color: #fff;
     text-decoration:underline;
     font-family: raleway;
@@ -1000,10 +1000,10 @@ video#bgvid {
     position:relative;
     cursor: pointer;
 }
-.exploremaplink:visited {
+.otherCityLink:visited {
     color: #fff;
 }
-.exploremaplink:hover {
+.otherCityLink:hover {
     color: rgba(251, 215, 139, 1);
 }
 
@@ -1351,7 +1351,7 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 990px) {
+@media only screen and (max-width: 1250px) {
     .navbar-header {
         float: none;
     }

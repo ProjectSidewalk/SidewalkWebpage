@@ -46,14 +46,14 @@ class ForgotPasswordController @Inject() (
       form => Future.successful(BadRequest(views.html.forgotPassword(form))),
       email => {
         val loginInfo = LoginInfo(CredentialsProvider.ID, email)
-        val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("email.reset.password.sent"))
+        val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
         userService.retrieve(loginInfo).flatMap {
           case Some(user) =>
             authTokenService.create(user.userId).map { authTokenID =>
               val url = routes.UserController.resetPassword(authTokenID).absoluteURL()
 
               val resetEmail = Email(
-                Messages("email.reset.title"),
+                Messages("reset.pw.email.reset.title"),
                 "Project Sidewalk <mlprojectsidewalk@gmail.com>",
                 Seq(email),
                 bodyHtml = Some(views.html.emails.resetPasswordEmail(user, url).body)
