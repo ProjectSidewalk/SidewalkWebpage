@@ -211,7 +211,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             for (var i=0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     var measurementSystem = i18next.t('measurement-system');
-                    compRate = Math.round(100.0 * rates[i].rate);
+                    compRate = Math.round(rates[i].rate);
                     distanceLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
                     // if distance is in metric instead of IS.
                     if(measurementSystem === "metric") distanceLeft *= 1.60934;
