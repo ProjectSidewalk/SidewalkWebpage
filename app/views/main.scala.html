@@ -257,7 +257,7 @@
                     let localDate = moment(new Date(timestampText + " UTC"));
 
                     // If the date cannot be parsed, ignore it and leave the text as-is. O/w, parse into local datetime format.
-                    if (localDate.format('LL') !== "Invalid date") {
+                    if (localDate.isValid()) {
                         this.textContent = localDate.format('LL');
                     }
                 });

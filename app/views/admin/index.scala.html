@@ -774,7 +774,7 @@
 <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
 <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
@@ -808,7 +808,7 @@
                     let localDate = moment(new Date(timestampText + " UTC"));
 
                     // If the date cannot be parsed, ignore it and leave the text as-is. O/w, parse into local datetime format.
-                    if (localDate.format('LL') !== "Invalid date") {
+                    if (localDate.isValid()) {
                         this.textContent = localDate.format('LL');
                     }
                 });
