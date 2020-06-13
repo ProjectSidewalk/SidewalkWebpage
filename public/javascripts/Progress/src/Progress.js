@@ -417,7 +417,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                         type: 'timeseries',
                         tick: {
                             format: function(x) {
-                                return moment(x).format('L');
+                                return moment(x).format('D MMMM YYYY');
                             }
                         }
                     },
