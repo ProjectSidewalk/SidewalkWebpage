@@ -13,6 +13,10 @@
 @import play.api.libs.json.Json
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
+@convertDistance(distance: Float) = @{
+    if(Messages("measurement.system") == "metric") distance * 1.60934.toDouble
+    else distance.toDouble
+}
 @main(title) {
 @navbar(user, Some("/admin"))
 <style>
@@ -144,9 +148,9 @@
                             </tr>
                             <tr>
                                 <th>Audited Distance</th>
-                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
-                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceToday())) miles</td>
-                                <th>@("%.1f".format(StreetEdgeTable.auditedStreetDistanceYesterday())) miles</td>
+                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("admin.overview.distance")</td>
+                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceToday()))) @Messages("admin.overview.distance")</td>
+                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceYesterday()))) @Messages("admin.overview.distance")</td>
                             </tr>
                             <tr>
                                 <th>Total Validation Users</th>
@@ -253,31 +257,31 @@
                             </tr>
                             <tr>
                                 <th>Distance</th>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1))) miles</td>
-                                <td>@("%.1f".format(StreetEdgeTable.totalStreetDistance())) miles</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("admin.overview.distance")</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("admin.overview.distance")</td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Registered"))) miles</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("admin.overview.distance")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Anonymous"))) miles</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("admin.overview.distance")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turker</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Turker"))) miles</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("admin.overview.distance")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researcher</td>
-                                <td>@("%.1f".format(StreetEdgeTable.auditedStreetDistance(1, "Researcher"))) miles</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("admin.overview.distance")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%</td>
                             </tr>
