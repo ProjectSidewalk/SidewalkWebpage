@@ -225,9 +225,9 @@
             </div>
             <script language="javascript">
                     if(@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))<100) {
-                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
+                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
                     } else {
-                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%.0f".format(auditedDistance), cityName, stateAbbreviation)";
+                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
                     }
                     var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
                     var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
