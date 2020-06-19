@@ -261,7 +261,7 @@ function AdminGSVLabelView(admin) {
         self.modalTags.html(labelMetadata['tags'].join(', ')); // Join to format using commas and spaces.
         self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : "No description");
         self.modalValidations.html(validationsText);
-        self.modalImageDate.html(imageDate.format('LL'));
+        self.modalImageDate.html(imageDate.format('MMMM YYYY'));
         self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
         if (self.admin) {
             self.modalLabelId.html(labelMetadata['label_id']);
