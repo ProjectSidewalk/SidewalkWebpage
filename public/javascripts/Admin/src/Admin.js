@@ -637,31 +637,56 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
-                    "height": 300,
-                    "width": 875,
-                    "mark": "area",
                     "data": {"values": data[0], "format": {"type": "json"}},
-                    "encoding": {
-                        "x": {
-                            "field": "date",
-                            "type": "temporal",
-                            "axis": {"title": "Date", "labelAngle": 0}
-                        },
-                        "y": {
-                            "field": "completion",
-                            "type": "quantitative", "scale": {
-                                "domain": [0,100]
-                            },
-                            "axis": {
-                                "title": "City Coverage (%)"
-                            }
-                        }
-                    },
                     "config": {
                         "axis": {
                             "titleFontSize": 16
                         }
-                    }
+                    },
+                    "vconcat": [
+                        {
+                            "height":300,
+                            "width": 875,
+                            "mark": "area",
+                            "encoding": {
+                                "x": {
+                                    "field": "date",
+                                    "type": "temporal",
+                                    "scale": {"domain": {"selection": "brush", "field": "date"}},
+                                    "axis": {"title": "Date", "labelAngle": 0}
+                                },
+                                "y": {
+                                    "field": "completion", 
+                                    "type": "quantitative", "scale": {
+                                        "domain": [0,100]
+                                    },
+                                    "axis": {"title": "City Coverage (%)"}
+                                }
+                            }
+                        },
+                        {
+                        "height": 60,
+                        "width": 875,
+                        "mark": "area",
+                        "selection": {"brush": {"type": "interval", "encodings": ["x"]}},
+                        "encoding": {
+                            "x": {
+                                "field": "date", 
+                                "type": "temporal",
+                                "axis": {"title": "Date", "labelAngle": 0}
+                            },
+                            "y": {
+                                "field": "completion",
+                                "type": "quantitative", "scale": {
+                                    "domain": [0,100]
+                                },
+                                "axis": {
+                                    "title": "City Coverage (%)",
+                                    "tickCount": 3, "grid": true}
+                            }
+                        }
+                        }
+                    ]
                 };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
