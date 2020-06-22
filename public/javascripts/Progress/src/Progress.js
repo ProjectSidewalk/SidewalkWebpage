@@ -122,9 +122,10 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                     var measurementSystem = i18next.t('common:measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
                     distanceLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
-                    // distance in metric
-                    if(measurementSystem === "metric") distanceLeft *= 1.60934;
+                    // If distance is in metric instead of IS.
+                    if (measurementSystem === "metric") distanceLeft *= 1.60934;
                     distanceLeft = Math.round(distanceLeft);
+
                     var advancedMessage = '';
                     if(difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
@@ -310,14 +311,14 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             })
                 .addTo(map);
 
-            // Calculate total distance audited in (km)
+            // Calculate total distance audited in (mi)
             for (var i = data.features.length - 1; i >= 0; i--) {
                 distanceAudited += turf.length(data.features[i], {units: 'miles'});
             }
             var measurementSystem = i18next.t("common:measurement-system");
             var unitAbbreviation = " mi";
-            // user is in a country that uses metric, not IS
-            if(measurementSystem === "metric") distanceAudited *= 1.60934, unitAbbreviation = " km";
+            // User is in a country that uses metric, not IS.
+            if (measurementSystem === "metric") distanceAudited *= 1.60934, unitAbbreviation = " km";
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + unitAbbreviation;
 
             // Get total reward if a turker
@@ -503,7 +504,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                     }
                 }
                 
-                // no need to load locale, correct locale loaded for footer
+                // No need to load locale, correct locale loaded for timestamp.
                 var localDate = moment(new Date(grouped[missionId][0]["mission_end"]));
 
                 var neighborhood;

@@ -13,10 +13,10 @@
   "map": {
     "distance-left": "Only {{n}}  kilometers left!",
     "distance-left-one-unit": "Only {{n}}  kilometer left!",
+    "less-than-one-unit-left": "Less than a kilometer left!",
     "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighborhood",
     "thanks": "Thanks for all your help!",
     "100-percent-complete": "100% Complete!",
-    "percent-complete": "{{percent}}% Complete",
-    "less-than-one-unit-left": "Less than a kilometer left!"
+    "percent-complete": "{{percent}}% Complete"
   }
 }

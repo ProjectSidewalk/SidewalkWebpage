@@ -141,7 +141,7 @@ function AdminUser(params) {
                 labelCounter[labelType] += 1;
             }
 
-            // no need to load locale, correct locale loaded for footer
+            // No need to load locale, correct locale loaded in timestamp.
             var localDate = moment(new Date(grouped[auditTaskId][0]["task_end"]));
 
             tableRows += "<tr>" +

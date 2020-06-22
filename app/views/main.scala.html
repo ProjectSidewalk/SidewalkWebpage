@@ -251,7 +251,7 @@
                     // formatted timestamp.
                     $(this).attr("data-order", timestampText);
                     
-                    // load correct locale
+                    // Load correct locale.
                     moment.locale("@lang.code");
 
                     let localDate = moment(new Date(timestampText + " UTC"));

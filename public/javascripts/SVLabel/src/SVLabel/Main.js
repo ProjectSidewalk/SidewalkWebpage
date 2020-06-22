@@ -405,9 +405,9 @@ function Main (params) {
             });
         
         var measurementSystem = i18next.t('measurement-system');
-        var unit;
-        if(measurementSystem === "metric") unit = {units: "kilometers"};
-        else unit = {units: "miles"};
+        var unit = {units: "miles"};
+        // If user is in a country that uses metric system instead of IS.
+        if (measurementSystem === "metric") unit.units = "kilometers";
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
     }
@@ -645,6 +645,7 @@ function Main (params) {
         svl.ui.onboarding.canvas = $("#onboarding-canvas");
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
+    
     // Gets all the text on the audit page for the correct language.
     i18next.use(i18nextXHRBackend);
     i18next.init({

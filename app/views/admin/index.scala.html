@@ -14,7 +14,7 @@
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @convertDistance(distance: Float) = @{
-    if(Messages("measurement.system") == "metric") distance * 1.60934.toDouble
+    if (Messages("measurement.system") == "metric") distance * 1.60934.toDouble
     else distance.toDouble
 }
 @main(title) {
@@ -806,7 +806,7 @@
                     // formatted timestamp.
                     $(this).attr("data-order", timestampText);
                     
-                    // load correct locale
+                    // Load correct locale.
                     moment.locale("@lang.code");
 
                     let localDate = moment(new Date(timestampText + " UTC"));

@@ -135,8 +135,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 (otherName + ", " + otherState, otherURL)
               }
               var auditedDistance = StreetEdgeTable.auditedStreetDistance(1)
-              // if I want to use metric measurement system, not IS.
-              if(Messages("measurement.system") == "metric") auditedDistance *= 1.60934.toFloat
+              // If I want to use metric measurement system, not IS.
+              if (Messages("measurement.system") == "metric") auditedDistance *= 1.60934.toFloat
               Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))

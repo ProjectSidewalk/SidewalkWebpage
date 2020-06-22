@@ -213,8 +213,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(rates[i].rate);
                     distanceLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
-                    // if distance is in metric instead of IS.
-                    if(measurementSystem === "metric") distanceLeft *= 1.60934;
+                    // If distance is in metric instead of IS.
+                    if (measurementSystem === "metric") distanceLeft *= 1.60934;
                     distanceLeft = Math.round(distanceLeft);
 
                     var advancedMessage = '';
