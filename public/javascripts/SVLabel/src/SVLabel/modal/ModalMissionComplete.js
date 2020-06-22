@@ -272,7 +272,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var measurementSystem = i18next.t('measurement-system');
         var unit = {units: "miles"};
         // If countries that use the metric measurement system instead of IS.
-        if(measurementSystem === "metric") unit.units = "kilometers";
+        if (measurementSystem === "metric") unit.units = "kilometers";
         var regionId = neighborhood.getProperty("regionId");
 
         var missionDistance = mission.getDistance(unit.units);
