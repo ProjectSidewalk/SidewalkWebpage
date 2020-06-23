@@ -147,8 +147,6 @@ function Label (svl, pathIn, params) {
     function createGoogleMapsMarker (labelType) {
         if (typeof google !== "undefined") {
             var latlng = toLatLng();
-            console.log("latlng calculated from creatingGoogleMapsMarker");
-            console.log(latlng);
             if (latlng) {
                 var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
             } else {

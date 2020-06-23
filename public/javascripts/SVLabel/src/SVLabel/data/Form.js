@@ -85,7 +85,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var tempLabelId = label.getProperty('temporary_label_id');
             var auditTaskId = label.getProperty('audit_task_id');
 
-            console.log(labelLatLng);
             // if this label is a new label, get the timestamp of its creation from the corresponding interaction
             var associatedInteraction = data.interactions.find(interaction =>
                 interaction.action === 'LabelingCanvas_FinishLabeling' && interaction.temporary_label_id === tempLabelId
@@ -250,7 +249,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
         labelContainer.refresh();
 
-        //console.log(data);
+        console.log(data);
 
         $.ajax({
             async: async,

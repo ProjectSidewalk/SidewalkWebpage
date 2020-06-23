@@ -344,7 +344,6 @@ function Point (svl, x, y, pov, params) {
         // Set pov parameters
         self.pov = self.pov || {};
         if ('pov' in params) {
-            console.log("pov is in the params");
             self.pov = params.pov;
         }
         if ('heading' in params) { self.pov.heading = params.heading; }
@@ -354,7 +353,6 @@ function Point (svl, x, y, pov, params) {
         // Set original pov parameters
         self.originalPov = self.originalPov || {};
         if ('originalPov' in params) {
-            console.log("original pov is in the params");
             self.originalPov = params.originalPov;
         }
         if ('originalHeading' in params) { self.originalPov.heading = params.originalHeading; }

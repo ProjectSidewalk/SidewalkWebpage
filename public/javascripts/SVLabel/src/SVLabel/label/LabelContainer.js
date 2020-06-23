@@ -75,6 +75,7 @@ function LabelContainer($) {
                 let labelArr = result.labels;
                 let len = labelArr.length;
                 for (let i = 0; i < len; i++) {
+                    console.log(labelArr[i].labelId);
                     let povChange = svl.map.getPovChangeStatus();
 
                     // Temporarily change pov change status to true so that
@@ -100,9 +101,6 @@ function LabelContainer($) {
                     let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(originalCanvasCoord,
                                                                                   originalPointPov.originalPov,
                                                                                   svl.map.getPov());
-
-                    console.log("calculated x coord: "+ rerenderCanvasCoord.x);
-                    console.log("calculated y coord: "+ rerenderCanvasCoord.y);
 
                     // Return the status to original
                     povChange["status"] = false;
