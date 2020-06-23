@@ -212,9 +212,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 if (rates[i].region_id === feature.properties.region_id) {
                     var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(rates[i].rate);
-                    distanceLeft = 0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m);
-                    // If distance is in metric instead of IS.
-                    if (measurementSystem === "metric") distanceLeft *= 1.60934;
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371
                     distanceLeft = Math.round(distanceLeft);
 
                     var advancedMessage = '';
