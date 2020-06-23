@@ -11,10 +11,10 @@
   "mission-complete-confirmation-code": "Código de confirmación: ",
   "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
   "map": {
-    "distance-left": "Sólo faltan {{n}}  kilómetros!",
-    "distance-left-one-unit": "Sólo faltan {{n}}  kilómetro!",
+    "distance-left": "Sólo faltan {{n}} kilómetros!",
+    "distance-left-one-unit": "Sólo faltan 1 kilómetro!",
     "less-than-one-unit-left": "¡Queda menos de un kilómetro!",
-    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar esta colonia!",
+    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio",
     "thanks": "¡Gracias por tu ayuda!",
     "100-percent-complete": "¡100% Completa!",
     "percent-complete": "{{percent}}% Completa"

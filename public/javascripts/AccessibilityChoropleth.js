@@ -143,7 +143,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                     } else if (distanceLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.distance-left-one-unit", { n: distanceLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.distance-left-one-unit") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     } else {
                         var popupContent = "<strong>" + regionName + "</strong>: " +

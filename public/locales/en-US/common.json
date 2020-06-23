@@ -1,8 +1,8 @@
 {
     "measurement-system": "IS",
     "map": {
-        "distance-left": "Only {{n}}  miles left!",
-        "distance-left-one-unit": "Only {{n}}  mile left!",
+        "distance-left": "Only {{n}} miles left!",
+        "distance-left-one-unit": "Only 1 mile left!",
         "less-than-one-unit-left": "Less than a mile left!"
     }
 }
