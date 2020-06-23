@@ -317,10 +317,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 distanceAudited += turf.length(data.features[i], {units: 'miles'});
             }
             var measurementSystem = i18next.t("common:measurement-system");
-            var unitAbbreviation = " mi";
-            // User is in a country that uses metric, not IS.
-            if (measurementSystem === "metric") distanceAudited *= 1.60934, unitAbbreviation = " km";
-            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + unitAbbreviation;
+            // If using metric system, convert from miles to kilometers.
+            if (measurementSystem === "metric") distanceAudited *= 1.60934
+            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation");
 
             // Get total reward if a turker
             if (role === 'Turker') {

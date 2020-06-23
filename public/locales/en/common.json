@@ -1,5 +1,6 @@
 {
   "measurement-system": "metric",
+  "unit-abbreviation": "km",
   "missing-sidewalks": "Missing Sidewalks",
   "missing-ramps": "Missing Ramps",
   "surface-problems": "Surface Problems",
