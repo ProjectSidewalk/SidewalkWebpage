@@ -269,7 +269,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
     this.update = function (mission, neighborhood) {
         // Update the horizontal bar chart to show how much distance the user has audited
-        var measurementSystem = i18next.t('measurement-system');
+        var measurementSystem = i18next.t('common:measurement-system');
         var unit = {units: "miles"};
         // If countries that use the metric measurement system instead of IS.
         if (measurementSystem === "metric") unit.units = "kilometers";

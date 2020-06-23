@@ -404,7 +404,7 @@ function Main (params) {
                 }
             });
         
-        var measurementSystem = i18next.t('measurement-system');
+        var measurementSystem = i18next.t('common:measurement-system');
         var unit = {units: "miles"};
         // If user is in a country that uses metric system instead of IS.
         if (measurementSystem === "metric") unit.units = "kilometers";

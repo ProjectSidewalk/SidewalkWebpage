@@ -49,7 +49,7 @@ StatusFieldMission.prototype._distanceToString = function (distance, unit) {
     else if (unit === "kilometers") distance = util.math.kilometersToMiles(distance);
 
     distance = distance.toPrecision(4);
-    var distanceType = i18next.t('measurement-system');
+    var distanceType = i18next.t('common:measurement-system');
 
     if (distance === "0.0947"){
         if (distanceType === "metric") return this.convertToMetric(500);
