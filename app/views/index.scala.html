@@ -224,7 +224,7 @@
 
             </div>
             <script language="javascript">
-                    if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))<100) {
+                    if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
                         document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
                     } else {
                         document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
