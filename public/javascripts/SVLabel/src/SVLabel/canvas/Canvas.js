@@ -72,6 +72,9 @@ function Canvas(ribbon) {
     var systemLabels = [];
     var labels = [];
 
+    // boolean start flag
+    // var initialRender = true;
+
     // Initialization
     function _init() {
         var el = document.getElementById("label-canvas");

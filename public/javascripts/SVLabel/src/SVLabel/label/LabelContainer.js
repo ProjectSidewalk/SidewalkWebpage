@@ -74,18 +74,49 @@ function LabelContainer($) {
             function (result) {
                 let labelArr = result.labels;
                 let len = labelArr.length;
-                console.log(labelArr.length)
                 for (let i = 0; i < len; i++) {
-                    let pov = {
+                    let povChange = svl.map.getPovChangeStatus();
+
+                    // Temporarily change pov change status to true so that
+                    // we can use util function to calculate the canvas coordinate
+                    // to place label upon rerender
+                    povChange["status"] = true;
+
+                    let originalCanvasCoord = {
+                        x: labelArr[i].canvasX,
+                        y: labelArr[i].canvasY
+                    };
+
+                    let originalPov = {
                         heading: labelArr[i].panoramaHeading,
                         pitch: labelArr[i].panoramaPitch,
                         zoom: labelArr[i].panoramaZoom
                     };
 
+                    let originalPointPov = {
+                        originalPov: util.panomarker.calculatePointPov(labelArr[i].canvasX, labelArr[i].canvasY, originalPov)
+                    };
+
+                    let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(originalCanvasCoord,
+                                                                                  originalPointPov.originalPov,
+                                                                                  svl.map.getPov());
+
+                    console.log("calculated x coord: "+ rerenderCanvasCoord.x);
+                    console.log("calculated y coord: "+ rerenderCanvasCoord.y);
+
+                    // Return the status to original
+                    povChange["status"] = false;
+
+
+                    // let pov = {
+                    //     pov: svl.map.getPov()
+                    // };
+
                     let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
+                    let labelFillStyle = util.misc.getLabelColors()[labelArr[i].labelType].fillStyle;
 
                     var pointParameters = {
-                        'fillStyleInnerCircle': util.misc.getLabelColors()[labelArr[i].labelType].fillStyle,
+                        'fillStyleInnerCircle': labelFillStyle,
                         'lineWidthOuterCircle': 2,
                         'iconImagePath': iconImagePath,
                         'radiusInnerCircle': 13,
@@ -94,12 +125,33 @@ function LabelContainer($) {
                         'storedInDatabase': true
                     };
 
-                    let path = new Path(svl, [new Point(svl, labelArr[i].canvasX, labelArr[i].canvasY, pov, pointParameters)]);
+                    let labelPoint = new Point(svl, rerenderCanvasCoord.x/*labelArr[i].canvasX*/, rerenderCanvasCoord.y/*labelArr[i].canvasY*/, svl.map.getPov(), pointParameters);
+                    
+                    labelPoint.setProperties(originalPointPov);
+
+                    let path = new Path(svl, [labelPoint]);
                     let label = svl.labelFactory.create(path, labelArr[i]);
                     label.setProperty("audit_task_id", labelArr[i].audit_task_id);
+                    label.setProperty("labelLat", labelArr[i].labelLat);
+                    label.setProperty("labelLng", labelArr[i].labelLng);
+                    label.setProperty("labelFillStyle", labelFillStyle);
 
-                    //TODO: Can't push to current labels since it counts the labels too many times
-                    self.push(label);
+                    // We need to somehow rerender and call for a visibility check
+                    //self.push(label);
+                    prevCanvasLabels.push(label);
+                    // svl.labelCounter.increment(label.getProperty("labelType"));
+                    //
+                    // // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
+                    var panoramaId = label.getProperty("panoId");
+                    if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
+                        svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
+                    }
+
+                    if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
+                        var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+                        svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
+                    }
+
                 }
 
                 if (callback) callback(result);

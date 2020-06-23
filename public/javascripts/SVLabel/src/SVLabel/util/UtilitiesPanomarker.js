@@ -318,6 +318,7 @@ function getCanvasCoordinate (canvasCoord, origPov, pov) {
 
     var povChange = svl.map.getPovChangeStatus(),
         povChangeStatus = povChange["status"];
+    console.log("pov change status from pano utility function: " + povChangeStatus)
 
     if (canvasCoord == undefined){
         canvasCoord = {x: undefined, y: undefined};

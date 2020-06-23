@@ -29,6 +29,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      * This method gathers all the data needed for submission.
      * @returns {{}}
      */
+    // TODO: Something funy is going on in this
+    //  method concerning how the label data that was change is compiled
     this.compileSubmissionData = function (task) {
         var data = {};
 
@@ -75,7 +77,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         // Also figure out where dataStoreUrl comes from and if it's defined
         data.labels = [];
         var labels = labelContainer.getCurrentLabels();
-        console.log(labels);
         for(var i = 0, labelLen = labels.length; i < labelLen; i += 1) {
             var label = labels[i];
             var prop = label.getProperties();
@@ -84,6 +85,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             var tempLabelId = label.getProperty('temporary_label_id');
             var auditTaskId = label.getProperty('audit_task_id');
 
+            console.log(labelLatLng);
             // if this label is a new label, get the timestamp of its creation from the corresponding interaction
             var associatedInteraction = data.interactions.find(interaction =>
                 interaction.action === 'LabelingCanvas_FinishLabeling' && interaction.temporary_label_id === tempLabelId
@@ -247,6 +249,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         }
 
         labelContainer.refresh();
+
+        //console.log(data);
 
         $.ajax({
             async: async,

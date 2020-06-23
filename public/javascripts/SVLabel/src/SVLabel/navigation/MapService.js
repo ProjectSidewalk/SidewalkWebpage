@@ -998,6 +998,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * A callback for position_change.
      */
     function handlerPositionUpdate () {
+        console.log("position update");
+
         var position = svl.panorama.getPosition();
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var currentMission = svl.missionContainer.getCurrentMission();
@@ -1050,6 +1052,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Callback for pov update
      */
     function handlerPovChange () {
+        console.log("pov changed");
         // This is a callback function that is fired when pov is changed
         povChange["status"] = true;
         updateCanvas();
@@ -1143,9 +1146,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     targetLabelColor: selectedLabel.getProperty("labelFillStyle")
                 });
 
-                console.log("Labels that were rerendered detected and context menu for them can be opened");
                 var labelType = selectedLabel.getProperty("labelType");
-                console.log(labelType);
                 if (labelType === "Other") {
                   // No tooltips for other.
                   $('#severity-one').tooltip('destroy');
@@ -1551,6 +1552,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Update the canvas
      */
     function updateCanvas () {
+        console.log("update canvas");
         _canvas.clear();
         if (status.currentPanoId !== getPanoId()) {
             _canvas.setVisibilityBasedOnLocation('visible', getPanoId());

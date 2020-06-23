@@ -61,34 +61,38 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   def getLabelsToResumeMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        // TODO: Choose better object than just label
         val labels: List[LabelTable.ResumeLabelMetadata] = LabelTable.getLabelsFromUserInRegion(regionId, user.userId)
         Logger.debug("" + labels.size)
         val jsLabels: List[JsObject] = labels.map { label =>
           Json.obj(
-            "canvasWidth" -> label.canvasWidth,
-            "canvasHeight" -> label.canvasHeight,
-            "canvasDistortionAlphaX" -> label.alphaX,
-            "canvasDistortionAlphaY" -> label.alphaY,
+            "canvasWidth" -> label.pointData.canvasWidth,
+            "canvasHeight" -> label.pointData.canvasHeight,
+            "canvasDistortionAlphaX" -> label.pointData.alphaX,
+            "canvasDistortionAlphaY" -> label.pointData.alphaY,
             "labelId" -> label.labelData.labelId,
             "labelType" -> label.labelType,
             "labelDescription" -> label.description,
             "panoId" -> label.labelData.gsvPanoramaId,
             "panoramaLat" -> label.labelData.panoramaLat,
             "panoramaLng" -> label.labelData.panoramaLng,
-            "panoramaHeading" -> label.heading,
-            "panoramaPitch" -> label.pitch,
-            "panoramaZoom" -> label.zoom,
+            "panoramaHeading" -> label.pointData.heading,
+            "panoramaPitch" -> label.pointData.pitch,
+            "panoramaZoom" -> label.pointData.zoom,
             "photographerHeading" -> label.labelData.photographerHeading,
             "photographerPitch" -> label.labelData.photographerPitch,
             "svImageWidth" -> label.svImageWidth,
             "svImageHeight" -> label.svImageHeight,
+            "tagIds" -> label.tagIds,
             "severity" -> label.severity,
             "tutorial" -> label.labelData.tutorial,
             "temporary_label_id" -> label.labelData.temporaryLabelId,
-            "canvasX" -> label.canvasX,
-            "canvasY" -> label.canvasY,
-            "audit_task_id" -> label.labelData.auditTaskId
+            "temporaryLabel" -> label.temporary,
+            "description" -> label.description,
+            "canvasX" -> label.pointData.canvasX,
+            "canvasY" -> label.pointData.canvasY,
+            "audit_task_id" -> label.labelData.auditTaskId,
+            "labelLat" -> label.pointData.lat,
+            "labelLng" -> label.pointData.lng
           )
         }
         val labelCollection: JsObject = Json.obj("labels" -> jsLabels)

@@ -108,6 +108,7 @@ object LabelTable {
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
   val descriptions = TableQuery[LabelDescriptionTable]
+  val temporariness = TableQuery[LabelTemporarinessTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
@@ -155,10 +156,9 @@ object LabelTable {
 
   //TODO: Use smaller case classes to solve >22 param issue
   //Pass through Tags
-  case class ResumeLabelMetadata(labelData: Label, labelType: String, heading: Float, pitch: Float, zoom: Int,
-                                 canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int, alphaX: Float,
-                                 alphaY: Float, svImageWidth: Int, svImageHeight: Int, description: Option[String],
-                                 severity: Option[Int])
+  case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
+                                 svImageHeight: Int, description: Option[String], severity: Option[Int],
+                                 temporary: Option[Boolean], tagIds: List[Int])
 
   implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
     LabelValidationMetadataWithoutTags(r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt,
@@ -169,10 +169,6 @@ object LabelTable {
 
   implicit val MiniMapResumeMetadataConverter = GetResult[MiniMapResumeMetadata](r =>
     MiniMapResumeMetadata(r.nextInt, r.nextString, r.nextFloatOption, r.nextFloatOption))
-
-//  implicit val ResumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
-//    ResumeLabelMetadata(r.<<, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
-//                        r.nextInt, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextStringOption, r.nextIntOption))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextIntOption, r.nextFloat, r.nextFloat))
@@ -317,7 +313,9 @@ object LabelTable {
   }
 
   def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>
-    val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
+//    val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
+//    labs.update(deleted)
+    val labs = for { label <- labels if label.labelId === labelId } yield label.deleted
     labs.update(deleted)
   }
 
@@ -1227,90 +1225,42 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
     } yield (_lb, _lt.labelType)
 
-    Logger.debug("labels size:" + _labels.list.size)
+    //Logger.debug("labels size:" + _labels.list.size)
 
     val lp = for {
       (l, p) <- _labels.leftJoin(labelPoints).on(_._1.labelId === _.labelId)
-    } yield (l._1,
-      l._2,
-      p.heading,
-      p.pitch,
-      p.zoom,
-      p.canvasX,
-      p.canvasY,
-      p.canvasWidth,
-      p.canvasHeight,
-      p.alphaX,
-      p.alphaY
-    )
+    } yield (l._1, l._2, p)
 
-    Logger.debug("lp size:" + lp.list.size)
+    //Logger.debug("lp size:" + lp.list.size)
 
     val lpgd = for {
       (l, gd) <- lp.innerJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1,
-      l._2,
-      l._3,
-      l._4,
-      l._5,
-      l._6,
-      l._7,
-      l._8,
-      l._9,
-      l._10,
-      l._11,
-      gd.imageWidth,
-      gd.imageHeight
-    )
+    } yield (l._1, l._2, l._3, gd.imageWidth, gd.imageHeight)
 
-    Logger.debug("lpgd size:" + lpgd.list.size)
+    //Logger.debug("lpgd size:" + lpgd.list.size)
 
     val lpgdd = for {
       (l, d) <- lpgd.leftJoin(descriptions).on(_._1.labelId === _.labelId)
-    } yield (l._1,
-      l._2,
-      l._3,
-      l._4,
-      l._5,
-      l._6,
-      l._7,
-      l._8,
-      l._9,
-      l._10,
-      l._11,
-      l._12,
-      l._13,
-      d.description.?
-    )
+    } yield (l._1, l._2, l._3, l._4, l._5, d.description.?)
 
-    Logger.debug("lpgdd size:" + lpgdd.list.size)
+    //Logger.debug("lpgdd size:" + lpgdd.list.size)
 
     val lpgdds = for {
       (l, s) <- lpgdd.leftJoin(severities).on(_._1.labelId === _.labelId)
-    } yield (l._1,
-      l._2,
-      l._3,
-      l._4,
-      l._5,
-      l._6,
-      l._7,
-      l._8,
-      l._9,
-      l._10,
-      l._11,
-      l._12,
-      l._13,
-      l._14,
-      s.severity.?)
+    } yield (l._1, l._2, l._3, l._4, l._5, l._6, s.severity.?)
 
-    Logger.debug("lpgdds size:" + lpgdds.list.size)
+    //Logger.debug("lpgdds size:" + lpgdds.list.size)
 
-    val labelsPlacedByUserInRegion = lpgdds.list
+    val lpgddst = for {
+      (l, t) <- lpgdds.leftJoin(temporariness).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, t.temporary.?)
+
+    val labelsPlacedByUserInRegion = lpgddst.list
     Logger.debug("" + labelsPlacedByUserInRegion.size)
     //labelsPlacedByUserInRegion.map(label => ResumeLabelMetadata.tupled(label))
     labelsPlacedByUserInRegion.map(label =>
       ResumeLabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7,
-        label._8, label._9, label._10, label._11, label._12, label._13, label._14, label._15))
+        label._8, LabelTagTable.selectTagIdsForLabelId(label._1.labelId)))
   }
   
   /**

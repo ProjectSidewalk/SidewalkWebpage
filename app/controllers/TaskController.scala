@@ -262,13 +262,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
 
       // Insert labels
-      for (label: LabelSubmission <- data.labels) { //LabelSubmission doesn't contain a place for labelId, so make sure to pop that in
-        // TODO: check for labelId in data sent over; if it exists, that means we are updating data for a
-        // label that was already placed (a rerendered label)
-        if (label.labelId.isDefined) {
-          Logger.debug("This label is a rerendered one, make sure to appropriately update")
-        }
-
+      for (label: LabelSubmission <- data.labels) {
         val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
 
         val existingLabelId: Option[Int] = label.temporaryLabelId match {
@@ -282,11 +276,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // If the label already exists, update deleted field, o/w insert the new label.
         val labelId: Int = existingLabelId match {
           case Some(labId) =>
-            Logger.debug("labelID found and going to update delete field")
             LabelTable.updateDeleted(labId, label.deleted.value)
             labId
           case None =>
-            Logger.debug("labelId not found")
             // get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp
             val timeCreated: Option[Timestamp] = label.timeCreated match {
               case Some(time) => Some(new Timestamp(time))
@@ -330,6 +322,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
         // If temporariness/severity/description they are set, update/insert them.
         if (label.severity.isDefined) {
+          Logger.debug("label severity defined")
           LabelSeverityTable.find(labelId) match {
             case Some(ls) => LabelSeverityTable.updateSeverity(ls.labelSeverityId, label.severity.get)
             case None => LabelSeverityTable.save(LabelSeverity(0, labelId, label.severity.get))
@@ -337,6 +330,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         if (label.temporaryLabel.isDefined) {
+          //Logger.debug("label temporariness defined")
           val tempLabel = label.temporaryLabel.get.value
           LabelTemporarinessTable.find(labelId) match {
             case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
@@ -345,6 +339,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         if (label.description.isDefined) {
+          //Logger.debug("label description defined")
           LabelDescriptionTable.find(labelId) match {
             case Some(pd) => LabelDescriptionTable.updateDescription(pd.labelDescriptionId, label.description.get)
             case None => LabelDescriptionTable.save(LabelDescription(0, labelId, label.description.get))
@@ -352,9 +347,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         // Remove any tag entries from database that were removed on the front-end and add any new ones.
+        // TODO: something is up with the tag_ids not updating
+        val labelTagIds: Set[Int] = label.tagIds.toSet
         val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labelId).toSet
-        val tagsToRemove: Set[Int] = existingTagIds -- label.tagIds.toSet
-        val tagsToAdd: Set[Int] = label.tagIds.toSet -- existingTagIds
+        val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds//label.tagIds.toSet
+        val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
         tagsToRemove.map { tagId => LabelTagTable.delete(labelId, tagId) }
         tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }
       }

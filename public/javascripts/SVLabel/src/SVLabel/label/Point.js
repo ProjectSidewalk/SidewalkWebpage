@@ -113,7 +113,6 @@ function Point (svl, x, y, pov, params) {
             // It is ok if iconImagePath is not specified
             if(propName === "iconImagePath") {
                 if (params.iconImagePath) {
-                    console.log("image icon path: " + params.iconImagePath);
                     properties.iconImagePath = params.iconImagePath;
                 } else {
                     continue;
@@ -205,6 +204,10 @@ function Point (svl, x, y, pov, params) {
      */
     function render (pov, ctx) {
         if (status.visibility === 'visible') {
+            // TODO: from what we've seen in debugging, on the first render,
+            //  the value of pov status change is false. That means coord
+            //  in this case will just be the initial set canvas coord.
+            //  Therefore, we need to adjust this correctly
             var coord = calculateCanvasCoordinate(pov),
                 x = coord.x,
                 y = coord.y,
@@ -340,13 +343,20 @@ function Point (svl, x, y, pov, params) {
         //
         // Set pov parameters
         self.pov = self.pov || {};
-        if ('pov' in params) { self.pov = params.pov; }
+        if ('pov' in params) {
+            console.log("pov is in the params");
+            self.pov = params.pov;
+        }
         if ('heading' in params) { self.pov.heading = params.heading; }
         if ('pitch' in params) { self.pov.pitch = params.pitch; }
         if ('zoom' in params) { self.pov.zoom = params.zoom; }
 
         // Set original pov parameters
         self.originalPov = self.originalPov || {};
+        if ('originalPov' in params) {
+            console.log("original pov is in the params");
+            self.originalPov = params.originalPov;
+        }
         if ('originalHeading' in params) { self.originalPov.heading = params.originalHeading; }
         if ('originalPitch' in params) { self.originalPov.pitch = params.originalPitch; }
         if ('originalZoom' in params) { self.originalPov.zoom = params.originalZoom; }
@@ -372,6 +382,7 @@ function Point (svl, x, y, pov, params) {
     self.getCanvasY = getCanvasY;
     self.getCanvasCoordinate = getCanvasCoordinate;
     self.getPOV = getPOV;
+    self.getOriginalPov = getOriginalPov;
     self.getFill = getFill;
     self.getFillStyle = getFillStyle;
     self.getGSVImageCoordinate = getGSVImageCoordinate;

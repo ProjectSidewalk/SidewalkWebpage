@@ -9,7 +9,7 @@ object TaskSubmissionFormats {
   case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String)
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
   case class LabelPointSubmission(svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int, alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float])
-  case class LabelSubmission(labelId: Option[Int], gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryLabel: Option[JsBoolean], description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
+  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, photographerHeading: Float, photographerPitch: Float, panoramaLat: Float, panoramaLng: Float, deleted: JsBoolean, severity: Option[Int], temporaryLabel: Option[JsBoolean], description: Option[String], tagIds: Seq[Int], points: Seq[LabelPointSubmission], temporaryLabelId: Option[Int], timeCreated: Option[Long], tutorial: Boolean)
   case class TaskSubmission(streetEdgeId: Int, taskStart: String, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
@@ -67,8 +67,7 @@ object TaskSubmissionFormats {
     )(LabelPointSubmission.apply _)
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
-    (JsPath \ "label_id").readNullable[Int] and
-      (JsPath \ "gsv_panorama_id").read[String] and
+    (JsPath \ "gsv_panorama_id").read[String] and
       (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "photographer_heading").read[Float] and
