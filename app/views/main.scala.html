@@ -237,30 +237,8 @@
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
     <script type="text/javascript">
-            $(document).ready(function () {
-                $(".timestamp").each(function() {
-                    if ($(this).hasClass('local')) {
-                        return;
-                    }
-                    $(this).addClass('local');
-
-                    let timestampText = this.textContent;
-
-                    // Adds a sorting attribute, if it's part of a table it will be sorted by this instead of the nicely
-                    // formatted timestamp.
-                    $(this).attr("data-order", timestampText);
-                    
-                    // Load correct locale.
-                    moment.locale("@lang.code");
-
-                    let localDate = moment(new Date(timestampText + " UTC"));
-
-                    // If the date cannot be parsed, ignore it and leave the text as-is. O/w, parse into local datetime format.
-                    if (localDate.isValid()) {
-                        this.textContent = localDate.format('LL');
-                    }
-                });
-            });
+        updateTimestamp("@lang.code");
     </script>
 </body>
