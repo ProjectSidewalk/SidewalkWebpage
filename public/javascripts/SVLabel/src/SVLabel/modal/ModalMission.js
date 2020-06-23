@@ -106,8 +106,8 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
      *  @param feet to convert to meters
      *  @return
      */
-    this.convertToMetric = function(feet) {
-        return Math.trunc(feet * 0.3048) + " m";
+    this.convertToMetric = function(feet, unitAbbreviation) {
+        return Math.trunc(feet * 0.3048) + " " + unitAbbreviation;
     };
 
     /**
@@ -228,31 +228,20 @@ ModalMission.prototype._distanceToString = function  (distance, unit) {
 
     distance = distance.toPrecision(4);
     var distanceType = i18next.t('common:measurement-system');
+    var unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
 
     if (distance === "0.0947"){
-        if (distanceType === "metric") return this.convertToMetric(500);
-        return "500 ft";
+        if (distanceType === "metric") return this.convertToMetric(500, unitAbbreviation);
+        return "500 " + unitAbbreviation;
     } else if (distance === "0.1420") {
-        if (distanceType === "metric") return this.convertToMetric(750);
-        return "750 ft";
+        if (distanceType === "metric") return this.convertToMetric(750, unitAbbreviation);
+        return "750 " + unitAbbreviation;
     } else if (distance === "0.1894") {
-        if (distanceType === "metric") return this.convertToMetric(1000);
-        return "1000 ft";
-    } else if (distance === "0.2500") {
-        if (distanceType === "metric") return this.convertToMetric(distance * 5280);
-        return "&frac14; mi";
-    } else if (distance === "0.3788") {
-        if (distanceType === "metric") return this.convertToMetric(2000);
-        return "2000 ft";
-    } else if (distance === "0.5000") {
-        if (distanceType === "metric") return this.convertToMetric(distance * 5280);
-        return "&frac12; mi";
-    } else if (distance === "0.7500") {
-        if (distanceType === "metric") return this.convertToMetric(distance * 5280);
-        return "&frac34; mi";
+        if (distanceType === "metric") return this.convertToMetric(1000, unitAbbreviation);
+        return "1000 " + unitAbbreviation;
     } else {
-        if (distanceType === "metric") return this.convertToMetric(distance * 5280);
-        return (util.math.milesToFeet(distance)).toFixed(0) + " ft";
+        if (distanceType === "metric") return this.convertToMetric(distance * 5280, unitAbbreviation);
+        return (util.math.milesToFeet(distance)).toFixed(0) + " " + unitAbbreviation;
     }
 };
 
