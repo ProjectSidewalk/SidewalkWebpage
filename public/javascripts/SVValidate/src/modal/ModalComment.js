@@ -148,7 +148,7 @@ function ModalComment (modalUI) {
         let position = svv.panorama.getPosition();
         let pov = svv.panorama.getPov();
 
-        let data =  {
+        let data = {
             comment: comment,
             label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
             gsv_panorama_id: svv.panorama.getPanoId(),

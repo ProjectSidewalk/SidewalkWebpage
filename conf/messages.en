@@ -162,6 +162,7 @@ validate.left.ui.feedback = Feedback
 validate.bottom.ui.agree = <u>A</u>gree
 validate.bottom.ui.disagree = <u>D</u>isagree
 validate.bottom.ui.not.sure = <u>N</u>ot sure
+validate.bottom.ui.add.comment = Add comment here...
 validate.right.ui.current.mission = Current Mission
 validate.mission.complete.category = Category
 validate.mission.complete.agree = Agree
