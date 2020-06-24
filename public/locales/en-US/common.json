@@ -1,7 +1,8 @@
 {
     "measurement-system": "IS",
-    "unit-abbreviation-user-dashboard": "mi",
+    "unit-abbreviation-distance-user-dashboard": "mi",
     "unit-abbreviation-mission-distance": "ft",
+    "unit-distance-mission-complete": "miles",
     "map": {
         "distance-left": "Only {{n}} miles left!",
         "distance-left-one-unit": "Only 1 mile left!",

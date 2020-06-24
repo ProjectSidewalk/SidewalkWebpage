@@ -1,7 +1,8 @@
 {
   "measurement-system": "metric",
-  "unit-abbreviation-user-dashboard": "km",
+  "unit-abbreviation-distance-user-dashboard": "km",
   "unit-abbreviation-mission-distance": "m",
+  "unit-distance-mission-complete": "kilometers",
   "missing-sidewalks": "Banqueta ausente",
   "missing-ramps": "Rampa peatonal ausente",
   "surface-problems": "Problemas en superficie",
