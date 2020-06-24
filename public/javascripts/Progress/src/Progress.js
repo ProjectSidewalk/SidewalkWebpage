@@ -319,7 +319,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             var measurementSystem = i18next.t("common:measurement-system");
             // If using metric system, convert from miles to kilometers.
             if (measurementSystem === "metric") distanceAudited *= 1.60934
-            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-user-dashboard");
+            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
 
             // Get total reward if a turker
             if (role === 'Turker') {
