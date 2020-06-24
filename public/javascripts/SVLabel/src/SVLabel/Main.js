@@ -404,10 +404,7 @@ function Main (params) {
                 }
             });
         
-        var measurementSystem = i18next.t('common:measurement-system');
-        var unit = {units: "miles"};
-        // If user is in a country that uses metric system instead of IS.
-        if (measurementSystem === "metric") unit.units = "kilometers";
+        var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
     }
