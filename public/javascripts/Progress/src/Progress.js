@@ -314,11 +314,8 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
             // Calculate total distance audited in (mi)
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.length(data.features[i], {units: 'miles'});
+                distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
             }
-            var measurementSystem = i18next.t("common:measurement-system");
-            // If using metric system, convert from miles to kilometers.
-            if (measurementSystem === "metric") distanceAudited *= 1.60934
             document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
 
             // Get total reward if a turker

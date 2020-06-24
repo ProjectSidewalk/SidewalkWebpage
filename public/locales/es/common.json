@@ -2,7 +2,7 @@
   "measurement-system": "metric",
   "unit-abbreviation-distance-user-dashboard": "km",
   "unit-abbreviation-mission-distance": "m",
-  "unit-distance-mission-complete": "kilometers",
+  "unit-distance": "kilometers",
   "missing-sidewalks": "Banqueta ausente",
   "missing-ramps": "Rampa peatonal ausente",
   "surface-problems": "Problemas en superficie",
