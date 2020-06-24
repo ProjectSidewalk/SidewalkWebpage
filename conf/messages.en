@@ -103,7 +103,7 @@ audit.right.ui.red.line = Follow the red line
 audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable
 audit.center.ui.add.tags = Add Tags:
-audit.center.ui.temporary = Temporary (e.g., construction, trash)
+audit.center.ui.temporary = Temporary (e.g., construction)
 audit.center.ui.show.again = Don''t show again
 
 audit.mission.complete.labels.title = Mission Labels
