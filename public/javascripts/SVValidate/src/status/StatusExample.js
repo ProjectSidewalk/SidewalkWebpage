@@ -57,12 +57,15 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Sets the horizontal position and height of the popup based on which picture was hovered over.
+     * Sets the horizontal position, vertical position, and height of the popup
+     * as well as the popup pointer basedon which picture was hovered over.
      * @param id    ID name for the label example HTML element that the user hovered over.
      * @private
      */
     function _setPopupLocation (id) {
         // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
+
+        // Horizontal positioning
         if (id.includes("1")) {
             statusUI.popup.css('left', '480px');
             statusUI.popupPointer.css('top', '50px');
@@ -76,20 +79,25 @@ function StatusExample (statusUI) {
             statusUI.popup.css('left', '580px');
             statusUI.popupPointer.css('top', '135px');
         }
+
+        // Vertical Positioning
+        if (id.includes("counterexample")) {
+            statusUI.popup.css('top', '108px');
+        } else {
+            statusUI.popup.css('top', '-108px');
+        }
     }
 
     /**
-     * Sets the vertical position and title of the popup based on which picture was hovered over.
+     * Sets the title of the popup based on which picture was hovered over.
      * @param id    ID name for the label example HTML element that the user hovered over.
      * @private
      */
     function _setPopupTitle (id) {
         if (id.includes("counterexample")) {
             statusUI.popupTitle.html(i18next.t('right-ui.incorrect.' + labelType + ".title"));
-            statusUI.popup.css('top', '208px');
         } else {
             statusUI.popupTitle.html(i18next.t('right-ui.correct.' + labelType + ".title"));
-            statusUI.popup.css('top', '-8px');
         }
     }
 
