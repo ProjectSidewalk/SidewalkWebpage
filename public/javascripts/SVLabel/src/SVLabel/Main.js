@@ -403,7 +403,7 @@ function Main (params) {
                     googleMarker.setMap(svl.map.getMap());
                 }
             });
-        
+
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
