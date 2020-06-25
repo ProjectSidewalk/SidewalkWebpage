@@ -171,7 +171,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       val shapefile: java.io.File = new java.io.File("shapefile.shp")
 
-      val fileCreator: ShapefilesCreatorHelper = new ShapefilesCreatorHelper(shapefile)
+      val fileCreator: ShapefilesCreatorHelper = new ShapefilesCreatorHelper(shapefile, null)
 
       Future.successful(Ok.sendFile(content = shapefile))
 

@@ -1,154 +1,132 @@
 package controllers.helper;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.GeometryFactory;
-
-import org.geotools.data.DataUtilities;
-import org.geotools.data.DefaultTransaction;
-import org.geotools.data.Transaction;
-import org.geotools.data.shapefile.ShapefileDataStore;
-import org.geotools.data.shapefile.ShapefileDataStoreFactory;
-import org.geotools.data.simple.SimpleFeatureSource;
-import org.geotools.data.simple.SimpleFeatureStore;
-import org.geotools.feature.DefaultFeatureCollection;
-import org.geotools.feature.simple.SimpleFeatureBuilder;
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
-import org.geotools.geometry.jts.JTSFactoryFinder;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.geotools.swing.data.JFileDataStoreChooser;
-import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.feature.simple.SimpleFeatureType;
-
-import java.io.File;
-import java.io.Serializable;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
+import org.geotools.data.DataUtilities;
+import org.geotools.data.DefaultTransaction;
+import org.geotools.data.Transaction;
+import org.geotools.data.collection.ListFeatureCollection;
+import org.geotools.data.shapefile.ShapefileDataStore;
+import org.geotools.data.shapefile.ShapefileDataStoreFactory;
+import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureSource;
+import org.geotools.data.simple.SimpleFeatureStore;
+import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.geotools.geometry.jts.JTSFactoryFinder;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
+
+/**
+ * This example reads data for point locations and associated attributes from a comma separated text
+ * (CSV) file and exports them as a new shapefile. It illustrates how to build a feature type.
+ *
+ * <p>Note: to keep things simple in the code below the input file should not have additional spaces
+ * or tabs between fields.
+ */
 public class ShapefilesCreatorHelper {
 
-    private static final String FILE_NAME = "shapefile.shp";
 
-    public ShapefilesCreatorHelper(File file) throws Exception {
+    public ShapefilesCreatorHelper(File outputFile, List<Attribute> attributes) throws Exception {
 
-        DefaultFeatureCollection collection = new DefaultFeatureCollection();
+        /*
+         * We use the DataUtilities class to create a FeatureType that will describe the data in our
+         * shapefile.
+         *
+         * See also the createFeatureType method below for another, more flexible approach.
+         */
+        final SimpleFeatureType TYPE =
+                DataUtilities.createType(
+                        "Location",
+                        "the_geom:Point:srid=4326,"
+                                + // <- the geometry attribute: Point type
+                                "id:Integer,"
+                                + // <- a attribute ID
+                                "label_type:String,"
+                                + // <- Label type
+                                "name:String,"
+                                + // <- Neighborhood Name
+                                "severity:String,"
+                                + // <- Severity
+                                "temporary:Boolean" // Temporary flag
+                );
+        System.out.println("TYPE:" + TYPE);
 
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory(null);
 
-        SimpleFeatureType TYPE = DataUtilities.createType("Location", "location:Point:srid=4326," + "name:String");
 
-        SimpleFeatureType CITY = createFeatureType();
+        /*
+         * A list to collect features as we create them.
+         */
+        List<SimpleFeature> features = new ArrayList<>();
 
-        addLocations(CITY, collection);
+        /*
+         * GeometryFactory will be used to create the geometry attribute of each feature,
+         * using a Point object for the location.
+         */
+        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
 
-        File shapeFile = file;
+        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
 
+        for(Attribute a : attributes){
+            featureBuilder.add(geometryFactory.createPoint(a.coordinate));
+            featureBuilder.add(a.id);
+            featureBuilder.add(a.labelType);
+            featureBuilder.add(a.neighborhood);
+            featureBuilder.add(a.severity);
+            featureBuilder.add(a.temporary);
+            SimpleFeature feature = featureBuilder.buildFeature(null);
+            features.add(feature);
+        }
+
+
+        /*
+         * Get an output file name and create the new shapefile
+         */
         ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 
-        Map<String, Serializable> params = new HashMap<String, Serializable>();
-
-        ShapefileDataStore dataStore = setDataStoreParams(dataStoreFactory, params, shapeFile, CITY);
-
-        writeToFile(dataStore, collection);
-    }
-
-    static SimpleFeatureType createFeatureType() {
-
-        SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
-        builder.setName("Location");
-        builder.setCRS(DefaultGeographicCRS.WGS84);
-
-        builder.add("Location", Point.class);
-        builder.length(15)
-                .add("Name", String.class);
-
-        return builder.buildFeatureType();
-    }
-
-    static void addLocations(SimpleFeatureType CITY, DefaultFeatureCollection collection) {
-
-        Map<String, List<Double>> locations = new HashMap<>();
-
-        double lat = 13.752222;
-        double lng = 100.493889;
-        addToLocationMap("Bangkok", lat, lng, locations);
-
-        lat = 53.083333;
-        lng = -0.15;
-        addToLocationMap("New York", lat, lng, locations);
-
-        lat = -33.925278;
-        lng = 18.423889;
-        addToLocationMap("Cape Town", lat, lng, locations);
-
-        lat = -33.859972;
-        lng = 151.211111;
-        addToLocationMap("Sydney", lat, lng, locations);
-
-        lat = 45.420833;
-        lng = -75.69;
-        addToLocationMap("Ottawa", lat, lng, locations);
-
-        lat = 30.07708;
-        lng = 31.285909;
-        addToLocationMap("Cairo", lat, lng, locations);
-
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory(null);
-
-        locations.entrySet().stream()
-                .map(toFeature(CITY, geometryFactory))
-                .forEach(collection::add);
-    }
-
-    private static Function<Map.Entry<String, List<Double>>, SimpleFeature> toFeature(SimpleFeatureType CITY, GeometryFactory geometryFactory) {
-        return location -> {
-            Point point = geometryFactory.createPoint(
-                    new Coordinate(location.getValue()
-                            .get(0), location.getValue().get(1)));
-
-            SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(CITY);
-            featureBuilder.add(point);
-            featureBuilder.add(location.getKey());
-            return featureBuilder.buildFeature(null);
-        };
-    }
-
-    private static void addToLocationMap(String name, double lat, double lng, Map<String, List<Double>> locations) {
-        List<Double> coordinates = new ArrayList<>();
-
-        coordinates.add(lat);
-        coordinates.add(lng);
-        locations.put(name, coordinates);
-    }
-
-    private static ShapefileDataStore setDataStoreParams(ShapefileDataStoreFactory dataStoreFactory, Map<String, Serializable> params, File shapeFile, SimpleFeatureType CITY) throws Exception {
-        params.put("url", shapeFile.toURI()
-                .toURL());
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("url", outputFile.toURI().toURL());
         params.put("create spatial index", Boolean.TRUE);
 
-        ShapefileDataStore dataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-        dataStore.createSchema(CITY);
+        ShapefileDataStore newDataStore =
+                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
 
-        return dataStore;
-    }
+        /*
+         * TYPE is used as a template to describe the file contents
+         */
+        newDataStore.createSchema(TYPE);
 
-    private static void writeToFile(ShapefileDataStore dataStore, DefaultFeatureCollection collection) throws Exception {
-
-        // If you decide to use the TYPE type and create a Data Store with it,
-        // You will need to uncomment this line to set the Coordinate Reference System
-        // newDataStore.forceSchemaCRS(DefaultGeographicCRS.WGS84);
-
+        /*
+         * Write the features to the shapefile
+         */
         Transaction transaction = new DefaultTransaction("create");
 
-        String typeName = dataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
+        String typeName = newDataStore.getTypeNames()[0];
+        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
+        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
+        /*
+         * The Shapefile format has a couple limitations:
+         * - "the_geom" is always first, and used for the geometry attribute name
+         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
+         * - Attribute names are limited in length
+         * - Not all data types are supported (example Timestamp represented as Date)
+         *
+         * Each data store has different limitations so check the resulting SimpleFeatureType.
+         */
+        System.out.println("SHAPE:" + SHAPE_TYPE);
 
         if (featureSource instanceof SimpleFeatureStore) {
             SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-
+            /*
+             * SimpleFeatureStore has a method to add features from a
+             * SimpleFeatureCollection object, so we use the ListFeatureCollection
+             * class to wrap our list of features.
+             */
+            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
             featureStore.setTransaction(transaction);
             try {
                 featureStore.addFeatures(collection);
@@ -159,8 +137,14 @@ public class ShapefilesCreatorHelper {
             } finally {
                 transaction.close();
             }
+            System.exit(0); // success!
         } else {
             System.out.println(typeName + " does not support read/write access");
+            System.exit(1);
         }
     }
+
+
+
+
 }
