@@ -142,7 +142,6 @@ function ContextMenu (uiContextMenu) {
 
     }
 
-    //TODO: figure out what this does
     function handleSeverityPopup () {
         var labels = svl.labelContainer.getCurrentLabels();
         var prev_labels = svl.labelContainer.getPreviousLabels();
@@ -161,17 +160,13 @@ function ContextMenu (uiContextMenu) {
      * @param e
      */
     function _handleRadioChange (e) {
-        console.log("radio change");
         var severity = parseInt($(this).val(), 10);
         var label = getTargetLabel();
         svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getProperty("labelType"), RadioValue: severity });
 
         self.updateRadioButtonImages();
         if (label) {
-            console.log("label severity set properly");
             label.setProperty('severity', severity);
-            console.log(label.getProperty('labelType'));
-            console.log(label.getProperty('severity'));
             svl.canvas.clear().render2();
         }
     }
@@ -240,7 +235,6 @@ function ContextMenu (uiContextMenu) {
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
-                console.log("Label tag clicked");
                 // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
                 var currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
                 var tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];

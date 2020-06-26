@@ -204,10 +204,6 @@ function Point (svl, x, y, pov, params) {
      */
     function render (pov, ctx) {
         if (status.visibility === 'visible') {
-            // TODO: from what we've seen in debugging, on the first render,
-            //  the value of pov status change is false. That means coord
-            //  in this case will just be the initial set canvas coord.
-            //  Therefore, we need to adjust this correctly
             var coord = calculateCanvasCoordinate(pov),
                 x = coord.x,
                 y = coord.y,

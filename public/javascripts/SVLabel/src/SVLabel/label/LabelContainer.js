@@ -26,7 +26,6 @@ function LabelContainer($) {
     this.fetchLabelsInANeighborhood = function (regionId, callback) {
         $.getJSON("/userapi/labels?regionId=" + regionId, function (data) {
             if ("features" in data) {
-                console.log("neighborhood label query");
                 var features = data.features,
                     label,
                     i = 0,
@@ -66,15 +65,11 @@ function LabelContainer($) {
             });
     };
 
-    // TODO: Right now the labels just have no audit_task_id,
-    //  make sure to set that and retrieve from database.
     this.fetchLabelsToResumeMission = function (regionId, callback) {
-        //TODO: This method is ugly af, clean it up
         $.getJSON(
             '/label/resumeMission',
             { regionId: regionId },
             function (result) {
-                console.log("resume mission label query");
                 let labelArr = result.labels;
                 let len = labelArr.length;
                 for (let i = 0; i < len; i++) {
@@ -108,11 +103,6 @@ function LabelContainer($) {
                     // Return the status to original
                     povChange["status"] = false;
 
-
-                    // let pov = {
-                    //     pov: svl.map.getPov()
-                    // };
-
                     let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
                     let labelFillStyle = util.misc.getLabelColors()[labelArr[i].labelType].fillStyle;
 
@@ -126,7 +116,7 @@ function LabelContainer($) {
                         'storedInDatabase': true
                     };
 
-                    let labelPoint = new Point(svl, rerenderCanvasCoord.x/*labelArr[i].canvasX*/, rerenderCanvasCoord.y/*labelArr[i].canvasY*/, svl.map.getPov(), pointParameters);
+                    let labelPoint = new Point(svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters);
                     
                     labelPoint.setProperties(originalPointPov);
 
@@ -137,11 +127,8 @@ function LabelContainer($) {
                     label.setProperty("labelLng", labelArr[i].labelLng);
                     label.setProperty("labelFillStyle", labelFillStyle);
 
-                    // We need to somehow rerender and call for a visibility check
-                    //self.push(label);
                     prevCanvasLabels.push(label);
-                    // svl.labelCounter.increment(label.getProperty("labelType"));
-                    //
+
                     // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
                     var panoramaId = label.getProperty("panoId");
                     if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {

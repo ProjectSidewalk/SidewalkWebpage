@@ -210,7 +210,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
-  // Are we having any issues with the task not being submitted
   def processAuditTaskSubmissions(submission: Seq[AuditTaskSubmission], remoteAddress: String, identity: Option[User]) = {
     val returnValues: Seq[TaskPostReturnValue] = for (data <- submission) yield {
       val userOption = identity
@@ -322,7 +321,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
         // If temporariness/severity/description they are set, update/insert them.
         if (label.severity.isDefined) {
-          Logger.debug("label severity defined")
           LabelSeverityTable.find(labelId) match {
             case Some(ls) => LabelSeverityTable.updateSeverity(ls.labelSeverityId, label.severity.get)
             case None => LabelSeverityTable.save(LabelSeverity(0, labelId, label.severity.get))
@@ -330,7 +328,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         if (label.temporaryLabel.isDefined) {
-          //Logger.debug("label temporariness defined")
           val tempLabel = label.temporaryLabel.get.value
           LabelTemporarinessTable.find(labelId) match {
             case Some(lt) => LabelTemporarinessTable.updateTemporariness(lt.labelTemporarinessId, tempLabel)
@@ -339,18 +336,15 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         if (label.description.isDefined) {
-          //Logger.debug("label description defined")
           LabelDescriptionTable.find(labelId) match {
             case Some(pd) => LabelDescriptionTable.updateDescription(pd.labelDescriptionId, label.description.get)
             case None => LabelDescriptionTable.save(LabelDescription(0, labelId, label.description.get))
           }
         }
 
-        // Remove any tag entries from database that were removed on the front-end and add any new ones.
-        // TODO: something is up with the tag_ids not updating
         val labelTagIds: Set[Int] = label.tagIds.toSet
         val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labelId).toSet
-        val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds//label.tagIds.toSet
+        val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
         val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
         tagsToRemove.map { tagId => LabelTagTable.delete(labelId, tagId) }
         tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }

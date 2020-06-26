@@ -147,6 +147,7 @@ function Label (svl, pathIn, params) {
     function createGoogleMapsMarker (labelType) {
         if (typeof google !== "undefined") {
             var latlng = toLatLng();
+
             if (latlng) {
                 var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
             } else {
@@ -904,10 +905,9 @@ function Label (svl, pathIn, params) {
             if (properties.panoId === "tutorial") {
                 pc = svl.onboarding.getTutorialPointCloud();
             } else  {
-                svl.pointCloud.createPointCloud(properties.panoId);
                 pc = svl.pointCloud.getPointCloud(properties.panoId);
             }
-            console.log(pc);
+
             if (pc) {
                 var minDx = 1000, minDy = 1000, i, delta, latlng,
                     p, idx, dx, dy, r, minR;

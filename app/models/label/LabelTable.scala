@@ -33,7 +33,6 @@ case class Label(labelId: Int,
                  deleted: Boolean,
                  temporaryLabelId: Option[Int],
                  timeCreated: Option[Timestamp],
-                // Make sure this isn't used elsewhere on accident
                  tutorial: Boolean,
                  streetEdgeId: Int)
 
@@ -157,8 +156,6 @@ object LabelTable {
 
   case class MiniMapResumeMetadata(labelId: Int, labelType: String, lat: Option[Float], lng: Option[Float])
 
-  //TODO: Use smaller case classes to solve >22 param issue
-  //Pass through Tags
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, svImageWidth: Int,
                                  svImageHeight: Int, description: Option[String], severity: Option[Int],
                                  temporary: Option[Boolean], tagIds: List[Int])
@@ -198,7 +195,7 @@ object LabelTable {
   def resumeMiniMap(regionId: Int, userId: UUID): List[MiniMapResumeMetadata] = db.withSession { implicit session =>
     val labelsWithCVMetadata = for {
       _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
-      _lb <- labels if _lb.missionId === _m.missionId // Labels should be picked from labels that haven't been deleted
+      _lb <- labelsWithoutDeleted if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- LabelPointTable.labelPoints if _lb.labelId === _lp.labelId
 
@@ -316,8 +313,6 @@ object LabelTable {
   }
 
   def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>
-//    val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
-//    labs.update(deleted)
     val labs = for { label <- labels if label.labelId === labelId } yield label.deleted
     labs.update(deleted)
   }
@@ -1061,9 +1056,7 @@ object LabelTable {
     labelLocationList
   }
 
-  // Change this so we join audit_task table with street_edge table,
-  // then region table rather than using ST_Intersect
-  // New TODO: try to covert to slick for comprehension over raw SQL query
+  // TODO: try to covert to slick for comprehension over raw SQL query
   def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int) = db.withSession { implicit session =>
     val selectQuery = Q.query[(String, Int), LabelLocation](
       """SELECT label.label_id,
@@ -1198,86 +1191,45 @@ object LabelTable {
     }
   }
 
-  // There's a label in a mission that doesn't exist remotely near the other labels in terms of region
   /**
+   * Gets the labels placed by a user in a region.
    *
+   * @param regionId Region ID to get labels from
+   * @param userId User ID of user to find labels for
+   * @return list of labels placed by user in region
    */
   def getLabelsFromUserInRegion(regionId: Int, userId: UUID): List[ResumeLabelMetadata] = db.withSession { implicit session =>
-    /**
-     * Get from LabelTable (labels)
-     * labelId
-     * labelType
-     * panoId
-     * panoramaLat
-     * panoramaLng
-     * photographerHeading
-     * photographerPitch
-     * tutorial
-     * temporary_label_id
-     *
-     * Get from LabelPointsTable (labelPoints)
-     * canvasWidth
-     * canvasHeight
-     * canvasDistortionAlphaX
-     * canvasDistortionAlphaY
-     * heading
-     * pitch
-     * zoom
-     *
-     *
-     * Get from LabelDescriptionTable (descriptions)
-     * labelDescription
-     *
-     * Get from LabelSeverityTable (severities)
-     * severity
-     *
-     * Get from LabelTypeTable (labelTypes)
-     * labelType
-     *
-     * Get from GSVDataTable (gsvData)
-     * svImageWidth
-     * svImageHeight
-     */
-
     val _labels = for {
       _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
       _lb <- labelsWithoutDeleted if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-    } yield (_lb, _lt.labelType)
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+    } yield (_lb, _lt.labelType, _lp, _gd.imageWidth, _gd.imageHeight)
 
     Logger.debug("labels size:" + _labels.list.size)
 
-    val lp = for {
-      (l, p) <- _labels.innerJoin(labelPoints).on(_._1.labelId === _.labelId)
-    } yield (l._1, l._2, p)
+//    val lp = for {
+//      (l, p) <- _labels.innerJoin(labelPoints).on(_._1.labelId === _.labelId)
+//    } yield (l._1, l._2, p)
 
-    //Logger.debug("lp size:" + lp.list.size)
+//    val lpgd = for {
+//      (l, gd) <- lp.innerJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
+//    } yield (l._1, l._2, l._3, gd.imageWidth, gd.imageHeight)
 
-    val lpgd = for {
-      (l, gd) <- lp.innerJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-    } yield (l._1, l._2, l._3, gd.imageWidth, gd.imageHeight)
-
-    //Logger.debug("lpgd size:" + lpgd.list.size)
-
-    val lpgdd = for {
-      (l, d) <- lpgd.leftJoin(descriptions).on(_._1.labelId === _.labelId)
+    val addDescriptions = for {
+      (l, d) <- _labels.leftJoin(descriptions).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, d.description.?)
 
-    //Logger.debug("lpgdd size:" + lpgdd.list.size)
-
-    val lpgdds = for {
-      (l, s) <- lpgdd.leftJoin(severities).on(_._1.labelId === _.labelId)
+    val addSeverity = for {
+      (l, s) <- addDescriptions.leftJoin(severities).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, l._6, s.severity.?)
 
-    //Logger.debug("lpgdds size:" + lpgdds.list.size)
-
-    val lpgddst = for {
-      (l, t) <- lpgdds.leftJoin(temporariness).on(_._1.labelId === _.labelId)
+    val addTemporariness = for {
+      (l, t) <- addSeverity.leftJoin(temporariness).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, l._6, l._7, t.temporary.?)
 
-    val labelsPlacedByUserInRegion = lpgddst.list
-    Logger.debug("" + labelsPlacedByUserInRegion.size)
-    //labelsPlacedByUserInRegion.map(label => ResumeLabelMetadata.tupled(label))
+    val labelsPlacedByUserInRegion = addTemporariness.list
     labelsPlacedByUserInRegion.map(label =>
       ResumeLabelMetadata(label._1, label._2, label._3, label._4, label._5, label._6, label._7,
         label._8, LabelTagTable.selectTagIdsForLabelId(label._1.labelId)))

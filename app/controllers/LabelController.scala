@@ -10,7 +10,6 @@ import models.label._
 import models.user.User
 import play.api.libs.json._
 import play.api.mvc.Action
-import play.Logger
 
 import scala.concurrent.Future
 
@@ -58,11 +57,16 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
+  /**
+   * Fetches the labels that a user has added in the current region they are working in.
+   *
+   * @param regionId Region id
+   * @return A list of labels
+   */
   def getLabelsToResumeMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val labels: List[LabelTable.ResumeLabelMetadata] = LabelTable.getLabelsFromUserInRegion(regionId, user.userId)
-        Logger.debug("" + labels.size)
         val jsLabels: List[JsObject] = labels.map { label =>
           Json.obj(
             "canvasWidth" -> label.pointData.canvasWidth,
