@@ -408,6 +408,7 @@ function Main (params) {
             neighborhood.getProperty("regionId"),
             function (result) {
                 svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
+                console.log("label counts in neighborhood: " + svl.labelContainer.countLabels(neighborhood.getProperty("regionId")));
             });
 
         var unit = {units: 'miles'};

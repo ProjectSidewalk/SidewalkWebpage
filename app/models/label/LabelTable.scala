@@ -9,6 +9,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.RegionTable
+import models.street.{StreetEdgeTable, StreetEdgeRegionTable}
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
@@ -109,6 +110,8 @@ object LabelTable {
   val roleTable = TableQuery[RoleTable]
   val descriptions = TableQuery[LabelDescriptionTable]
   val temporariness = TableQuery[LabelTemporarinessTable]
+  val streetEdges = TableQuery[StreetEdgeTable]
+  val streetEdgesToRegion = TableQuery[StreetEdgeRegionTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
@@ -1058,6 +1061,9 @@ object LabelTable {
     labelLocationList
   }
 
+  // Change this so we join audit_task table with street_edge table,
+  // then region table rather than using ST_Intersect
+  // New TODO: try to covert to slick for comprehension over raw SQL query
   def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int) = db.withSession { implicit session =>
     val selectQuery = Q.query[(String, Int), LabelLocation](
       """SELECT label.label_id,
@@ -1071,15 +1077,28 @@ object LabelTable {
         |INNER JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
         |INNER JOIN sidewalk.label_point ON label.label_id = label_point.label_id
         |INNER JOIN sidewalk.audit_task ON audit_task.audit_task_id = label.audit_task_id
-        |INNER JOIN sidewalk.region ON ST_Intersects(region.geom, label_point.geom)
+        |INNER JOIN sidewalk.street_edge_region ON street_edge_region.street_edge_id = audit_task.street_edge_id
+        |INNER JOIN sidewalk.region ON street_edge_region.region_id = region.region_id
         |WHERE label.deleted = FALSE
         |    AND label_point.lat IS NOT NULL
         |    AND region.deleted = FALSE
         |    AND region.region_type_id = 2
         |    AND audit_task.user_id = ?
-        |    AND region_id = ?""".stripMargin
+        |    AND region.region_id = ?""".stripMargin
     )
     selectQuery((userId.toString, regionId)).list
+
+//    val _labels = for {
+//      _lb <- labelsWithoutDeleted
+//      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+//      _lp <- labelPoints if _lb.labelId === _lp.labelId && !_lp.lat.isEmpty
+//      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId && _a.userId === userId
+//      _sr <- streetEdgesToRegion if _sr.streetEdgeId === _a.streetEdgeId
+//      _r <- regions if _r.regionId === _sr.regionId && !_r.deleted && _r.regionTypeId === 2 && _r.regionId === regionId
+//    } yield (_lb.labelId, _lb.auditTaskId, _lb.gasvPanoramaId, _lt.labelType, _lp.lat, _lp.lng, _r.regionId)
+//
+//    val labelLocationList: List[LabelLocation] = _labels.list.map(label => LabelLocation(label._1, label._2, label._3, label._4, label._5, label._6))
+//    labelLocationList
 
 //    val _labels = for {
 //      ((_auditTasks, _labels), _labelTypes) <- auditTasks leftJoin labelsWithoutDeleted on(_.auditTaskId === _.auditTaskId) leftJoin labelTypes on (_._2.labelTypeId === _.labelTypeId)
@@ -1179,6 +1198,7 @@ object LabelTable {
     }
   }
 
+  // There's a label in a mission that doesn't exist remotely near the other labels in terms of region
   /**
    *
    */
@@ -1225,10 +1245,10 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
     } yield (_lb, _lt.labelType)
 
-    //Logger.debug("labels size:" + _labels.list.size)
+    Logger.debug("labels size:" + _labels.list.size)
 
     val lp = for {
-      (l, p) <- _labels.leftJoin(labelPoints).on(_._1.labelId === _.labelId)
+      (l, p) <- _labels.innerJoin(labelPoints).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, p)
 
     //Logger.debug("lp size:" + lp.list.size)

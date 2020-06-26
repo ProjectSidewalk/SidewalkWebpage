@@ -26,11 +26,13 @@ function LabelContainer($) {
     this.fetchLabelsInANeighborhood = function (regionId, callback) {
         $.getJSON("/userapi/labels?regionId=" + regionId, function (data) {
             if ("features" in data) {
+                console.log("neighborhood label query");
                 var features = data.features,
                     label,
                     i = 0,
                     len = features.length;
                 for (; i < len; i++) {
+                    console.log(features[i].properties.label_id);
                     label = svl.labelFactory.create(null, {
                         labelId: features[i].properties.label_id
                     });
@@ -72,6 +74,7 @@ function LabelContainer($) {
             '/label/resumeMission',
             { regionId: regionId },
             function (result) {
+                console.log("resume mission label query");
                 let labelArr = result.labels;
                 let len = labelArr.length;
                 for (let i = 0; i < len; i++) {
@@ -139,7 +142,7 @@ function LabelContainer($) {
                     prevCanvasLabels.push(label);
                     // svl.labelCounter.increment(label.getProperty("labelType"));
                     //
-                    // // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
+                    // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
                     var panoramaId = label.getProperty("panoId");
                     if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
                         svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
@@ -149,8 +152,9 @@ function LabelContainer($) {
                         var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
                         svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
                     }
-
                 }
+
+
 
                 if (callback) callback(result);
             }
