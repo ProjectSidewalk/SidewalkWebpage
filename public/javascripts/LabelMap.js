@@ -108,8 +108,8 @@ function LabelMap(_, $) {
      */
     function initializeNeighborhoodPolygons(map) {
         var neighborhoodPolygonStyle = {
-                color: '#888',
-                weight: 1,
+                color: 'red',
+                weight: 3,
                 opacity: 0.25,
                 fillColor: "#ccc",
                 fillOpacity: 0.1
