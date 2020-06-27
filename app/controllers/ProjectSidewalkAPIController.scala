@@ -1,6 +1,8 @@
 package controllers
 
 import helper.ShapefilesCreatorHelper
+import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
+import helper.Attribute
 import scala.collection.JavaConversions._
 import collection.immutable.Seq
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -147,7 +149,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param filetype
     * @return
     */
-  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String],
+                            filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val minLat:Float = min(lat1, lat2).toFloat
@@ -170,8 +173,21 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     } else if (filetype != None && filetype.get == "shapefile") {
 
       val shapefile: java.io.File = new java.io.File("shapefile.shp")
+      val attributeList: JavaList[Attribute] = new JavaArrayList();
+      for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
+        val currAttribute: Attribute = new Attribute();
+        currAttribute.coordinate = new JTSCoordinate(current.lat.toDouble, current.lng.toDouble)
+        currAttribute.id = current.globalAttributeId
+        currAttribute.labelType = current.labelType
+        currAttribute.neighborhood = current.neighborhoodName
+        currAttribute.severity = current.severity.getOrElse(-1)
+        currAttribute.temporary = current.temporary
+        attributeList.add(currAttribute);
+      }
 
-      val fileCreator: ShapefilesCreatorHelper = new ShapefilesCreatorHelper(shapefile, null)
+      val fileCreator: ShapefilesCreatorHelper = new ShapefilesCreatorHelper(shapefile, attributeList)
+
+
 
       Future.successful(Ok.sendFile(content = shapefile))
 

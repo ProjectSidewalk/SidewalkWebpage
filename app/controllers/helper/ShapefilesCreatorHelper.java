@@ -54,7 +54,6 @@ public class ShapefilesCreatorHelper {
                                 + // <- Severity
                                 "temporary:Boolean" // Temporary flag
                 );
-        System.out.println("TYPE:" + TYPE);
 
 
 
@@ -117,8 +116,6 @@ public class ShapefilesCreatorHelper {
          *
          * Each data store has different limitations so check the resulting SimpleFeatureType.
          */
-        System.out.println("SHAPE:" + SHAPE_TYPE);
-
         if (featureSource instanceof SimpleFeatureStore) {
             SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
             /*
@@ -137,10 +134,6 @@ public class ShapefilesCreatorHelper {
             } finally {
                 transaction.close();
             }
-            System.exit(0); // success!
-        } else {
-            System.out.println(typeName + " does not support read/write access");
-            System.exit(1);
         }
     }
 
