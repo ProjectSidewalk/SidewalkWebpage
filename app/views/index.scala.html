@@ -32,12 +32,9 @@
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(_._1 != "San Pedro Garza García, MX-NLE")) {
-                        <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
-                    }
-                    <br>
-                    @for((cityName, cityURL) <- otherCityURLs.filter(_._1 == "San Pedro Garza García, MX-NLE")) {
-                        <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
+                    @for((cityName, cityURL) <- otherCityURLs) {
+                        <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
+                        <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
