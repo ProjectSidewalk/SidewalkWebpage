@@ -7,10 +7,10 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     var completedInitializingAuditedTasks = false;
 
     var neighborhoodPolygonStyle = {
-            color: 'red',
-            weight: 3,
-            opacity: 0.25,
-            fillColor: "#ccc",
+            color: '#888',
+            weight: 2,
+            opacity: 0.80,
+            fillColor: "#808080",
             fillOpacity: 0.1
         },
         layers = [],
