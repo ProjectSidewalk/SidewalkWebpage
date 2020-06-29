@@ -36,6 +36,10 @@
                         <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
                     }
                     <br>
+                    @for((cityName, cityURL) <- otherCityURLs.filter(_._1 == "San Pedro Garza García, MX-NLE")) {
+                        <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName</a> &nbsp;
+                    }
+                    <br>
                     @if(mapathonLink.isDefined) {
                         <span class="header-text">@Html(Messages("landing.mapathon", cityShortName, mapathonLink.get))</span>
                     }
