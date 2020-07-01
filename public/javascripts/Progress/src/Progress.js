@@ -8,9 +8,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     var neighborhoodPolygonStyle = {
             color: '#888',
-            weight: 1,
-            opacity: 0.25,
-            fillColor: "#ccc",
+            weight: 2,
+            opacity: 0.80,
+            fillColor: "#808080",
             fillOpacity: 0.1
         },
         layers = [],
