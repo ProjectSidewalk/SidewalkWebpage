@@ -134,8 +134,8 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + otherCity).get
                 (otherName + ", " + otherState, otherURL)
               }
-              // Get total audited distance. If using metric system, convert from miles to kilometers
-              val auditedDistance =
+              // Get total audited distance. If using metric system, convert from miles to kilometers.
+              val auditedDistance: Float =
                 if (Messages("measurement.system") == "metric") StreetEdgeTable.auditedStreetDistance(1) * 1.60934.toFloat
                 else StreetEdgeTable.auditedStreetDistance(1)
               Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
