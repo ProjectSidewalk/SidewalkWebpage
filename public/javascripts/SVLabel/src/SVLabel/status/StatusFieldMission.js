@@ -31,7 +31,7 @@ function StatusFieldMission (modalModel, uiStatusField) {
     };
 
     /**
-     *  This method takes in an integer feet and converts it to meters, truncuating all decimals.
+     *  This method takes in an integer feet and converts it to meters, truncating all decimals.
      *  @param feet to convert to meters
      *  @return
      */
@@ -54,15 +54,15 @@ StatusFieldMission.prototype._distanceToString = function (distance, unit) {
 
     if (distance === "0.0947"){
         if (distanceType === "metric") return this.convertToMetric(500, unitAbbreviation);
-        return "500 " + unitAbbreviation;
+        else return "500 " + unitAbbreviation;
     } else if (distance === "0.1420") {
         if (distanceType === "metric") return this.convertToMetric(750, unitAbbreviation);
-        return "750 " + unitAbbreviation;
+        else return "750 " + unitAbbreviation;
     } else if (distance === "0.1894") {
         if (distanceType === "metric") return this.convertToMetric(1000, unitAbbreviation);
-        return "1000 " + unitAbbreviation;
+        else return "1000 " + unitAbbreviation;
     } else {
         if (distanceType === "metric") return this.convertToMetric(distance * 5280, unitAbbreviation);
-        return (util.math.milesToFeet(distance)).toFixed(0) + " " + unitAbbreviation;
+        else return (util.math.milesToFeet(distance)).toFixed(0) + " " + unitAbbreviation;
     }
 };
