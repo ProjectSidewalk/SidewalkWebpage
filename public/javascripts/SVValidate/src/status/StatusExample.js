@@ -57,15 +57,14 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Sets the horizontal position, vertical position, and height of the popup
-     * as well as the popup pointer basedon which picture was hovered over.
+     * Sets the horizontal and vertical position of the popup and popup pointer based on the picture's position.
      * @param id    ID name for the label example HTML element that the user hovered over.
      * @private
      */
     function _setPopupLocation (id) {
         // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
 
-        // Horizontal positioning
+        // Horizontal positioning.
         if (id.includes("1")) {
             statusUI.popup.css('left', '480px');
             statusUI.popupPointer.css('top', '50px');
@@ -80,7 +79,7 @@ function StatusExample (statusUI) {
             statusUI.popupPointer.css('top', '135px');
         }
 
-        // Vertical Positioning
+        // Vertical Positioning.
         if (id.includes("counterexample")) {
             statusUI.popup.css('top', '108px');
         } else {
