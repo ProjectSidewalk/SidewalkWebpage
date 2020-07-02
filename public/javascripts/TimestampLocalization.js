@@ -1,4 +1,5 @@
-function updateTimestamp(locale) {
+/** Converts to local date format and puts timestamp in local date format. */
+function updateTimestamps(locale) {
     $(document).ready(function () {
         $(".timestamp").each(function() {
             if ($(this).hasClass('local')) {
@@ -12,9 +13,8 @@ function updateTimestamp(locale) {
             // formatted timestamp.
             $(this).attr("data-order", timestampText);
     
-            // Load correct locale.
+            // Converts to local date format and changes timestamp to local date format.
             moment.locale(locale);
-    
             let localDate = moment(new Date(timestampText + " UTC"));
     
             // If the date cannot be parsed, ignore it and leave the text as-is. O/w, parse into local datetime format.
