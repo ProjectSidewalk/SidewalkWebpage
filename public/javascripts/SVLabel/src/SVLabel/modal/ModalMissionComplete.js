@@ -268,7 +268,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     };
 
     this.update = function (mission, neighborhood) {
-        // Update the horizontal bar chart to show how much distance the user has audited.
+        // Update the horizontal bar chart to show the distance the user has audited.
         var unit = {units: i18next.t('common:unit-distance')};
         
         var regionId = neighborhood.getProperty("regionId");
