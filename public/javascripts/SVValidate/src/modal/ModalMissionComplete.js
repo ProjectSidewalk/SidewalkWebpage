@@ -85,6 +85,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, confirmationCode) {
         uiModalMissionComplete.agreeCount.html(mission.getProperty("agreeCount"));
         uiModalMissionComplete.disagreeCount.html(mission.getProperty("disagreeCount"));
         uiModalMissionComplete.notSureCount.html(mission.getProperty("notSureCount"));
+        svv.ui.modalMissionComplete.yourOverallTotalCount.html(svv.statusField.getCompletedValidations());
 
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
