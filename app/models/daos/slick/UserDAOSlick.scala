@@ -26,10 +26,9 @@ import scala.slick.jdbc.{StaticQuery => Q}
 
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
-                                 completedMissions: Int, completedAudits: Int, totalDistanceAudited: Float,
-                                 labels: Int, ownValidated: Int, ownValidatedAgreedPct: Double,
-                                 ownValidatedDisagreedPct: Double, ownValidatedUnsurePct: Double,
-                                 othersValidated: Int, othersValidatedAgreedPct: Double)
+                                 completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
+                                 ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double,
+                                 ownValidatedUnsurePct: Double, othersValidated: Int, othersValidatedAgreedPct: Double)
 
 class UserDAOSlick extends UserDAO {
   /**
@@ -507,11 +506,6 @@ object UserDAOSlick {
     val auditCounts =
       AuditTaskTable.completedTasks.groupBy(_.userId).map { case (_uId, group) => (_uId, group.length) }.list.toMap
 
-    // Map(user_id: String -> total_distance_explored: Float)
-    val totalDistanceExplored = 1.0.toFloat
-      //UserStatTable.userStats.groupBy(_.userId)
-      //.map{ case (_userId, group) => (_userId, group.map(_.metersAudited).max) }.list.toMap
-
     // Map(user_id: String -> label_count: Int)
     val labelCounts =
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithoutDeleted).on(_.auditTaskId === _.auditTaskId)
@@ -563,7 +557,6 @@ object UserDAOSlick {
         signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
         missionCounts.getOrElse(u.userId, 0),
         auditCounts.getOrElse(u.userId, 0),
-        totalDistanceExplored,
         labelCounts.getOrElse(u.userId, 0),
         ownValidatedDistinct,
         ownValidatedAgreedPct,
