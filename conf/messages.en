@@ -1,3 +1,4 @@
+measurement.system = metric
 curb.ramp = Curb Ramp
 missing.ramp = Missing Curb Ramp
 obstacle = Obstacle in Path
@@ -41,9 +42,10 @@ landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = You are automatically assigned a neighborhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
-landing.stats.content.unfinished = Users like you have already mapped {0} miles of {1}, {2}—that''s {3}% of the city!
+landing.stats.content.unfinished = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the city!
+landing.stats.content.finished = We did it! Users like you have mapped all {0} kilometers of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 landing.stats.percent = of {0} mapped
-landing.stats.distance = miles covered
+landing.stats.distance = kilometers covered
 landing.stats.labels = labels
 landing.stats.validations = validations
 landing.ml.title = What we do with your labels
@@ -94,14 +96,14 @@ audit.left.ui.jump.explore.button.same.neighborhood = Go to a new location in th
 audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood
 
 audit.right.ui.current.neighborhood = Current Neighborhood
-audit.right.ui.miles = miles
+audit.right.ui.distance = kilometers
 audit.right.ui.current.mission = Current Mission
 audit.right.ui.red.line = Follow the red line
 
 audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable
 audit.center.ui.add.tags = Add Tags:
-audit.center.ui.temporary = Temporary (e.g., construction, trash)
+audit.center.ui.temporary = Temporary (e.g., construction)
 audit.center.ui.show.again = Don''t show again
 
 audit.mission.complete.labels.title = Mission Labels
@@ -237,3 +239,5 @@ labeling.guide.obstacle.summary = Obstacles are objects that are directly on the
 labeling.guide.surface.problem.summary = A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience for someone using a wheelchair or other assistive devices. If something on a surface would make it hard or impossible to cross, it should be labeled as a Surface Problem. For surface problems that cover a large area, you should place a Surface Problem label at the start of the problem, and then continue placing labels every few feet (about 1 per panorama) until the end of the problem.
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
 labeling.guide.occlusion.summary = Occlusion is when you can't see something at all. In these cases, you should place an Occlusion label. This should rarely be used, so only place the Occlusion label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
+
+admin.overview.distance = km

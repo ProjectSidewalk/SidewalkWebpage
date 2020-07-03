@@ -8,9 +8,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     var neighborhoodPolygonStyle = {
             color: '#888',
-            weight: 1,
-            opacity: 0.25,
-            fillColor: "#ccc",
+            weight: 2,
+            opacity: 0.80,
+            fillColor: "#808080",
             fillOpacity: 0.1
         },
         layers = [],
@@ -119,11 +119,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             var milesLeft = 0;
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('common:measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
-                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
-                    
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371;
+                    distanceLeft = Math.round(distanceLeft);
+
                     var advancedMessage = '';
-                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                    if (difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
@@ -135,20 +140,20 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("common:map.100-percent-complete") + "<br>" + advancedMessage +
                             i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 0) {
+                    } else if (distanceLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("common:map.less-than-mile-left") + "<br>" + advancedMessage +
+                            i18next.t("common:map.less-than-one-unit-left") + "<br>" + advancedMessage +
                             i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 1) {
+                    } else if (distanceLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("common:map.percent-complete", {percent: compRate}) + "<br>" +
-                            i18next.t("common:map.miles-left", {n: milesLeft}) + "<br>" + advancedMessage +
-                            i18next.t("common:map.click-to-help", {url: url, regionId: regionId});
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.distance-left-one-unit") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
                     } else {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("common:map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("common:map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
                             i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
                     }
                     break;
@@ -182,16 +187,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var compRate = Math.round(100.0 * ratesEl.rate);
                 var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
                 var distanceLeft = "";
-                if(compRate === 100){
+                if (compRate === 100) {
                     distanceLeft = "0";
                 }
-                else if(milesLeft === 0){
+                else if (milesLeft === 0) {
                     distanceLeft = "<1";
                 }
-                else if(milesLeft === 1){
+                else if (milesLeft === 1) {
                     distanceLeft = "1";
                 }
-                else{
+                else {
                     distanceLeft = ">1";
                 }
                 var url = "/userapi/logWebpageActivity";
@@ -240,16 +245,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";
-            if(compRate === 100){
+            if (compRate === 100) {
                 distanceLeft = "0";
             }
-            else if(milesLeft === 0){
+            else if (milesLeft === 0) {
                 distanceLeft = "<1";
             }
-            else if(milesLeft === 1){
+            else if (milesLeft === 1) {
                 distanceLeft = "1";
             }
-            else{
+            else {
                 distanceLeft = ">1";
             }
             var url = "/userapi/logWebpageActivity";
@@ -307,11 +312,11 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             })
                 .addTo(map);
 
-            // Calculate total distance audited in (km)
+            // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.length(data.features[i], {units: 'miles'});
+                distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
             }
-            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
+            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
 
             // Get total reward if a turker
             if (role === 'Turker') {
@@ -408,7 +413,11 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 axis: {
                     x: {
                         type: 'timeseries',
-                        tick: { format: '%Y-%m-%d' }
+                        tick: {
+                            format: function(x) {
+                                return moment(x).format('D MMMM YYYY');
+                            }
+                        }
                     },
                     y: {
                         label: i18next.t("street-audit-count"),
@@ -435,14 +444,6 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         $.getJSON("/getMissions", function (data) {
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
-
-            // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
-            var monthNames = [
-                "Jan.", "Feb.", "Mar.",
-                "Apr.", "May", "June", "July",
-                "Aug.", "Sept.", "Oct.",
-                "Nov.", "Dec."
-            ];
 
 
             // sorts all labels the user has completed by mission
@@ -499,12 +500,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                         labelCounter[labelType] += 1;
                     }
                 }
-
-                var date = new Date(grouped[missionId][0]["mission_end"]);
-                var day = date.getDate();
-                var monthIndex = date.getMonth();
-                var year = date.getFullYear();
-
+                
+                // No need to load locale, correct locale loaded for timestamp.
+                var localDate = moment(new Date(grouped[missionId][0]["mission_end"]));
 
                 var neighborhood;
                 // neighborhood name is tutorial if there is no neighborhood
@@ -518,7 +516,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var dateString;
                 // Date is "In Progress" if the mission has not yet been completed
                 if (grouped[missionId][0]["completed"]) {
-                    dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
+                    dateString = localDate.format('D MMM YYYY');
                 } else {
                     dateString = i18next.t("in-progress");
                 }

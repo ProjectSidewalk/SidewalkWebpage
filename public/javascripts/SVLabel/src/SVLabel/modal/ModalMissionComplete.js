@@ -268,11 +268,12 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
     };
 
     this.update = function (mission, neighborhood) {
-        // Update the horizontal bar chart to show how much distance the user has audited
-        var unit = {units: 'miles'};
+        // Update the horizontal bar chart to show the distance the user has audited.
+        var unit = {units: i18next.t('common:unit-distance')};
+        
         var regionId = neighborhood.getProperty("regionId");
 
-        var missionDistance = mission.getDistance("miles");
+        var missionDistance = mission.getDistance(unit.units);
         var missionPay = mission.getProperty("pay");
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
         var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority(unit);
@@ -303,7 +304,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance, unit);
+        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
@@ -329,14 +330,14 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance, unit) {
-    if (!unit) unit = {units: 'kilometers'};
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance) {
+    var distanceType = i18next.t('mission-complete.distance-type-display-string');
     var positiveRemainingDistance = Math.max(remainingDistance, 0);
     var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
-    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.othersAuditedDistance.html(positiveOthersAuditedDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.remainingDistance.html(positiveRemainingDistance.toFixed(1) + " " + unit.units);
+    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.othersAuditedDistance.html(positiveOthersAuditedDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.remainingDistance.html(positiveRemainingDistance.toFixed(1) + " " + distanceType);
 
     // Update the reward HTML if the user is a turker.
     if (this._userModel.getUser().getProperty("role") === "Turker") {

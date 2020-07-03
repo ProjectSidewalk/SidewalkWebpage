@@ -1,4 +1,8 @@
 {
+  "measurement-system": "metric",
+  "unit-abbreviation-distance-user-dashboard": "km",
+  "unit-abbreviation-mission-distance": "m",
+  "unit-distance": "kilometers",
   "missing-sidewalks": "Banqueta ausente",
   "missing-ramps": "Rampa peatonal ausente",
   "surface-problems": "Problemas en superficie",
@@ -10,11 +14,12 @@
   "mission-complete-confirmation-code": "Código de confirmación: ",
   "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
   "map": {
-    "miles-left": "Sólo faltan {{n}} millas!",
-    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio!",
+    "distance-left": "Sólo faltan {{n}} kilómetros!",
+    "distance-left-one-unit": "Sólo faltan 1 kilómetro!",
+    "less-than-one-unit-left": "¡Queda menos de un kilómetro!",
+    "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio",
     "thanks": "¡Gracias por tu ayuda!",
     "100-percent-complete": "¡100% Completa!",
-    "percent-complete": "{{percent}}% Completa",
-    "less-than-mile-left": "¡Queda menos de una milla!"
+    "percent-complete": "{{percent}}% Completa"
   }
 }

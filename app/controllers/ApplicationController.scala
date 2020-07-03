@@ -11,8 +11,10 @@ import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.street.StreetEdgeTable
 import play.api.Play
 import play.api.Play.current
+import play.api.i18n.Messages
 import java.util.Calendar
 import play.api.mvc._
 
@@ -132,7 +134,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
                 val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + otherCity).get
                 (otherName + ", " + otherState, otherURL)
               }
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls)))
+              // Get total audited distance. If using metric system, convert from miles to kilometers.
+              val auditedDistance: Float =
+                if (Messages("measurement.system") == "metric") StreetEdgeTable.auditedStreetDistance(1) * 1.60934.toFloat
+                else StreetEdgeTable.auditedStreetDistance(1)
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
