@@ -84,6 +84,7 @@
         "button-resume": "¡Reanuda tu misión!"
     },
     "mission-complete": {
+        "distance-type-display-string": "kilómetros",
         "title": "¡Misión cumplida!",
         "button-start-validating": "Comienza a validar",
         "button-keep-exploring": "Seguir explorando",
