@@ -13,7 +13,7 @@ function updateTimestamps(locale) {
             // formatted timestamp.
             $(this).attr("data-order", timestampText);
     
-            // Converts to local date format and changes timestamp to local date format.
+            // Converts to local time and changes to local date format.
             moment.locale(locale);
             let localDate = moment(new Date(timestampText + " UTC"));
     
