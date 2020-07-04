@@ -98,7 +98,7 @@ function resizeMobileValidation() {
     }
     let statusBoxes = document.getElementsByClassName("status-box");
     for (let i = 0; i < statusBoxes.length; i++) {
-        statusBoxes[i].style.height = w * (83 / 95) / 2 + 20 + "px";
+        statusBoxes[i].style.height = w * (83 / 95) / 2 + statusBoxes[i].childElementCount * 20 + "px";
     }
     document.getElementById("modal-info-close-button").style.left = w - 75 + "px";
 
