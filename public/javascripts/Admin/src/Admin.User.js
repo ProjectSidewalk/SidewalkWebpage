@@ -47,6 +47,13 @@ function AdminUser(params) {
             }
         })
             .addTo(map);
+
+            // Calculate total distance audited
+            var distanceAudited = 0;
+            for (var i = data.features.length - 1; i >= 0; i--) {
+                distanceAudited += turf.length(data.features[i], {units: 'miles'});
+            }
+            document.getElementById("td-total-distance-audited-admin").innerHTML = distanceAudited.toPrecision(2) + " mi";
     });
 
     // Visualize the labels collected
