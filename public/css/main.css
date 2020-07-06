@@ -744,12 +744,17 @@ video#bgvid {
     height: 200px;
 }
 
-.column {
-    float: left;
-    width: 50%;
-    padding: 15px;
+.collborator-images-container {
+    display: flex;
+    justify-content: space-around;
 }
 
+.collborator-image {
+    padding: 15px;
+}
+.collborator-image > img {
+    height: 220px;
+}
 #press-container2, #brought-to-you-by-container {
     position: relative;
     max-width: 900px;
