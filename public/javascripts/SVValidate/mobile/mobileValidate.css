@@ -87,11 +87,12 @@ html {
 }
 
 #modal-comment-textarea {
-    font-size: 30pt;
+    font-size: 32pt;
 }
 
 #modal-comment-title {
-    font-size: 30pt;
+    font-size: 32pt;
+    text-align: left;
 }
 
 .modal-foreground {
