@@ -218,7 +218,7 @@ function Tracker () {
         }
 
         //we are no longer interacting with a label, set currentLabel to null
-        if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel){
+        if(self._isContextMenuClose(action) || !contextMenuLabel){
             currentLabel = null;
         }
 
