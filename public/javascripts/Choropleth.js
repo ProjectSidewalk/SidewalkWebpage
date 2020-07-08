@@ -140,6 +140,7 @@ function Choropleth(_, $, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+                this.openPopup()
 
             });
             layer.on('mouseout', function (e) {
