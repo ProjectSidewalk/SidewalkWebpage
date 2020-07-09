@@ -1346,6 +1346,10 @@ kbd {
     visibility: hidden;
 }
 
+#your-overall-total {
+  border-top: 3px solid #999999;
+}
+
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
