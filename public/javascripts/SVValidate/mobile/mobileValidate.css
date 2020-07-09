@@ -49,6 +49,7 @@ html {
 
 #left-column-feedback-button {
     font-size: 30pt;
+    width: 90%
 }
 
 #left-column-jump-button {
@@ -106,6 +107,7 @@ html {
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
     overflow: auto;
+    padding-bottom: 20px;
 }
 
 #modal-info-background {
