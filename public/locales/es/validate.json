@@ -122,7 +122,7 @@
   },
   "mission-complete": {
     "title": "¡Gran trabajo!",
-    "body-1": "¡Acabas de validar {{n}} etiquetas de Rampas Peatonales.",
+    "body-1": "Acabas de validar {{n}} etiquetas de Rampas Peatonales.",
     "body-2": "Acabas de validar {{n}} etiquetas de Rampas Peatonales Ausentes.",
     "body-3": "Acabas de validar {{n}} etiquetas de Obstáculos.",
     "body-4": "Acabas de validar {{n}} etiquetas de Problemas en Superficie.",
