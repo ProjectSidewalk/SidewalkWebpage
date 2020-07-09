@@ -188,10 +188,7 @@ function Panorama (label, id) {
             streetViewService.getPanorama({pano: panorama.getPano()},
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
-                        let date = data.imageDate;
-                        let year = date.substring(0, 4);
-                        let month = months[parseInt(date.substring(5, 7)) - 1];
-                        document.getElementById("svv-panorama-date-" + id).innerText = month + " " + year;
+                        document.getElementById("svv-panorama-date-" + id).innerText = moment(data.imageDate).format('MMM YYYY');
                     }
                     else {
                         console.error("Error retrieving Panoramas: " + status);
