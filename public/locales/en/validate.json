@@ -135,10 +135,10 @@
     "no-new-mission-button": "Start Exploring"
   },
   "mobile": {
-    "info-title-title-CurbRamp": "What is a Curb Ramp?",
-    "info-title-title-NoCurbRamp": "What is a Missing Curb Ramp?",
-    "info-title-title-Obstacle": "What is an Obstacle?",
-    "info-title-title-SurfaceProblem": "What is a Surface Problem?",
-    "info-title-title-NoSidewalk": "What is a \"No Sidewalk\""
+    "info-title-CurbRamp": "What is a Curb Ramp?",
+    "info-title-NoCurbRamp": "What is a Missing Curb Ramp?",
+    "info-title-Obstacle": "What is an Obstacle?",
+    "info-title-SurfaceProblem": "What is a Surface Problem?",
+    "info-title-NoSidewalk": "What is a \"No Sidewalk\""
   }
 }
