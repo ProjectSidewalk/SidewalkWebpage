@@ -242,3 +242,5 @@ labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starti
 labeling.guide.occlusion.summary = Occlusion is when you can't see something at all. In these cases, you should place an Occlusion label. This should rarely be used, so only place the Occlusion label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
 
 admin.overview.distance = km
+
+admin.clear.internal.cache = Clear Internal Cache
