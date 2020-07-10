@@ -242,4 +242,4 @@ labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en 
 
 admin.overview.distance = km
 
-admin.clear.internal.cache = Borrar Caché Interna
+admin.clear.internal.cache = Borrar Cachés Internas
