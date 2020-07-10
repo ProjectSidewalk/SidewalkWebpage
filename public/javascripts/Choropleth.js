@@ -95,11 +95,16 @@ function Choropleth(_, $, difficultRegionIds) {
             var popupContent = "???";
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
-                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371;
+                    distanceLeft = Math.round(distanceLeft);
 
                     var advancedMessage = '';
-                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                    if (difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
@@ -111,20 +116,20 @@ function Choropleth(_, $, difficultRegionIds) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 0) {
+                    } else if (distanceLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.less-than-mile-left") + "<br>" + advancedMessage +
+                            i18next.t("map.less-than-one-unit-left") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 1) {
+                    } else if (distanceLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.distance-left-one-unit") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     } else {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.percent-complete", { percent: compRate })+ "<br>" +
-                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     }
                     break;
@@ -156,16 +161,16 @@ function Choropleth(_, $, difficultRegionIds) {
                 var compRate = Math.round(100.0 * ratesEl.rate);
                 var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
                 var distanceLeft = "";
-                if(compRate === 100){
+                if (compRate === 100) {
                     distanceLeft = "0";
                 }
-                else if(milesLeft === 0){
+                else if (milesLeft === 0) {
                     distanceLeft = "<1";
                 }
-                else if(milesLeft === 1){
+                else if (milesLeft === 1) {
                     distanceLeft = "1";
                 }
-                else{
+                else {
                     distanceLeft = ">1";
                 }
                 var activity = "Click_module=Choropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
@@ -194,13 +199,13 @@ function Choropleth(_, $, difficultRegionIds) {
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";
-            if(compRate === 100){
+            if (compRate === 100){
                 distanceLeft = "0";
             }
-            else if(milesLeft === 0){
+            else if (milesLeft === 0){
                 distanceLeft = "<1";
             }
-            else if(milesLeft === 1){
+            else if (milesLeft === 1){
                 distanceLeft = "1";
             }
             else{

@@ -235,6 +235,10 @@
                 });
             });
     </script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript">
+        updateTimestamps("@lang.code");
+    </script>
 </body>

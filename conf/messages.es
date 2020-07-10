@@ -1,3 +1,4 @@
+measurement.system = metric
 curb.ramp = Rampa peatonal
 missing.ramp = Rampa peatonal ausente
 obstacle = Obstáculo en la banqueta
@@ -40,9 +41,10 @@ landing.choropleth.title = Elige un barrio
 landing.choropleth.content = Se te asignará automáticamente un barrio al hacer click en ''Comienza a explorar'', pero también puedes elegir una haciendo clic en cualquier zona del siguiente mapa.
 landing.choropleth.legend = Porcentaje del barrio completo
 landing.stats.title = Tu trabajo está haciendo la diferencia
-landing.stats.content.unfinished = Personas usuarias como tú ya han mapeado {0} millas de {1}, {2}—¡eso es el {3}% de la ciudad!
+landing.stats.content.unfinished = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}, {2}—¡eso es el {3}% de la ciudad!
+landing.stats.content.finished = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros de {1}, {2}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
 landing.stats.percent = de {0} mapeado
-landing.stats.distance = millas cubiertos
+landing.stats.distance = kilómetros cubiertos
 landing.stats.labels = etiquetas
 landing.stats.validations = validaciones
 landing.ml.title = Qué hacemos con tus etiquetas
@@ -93,7 +95,7 @@ audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación 
 audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
 
 audit.right.ui.current.neighborhood = Colonia actual
-audit.right.ui.miles = millas
+audit.right.ui.distance = kilómetros
 audit.right.ui.current.mission = Misión actual
 audit.right.ui.red.line = Sigue la línea roja
 
@@ -165,6 +167,7 @@ validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
 validate.mission.complete.not.sure = No Estoy de seguro
+validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
 
@@ -236,3 +239,5 @@ labeling.guide.obstacle.summary = Los obstáculos son objetos que están directa
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
 labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
+
+admin.overview.distance = km

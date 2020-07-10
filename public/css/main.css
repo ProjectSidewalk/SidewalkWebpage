@@ -405,7 +405,6 @@ video#bgvid {
     font-size: 45px;
     font-style: normal;
     font-variant: normal;
-    height: 500px;
     min-height:700px;
     line-height: 1.1em;
     color: #2D2A3F;
@@ -745,12 +744,17 @@ video#bgvid {
     height: 200px;
 }
 
-.column {
-    float: left;
-    width: 50%;
-    padding: 15px;
+.collborator-images-container {
+    display: flex;
+    justify-content: space-around;
 }
 
+.collborator-image {
+    padding: 15px;
+}
+.collborator-image > img {
+    height: 220px;
+}
 #press-container2, #brought-to-you-by-container {
     position: relative;
     max-width: 900px;
@@ -1345,6 +1349,10 @@ kbd {
     position: relative;
     top: -85px;
     visibility: hidden;
+}
+
+#your-overall-total {
+  border-top: 3px solid #999999;
 }
 
 /*

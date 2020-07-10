@@ -806,11 +806,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     function (data, panoStatus) {
                         if (panoStatus === google.maps.StreetViewStatus.OK) {
                             // Updates the date overlay to match when the current panorama was taken.
-                            var date = data.imageDate;
-                            var year = date.substring(0, 4);
-                            var month = months[parseInt(date.substring(5, 7)) - 1];
-                            document.getElementById("svl-panorama-date").innerText = month + " " + year;
-
+                            document.getElementById("svl-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
                             var panoramaPosition = svl.panorama.getPosition(); // Current Position
                             map.setCenter(panoramaPosition);
 
