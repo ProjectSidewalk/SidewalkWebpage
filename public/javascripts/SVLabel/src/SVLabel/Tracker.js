@@ -63,7 +63,7 @@ function Tracker () {
     };
 
     this._isDeleteLabelAction = function (action) {
-        return action.indexOf("Click_LabelDelete") >= 0;
+        return action.indexOf("RemoveLabel") >= 0;
     };
 
     this._isTaskStartAction = function (action) {
@@ -210,7 +210,6 @@ function Tracker () {
 
         var item = self.create(action, notes, extraData);
         actions.push(item);
-
         var contextMenuLabel = true;
 
         if(self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')){
@@ -218,7 +217,7 @@ function Tracker () {
         }
 
         //we are no longer interacting with a label, set currentLabel to null
-        if(self._isContextMenuClose(action) || !contextMenuLabel){
+        if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel){
             currentLabel = null;
         }
 
@@ -226,6 +225,7 @@ function Tracker () {
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
             self.submitForm();
         }
+
         return this;
     };
 
