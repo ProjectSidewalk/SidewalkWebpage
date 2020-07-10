@@ -25,6 +25,10 @@ import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
+import play.api.Play
+import play.api.Play.current
+import play.api.cache.Cache
+import play.api.cache.EhCachePlugin
 
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
@@ -520,5 +524,13 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         }
       }
     )
+  }
+  
+  /** Clears all internal caches stored in the EhCachePlugin, which is play's default cache plugin. */
+  def clearInternalCache() = UserAwareAction.async { implicit request =>
+    val cacheController = Play.application.plugin[EhCachePlugin].get.manager
+    val cache = cacheController.getCache("play")
+    cache.removeAll()
+    Future.successful(Ok("success"))
   }
 }
