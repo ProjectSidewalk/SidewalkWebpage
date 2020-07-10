@@ -1,5 +1,6 @@
 {
   "measurement-system": "metric",
+  "admin-clear-internal-cache": "All Internal Caches Cleared",
   "unit-abbreviation-distance-user-dashboard": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",

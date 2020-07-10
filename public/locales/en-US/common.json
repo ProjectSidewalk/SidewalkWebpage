@@ -1,5 +1,6 @@
 {
     "measurement-system": "IS",
+    "admin-clear-internal-cache": "All Internal Caches Cleared",
     "unit-abbreviation-distance-user-dashboard": "mi",
     "unit-abbreviation-mission-distance": "ft",
     "unit-distance": "miles",
