@@ -479,7 +479,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
                         strokeWeight: 2
                     })
                 ];
-            } else {  // Sets green
+            } else {
                 var latlng = svl.map.getPosition();
                 paths = self.getGooglePolylines(latlng.lat, latlng.lng);
             }
