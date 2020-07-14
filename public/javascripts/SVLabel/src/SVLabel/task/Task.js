@@ -479,23 +479,9 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
                         strokeWeight: 2
                     })
                 ];
-            } else if (paths) {
+            } else {  // Sets green
                 var latlng = svl.map.getPosition();
                 paths = self.getGooglePolylines(latlng.lat, latlng.lng);
-            } else {
-                // If this is a new task and the this Task instance's `paths` is not set yet, create a red GMaps Polyline.
-                var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
-                    return new google.maps.LatLng(coord[1], coord[0]);
-                });
-                paths = [
-                    new google.maps.Polyline({
-                        path: gCoordinates,
-                        geodesic: true,
-                        strokeColor: '#ff0000',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2
-                    })
-                ];
             }
 
             for (var i = 0, len = paths.length; i < len; i++) {
