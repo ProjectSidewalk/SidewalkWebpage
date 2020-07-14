@@ -41,6 +41,10 @@ html {
     width: 75px;
 }
 
+#infopage-status-box {
+  border-bottom: 0;
+}
+
 #label-type-counterexample, #label-type-example {
     font-size: 30pt;
     padding-left: 25px;
@@ -49,6 +53,7 @@ html {
 
 #left-column-feedback-button {
     font-size: 30pt;
+    width: 90%
 }
 
 #left-column-jump-button {
@@ -101,11 +106,12 @@ html {
     position: absolute;
     min-height: 480px;
     border: 5px solid black;
-
     border-radius: 3px 3px 3px 3px;
     z-index: 4;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+    overflow: auto;
+    padding-bottom: 20px;
 }
 
 #modal-info-background {
@@ -172,10 +178,6 @@ html {
 
 #ps-logo-landscape {
     width: 350px;
-}
-
-.status-box {
-    height: 500px;
 }
 
 #status-current-mission-completion-bar {
