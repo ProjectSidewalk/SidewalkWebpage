@@ -41,6 +41,10 @@ html {
     width: 75px;
 }
 
+#infopage-status-box {
+  border-bottom: 0;
+}
+
 #label-type-counterexample, #label-type-example {
     font-size: 30pt;
     padding-left: 25px;
