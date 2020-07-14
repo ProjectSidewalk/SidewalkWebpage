@@ -5,7 +5,7 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api._
-import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService}
+import com.mohiva.play.silhouette.api.services.{AuthInfoService, AvatarService, AuthenticatorService}
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.providers._
@@ -18,7 +18,7 @@ import models.user._
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{Json, JsError}
-import play.api.mvc.{Action, RequestHeader}
+import play.api.mvc.{Action, RequestHeader, Result, Session, DiscardingCookie}
 import play.api.{Play, Logger}
 import play.api.Play.current
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -109,6 +109,9 @@ class SignUpController @Inject() (
                     env.eventBus.publish(LoginEvent(user, request, request2lang))
                     authenticator
                   }
+
+                  // Try modifying incoming request
+                  // TODO: Let's see if we can apply the update method or renew method to the current authenticator
                   request.authenticator match {
                     case Some(oldAuthenticator) =>
                       // If someone was already authenticated (i.e., they were signed into an anon user account), Play
@@ -117,17 +120,30 @@ class SignUpController @Inject() (
                       // sending the new authenticator info in a temp element in the session cookie. The "/finishSignUp"
                       // endpoint will then move authenticator we put in "temp-authenticator" over to "authenticator"
                       // where it belongs, finally completing the sign up.
-                      val redirectURL: String = url match {
-                        case Some(u) => "/finishSignUp?url=" + u
-                        case None => "/finishSignUp"
+//                      val redirectURL: String = url match {
+//                        case Some(u) => "/finishSignUp?url=" + u
+//                        case None => "/finishSignUp"
+//                      }
+                      val result = url match {
+                        case Some(u) => Future.successful(Redirect(u))
+                        case None => Future.successful(Ok(Json.toJson(user)))
                       }
-                      val result = newAuthenticator.map { newAuth =>
-                        // When we encrypt/serialize, we're doing the work of init, serialize, and embed. Found here:
-                        // https://github.com/mohiva/play-silhouette/blob/2.0.x/silhouette/app/com/mohiva/play/silhouette/impl/authenticators/SessionAuthenticator.scala
-                        val authSerialized: String = Crypto.encryptAES(Json.toJson(newAuth).toString())
-                        Redirect(redirectURL).withSession("temp-authenticator" -> authSerialized)
+
+                      newAuthenticator.map { newAuth =>
+                        val newSession = env.authenticatorService.init(newAuth)
+                        env.authenticatorService.embed(newSession, request)
                       }
-                      oldAuthenticator.discard(result)
+
+                      request.authenticator.renew(result)
+
+//                      val result = newAuthenticator.map { newAuth =>
+//                        // When we encrypt/serialize, we're doing the work of init, serialize, and embed. Found here:
+//                        // https://github.com/mohiva/play-silhouette/blob/2.0.x/silhouette/app/com/mohiva/play/silhouette/impl/authenticators/SessionAuthenticator.scala
+//                        val authSerialized: String = Crypto.encryptAES(Json.toJson(newAuth).toString())
+//                        Redirect(redirectURL).withSession("temp-authenticator" -> authSerialized)
+//                      }
+
+                      //oldAuthenticator.discard(result)
 
                     case None =>
                       // If no account was signed in before, we can skip the "/finishSignUp" endpoint step. Instead, we
@@ -162,6 +178,9 @@ class SignUpController @Inject() (
    * @return
    */
   def finishSignUp(url: Option[String]) = UserAwareAction.async { implicit request =>
+    if (request.session.get("test_key").isDefined) {
+      Logger.debug("yay, test key is through")
+    }
     if (request.session.get("authenticator").isEmpty && request.session.get("temp-authenticator").isDefined) {
       // Read the new authenticator from the session cookie.
       val authenticatorJson: String = Crypto.decryptAES(request.session.get("temp-authenticator").get)
