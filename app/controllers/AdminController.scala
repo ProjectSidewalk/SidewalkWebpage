@@ -526,8 +526,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     )
   }
   
-  /** Clears all internal caches stored in the EhCachePlugin, which is play's default cache plugin. */
-  def clearInternalCache() = UserAwareAction.async { implicit request =>
+  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
+  def clearPlayCache() = UserAwareAction.async { implicit request =>
     val cacheController = Play.application.plugin[EhCachePlugin].get.manager
     val cache = cacheController.getCache("play")
     cache.removeAll()
