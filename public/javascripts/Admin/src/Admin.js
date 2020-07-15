@@ -1419,12 +1419,12 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         });
     }
 
-    function clearInternalCache() {
+    function clearPlayCache() {
         $.ajax( {
-            url: '/adminapi/clearInternalCache',
+            url: '/adminapi/clearPlayCache',
             type: 'put',
             success: function () {
-                clearInternalCacheSuccess.innerHTML = i18next.t("admin-clear-internal-cache");
+                clearPlayCacheSuccess.innerHTML = i18next.t("admin-clear-play-cache");
             }
         } )
     }
@@ -1439,7 +1439,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
-    self.clearInternalCache = clearInternalCache;
+    self.clearPlayCache = clearPlayCache;
 
     $('.change-role').on('click', changeRole);
 
