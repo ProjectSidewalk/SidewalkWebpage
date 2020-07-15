@@ -230,8 +230,9 @@
             lng: "@lang.code",
             debug: false
         }, function(err, t) {
-            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.admin = AdminUser(_, $, c3, L, "@admin.get.role", difficultRegionIds);
+            var username = '@user.get.username';
+            window.admin = AdminUser({username: username});
+            $('#labelTable').dataTable();
         });
     });
     </script>
