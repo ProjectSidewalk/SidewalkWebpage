@@ -66,7 +66,7 @@ GET     /adminapi/label/id/:labelId                          @controllers.AdminC
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
-PUT     /adminapi/clearInternalCache                         @controllers.AdminController.clearInternalCache
+PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
