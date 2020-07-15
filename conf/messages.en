@@ -243,4 +243,4 @@ labeling.guide.occlusion.summary = Occlusion is when you can't see something at 
 
 admin.overview.distance = km
 
-admin.clear.internal.cache = Clear Internal Caches
+admin.clear.play.cache = Clear Play cache
