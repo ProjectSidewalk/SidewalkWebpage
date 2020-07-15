@@ -1,6 +1,6 @@
 {
   "measurement-system": "metric",
-  "admin-clear-internal-cache": "Todas las Cachés Internas Borradas",
+  "admin-clear-play-cache": "Reproducir caché borrada con éxito",
   "unit-abbreviation-distance-user-dashboard": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
