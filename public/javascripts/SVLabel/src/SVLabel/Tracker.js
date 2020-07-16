@@ -212,10 +212,6 @@ function Tracker () {
 
         }
 
-        if(!action.includes("LowLevelEvent_")){
-            console.log(action + " " + currentLabel);
-        }
-
         var item = self.create(action, notes, extraData);
         actions.push(item);
         var contextMenuLabel = true;
@@ -226,7 +222,6 @@ function Tracker () {
 
         //we are no longer interacting with a label, set currentLabel to null
         if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel){
-            console.log(action);
             currentLabel = null;
         }
 
