@@ -66,6 +66,10 @@ function Tracker () {
         return action.indexOf("RemoveLabel") >= 0;
     };
 
+    this._isClickLbelDeleteAction = function (action) {
+        return action.indexOf("Click_LabelDelete") >= 0;
+    };
+
     this._isTaskStartAction = function (action) {
         return action.indexOf("TaskStart") >= 0;
     };
@@ -194,7 +198,7 @@ function Tracker () {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
 
-        } else if (self._isDeleteLabelAction(action)){
+        } else if (self._isClickLbelDeleteAction(action)){
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);
@@ -208,6 +212,10 @@ function Tracker () {
 
         }
 
+        if(!action.includes("LowLevelEvent_")){
+            console.log(action + " " + currentLabel);
+        }
+
         var item = self.create(action, notes, extraData);
         actions.push(item);
         var contextMenuLabel = true;
@@ -218,6 +226,7 @@ function Tracker () {
 
         //we are no longer interacting with a label, set currentLabel to null
         if(self._isContextMenuClose(action) || self._isDeleteLabelAction(action) || !contextMenuLabel){
+            console.log(action);
             currentLabel = null;
         }
 

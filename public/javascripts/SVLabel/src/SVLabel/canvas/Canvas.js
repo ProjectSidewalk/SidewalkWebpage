@@ -383,7 +383,7 @@ function Canvas(ribbon) {
      */
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
-            svl.tracker.push('Click_LabelDelete');
+            svl.tracker.push('Click_LabelDelete', {labelType: label.getProperty('labelType')});
             var currLabel = self.getCurrentLabel();
             if (!currLabel) {
                 //
