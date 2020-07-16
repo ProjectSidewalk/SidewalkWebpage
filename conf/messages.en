@@ -168,6 +168,7 @@ validate.mission.complete.category = Category
 validate.mission.complete.agree = Agree
 validate.mission.complete.disagree = Disagree
 validate.mission.complete.not.sure = Not Sure
+validate.mission.complete.your.overall.total = Your Overall Total
 
 mobile.validate.leave.feedback = Leave Feedback
 

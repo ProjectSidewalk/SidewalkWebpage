@@ -97,6 +97,13 @@ function StatusField(param) {
         svv.ui.status.progressText.html(completionRate);
     }
 
+    /**
+     * Returns the user's total validation count.
+     */
+    function getCompletedValidations(){
+      return completedValidations;
+    }
+
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
     self.updateLabelText = updateLabelText;
@@ -104,6 +111,7 @@ function StatusField(param) {
     self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
     self.incrementLabelCounts = incrementLabelCounts;
     self.reset = reset;
+    self.getCompletedValidations = getCompletedValidations;
 
     return this;
 }

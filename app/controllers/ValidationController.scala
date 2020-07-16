@@ -80,7 +80,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/audit"))
         } else {
-          Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
+          Future.successful(Ok(views.html.mobileValidate("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
@@ -100,7 +100,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker") {
           Future.successful(Redirect("/audit"))
         } else {
-          Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5)))
+          Future.successful(Ok(views.html.rapidValidation("Project Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/rapidValidate"));
