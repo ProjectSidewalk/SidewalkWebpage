@@ -212,13 +212,6 @@
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     <script>
-            $(document).ready(function () {
-                var username = '@user.get.username';
-                window.admin = AdminUser({username: username});
-                $('#labelTable').dataTable();
-            });
-    </script>
-    <script>
     $(document).ready(function () {
         // Gets all translations before loading the choropleth.
         i18next.use(i18nextXHRBackend);
