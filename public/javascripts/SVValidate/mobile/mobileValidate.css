@@ -87,11 +87,17 @@ html {
 }
 
 #modal-comment-textarea {
-    font-size: 32pt;
+    font-size: 60pt;
+    border-width: 2px;
+    height: 200%;
+    width: 200%;
+    transform: scale(0.5);
+    transform-origin: left top;
+    margin-bottom: -100px;
 }
 
 #modal-comment-title {
-    font-size: 32pt;
+    font-size: 30pt;
     text-align: left;
 }
 
