@@ -85,15 +85,6 @@
                     </li>
                 }
                 <li class="active navbarLink">
-                    <a class="navbarBtn navbarResultsBtn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
-                </li>
-                <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
-                    <li class="active navbarLink">
-                        <a class="navbarBtn navbarLabelMapBtn" href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
-                    </li>
-                }
-                <li class="active navbarLink">
                     <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                 </li>
                 @if(url.isDefined && url.get == "/audit") {
@@ -101,6 +92,26 @@
                         <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
+                <li class="dropdown navbarLink" id="navbar-dropdown-list">
+                    <a id="nav-user-dropdown" 5role="button" data-toggle="dropdown" href="#">
+                        Data
+                        <b class="caret"></b>
+                    </a>
+                    <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                        <li>
+                            <a href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                        </li>
+                        <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                        @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
+                            <li>
+                                <a href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                            </li>
+                        }
+                        <li>
+                            <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a>
+                        </li>
+                    </ul>
+                </li>
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
                 <li class="dropdown navbarLink" id="navbar-dropdown-list">
