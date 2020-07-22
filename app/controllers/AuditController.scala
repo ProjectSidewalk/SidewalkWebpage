@@ -54,7 +54,12 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     request.identity match {
       case Some(user) =>
-        // Get current region if we aren't assigning new one; otherwise assign new region
+        // If the user is a Turker, then delete the current region.
+        if (UserRoleTable.getRole(user.userId) == "Turker") {
+          UserCurrentRegionTable.delete(user.userId)
+        }
+
+        // Get current region if we aren't assigning new one; otherwise assign new region.
         var region: Option[NamedRegion] = nextRegion match {
           case Some("easy") => // Assign an easy region if the query string has nextRegion=easy.
             UserCurrentRegionTable.assignEasyRegion(user.userId)
