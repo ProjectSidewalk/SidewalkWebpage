@@ -55,7 +55,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         // If the user is a Turker, then delete the current region.
-        if (UserRoleTable.getRole(user.userId) == "Turker") {
+        if (user.role.getOrElse("") == "Turker") {
           UserCurrentRegionTable.delete(user.userId)
         }
 
