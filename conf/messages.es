@@ -167,6 +167,7 @@ validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
 validate.mission.complete.not.sure = No Estoy de seguro
+validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
 
@@ -240,3 +241,5 @@ labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay ban
 labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
 admin.overview.distance = km
+
+admin.clear.play.cache = Borrar caché de Play

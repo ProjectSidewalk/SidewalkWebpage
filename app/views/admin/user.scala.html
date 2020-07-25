@@ -53,7 +53,6 @@
                         <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false)</td>
                         <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
                         <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
-                        <td id="td-total-distance-audited-admin"></td>
                     </tr>
                 </table>
             </div>
