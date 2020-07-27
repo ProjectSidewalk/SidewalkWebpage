@@ -145,7 +145,7 @@ function AdminUser(params) {
             var localDate = moment(new Date(grouped[auditTaskId][0]["task_end"]));
 
             tableRows += "<tr>" +
-                "<td class='col-xs-1'>" + localDate.formt('L') + "</td>" +
+                "<td class='col-xs-1'>" + localDate.format('L') + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +

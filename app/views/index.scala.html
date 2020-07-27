@@ -289,14 +289,19 @@
             <div class="im-centered3" style = "font-size: 40px; margin-bottom: 20px;">
                 <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
             </div>
-
-            <div class="column">
-                <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' height="220" alt='Makeability_Logo'>
-            </div>
-
-            <div class="column">
-                <img src='@routes.Assets.at("assets/LigaLogo.png")' height="220" alt='LIGA_Logo'>
-            </div>
+            <section class="collborator-images-container">
+                <div class="collborator-image">
+                    <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability_Logo'>
+                </div>
+                <div class="collborator-image">
+                    <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
+                </div>
+                @if("Columbus"== cityName){
+                    <div class="collborator-image">
+                        <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
+                    </div>
+                }
+            </section>
         </div>
     </div>
 
