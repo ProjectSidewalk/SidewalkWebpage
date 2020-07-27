@@ -36,6 +36,11 @@ figure figcaption {
     padding: 0;
 }
 
+#help-panel {
+    position: fixed;
+    width: 275px;
+}
+
 .help ul#questions-list {
     padding: 0;
     list-style-type: none;
