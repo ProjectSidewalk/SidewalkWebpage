@@ -21,3 +21,11 @@
     z-index: 1;
 
 }
+
+.gm-style > button {
+    visibility: hidden;
+}
+
+.gm-svpc {
+    visibility: hidden;
+}
