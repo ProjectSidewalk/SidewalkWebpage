@@ -4,12 +4,10 @@
 @import models.audit.AuditTaskTable
 @import models.label.LabelTable
 @import models.mission.MissionTable
-@import models.region.RegionTable
 
 @import java.util.UUID
 @import models.user.UserCurrentRegionTable
 @import models.region.RegionPropertyTable
-@import play.api.libs.json.Json
 
 @(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))(implicit lang: Lang)
 
