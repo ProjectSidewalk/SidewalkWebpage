@@ -23,7 +23,7 @@ figure figcaption {
 }
 
 .help .help-item {
-    margin-bottom: 100px;
+    margin-bottom: 10px;
 }
 /* Found recommended fix here: https://github.com/twbs/bootstrap/issues/1768 */
 .help .help-item h2 {
