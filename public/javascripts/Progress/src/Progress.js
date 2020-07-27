@@ -163,6 +163,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
+                this.openPopup();
                 this.setStyle({color: "red", fillColor: "red"});
 
             });
