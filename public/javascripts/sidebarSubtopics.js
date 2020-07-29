@@ -31,12 +31,17 @@ $(document).ready(function(){
         this.classList.toggle("active");
 
         var panel = document.getElementById("subtopics");
+        var helpPanel = document.getElementById("help-panel");
         if (panel.style.maxHeight){
             panel.style.maxHeight = null;
             $(".plusminus").text('+');
+            if (window.innerWidth > 978) {
+                helpPanel.style.position = "fixed";
+            }
         } else {
             panel.style.maxHeight = panel.scrollHeight + "px";
             $(".plusminus").text('-');
+            helpPanel.style.position = "static";
         }
     });
 
