@@ -353,7 +353,9 @@ video#bgvid {
     color: #fff;
 }
 
-
+p#conditional-text {
+    margin: 5px;
+}
 
 #compgif {
     padding-top: 60px;
@@ -425,17 +427,133 @@ video#bgvid {
     color: #2D2A3F;
 
 }
-#difference-container{
-    position:relative;
-    width: 100%;
+
+/* -------------- Difference Section ------------- */
+
+.ps--cityscape {
+    position: relative;
+    padding: 15px;
 }
 
-.grayButton{
+.ps--cityscape--overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ps--cityscape--overlay > * {
+    align-self: center;
+    margin-top: 20px;
+}
+
+/* TODO: figure out why first child isn't working */
+.ps--cityscape--overlay > .row {
+    background-color: white;
+    opacity: 90%;
+    padding: 5px;
+    border-radius: 15px;
+    max-width: 100%;
+    font-family: raleway, sans-serif;
+    letter-spacing: 0em;
+    font-size: 45px;
+    font-style: normal;
+    font-variant: normal;
+    line-height: 1.1em;
+    color: #2D2A3F;
+} 
+
+.ps--cityscape--overlay--btn {
+    background-color: #eb734d;
+    opacity: 90%;
+    -moz-border-radius:15px;
+    -webkit-border-radius:15px;
+    border-radius:15px;
+    border:1px solid #2D2A3F;
+    cursor:pointer;
+    color:#2D2A3F;
+    font: normal normal normal 14px/1.4em raleway,sans-serif;
+    font-family: 'Raleway', sans-serif;
+    font-size:20px;
+    font-weight: bold;
+    padding:10px 45px;
+    text-decoration:none;
+    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+
+.ps--cityscape--overlay--btn:hover {
+    border:1px solid #eb734d;
+    color: #ffffff;
+    text-shadow: none;
+}
+
+.ps--cityscape--container {
+    display: flex;
+    flex-direction: column;
+}
+
+.ps--cityscape--container > img {
+    width: 1400px;
+    align-self: center;
+}
+
+.over-skyline {
+    margin-top: -68px; /* Height of Cloud .png */
+}
+
+/* TODO: Change from ID to class, remove unneeded css */
+#content-text-2 {
+    background-color: white;
+    opacity: 90%;
+    border-radius: 15px;
+    font-family: adelle-regular, sans-serif;
+    font-size: 16px;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    line-height: 1.8em;
+    letter-spacing: 0.1em;
+    max-width: 500px;
     position: relative;
 }
 
+.ps--cityscape--numberholder {
+    margin: -35px auto 0 auto;
+    min-width: 800px;
+    max-width: 1400px;
+    
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-gap: 8px;
 
+    text-align: center;
+}
 
+.ps--cityscape--numberholder--numbers {
+    font-size: 60px;
+    font-family: raleway-extrabold, sans-serif;
+}
+
+.ps--cityscape--numberholder--labels {
+    font-size: 30px;
+}
+
+.ps--cityscape--numberholder > a {
+    color: #2D2A3F;
+}
+
+.ps--cityscape--numberholder > a:hover {
+    text-decoration: none;
+}
+
+@media (max-width: 835px) {
+    .ps--cityscape--numberholder {
+        display: none;
+    }
+}
 
 #steps1 {
     padding-top: 100px;
@@ -472,15 +590,7 @@ video#bgvid {
     cursor: pointer;
     width:630px;
 }
-#dcanim-div{
-    width: 100%; height: auto; position: absolute; top: 100px; left: -5px;
-    background-size: cover;
-    text-align: center;
-}
-#dcanim-div img{
-    margin: auto;
-    width: 1400px;
-}
+
 #anim-labels{
     position: relative;
     top: -30px;
@@ -498,8 +608,6 @@ video#bgvid {
     line-height: 10px;
     color: #2D2A3F;
 }
-
-
 
 #step2right {
     float: center;
@@ -532,23 +640,12 @@ video#bgvid {
     background-repeat: no-repeat;
     background-size: cover;
 }
+
 #quotearea{
     max-width: 900px;
     margin: 0 auto;
 }
-#content-text-2 {
-    font-family: adelle-regular, sans-serif;
-    font-size: 16px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: normal;
-    line-height: 1.8em;
-    letter-spacing: 0.1em;
-    max-width: 500px;
-    margin: 0 auto;
-    position: relative;
-    top: 25px;
-}
+
 #content-text-3 {
     font-family: adelle-regular, sans-serif;
     font-size: 16px;
@@ -642,39 +739,8 @@ video#bgvid {
     line-height: 12px;
 }
 
-
-
 .compimage {
     float:left;
-}
-
-#exploreButton {
-    background-color:transparent;
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:15px;
-    border:1px solid #2D2A3F;
-    display:inline-block;
-    cursor:pointer;
-    color:#2D2A3F;
-    font: normal normal normal 14px/1.4em raleway,sans-serif;
-    font-family: 'Raleway', sans-serif;
-    font-size:14px;
-    padding:10px 45px;
-    text-decoration:none;
-    position: relative;
-    top: 25px;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-}
-#exploreButton:hover {
-    background-color:#eb734d;
-    border:1px solid #eb734d;
-    color: #ffffff;
-    text-shadow: none;
-}
-#exploreButton:active {
-    position:relative;
-    top:25px;
 }
 
 #exploredesc{
@@ -790,36 +856,6 @@ video#bgvid {
     color: #2d2a3f;
 }
 
-#anim-numbers{
-    font-size: 60px;
-    max-width: 1400px;
-    margin: 0 auto;
-    font-family: raleway-extrabold, sans-serif;
-}
-#anim-labels{
-    font-size: 30px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-#numberholder{
-    position:relative;
-    padding-left: 15px;
-    padding-right: 15px;
-    min-width: 800px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-#numberholder a {
-    color: #2D2A3F;
-}
-#numberholder a:hover {
-    text-decoration: none;
-}
-@media (max-width: 835px) {
-  #numberholder {
-    display: none;
-  }
-}
 .quotebox {
     width: 430px;
     height: 260px;

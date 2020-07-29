@@ -196,46 +196,45 @@
             <div id="choropleth"></div>
         </div>
     </div>
-    <div class="container" id="difference-container">
-        <div id="dcanim-div">
+    <div class="ps--cityscape">
+        <div class="ps--cityscape--container">
             <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+            <img src="@routes.Assets.at("assets/" + "GenericCloudOverlay.png")" class="over-skyline">
         </div>
-        <div class="im-centered5">
-            <div class="row" style="margin: 0 auto; width: 450px;">@Messages("landing.stats.title")</div>
+        <div class="ps--cityscape--numberholder">
+            <span class="ps--cityscape--numberholder--numbers" id="percentage">45</span>
+            <span class="ps--cityscape--numberholder--numbers" id="distance">45</span>
+            <span class="ps--cityscape--numberholder--numbers" id="numlabels">36,583</span>
+            <a href="/validate">
+                <span class="ps--cityscape--numberholder--numbers" id="numvalidation">123,583</span>
+            </a>
+            <span class="ps--cityscape--numberholder--labels">@Messages("landing.stats.percent", cityShortName)</span>
+            <span class="ps--cityscape--numberholder--labels">@Messages("landing.stats.distance")</span>
+            <span class="ps--cityscape--numberholder--labels">@Messages("landing.stats.labels")</span>
+            <a href="/validate">
+                <span class="ps--cityscape--numberholder--labels" >@Messages("landing.stats.validations")</span>
+            </a>
+        </div>
+        <div class="ps--cityscape--overlay">
+            <div class="row" style="margin: 0 auto; width: fit-content; margin-top: 135px;">@Messages("landing.stats.title")</div>
             <div class="row" id="content-text-2">
                 <p id="conditional-text">Keep Mapping!</p>
             </div>
-            <a id="exploreButton" href="@routes.ApplicationController.results">
-                @Messages("navbar.results")</a>
-            <br><br><br><br><br><br><br><br>
-            <div id="numberholder">
-                <div class="row" id="anim-numbers">
-                    <div class="col-md-3 col-sm-4"><span id="percentage">45</span></div>
-                    <div class="col-md-3 col-sm-4"><span id="distance">45</span></div>
-                    <div class="col-md-3 col-sm-4"><span id="numlabels">36,583</span></div>
-                    <div class="col-md-3 hidden-sm"><a href="/validate"><span id="numvalidation">123,583</span></a></div>
-                </div>
-                <br>
-                <div class="row" id="anim-labels">
-                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.percent", cityShortName)</div>
-                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.distance")</div>
-                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.labels")</div>
-                    <div class="col-md-3 hidden-sm"><a href="/validate">@Messages("landing.stats.validations")</a></div>
-                </div>
-
-            </div>
-            <script language="javascript">
-                    if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
-                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
-                    } else {
-                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
-                    }
-                    var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
-                    var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
-                    var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
-                    var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
-            </script>
+            <a class="ps--cityscape--overlay--btn" href="@routes.ApplicationController.results">
+                @Messages("navbar.results")
+            </a>
         </div>
+        <script language="javascript">
+            if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
+            } else {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+            }
+            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
+            var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
+            var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
+            var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
+    </script>
     </div>
 
 
