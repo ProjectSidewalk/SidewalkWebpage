@@ -93,8 +93,8 @@
                     </li>
                 }
                 <li class="dropdown navbarLink" id="navbar-dropdown-list">
-                    <a id="nav-user-dropdown" 5role="button" data-toggle="dropdown" href="#">
-                        Data
+                    <a id="nav-user-dropdown" class="navbarBtn" role="button" data-toggle="dropdown" href="#">
+                        @Messages("navbar.data")
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
@@ -117,7 +117,7 @@
                 <li class="dropdown navbarLink" id="navbar-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
                         
-                        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+                        <a id="nav-user-dropdown" class="navbarBtn" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
                             <b class="caret"></b>
                         </a>
@@ -523,5 +523,5 @@ $(document).ready(function () {
         <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
             @Messages("navbar.signin")
         </a>
-    </template>
+    </template>`
 }
