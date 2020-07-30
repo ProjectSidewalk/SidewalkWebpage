@@ -154,7 +154,7 @@
                     m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
             })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
-            var analyticsStr = "@{Play.configuration.getString("city-params.google-analytics-id." + Play.configuration.getString("city-id").get)}";
+            var analyticsStr = "@{Play.configuration.getString("city-params.google-analytics-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}";
             ga('create', analyticsStr, 'auto');
             ga('send', 'pageview');
 
