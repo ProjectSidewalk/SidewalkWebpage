@@ -1359,7 +1359,7 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 1250px) {
+@media only screen and (max-width: 1175px) {
     .navbar-header {
         float: none;
     }
@@ -1380,14 +1380,11 @@ kbd {
         border-radius: 5px;
         margin: 5px 0 5px 0;
         padding-top: 10px;
+        padding-bottom: 10px;
     }
 
     .navbar-nav > li {
         float: none;
-    }
-
-    .navbar-nav > :last-child {
-        padding-top: 5px;
     }
 
     .navbar-nav > li > a.navbarBtn {

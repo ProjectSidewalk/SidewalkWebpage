@@ -20,6 +20,7 @@ navbar.explore = Start Exploring
 navbar.validate = Start Validating
 navbar.howto = How to Label
 navbar.results = Results Map
+navbar.data = Data
 navbar.labelmap = Label Map
 navbar.help = Help
 navbar.retake.tutorial = Retake Tutorial
