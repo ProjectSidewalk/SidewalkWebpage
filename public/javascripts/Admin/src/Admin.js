@@ -123,7 +123,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({color: "red", fillColor: "red"});
-
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -255,7 +255,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -1419,6 +1419,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         });
     }
 
+    function clearPlayCache() {
+        $.ajax( {
+            url: '/adminapi/clearPlayCache',
+            type: 'put',
+            success: function () {
+                clearPlayCacheSuccess.innerHTML = i18next.t("admin-clear-play-cache");
+            }
+        } )
+    }
+
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
@@ -1429,6 +1439,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
+    self.clearPlayCache = clearPlayCache;
 
     $('.change-role').on('click', changeRole);
 

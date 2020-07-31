@@ -262,7 +262,7 @@ $(document).ready(function () {
 
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
                         @text(forms.SignInForm.form("identifier"), Messages("authenticate.email"))
-                        @password(forms.SignInForm.form("password"), Messages("authenticate.password"))
+                        @password(forms.SignInForm.form("passwordSignIn"), Messages("authenticate.password"))
                         <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.signin")</button>
                     }
                 </div>
@@ -321,6 +321,12 @@ $(document).ready(function () {
                     // -or-, see below
                     // $(this).closest("." + $(this).attr("data-hide")).hide();
                 });
+
+                // If on the sign in or sign up pages, remove the sign in button from the navbar.
+                if (location.pathname === '/signIn' || location.pathname === '/signUp') {
+                    $('#sign-in-modal-container').remove();
+                    $('#navbar-dropdown-list').remove();
+                }
             });
 
             // Callback function for checking sign-in results

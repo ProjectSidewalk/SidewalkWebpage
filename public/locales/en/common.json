@@ -1,5 +1,6 @@
 {
   "measurement-system": "metric",
+  "admin-clear-play-cache": "Play cache successfully cleared",
   "unit-abbreviation-distance-user-dashboard": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
