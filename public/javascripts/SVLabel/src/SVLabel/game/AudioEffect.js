@@ -75,6 +75,7 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
      */
     function play (name) {
         if (name in audios && !storage.get("muted") && typeof audios[name].play == "function") {
+            audios[name].load();
             audios[name].play();
         }
         return this;
