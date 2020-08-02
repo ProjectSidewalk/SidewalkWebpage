@@ -1,10 +1,8 @@
 package controllers.helper;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.zip.*;
 
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
@@ -31,7 +29,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 public class ShapefilesCreatorHelper {
 
 
-    public ShapefilesCreatorHelper(File outputFile, List<Attribute> attributes) throws Exception {
+    public static File createShapeFile(String outputFile, List<Attribute> attributes) throws Exception {
 
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
@@ -88,7 +86,7 @@ public class ShapefilesCreatorHelper {
         ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 
         Map<String, Serializable> params = new HashMap<>();
-        params.put("url", outputFile.toURI().toURL());
+        params.put("url", new File(outputFile + ".shp").toURI().toURL());
         params.put("create spatial index", Boolean.TRUE);
 
         ShapefileDataStore newDataStore =
@@ -133,8 +131,31 @@ public class ShapefilesCreatorHelper {
                 transaction.rollback();
             } finally {
                 transaction.close();
+
             }
+            List<String> components = Arrays.asList(outputFile + ".dbf", outputFile + ".fix", outputFile + ".prj",
+                    outputFile + ".shp", outputFile + ".shx");
+            FileOutputStream fos = new FileOutputStream(outputFile + ".zip");
+            ZipOutputStream zipOut = new ZipOutputStream(fos);
+            for (String srcFile : components){
+                File fileToZip = new File(srcFile);
+                FileInputStream fis = new FileInputStream(srcFile);
+                ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
+                zipOut.putNextEntry(zipEntry);
+
+                byte[] bytes = new byte[1024];
+                int length;
+                while((length = fis.read(bytes))>= 0){
+                    zipOut.write(bytes, 0, length);
+                }
+                fis.close();
+                fileToZip.delete();
+            }
+            zipOut.close();
+            fos.close();
         }
+
+        return new File(outputFile + ".zip");
     }
 
 

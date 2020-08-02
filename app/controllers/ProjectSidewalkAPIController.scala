@@ -170,9 +170,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       writer.close()
       Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
-    } else if (filetype != None && filetype.get == "shapefile") {
+    } else if (filetype.isDefined && filetype.get == "shapefile") {
 
-      val shapefile: java.io.File = new java.io.File("shapefile.shp")
       val attributeList: JavaList[Attribute] = new JavaArrayList();
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currAttribute: Attribute = new Attribute();
@@ -185,11 +184,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         attributeList.add(currAttribute);
       }
 
-      val fileCreator: ShapefilesCreatorHelper = new ShapefilesCreatorHelper(shapefile, attributeList)
+      val shapefile: java.io.File = ShapefilesCreatorHelper.createShapeFile("shapefile", attributeList)
 
 
 
-      Future.successful(Ok.sendFile(content = shapefile))
+      Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
 
     } else {  // In GeoJSON format.
       val features: List[JsObject] =
