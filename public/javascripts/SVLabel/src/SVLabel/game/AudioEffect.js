@@ -13,8 +13,8 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
     if (typeof Audio == "undefined") Audio = function HTMLAudioElement () {}; // I need this for testing as PhantomJS does not support HTML5 Audio.
 
     var audios = {
-        drip: new Audio(fileDirectory + 'audio/drip.wav'),
-        glug1: new Audio(fileDirectory + 'audio/glug1.wav'),
+        drip: new Audio(fileDirectory + 'audio/drip.mp3'),
+        glug1: new Audio(fileDirectory + 'audio/glug1.mp3'),
         success: new Audio(fileDirectory + 'audio/success.mp3')
     };
     var blinkInterval;
