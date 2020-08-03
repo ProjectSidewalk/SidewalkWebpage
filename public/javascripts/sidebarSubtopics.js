@@ -32,17 +32,25 @@ $(document).ready(function(){
 
         var panel = document.getElementById("subtopics");
         var helpPanel = document.getElementById("help-panel");
-        if (panel.style.maxHeight){
+        if (panel.style.maxHeight) {
             panel.style.maxHeight = null;
             $(".plusminus").text('+');
+            helpPanel.style.height = "auto";
+            helpPanel.style.overflowY = "hidden";
             if (window.innerWidth > 978) {
-                helpPanel.style.position = "fixed";
+                helpPanel.style.width = helpPanel.offsetWidth - 15 + "px";
             }
         } else {
             panel.style.maxHeight = panel.scrollHeight + "px";
             $(".plusminus").text('-');
-            helpPanel.style.position = "static";
+            if (window.innerWidth > 978) {
+                helpPanel.style.overflowY = "scroll";
+                helpPanel.style.height = "500px";
+                helpPanel.style.width = helpPanel.offsetWidth + 15 + "px";
+            } else {
+                helpPanel.style.height = "auto";
+                helpPanel.style.overflowY = "hidden";
+            }
         }
     });
-
 });
