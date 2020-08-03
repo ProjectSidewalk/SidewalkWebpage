@@ -520,14 +520,19 @@ object MissionTable {
   }
 
   /**
-    * Gets distance audited by a user in their current mission, if it exists, in meters.
+    * Gets meters audited by a user in their current mission, if it exists, in meters.
     *
     * @param userId
     * @return
     */
-  def getCurrentDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
-    val currentDistance = getCurrentMissionInRegion(userId, UserCurrentRegionTable.currentRegion(userId).get).get.distanceProgress.getOrElse(0F)
-    currentDistance
+  def getMetersAuditedInCurrentMission(userId: UUID): Option[Float] = db.withSession { implicit session =>
+    val currentMeters: Option[Float] = for {
+      currentRegion <- UserCurrentRegionTable.currentRegion(userId)
+      currentMission <- getCurrentMissionInRegion(userId, currentRegion)
+    } yield {
+      currentMission.distanceProgress.getOrElse(0F)
+    }
+    currentMeters
   }
 
   /**

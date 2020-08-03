@@ -55,7 +55,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     request.identity match {
       case Some(user) =>
         // If the user is a Turker and has audited less than 50 meters in the current region, then delete the current region.
-        if (user.role.getOrElse("") == "Turker" && MissionTable.getCurrentDistanceAudited(user.userId) < 50) {
+        val currentMeters = MissionTable.getMetersAuditedInCurrentMission(user.userId);
+        if (user.role.getOrElse("") == "Turker" &&  currentMeters.isDefined && currentMeters.get < 50) {
           UserCurrentRegionTable.delete(user.userId)
         }
 
