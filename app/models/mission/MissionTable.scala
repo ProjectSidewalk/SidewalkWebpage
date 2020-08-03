@@ -520,7 +520,7 @@ object MissionTable {
   }
 
   /**
-    * Gets meters audited by a user in their current mission, if it exists, in meters.
+    * Gets meters audited by a user in their current mission, if it exists.
     *
     * @param userId
     * @return
