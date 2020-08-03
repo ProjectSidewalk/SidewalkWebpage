@@ -21,6 +21,10 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
 
     uiSoundButton.sound.on('click', toggleSound);
 
+    this._model.on("loadAudio", function (parameter) {
+        load(parameter.audioType);
+    });
+
     this._model.on("play", function (parameter) {
         play(parameter.audioType);
     });
@@ -67,6 +71,17 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
         storage.set("muted", false);
     }
 
+    /**
+     * Load a sound effect
+     * @param name Name of the sound effect
+     * @returns {load}
+     */
+    function load (name) {
+        if (name in audios && typeof audios[name].load == "function") {
+            audios[name].load();
+        }
+        return this;
+    }
 
     /**
      * Play a sound effect
@@ -75,7 +90,6 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
      */
     function play (name) {
         if (name in audios && !storage.get("muted") && typeof audios[name].play == "function") {
-            audios[name].load();
             audios[name].play();
         }
         return this;
@@ -96,6 +110,7 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
         unmute();
 
     self.blink = blink;
+    self.load = load;
     self.play = play;
     self.stopBlinking = stopBlinking;
     return self;

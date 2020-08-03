@@ -121,9 +121,14 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                     svl.map.modeSwitchLabelClick();
                 }
 
-                // Change cursor before mouse is moved
+                // Change cursor before mouse is moved.
                 if (svl.ui.canvas.drawingLayer) {
                     svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
+                }
+
+                // Load sound effect early.
+                if ('audioEffect' in svl) {
+                    svl.audioEffect.load('drip');
                 }
             }
 
