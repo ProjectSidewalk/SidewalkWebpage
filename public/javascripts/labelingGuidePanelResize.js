@@ -4,14 +4,23 @@ function checkWindowSize(){
     if (w < 978) {
         panel.style.position = "static";
         panel.style.width = "auto";
-    } else if (w >= 978 && w < 1184) {
-        panel.style.position = "fixed";
-        panel.style.width = "250px";
-        unfix();
+        panel.style.height = "auto";
+        panel.style.overflowY = "hidden";
     } else {
+        var changedToFixed = panel.style.position === "static";
         panel.style.position = "fixed";
-        panel.style.width = "275px";
+        panel.style.width = w < 1184 ? "250px" : "275px";
         unfix();
+        if (changedToFixed) {
+            if (panel.offsetHeight >= 500) {
+                panel.style.overflowY = "scroll";
+                panel.style.height = "500px";
+                panel.style.width = helpPanel.offsetWidth + 15 + "px";
+            } else {
+                panel.style.overflowY = "hidden";
+                panel.style.height = "auto";
+            }
+        }
     }
 }
 
