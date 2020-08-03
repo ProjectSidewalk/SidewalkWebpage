@@ -47,6 +47,14 @@ function AdminUser(params) {
             }
         })
             .addTo(map);
+
+            // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
+            var distanceAudited = 0;
+            for (var i = data.features.length - 1; i >= 0; i--) {
+                distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
+            }
+            document.getElementById("td-total-distance-audited-admin").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
+
     });
 
     // Visualize the labels collected
@@ -145,7 +153,7 @@ function AdminUser(params) {
             var localDate = moment(new Date(grouped[auditTaskId][0]["task_end"]));
 
             tableRows += "<tr>" +
-                "<td class='col-xs-1'>" + localDate.formt('L') + "</td>" +
+                "<td class='col-xs-1'>" + localDate.format('L') + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +
