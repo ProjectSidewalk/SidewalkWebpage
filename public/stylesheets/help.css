@@ -39,6 +39,7 @@ figure figcaption {
 #help-panel {
     position: fixed;
     width: 275px;
+    z-index: 1;
 }
 
 .help ul#questions-list {
