@@ -92,63 +92,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     /**
-     * render points
-     */
-    function initializeNeighborhoodPolygons(map) {
-        var neighborhoodPolygonStyle = {
-                color: '#888',
-                weight: 2,
-                opacity: 0.80,
-                fillColor: "#808080",
-                fillOpacity: 0.1
-            },
-            layers = [],
-            currentLayer;
-
-        function onEachNeighborhoodFeature(feature, layer) {
-
-            var regionId = feature.properties.region_id;
-            var userCompleted = feature.properties.user_completed;
-            var url = "/audit/region/" + regionId;
-            var popupContent = "???";
-
-            if (userCompleted) {
-                popupContent = "You already audited this entire neighborhood!";
-            } else {
-                popupContent = "Do you want to explore this area to find accessibility issues? " +
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
-            }
-            layer.bindPopup(popupContent);
-            layers.push(layer);
-
-            layer.on('mouseover', function (e) {
-                this.setStyle({color: "red", fillColor: "red"});
-                this.openPopup();
-            });
-            layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle(neighborhoodPolygonStyle);
-                }
-                //this.setStyle(neighborhoodPolygonStyle);
-            });
-            layer.on('click', function (e) {
-                currentLayer = this;
-            });
-        }
-
-        $.getJSON("/neighborhoods", function (data) {
-            neighborhoodPolygonLayer = L.geoJson(data, {
-                style: function (feature) {
-                    return $.extend(true, {}, neighborhoodPolygonStyle);
-                },
-                onEachFeature: onEachNeighborhoodFeature
-            })
-                .addTo(map);
-        });
-    }
-
-    /**
      * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.
      *
      * @param p {float} represents a completion percentage, between 0 and 100
@@ -276,54 +219,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 onEachFeature: onEachNeighborhoodFeature
             })
                 .addTo(map);
-        });
-    }
-
-    /**
-     * This function queries the streets that the user audited and visualize them as segments on the map.
-     */
-    function initializeAuditedStreets(map) {
-        var distanceAudited = 0,  // Distance audited in km
-            streetLinestringStyle = {
-                color: "black",
-                weight: 3,
-                opacity: 0.75
-            };
-
-        function onEachStreetFeature(feature, layer) {
-            if (feature.properties && feature.properties.type) {
-                layer.bindPopup(feature.properties.type);
-            }
-            layer.on({
-                'add': function () {
-                    layer.bringToBack()
-                }
-            })
-        }
-
-        $.getJSON("/contribution/streets/all", function (data) {
-
-            // Render audited street segments
-            self.auditedStreetLayer = L.geoJson(data, {
-                pointToLayer: L.mapbox.marker.style,
-                style: function (feature) {
-                    var style = $.extend(true, {}, streetLinestringStyle);
-                    style.color = "#000";
-                    style["stroke-width"] = 3;
-                    style.opacity = 0.75;
-                    style.weight = 3;
-
-                    return style;
-                },
-                onEachFeature: onEachStreetFeature
-            })
-                .addTo(map);
-
-            // Calculate total distance audited in (km)
-            for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.length(data.features[i]);
-            }
-            // document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " km";
         });
     }
 
