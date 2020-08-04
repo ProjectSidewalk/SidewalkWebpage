@@ -170,11 +170,11 @@ footer {
 
 .grayButton {
     position: relative;
-    background-color: #eee;
+    background-color: rgba(251, 215, 139, 1);
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
     border-radius:10px;
-    border:1px solid #eee;
+    border:1px solid rgba(251, 215, 139, 1);
     display:inline-block;
     position: relative;
     top:8px;
@@ -182,11 +182,14 @@ footer {
     color:#2D2A3F;
     font: normal normal normal 14px/1.4em raleway,sans-serif;
     font-family: 'Raleway', sans-serif;
+    text-align: start;
+    font-weight: bolder;
     font-size:14px;
     padding:5px 25px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
+
 .grayButton:hover {
     background-color:#fff;
     border:1px solid #fff;
@@ -1434,6 +1437,7 @@ kbd {
 
     .navbar-nav .open .dropdown-menu {
         position: relative;
+        top: 5px;
         border: none;
         -moz-border-radius: 0 0 5px 5px;
         -webkit-border-radius: 0 0 5px 5px;
