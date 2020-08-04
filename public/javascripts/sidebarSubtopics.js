@@ -27,9 +27,17 @@ $(document).ready(function(){
         }
     });*/
 
+    /**
+     * If the panel is a sidebar (when window width >= 978px), make the panel scrollable when the user
+     * presses the plus, and not scrollable when the user presses the minus.
+     */
     $(".plusminus").click(function() {
         this.classList.toggle("active");
 
+        var w = document.documentElement.clientWidth;
+        var smallWindowWidth = 978;
+        var expandedPanelHeight = 500;
+        var scrollbarWidth = 15;
         var panel = document.getElementById("subtopics");
         var helpPanel = document.getElementById("help-panel");
         if (panel.style.maxHeight) {
@@ -37,16 +45,16 @@ $(document).ready(function(){
             $(".plusminus").text('+');
             helpPanel.style.height = "auto";
             helpPanel.style.overflowY = "hidden";
-            if (window.innerWidth > 978) {
-                helpPanel.style.width = helpPanel.offsetWidth - 15 + "px";
+            if (w >= smallWindowWidth) {
+                helpPanel.style.width = helpPanel.offsetWidth - scrollbarWidth + "px";
             }
         } else {
             panel.style.maxHeight = panel.scrollHeight + "px";
             $(".plusminus").text('-');
-            if (window.innerWidth > 978) {
+            if (w >= smallWindowWidth) {
                 helpPanel.style.overflowY = "scroll";
-                helpPanel.style.height = "500px";
-                helpPanel.style.width = helpPanel.offsetWidth + 15 + "px";
+                helpPanel.style.height = expandedPanelHeight + "px";
+                helpPanel.style.width = helpPanel.offsetWidth + scrollbarWidth + "px";
             } else {
                 helpPanel.style.height = "auto";
                 helpPanel.style.overflowY = "hidden";
