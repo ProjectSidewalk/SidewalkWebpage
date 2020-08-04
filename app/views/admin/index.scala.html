@@ -329,7 +329,7 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div id="map-holder">
-                            <div id="admin-map"></div>
+                            <div id="choropleth"></div>
                             <div id="map-label-legend">
                                 <div id="map-legend-title-holder">
                                     <label id="map-legend-title">Legend</label>
@@ -784,6 +784,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
@@ -867,7 +868,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.admin = Admin(_, $, c3, turf, difficultRegionIds);
+            window.admin = Choropleths(_, $, difficultRegionIds, "adminAnalytics");
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();

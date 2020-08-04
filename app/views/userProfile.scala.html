@@ -10,7 +10,7 @@
         <div class="row" id="maprow">
             <div class="col-lg-12" id="mapcolumn">
                 <div id="map-holder">
-                    <div id="map"></div>
+                    <div id="choropleth"></div>
                     <div id="map-label-legend">
                         <table class="table">
                             <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td></tr>
@@ -94,6 +94,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
@@ -112,7 +113,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.progress = Progress(_, $, c3, L, "@user.get.role", difficultRegionIds);
+            window.progress = Choropleths(_, $, difficultRegionIds, "userDash");
         });
     });
     </script>

@@ -371,6 +371,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
 
 <script>
@@ -386,7 +387,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.choropleth = Choropleth(_, $, difficultRegionIds);
+            window.choropleth = Choropleths(_, $, difficultRegionIds, "landingPage");
         });
     });
 </script>
