@@ -198,7 +198,11 @@
     </div>
     <div class="ps--cityscape">
         <div class="ps--cityscape--container">
-            <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+            @if("Washington"== cityName || "Seattle" == cityName){
+                <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+            } else {
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+            }
             <img src="@routes.Assets.at("assets/" + "GenericCloudOverlay.png")" class="over-skyline">
         </div>
         <div class="ps--cityscape--numberholder">
