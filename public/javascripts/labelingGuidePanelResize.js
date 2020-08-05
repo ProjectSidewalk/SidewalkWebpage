@@ -14,31 +14,28 @@ function updateSidebarForWindowSize() {
     var scrollbarWidth = 15;
     var panel = document.getElementById("help-panel");
     if (w < smallWindowWidth) {
-        panel.style.position = "static";
+        $("#help-panel").addClass("not-sidebar").removeClass("sidebar").removeClass("stuck-sidebar");
+        $("#help-panel").addClass("not-scrollable").removeClass("scrollable");
         panel.style.width = "auto";
-        panel.style.height = "auto";
-        panel.style.overflowY = "hidden";
     } else {
-        var changedToFixed = panel.style.position === "static";
-        panel.style.position = "fixed";
+        var changedToFixed = $("#help-panel").hasClass("not-sidebar");
+        $("#help-panel").addClass("sidebar").removeClass("not-sidebar").removeClass("stuck-sidebar");
         panel.style.width = w < mediumWindowWidth ? smallPanelWidth + "px" : mediumPanelWidth + "px";
         updateSidebarForScrollState();
         if (changedToFixed) {
             if (panel.offsetHeight >= expandedPanelHeight) {
-                panel.style.overflowY = "scroll";
-                panel.style.height = expandedPanelHeight + "px";
+                $("#help-panel").addClass("scrollable").removeClass("not-scrollable");
                 panel.style.width = panel.offsetWidth + scrollbarWidth + "px";
             } else {
-                panel.style.overflowY = "hidden";
-                panel.style.height = "auto";
+                $("#help-panel").addClass("not-scrollable").removeClass("scrollable");
             }
         }
     }
 }
 
 /*
- * Call this function whenever the user scrolls. If the user scrolls so that the panel, remaining fixed,
- * would go into the filler below, change the panel's position to absolute.
+ * Call this function whenever the user scrolls. If the user scrolls so that the panel, remaining fixed (sidebar),
+ * would go into the filler below, change the panel's position to absolute (stuck-sidebar).
  */
 function updateSidebarForScrollState() {
     if (document.readyState === "complete") {
@@ -47,16 +44,16 @@ function updateSidebarForScrollState() {
         var infoFooterHeight = document.getElementById("info-footer").offsetHeight;
         var fillerHeight = document.getElementsByClassName("filler")[0].offsetHeight;
         var panel = document.getElementById("help-panel");
-        if (panel.style.position !== "static") {
+        if (!$("#help-panel").hasClass("not-sidebar")) {
             var panelRect = panel.getBoundingClientRect();
             var yOffset = document.body.clientHeight - footerHeight - infoFooterHeight - fillerHeight
                     - panelRect.height - panelDistanceFromTop;
             if (window.pageYOffset > yOffset) {
                 panel.style.top = "" + yOffset + "px";
-                panel.style.position = "absolute";
+                $("#help-panel").addClass("stuck-sidebar").removeClass("sidebar").removeClass("not-sidebar");
             } else if (window.pageYOffset < yOffset) {
                 panel.style.top = panelDistanceFromTop + "px";
-                panel.style.position = "fixed";
+                $("#help-panel").addClass("sidebar").removeClass("stuck-sidebar").removeClass("not-sidebar");
             }
         }
     }

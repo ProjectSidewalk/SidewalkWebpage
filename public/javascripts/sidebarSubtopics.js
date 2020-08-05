@@ -36,15 +36,13 @@ $(document).ready(function(){
 
         var w = document.documentElement.clientWidth;
         var smallWindowWidth = 978;
-        var expandedPanelHeight = 500;
         var scrollbarWidth = 15;
         var panel = document.getElementById("subtopics");
         var helpPanel = document.getElementById("help-panel");
         if (panel.style.maxHeight) {
             panel.style.maxHeight = null;
             $(".plusminus").text('+');
-            helpPanel.style.height = "auto";
-            helpPanel.style.overflowY = "hidden";
+            $("#help-panel").addClass("not-scrollable").removeClass("scrollable");
             if (w >= smallWindowWidth) {
                 helpPanel.style.width = helpPanel.offsetWidth - scrollbarWidth + "px";
             }
@@ -52,12 +50,11 @@ $(document).ready(function(){
             panel.style.maxHeight = panel.scrollHeight + "px";
             $(".plusminus").text('-');
             if (w >= smallWindowWidth) {
-                helpPanel.style.overflowY = "scroll";
-                helpPanel.style.height = expandedPanelHeight + "px";
+                $("#help-panel").addClass("scrollable").removeClass("not-scrollable");
+                updateSidebarForScrollState()
                 helpPanel.style.width = helpPanel.offsetWidth + scrollbarWidth + "px";
             } else {
-                helpPanel.style.height = "auto";
-                helpPanel.style.overflowY = "hidden";
+                $("#help-panel").addClass("not-scrollable").removeClass("scrollable");
             }
         }
     });

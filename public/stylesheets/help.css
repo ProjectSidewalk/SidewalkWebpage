@@ -19,7 +19,6 @@ figure figcaption {
 
 .help video, .help iframe {
     border: 1px solid #ddd;
-
 }
 
 .help .help-item {
@@ -32,14 +31,44 @@ figure figcaption {
     padding-top: 75px;
 }
 
-#help-panel .panel-body{
-    padding: 0;
+.scrollable {
+    height: 500px;
+    overflow-y: scroll;
 }
 
-#help-panel {
+.not-scrollable {
+    height: auto;
+    overflow-y: hidden;
+}
+
+.sidebar {
     position: fixed;
-    width: 275px;
     z-index: 1;
+}
+
+.stuck-sidebar {
+    position: absolute;
+    z-index: 1;
+}
+
+.not-sidebar {
+    position: static;
+}
+
+.large-width {
+
+}
+
+.medium-width {
+
+}
+
+.small-width {
+
+}
+
+#help-panel .panel-body{
+    padding: 0;
 }
 
 .help ul#questions-list {
