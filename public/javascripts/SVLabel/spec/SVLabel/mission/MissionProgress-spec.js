@@ -16,6 +16,7 @@ describe("MissionProgress module", function () {
     beforeEach(function () {
         svl = { isOnboarding: function () { return false; }};
         gameEffectModel = _.clone(Backbone.Events);
+        gameEffectModel.loadAudio = function () {};
         gameEffectModel.playAudio = function () {};
 
         missionModel  = _.clone(Backbone.Events);
