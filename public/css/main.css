@@ -428,8 +428,6 @@ p#conditional-text {
 
 }
 
-/* -------------- Difference Section ------------- */
-
 .ps--cityscape {
     position: relative;
     padding: 15px;
@@ -450,7 +448,6 @@ p#conditional-text {
     margin-top: 20px;
 }
 
-/* TODO: figure out why first child isn't working */
 .ps--cityscape--overlay > .row {
     background-color: white;
     opacity: 90%;
