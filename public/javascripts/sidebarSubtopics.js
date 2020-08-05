@@ -47,7 +47,7 @@ $(document).ready(function(){
                 helpPanel.style.width = helpPanel.offsetWidth - scrollbarWidth + "px";
             }
         } else {
-            panel.style.maxHeight = panel.scrollHeight + "px";
+            panel.style.maxHeight = panel.scrollHeight + 100 + "px";
             $(".plusminus").text('-');
             if (w >= smallWindowWidth) {
                 $("#help-panel").addClass("scrollable").removeClass("not-scrollable");
