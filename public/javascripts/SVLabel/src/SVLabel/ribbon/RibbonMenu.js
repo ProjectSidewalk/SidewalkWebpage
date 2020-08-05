@@ -126,7 +126,8 @@ function RibbonMenu(overlayMessageBox, tracker, uiRibbonMenu) {
                     svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
                 }
 
-                // Load sound effect early.
+                // Loads the audio for when a label is placed. Safari requires audios to be loaded each time before being played.
+                // Since this takes time, it is done early (when user selects label type) so that it is ready for when the label is placed.
                 if ('audioEffect' in svl) {
                     svl.audioEffect.load('drip');
                 }
