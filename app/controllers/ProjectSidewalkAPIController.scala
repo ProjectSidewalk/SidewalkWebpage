@@ -1,8 +1,8 @@
 package controllers
 
-import helper.ShapefilesCreatorHelper
+import helper.{Attribute, Label, ShapefilesCreatorHelper}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
-import helper.Attribute
+
 import scala.collection.JavaConversions._
 import collection.immutable.Seq
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -12,26 +12,24 @@ import com.vividsolutions.jts.index.kdtree.{KdNode, KdTree}
 import controllers.headers.ProvidesHeader
 import java.sql.Timestamp
 import java.io.{File, Serializable}
-import java.util.{Map => JavaMap, HashMap => JavaHashMap, List => JavaList, ArrayList => JavaArrayList}
+import java.util.{ArrayList => JavaArrayList, HashMap => JavaHashMap, List => JavaList, Map => JavaMap}
 import java.util.function.{Function => JavaFunction}
 import java.lang.{String => JavaString}
 import java.awt.{Point => JavaPoint}
 import java.time.Instant
+
 import javax.inject.Inject
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable}
-
-import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.geometry.coordinate.{GeometryFactory => GisGeometryFactory}
-
-import org.locationtech.jts.geom.{GeometryFactory => JTSGeometryFactory, Coordinate => JTSCoordinate, Point => JTSPoint}
-
-import org.geotools.data.shapefile.{ShapefileDataStoreFactory, ShapefileDumper, ShapefileDataStore}
-import org.geotools.data.{FileDataStoreFactorySpi, DataStore, DataUtilities, Transaction, DefaultTransaction, FeatureSource}
-import org.geotools.feature.{DefaultFeatureCollection}
+import org.locationtech.jts.geom.{Coordinate => JTSCoordinate, GeometryFactory => JTSGeometryFactory, Point => JTSPoint}
+import org.geotools.data.shapefile.{ShapefileDataStore, ShapefileDataStoreFactory, ShapefileDumper}
+import org.geotools.data.{DataStore, DataUtilities, DefaultTransaction, FeatureSource, FileDataStoreFactorySpi, Transaction}
+import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureStore}
-import org.geotools.referencing.crs.{DefaultGeographicCRS}
+import org.geotools.referencing.crs.DefaultGeographicCRS
 
 import math._
 import models.region._
@@ -119,10 +117,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     if (filetype != None && filetype.get == "csv") {
       val file = new java.io.File("access_attributes_with_labels.csv")
       val writer = new java.io.PrintStream(file)
-      val header: String = "Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Average Curb Ramp Score," + 
-                            "Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score," + 
-                            "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," + 
-                            "Surface Problem Significance"
+      val header: String = "Neighborhood Name,Region ID,Access Score,Coordinates,Coverage,Average Curb Ramp Score," +
+        "Average No Curb Ramp Score,Average Obstacle Score,Average Surface Problem Score," +
+        "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance," +
+        "Surface Problem Significance"
       // Write column headers.
       writer.println(header)
       // Write each row in the CSV.
@@ -131,6 +129,46 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
+    } else if (filetype != None && filetype.get == "shapefile") {
+
+      val attributeList: JavaList[Attribute] = new JavaArrayList();
+      for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
+        val currAttribute: Attribute = new Attribute();
+        currAttribute.coordinate = new JTSCoordinate(current.lat.toDouble, current.lng.toDouble)
+        currAttribute.id = current.globalAttributeId
+        currAttribute.labelType = current.labelType
+        currAttribute.neighborhood = current.neighborhoodName
+        currAttribute.severity = current.severity.getOrElse(-1)
+        currAttribute.temporary = current.temporary
+        attributeList.add(currAttribute);
+      }
+
+      ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
+
+      val labelList: JavaList[Label] = new JavaArrayList();
+      for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)){
+        val currLabel: Label = new Label();
+        currLabel.coordinate = new JTSCoordinate(current.labelLat.toDouble, current.labelLng.toDouble)
+        currLabel.labelId = current.labelId
+        currLabel.attributeId = current.globalAttributeId
+        currLabel.neighborhoodName = current.neighborhoodName
+        currLabel.labelType = current.labelType
+        currLabel.gsvPanoramaId = current.gsvPanoramaId
+        currLabel.heading = current.heading
+        currLabel.pitch = current.pitch
+        currLabel.zoom = current.zoom
+        currLabel.canvas = new JTSCoordinate(current.canvasX.toDouble, current.canvasY.toDouble)
+        currLabel.canvasWidth = current.canvasWidth
+        currLabel.canvasHeight = current.canvasHeight
+        currLabel.severity = current.labelSeverity.getOrElse(0)
+        currLabel.temporary = current.labelTemporary
+      }
+
+      ShapefilesCreatorHelper.createLabelShapeFile("labels", labelList)
+
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("attributeWithLabels", Array("attributes", "labels"))
+
+      Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.
       val features: List[JsObject] = 
         GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).map(_.toJSON)
@@ -179,13 +217,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         currAttribute.id = current.globalAttributeId
         currAttribute.labelType = current.labelType
         currAttribute.neighborhood = current.neighborhoodName
-        currAttribute.severity = current.severity.getOrElse(-1)
+        currAttribute.severity = current.severity.getOrElse(0)
         currAttribute.temporary = current.temporary
         attributeList.add(currAttribute);
       }
 
-      val shapefile: java.io.File = ShapefilesCreatorHelper.createShapeFile("shapefile", attributeList)
+      ShapefilesCreatorHelper.createAttributeShapeFile("shapefile", attributeList)
 
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("shapefile", Array("shapefile"));
 
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
@@ -196,6 +235,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
     }
   }
+
+
+
 
     /**
     * Returns all the global attributes within the bounding box in geoJson.
