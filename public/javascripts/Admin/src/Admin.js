@@ -97,9 +97,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function initializeNeighborhoodPolygons(map) {
         var neighborhoodPolygonStyle = {
                 color: '#888',
-                weight: 1,
-                opacity: 0.25,
-                fillColor: "#ccc",
+                weight: 2,
+                opacity: 0.80,
+                fillColor: "#808080",
                 fillOpacity: 0.1
             },
             layers = [],
@@ -123,7 +123,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({color: "red", fillColor: "red"});
-
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -210,11 +210,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             var popupContent = "???";
             for (var i=0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(rates[i].rate);
-                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371
+                    distanceLeft = Math.round(distanceLeft);
 
                     var advancedMessage = '';
-                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                    if (difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
@@ -226,20 +231,20 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 0) {
+                    } else if (distanceLeft === 0) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.less-than-mile-left") + "<br>" + advancedMessage +
+                            i18next.t("map.less-than-one-unit-left") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (milesLeft === 1) {
+                    } else if (distanceLeft === 1) {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.distance-left-one-unit") + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     } else {
                         var popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.miles-left", { n: milesLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
                             i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     }
                     break;
@@ -250,7 +255,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -446,7 +451,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     function toggleLayers(label, checkboxId, sliderId) {
         if (document.getElementById(checkboxId).checked) {
-            if(checkboxId == "occlusion"){
+            if (checkboxId == "occlusion"){
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])) {
                         map.addLayer(self.allLayers[label][i]);
@@ -637,31 +642,56 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
-                    "height": 300,
-                    "width": 875,
-                    "mark": "area",
                     "data": {"values": data[0], "format": {"type": "json"}},
-                    "encoding": {
-                        "x": {
-                            "field": "date",
-                            "type": "temporal",
-                            "axis": {"title": "Date", "labelAngle": 0}
-                        },
-                        "y": {
-                            "field": "completion",
-                            "type": "quantitative", "scale": {
-                                "domain": [0,100]
-                            },
-                            "axis": {
-                                "title": "City Coverage (%)"
-                            }
-                        }
-                    },
                     "config": {
                         "axis": {
                             "titleFontSize": 16
                         }
-                    }
+                    },
+                    "vconcat": [
+                        {
+                            "height":300,
+                            "width": 875,
+                            "mark": "area",
+                            "encoding": {
+                                "x": {
+                                    "field": "date",
+                                    "type": "temporal",
+                                    "scale": {"domain": {"selection": "brush", "field": "date"}},
+                                    "axis": {"title": "Date", "labelAngle": 0}
+                                },
+                                "y": {
+                                    "field": "completion", 
+                                    "type": "quantitative", "scale": {
+                                        "domain": [0,100]
+                                    },
+                                    "axis": {"title": "City Coverage (%)"}
+                                }
+                            }
+                        },
+                        {
+                        "height": 60,
+                        "width": 875,
+                        "mark": "area",
+                        "selection": {"brush": {"type": "interval", "encodings": ["x"]}},
+                        "encoding": {
+                            "x": {
+                                "field": "date", 
+                                "type": "temporal",
+                                "axis": {"title": "Date", "labelAngle": 0}
+                            },
+                            "y": {
+                                "field": "completion",
+                                "type": "quantitative", "scale": {
+                                    "domain": [0,100]
+                                },
+                                "axis": {
+                                    "title": "City Coverage (%)",
+                                    "tickCount": 3, "grid": true}
+                            }
+                        }
+                        }
+                    ]
                 };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
@@ -1389,6 +1419,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         });
     }
 
+    function clearPlayCache() {
+        $.ajax( {
+            url: '/adminapi/clearPlayCache',
+            type: 'put',
+            success: function () {
+                clearPlayCacheSuccess.innerHTML = i18next.t("admin-clear-play-cache");
+            }
+        } )
+    }
+
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
@@ -1399,6 +1439,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
+    self.clearPlayCache = clearPlayCache;
 
     $('.change-role').on('click', changeRole);
 

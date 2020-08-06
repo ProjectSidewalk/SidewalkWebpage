@@ -84,6 +84,7 @@
         "button-resume": "¡Reanuda tu misión!"
     },
     "mission-complete": {
+        "distance-type-display-string": "kilómetros",
         "title": "¡Misión cumplida!",
         "button-start-validating": "Comienza a validar",
         "button-keep-exploring": "Seguir explorando",
@@ -106,7 +107,7 @@
     "right-ui": {
         "current-mission": {
             "message-first-mission": "Camina __PLACEHOLDER__ y encuentra todos los atributos de accesibilidad de la banqueta",
-            "message": "Explora __PLACEHOLDER__ de esta colonia"
+            "message": "Explora __PLACEHOLDER__ de este barrio"
         }
     },
     "center-ui": {

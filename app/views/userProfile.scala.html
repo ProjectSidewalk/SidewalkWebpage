@@ -5,7 +5,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, user.map(u=> "/contribution/" + u.username))
     <div class="container">
         <div class="row" id="maprow">
             <div class="col-lg-12" id="mapcolumn">
@@ -91,7 +91,9 @@
     <link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
@@ -106,7 +108,7 @@
             fallbackLng: 'en',
             ns: ['dashboard', 'common'],
             defaultNS: 'dashboard',
-            lng: "@lang.language",
+            lng: "@lang.code",
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);

@@ -47,6 +47,14 @@ function AdminUser(params) {
             }
         })
             .addTo(map);
+
+            // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
+            var distanceAudited = 0;
+            for (var i = data.features.length - 1; i >= 0; i--) {
+                distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
+            }
+            document.getElementById("td-total-distance-audited-admin").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
+
     });
 
     // Visualize the labels collected
@@ -109,14 +117,6 @@ function AdminUser(params) {
     
     $.getJSON("/adminapi/tasks/" + self.username, function (data) {
         _data.tasks = data;
-
-        // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
-        var monthNames = [
-            "January", "February", "March",
-            "April", "May", "June", "July",
-            "August", "September", "October",
-            "November", "December"
-        ];
         
         var grouped = _.groupBy(_data.tasks, function (o) { return o.audit_task_id});
         var auditTaskId;
@@ -149,13 +149,11 @@ function AdminUser(params) {
                 labelCounter[labelType] += 1;
             }
 
-            var date = new Date(grouped[auditTaskId][0]["task_end"]);
-            var day = date.getDate();
-            var monthIndex = date.getMonth();
-            var year = date.getFullYear();
+            // No need to load locale, correct locale loaded in timestamp.
+            var localDate = moment(new Date(grouped[auditTaskId][0]["task_end"]));
 
             tableRows += "<tr>" +
-                "<td class='col-xs-1'>" + day + ' ' + monthNames[monthIndex] + ' ' + year + "</td>" +
+                "<td class='col-xs-1'>" + localDate.format('L') + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["CurbRamp"] + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["NoCurbRamp"] + "</td>" +
                 "<td class='col-xs-1'>" + labelCounter["Obstacle"] + "</td>" +

@@ -4,7 +4,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/labelmap"))
     <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
 
 
@@ -83,7 +83,8 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -93,6 +94,9 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript">
+        updateTimestamps("@lang.code");
+    </script>
 
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />

@@ -181,9 +181,9 @@ function PanoramaContainer (labelList, idList) {
      * @param action
      * @param timestamp
      */
-    function validateLabelFromPano (id, action, timestamp) {
+    function validateLabelFromPano (id, action, timestamp, comment) {
         let pano = panos[id];
-        pano.getCurrentLabel().validate(action, pano);
+        pano.getCurrentLabel().validate(action, pano, comment);
         pano.setProperty('validationTimestamp', timestamp);
     }
 

@@ -1,4 +1,9 @@
 {
+  "measurement-system": "metric",
+  "admin-clear-play-cache": "Play cache successfully cleared",
+  "unit-abbreviation-distance-user-dashboard": "km",
+  "unit-abbreviation-mission-distance": "m",
+  "unit-distance": "kilometers",
   "missing-sidewalks": "Missing Sidewalks",
   "missing-ramps": "Missing Ramps",
   "surface-problems": "Surface Problems",
@@ -10,11 +15,12 @@
   "mission-complete-confirmation-code": "Confirmation Code: ",
   "mission-start-turk-reward": "Reward on satisfactory completion: ",
   "map": {
-    "miles-left": "Only {{n}}  miles left!",
+    "distance-left": "Only {{n}} kilometers left!",
+    "distance-left-one-unit": "Only 1 kilometer left!",
+    "less-than-one-unit-left": "Less than a kilometer left!",
     "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighborhood",
     "thanks": "Thanks for all your help!",
     "100-percent-complete": "100% Complete!",
-    "percent-complete": "{{percent}}% Complete",
-    "less-than-mile-left": "Less than a mile left!"
+    "percent-complete": "{{percent}}% Complete"
   }
 }

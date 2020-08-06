@@ -4,7 +4,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/results"))
     <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
 
     <!--
@@ -94,7 +94,7 @@
             fallbackLng: 'en',
             ns: ['common'],
             defaultNS: 'common',
-            lng: "@lang.language",
+            lng: "@lang.code",
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);

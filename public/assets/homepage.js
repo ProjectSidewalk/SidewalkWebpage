@@ -26,10 +26,10 @@ $(window).scroll(numbersInView);
 
 function numbersInView(){
     if (isScrolledIntoView($("#percentage"))){
-        if(percentageAnim && labelsAnim) {
+        if (percentageAnim && labelsAnim) {
             percentageAnim.start();
             labelsAnim.start();
-            milesAnim.start();
+            distanceAnim.start();
             validationsAnim.start();
         }
     }
@@ -38,7 +38,7 @@ function numbersInView(){
 function switchToVideo(vidnum){
 
 
-    if(vidnum === 1) {
+    if (vidnum === 1) {
 
         document.getElementById("vid1").style.display = "block";
         document.getElementById("vid2").style.display = "none";
@@ -65,7 +65,7 @@ function switchToVideo(vidnum){
 
 
     }
-    else if(vidnum === 2) {
+    else if (vidnum === 2) {
 
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "block";
@@ -90,7 +90,7 @@ function switchToVideo(vidnum){
         document.getElementById("vid1").pause();
         document.getElementById("vid3").pause();
     }
-    else if(vidnum === 3) {
+    else if (vidnum === 3) {
 
         document.getElementById("vid1").style.display = "none";
         document.getElementById("vid2").style.display = "none";
@@ -153,11 +153,11 @@ var numTicks = 0;
 function autoAdvanceLaptopVideos() {
     numTicks++;
 
-    if(numTicks >= requiredTicks[curVideo - 1] && isElementVerticallyVisible(instructVideoContainer)) {
+    if (numTicks >= requiredTicks[curVideo - 1] && isElementVerticallyVisible(instructVideoContainer)) {
         numTicks = 0;
         curVideo++;
 
-        if(curVideo > requiredTicks.length) {
+        if (curVideo > requiredTicks.length) {
             curVideo = DEFAULT_VIDEO;
         }
 
@@ -169,7 +169,7 @@ $( document ).ready(function() {
     // Triggered when "Watch Now" or the arrow next to it is clicked
     // Logs "Click_module=WatchNow" in WebpageActivityTable
     $("#playlink").on('click', function(e){
-        if(e.target.innerText === "Watch Now"){
+        if (e.target.innerText === "Watch Now"){
             logWebpageActivity("Click_module=WatchNow");
         }
     });
@@ -201,6 +201,18 @@ $( document ).ready(function() {
     // Logs "Click_module=StartExploring_location=Index"
     $(".bodyStartBtn").on("click", function(){
         logWebpageActivity("Click_module=StartExploring_location=Index");
+    });
+
+    // Triggered when the city or mapathon links are clicked.
+    // If a city link is clicked logs "Click_module=OtherCityLink_City=cityName".
+    // If a mapathon link is clicked logs "Click_module=mapathonLink".
+    $(".otherCityLink").on("click", function(e){
+        var cityName = e.currentTarget.id;
+        if (cityName === "mapathonLink"){
+            logWebpageActivity("Click_module=mapathonLink");
+        }else{
+            logWebpageActivity("Click_module=OtherCityLink_City="+cityName);
+        }
     });
 
     // Setup video lazyPlay

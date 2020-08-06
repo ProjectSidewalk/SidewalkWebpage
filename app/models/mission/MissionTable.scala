@@ -9,7 +9,7 @@ import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
-import models.user.{RoleTable, UserRoleTable}
+import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
 import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionPropertyTable
 import play.api.Logger
@@ -147,6 +147,21 @@ object MissionTable {
     Mission(missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
             distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId)
   })
+
+
+  /**
+    * Count the total number of labels the user has validated.
+    *
+    * @param userId
+    * @return the total number of labels the user has validated.
+    */
+   def countCompletedValidationsByUserID(userId: UUID): Int = db.withSession { implicit session =>
+    (for {
+      _missionType <- missionTypes
+      _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
+      if _missionType.missionType === "validation" && _mission.userId === userId.toString
+    } yield _mission.labelsProgress).list.flatten.sum
+  }
 
 
   /**
@@ -495,13 +510,29 @@ object MissionTable {
   }
 
   /**
-    * Get total distance audited by a user in miles.
+    * Gets total distance audited by a user in miles.
     *
     * @param userId
     * @return
     */
   def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
     missions.filter(_.userId === userId.toString).map(_.distanceProgress).sum.run.getOrElse(0F) * METERS_TO_MILES
+  }
+
+  /**
+    * Gets meters audited by a user in their current mission, if it exists.
+    *
+    * @param userId
+    * @return
+    */
+  def getMetersAuditedInCurrentMission(userId: UUID): Option[Float] = db.withSession { implicit session =>
+    val currentMeters: Option[Float] = for {
+      currentRegion <- UserCurrentRegionTable.currentRegion(userId)
+      currentMission <- getCurrentMissionInRegion(userId, currentRegion)
+    } yield {
+      currentMission.distanceProgress.getOrElse(0F)
+    }
+    currentMeters
   }
 
   /**

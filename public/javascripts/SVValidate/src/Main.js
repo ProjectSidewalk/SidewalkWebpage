@@ -10,9 +10,8 @@ var svv = svv || {};
 function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
-
     svv.missionsCompleted = param.missionSetProgress;
-
+    
     function _initUI() {
         // Maps label types to label names.
         svv.labelNames = {
@@ -97,6 +96,7 @@ function Main (param) {
         svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");
+        svv.ui.modalMissionComplete.yourOverallTotalCount = $("#modal-mission-complete-your-overall-total-count");
 
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
@@ -136,7 +136,11 @@ function Main (param) {
         svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
-        svv.statusField = new StatusField();
+
+        let statusFieldParam = {
+            completedValidations: param.completedValidations  
+        };
+        svv.statusField = new StatusField(statusFieldParam);
         svv.statusExample = new StatusExample(svv.ui.status.examples);
         svv.statusPopupDescriptions = new StatusPopupDescriptions();
         svv.tracker = new Tracker();
@@ -169,6 +173,7 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
+        svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
             $(".toolUI").css('opacity', 1);

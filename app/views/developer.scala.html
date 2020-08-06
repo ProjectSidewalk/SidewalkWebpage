@@ -3,7 +3,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/api"))
     <div class="container">
         <h1>Developer Zone</h1>
         <p class="text-justify">
@@ -85,7 +85,7 @@
                                 <dt>Optional:</dt>
                                 <dd>You can pass a specific severity to look for and/or a specific filetype
                                     for the returned dataset. Severity can be an integer value from 1-5 or
-                                    "none" to represent data without a severity rating.You can pass a 
+                                    "none" to represent data without a severity rating. You can pass a 
                                     filetype that can be a string "csv" to represent data returned in
                                     CSV format or "geojson" for the GeoJSON format. The GeoJSON format
                                     is returned by default.</dd>
@@ -95,7 +95,7 @@
                                     <code>severity=[int|string]</code><br />
                                 </li>
                                 <li>
-                                    <code>filetype=csv|geojson</code><br />
+                                    <code>filetype=[string]</code><br />
                                 </li>
                             </ul>
                         </td>

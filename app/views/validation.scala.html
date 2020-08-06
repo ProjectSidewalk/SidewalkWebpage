@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsValue
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -98,6 +98,7 @@
                             @Html(Messages("validate.bottom.ui.not.sure"))
                         </button>
                     </div>
+                    <textarea id="validation-label-comment" placeholder="@Messages("validate.bottom.ui.add.comment")" class="validation-comment-box"></textarea>
                 </div>
             </div>
             <div id="modal-comment-holder" class="hidden">
@@ -149,6 +150,10 @@
                                 <tr>
                                     <th>@Messages("validate.mission.complete.not.sure")</th>
                                     <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                                </tr>
+                                <tr id="your-overall-total">
+                                    <th>@Messages("validate.mission.complete.your.overall.total")</th>
+                                    <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
                                 </tr>
                             </table>
                             <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
@@ -283,10 +288,11 @@
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.missionSetProgress = @missionSetProgress;
+            param.completedValidations = @completedValidations;
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.canvasCount = 1;
-            param.language = "@lang.language";
+            param.language = "@lang.code";
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
                 2: "@Messages("labeling.guide.curb.ramp.summary")",
