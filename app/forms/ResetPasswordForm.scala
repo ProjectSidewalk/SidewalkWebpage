@@ -13,8 +13,8 @@ object ResetPasswordForm {
    */
   val form = Form(
     mapping(
-      "password" -> nonEmptyText,
-      "passwordConfirm" -> nonEmptyText
+      "passwordReset" -> nonEmptyText,
+      "passwordResetConfirm" -> nonEmptyText
     )(PasswordData.apply)(PasswordData.unapply)
   )
 

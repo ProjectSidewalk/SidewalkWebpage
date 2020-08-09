@@ -54,6 +54,7 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         mission.complete();
 
         // TODO Audio should listen to MissionProgress instead of MissionProgress telling what to do.
+        _gameEffectModel.loadAudio({audioType: "success"});
         _gameEffectModel.playAudio({audioType: "success"});
 
         // Update the neighborhood status
