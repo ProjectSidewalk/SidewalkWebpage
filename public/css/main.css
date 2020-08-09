@@ -709,7 +709,7 @@ video#bgvid {
 #mapcolumn{
     height: 100%;
 }
-#map{
+#choropleth{
     height: 100%;
 }
 #map-chart {
