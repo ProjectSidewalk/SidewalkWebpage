@@ -868,7 +868,33 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.admin = Choropleths(_, $, difficultRegionIds, "adminAnalytics");
+            var params = {
+                choroplethType: 'adminAnalytics',
+                regionColors: [
+                    '#08306b', '#08519c', '#08719c',
+                    '#2171b5', '#4292c6', '#6baed6',
+                    '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
+                ],
+                neighborhoodPolygonStyle: {
+                    color: '#888',
+                    weight: 1,
+                    opacity: 0.25,
+                    fillColor: "#f00",
+                    fillOpacity: 1.0
+                },
+                mouseoverStyle: {
+                    opacity: 1.0,
+                    weight: 3,
+                    color: "#000"
+                },
+                mouseoutStyle: {
+                   opacity: 0.25,
+                   weight: 1 
+                },
+                webpageActivity: "null",
+                legendPosition: 'bottomleft',
+            };
+            window.admin = Choropleths(_, $, difficultRegionIds, params);
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();

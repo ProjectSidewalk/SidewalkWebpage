@@ -113,7 +113,32 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.progress = Choropleths(_, $, difficultRegionIds, "userDash");
+            var params = {
+                choroplethType: 'userDash',
+                regionColors: [
+                    '#99000a', '#b3000c', '#cc000e',
+                    '#e6000f', '#ff1a29', '#ff3341',
+                    '#ff4d58', '#ff6670', '#ff8088', '#ff99a0'
+                ],
+                neighborhoodPolygonStyle: {
+                    color: '#888',
+                    weight: 2,
+                    opacity: 0.80,
+                    fillColor: "#808080",
+                    fillOpacity: 0.1
+                },
+                mouseoverStyle: {
+                    color: "red",
+                    fillColor: "red",
+                },
+                mouseoutStyle: {
+                    color: "#888",
+                    fillColor: "#808080"
+                },
+                webpageActivity: "Click_module=UserMap_regionId=",
+                legendPosition: 'topright',
+            };
+            window.progress = Choropleths(_, $, difficultRegionIds, params);
         });
     });
     </script>
