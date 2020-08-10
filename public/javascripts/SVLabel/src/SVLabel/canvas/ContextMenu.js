@@ -414,34 +414,6 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
-     * Sets the color of a label's tags based off of tags that were previously chosen.
-     * @param label     Current label being modified.
-     */
-    function setTagColor(label) {
-        var labelTags = label.getProperty('tagIds');
-        $("body").find("button[name=tag]").each(function(t) {
-            var buttonText = $(this).text();
-            if (buttonText) {
-                var tagId = undefined;
-
-                // Finds the tag id based of the current button based off text description.
-                self.labelTags.forEach(function (tag) {
-                    if (tag.tag === buttonText) {
-                        tagId = tag.tag_id;
-                    }
-                });
-
-                // Sets color to be white or gray if the label tag has been selected.
-                if (labelTags.includes(tagId)) {
-                    $(this).css('background-color', 'rgb(200, 200, 200)');
-                } else {
-                    $(this).css('background-color', 'white');
-                }
-            }
-        });
-    }
-
-    /**
      * Sets the description and value of the tag based on the label type.
      * @param label     Current label being modified.
      */
@@ -505,7 +477,6 @@ function ContextMenu (uiContextMenu) {
             if (acceptedLabelTypes.indexOf(labelType) != -1) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
-                setTagColor(param.targetLabel);
                 if (getStatus('disableTagging')) { disableTagging(); }
                 windowHeight = $('#context-menu-holder').outerHeight();
 
