@@ -420,7 +420,7 @@ function ContextMenu (uiContextMenu) {
     function setTagColor(label) {
         var labelTags = label.getProperty('tagIds');
         $("body").find("button[name=tag]").each(function(t) {
-        var buttonText = $(this).text();
+            var buttonText = $(this).text();
             if (buttonText) {
                 var tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
