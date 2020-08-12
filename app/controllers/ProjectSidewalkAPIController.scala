@@ -511,20 +511,29 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
     } else if (filetype != None && filetype.get == "shapefile"){
       val streetVals: JavaList[Street] = new JavaArrayList[Street]()
-
+      val streetAttributeList: JavaList[Street.Attribute] = new JavaArrayList[Street.Attribute]()
+      val streetSignificanceList: JavaList[Street.Significance] = new JavaArrayList[Street.Significance]()
       for(streetAccessScore <- streetAccessScores){
         val currGeom = streetAccessScore.streetEdge.geom.getCoordinates()
-        val coords: Array[JTSCoordinate] = Array(new JTSCoordinate(currGeom(0).x, currGeom(0).y), new JTSCoordinate(currGeom(1).x, currGeom(1).y))
+        val streetId: Int = streetAccessScore.streetEdge.streetEdgeId
+        val coords: Array[JTSCoordinate] = currGeom.map(c => new JTSCoordinate(c.x, c.y))
         val currStreet: Street = new Street()
         currStreet.geometry = coords
+        currStreet.streetId = streetId
         currStreet.score = streetAccessScore.score
-        currStreet.streetId = streetAccessScore.streetEdge.streetEdgeId
+        streetVals.add(currStreet)
+
+        val currAttribute: Street.Attribute = new Street.Attribute(streetId, coords, streetAccessScore.attributes)
+        val currSignificance: Street.Significance = new Street.Significance(streetId, coords, streetAccessScore.significance)
+
+        streetAttributeList.add(currAttribute)
+        streetSignificanceList.add(currSignificance)
       }
       ShapefilesCreatorHelper.createStreetShapefile("shapefile", streetVals)
+      ShapefilesCreatorHelper.createStreetAttributeShapefile("streetAttribute", streetAttributeList)
+      ShapefilesCreatorHelper.createStreetSignificanceShapefile("streetSignificance", streetSignificanceList)
 
-
-
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("streetScore", Array("shapefile"))
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("streetScore", Array.apply("shapefile", "streetAttribute", "streetSignificance"))
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.
