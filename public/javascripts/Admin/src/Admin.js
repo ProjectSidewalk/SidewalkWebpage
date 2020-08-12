@@ -123,7 +123,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({color: "red", fillColor: "red"});
-                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -256,6 +255,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
                 this.openPopup();
+                console.log("admin.js")
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {

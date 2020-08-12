@@ -180,6 +180,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+                console.log("accessChoropleth")
                 this.openPopup()
             });
             layer.on('mouseout', function (e) {

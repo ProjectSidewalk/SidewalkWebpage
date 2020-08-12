@@ -141,12 +141,16 @@ function Choropleth(_, $, difficultRegionIds) {
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
                 this.openPopup()
+                console.log("choropleth")
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
+                    if (currentLayer !== layers[i]){
                         layers[i].setStyle({opacity: 0.25, weight: 1});
+                    }   
                 }
+                this.closePopup();
+                currentLayer = null;
             });
             layer.on('click', function (e) {
                 currentLayer = this;

@@ -135,7 +135,6 @@ function LabelMap(_, $) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({color: "red", fillColor: "red"});
-                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {

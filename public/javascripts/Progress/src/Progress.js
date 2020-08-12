@@ -165,6 +165,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             layer.on('mouseover', function (e) {
                 this.openPopup();
                 this.setStyle({color: "red", fillColor: "red"});
+                console.log("Progess")
 
             });
             layer.on('mouseout', function (e) {
