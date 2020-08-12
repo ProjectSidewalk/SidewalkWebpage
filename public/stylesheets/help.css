@@ -8,6 +8,8 @@
 
 figure figcaption {
     padding-top: 10px;
+    font-family: adelle-light;
+    font-style: italic;
 }
 
 .help video, .help img, .help iframe {
@@ -17,17 +19,40 @@ figure figcaption {
 
 .help video, .help iframe {
     border: 1px solid #ddd;
-
 }
 
 .help .help-item {
-    margin-bottom: 100px;
+    margin-bottom: 10px;
 }
 /* Found recommended fix here: https://github.com/twbs/bootstrap/issues/1768 */
 .help .help-item h2 {
     margin-top: -70px;
     margin-bottom: 20px;
     padding-top: 75px;
+}
+
+.scrollable {
+    height: 500px;
+    overflow-y: scroll;
+}
+
+.not-scrollable {
+    height: auto;
+    overflow-y: hidden;
+}
+
+.sidebar {
+    position: fixed;
+    z-index: 1;
+}
+
+.stuck-sidebar {
+    position: absolute;
+    z-index: 1;
+}
+
+.not-sidebar {
+    position: static;
 }
 
 #help-panel .panel-body{

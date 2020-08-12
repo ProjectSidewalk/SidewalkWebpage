@@ -7,6 +7,10 @@ function GameEffectModel () {
 }
 _.extend(GameEffectModel.prototype, Backbone.Events);
 
+GameEffectModel.prototype.loadAudio = function (parameters) {
+    this.trigger("loadAudio", parameters);
+};
+
 GameEffectModel.prototype.play = function (parameters) {
     this.trigger("play", parameters);
 };
