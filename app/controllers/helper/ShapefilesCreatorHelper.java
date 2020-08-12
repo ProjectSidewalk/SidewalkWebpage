@@ -271,6 +271,107 @@ public class ShapefilesCreatorHelper {
 
     }
 
+    public static void createStreetShapefile(String outputFile, List<Street> streets) throws Exception{
+        /*
+         * We use the DataUtilities class to create a FeatureType that will describe the data in our
+         * shapefile.
+         *
+         * See also the createFeatureType method below for another, more flexible approach.
+         */
+        final SimpleFeatureType TYPE =
+                DataUtilities.createType(
+                        "Location",
+                        "the_geom:LineString:srid=4326,"
+                                + // <- the geometry attribute: Line type
+                                "streetId:Integer,"
+                                + // <- StreetId
+                                "attributeId:Integer,"
+                                + // <- attribute ID
+                                "score:Double," // street score
+                );
+
+
+
+        /*
+         * A list to collect features as we create them.
+         */
+        List<SimpleFeature> features = new ArrayList<>();
+
+        /*
+         * GeometryFactory will be used to create the geometry attribute of each feature,
+         * using a Point object for the location.
+         */
+        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+
+        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+
+        for(Street s : streets){
+            featureBuilder.add(geometryFactory.createLineString(s.geometry));
+            featureBuilder.add(s.streetId);
+            featureBuilder.add(s.score);
+
+            SimpleFeature feature = featureBuilder.buildFeature(null);
+            features.add(feature);
+        }
+
+
+
+        /*
+         * Get an output file name and create the new shapefile
+         */
+        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("url", new File(outputFile + ".shp").toURI().toURL());
+        params.put("create spatial index", Boolean.TRUE);
+
+        ShapefileDataStore newDataStore =
+                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+
+        /*
+         * TYPE is used as a template to describe the file contents
+         */
+        newDataStore.createSchema(TYPE);
+
+        /*
+         * Write the features to the shapefile
+         */
+        Transaction transaction = new DefaultTransaction("create");
+
+        String typeName = newDataStore.getTypeNames()[0];
+        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
+        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
+        /*
+         * The Shapefile format has a couple limitations:
+         * - "the_geom" is always first, and used for the geometry attribute name
+         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
+         * - Attribute names are limited in length
+         * - Not all data types are supported (example Timestamp represented as Date)
+         *
+         * Each data store has different limitations so check the resulting SimpleFeatureType.
+         */
+        if (featureSource instanceof SimpleFeatureStore) {
+            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+            /*
+             * SimpleFeatureStore has a method to add features from a
+             * SimpleFeatureCollection object, so we use the ListFeatureCollection
+             * class to wrap our list of features.
+             */
+            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
+            featureStore.setTransaction(transaction);
+            try {
+                featureStore.addFeatures(collection);
+                transaction.commit();
+            } catch (Exception problem) {
+                problem.printStackTrace();
+                transaction.rollback();
+            } finally {
+                transaction.close();
+            }
+
+        }
+    }
+
 
     public static File zipShapeFiles(String name, String[] files) throws IOException{
         FileOutputStream fos = new FileOutputStream(name + ".zip");

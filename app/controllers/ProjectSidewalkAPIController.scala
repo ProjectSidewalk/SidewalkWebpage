@@ -1,6 +1,6 @@
 package controllers
 
-import helper.{Attribute, Label, ShapefilesCreatorHelper}
+import helper.{Attribute, Label, ShapefilesCreatorHelper, Street}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 
 import scala.collection.JavaConversions._
@@ -509,6 +509,24 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
+    } else if (filetype != None && filetype.get == "shapefile"){
+      val streetVals: JavaList[Street] = new JavaArrayList[Street]()
+
+      for(streetAccessScore <- streetAccessScores){
+        val currGeom = streetAccessScore.streetEdge.geom.getCoordinates()
+        val coords: Array[JTSCoordinate] = Array(new JTSCoordinate(currGeom(0).x, currGeom(0).y), new JTSCoordinate(currGeom(1).x, currGeom(1).y))
+        val currStreet: Street = new Street()
+        currStreet.geometry = coords
+        currStreet.score = streetAccessScore.score
+        currStreet.streetId = streetAccessScore.streetEdge.streetEdgeId
+      }
+      ShapefilesCreatorHelper.createStreetShapefile("shapefile", streetVals)
+
+
+
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("streetScore", Array("shapefile"))
+
+      Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.
       val features: List[JsObject] = streetAccessScores.map(_.toJSON)
       Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
