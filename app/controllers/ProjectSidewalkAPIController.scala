@@ -1,6 +1,6 @@
 package controllers
 
-import helper.{Attribute, Label, ShapefilesCreatorHelper, Street}
+import helper.{Attribute, Label, Neighborhood, ShapefilesCreatorHelper, Street}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 
 import scala.collection.JavaConversions._
@@ -308,6 +308,51 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     if (filetype != None && filetype.get == "csv") {
       val file = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
+    } else if(filetype != None && filetype.get == "shapefile"){
+
+      val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(version = 2, coordinates)
+      val allStreetEdges: List[StreetEdge] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+      val auditedStreetEdges: List[StreetEdge] = StreetEdgeTable.selectAuditedStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+      val neighborhoods: List[NamedRegion] = RegionTable.selectNamedNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+      val significance = Array(0.75, -1.0, -1.0, -1.0)
+      // Write each rown in the CSV.
+
+      val neighborhoodList: JavaList[Neighborhood] = new JavaArrayList[Neighborhood]()
+      val neighborhoodAttributeList: JavaList[Neighborhood.Attribute] = new JavaArrayList[Neighborhood.Attribute]()
+      val neighborhoodSignificanceList: JavaList[Neighborhood.Significance] = new JavaArrayList[Neighborhood.Significance]()
+
+      for (neighborhood <- neighborhoods) {
+        val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
+        val auditedStreetsIntersectingTheNeighborhood = auditedStreetEdges.filter(_.geom.intersects(neighborhood.geom))
+        if (auditedStreetsIntersectingTheNeighborhood.nonEmpty) {
+          val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersectingTheNeighborhood, labelsForScore)  // I'm just interested in getting the attributes
+          val averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum / streetAccessScores.size).toArray
+          val accessScore: Double = computeAccessScore(averagedStreetFeatures, significance)
+
+          val allStreetsIntersectingTheNeighborhood = allStreetEdges.filter(_.geom.intersects(neighborhood.geom))
+          val coverage: Double = auditedStreetsIntersectingTheNeighborhood.size.toDouble / allStreetsIntersectingTheNeighborhood.size
+
+          assert(coverage <= 1.0)
+          neighborhoodList.add(new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId, coverage, accessScore))
+          neighborhoodAttributeList.add(new Neighborhood.Attribute(neighborhood.regionId, coordinates, averagedStreetFeatures))
+        } else {
+
+          neighborhoodList.add( new Neighborhood(neighborhood.name.getOrElse("NA"), coordinates, neighborhood.regionId))
+
+        }
+        neighborhoodSignificanceList.add(new Neighborhood.Significance(neighborhood.regionId, coordinates, significance))
+      }
+
+      ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", neighborhoodList)
+
+      ShapefilesCreatorHelper.createNeighborhoodAttributeShapefile("neighborhoodAttributes", neighborhoodAttributeList)
+      ShapefilesCreatorHelper.createNeighborhoodSignificanceShapefile("neighborhoodSignificance", neighborhoodSignificanceList)
+
+
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodData", Array("neighborhood", "neighborhoodAttributes", "neighborhoodSignificance"));
+
+      Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
+
     } else {  // In GeoJSON format.
       Future.successful(Ok(getAccessScoreNeighborhoodsJson(version = 2, coordinates)))
     }
