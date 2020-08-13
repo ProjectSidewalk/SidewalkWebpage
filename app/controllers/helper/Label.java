@@ -8,14 +8,17 @@ public class Label {
     public int attributeId;
     public String labelType;
     public String neighborhoodName;
-    public String gsvPanoramaId;
-    public float heading;
-    public float pitch;
-    public int zoom;
-    public Coordinate canvas;
-    public int canvasWidth;
-    public int canvasHeight;
     public int severity;
     public boolean temporary;
 
+    public Label(Coordinate coordinate, int labelId, int attributeId, String labelType, String neighborhoodName, int severity, boolean temporary) {
+        this.coordinate = coordinate;
+        this.labelId = labelId;
+        this.attributeId = attributeId;
+        this.labelType = labelType;
+        this.neighborhoodName = neighborhoodName;
+        this.severity = severity;
+        this.temporary = temporary;
+    }
+    public Label(){};
 }

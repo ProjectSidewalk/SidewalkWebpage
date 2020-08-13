@@ -29,6 +29,63 @@ import org.opengis.feature.simple.SimpleFeatureType;
 public class ShapefilesCreatorHelper {
 
 
+    public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception{
+        /*
+         * Get an output file name and create the new shapefile
+         */
+        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("url", new File(outputFile + ".shp").toURI().toURL());
+        params.put("create spatial index", Boolean.TRUE);
+
+        ShapefileDataStore newDataStore =
+                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+
+        /*
+         * TYPE is used as a template to describe the file contents
+         */
+        newDataStore.createSchema(TYPE);
+
+        /*
+         * Write the features to the shapefile
+         */
+        Transaction transaction = new DefaultTransaction("create");
+
+        String typeName = newDataStore.getTypeNames()[0];
+        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
+        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
+        /*
+         * The Shapefile format has a couple limitations:
+         * - "the_geom" is always first, and used for the geometry attribute name
+         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
+         * - Attribute names are limited in length
+         * - Not all data types are supported (example Timestamp represented as Date)
+         *
+         * Each data store has different limitations so check the resulting SimpleFeatureType.
+         */
+        if (featureSource instanceof SimpleFeatureStore) {
+            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+            /*
+             * SimpleFeatureStore has a method to add features from a
+             * SimpleFeatureCollection object, so we use the ListFeatureCollection
+             * class to wrap our list of features.
+             */
+            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
+            featureStore.setTransaction(transaction);
+            try {
+                featureStore.addFeatures(collection);
+                transaction.commit();
+            } catch (Exception problem) {
+                problem.printStackTrace();
+                transaction.rollback();
+            } finally {
+                transaction.close();
+            }
+
+        }
+    }
+
     public static void createAttributeShapeFile(String outputFile, List<Attribute> attributes) throws Exception {
 
         /*
@@ -80,60 +137,7 @@ public class ShapefilesCreatorHelper {
         }
 
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
-
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
+        createGeneralShapeFile(outputFile, TYPE, features);
 
     }
 
@@ -153,29 +157,15 @@ public class ShapefilesCreatorHelper {
                                 + // <- the geometry attribute: Point type
                                 "labelId:Integer,"
                                 + // <- label ID
-                                "attributeId:Integer,"
+                                "attribId:Integer,"
                                 + // <- attribute ID
-                                "label_type:String,"
+                                "lblType:String,"
                                 + // <- Label type
                                 "name:String,"
                                 + // <- Neighborhood Name
-                                "pano_id:String,"
-                                + // <- GSV panorama ID
-                                "heading:Float,"
-                                + // <- GSV panorama heading
-                                "pitch:Float,"
-                                + // <- GSV panorama pitch
-                                "zoom:int,"
-                                + // <- GSV panorama zoom
-                                "canvas:Point,"
-                                + // <- Canvas X and Y position
-                                "canvasW:Integer,"
-                                + // <- Canvas Width
-                                "canvasH:Integer,"
-                                + // <- Canvas Height
                                 "severity:Integer,"
                                 + // <- Severity
-                                "temporary:Boolean" // Temporary flag
+                                "temp:Boolean" // Temporary flag
                 );
 
 
@@ -199,13 +189,6 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.attributeId);
             featureBuilder.add(l.labelType);
             featureBuilder.add(l.neighborhoodName);
-            featureBuilder.add(l.gsvPanoramaId);
-            featureBuilder.add(l.heading);
-            featureBuilder.add(l.pitch);
-            featureBuilder.add(l.zoom);
-            featureBuilder.add(geometryFactory.createPoint(l.canvas));
-            featureBuilder.add(l.canvasWidth);
-            featureBuilder.add(l.canvasHeight);
             featureBuilder.add(l.severity);
             featureBuilder.add(l.temporary);
 
@@ -214,61 +197,7 @@ public class ShapefilesCreatorHelper {
         }
 
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
-
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
-
+        createGeneralShapeFile(outputFile, TYPE, features);
     }
 
     public static void createStreetShapefile(String outputFile, List<Street> streets) throws Exception{
@@ -313,61 +242,8 @@ public class ShapefilesCreatorHelper {
         }
 
 
+        createGeneralShapeFile(outputFile, TYPE, features);
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
-
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
     }
 
     public static void createStreetAttributeShapefile(String outputFile, List<Street.Attribute> streets) throws Exception{
@@ -422,60 +298,8 @@ public class ShapefilesCreatorHelper {
 
 
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        createGeneralShapeFile(outputFile, TYPE, features);
 
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
     }
 
     public static void createStreetSignificanceShapefile(String outputFile, List<Street.Significance> streets) throws Exception{
@@ -530,60 +354,8 @@ public class ShapefilesCreatorHelper {
 
 
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        createGeneralShapeFile(outputFile, TYPE, features);
 
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
     }
 
     public static void createNeighborhoodShapefile(String outputFile, List<Neighborhood> neighborhoods) throws Exception{
@@ -634,61 +406,8 @@ public class ShapefilesCreatorHelper {
         }
 
 
+        createGeneralShapeFile(outputFile, TYPE, features);
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
-
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
     }
 
 
@@ -744,60 +463,8 @@ public class ShapefilesCreatorHelper {
 
 
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        createGeneralShapeFile(outputFile, TYPE, features);
 
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
     }
 
     public static void createNeighborhoodSignificanceShapefile(String outputFile, List<Neighborhood.Significance> neighborhoods) throws Exception{
@@ -852,60 +519,8 @@ public class ShapefilesCreatorHelper {
 
 
 
-        /*
-         * Get an output file name and create the new shapefile
-         */
-        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        createGeneralShapeFile(outputFile, TYPE, features);
 
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("url", new File(outputFile + ".shp").toURI().toURL());
-        params.put("create spatial index", Boolean.TRUE);
-
-        ShapefileDataStore newDataStore =
-                (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
-
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
-        newDataStore.createSchema(TYPE);
-
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
-
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        /*
-         * The Shapefile format has a couple limitations:
-         * - "the_geom" is always first, and used for the geometry attribute name
-         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-         * - Attribute names are limited in length
-         * - Not all data types are supported (example Timestamp represented as Date)
-         *
-         * Each data store has different limitations so check the resulting SimpleFeatureType.
-         */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-
-        }
     }
 
     public static File zipShapeFiles(String name, String[] files) throws IOException{

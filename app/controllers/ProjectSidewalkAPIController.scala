@@ -19,7 +19,7 @@ import java.awt.{Point => JavaPoint}
 import java.time.Instant
 
 import javax.inject.Inject
-import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable}
+import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.geometry.coordinate.{GeometryFactory => GisGeometryFactory}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate, GeometryFactory => JTSGeometryFactory, Point => JTSPoint}
@@ -138,14 +138,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         currAttribute.id = current.globalAttributeId
         currAttribute.labelType = current.labelType
         currAttribute.neighborhood = current.neighborhoodName
-        currAttribute.severity = current.severity.getOrElse(-1)
+        currAttribute.severity = current.severity.getOrElse(0)
         currAttribute.temporary = current.temporary
         attributeList.add(currAttribute);
       }
 
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
 
-      val labelList: JavaList[Label] = new JavaArrayList();
+      val labelList: JavaList[Label] = new JavaArrayList[Label]()
       for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)){
         val currLabel: Label = new Label();
         currLabel.coordinate = new JTSCoordinate(current.labelLat.toDouble, current.labelLng.toDouble)
@@ -153,15 +153,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         currLabel.attributeId = current.globalAttributeId
         currLabel.neighborhoodName = current.neighborhoodName
         currLabel.labelType = current.labelType
-        currLabel.gsvPanoramaId = current.gsvPanoramaId
-        currLabel.heading = current.heading
-        currLabel.pitch = current.pitch
-        currLabel.zoom = current.zoom
-        currLabel.canvas = new JTSCoordinate(current.canvasX.toDouble, current.canvasY.toDouble)
-        currLabel.canvasWidth = current.canvasWidth
-        currLabel.canvasHeight = current.canvasHeight
         currLabel.severity = current.labelSeverity.getOrElse(0)
         currLabel.temporary = current.labelTemporary
+        labelList.add(currLabel)
       }
 
       ShapefilesCreatorHelper.createLabelShapeFile("labels", labelList)
