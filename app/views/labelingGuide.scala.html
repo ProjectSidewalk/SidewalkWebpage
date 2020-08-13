@@ -4,6 +4,7 @@
 @main(title) {
     @navbar(user, Some("/labelingGuide"))
     <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
@@ -49,7 +50,26 @@
                             </p>
                             <h3>How to Place a Label</h3>
                             <p>You should place labels at the center of curb ramps or surface problems, and at the base of obstacles.</p>
-                            <!-- Animated GIF on how to place a label -->
+                            <div>
+                                <div class="col-md-6">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/PlacingCurbRampLabel.gif")' href='@routes.Assets.at("images/labeling_guide_misc/PlacingCurbRampLabel.gif")'
+                                             alt="Gif of placing a curb ramp" class="img-responsive" align=""
+                                             title="Gif of placing a curb ramp">
+                                        <figcaption>Placing a curb ramp label at the center of the curb ramp</figcaption>
+                                    </figure>
+                                </div>
+                                <div class="col-md-6">
+                                    <figure class="text-center">
+                                        <img src='@routes.Assets.at("images/labeling_guide_misc/PlacingObstacleLabel.gif")' href='@routes.Assets.at("images/labeling_guide_misc/PlacingObstacleLabel.gif")'
+                                             alt="Gif of placing an obstacle" class="img-responsive" align=""
+                                             title="Gif of placing an obstacle">
+                                        <figcaption>Placing an obstacle at the base of the tree. Note that if the
+                                            sidewalk were wider and still passable, the tree would not be an obstacle.
+                                        </figcaption>
+                                    </figure>
+                                </div>
+                            </div>
                             <p>
                                 <strong>How do I know which image to label a problem from? </strong>
                                 Often, an accessibility problem is visible from multiple viewpoints (Google Streetview Images).
@@ -96,7 +116,7 @@
                             the right image shows incorrect placement.
                         </p>
 
-                        <div id="img-container">
+                        <div class="img-container">
                             <div class="col-md-4">
                                 <figure class="text-center">
                                     <img src='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro1.png")'
@@ -130,7 +150,7 @@
                             the feedback button and write a message saying what changed between the 2 panos. You do not need to label
                             the same problem from multiple panoramas if nothing changes.
                         </p>
-                        <div id="img-container">
+                        <div class="img-container">
                             <div class="col-md-6">
                                 <figure class="text-center">
                                     <img src='@routes.Assets.at("images/labeling_guide_misc/Intro4.png")' href='@routes.Assets.at("images/labeling_guide_misc/Intro4.png")'
