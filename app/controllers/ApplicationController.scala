@@ -120,6 +120,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
               // Get city configs.
+              val envType: String = Play.configuration.getString("environment-type").get
               val cityStr: String = Play.configuration.getString("city-id").get
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
@@ -131,7 +132,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               val otherCityUrls: List[(String, String)] = otherCities.map { otherCity =>
                 val otherName: String = Play.configuration.getString("city-params.city-name." + otherCity).get
                 val otherState: String = Play.configuration.getString("city-params.state-abbreviation." + otherCity).get
-                val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + otherCity).get
+                val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + otherCity).get
                 (otherName + ", " + otherState, otherURL)
               }
               // Get total audited distance. If using metric system, convert from miles to kilometers.
