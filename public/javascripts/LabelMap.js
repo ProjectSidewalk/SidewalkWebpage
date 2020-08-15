@@ -1,4 +1,4 @@
-function LabelMap(_, $) {
+function LabelMap(_, $, map, params) {
 
     var self = {};
     var completedInitializingNeighborhoodPolygons = false;
@@ -42,47 +42,6 @@ function LabelMap(_, $) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "mapbox.streets", {
-        maxZoom: 19,
-        minZoom: 9,
-        zoomSnap: 0.5
-    });
-
-    // Set the city-specific default zoom and location.
-    $.getJSON('/cityMapParams', function(data) {
-        map.setView([data.city_center.lat, data.city_center.lng]);
-        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
-        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
-        map.setMaxBounds(L.latLngBounds(southWest, northEast));
-        map.setZoom(data.default_zoom);
-        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
-    });
-
-
-    /**
-     * This function adds a semi-transparent white polygon on top of a map.
-     */
-    function initializeOverlayPolygon(map, lat, lng) {
-        var overlayPolygon = {
-            "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature", "geometry": {
-                    "type": "Polygon", "coordinates": [
-                        [
-                            [lng + 2, lat - 2],
-                            [lng + 2, lat + 2],
-                            [lng - 2, lat + 2],
-                            [lng - 2, lat - 2],
-                            [lng + 2, lat - 2]
-                        ]
-                    ]
-                }
-            }]
-        };
-        var layer = L.geoJson(overlayPolygon);
-        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
-        layer.addTo(map);
-    }
 
     /**
      * If we drew the neighborhood polygons and receieved the labels, then draw the labels on top.
@@ -102,18 +61,11 @@ function LabelMap(_, $) {
         }
     }
 
-
     /**
      * render points
      */
     function initializeNeighborhoodPolygons(map) {
-        var neighborhoodPolygonStyle = {
-                color: '#888',
-                weight: 2,
-                opacity: 0.80,
-                fillColor: "#808080",
-                fillOpacity: 0.1
-            },
+        var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle,
             layers = [],
             currentLayer;
 
@@ -134,15 +86,13 @@ function LabelMap(_, $) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                this.setStyle({color: "red", fillColor: "red"});
-                this.openPopup();
+                this.setStyle(params.mouseoverStyle);
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
                     if (currentLayer !== layers[i])
-                        layers[i].setStyle(neighborhoodPolygonStyle);
+                        layers[i].setStyle(params.mouseoutStyle);
                 }
-                //this.setStyle(neighborhoodPolygonStyle);
             });
             layer.on('click', function (e) {
                 currentLayer = this;

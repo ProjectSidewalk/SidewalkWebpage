@@ -11,7 +11,7 @@
     <div class="container" id="results-choropleth-container" style="width: 100%;
         position: relative;">
         <div id="map-holder">
-            <div id="admin-map"></div>
+            <div id="choropleth"></div>
             <div id="map-label-legend">
                 <div id="map-legend-title-holder">
                     <label id="map-legend-title">Legend</label>
@@ -102,6 +102,7 @@
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/LabelMap.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
 
 
     <script>
@@ -150,14 +151,34 @@
             });
 
     </script>
-
-
     <script>
-            $(document).ready(function () {
-                window.map = LabelMap(_, $);
-            });
-            $(window).load(function() {
-                $(".loader").fadeOut("slow");
-            })
+        $(document).ready(function () {
+            var params = {
+                choroplethType: 'labelMap',
+                neighborhoodPolygonStyle: {
+                    color: '#888',
+                    weight: 2,
+                    opacity: 0.80,
+                    fillColor: "#808080",
+                    fillOpacity: 0.1
+                },
+                mouseoverStyle: {
+                    color: 'red',
+                    fillColor: 'red'
+                },
+                mouseoutStyle: {
+                    color: '#888',
+                    weight: 2,
+                    opacity: 0.80,
+                    fillColor: "#808080",
+                    fillOpacity: 0.1
+                },
+                legendPosition: 'bottomleft'
+            }
+            window.map = Choropleths(_, $, "null", params);
+        });
+        $(window).load(function() {
+            $(".loader").fadeOut("slow");
+        })
     </script>
 }
