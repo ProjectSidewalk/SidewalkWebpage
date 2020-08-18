@@ -70,6 +70,15 @@ footer {
 /*
  * Custom styles
  */
+
+ .stats-grid{
+     display: flex;
+ }
+
+ .stats-grid > p {
+     flex: 1;
+ }
+
 .navbar-brand {
     font-size: 24px;
 }
