@@ -1,36 +1,5 @@
-function Admin(_, $, c3, turf, difficultRegionIds) {
+function Admin(_, $, c3, turf, choropleth, initializeOverlayPolygon) {
     var self = {};
-    self.markerLayer = null;
-    self.curbRampLayers = [];
-    self.missingCurbRampLayers = [];
-    self.obstacleLayers = [];
-    self.surfaceProblemLayers = [];
-    self.cantSeeSidewalkLayers = [];
-    self.noSidewalkLayers = [];
-    self.otherLayers = [];
-    self.mapLoaded = false;
-    self.graphsLoaded = false;
-
-    var neighborhoodPolygonLayer;
-
-    for (var i = 0; i < 6; i++) {
-        self.curbRampLayers[i] = [];
-        self.missingCurbRampLayers[i] = [];
-        self.obstacleLayers[i] = [];
-        self.surfaceProblemLayers[i] = [];
-        self.cantSeeSidewalkLayers[i] = [];
-        self.noSidewalkLayers[i] = [];
-        self.otherLayers[i] = [];
-    }
-
-    self.allLayers = {
-        "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
-        "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
-        "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
-    };
-
-    self.auditedStreetLayer = null;
-
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
     // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
@@ -44,347 +13,38 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         zoomSnap: 0.5
     });
 
-    // a grayscale tileLayer for the choropleth
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('admin-choropleth', "mapbox.light", {
-        maxZoom: 19,
-        minZoom: 9,
-        legendControl: {
-            position: 'bottomleft'
-        },
-        zoomSnap: 0.5
-    });
     choropleth.scrollWheelZoom.disable();
 
     // Set the city-specific default zoom and location.
     $.getJSON('/cityMapParams', function(data) {
         map.setView([data.city_center.lat, data.city_center.lng]);
         map.setZoom(data.default_zoom);
-        choropleth.setView([data.city_center.lat, data.city_center.lng]);
-        choropleth.setZoom(data.default_zoom);
         initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
-    // Initialize the map
-    /**
-     * This function adds a semi-transparent white polygon on top of a map.
-     */
-    function initializeOverlayPolygon(map, lat, lng) {
-        var overlayPolygon = {
-            "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature", "geometry": {
-                    "type": "Polygon", "coordinates": [
-                        [
-                            [lng + 2, lat - 2],
-                            [lng + 2, lat + 2],
-                            [lng - 2, lat + 2],
-                            [lng - 2, lat - 2],
-                            [lng + 2, lat - 2]
-                        ]
-                    ]
-                }
-            }]
-        };
-        var layer = L.geoJson(overlayPolygon);
-        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
-        layer.addTo(map);
+    var params = {
+        choroplethType: 'adminMap',
+        neighborhoodPolygonStyle: {
+            color: '#888',
+            weight: 2,
+            opacity: 0.80,
+            fillColor: "#808080",
+            fillOpacity: 0.1
+        },
+        mouseoverStyle: {
+            color: 'red',
+            fillColor: 'red'
+        },
+        mouseoutStyle: {
+            color: '#888',
+            weight: 2,
+            opacity: 0.80,
+            fillColor: "#808080",
+            fillOpacity: 0.1
+        },
+        legendPosition: 'bottomleft'
     }
-
-    /**
-     * Takes a completion percentage, bins it, and returns the appropriate color for a choropleth.
-     *
-     * @param p {float} represents a completion percentage, between 0 and 100
-     * @returns {string} color in hex
-     */
-    function getColor(p) {
-        //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
-        return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
-            p > 90 ? '#08306b' :
-                p > 80 ? '#08519c' :
-                    p > 70 ? '#08719c' :
-                        p > 60 ? '#2171b5' :
-                            p > 50 ? '#4292c6' :
-                                p > 40 ? '#6baed6' :
-                                    p > 30 ? '#82badb' :
-                                        p > 20 ? '#9ecae1' :
-                                            p > 10 ? '#b3d3e8' :
-                                                '#c6dbef';
-    }
-
-    /**
-     * render the neighborhood polygons, colored by completion percentage
-     */
-    function initializeChoroplethNeighborhoodPolygons(map, rates) {
-        var neighborhoodPolygonStyle = { // default bright red, used to check if any regions are missing data
-                color: '#888',
-                weight: 1,
-                opacity: 0.25,
-                fillColor: "#f00",
-                fillOpacity: 1.0
-            },
-            layers = [],
-            currentLayer;
-
-        // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
-        function style(feature) {
-            for (var i=0; i < rates.length; i++) {
-                if (rates[i].region_id === feature.properties.region_id) {
-                    return {
-                        color: '#888',
-                        weight: 1,
-                        opacity: 0.25,
-                        fillColor: getColor(rates[i].rate),
-                        fillOpacity: 0.35 + (0.4 * rates[i].rate / 100.0)
-                    }
-                }
-            }
-            return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
-        }
-
-        function onEachNeighborhoodFeature(feature, layer) {
-
-            var regionId = feature.properties.region_id;
-            var regionName = feature.properties.region_name;
-            var userCompleted = feature.properties.user_completed;
-            var compRate = -1.0;
-            var milesLeft = -1.0;
-            var url = "/audit/region/" + regionId;
-            var popupContent = "???";
-            for (var i=0; i < rates.length; i++) {
-                if (rates[i].region_id === feature.properties.region_id) {
-                    var measurementSystem = i18next.t('measurement-system');
-                    compRate = Math.round(rates[i].rate);
-                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
-                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
-                    if (measurementSystem === "metric") distanceLeft *= 0.001;
-                    else distanceLeft *= 0.000621371
-                    distanceLeft = Math.round(distanceLeft);
-
-                    var advancedMessage = '';
-                    if (difficultRegionIds.includes(feature.properties.region_id)) {
-                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
-                    }
-
-                    if (userCompleted) {
-                        popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.100-percent-complete") + "<br>" +
-                            i18next.t("map.thanks");
-                    } else if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (distanceLeft === 0) {
-                        popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.less-than-one-unit-left") + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else if (distanceLeft === 1) {
-                        var popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.distance-left-one-unit") + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    } else {
-                        var popupContent = "<strong>" + regionName + "</strong>: " +
-                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
-                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
-                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
-                    }
-                    break;
-                }
-            }
-            layer.bindPopup(popupContent);
-            layers.push(layer);
-
-            layer.on('mouseover', function (e) {
-                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-                this.openPopup();
-            });
-            layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
-                }
-                //this.setStyle(neighborhoodPolygonStyle);
-            });
-            layer.on('click', function (e) {
-                currentLayer = this;
-            });
-        }
-
-        // adds the neighborhood polygons to the map
-        $.getJSON("/neighborhoods", function (data) {
-            neighborhoodPolygonLayer = L.geoJson(data, {
-                style: style,
-                onEachFeature: onEachNeighborhoodFeature
-            })
-                .addTo(map);
-        });
-    }
-
-    function initializeSubmittedLabels(map) {
-
-        $.getJSON("/adminapi/labels/all", function (data) {
-            // Count a number of each label type
-            var labelCounter = {
-                "CurbRamp": 0,
-                "NoCurbRamp": 0,
-                "Obstacle": 0,
-                "SurfaceProblem": 0,
-                "NoSidewalk": 0
-            };
-
-            for (var i = data.features.length - 1; i >= 0; i--) {
-                labelCounter[data.features[i].properties.label_type] += 1;
-            }
-            //document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
-            //document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
-            //document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
-            //document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
-
-            document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
-            document.getElementById("map-legend-nosidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
-            document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
-            document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
-
-            document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-
-            // Create layers for each of the 42 different label-severity combinations
-            initializeAllLayers(data);
-        });
-    }
-
-
-    function onEachLabelFeature(feature, layer) {
-        layer.on('click', function () {
-            self.adminGSVLabelView.showLabel(feature.properties.label_id);
-        });
-        layer.on({
-            'mouseover': function () {
-                layer.setRadius(15);
-            },
-            'mouseout': function () {
-                layer.setRadius(5);
-            }
-        })
-    }
-
-    var colorMapping = util.misc.getLabelColors(),
-        geojsonMarkerOptions = {
-            radius: 5,
-            fillColor: "#ff7800",
-            color: "#ffffff",
-            weight: 1,
-            opacity: 0.5,
-            fillOpacity: 0.5,
-            "stroke-width": 1
-        };
-
-    function createLayer(data) {
-        return L.geoJson(data, {
-            pointToLayer: function (feature, latlng) {
-                var style = $.extend(true, {}, geojsonMarkerOptions);
-                style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                style.color = colorMapping[feature.properties.label_type].strokeStyle;
-                return L.circleMarker(latlng, style);
-            },
-            onEachFeature: onEachLabelFeature
-        })
-    }
-
-    function initializeAllLayers(data) {
-        for (var i = 0; i < data.features.length; i++) {
-            var labelType = data.features[i].properties.label_type;
-            if (labelType === "Occlusion") {
-                // console.log(data.features[i]);
-            }
-
-            if (data.features[i].properties.severity === 1) {
-                self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 2) {
-                self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 3) {
-                self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 4) {
-                self.allLayers[labelType][4].push(data.features[i]);
-            } else if (data.features[i].properties.severity === 5) {
-                self.allLayers[labelType][5].push(data.features[i]);
-            } else { // No severity level
-                self.allLayers[labelType][0].push(data.features[i]);
-            }
-        }
-
-        Object.keys(self.allLayers).forEach(function (key) {
-            for (var i = 0; i < self.allLayers[key].length; i++) {
-                self.allLayers[key][i] = createLayer({
-                    "type": "FeatureCollection",
-                    "features": self.allLayers[key][i]
-                });
-                self.allLayers[key][i].addTo(map);
-            }
-        })
-    }
-
-    function clearMap() {
-        map.removeLayer(self.markerLayer);
-    }
-
-    function clearAuditedStreetLayer() {
-        map.removeLayer(self.auditedStreetLayer);
-    }
-
-    function redrawAuditedStreetLayer() {
-        initializeAuditedStreets(map);
-    }
-
-    function redrawLabels() {
-        initializeSubmittedLabels(map);
-    }
-
-    function toggleLayers(label, checkboxId, sliderId) {
-        if (document.getElementById(checkboxId).checked) {
-            if (checkboxId == "occlusion"){
-                for (var i = 0; i < self.allLayers[label].length; i++) {
-                    if (!map.hasLayer(self.allLayers[label][i])) {
-                        map.addLayer(self.allLayers[label][i]);
-                    }
-                }
-            }
-            else {
-                for (var i = 0; i < self.allLayers[label].length; i++) {
-                    if (!map.hasLayer(self.allLayers[label][i])
-                        && ($(sliderId).slider("option", "values")[0] <= i &&
-                        $(sliderId).slider("option", "values")[1] >= i )) {
-                        map.addLayer(self.allLayers[label][i]);
-                    } else if ($(sliderId).slider("option", "values")[0] > i
-                        || $(sliderId).slider("option", "values")[1] < i) {
-                        map.removeLayer(self.allLayers[label][i]);
-                    }
-                }
-            }
-        } else {
-            for (var i = 0; i < self.allLayers[label].length; i++) {
-                if (map.hasLayer(self.allLayers[label][i])) {
-                    map.removeLayer(self.allLayers[label][i]);
-                }
-            }
-        }
-    }
-
-    function toggleAuditedStreetLayer() {
-        if (document.getElementById('auditedstreet').checked) {
-            map.addLayer(self.auditedStreetLayer);
-        } else {
-            map.removeLayer(self.auditedStreetLayer);
-        }
-    }
-
-    function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView(true);
-    }
+    self = LabelMap(_, $, map, params)
 
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
@@ -516,13 +176,13 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
-            initializeNeighborhoodPolygons(map);
-            initializeAuditedStreets(map);
+            self.initializeNeighborhoodPolygons(map);
+            self.initializeAuditedStreets(map);
             // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
             setTimeout(function(){
-                initializeSubmittedLabels(map);
+                self.initializeSubmittedLabels(map);
             }, 1000);
-            initializeAdminGSVLabelView();
+            self.initializeAdminGSVLabelView();
             setTimeout(function () {
                 map.invalidateSize(false);
             }, 1);
@@ -672,7 +332,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // make a choropleth of neighborhood completion percentages
-                initializeChoroplethNeighborhoodPolygons(choropleth, data);
+                //initializeChoroplethNeighborhoodPolygons(choropleth, data);
                 choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
                 setTimeout(function () {
                     choropleth.invalidateSize(false);
@@ -1325,15 +985,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     initializeLabelTable();
-    initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
 
-    self.clearMap = clearMap;
-    self.redrawLabels = redrawLabels;
-    self.clearAuditedStreetLayer = clearAuditedStreetLayer;
-    self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
-    self.toggleLayers = toggleLayers;
-    self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
     self.clearPlayCache = clearPlayCache;
 
     $('.change-role').on('click', changeRole);
