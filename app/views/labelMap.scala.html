@@ -173,7 +173,12 @@
                     fillColor: "#808080",
                     fillOpacity: 0.1
                 },
-                legendPosition: 'bottomleft'
+                legendPosition: 'bottomleft',
+                scrollWheel: true,
+                zoomSlider: false,
+                zoomControl: true,
+                mapType: "mapbox.streets",
+                accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
             }
             window.map = Choropleths(_, $, "null", params);
         });

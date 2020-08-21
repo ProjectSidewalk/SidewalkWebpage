@@ -83,8 +83,6 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/AccessibilityChoropleth.js")'></script>
-
 
 <script>
     $(document).ready(function () {
@@ -124,6 +122,11 @@
                 },
                 webpageActivity: "Click_module=ResultsChoropleth_regionId=",
                 legendPosition: 'topright',
+                scrollWheel: false,
+                zoomSlider: true,
+                zoomControl: false,
+                mapType: "mapbox.light",
+                accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
             window.choropleth = Choropleths(_, $, difficultRegionIds, params);
         });

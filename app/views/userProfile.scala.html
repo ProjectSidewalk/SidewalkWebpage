@@ -134,7 +134,12 @@
                 legendPosition: 'topright',
                 c3: c3,
                 L: L,
-                userRole: "@user.get.role"
+                userRole: "@user.get.role",
+                scrollWheel: true,
+                zoomSlider: false,
+                zoomControl: false,
+                mapType: "mapbox.streets",
+                accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
             };
             window.progress = Choropleths(_, $, difficultRegionIds, params);
         });
