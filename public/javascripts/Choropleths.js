@@ -1,5 +1,4 @@
 function Choropleths(_, $, difficultRegionIds, params) {
-    var functionController;
     var self = {};
     var labelText = {
         "NoSidewalk":"Missing Sidewalks",
@@ -15,19 +14,19 @@ function Choropleths(_, $, difficultRegionIds, params) {
     });
     
 // a grayscale tileLayer for the choropleth
-    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('choropleth', "mapbox.light", {
+    L.mapbox.accessToken = params.accessToken;
+    var choropleth = L.mapbox.map('choropleth', params.mapType, {
         maxZoom: 19,
         minZoom: 9,
-        zoomControl: false,
+        zoomControl: params.zoomControl,
         legendControl: {
             position: params.legendPosition
         },
         zoomSnap: 0.5
     });
-    choropleth.scrollWheelZoom.disable();
 
-    if (params.choroplethType != 'userDash' && params.choroplethType != 'adminAnalytics' && params.choroplethType != 'labelMap') L.control.zoomslider().addTo(choropleth)
+    if (params.scrollWheel === false) choropleth.scrollWheelZoom.disable();
+    if (params.zoomSlider === true) L.control.zoomslider().addTo(choropleth);
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
@@ -36,7 +35,14 @@ function Choropleths(_, $, difficultRegionIds, params) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
         choropleth.setZoom(data.default_zoom);
-        initializeOverlayPolygon(choropleth, data.city_center.lat, data.city_center.lng);
+        if (params.choroplethType === 'results') {
+            $("#reset-button").click(reset);
+            function reset() {
+                choropleth.setView([data.city_center.lat, data.city_center.lng], data.default_zoom);
+            }
+        } else {
+            initializeOverlayPolygon(choropleth, data.city_center.lat, data.city_center.lng);
+        }
     });
 
     /**
@@ -59,10 +65,13 @@ function Choropleths(_, $, difficultRegionIds, params) {
         layer.setStyle({color: "#ccc", fillColor: "#ccc"});
         layer.addTo(map);
     }
+
     var initializeChoroplethNeighborhoodPolygons;
+    // The label map doesn't need and has not loaded i18next translations, will throw error.
     if (params.choroplethType != 'labelMap') {
         // render the neighborhood polygons, colored by completion percentage 
         initializeChoroplethNeighborhoodPolygons = function initializeChoroplethNeighborhoodPolygons(map, rates) {
+            var regionData;
             var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle, // default region color, used to check if any regions are missing data
                 layers = [],
                 currentLayer;
@@ -89,7 +98,6 @@ function Choropleths(_, $, difficultRegionIds, params) {
             }
 
             function onEachNeighborhoodFeature(feature, layer) {
-
                 var regionId = feature.properties.region_id;
                 var regionName = feature.properties.region_name;
                 var userCompleted = feature.properties.user_completed;
@@ -180,16 +188,15 @@ function Choropleths(_, $, difficultRegionIds, params) {
                         else {
                             distanceLeft = ">1";
                         }
-                        if (params.webpageActivity != 'null') {
-                            var activity = params.webpageActivity+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
-                            postToWebpageActivity(activity);
-                        }  
+                        var activity = params.webpageActivity+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
+                        postToWebpageActivity(activity);
                     });
                 }
             }
 
             // adds the neighborhood polygons to the map
             $.getJSON("/neighborhoods", function (data) {
+                regionData = data;
                 neighborhoodPolygonLayer = L.geoJson(data, {
                     style: style,
                     onEachFeature: onEachNeighborhoodFeature
@@ -197,34 +204,35 @@ function Choropleths(_, $, difficultRegionIds, params) {
                 .addTo(map);
             });
 
-            // Logs when a region is selected from the choropleth and 'Click here' is clicked
-            // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
-            // Log is stored in WebpageActivityTable
-            $("#choropleth").on('click', '.region-selection-trigger', function () {
-                var regionId = $(this).attr('regionId');
-                var ratesEl = rates.find(function(x){
-                    return regionId == x.region_id;
-                });
-                var compRate = Math.round(100.0 * ratesEl.rate);
-                var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
-                var distanceLeft = "";
-                if (compRate === 100){
-                    distanceLeft = "0";
-                }
-                else if (milesLeft === 0){
-                    distanceLeft = "<1";
-                }
-                else if (milesLeft === 1){
-                    distanceLeft = "1";
-                }
-                else{
-                    distanceLeft = ">1";
-                }
-                if (params.choroplethType != 'admin') {
+            if (params.choroplethType != 'admin') {
+                // Logs when a region is selected from the choropleth and 'Click here' is clicked
+                // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
+                // Log is stored in WebpageActivityTable
+                $("#choropleth").on('click', '.region-selection-trigger', function () {
+                    var regionId = $(this).attr('regionId');
+                    var ratesEl = rates.find(function(x){
+                        return regionId == x.region_id;
+                    });
+                    var compRate = Math.round(100.0 * ratesEl.rate);
+                    var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                    var distanceLeft = "";
+                    if (compRate === 100){
+                        distanceLeft = "0";
+                    }
+                    else if (milesLeft === 0){
+                        distanceLeft = "<1";
+                    }
+                    else if (milesLeft === 1){
+                        distanceLeft = "1";
+                    }
+                    else{
+                        distanceLeft = ">1";
+                    }
                     var activity = params.webpageActivity+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
-                    postToWebpageActivity(activity);
-                }
-            });
+                    postToWebpageActivity(activity);   
+                });
+            }
+            return regionData;
         }
     }
 
@@ -246,7 +254,7 @@ function Choropleths(_, $, difficultRegionIds, params) {
                                         p > 30 ? params.regionColors[6] :
                                             p > 20 ? params.regionColors[7] :
                                                 p > 10 ? params.regionColors[8] :
-                                                params.regionColors[9];
+                                                    params.regionColors[9];
     }
 
     /**
@@ -260,16 +268,16 @@ function Choropleths(_, $, difficultRegionIds, params) {
             if (rate.labels.hasOwnProperty(issue)) {
                 totalIssues += rate.labels[issue];
             }
-            var significantData = rate.rate >= .3;
-            var fillColor = significantData ? getColor(1000.0 * totalIssues / rate.completed_distance_m) : '#888';
-            var fillOpacity = significantData ? 0.4 + (totalIssues / rate.completed_distance_m) : .25;
-            return {
-                color: '#888',
-                weight: 1,
-                opacity: 0.25,
-                fillColor: fillColor,
-                fillOpacity: fillOpacity
-            }
+        }
+        var significantData = rate.rate >= .3;
+        var fillColor = significantData ? getColor(1000.0 * totalIssues / rate.completed_distance_m) : '#888';
+        var fillOpacity = significantData ? 0.4 + (totalIssues / rate.completed_distance_m) : .25;
+        return {
+            color: '#888',
+            weight: 1,
+            opacity: 0.25,
+            fillColor: fillColor,
+            fillOpacity: fillOpacity
         }
     }
 
@@ -299,6 +307,24 @@ function Choropleths(_, $, difficultRegionIds, params) {
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
     }
 
+    if (params.choroplethType != 'labelMap' && params.choroplethType != 'userDash') {
+        $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+            if (params.choroplethType === 'results') {
+                $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
+                    //append label counts to region data with map/reduce
+                    var regionData = _.map(data, function(region) {
+                        var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
+                        region.labels = regionLabel ? regionLabel.labels : {};
+                        return region;
+                    });
+                    initializeChoropleth(regionData);
+                });
+            } else {
+                initializeChoropleth(data);
+            }   
+        });
+    }
+    
     /**
      * This function takes data and initializes the choropleth with it.
      * 
@@ -334,24 +360,13 @@ function Choropleths(_, $, difficultRegionIds, params) {
         });
     }
 
-    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-        if (params.choroplethType === 'results') {
-            $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
-                //append label counts to region data with map/reduce
-                regionData = _.map(data, function(region) {
-                    var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
-                    region.labels = regionLabel ? regionLabel.labels : {};
-                    return region;
-                });
-                initializeChoropleth(regionData);
-            });
+    if (params.choroplethType === 'labelMap' || params.choroplethType === 'admin') {
+        if(params.choroplethType === 'labelMap') {
+            interactionController = LabelMap(_, $, choropleth, params);
         } else {
-            initializeChoropleth(data);
-        }   
-    });
-
-    if (params.choroplethType === 'labelMap') {
-        interactionController = LabelMap(_, $, choropleth, params);
+            interactionController = Admin(_, $, params.c3, params.turf, choropleth, initializeOverlayPolygon);
+            self.clearPlayCache = interactionController.clearPlayCache;
+        }
         self.clearMap = interactionController.clearMap;
         self.redrawLabels = interactionController.redrawLabels;
         self.clearAuditedStreetLayer = interactionController.clearAuditedStreetLayer;
@@ -360,6 +375,7 @@ function Choropleths(_, $, difficultRegionIds, params) {
         self.toggleAuditedStreetLayer = interactionController.toggleAuditedStreetLayer;
     } else if (params.choroplethType === 'userDash') {
         Progress(_, $, params.c3, params.L, params.userRole, choropleth, initializeChoroplethNeighborhoodPolygons);
-    } 
+    }
+
     return self;
 }
