@@ -356,7 +356,8 @@ function Main (params) {
         svl.labelContainer.fetchLabelsInTheCurrentMission(
             neighborhood.getProperty("regionId"),
             function (result) {
-                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "Other": 0};
+                console.log(result);
+                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0};
                 for (var i = 0, len = result.length; i < len; i++) {
                     switch (result[i].label_type_id) {
                         case 1:
@@ -371,6 +372,9 @@ function Main (params) {
                         case 4:
                             counter['SurfaceProblem'] += 1;
                             break;
+                        case 7:
+                            counter['NoSidewalk'] += 1;
+                            break;
                         default:
                             counter['Other'] += 1;
                     }
@@ -379,6 +383,7 @@ function Main (params) {
                 svl.labelCounter.set('NoCurbRamp', counter['NoCurbRamp']);
                 svl.labelCounter.set('Obstacle', counter['Obstacle']);
                 svl.labelCounter.set('SurfaceProblem', counter['SurfaceProblem']);
+                svl.labelCounter.set('NoSidewalk', counter['NoSidewalk']);
                 svl.labelCounter.set('Other', counter['Other']);
             });
 
