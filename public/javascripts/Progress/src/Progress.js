@@ -325,7 +325,9 @@ function Progress (_, $, c3, L, role, map, initializeNeighborhoodPolygons) {
 
 
     $.getJSON('/adminapi/neighborhoodCompletionRate', function (neighborhoodCompletionData) {
-        initializeNeighborhoodPolygons(map, neighborhoodCompletionData);
+        _data.neighborhoodPolygons = initializeNeighborhoodPolygons(map, neighborhoodCompletionData);
+        completedInitializingNeighborhoodPolygons = true;
+        handleInitializationComplete(map);
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);
         initializeAuditCountChart(c3, map);
