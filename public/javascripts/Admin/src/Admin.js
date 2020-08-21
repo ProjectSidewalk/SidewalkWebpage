@@ -13,8 +13,6 @@ function Admin(_, $, c3, turf, choropleth, initializeOverlayPolygon) {
         zoomSnap: 0.5
     });
 
-    choropleth.scrollWheelZoom.disable();
-
     // Set the city-specific default zoom and location.
     $.getJSON('/cityMapParams', function(data) {
         map.setView([data.city_center.lat, data.city_center.lng]);
@@ -332,7 +330,6 @@ function Admin(_, $, c3, turf, choropleth, initializeOverlayPolygon) {
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // make a choropleth of neighborhood completion percentages
-                //initializeChoroplethNeighborhoodPolygons(choropleth, data);
                 choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
                 setTimeout(function () {
                     choropleth.invalidateSize(false);

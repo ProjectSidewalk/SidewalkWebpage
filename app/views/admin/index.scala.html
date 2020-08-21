@@ -785,6 +785,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/LabelMap.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
@@ -869,7 +870,7 @@
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             var params = {
-                choroplethType: 'adminAnalytics',
+                choroplethType: 'admin',
                 regionColors: [
                     '#08306b', '#08519c', '#08719c',
                     '#2171b5', '#4292c6', '#6baed6',
@@ -893,6 +894,13 @@
                 },
                 webpageActivity: "null",
                 legendPosition: 'bottomleft',
+                c3: c3,
+                turf: turf,
+                scrollWheel: false,
+                zoomSlider: false,
+                zoomControl: false,
+                mapType: "mapbox.light",
+                accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
             window.admin = Choropleths(_, $, difficultRegionIds, params);
             $('#commentsTable').dataTable();
