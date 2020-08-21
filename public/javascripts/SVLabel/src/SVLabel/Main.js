@@ -356,7 +356,6 @@ function Main (params) {
         svl.labelContainer.fetchLabelsInTheCurrentMission(
             neighborhood.getProperty("regionId"),
             function (result) {
-                console.log(result);
                 var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0};
                 for (var i = 0, len = result.length; i < len; i++) {
                     switch (result[i].label_type_id) {
