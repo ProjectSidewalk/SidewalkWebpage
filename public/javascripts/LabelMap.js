@@ -112,8 +112,6 @@ function LabelMap(_, $, map, params) {
         });
     }
 
-
-
     /**
      * This function queries the streets that the user audited and visualize them as segments on the map.
      */
@@ -298,17 +296,25 @@ function LabelMap(_, $, map, params) {
         }
     }
 
-
-    initializeNeighborhoodPolygons(map);
-    initializeAuditedStreets(map);
-    initializeSubmittedLabels(map);
-    initializeAdminGSVLabelView();
-    setTimeout(function () {
-        map.invalidateSize(false);
-    }, 1);
+    if(params.choroplethType === 'labelMap') {
+        initializeNeighborhoodPolygons(map);
+        initializeAuditedStreets(map);
+        initializeSubmittedLabels(map);
+        initializeAdminGSVLabelView();
+        setTimeout(function () {
+            map.invalidateSize(false);
+        }, 1);
+    // Must return these methods for the Admin page to use
+    } else {
+        self.initializeNeighborhoodPolygons = initializeNeighborhoodPolygons;
+        self.initializeAuditedStreets = initializeAuditedStreets;
+        self.initializeSubmittedLabels = initializeSubmittedLabels;
+        self.initializeAdminGSVLabelView = initializeAdminGSVLabelView;
+    }
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabelView(false);
+        var temp = params.choroplethType === 'adminMap';
+        self.adminGSVLabelView = AdminGSVLabelView(temp);
     }
 
     // Functionality for the legend's minimize button.
@@ -316,7 +322,6 @@ function LabelMap(_, $, map, params) {
         $("#legend-table").slideToggle(0);
         $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
     });
-
 
     self.clearMap = clearMap;
     self.redrawLabels = redrawLabels;
