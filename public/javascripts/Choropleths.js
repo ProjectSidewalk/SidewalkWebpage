@@ -361,18 +361,8 @@ function Choropleths(_, $, difficultRegionIds, params) {
     }
 
     if (params.choroplethType === 'labelMap' || params.choroplethType === 'admin') {
-        if(params.choroplethType === 'labelMap') {
-            interactionController = LabelMap(_, $, choropleth, params);
-        } else {
-            interactionController = Admin(_, $, params.c3, params.turf, choropleth, initializeOverlayPolygon);
-            self.clearPlayCache = interactionController.clearPlayCache;
-        }
-        self.clearMap = interactionController.clearMap;
-        self.redrawLabels = interactionController.redrawLabels;
-        self.clearAuditedStreetLayer = interactionController.clearAuditedStreetLayer;
-        self.redrawAuditedStreetLayer = interactionController.redrawAuditedStreetLayer;
-        self.toggleLayers = interactionController.toggleLayers;
-        self.toggleAuditedStreetLayer = interactionController.toggleAuditedStreetLayer;
+        if (params.choroplethType === 'labelMap') self = LabelMap(_, $, choropleth, params)  
+        else self = Admin(_, $, params.c3, params.turf, choropleth, initializeOverlayPolygon)
     } else if (params.choroplethType === 'userDash') {
         Progress(_, $, params.c3, params.L, params.userRole, choropleth, initializeChoroplethNeighborhoodPolygons);
     }
