@@ -27,6 +27,10 @@
     padding-bottom: 20px;
 }
 
+.col-md-6 {
+    padding-bottom: 20px;
+}
+
 #img-grid {
     display: inline-block;
 }
