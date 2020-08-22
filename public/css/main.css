@@ -735,6 +735,12 @@ video#bgvid {
     height: 100%;
     position: relative;
 }
+
+.legend{
+    height: inherit;
+    width: 220px;
+}
+
 .numbers-largefont {
     font-family: raleway, sans-serif;
     font-size: 100px;
