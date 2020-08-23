@@ -12,12 +12,12 @@
                 <div id="map-holder">
                     <div id="map"></div>
                     <div id="map-label-legend">
-                        <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td></tr>
-                            <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td></tr>
+                        <table class="table legend">
+                            <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td><td id="td-number-of-curb-ramps"></td></tr>
+                            <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td><td id="td-number-of-missing-curb-ramps"></td></tr>
+                            <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td><td id="td-number-of-obstacles"></td></tr>
+                            <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td><td id="td-number-of-surface-problems"></td></tr>
+                            <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
                             <tr><td id="map-legend-audited-street"></td><td>@Messages("dashboard.audited.street")</td></tr>
                         </table>
                     </div>
@@ -40,24 +40,6 @@
                     <td id="td-total-distance-audited"></td>
                     <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
                     <td id="td-total-reward-earned"></td>
-                </tr>
-            </table>
-            <table class="table table-striped table-condensed">
-                <tr>
-                    <th>@Messages("dashboard.label.type")</th>
-                    <th>@Messages("curb.ramp")</th>
-                    <th>@Messages("missing.ramp")</th>
-                    <th>@Messages("obstacle")</th>
-                    <th>@Messages("surface.problem")</th>
-                    <th>@Messages("no.sidewalk")</th>
-                </tr>
-                <tr>
-                    <th>@Messages("dashboard.number.of.labels")</th>
-                    <td id="td-number-of-curb-ramps"></td>
-                    <td id="td-number-of-missing-curb-ramps"></td>
-                    <td id="td-number-of-obstacles"></td>
-                    <td id="td-number-of-surface-problems"></td>
-                    <td id="td-number-of-no-sidewalks"></td>
                 </tr>
             </table>
         </div>
