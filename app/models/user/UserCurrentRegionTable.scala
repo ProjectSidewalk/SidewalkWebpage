@@ -135,4 +135,14 @@ object UserCurrentRegionTable {
     }
     regionId
   }
+
+    /**
+    * Delete the current region for a user if it exists.
+    *
+    * @param userId user ID
+    * @return
+    */
+  def delete(userId: UUID) = db.withSession { implicit session =>
+    userCurrentRegions.filter(_.userId === userId.toString).delete
+  }
 }
