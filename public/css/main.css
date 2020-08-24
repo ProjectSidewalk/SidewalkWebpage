@@ -70,6 +70,15 @@ footer {
 /*
  * Custom styles
  */
+
+ .stats-grid{
+     display: flex;
+ }
+
+ .stats-grid > p {
+     flex: 1;
+ }
+
 .navbar-brand {
     font-size: 24px;
 }
@@ -754,6 +763,12 @@ video#bgvid {
     height: 100%;
     position: relative;
 }
+
+.legend{
+    height: inherit;
+    width: 220px;
+}
+
 .numbers-largefont {
     font-family: raleway, sans-serif;
     font-size: 100px;
