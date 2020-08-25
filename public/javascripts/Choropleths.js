@@ -35,14 +35,13 @@ function Choropleths(_, $, difficultRegionIds, params) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
         choropleth.setZoom(data.default_zoom);
-        if (params.choroplethType === 'results') {
+        if (params.resetButton) {
             $("#reset-button").click(reset);
             function reset() {
                 choropleth.setView([data.city_center.lat, data.city_center.lng], data.default_zoom);
             }
-        } else {
-            initializeOverlayPolygon(choropleth, data.city_center.lat, data.city_center.lng);
         }
+        if (params.overlayPolygon) initializeOverlayPolygon(choropleth, data.city_center.lat, data.city_center.lng);
     });
 
     /**
@@ -359,13 +358,10 @@ function Choropleths(_, $, difficultRegionIds, params) {
             }
         });
     }
-
-    if (params.choroplethType === 'labelMap' || params.choroplethType === 'admin') {
-        if (params.choroplethType === 'labelMap') self = LabelMap(_, $, choropleth, params)  
-        else self = Admin(_, $, params.c3, params.turf, choropleth, initializeOverlayPolygon)
-    } else if (params.choroplethType === 'userDash') {
-        Progress(_, $, params.c3, params.L, params.userRole, choropleth, initializeChoroplethNeighborhoodPolygons);
-    }
+    
+    if (params.choroplethType === 'labelMap') self = LabelMap(_, $, choropleth, params)  
+    else if (params.choroplethType === 'admin') self = Admin(_, $, params.c3, params.turf, choropleth, initializeOverlayPolygon)
+    else if (params.choroplethType === 'userDash') Progress(_, $, params.c3, params.L, params.userRole, choropleth, initializeChoroplethNeighborhoodPolygons)
 
     return self;
 }
