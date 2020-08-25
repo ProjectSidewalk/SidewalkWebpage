@@ -259,7 +259,32 @@ function Admin(_, $, c3, turf, choropleth, initializeOverlayPolygon) {
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
                 var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
+                
+                var curbRampStats = getSummaryStats(curbRamps, "severity");
+                $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
+                $("#curb-ramp-std").html((curbRampStats.std).toFixed(2));
+                
+                var noCurbRampStats = getSummaryStats(noCurbRamps, "severity");
+                $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
+                $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
+                
+                var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
+                $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
+                $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
+                
+                var obstacleStats = getSummaryStats(obstacles, "severity");
+                $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
+                $("#obstacle-std").html((obstacleStats.std).toFixed(2));
+                
+                var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
+                $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
+                $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
 
+                var allData = data.features;
+                var allDataStats = getSummaryStats(allData, "severity");
+                $("#labels-mean").html((allDataStats.mean).toFixed(2));
+                $("#labels-std").html((allDataStats.std).toFixed(2));
+                
                 var subPlotHeight = 150;
                 var subPlotWidth = 149;
                 var chart = {

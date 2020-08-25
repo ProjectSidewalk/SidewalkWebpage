@@ -332,6 +332,9 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
 
 ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance) {
     var distanceType = i18next.t('mission-complete.distance-type-display-string');
+    if(remainingDistance > 0.00 && remainingDistance <= 0.10){
+        remainingDistance = 0.1;
+    }
     var positiveRemainingDistance = Math.max(remainingDistance, 0);
     var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
     this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + distanceType);
