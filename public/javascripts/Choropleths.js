@@ -15,7 +15,7 @@ function Choropleths(_, $, difficultRegionIds, params) {
     
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = params.accessToken;
-    var choropleth = L.mapbox.map('choropleth', params.mapType, {
+    var choropleth = L.mapbox.map(params.mapName, params.mapType, {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: params.zoomControl,
@@ -358,7 +358,7 @@ function Choropleths(_, $, difficultRegionIds, params) {
             }
         });
     }
-    
+
     if (params.choroplethType === 'labelMap') self = LabelMap(_, $, choropleth, params)  
     else if (params.choroplethType === 'admin') self = Admin(_, $, params.c3, params.turf, choropleth, initializeOverlayPolygon)
     else if (params.choroplethType === 'userDash') Progress(_, $, params.c3, params.L, params.userRole, choropleth, initializeChoroplethNeighborhoodPolygons)
