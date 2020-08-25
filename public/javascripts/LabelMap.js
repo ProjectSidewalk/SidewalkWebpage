@@ -297,6 +297,7 @@ function LabelMap(_, $, map, params) {
     }
 
     if(params.choroplethType === 'labelMap') {
+        minimizeButton();
         initializeNeighborhoodPolygons(map);
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);
@@ -306,6 +307,7 @@ function LabelMap(_, $, map, params) {
         }, 1);
     // Must return these methods for the Admin page to use
     } else {
+        self.minimizeButton = minimizeButton;
         self.initializeNeighborhoodPolygons = initializeNeighborhoodPolygons;
         self.initializeAuditedStreets = initializeAuditedStreets;
         self.initializeSubmittedLabels = initializeSubmittedLabels;
@@ -317,11 +319,13 @@ function LabelMap(_, $, map, params) {
         self.adminGSVLabelView = AdminGSVLabelView(temp);
     }
 
-    // Functionality for the legend's minimize button.
-    $('#map-legend-minimize-button').click(function() {
-        $("#legend-table").slideToggle(0);
-        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
-    });
+    function minimizeButton() {
+        // Functionality for the legend's minimize button.
+        $('#map-legend-minimize-button').click(function() {
+            $("#legend-table").slideToggle(0);
+            $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
+        });
+    }
 
     self.clearMap = clearMap;
     self.redrawLabels = redrawLabels;

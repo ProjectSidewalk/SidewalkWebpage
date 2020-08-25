@@ -43,6 +43,7 @@ function Admin(_, $, c3, turf, choropleth, initializeOverlayPolygon) {
         legendPosition: 'bottomleft'
     }
     self = LabelMap(_, $, map, params)
+    self.minimizeButton();
 
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
@@ -987,12 +988,6 @@ function Admin(_, $, c3, turf, choropleth, initializeOverlayPolygon) {
     self.clearPlayCache = clearPlayCache;
 
     $('.change-role').on('click', changeRole);
-
-    // Functionality for the legend's minimize button.
-    $('#map-legend-minimize-button').click(function() {
-        $("#legend-table").slideToggle(0);
-        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
-    });
 
     return self;
 }
