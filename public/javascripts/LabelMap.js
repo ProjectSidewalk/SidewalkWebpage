@@ -87,6 +87,7 @@ function LabelMap(_, $, map, params) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle(params.mouseoverStyle);
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
