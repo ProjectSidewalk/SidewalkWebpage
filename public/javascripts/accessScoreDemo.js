@@ -17,7 +17,6 @@ $(document).ready(function () {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
-
         initializeNeighborhoodPolygons(map, data.southwest_boundary, data.northeast_boundary);
         initializeSubmittedLabels(map, data.southwest_boundary, data.northeast_boundary);
     });

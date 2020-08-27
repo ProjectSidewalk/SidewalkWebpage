@@ -15,7 +15,7 @@ svg {
     position: relative;
 }
 
-#choropleth {
+#map {
     height: calc(100% - 116px); /* 100% - (header + footer height) */
     min-height: 640px;
 }
