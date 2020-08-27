@@ -1149,6 +1149,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
                 var combinedChart = {"hconcat": []};
                 var combinedChartFiltered = {"hconcat": []};
                 
@@ -1231,6 +1232,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
                 var combinedChart = {"hconcat": []};
                 var combinedChartFiltered = {"hconcat": []};
 
@@ -1313,6 +1315,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
                 var combinedChart = {"hconcat": []};
                 var combinedChartFiltered = {"hconcat": []};
 
