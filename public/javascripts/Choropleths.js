@@ -360,7 +360,7 @@ function Choropleths(_, $, difficultRegionIds, params) {
     }
 
     if (params.choroplethType === 'labelMap') self = LabelMap(_, $, choropleth, params)  
-    else if (params.choroplethType === 'admin') self = Admin(_, $, params.c3, params.turf, choropleth, initializeOverlayPolygon)
+    else if (params.choroplethType === 'admin') self = Admin(_, $, choropleth, initializeOverlayPolygon)
     else if (params.choroplethType === 'userDash') Progress(_, $, params.c3, params.L, params.userRole, choropleth, initializeChoroplethNeighborhoodPolygons)
 
     return self;

@@ -1,4 +1,4 @@
-function Admin(_, $, c3, turf, choropleth, initializeOverlayPolygon) {
+function Admin(_, $, choropleth, initializeOverlayPolygon) {
     var self = {};
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
