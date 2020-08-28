@@ -1241,7 +1241,13 @@ object LabelTable {
     * @param auditTaskId
     * @return
     */
-  def nextTempLabelId(auditTaskId: Option[Int]): Int = db.withSession { implicit session =>
-    labels.filter(_.auditTaskId === auditTaskId).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
+    //TODO: change this to use user id
+  def nextTempLabelId(/*auditTaskId: Option[Int]*/userId: UUID): Int = db.withSession { implicit session =>
+    //labels.filter(_.auditTaskId === auditTaskId).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
+      val userLabels = for {
+        m <- missions if m.userId === userId.toString
+        l <- labels if l.missionId === m.missionId
+      } yield l.temporaryLabelId
+      userLabels.max.run.map(x => x + 1).getOrElse(1);
   }
 }
