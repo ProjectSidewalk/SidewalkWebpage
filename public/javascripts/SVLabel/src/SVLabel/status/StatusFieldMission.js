@@ -29,6 +29,15 @@ function StatusFieldMission (modalModel, uiStatusField) {
 
         $missionDescription.html(missionMessage);
     };
+
+    /**
+     *  This method takes in an integer feet and converts it to meters, truncating all decimals.
+     *  @param feet to convert to meters
+     *  @return
+     */
+    this.convertToMetric = function(feet, unitAbbreviation) {
+        return Math.trunc(feet * 0.3048) + " " + unitAbbreviation;
+    };
 }
 
 StatusFieldMission.prototype._distanceToString = function (distance, unit) {
@@ -40,22 +49,20 @@ StatusFieldMission.prototype._distanceToString = function (distance, unit) {
     else if (unit === "kilometers") distance = util.math.kilometersToMiles(distance);
 
     distance = distance.toPrecision(4);
+    var distanceType = i18next.t('common:measurement-system');
+    var unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
 
     if (distance === "0.0947"){
-        return "500ft";
+        if (distanceType === "metric") return this.convertToMetric(500, unitAbbreviation);
+        else return "500 " + unitAbbreviation;
     } else if (distance === "0.1420") {
-        return "750ft";
+        if (distanceType === "metric") return this.convertToMetric(750, unitAbbreviation);
+        else return "750 " + unitAbbreviation;
     } else if (distance === "0.1894") {
-        return "1000ft";
-    } else if (distance === "0.2500") {
-        return "&frac14;mi";
-    } else if (distance === "0.3788") {
-        return "2000ft";
-    } else if (distance === "0.5000") {
-        return "&frac12;mi";
-    } else if (distance === "0.7500") {
-        return "&frac34;mi";
+        if (distanceType === "metric") return this.convertToMetric(1000, unitAbbreviation);
+        else return "1000 " + unitAbbreviation;
     } else {
-        return (util.math.milesToFeet(distance)).toFixed(0) + "ft";
+        if (distanceType === "metric") return this.convertToMetric(distance * 5280, unitAbbreviation);
+        else return (util.math.milesToFeet(distance)).toFixed(0) + " " + unitAbbreviation;
     }
 };

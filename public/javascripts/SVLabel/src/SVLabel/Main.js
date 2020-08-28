@@ -411,7 +411,7 @@ function Main (params) {
                 console.log("label counts in neighborhood: " + svl.labelContainer.countLabels(neighborhood.getProperty("regionId")));
             });
 
-        var unit = {units: 'miles'};
+        var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
     }
