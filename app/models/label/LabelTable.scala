@@ -1207,16 +1207,6 @@ object LabelTable {
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
     } yield (_lb, _lt.labelType, _lp, _gd.imageWidth, _gd.imageHeight)
 
-    Logger.debug("labels size:" + _labels.list.size)
-
-//    val lp = for {
-//      (l, p) <- _labels.innerJoin(labelPoints).on(_._1.labelId === _.labelId)
-//    } yield (l._1, l._2, p)
-
-//    val lpgd = for {
-//      (l, gd) <- lp.innerJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
-//    } yield (l._1, l._2, l._3, gd.imageWidth, gd.imageHeight)
-
     val addDescriptions = for {
       (l, d) <- _labels.leftJoin(descriptions).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, l._3, l._4, l._5, d.description.?)
@@ -1241,9 +1231,7 @@ object LabelTable {
     * @param auditTaskId
     * @return
     */
-    //TODO: change this to use user id
-  def nextTempLabelId(/*auditTaskId: Option[Int]*/userId: UUID): Int = db.withSession { implicit session =>
-    //labels.filter(_.auditTaskId === auditTaskId).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
+  def nextTempLabelId(userId: UUID): Int = db.withSession { implicit session =>
       val userLabels = for {
         m <- missions if m.userId === userId.toString
         l <- labels if l.missionId === m.missionId
