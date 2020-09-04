@@ -1041,10 +1041,6 @@
 
             mainParam.language = "@lang.code";
 
-            document.addEventListener("visibilitychange", function(event) {
-                svl.tracker.push("VisibilityChange", {"visibility": document.visibilityState});
-            });
-
             svl.main = new Main(mainParam);
         }
 

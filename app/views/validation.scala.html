@@ -332,10 +332,6 @@
                 });
             }
 
-            document.addEventListener("visibilitychange", function(event) {
-                svv.tracker.push("VisibilityChange", {"visibility": document.visibilityState});
-            });
-
             svv.main = new Main(param);
         }
 
