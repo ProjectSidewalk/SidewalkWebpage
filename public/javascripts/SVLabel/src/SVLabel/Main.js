@@ -158,7 +158,7 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        // Mission.
+        // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
@@ -176,6 +176,10 @@ function Main (params) {
         }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
+        // Logs when the webpage's visiblity changes.
+        document.addEventListener("visibilitychange", function(event) {
+            svl.tracker.push("VisibilityChange", {"visibility": document.visibilityState});
+        });
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);

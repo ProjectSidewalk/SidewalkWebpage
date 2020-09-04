@@ -149,6 +149,11 @@ function Main (param) {
         }
         svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
 
+        // Logs when the webpage's visiblity changes.
+        document.addEventListener("visibilitychange", function(event) {
+            svv.tracker.push("VisibilityChange", {"visibility": document.visibilityState});
+        });
+
         // There are certain features that will only make sense if we have one validation interface on the screen.
         if (param.canvasCount === 1 && !isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
