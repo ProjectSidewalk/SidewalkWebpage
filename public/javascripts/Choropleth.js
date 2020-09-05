@@ -1,5 +1,5 @@
-function Choropleths(_, $, difficultRegionIds, params) {
-    var self = {};
+function Choropleth(_, $, difficultRegionIds, params) {
+    //var self = {};
     var labelText = {
         "NoSidewalk":"Missing Sidewalks",
         "NoCurbRamp": "Missing Curb Ramps",
@@ -15,7 +15,8 @@ function Choropleths(_, $, difficultRegionIds, params) {
     
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = params.accessToken;
-    var choropleth = L.mapbox.map(params.mapName, params.mapType, {
+
+    var choropleth = L.mapbox.map(params.mapName, params.mapStyle, {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: params.zoomControl,
@@ -65,174 +66,171 @@ function Choropleths(_, $, difficultRegionIds, params) {
         layer.addTo(map);
     }
 
-    var initializeChoroplethNeighborhoodPolygons;
-    // The label map doesn't need and has not loaded i18next translations, will throw error.
-    if (params.choroplethType != 'labelMap') {
-        // render the neighborhood polygons, colored by completion percentage 
-        initializeChoroplethNeighborhoodPolygons = function initializeChoroplethNeighborhoodPolygons(map, rates) {
-            var regionData;
-            var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle, // default region color, used to check if any regions are missing data
-                layers = [],
-                currentLayer;
+    // render the neighborhood polygons, colored by completion percentage 
+    function initializeChoroplethNeighborhoodPolygons(map, rates) {
+        var regionData;
+        var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle, // default region color, used to check if any regions are missing data
+            layers = [],
+            currentLayer;
 
-            // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
-            function style(feature) {
-                if (params.choroplethType === 'userDash') {
-                    return params.neighborhoodPolygonStyle;
-                } else {
-                    for (var i = 0; i < rates.length; i++) {
-                        if (rates[i].region_id === feature.properties.region_id) {
-                            if (params.choroplethType === 'results') return findAccessibilityChoroplethColor(rates[i])
-                            return {
-                                color: '#888',
-                                weight: 1,
-                                opacity: 0.25,
-                                fillColor: getColor(100.0 * rates[i].rate),
-                                fillOpacity: 0.35 + (0.4 * rates[i].rate)
-                            }
-                        }
-                    }
-                    return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
-                }  
-            }
-
-            function onEachNeighborhoodFeature(feature, layer) {
-                var regionId = feature.properties.region_id;
-                var regionName = feature.properties.region_name;
-                var userCompleted = feature.properties.user_completed;
-                var compRate = -1.0;
-                var milesLeft = -1.0;
-                var url = "/audit/region/" + regionId;
-                var popupContent = "???";
+        // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
+        function style(feature) {
+            if (params.choroplethType === 'userDash' || params.choroplethType === 'labelMap' ||
+                params.choroplethType === 'adminUser') {
+                return params.neighborhoodPolygonStyle;
+            } else {
                 for (var i = 0; i < rates.length; i++) {
                     if (rates[i].region_id === feature.properties.region_id) {
-                        var measurementSystem = i18next.t('measurement-system');
-                        compRate = Math.round(100.0 * rates[i].rate);
-                        distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
-                        // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
-                        if (measurementSystem === "metric") distanceLeft *= 0.001;
-                        else distanceLeft *= 0.000621371;
-                        distanceLeft = Math.round(distanceLeft);
-
-                        var advancedMessage = '';
-                        if (difficultRegionIds.includes(feature.properties.region_id)) {
-                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                        if (params.choroplethType === 'results') return findAccessibilityChoroplethColor(rates[i])
+                        return {
+                            color: '#888',
+                            weight: 1,
+                            opacity: 0.25,
+                            fillColor: getColor(100.0 * rates[i].rate),
+                            fillOpacity: 0.35 + (0.4 * rates[i].rate)
                         }
-
-                        if (userCompleted) {
-                            popupContent = "<strong>" + regionName + "</strong>: " +
-                                i18next.t("common:map.100-percent-complete") + "<br>" +
-                                i18next.t("common:map.thanks");
-                        } else if (compRate === 100) {
-                            popupContent = "<strong>" + regionName + "</strong>: " +
-                                i18next.t("common:map.100-percent-complete") + "<br>" + advancedMessage +
-                                i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
-                        } else if (distanceLeft === 0) {
-                            popupContent = "<strong>" + regionName + "</strong>: " +
-                                i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
-                                i18next.t("common:map.less-than-one-unit-left") + "<br>" + advancedMessage +
-                                i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
-                        } else if (distanceLeft === 1) {
-                            var popupContent = "<strong>" + regionName + "</strong>: " +
-                                i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
-                                i18next.t("common:map.distance-left-one-unit") + "<br>" + advancedMessage +
-                                i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
-                        } else {
-                            var popupContent = "<strong>" + regionName + "</strong>: " +
-                                i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
-                                i18next.t("common:map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
-                                i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
-                        }
-                        if (params.choroplethType === 'results') popupContent += setAccessibilityChoroplethPopupContent(rates[i])
-                        break;
                     }
                 }
-                layer.bindPopup(popupContent);
-                layers.push(layer);
-                
-                layer.on('mouseover', function (e) {
-                    this.setStyle(params.mouseoverStyle);
-                    this.openPopup()
-                });
-                layer.on('mouseout', function (e) {
-                    for (var i = layers.length - 1; i >= 0; i--) {
-                        if (currentLayer !== layers[i])
-                            layers[i].setStyle(params.mouseoutStyle);
+                return neighborhoodPolygonStyle; // default case (shouldn't happen, will be bright red)
+            }  
+        }
+
+        function onEachNeighborhoodFeature(feature, layer) {
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var compRate = -1.0;
+            var milesLeft = -1.0;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "???";
+            for (var i = 0; i < rates.length; i++) {
+                if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('measurement-system');
+                    compRate = Math.round(100.0 * rates[i].rate);
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371;
+                    distanceLeft = Math.round(distanceLeft);
+
+                    var advancedMessage = '';
+                    if (difficultRegionIds.includes(feature.properties.region_id)) {
+                        advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
-                });
 
-                if (params.choroplethType != "admin") {
-                    layer.on('click', function (e) {
-                        currentLayer = this;
-
-                        // Log when a user clicks on a region on the choropleth
-                        // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
-                        // Log is stored in WebpageActivityTable
-                        var regionId = e.target.feature.properties.region_id;
-                        var ratesEl = rates.find(function(x){
-                            return regionId == x.region_id;
-                        });
-                        var compRate = Math.round(100.0 * ratesEl.rate);
-                        var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
-                        var distanceLeft = "";
-                        if (compRate === 100) {
-                            distanceLeft = "0";
-                        }
-                        else if (milesLeft === 0) {
-                            distanceLeft = "<1";
-                        }
-                        else if (milesLeft === 1) {
-                            distanceLeft = "1";
-                        }
-                        else {
-                            distanceLeft = ">1";
-                        }
-                        var activity = params.webpageActivity+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
-                        postToWebpageActivity(activity);
-                    });
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.100-percent-complete") + "<br>" +
+                            i18next.t("common:map.thanks");
+                    } else if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.100-percent-complete") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.less-than-one-unit-left") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.distance-left-one-unit") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    }
+                    if (params.choroplethType === 'results') popupContent += setAccessibilityChoroplethPopupContent(rates[i])
+                    break;
                 }
             }
-
-            // adds the neighborhood polygons to the map
-            $.getJSON("/neighborhoods", function (data) {
-                regionData = data;
-                neighborhoodPolygonLayer = L.geoJson(data, {
-                    style: style,
-                    onEachFeature: onEachNeighborhoodFeature
-                })
-                .addTo(map);
+            layer.bindPopup(popupContent);
+            layers.push(layer);
+            
+            layer.on('mouseover', function (e) {
+                this.setStyle(params.mouseoverStyle);
+                this.openPopup()
+            });
+            layer.on('mouseout', function (e) {
+                for (var i = layers.length - 1; i >= 0; i--) {
+                    if (currentLayer !== layers[i])
+                        layers[i].setStyle(params.mouseoutStyle);
+                }
             });
 
-            if (params.choroplethType != 'admin') {
-                // Logs when a region is selected from the choropleth and 'Click here' is clicked
-                // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
-                // Log is stored in WebpageActivityTable
-                $("#choropleth").on('click', '.region-selection-trigger', function () {
-                    var regionId = $(this).attr('regionId');
+            if (params.choroplethType != "admin") {
+                layer.on('click', function (e) {
+                    currentLayer = this;
+
+                    // Log when a user clicks on a region on the choropleth
+                    // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
+                    // Log is stored in WebpageActivityTable
+                    var regionId = e.target.feature.properties.region_id;
                     var ratesEl = rates.find(function(x){
                         return regionId == x.region_id;
                     });
                     var compRate = Math.round(100.0 * ratesEl.rate);
                     var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
                     var distanceLeft = "";
-                    if (compRate === 100){
+                    if (compRate === 100) {
                         distanceLeft = "0";
                     }
-                    else if (milesLeft === 0){
+                    else if (milesLeft === 0) {
                         distanceLeft = "<1";
                     }
-                    else if (milesLeft === 1){
+                    else if (milesLeft === 1) {
                         distanceLeft = "1";
                     }
-                    else{
+                    else {
                         distanceLeft = ">1";
                     }
-                    var activity = params.webpageActivity+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
-                    postToWebpageActivity(activity);   
+                    var activity = params.webpageActivity+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
+                    postToWebpageActivity(activity);
                 });
             }
-            return regionData;
         }
+
+        // adds the neighborhood polygons to the map
+        $.getJSON("/neighborhoods", function (data) {
+            regionData = data;
+            neighborhoodPolygonLayer = L.geoJson(data, {
+                style: style,
+                onEachFeature: onEachNeighborhoodFeature
+            })
+            .addTo(map);
+        });
+
+        if (params.choroplethType != 'admin') {
+            // Logs when a region is selected from the choropleth and 'Click here' is clicked
+            // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
+            // Log is stored in WebpageActivityTable
+            $("#choropleth").on('click', '.region-selection-trigger', function () {
+                var regionId = $(this).attr('regionId');
+                var ratesEl = rates.find(function(x){
+                    return regionId == x.region_id;
+                });
+                var compRate = Math.round(100.0 * ratesEl.rate);
+                var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                var distanceLeft = "";
+                if (compRate === 100){
+                    distanceLeft = "0";
+                }
+                else if (milesLeft === 0){
+                    distanceLeft = "<1";
+                }
+                else if (milesLeft === 1){
+                    distanceLeft = "1";
+                }
+                else{
+                    distanceLeft = ">1";
+                }
+                var activity = params.webpageActivity+regionId+"_distanceLeft="+distanceLeft+"_target=audit";
+                postToWebpageActivity(activity);   
+            });
+        }
+        return regionData;
     }
 
     /**
@@ -306,7 +304,7 @@ function Choropleths(_, $, difficultRegionIds, params) {
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
     }
 
-    if (params.choroplethType != 'labelMap' && params.choroplethType != 'userDash') {
+    
         $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
             if (params.choroplethType === 'results') {
                 $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
@@ -322,7 +320,7 @@ function Choropleths(_, $, difficultRegionIds, params) {
                 initializeChoropleth(data);
             }   
         });
-    }
+    
     
     /**
      * This function takes data and initializes the choropleth with it.
@@ -332,7 +330,8 @@ function Choropleths(_, $, difficultRegionIds, params) {
     function initializeChoropleth(data) {
         // make a choropleth of neighborhood completion percentages
         initializeChoroplethNeighborhoodPolygons(choropleth, data);
-        if (params.choroplethType != 'userDash') {
+        if (params.choroplethType !== 'userDash' && params.choroplethType !== 'adminUser' &&
+            params.choroplethType !== 'labelMap') {
             choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
         }
         setTimeout(function () {
@@ -358,10 +357,5 @@ function Choropleths(_, $, difficultRegionIds, params) {
             }
         });
     }
-
-    if (params.choroplethType === 'labelMap') self = LabelMap(_, $, choropleth, params)  
-    else if (params.choroplethType === 'admin') self = Admin(_, $, choropleth, initializeOverlayPolygon)
-    else if (params.choroplethType === 'userDash') Progress(_, $, params.c3, params.L, params.userRole, choropleth, initializeChoroplethNeighborhoodPolygons)
-
-    return self;
+    return choropleth;
 }

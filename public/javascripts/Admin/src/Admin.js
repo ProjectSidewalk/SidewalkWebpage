@@ -1,33 +1,5 @@
 function Admin(_, $, difficultRegionIds, params) {
-    var self = {};
-    self.markerLayer = null;
-    self.curbRampLayers = [];
-    self.missingCurbRampLayers = [];
-    self.obstacleLayers = [];
-    self.surfaceProblemLayers = [];
-    self.cantSeeSidewalkLayers = [];
-    self.noSidewalkLayers = [];
-    self.otherLayers = [];
-    self.mapLoaded = false;
-    self.graphsLoaded = false;
-
-    var neighborhoodPolygonLayer;
-
-    for (var i = 0; i < 6; i++) {
-        self.curbRampLayers[i] = [];
-        self.missingCurbRampLayers[i] = [];
-        self.obstacleLayers[i] = [];
-        self.surfaceProblemLayers[i] = [];
-        self.cantSeeSidewalkLayers[i] = [];
-        self.noSidewalkLayers[i] = [];
-        self.otherLayers[i] = [];
-    }
-
-    self.allLayers = {
-        "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
-        "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
-        "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
-    };
+    var self = LayerController();
 
     var mapParams = {
         choroplethType: 'labelMap',
@@ -61,14 +33,6 @@ function Admin(_, $, difficultRegionIds, params) {
     }
     var map = Choropleth(_, $, "null", mapParams);
     var choropleth = Choropleth(_, $, difficultRegionIds, params)
-
-    self.adminGSVLabelView = AdminGSVLabelView(true);
-
-    // Functionality for the legend's minimize button.
-    $('#map-legend-minimize-button').click(function() {
-        $("#legend-table").slideToggle(0);
-        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
-    });
 
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
@@ -201,7 +165,7 @@ function Admin(_, $, difficultRegionIds, params) {
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
             InitializeAuditedStreets(map, self, "/contribution/streets/all", mapParams);
-            ToggleController(map, self);
+            ToggleController(map, self, true);
             // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
             setTimeout(function(){
                 InitializeSubmittedLabels(map, self, "/labels/all", mapParams);
