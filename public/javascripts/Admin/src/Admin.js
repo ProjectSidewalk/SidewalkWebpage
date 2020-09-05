@@ -1,49 +1,74 @@
-function Admin(_, $, choropleth, initializeOverlayPolygon) {
+function Admin(_, $, difficultRegionIds, params) {
     var self = {};
-    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+    self.markerLayer = null;
+    self.curbRampLayers = [];
+    self.missingCurbRampLayers = [];
+    self.obstacleLayers = [];
+    self.surfaceProblemLayers = [];
+    self.cantSeeSidewalkLayers = [];
+    self.noSidewalkLayers = [];
+    self.otherLayers = [];
+    self.mapLoaded = false;
+    self.graphsLoaded = false;
 
-    // var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-    var mapboxTiles = L.tileLayer(tileUrl, {
-        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-    });
-    var map = L.mapbox.map('admin-map', "mapbox.streets", {
-        maxZoom: 19,
-        minZoom: 9,
-        zoomSnap: 0.5
-    });
+    var neighborhoodPolygonLayer;
 
-    // Set the city-specific default zoom and location.
-    $.getJSON('/cityMapParams', function(data) {
-        map.setView([data.city_center.lat, data.city_center.lng]);
-        map.setZoom(data.default_zoom);
-        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
-    });
-
-    var params = {
-        choroplethType: 'adminMap',
-        neighborhoodPolygonStyle: {
-            color: '#888',
-            weight: 2,
-            opacity: 0.80,
-            fillColor: "#808080",
-            fillOpacity: 0.1
-        },
-        mouseoverStyle: {
-            color: 'red',
-            fillColor: 'red'
-        },
-        mouseoutStyle: {
-            color: '#888',
-            weight: 2,
-            opacity: 0.80,
-            fillColor: "#808080",
-            fillOpacity: 0.1
-        },
-        legendPosition: 'bottomleft'
+    for (var i = 0; i < 6; i++) {
+        self.curbRampLayers[i] = [];
+        self.missingCurbRampLayers[i] = [];
+        self.obstacleLayers[i] = [];
+        self.surfaceProblemLayers[i] = [];
+        self.cantSeeSidewalkLayers[i] = [];
+        self.noSidewalkLayers[i] = [];
+        self.otherLayers[i] = [];
     }
-    self = LabelMap(_, $, map, params)
-    self.minimizeButton();
+
+    self.allLayers = {
+        "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
+        "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
+        "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
+    };
+
+    var mapParams = {
+        choroplethType: 'labelMap',
+                neighborhoodPolygonStyle: {
+                    color: '#888',
+                    weight: 2,
+                    opacity: 0.80,
+                    fillColor: "#808080",
+                    fillOpacity: 0.1
+                },
+                mouseoverStyle: {
+                    color: 'red',
+                    fillColor: 'red'
+                },
+                mouseoutStyle: {
+                    color: '#888',
+                    weight: 2,
+                    opacity: 0.80,
+                    fillColor: "#808080",
+                    fillOpacity: 0.1
+                },
+                legendPosition: 'bottomleft',
+                scrollWheel: true,
+                zoomSlider: false,
+                zoomControl: true,
+                resetButton: false,
+                overlayPolygon: true,
+                mapName: 'label-map',
+                mapStyle: "mapbox.streets",
+                accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
+    }
+    var map = Choropleth(_, $, "null", mapParams);
+    var choropleth = Choropleth(_, $, difficultRegionIds, params)
+
+    self.adminGSVLabelView = AdminGSVLabelView(true);
+
+    // Functionality for the legend's minimize button.
+    $('#map-legend-minimize-button').click(function() {
+        $("#legend-table").slideToggle(0);
+        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
+    });
 
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
@@ -175,13 +200,13 @@ function Admin(_, $, choropleth, initializeOverlayPolygon) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
-            self.initializeNeighborhoodPolygons(map);
-            self.initializeAuditedStreets(map);
+            InitializeAuditedStreets(map, self, "/contribution/streets/all", mapParams);
+            ToggleController(map, self);
             // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
             setTimeout(function(){
-                self.initializeSubmittedLabels(map);
+                InitializeSubmittedLabels(map, self, "/labels/all", mapParams);
             }, 1000);
-            self.initializeAdminGSVLabelView();
+            AdminGSVLabelView(true);
             setTimeout(function () {
                 map.invalidateSize(false);
             }, 1);
@@ -355,8 +380,6 @@ function Admin(_, $, choropleth, initializeOverlayPolygon) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                // make a choropleth of neighborhood completion percentages
-                choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
                 setTimeout(function () {
                     choropleth.invalidateSize(false);
                 }, 1);

@@ -329,7 +329,7 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div id="map-holder">
-                            <div id="admin-map"></div>
+                            <div id="label-map"></div>
                             <div id="map-label-legend">
                                 <div id="map-legend-title-holder">
                                     <label id="map-legend-title">Legend</label>
@@ -370,7 +370,7 @@
                                         <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
-                                        <td id="map-legend-nosidewalk"></td>
+                                        <td id="map-legend-no-sidewalk"></td>
                                         <td>No Sidewalk</td>
                                         <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
                                         <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
@@ -803,9 +803,11 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/LabelMap.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/ToggleController.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -891,9 +893,8 @@
             var params = {
                 choroplethType: 'admin',
                 regionColors: [
-                    '#08306b', '#08519c', '#08719c',
-                    '#2171b5', '#4292c6', '#6baed6',
-                    '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
+                    '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
+                    '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
                 ],
                 neighborhoodPolygonStyle: {
                     color: '#888',
@@ -911,6 +912,7 @@
                    opacity: 0.25,
                    weight: 1 
                 },
+                turf: turf,
                 legendPosition: 'bottomleft',
                 scrollWheel: false,
                 zoomSlider: false,
@@ -918,10 +920,10 @@
                 resetButton: false,
                 overlayPolygon: false,
                 mapName: 'admin-choropleth',
-                mapType: "mapbox.light",
+                mapStyle: "mapbox.light",
                 accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
-            window.admin = Choropleths(_, $, difficultRegionIds, params);
+            window.admin = Admin(_, $, difficultRegionIds, params);
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();
