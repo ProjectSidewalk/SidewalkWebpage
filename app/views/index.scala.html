@@ -371,7 +371,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -389,9 +389,8 @@
             var params = {
                 choroplethType: 'landingPage',
                 regionColors: [
-                    '#08306b', '#08519c', '#08719c',
-                    '#2171b5', '#4292c6', '#6baed6',
-                    '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
+                    '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
+                    '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
                 ],
                 neighborhoodPolygonStyle: {
                     color: '#888',
@@ -417,10 +416,10 @@
                 resetButton: false,
                 overlayPolygon: false,
                 mapName: 'choropleth',
-                mapType: "mapbox.light",
+                mapStyle: "mapbox.light",
                 accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
-            window.choropleth = Choropleths(_, $, difficultRegionIds, params);
+            window.choropleth = Choropleth(_, $, difficultRegionIds, params);
         });
     });
 </script>

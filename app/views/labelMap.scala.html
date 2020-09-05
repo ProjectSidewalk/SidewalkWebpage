@@ -11,7 +11,7 @@
     <div class="container" id="results-choropleth-container" style="width: 100%;
         position: relative;">
         <div id="map-holder">
-            <div id="admin-map"></div>
+            <div id="label-map"></div>
             <div id="map-label-legend">
                 <div id="map-legend-title-holder">
                     <label id="map-legend-title">Legend</label>
@@ -52,7 +52,7 @@
                         <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-nosidewalk"></td>
+                        <td id="map-legend-no-sidewalk"></td>
                         <td>No Sidewalk</td>
                         <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="map.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
                         <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
@@ -83,6 +83,8 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
@@ -93,6 +95,10 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/ToggleController.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/LayerController.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
@@ -101,8 +107,7 @@
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/LabelMap.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
 
 
     <script>
@@ -153,6 +158,17 @@
     </script>
     <script>
         $(document).ready(function () {
+        // Gets all translations before loading the choropleth.
+        i18next.use(i18nextXHRBackend);
+        i18next.init({
+            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+            fallbackLng: 'en',
+            ns: ['common'],
+            defaultNS: 'common',
+            lng: "@lang.code",
+            debug: false
+        }, function(err, t) {
+            var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             var params = {
                 choroplethType: 'labelMap',
                 neighborhoodPolygonStyle: {
@@ -179,14 +195,20 @@
                 zoomControl: true,
                 resetButton: false,
                 overlayPolygon: true,
-                mapName: 'admin-map',
-                mapType: "mapbox.streets",
+                mapName: 'label-map',
+                mapStyle: "mapbox.streets",
                 accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
             }
-            window.map = Choropleths(_, $, "null", params);
+            var map = Choropleth(_, $, "null", params);
+            var self = LayerController();
+            InitializeAuditedStreets(map, self, "/contribution/streets/all", params);
+            InitializeSubmittedLabels(map, self, "/labels/all", params);
+            ToggleController(map, self, false);
+            window.map = self;
         });
         $(window).load(function() {
             $(".loader").fadeOut("slow");
         })
+    });
     </script>
 }

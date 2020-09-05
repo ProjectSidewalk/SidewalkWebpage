@@ -24,7 +24,7 @@
                             <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td><td id="td-number-of-missing-curb-ramps"></td></tr>
                             <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td><td id="td-number-of-obstacles"></td></tr>
                             <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td><td id="td-number-of-surface-problems"></td></tr>
-                            <tr><td id="map-legend-nosidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
+                            <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
                             <tr><td id="map-legend-audited-street"></td><td>@Messages("dashboard.audited.street")</td></tr>
                         </table>
                     </div>
@@ -185,6 +185,10 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/ToggleController.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
@@ -205,7 +209,37 @@
                 debug: false
             }, function(err, t) {
                 var username = '@user.get.username';
-                window.admin = AdminUser({username: username});
+                var params = {
+                    choroplethType: 'adminUser',
+                    neighborhoodPolygonStyle: {
+                        color: '#888',
+                        weight: 2,
+                        opacity: 0.80,
+                        fillColor: "#808080",
+                        fillOpacity: 0.1
+                    },
+                    mouseoverStyle: {
+                        color: "red",
+                        fillColor: "red",
+                    },
+                    mouseoutStyle: {
+                        color: "#888",
+                        fillColor: "#808080"
+                    },
+                    webpageActivity: "Click_module=UserMap_regionId=",
+                    legendPosition: 'topright',
+                    scrollWheel: true,
+                    zoomSlider: false,
+                    zoomControl: true,
+                    resetButton: false,
+                    overlayPolygon: true,
+                    username: '@user.get.username',
+                    progressElement: 'td-total-distance-audited-admin',
+                    mapName: 'admin-map',
+                    mapStyle: "mapbox.streets",
+                    accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
+                };
+                window.admin = AdminUser(params);
                 $('#labelTable').dataTable();
             });
         });

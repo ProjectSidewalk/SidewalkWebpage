@@ -82,7 +82,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -100,9 +100,8 @@
             var params = {
                 choroplethType: 'results',
                 regionColors: [
-                    '#99000a', '#b3000c', '#cc000e',
-                    '#e6000f', '#ff1a29', '#ff3341',
-                    '#ff4d58', '#ff6670', '#ff8088', '#ff99a0'
+                    '#99000a', '#b3000c', '#cc000e', '#e6000f', '#ff1a29',
+                    '#ff3341', '#ff4d58', '#ff6670', '#ff8088', '#ff99a0'
                 ],
                 neighborhoodPolygonStyle: {
                     color: '#000',
@@ -128,10 +127,10 @@
                 resetButton: true,
                 overlayPolygon: false,
                 mapName: 'choropleth',
-                mapType: "mapbox.light",
+                mapStyle: "mapbox.light",
                 accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
-            window.choropleth = Choropleths(_, $, difficultRegionIds, params);
+            window.choropleth = Choropleth(_, $, difficultRegionIds, params);
         });
     });
 </script>

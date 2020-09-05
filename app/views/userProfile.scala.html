@@ -76,8 +76,10 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
@@ -114,19 +116,18 @@
                 },
                 webpageActivity: "Click_module=UserMap_regionId=",
                 legendPosition: 'topright',
-                c3: c3,
-                L: L,
                 userRole: "@user.get.role",
                 scrollWheel: true,
                 zoomSlider: false,
                 zoomControl: true,
                 resetButton: false,
                 overlayPolygon: true,
+                progressElement: 'td-total-distance-audited',
                 mapName: 'map',
-                mapType: "mapbox.streets",
+                mapStyle: "mapbox.streets",
                 accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
             };
-            window.progress = Choropleths(_, $, difficultRegionIds, params);
+            window.progress = Progress(_, $, difficultRegionIds, params);
         });
     });
     </script>
