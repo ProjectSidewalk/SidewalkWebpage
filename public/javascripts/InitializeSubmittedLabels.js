@@ -1,6 +1,6 @@
 function InitializeSubmittedLabels(map, self, url, params) {
     $.getJSON(url, function (data) {
-        var auditedStreetColor = params.choroplethType === 'labelMap' ? 'black' : 'rgba(128, 128, 128, 1.0)';
+        var auditedStreetColor = params.choroplethType === 'labelMap' ? '#000' : 'rgba(128, 128, 128, 1.0)';
         // Count a number of each label type
         var labelCounter = {
             "CurbRamp": 0,
@@ -9,7 +9,6 @@ function InitializeSubmittedLabels(map, self, url, params) {
             "SurfaceProblem": 0,
             "NoSidewalk": 0
         };
-
         for (var i = data.features.length - 1; i >= 0; i--) {
             labelCounter[data.features[i].properties.label_type] += 1;
         }
@@ -29,13 +28,12 @@ function InitializeSubmittedLabels(map, self, url, params) {
             if (params.choroplethType === 'userDash') {
                 handleInitilizationComplete(map);
             }  
-        } else {    // label map
+        } else {    // When loading label map.
             document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
             document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
              // Create layers for each of the 42 different label-severity combinations
             for (var i = 0; i < data.features.length; i++) {
                 var labelType = data.features[i].properties.label_type;
-
                 if (data.features[i].properties.severity === 1) {
                     self.allLayers[labelType][1].push(data.features[i]);
                 } else if (data.features[i].properties.severity === 2) {
@@ -63,7 +61,7 @@ function InitializeSubmittedLabels(map, self, url, params) {
     });
 
     function onEachLabelFeature(feature, layer) {
-        if (params.choroplethType === 'labelMap' || params.choroplethType === 'AdminUser') {
+        if (params.choroplethType === 'labelMap' || params.choroplethType === 'adminUser') {
             layer.on('click', function () {
                 self.adminGSVLabelView.showLabel(feature.properties.label_id);
             });
@@ -75,7 +73,7 @@ function InitializeSubmittedLabels(map, self, url, params) {
                     layer.setRadius(5);
                 }
             })
-        } else {    // user dash
+        } else {    // When on user dash.
             if (feature.properties && feature.properties.type) {
                 layer.bindPopup(feature.properties.type);
             }
@@ -95,7 +93,6 @@ function InitializeSubmittedLabels(map, self, url, params) {
         };
 
     function createLayer(data) {
-        console.log("test");
         return L.geoJson(data, {
             pointToLayer: function (feature, latlng) {
                 var style = $.extend(true, {}, geojsonMarkerOptions);
