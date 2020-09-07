@@ -1,6 +1,5 @@
 function Admin(_, $, difficultRegionIds, params) {
     var self = LayerController();
-
     var mapParams = {
         choroplethType: 'labelMap',
                 neighborhoodPolygonStyle: {
@@ -31,9 +30,6 @@ function Admin(_, $, difficultRegionIds, params) {
                 mapStyle: "mapbox.streets",
                 accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
     }
-    var map = Choropleth(_, $, "null", mapParams);
-    var choropleth = Choropleth(_, $, difficultRegionIds, params)
-
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
     }
@@ -164,13 +160,13 @@ function Admin(_, $, difficultRegionIds, params) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
+            var map = Choropleth(_, $, "null", mapParams);
             InitializeAuditedStreets(map, self, "/contribution/streets/all", mapParams);
             ToggleController(map, self, true);
             // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
             setTimeout(function(){
                 InitializeSubmittedLabels(map, self, "/labels/all", mapParams);
             }, 1000);
-            AdminGSVLabelView(true);
             setTimeout(function () {
                 map.invalidateSize(false);
             }, 1);
@@ -344,6 +340,7 @@ function Admin(_, $, difficultRegionIds, params) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+                var choropleth = Choropleth(_, $, difficultRegionIds, params)
                 setTimeout(function () {
                     choropleth.invalidateSize(false);
                 }, 1);
