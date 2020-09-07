@@ -4,7 +4,7 @@ function AdminUser(params) {
     var map = Choropleth(_, $, 'null', params);
     InitializeAuditedStreets(map, self, "/adminapi/auditedStreets/" + params.username, params);
     InitializeSubmittedLabels(map, self, "/adminapi/labelLocations/" + params.username, params);
-    ToggleController(map, self, true);
+    self.adminGSVLabelView = AdminGSVLabelView(true);
     
     $.getJSON("/adminapi/tasks/" + params.username, function (data) {
         _data.tasks = data;
