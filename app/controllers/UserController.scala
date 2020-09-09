@@ -40,6 +40,19 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
+   * Handles the Sign In action on mobile.
+   *
+   * @return The result to display.
+   */
+  def signInMobile(url: String) = UserAwareAction.async { implicit request =>
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signInMobile(SignInForm.form, url)))
+    } else {
+      Future.successful(Redirect(url))
+    }
+  }
+
+  /**
    * Handles the Sign Up action.
    *
    * @return The result to display.
@@ -47,6 +60,19 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
   def signUp(url: String) = UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
       Future.successful(Ok(views.html.signUp(SignUpForm.form)))
+    } else {
+      Future.successful(Redirect(url))
+    }
+  }
+
+  /**
+   * Handles the Sign Up action.
+   *
+   * @return The result to display.
+   */
+  def signUpMobile(url: String) = UserAwareAction.async { implicit request =>
+    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
+      Future.successful(Ok(views.html.signUpMobile(SignUpForm.form)))
     } else {
       Future.successful(Redirect(url))
     }

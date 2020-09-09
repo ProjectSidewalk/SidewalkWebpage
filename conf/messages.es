@@ -182,6 +182,7 @@ authenticate.password = Contraseña
 authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
+authenticate.non.member.mobile = ¿No eres un miembro? <a href="/signUpMobile">Regístrate ahora</a>
 authenticate.username = Nombre de usuario/a
 authenticate.confirm.password = Confirmar contraseña
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
@@ -189,6 +190,7 @@ authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
 authenticate.is.member = ¿Ya eres miembro? <a href="/signIn">Iniciar sesión ahora</a>
+authenticate.is.member.mobile = ¿Ya eres miembro? <a href="/signInMobile">Iniciar sesión ahora</a>
 authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
 authenticate.error.uhoh = Oh-oh!
