@@ -2,10 +2,10 @@ function AdminUser(params) {
     var self = {};
     var _data = {};
     var map = Choropleth(_, $, 'null', params);
+    self.adminGSVLabelView = AdminGSVLabelView(true);
     InitializeAuditedStreets(map, self, "/adminapi/auditedStreets/" + params.username, params);
     InitializeSubmittedLabels(map, self, "/adminapi/labelLocations/" + params.username, params);
-    self.adminGSVLabelView = AdminGSVLabelView(true);
-    
+        
     $.getJSON("/adminapi/tasks/" + params.username, function (data) {
         _data.tasks = data;
         
