@@ -11,7 +11,7 @@
 
 @(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
-@main(title) {
+@main(title, Some("/mobile")) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/lib/gsv/zpipe.min.js")'></script>
@@ -63,6 +63,7 @@
         <div id="modal-mission-holder">
             <div id="modal-mission-background" class="modal-background"></div>
             <div id="modal-mission-foreground" class="modal-foreground">
+                <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButtonMobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
                 <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
@@ -236,5 +237,6 @@
             }
             svv.main = new Main(param);
         }
+
     </script>
 }
