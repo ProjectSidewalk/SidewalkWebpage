@@ -427,7 +427,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             if (candidateTasks.length === 0) {
 
                 // TODO: Remove the console.log statements if issue #1449 has been resolved.
-                console.log('finished neighborhood screen has appeared, logging debug info');
+                console.error('finished neighborhood screen has appeared, logging debug info');
                 console.log('incompleteTasks.length:' +
                     self.getIncompleteTasksAcrossAllUsersUsingPriority().length);
                 console.log('finishedTask streetEdgeId: ' + finishedTask.getStreetEdgeId());
