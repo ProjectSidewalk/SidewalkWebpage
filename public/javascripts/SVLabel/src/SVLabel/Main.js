@@ -177,8 +177,11 @@ function Main (params) {
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
         // Logs when the webpage's visiblity changes.
-        document.addEventListener("visibilitychange", function(event) {
-            svl.tracker.push("VisibilityChange", {"visibility": document.visibilityState});
+        window.addEventListener("focus", function(event) {
+            svl.tracker.push("FocusChange", {"hasFocus": true})
+        });
+        window.addEventListener("blur", function(event) {
+            svl.tracker.push("FocusChange", {"hasFocus": false})
         });
 
         // Modals
