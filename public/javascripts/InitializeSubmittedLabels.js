@@ -1,6 +1,32 @@
-function InitializeSubmittedLabels(map, self, url, params) {
+function InitializeSubmittedLabels(map, url, params, adminGSVLabelView) {
+    var self = {};
+    self.markerLayer = null;
+    self.curbRampLayers = [];
+    self.missingCurbRampLayers = [];
+    self.obstacleLayers = [];
+    self.surfaceProblemLayers = [];
+    self.cantSeeSidewalkLayers = [];
+    self.noSidewalkLayers = [];
+    self.otherLayers = [];
+    self.mapLoaded = false;
+    self.graphsLoaded = false;
+    for (var i = 0; i < 6; i++) {
+        self.curbRampLayers[i] = [];
+        self.missingCurbRampLayers[i] = [];
+        self.obstacleLayers[i] = [];
+        self.surfaceProblemLayers[i] = [];
+        self.cantSeeSidewalkLayers[i] = [];
+        self.noSidewalkLayers[i] = [];
+        self.otherLayers[i] = [];
+    }
+    self.allLayers = {
+        "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
+        "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
+        "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
+    };
+
     $.getJSON(url, function (data) {
-        var auditedStreetColor = params.choroplethType === 'labelMap' ? '#000' : 'rgba(128, 128, 128, 1.0)';
+        var auditedStreetColor = params.streetColor;
         // Count a number of each label type
         var labelCounter = {
             "CurbRamp": 0,
@@ -18,7 +44,7 @@ function InitializeSubmittedLabels(map, self, url, params) {
         document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
         document.getElementById("map-legend-no-sidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
         document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='" + auditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-        if (params.choroplethType === 'userDash' || params.choroplethType === 'adminUser') {
+        if (params.isUserDash) {
             document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
             document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
             document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
@@ -26,7 +52,7 @@ function InitializeSubmittedLabels(map, self, url, params) {
             document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
             createLayer(data).addTo(map);
             if (params.choroplethType === 'userDash') {
-                handleInitilizationComplete(map);
+                setRegionFocus(map);
             }  
         } else {    // When loading label map.
             document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
@@ -61,9 +87,9 @@ function InitializeSubmittedLabels(map, self, url, params) {
     });
 
     function onEachLabelFeature(feature, layer) {
-        if (params.choroplethType === 'labelMap' || params.choroplethType === 'adminUser') {
+        if (params.labelPopup) {
             layer.on('click', function () {
-                self.adminGSVLabelView.showLabel(feature.properties.label_id);
+                adminGSVLabelView.showLabel(feature.properties.label_id);
             });
             layer.on({
                 'mouseover': function () {
@@ -106,7 +132,7 @@ function InitializeSubmittedLabels(map, self, url, params) {
         })
     }
 
-    function handleInitilizationComplete(map) {
+    function setRegionFocus(map) {
         // Search for a region id in the query string. If you find one, focus on that region.
         var regionId = util.getURLParameter("regionId"),
         i,
@@ -129,4 +155,5 @@ function InitializeSubmittedLabels(map, self, url, params) {
             }
         }
     }
+    return self;
 }
