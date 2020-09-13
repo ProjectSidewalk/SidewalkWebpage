@@ -387,7 +387,6 @@
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             var params = {
-                choroplethType: 'landingPage',
                 regionColors: [
                     '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
                     '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
@@ -409,12 +408,9 @@
                    weight: 1 
                 },
                 webpageActivity: "Click_module=Choropleth_regionId=",
-                legendPosition: 'bottomleft',
-                scrollWheel: false,
                 zoomSlider: true,
-                zoomControl: false,
-                resetButton: false,
-                overlayPolygon: false,
+                clickData: true,
+                disableScrollWheel: true,
                 mapName: 'choropleth',
                 mapStyle: "mapbox.light",
                 accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'

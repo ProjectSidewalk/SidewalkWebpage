@@ -1,5 +1,4 @@
 function Choropleth(_, $, difficultRegionIds, params) {
-    //var self = {};
     var labelText = {
         "NoSidewalk":"Missing Sidewalks",
         "NoCurbRamp": "Missing Curb Ramps",
@@ -15,19 +14,15 @@ function Choropleth(_, $, difficultRegionIds, params) {
     
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = params.accessToken;
-
     var choropleth = L.mapbox.map(params.mapName, params.mapStyle, {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: params.zoomControl,
-        legendControl: {
-            position: params.legendPosition
-        },
         zoomSnap: 0.5
     });
 
-    if (params.scrollWheel === false) choropleth.scrollWheelZoom.disable();
-    if (params.zoomSlider === true) L.control.zoomslider().addTo(choropleth);
+    if (params.disableScrollWheel) choropleth.scrollWheelZoom.disable();
+    if (params.zoomSlider) L.control.zoomslider().addTo(choropleth);
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
@@ -69,16 +64,15 @@ function Choropleth(_, $, difficultRegionIds, params) {
     // render the neighborhood polygons, colored by completion percentage 
     function initializeChoroplethNeighborhoodPolygons(map, rates) {
         var regionData;
-        var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle, // default region color, used to check if any regions are missing data
+         // Default region color, used to check if any regions are missing data.
+        var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle,
             layers = [],
             currentLayer;
 
         // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
         function style(feature) {
-            if (params.choroplethType === 'userDash' || params.choroplethType === 'labelMap' ||
-                params.choroplethType === 'adminUser') {
-                return params.neighborhoodPolygonStyle;
-            } else {
+            if (params.singleRegionColor) return params.neighborhoodPolygonStyle;
+            else {
                 for (var i = 0; i < rates.length; i++) {
                     if (rates[i].region_id === feature.properties.region_id) {
                         if (params.choroplethType === 'results') return findAccessibilityChoroplethColor(rates[i])
@@ -112,12 +106,10 @@ function Choropleth(_, $, difficultRegionIds, params) {
                     if (measurementSystem === "metric") distanceLeft *= 0.001;
                     else distanceLeft *= 0.000621371;
                     distanceLeft = Math.round(distanceLeft);
-
                     var advancedMessage = '';
                     if (difficultRegionIds.includes(feature.properties.region_id)) {
                         advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
-
                     if (userCompleted) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("common:map.100-percent-complete") + "<br>" +
@@ -160,7 +152,7 @@ function Choropleth(_, $, difficultRegionIds, params) {
                 }
             });
 
-            if (params.choroplethType != "admin") {
+            if (params.clickData) {
                 layer.on('click', function (e) {
                     currentLayer = this;
 
@@ -202,7 +194,7 @@ function Choropleth(_, $, difficultRegionIds, params) {
             .addTo(map);
         });
 
-        if (params.choroplethType != 'admin') {
+        if (params.clickData) {
             // Logs when a region is selected from the choropleth and 'Click here' is clicked
             // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=audit"
             // Log is stored in WebpageActivityTable
@@ -303,24 +295,21 @@ function Choropleth(_, $, difficultRegionIds, params) {
                '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Obstacle.png"></td>'+
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
     }
-
-    
-        $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-            if (params.choroplethType === 'results') {
-                $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
-                    //append label counts to region data with map/reduce
-                    var regionData = _.map(data, function(region) {
-                        var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
-                        region.labels = regionLabel ? regionLabel.labels : {};
-                        return region;
-                    });
-                    initializeChoropleth(regionData);
+    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+        if (params.choroplethType === 'results') {
+            $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
+                //append label counts to region data with map/reduce
+                var regionData = _.map(data, function(region) {
+                    var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
+                    region.labels = regionLabel ? regionLabel.labels : {};
+                    return region;
                 });
-            } else {
-                initializeChoropleth(data);
-            }   
-        });
-    
+                initializeChoropleth(regionData);
+            });
+        } else {
+            initializeChoropleth(data);
+        }   
+    });
     
     /**
      * This function takes data and initializes the choropleth with it.
@@ -330,10 +319,6 @@ function Choropleth(_, $, difficultRegionIds, params) {
     function initializeChoropleth(data) {
         // make a choropleth of neighborhood completion percentages
         initializeChoroplethNeighborhoodPolygons(choropleth, data);
-        if (params.choroplethType !== 'userDash' && params.choroplethType !== 'adminUser' &&
-            params.choroplethType !== 'labelMap') {
-            choropleth.legendControl.addLegend(document.getElementById('legend').innerHTML);
-        }
         setTimeout(function () {
             choropleth.invalidateSize(false);
         }, 1);
@@ -342,12 +327,10 @@ function Choropleth(_, $, difficultRegionIds, params) {
     
     // Makes POST request that logs `activity` in WebpageActivityTable
     function postToWebpageActivity(activity) {
-        var url = "/userapi/logWebpageActivity";
-        var async = true;
         $.ajax({
-            async: async,
+            async: true,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: "/userapi/logWebpageActivity",
             type: 'post',
             data: JSON.stringify(activity),
             dataType: 'json',
