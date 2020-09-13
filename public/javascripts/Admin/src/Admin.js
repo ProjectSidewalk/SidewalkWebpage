@@ -540,7 +540,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         std /= filteredData.length;
         std = Math.sqrt(std);
 
-        return {mean:mean, median:median, std:std, min:min, max};
+        return {mean:mean, median:median, std:std, min:min, max:max};
     }
 
     // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
@@ -706,7 +706,32 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
                 var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
+                
+                var curbRampStats = getSummaryStats(curbRamps, "severity");
+                $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
+                $("#curb-ramp-std").html((curbRampStats.std).toFixed(2));
+                
+                var noCurbRampStats = getSummaryStats(noCurbRamps, "severity");
+                $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
+                $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
+                
+                var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
+                $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
+                $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
+                
+                var obstacleStats = getSummaryStats(obstacles, "severity");
+                $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
+                $("#obstacle-std").html((obstacleStats.std).toFixed(2));
+                
+                var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
+                $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
+                $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
 
+                var allData = data.features;
+                var allDataStats = getSummaryStats(allData, "severity");
+                $("#labels-mean").html((allDataStats.mean).toFixed(2));
+                $("#labels-std").html((allDataStats.std).toFixed(2));
+                
                 var subPlotHeight = 150;
                 var subPlotWidth = 149;
                 var chart = {
@@ -1087,6 +1112,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
 
+                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
+                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
+
                 var allHistOpts = {
                     xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
                     binStep: 15, legendOffset: -80
@@ -1119,13 +1149,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
-                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
-                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
-
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
+                
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
                 });
@@ -1156,6 +1194,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
+
+                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
+                $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
 
                 var allHistOpts = {
                     xAxisTitle: "# Labels per User (all)", xDomain: [0, allStats.max], width: 187,
@@ -1189,13 +1232,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
-                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
-                $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
 
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
                 });
@@ -1226,6 +1277,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
+
+                $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
+                $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
+                $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Validations");
+                $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Validations");
 
                 var allHistOpts = {
                     xAxisTitle: "# Validations per User (all)", xDomain: [0, allStats.max], width: 187,
@@ -1259,13 +1315,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
-                $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
-                $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Validations");
-                $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Validations");
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
 
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
                 });
