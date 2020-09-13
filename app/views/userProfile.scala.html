@@ -97,37 +97,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            var params = {
-                choroplethType: 'userDash',
-                neighborhoodPolygonStyle: {
-                    color: '#888',
-                    weight: 2,
-                    opacity: 0.80,
-                    fillColor: "#808080",
-                    fillOpacity: 0.1
-                },
-                mouseoverStyle: {
-                    color: "red",
-                    fillColor: "red",
-                },
-                mouseoutStyle: {
-                    color: "#888",
-                    fillColor: "#808080"
-                },
-                webpageActivity: "Click_module=UserMap_regionId=",
-                legendPosition: 'topright',
-                userRole: "@user.get.role",
-                scrollWheel: true,
-                zoomSlider: false,
-                zoomControl: true,
-                resetButton: false,
-                overlayPolygon: true,
-                progressElement: 'td-total-distance-audited',
-                mapName: 'map',
-                mapStyle: "mapbox.streets",
-                accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
-            };
-            window.progress = Progress(_, $, difficultRegionIds, params);
+            window.progress = Progress(_, $, difficultRegionIds, '@user.get.role');
         });
     });
     </script>
