@@ -14,6 +14,7 @@ import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
+import play.api.Logger
 
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -105,6 +106,8 @@ object LabelTable {
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
+  val descriptions = TableQuery[LabelDescriptionTable]
+  val temporariness = TableQuery[LabelTemporarinessTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
@@ -699,6 +702,37 @@ object LabelTable {
       }
     }
     selectedLabels
+  }
+
+  /**
+   * Retrieve labels of a specified type
+   *
+   * @param labelTypeId    Label Type ID of labels requested.
+   * @return               Seq[LabelValidationMetadata]
+   */
+  def retrieveLabelsByType(labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    val _labels = for {
+      _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+    } yield (_lb, _lp, _lt.labelType)
+
+    val addSeverity = for {
+      (l, s) <- _labels.leftJoin(severities).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, s.severity.?)
+
+    val addTemporariness = for {
+      (l, t) <- addSeverity.leftJoin(temporariness).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, t.temporary.?.getOrElse(false))
+
+    val addDescriptions = for {
+      (l, d) <- addTemporariness.leftJoin(descriptions).on(_._1.labelId === _.labelId)
+    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
+             l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
+
+    Logger.debug(addDescriptions.list.size + "")
+
+    addDescriptions.list.map(label => labelAndTagsToLabelValidationMetadata(LabelValidationMetadataWithoutTags.tupled(label), getTagsFromLabelId(label._1)))
   }
 
   /**

@@ -14,6 +14,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap
 GET     /labelmap                                            @controllers.ApplicationController.labelMap
+GET     /sidewalkGallery                                     @controllers.ApplicationController.sidewalkGallery
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
@@ -116,6 +117,7 @@ GET     /rewardEarned                                        @controllers.Missio
 GET     /label/currentMission                                @controllers.LabelController.getLabelsFromCurrentMission(regionId: Int)
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
+GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByType(labelTypeId: Int)
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 

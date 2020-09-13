@@ -347,6 +347,26 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns the Sidewalk Gallery page
+   *
+   * @return
+   */
+  def sidewalkGallery = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        // Here for eventual logging
+        // WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_SidewalkGallery", timestamp))
+        Future.successful(Ok(views.html.sidewalkGallery("Sidewalk Gallery", Some(user))))
+      case None =>
+        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon
+        Future.successful(Redirect("/anonSignUp?url=/sidewalkGallery"))
+    }
+  }
+
+  /**
     * Returns the demo page that contains a cool visualization that is a work-in-progress.
     *
     * @return

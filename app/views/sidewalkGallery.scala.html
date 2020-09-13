@@ -1,0 +1,26 @@
+@import models.user.User
+@import models.region.RegionTable
+@import play.api.libs.json.Json
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
+
+@main(title) {
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/Main.js")'></script>
+
+    @navbar(user, Some("/sidewalkGallery"))
+    <div class="gallery-overview-container">
+        <h1 class="gallery-title"></h1>
+        <div class="tag-container">
+        </div>
+        <div class="image-container">
+        </div>
+    </div>
+    @footer()
+}
+
+<script type="text/javascript">
+    var sg = sg || {};
+    var param = {};
+
+    sg.main = new Main(param);
+
+</script>
