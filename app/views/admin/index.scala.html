@@ -333,7 +333,7 @@
                             <div id="map-label-legend">
                                 <div id="map-legend-title-holder">
                                     <label id="map-legend-title">Legend</label>
-                                    <button id="map-legend-minimize-button" class="close">-</button>
+                                    <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
                                 </div>
                                 <table class="table filter" id="legend-table">
                                     <tr>
@@ -344,7 +344,7 @@
                                     <tr>
                                         <td id="map-legend-curb-ramp" width="12px"></td>
                                         <td width="190px">Curb Ramp</td>
-                                        <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
+                                        <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider', admin.map, admin.allLayers)"></td>
                                         <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
                                         <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
 
@@ -352,46 +352,46 @@
                                     <tr>
                                         <td id="map-legend-no-curb-ramp"></td>
                                         <td>Missing Curb Ramp</td>
-                                        <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider', admin.map, admin.allLayers)"></td>
                                         <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
                                         <td align= "center"><span id="missing-curb-ramp-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-obstacle"></td>
                                         <td>Obstacle in Path</td>
-                                        <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="toggleLayers('Obstacle', 'obstacle', '#obstacle-slider', admin.map, admin.allLayers)"></td>
                                         <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
                                         <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr><td id="map-legend-surface-problem"></td>
                                         <td>Surface Problem</td>
-                                        <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider', admin.map, admin.allLayers)"></td>
                                         <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
                                         <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-no-sidewalk"></td>
                                         <td>No Sidewalk</td>
-                                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider', admin.map, admin.allLayers)"></td>
                                         <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
                                         <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-other"></td>
                                         <td>Other</td>
-                                        <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLayers('Other', 'other', '#other-slider')"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="toggleLayers('Other', 'other', '#other-slider', admin.map, admin.allLayers)"></td>
                                         <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
                                         <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
                                         <td id="map-legend-occlusion"></td>
                                         <td>Can't see sidewalk</td>
-                                        <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider')"></td>
+                                        <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="toggleLayers('Occlusion', 'occlusion', '#occlusion-slider', admin.map, admin.allLayers)"></td>
                                     </tr>
                                     <tr>
                                       <td id="map-legend-audited-street"></td>
                                       <td>Audited Street</td>
-                                      <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer();"></td>
+                                      <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="toggleAuditedStreetLayer(admin.map, admin.auditedStreetLayer)"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -805,10 +805,10 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/LayerController.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/ToggleController.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/LayerController.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -859,19 +859,19 @@
             },
             change: function(event,ui) {
                 if (this.id == "curb-ramp-slider") {
-                    admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
+                    toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider', admin.map, admin.allLayers);
                 } else if (this.id == "missing-curb-ramp-slider") {
-                    admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
+                    toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider', admin.map, admin.allLayers);
                 } else if (this.id == "obstacle-slider") {
-                    admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
+                    toggleLayers('Obstacle', 'obstacle', '#obstacle-slider', admin.map, admin.allLayers)
                 } else if (this.id == 'surface-problem-slider') {
-                    admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
+                    toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider', admin.map, admin.allLayers);
                 } else if (this.id == 'occlusion-slider') {
-                    admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
+                    toggleLayers('Occlusion', 'occlusion', '#occlusion-slider', admin.map, admin.allLayers);
                 } else if (this.id == 'no-sidewalk-slider') {
-                    admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
+                    toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider', admin.map, admin.allLayers);
                 } else if (this.id == 'other-slider') {
-                    admin.toggleLayers('Other', 'other', '#other-slider');
+                    toggleLayers('Other', 'other', '#other-slider', admin.map, admin.allLayers);
                 }
             }
         });
@@ -891,39 +891,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            var params = {
-                choroplethType: 'admin',
-                regionColors: [
-                    '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
-                    '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
-                ],
-                neighborhoodPolygonStyle: {
-                    color: '#888',
-                    weight: 1,
-                    opacity: 0.25,
-                    fillColor: "#f00",
-                    fillOpacity: 1.0
-                },
-                mouseoverStyle: {
-                    opacity: 1.0,
-                    weight: 3,
-                    color: "#000"
-                },
-                mouseoutStyle: {
-                   opacity: 0.25,
-                   weight: 1 
-                },
-                legendPosition: 'bottomleft',
-                scrollWheel: false,
-                zoomSlider: false,
-                zoomControl: true,
-                resetButton: false,
-                overlayPolygon: false,
-                mapName: 'admin-choropleth',
-                mapStyle: "mapbox.light",
-                accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
-            };
-            window.admin = Admin(_, $, difficultRegionIds, params);
+            window.admin = Admin(_, $, difficultRegionIds);
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();

@@ -1,35 +1,68 @@
-function Admin(_, $, difficultRegionIds, params) {
-    var self = LayerController();
+function Admin(_, $, difficultRegionIds) {
+    var params = {
+        regionColors: [
+            '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
+            '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
+        ],
+        neighborhoodPolygonStyle: {
+            color: '#888',
+            weight: 1,
+            opacity: 0.25,
+            fillColor: "#f00",
+            fillOpacity: 1.0
+        },
+        mouseoverStyle: {
+            opacity: 1.0,
+            weight: 3,
+            color: "#000"
+        },
+        mouseoutStyle: {
+           opacity: 0.25,
+           weight: 1 
+        },
+        zoomControl: true,
+        disableScrollWheel: true,
+        mapName: 'admin-choropleth',
+        mapStyle: "mapbox.light",
+        accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
+    };
     var mapParams = {
         choroplethType: 'labelMap',
-                neighborhoodPolygonStyle: {
-                    color: '#888',
-                    weight: 2,
-                    opacity: 0.80,
-                    fillColor: "#808080",
-                    fillOpacity: 0.1
-                },
-                mouseoverStyle: {
-                    color: 'red',
-                    fillColor: 'red'
-                },
-                mouseoutStyle: {
-                    color: '#888',
-                    weight: 2,
-                    opacity: 0.80,
-                    fillColor: "#808080",
-                    fillOpacity: 0.1
-                },
-                legendPosition: 'bottomleft',
-                scrollWheel: true,
-                zoomSlider: false,
-                zoomControl: true,
-                resetButton: false,
-                overlayPolygon: true,
-                mapName: 'label-map',
-                mapStyle: "mapbox.streets",
-                accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
-    }
+            neighborhoodPolygonStyle: {
+                color: '#888',
+                weight: 2,
+                opacity: 0.80,
+                fillColor: "#808080",
+                fillOpacity: 0.1
+            },
+            mouseoverStyle: {
+                color: 'red',
+                fillColor: 'red'
+            },
+            mouseoutStyle: {
+                color: '#888',
+                weight: 2,
+                opacity: 0.80,
+                fillColor: "#808080",
+                fillOpacity: 0.1
+            },
+            scrollWheel: true,
+            zoomControl: true,
+            overlayPolygon: true,
+            mapName: 'label-map',
+            mapStyle: "mapbox.streets",
+            accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
+    };
+    var streetParams = {
+        labelPopup: true,
+        choroplethType: 'labelMap',
+        streetColor: 'black'
+    };
+    var map = Choropleth(_, $, "null", mapParams);
+    self = InitializeSubmittedLabels(map, "/labels/all", streetParams, AdminGSVLabelView(true));
+    self.auditedStreetLayer = InitializeAuditedStreets(map, "/contribution/streets/all", streetParams);
+    var choropleth = Choropleth(_, $, difficultRegionIds, params);
+
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
     }
@@ -160,13 +193,6 @@ function Admin(_, $, difficultRegionIds, params) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
-            var map = Choropleth(_, $, "null", mapParams);
-            InitializeAuditedStreets(map, self, "/contribution/streets/all", mapParams);
-            ToggleController(map, self, true);
-            // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
-            setTimeout(function(){
-                InitializeSubmittedLabels(map, self, "/labels/all", mapParams);
-            }, 1000);
             setTimeout(function () {
                 map.invalidateSize(false);
             }, 1);
@@ -340,7 +366,6 @@ function Admin(_, $, difficultRegionIds, params) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                var choropleth = Choropleth(_, $, difficultRegionIds, params)
                 setTimeout(function () {
                     choropleth.invalidateSize(false);
                 }, 1);
@@ -995,6 +1020,7 @@ function Admin(_, $, difficultRegionIds, params) {
     initializeAdminLabelSearch();
 
     self.clearPlayCache = clearPlayCache;
+    self.map = map;
 
     $('.change-role').on('click', changeRole);
 
