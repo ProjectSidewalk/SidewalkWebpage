@@ -178,10 +178,10 @@ function Main (params) {
 
         // Logs when the webpage's visiblity changes.
         window.addEventListener("focus", function(event) {
-            svl.tracker.push("FocusChange", {"hasFocus": true})
+            svl.tracker.push("GainedFocus")
         });
         window.addEventListener("blur", function(event) {
-            svl.tracker.push("FocusChange", {"hasFocus": false})
+            svl.tracker.push("LostFocus")
         });
 
         // Modals

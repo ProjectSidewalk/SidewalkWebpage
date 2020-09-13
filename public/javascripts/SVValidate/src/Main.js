@@ -151,10 +151,10 @@ function Main (param) {
 
         // Logs when the webpage's visiblity changes.
         window.addEventListener("focus", function(event) {
-            svv.tracker.push("FocusChange", {"hasFocus": true})
+            svv.tracker.push("GainedFocus")
         });
         window.addEventListener("blur", function(event) {
-            svv.tracker.push("FocusChange", {"hasFocus": false})
+            svv.tracker.push("LostFocus")
         });
 
         // There are certain features that will only make sense if we have one validation interface on the screen.
