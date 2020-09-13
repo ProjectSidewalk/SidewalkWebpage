@@ -1,10 +1,40 @@
-function AdminUser(params) {
-    var self = {};
+function AdminUser(user) {
     var _data = {};
+    var params = {
+        neighborhoodPolygonStyle: {
+            color: '#888',
+            weight: 2,
+            opacity: 0.80,
+            fillColor: "#808080",
+            fillOpacity: 0.1
+        },
+        mouseoverStyle: {
+            color: "red",
+            fillColor: "red",
+        },
+        mouseoutStyle: {
+            color: "#888",
+            fillColor: "#808080"
+        },
+        webpageActivity: "Click_module=UserMap_regionId=",
+        singleRegionColor: true,
+        zoomControl: true,
+        overlayPolygon: true,
+        username: user,
+        mapName: 'admin-map',
+        mapStyle: "mapbox.streets",
+        accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
+    };
+    var streetParams = {
+        labelPopup: true,
+        isUserDash: true,
+        streetColor: 'rgba(128, 128, 128, 1.0)',
+        progress: true,
+        progressElement: 'td-total-distance-audited-admin'
+    };
     var map = Choropleth(_, $, 'null', params);
-    self.adminGSVLabelView = AdminGSVLabelView(true);
-    InitializeAuditedStreets(map, self, "/adminapi/auditedStreets/" + params.username, params);
-    InitializeSubmittedLabels(map, self, "/adminapi/labelLocations/" + params.username, params);
+    InitializeAuditedStreets(map, "/adminapi/auditedStreets/" + params.username, streetParams);
+    var self = InitializeSubmittedLabels(map, "/adminapi/labelLocations/" + params.username, streetParams, AdminGSVLabelView(true));
         
     $.getJSON("/adminapi/tasks/" + params.username, function (data) {
         _data.tasks = data;

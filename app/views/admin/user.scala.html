@@ -208,38 +208,7 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                var username = '@user.get.username';
-                var params = {
-                    choroplethType: 'adminUser',
-                    neighborhoodPolygonStyle: {
-                        color: '#888',
-                        weight: 2,
-                        opacity: 0.80,
-                        fillColor: "#808080",
-                        fillOpacity: 0.1
-                    },
-                    mouseoverStyle: {
-                        color: "red",
-                        fillColor: "red",
-                    },
-                    mouseoutStyle: {
-                        color: "#888",
-                        fillColor: "#808080"
-                    },
-                    webpageActivity: "Click_module=UserMap_regionId=",
-                    legendPosition: 'topright',
-                    scrollWheel: true,
-                    zoomSlider: false,
-                    zoomControl: true,
-                    resetButton: false,
-                    overlayPolygon: true,
-                    username: '@user.get.username',
-                    progressElement: 'td-total-distance-audited-admin',
-                    mapName: 'admin-map',
-                    mapStyle: "mapbox.streets",
-                    accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
-                };
-                window.admin = AdminUser(params);
+                window.admin = AdminUser('@user.get.username');
                 $('#labelTable').dataTable();
             });
         });
