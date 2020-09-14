@@ -1,3 +1,6 @@
+/**
+ * Central function that handles the creation of choropleths and maps.
+ */
 function Choropleth(_, $, difficultRegionIds, params) {
     var labelText = {
         "NoSidewalk":"Missing Sidewalks",
@@ -319,9 +322,6 @@ function Choropleth(_, $, difficultRegionIds, params) {
     function initializeChoropleth(data) {
         // make a choropleth of neighborhood completion percentages
         initializeChoroplethNeighborhoodPolygons(choropleth, data);
-        setTimeout(function () {
-            choropleth.invalidateSize(false);
-        }, 1);
         $('#loadingChoropleth').hide();
     }
     
