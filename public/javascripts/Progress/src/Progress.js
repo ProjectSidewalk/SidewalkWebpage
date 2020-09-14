@@ -36,7 +36,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
     var map = Choropleth(_, $, difficultRegionIds, params);
     // Return value not stored because the audited street layer never needs to be toggled.
     InitializeAuditedStreets(map, "/contribution/streets", streetParams);
-    var self = InitializeSubmittedLabels(map, "/userapi/labels", streetParams, 'null');
+    InitializeSubmittedLabels(map, "/userapi/labels", streetParams, 'null', LayerController());
     initializeAuditCountChart();
     initializeSubmittedMissions();
 
