@@ -196,35 +196,35 @@
             <div id="choropleth"></div>
         </div>
     </div>
-    <div class="ps--cityscape">
-        <div class="ps--cityscape--container">
-            @if("Washington"== cityName || "Seattle" == cityName){
+    <div class="ps-skyline">
+        <div class="ps-skyline-container">
+            @if(cityName == "Washington" || cityName == "Seattle") {
                 <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
             } else {
                 <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
             }
-            <img src="@routes.Assets.at("assets/" + "GenericCloudOverlay.png")" class="over-skyline">
+            <img src="@routes.Assets.at("assets/" + "generic_cloud_overlay.png")" class="skyline-cloud-overlay">
         </div>
-        <div class="ps--cityscape--numberholder">
-            <span class="ps--cityscape--numberholder--numbers" id="percentage">45</span>
-            <span class="ps--cityscape--numberholder--numbers" id="distance">45</span>
-            <span class="ps--cityscape--numberholder--numbers" id="numlabels">36,583</span>
+        <div class="ps-skyline-stats-holder">
+            <span class="ps-skyline-stats-holder-stat-number" id="percentage">45</span>
+            <span class="ps-skyline-stats-holder-stat-number" id="distance">45</span>
+            <span class="ps-skyline-stats-holder-stat-number" id="numlabels">36,583</span>
             <a href="/validate">
-                <span class="ps--cityscape--numberholder--numbers" id="numvalidation">123,583</span>
+                <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">123,583</span>
             </a>
-            <span class="ps--cityscape--numberholder--labels">@Messages("landing.stats.percent", cityShortName)</span>
-            <span class="ps--cityscape--numberholder--labels">@Messages("landing.stats.distance")</span>
-            <span class="ps--cityscape--numberholder--labels">@Messages("landing.stats.labels")</span>
+            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent", cityShortName)</span>
+            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
+            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
             <a href="/validate">
-                <span class="ps--cityscape--numberholder--labels" >@Messages("landing.stats.validations")</span>
+                <span class="ps-skyline-stats-holder-stat-label" >@Messages("landing.stats.validations")</span>
             </a>
         </div>
-        <div class="ps--cityscape--overlay">
-            <div class="row" style="margin: 0 auto; width: fit-content; margin-top: 135px;">@Messages("landing.stats.title")</div>
+        <div class="ps-skyline-overlay">
+            <div class="row" id="skyline-spacing">@Messages("landing.stats.title")</div>
             <div class="row" id="content-text-2">
                 <p id="conditional-text">Keep Mapping!</p>
             </div>
-            <a class="ps--cityscape--overlay--btn" href="@routes.ApplicationController.results">
+            <a class="ps-skyline-overlay-btn" href="@routes.ApplicationController.results">
                 @Messages("navbar.results")
             </a>
         </div>

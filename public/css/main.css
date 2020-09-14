@@ -437,12 +437,12 @@ p#conditional-text {
 
 }
 
-.ps--cityscape {
+.ps-skyline {
     position: relative;
     padding: 15px;
 }
 
-.ps--cityscape--overlay {
+.ps-skyline-overlay {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -452,12 +452,18 @@ p#conditional-text {
     flex-direction: column;
 }
 
-.ps--cityscape--overlay > * {
+.ps-skyline-overlay > * {
     align-self: center;
     margin-top: 20px;
 }
 
-.ps--cityscape--overlay > .row {
+#skyline-spacing {
+    margin: 0 auto; 
+    width: fit-content; 
+    margin-top: 135px;
+}
+
+.ps-skyline-overlay > .row {
     background-color: white;
     opacity: 90%;
     padding: 5px;
@@ -472,7 +478,7 @@ p#conditional-text {
     color: #2D2A3F;
 } 
 
-.ps--cityscape--overlay--btn {
+.ps-skyline-overlay-btn {
     background-color: #eb734d;
     opacity: 90%;
     -moz-border-radius:15px;
@@ -490,23 +496,23 @@ p#conditional-text {
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 
-.ps--cityscape--overlay--btn:hover {
+.ps-skyline-overlay-btn:hover {
     border:1px solid #eb734d;
     color: #ffffff;
     text-shadow: none;
 }
 
-.ps--cityscape--container {
+.ps-skyline-container {
     display: flex;
     flex-direction: column;
 }
 
-.ps--cityscape--container > img {
+.ps-skyline-container > img {
     width: 1400px;
     align-self: center;
 }
 
-.over-skyline {
+.skyline-cloud-overlay {
     margin-top: -68px; /* Height of Cloud .png */
 }
 
@@ -526,7 +532,7 @@ p#conditional-text {
     position: relative;
 }
 
-.ps--cityscape--numberholder {
+.ps-skyline-stats-holder {
     margin: -35px auto 0 auto;
     min-width: 800px;
     max-width: 1400px;
@@ -538,25 +544,25 @@ p#conditional-text {
     text-align: center;
 }
 
-.ps--cityscape--numberholder--numbers {
+.ps-skyline-stats-holder-stat-number {
     font-size: 60px;
     font-family: raleway-extrabold, sans-serif;
 }
 
-.ps--cityscape--numberholder--labels {
+.ps-skyline-stats-holder-stat-label {
     font-size: 30px;
 }
 
-.ps--cityscape--numberholder > a {
+.ps-skyline-stats-holder > a {
     color: #2D2A3F;
 }
 
-.ps--cityscape--numberholder > a:hover {
+.ps-skyline-stats-holder > a:hover {
     text-decoration: none;
 }
 
 @media (max-width: 835px) {
-    .ps--cityscape--numberholder {
+    .ps-skyline-stats-holder {
         display: none;
     }
 }
