@@ -1,30 +1,11 @@
-function InitializeSubmittedLabels(map, url, params, adminGSVLabelView) {
-    var self = {};
-    self.markerLayer = null;
-    self.curbRampLayers = [];
-    self.missingCurbRampLayers = [];
-    self.obstacleLayers = [];
-    self.surfaceProblemLayers = [];
-    self.cantSeeSidewalkLayers = [];
-    self.noSidewalkLayers = [];
-    self.otherLayers = [];
-    self.mapLoaded = false;
-    self.graphsLoaded = false;
-    for (var i = 0; i < 6; i++) {
-        self.curbRampLayers[i] = [];
-        self.missingCurbRampLayers[i] = [];
-        self.obstacleLayers[i] = [];
-        self.surfaceProblemLayers[i] = [];
-        self.cantSeeSidewalkLayers[i] = [];
-        self.noSidewalkLayers[i] = [];
-        self.otherLayers[i] = [];
-    }
-    self.allLayers = {
-        "CurbRamp": self.curbRampLayers, "NoCurbRamp": self.missingCurbRampLayers, "Obstacle": self.obstacleLayers,
-        "SurfaceProblem": self.surfaceProblemLayers, "Occlusion": self.cantSeeSidewalkLayers,
-        "NoSidewalk": self.noSidewalkLayers, "Other": self.otherLayers
-    };
-
+/**
+ * @param map
+ * @param url 
+ * @param params 
+ * @param adminGSVLabelView 
+ * @param mapData 
+ */
+function InitializeSubmittedLabels(map, url, params, adminGSVLabelView, mapData) {
     $.getJSON(url, function (data) {
         var auditedStreetColor = params.streetColor;
         // Count a number of each label type
@@ -61,26 +42,26 @@ function InitializeSubmittedLabels(map, url, params, adminGSVLabelView) {
             for (var i = 0; i < data.features.length; i++) {
                 var labelType = data.features[i].properties.label_type;
                 if (data.features[i].properties.severity === 1) {
-                    self.allLayers[labelType][1].push(data.features[i]);
+                    mapData.allLayers[labelType][1].push(data.features[i]);
                 } else if (data.features[i].properties.severity === 2) {
-                    self.allLayers[labelType][2].push(data.features[i]);
+                    mapData.allLayers[labelType][2].push(data.features[i]);
                 } else if (data.features[i].properties.severity === 3) {
-                    self.allLayers[labelType][3].push(data.features[i]);
+                    mapData.allLayers[labelType][3].push(data.features[i]);
                 } else if (data.features[i].properties.severity === 4) {
-                    self.allLayers[labelType][4].push(data.features[i]);
+                    mapData.allLayers[labelType][4].push(data.features[i]);
                 } else if (data.features[i].properties.severity === 5) {
-                    self.allLayers[labelType][5].push(data.features[i]);
+                    mapData.allLayers[labelType][5].push(data.features[i]);
                 } else { // No severity level
-                    self.allLayers[labelType][0].push(data.features[i]);
+                    mapData.allLayers[labelType][0].push(data.features[i]);
                 }
             }
-            Object.keys(self.allLayers).forEach(function (key) {
-                for (var i = 0; i < self.allLayers[key].length; i++) {
-                    self.allLayers[key][i] = createLayer({
+            Object.keys(mapData.allLayers).forEach(function (key) {
+                for (var i = 0; i < mapData.allLayers[key].length; i++) {
+                    mapData.allLayers[key][i] = createLayer({
                         "type": "FeatureCollection",
-                        "features": self.allLayers[key][i]
+                        "features": mapData.allLayers[key][i]
                     });
-                    self.allLayers[key][i].addTo(map);
+                    mapData.allLayers[key][i].addTo(map);
                 }
             })
         } 
@@ -155,5 +136,5 @@ function InitializeSubmittedLabels(map, url, params, adminGSVLabelView) {
             }
         }
     }
-    return self;
+    return mapData;
 }
