@@ -187,6 +187,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/LayerController.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/ToggleController.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
@@ -208,7 +209,7 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                window.admin = AdminUser('@user.get.username');
+                AdminUser('@user.get.username');
                 $('#labelTable').dataTable();
             });
         });

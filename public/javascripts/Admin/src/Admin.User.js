@@ -1,5 +1,4 @@
 function AdminUser(user) {
-    var _data = {};
     var params = {
         neighborhoodPolygonStyle: {
             color: '#888',
@@ -34,12 +33,10 @@ function AdminUser(user) {
     };
     var map = Choropleth(_, $, 'null', params);
     InitializeAuditedStreets(map, "/adminapi/auditedStreets/" + params.username, streetParams);
-    var self = InitializeSubmittedLabels(map, "/adminapi/labelLocations/" + params.username, streetParams, AdminGSVLabelView(true));
+    InitializeSubmittedLabels(map, "/adminapi/labelLocations/" + params.username, streetParams, AdminGSVLabelView(true), LayerController());
         
     $.getJSON("/adminapi/tasks/" + params.username, function (data) {
-        _data.tasks = data;
-        
-        var grouped = _.groupBy(_data.tasks, function (o) { return o.audit_task_id});
+        var grouped = _.groupBy(data, function (o) { return o.audit_task_id});
         var auditTaskId;
         var auditTaskIds = Object.keys(grouped);
         var tableRows = "";
@@ -87,6 +84,5 @@ function AdminUser(user) {
         $("#task-contribution-table").append(tableRows);
     });
 
-    self.data = _data;
     return self;
 }

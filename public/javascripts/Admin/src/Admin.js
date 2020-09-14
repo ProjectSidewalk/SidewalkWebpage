@@ -1,4 +1,10 @@
 function Admin(_, $, difficultRegionIds) {
+    var self = {};
+    var mapLoaded = false;
+    var graphsLoaded = false;
+    var mapData = LayerController();
+    var map;
+    var auditedStreetLayer;
     var params = {
         regionColors: [
             '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
@@ -46,6 +52,7 @@ function Admin(_, $, difficultRegionIds) {
                 fillColor: "#808080",
                 fillOpacity: 0.1
             },
+            singleRegionColor: true,
             scrollWheel: true,
             zoomControl: true,
             overlayPolygon: true,
@@ -58,10 +65,6 @@ function Admin(_, $, difficultRegionIds) {
         choroplethType: 'labelMap',
         streetColor: 'black'
     };
-    var map = Choropleth(_, $, "null", mapParams);
-    self = InitializeSubmittedLabels(map, "/labels/all", streetParams, AdminGSVLabelView(true));
-    self.auditedStreetLayer = InitializeAuditedStreets(map, "/contribution/streets/all", streetParams);
-    var choropleth = Choropleth(_, $, difficultRegionIds, params);
 
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
@@ -76,6 +79,14 @@ function Admin(_, $, difficultRegionIds) {
 
     function isResearcherRole(roleName) {
         return ['Researcher', 'Administrator', 'Owner'].indexOf(roleName) > 0;
+    }
+
+    function toggleLayersAdmin(label, checkboxId, sliderId) {
+        toggleLayers(label, checkboxId, sliderId, map, mapData.allLayers);
+    }
+
+    function toggleAuditedStreetLayerAdmin() {
+        toggleAuditedStreetLayer(map, auditedStreetLayer);
     }
 
     // Takes an array of objects and the name of a property of the objects, returns summary stats for that property
@@ -192,13 +203,13 @@ function Admin(_, $, difficultRegionIds) {
     }
 
     $('.nav-pills').on('click', function (e) {
-        if (e.target.id == "visualization" && self.mapLoaded == false) {
-            setTimeout(function () {
-                map.invalidateSize(false);
-            }, 1);
-            self.mapLoaded = true;
+        if (e.target.id == "visualization" && mapLoaded == false) {
+            map = Choropleth(_, $, "null", mapParams);
+            mapData = InitializeSubmittedLabels(map, "/labels/all", streetParams, AdminGSVLabelView(true), mapData);
+            auditedStreetLayer = InitializeAuditedStreets(map, "/contribution/streets/all", streetParams);
+            mapLoaded = true;
         }
-        else if (e.target.id == "analytics" && self.graphsLoaded == false) {
+        else if (e.target.id == "analytics" && graphsLoaded == false) {
 
             var opt = {
                 "mode": "vega-lite",
@@ -366,10 +377,7 @@ function Admin(_, $, difficultRegionIds) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                setTimeout(function () {
-                    choropleth.invalidateSize(false);
-                }, 1);
-
+                Choropleth(_, $, difficultRegionIds, params);
                 // make charts showing neighborhood completion rate
                 for (var j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0; // change from proportion to percent
@@ -970,7 +978,7 @@ function Admin(_, $, difficultRegionIds) {
             });
             });
             });
-            self.graphsLoaded = true;
+            graphsLoaded = true;
         }
     });
 
@@ -1020,7 +1028,8 @@ function Admin(_, $, difficultRegionIds) {
     initializeAdminLabelSearch();
 
     self.clearPlayCache = clearPlayCache;
-    self.map = map;
+    self.toggleLayers = toggleLayersAdmin;
+    self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
 
     $('.change-role').on('click', changeRole);
 

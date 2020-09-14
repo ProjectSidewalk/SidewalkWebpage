@@ -1,3 +1,6 @@
+/**
+ * Handles the toggling of layers on a map/choropleth according to the slider/checkbox.
+ */
 function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
     if (document.getElementById(checkboxId).checked) {
         if(checkboxId == "occlusion"){
