@@ -149,13 +149,21 @@ function Main (param) {
         }
         svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
 
-        // Logs when the webpage's visiblity changes.
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svv.tracker.push("PageGainedFocus");
+            } else {
+                svv.tracker.push("PageLostFocus");
+            }
+        }
         window.addEventListener("focus", function(event) {
-            svv.tracker.push("GainedFocus")
+            logPageFocus();
         });
         window.addEventListener("blur", function(event) {
-            svv.tracker.push("LostFocus")
+            logPageFocus();
         });
+        logPageFocus();
 
         // There are certain features that will only make sense if we have one validation interface on the screen.
         if (param.canvasCount === 1 && !isMobile()) {

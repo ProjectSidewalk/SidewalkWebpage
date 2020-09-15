@@ -176,13 +176,21 @@ function Main (params) {
         }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
-        // Logs when the webpage's visiblity changes.
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svl.tracker.push("PageGainedFocus");
+            } else {
+                svl.tracker.push("PageLostFocus");
+            }
+        }
         window.addEventListener("focus", function(event) {
-            svl.tracker.push("GainedFocus")
+            logPageFocus();
         });
         window.addEventListener("blur", function(event) {
-            svl.tracker.push("LostFocus")
+            logPageFocus();
         });
+        logPageFocus();
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
