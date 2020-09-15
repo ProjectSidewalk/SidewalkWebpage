@@ -1,9 +1,5 @@
 /**
- * @param map
- * @param url 
- * @param params 
- * @param adminGSVLabelView 
- * @param mapData 
+ * Initializes labels onto map/choropleth, returns information about label layers on map.
  */
 function InitializeSubmittedLabels(map, url, params, adminGSVLabelView, mapData) {
     $.getJSON(url, function (data) {
