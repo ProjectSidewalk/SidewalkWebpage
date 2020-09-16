@@ -173,6 +173,22 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svv.tracker.push("PageGainedFocus");
+            } else {
+                svv.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
+
         svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
