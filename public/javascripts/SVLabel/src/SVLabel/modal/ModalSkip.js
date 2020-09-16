@@ -12,9 +12,10 @@
  * @param tracker
  * @param uiLeftColumn
  * @param uiModalSkip
+ * @param userModel
  * @constructor
  */
-function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip) {
+function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMenu, taskContainer, tracker, uiLeftColumn, uiModalSkip, userModel) {
     var self = this;
     var status = {
         disableClickOK: true
@@ -33,7 +34,11 @@ function ModalSkip(form, modalModel, navigationModel, onboardingModel, ribbonMen
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
         svl.modalComment.hide();
-        self.showSkipMenu();
+        if (userModel.getUser().getProperty("role") === "Turker") {
+            self._handleClickUnavailable();
+        } else {
+            self.showSkipMenu();
+        }
     };
 
     /**
