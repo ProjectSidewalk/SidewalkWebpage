@@ -190,7 +190,7 @@ function LabelContainer($) {
      */
     this.removeLabel = function (label) {
         if (!label) { return false; }
-        svl.tracker.push('RemoveLabel', {labelId: label.getProperty('labelId')});
+        svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
 
