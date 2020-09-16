@@ -62,6 +62,3 @@ module.exports=window.L=require("leaflet/dist/leaflet-src");
 },{"../package.json":7,"./config":8}],30:[function(require,module,exports){
 "use strict";function contains(n,t){if(!t||!t.length)return!1;for(var r=0;r<t.length;r++)if(t[r]===n)return!0;return!1}module.exports={idUrl:function(n,t){-1===n.indexOf("/")?t.loadID(n):t.loadURL(n)},log:function(n){"object"==typeof console&&"function"==typeof console.error&&console.error(n)},strict:function(n,t){if(typeof n!==t)throw new Error("Invalid argument: "+t+" expected")},strict_instance:function(n,t,r){if(!(n instanceof t))throw new Error("Invalid argument: "+r+" expected")},strict_oneof:function(n,t){if(!contains(n,t))throw new Error("Invalid argument: "+n+" given, valid values are "+t.join(", "))},strip_tags:function(n){return n.replace(/<[^<]+>/g,"")},lbounds:function(n){return new L.LatLngBounds([[n[1],n[0]],[n[3],n[2]]])}};
 },{}]},{},[16])
-
-
-//# sourceMappingURL=mapbox.js.map

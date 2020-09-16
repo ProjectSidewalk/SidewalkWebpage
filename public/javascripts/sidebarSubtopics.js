@@ -27,17 +27,35 @@ $(document).ready(function(){
         }
     });*/
 
+    /**
+     * If the panel is a sidebar (when window width >= 978px), make the panel scrollable when the user
+     * presses the plus, and not scrollable when the user presses the minus.
+     */
     $(".plusminus").click(function() {
         this.classList.toggle("active");
 
+        var w = document.documentElement.clientWidth;
+        var smallWindowWidth = 978;
+        var scrollbarWidth = 15;
         var panel = document.getElementById("subtopics");
-        if (panel.style.maxHeight){
+        var helpPanel = document.getElementById("help-panel");
+        if (panel.style.maxHeight) {
             panel.style.maxHeight = null;
             $(".plusminus").text('+');
+            $("#help-panel").addClass("not-scrollable").removeClass("scrollable");
+            if (w >= smallWindowWidth) {
+                helpPanel.style.width = helpPanel.offsetWidth - scrollbarWidth + "px";
+            }
         } else {
-            panel.style.maxHeight = panel.scrollHeight + "px";
+            panel.style.maxHeight = panel.scrollHeight + 100 + "px";
             $(".plusminus").text('-');
+            if (w >= smallWindowWidth) {
+                $("#help-panel").addClass("scrollable").removeClass("not-scrollable");
+                updateSidebarForScrollState()
+                helpPanel.style.width = helpPanel.offsetWidth + scrollbarWidth + "px";
+            } else {
+                $("#help-panel").addClass("not-scrollable").removeClass("scrollable");
+            }
         }
     });
-
 });

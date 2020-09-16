@@ -33,7 +33,7 @@
         <legend>@Messages("authenticate.signin.with.credentials")</legend>
         @helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
         @text(signInForm("identifier"), Messages("authenticate.email"), icon = "at")
-        @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
+        @password(signInForm("passwordSignIn"), Messages("authenticate.password"), icon = "key")
         <div class="form-group">
             <div>
                 <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("authenticate.submit")</button>

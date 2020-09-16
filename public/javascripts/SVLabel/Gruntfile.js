@@ -66,7 +66,7 @@ module.exports = function(grunt) {
                 ],
                 helpers: 'spec/SpecHelper.js',
                 vendor: [
-                    'lib/underscore.min.js',
+                    'lib/underscore-min.js',
                     'lib/sinon-1.17.5.js',
                     'lib/backbone-min.js',
                     'lib/jquery-2.1.4.min.js',
