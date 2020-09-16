@@ -127,6 +127,11 @@
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
+                            <li role="presentation">
+                                <a href='@routes.ApplicationController.leaderboard' role="menuitem">
+                                    Leaderboard
+                                </a>
+                            </li>
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
                                     <a href='@routes.AdminController.index' role="menuitem">
@@ -529,5 +534,5 @@ $(document).ready(function () {
         <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
             @Messages("navbar.signin")
         </a>
-    </template>`
+    </template>
 }
