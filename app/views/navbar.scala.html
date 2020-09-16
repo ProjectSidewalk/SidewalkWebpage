@@ -127,11 +127,6 @@
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
-                            <li role="presentation">
-                                <a href='@routes.ApplicationController.leaderboard' role="menuitem">
-                                    Leaderboard
-                                </a>
-                            </li>
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
                                     <a href='@routes.AdminController.index' role="menuitem">
