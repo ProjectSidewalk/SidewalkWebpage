@@ -66,7 +66,7 @@ function Tracker () {
         return action.indexOf("RemoveLabel") >= 0;
     };
 
-    this._isClickLbelDeleteAction = function (action) {
+    this._isClickLabelDeleteAction = function (action) {
         return action.indexOf("Click_LabelDelete") >= 0;
     };
 
@@ -198,7 +198,7 @@ function Tracker () {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
 
-        } else if (self._isClickLbelDeleteAction(action)){
+        } else if (self._isClickLabelDeleteAction(action)){
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);
