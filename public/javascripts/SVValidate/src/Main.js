@@ -149,22 +149,6 @@ function Main (param) {
         }
         svv.validationContainer = new ValidationContainer(param.canvasCount, param.labelList);
 
-        // Logs when the page's focus changes.
-        function logPageFocus() {
-            if (document.hasFocus()) {
-                svv.tracker.push("PageGainedFocus");
-            } else {
-                svv.tracker.push("PageLostFocus");
-            }
-        }
-        window.addEventListener("focus", function(event) {
-            logPageFocus();
-        });
-        window.addEventListener("blur", function(event) {
-            logPageFocus();
-        });
-        logPageFocus();
-
         // There are certain features that will only make sense if we have one validation interface on the screen.
         if (param.canvasCount === 1 && !isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
@@ -188,6 +172,22 @@ function Main (param) {
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
+
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svv.tracker.push("PageGainedFocus");
+            } else {
+                svv.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
 
         svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
