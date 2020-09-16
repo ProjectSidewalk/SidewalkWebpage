@@ -516,7 +516,6 @@ p#conditional-text {
     margin-top: -68px; /* Height of Cloud .png */
 }
 
-/* TODO: Change from ID to class, remove unneeded css */
 #content-text-2 {
     background-color: white;
     opacity: 90%;
