@@ -74,14 +74,14 @@
                         <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
-                @if(url.isDefined && url.get != "/validate") {
-                    <li class="navbarLink">
-                        <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
-                    </li>
-                }
                 @if(url.isDefined && url.get != "/audit") {
                     <li class="active navbarLink">
                         <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                    </li>
+                }
+                @if(url.isDefined && url.get != "/validate") {
+                    <li class="navbarLink">
+                        <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
                 }
                 <li class="active navbarLink">
