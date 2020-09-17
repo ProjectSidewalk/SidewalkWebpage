@@ -31,10 +31,20 @@ function AdminUser(user) {
         progress: true,
         progressElement: 'td-total-distance-audited-admin'
     };
-    var map = Choropleth(_, $, 'null', params);
-    InitializeAuditedStreets(map, "/adminapi/auditedStreets/" + params.username, streetParams);
-    InitializeSubmittedLabels(map, "/adminapi/labelLocations/" + params.username, streetParams, AdminGSVLabelView(true), LayerController());
-        
+    var map;
+    var loadPolygons = $.getJSON('/adminapi/neighborhoodCompletionRate');
+    var loadAuditedStreets = $.getJSON('/adminapi/auditedStreets/' + params.username);
+    var loadSubmittedLabels = $.getJSON('/adminapi/labelLocations/' + params.username);
+    var renderPolygons = $.when(loadPolygons).done(function(data) {
+        map = Choropleth(_, $, 'null', params, data);
+    });
+    var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
+        InitializeAuditedStreets(map, streetParams, data2[0]);
+    });
+    $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+        InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), LayerController(), data2[0])
+    })
+    
     $.getJSON("/adminapi/tasks/" + params.username, function (data) {
         var grouped = _.groupBy(data, function (o) { return o.audit_task_id});
         var auditTaskId;

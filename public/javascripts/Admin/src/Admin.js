@@ -204,9 +204,18 @@ function Admin(_, $, difficultRegionIds) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && mapLoaded == false) {
-            map = Choropleth(_, $, "null", mapParams);
-            mapData = InitializeSubmittedLabels(map, "/labels/all", streetParams, AdminGSVLabelView(true), mapData);
-            auditedStreetLayer = InitializeAuditedStreets(map, "/contribution/streets/all", streetParams);
+            var loadPolygons = $.getJSON('/adminapi/neighborhoodCompletionRate');
+            var loadAuditedStreets = $.getJSON('/contribution/streets/all');
+            var loadSubmittedLabels = $.getJSON('/labels/all');
+            var renderPolygons = $.when(loadPolygons).done(function(data) {
+                map = Choropleth(_, $, difficultRegionIds, mapParams, data);
+            });
+            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
+                auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
+            });
+            $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), LayerController(), data2[0])
+            })
             mapLoaded = true;
         }
         else if (e.target.id == "analytics" && graphsLoaded == false) {
@@ -377,7 +386,10 @@ function Admin(_, $, difficultRegionIds) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                Choropleth(_, $, difficultRegionIds, params);
+                var loadPolygons = $.getJSON('/adminapi/neighborhoodCompletionRate');
+                $.when(loadPolygons).done(function(data) {
+                    Choropleth(_, $, difficultRegionIds, params, data);
+                });
                 // make charts showing neighborhood completion rate
                 for (var j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0; // change from proportion to percent
