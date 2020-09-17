@@ -18,7 +18,8 @@ feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error
 navbar.explore = Comienza a explorar
 navbar.validate = Comienza a validar
 navbar.howto = Cómo etiquetar
-navbar.results = Ver resultados
+navbar.results = Mapa de resultados
+navbar.data = Datos
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
 navbar.retake.tutorial = Volver a tomar el tutorial
@@ -167,6 +168,7 @@ validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
 validate.mission.complete.not.sure = No Estoy de seguro
+validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
 
@@ -182,7 +184,7 @@ authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístr
 authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
 authenticate.username = Nombre de usuario/a
 authenticate.confirm.password = Confirmar contraseña
-authenticate.terms = Usted acepta nuestros <a target="_blank" href="@routes.ApplicationController.terms">Términos de uso y Política de privacidad</a>
+authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
@@ -240,3 +242,5 @@ labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay ban
 labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
 admin.overview.distance = km
+
+admin.clear.play.cache = Borrar caché de Play

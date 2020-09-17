@@ -122,11 +122,11 @@
   },
   "mission-complete": {
     "title": "Great Job!",
-    "body-1": "You just validated {{n}} Curb Ramp labels!",
-    "body-2": "You just validated {{n}} Missing Curb Ramp labels!",
-    "body-3": "You just validated {{n}} Obstacle labels!",
-    "body-4": "You just validated {{n}} Surface Problem labels!",
-    "body-7": "You just validated {{n}} No Sidewalk labels!",
+    "body-1": "You just validated {{n}} Curb Ramp labels.",
+    "body-2": "You just validated {{n}} Missing Curb Ramp labels.",
+    "body-3": "You just validated {{n}} Obstacle labels.",
+    "body-4": "You just validated {{n}} Surface Problem labels.",
+    "body-7": "You just validated {{n}} No Sidewalk labels.",
     "validate-more": "Validate more labels",
     "continue": "Continue validating",
     "explore": "Start an exploration mission",
@@ -135,10 +135,10 @@
     "no-new-mission-button": "Start Exploring"
   },
   "mobile": {
-    "info-title-title-CurbRamp": "What is a Curb Ramp?",
-    "info-title-title-NoCurbRamp": "What is a Missing Curb Ramp?",
-    "info-title-title-Obstacle": "What is an Obstacle?",
-    "info-title-title-SurfaceProblem": "What is a Surface Problem?",
-    "info-title-title-NoSidewalk": "What is a \"No Sidewalk\""
+    "info-title-CurbRamp": "What is a Curb Ramp?",
+    "info-title-NoCurbRamp": "What is a Missing Curb Ramp?",
+    "info-title-Obstacle": "What is an Obstacle?",
+    "info-title-SurfaceProblem": "What is a Surface Problem?",
+    "info-title-NoSidewalk": "What is a \"No Sidewalk\""
   }
 }

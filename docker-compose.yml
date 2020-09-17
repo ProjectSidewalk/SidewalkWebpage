@@ -10,7 +10,7 @@ services:
     depends_on:
       - db
     volumes:
-      - "./:/opt"
+      - "./:/opt/:delegated"
       - "/opt/node_modules"
     ports:
       - "9000:9000"
@@ -19,6 +19,7 @@ services:
       - SIDEWALK_CITY_ID=washington-dc
       - SIDEWALK_EMAIL_ADDRESS=DUMMY_EMAIL_ADDRESS
       - SIDEWALK_EMAIL_PASSWORD=DUMMY_EMAIL_PASSWORD
+      - ENV_TYPE=test
 
   db:
     image: projectsidewalk/db

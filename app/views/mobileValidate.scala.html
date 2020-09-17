@@ -9,7 +9,7 @@
 @import play.api.Play.current
 @import views.html.bootstrap._
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
@@ -74,14 +74,14 @@
             <div id="modal-info-foreground" class="modal-foreground">
                 <div id="modal-info-header" class="text-center"></div>
                 <div id="modal-info-description"></div>
-                <div class="status-box">
+                <div id = "infopage-status-box" class="status-box">
                     <h1 class="status-holder-header-1" id="label-type-example"></h1>
                     <div id="example-image-holder">
                         <img id="example-image-1" class="example-image">
                         <img id="example-image-2" class="example-image">
                     </div>
                 </div>
-                <div class="status-box">
+                <div id = "infopage-status-box" class="status-box">
                     <h1 class="status-holder-header-2" id="label-type-counterexample"></h1>
                     <div id="example-image-holder">
                         <img id="counterexample-image-1" class="example-image">
@@ -129,6 +129,10 @@
                             <tr>
                                 <th>@Messages("validate.mission.complete.not.sure")</th>
                                 <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                            </tr>
+                            <tr id="your-overall-total">
+                                <th>@Messages("validate.mission.complete.your.overall.total")</th>
+                                <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
                             </tr>
                         </table>
                         <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
@@ -187,6 +191,7 @@
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.missionSetProgress = @missionSetProgress;
+            param.completedValidations = @completedValidations;
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
             param.canvasCount = 1;
