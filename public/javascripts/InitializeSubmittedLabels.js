@@ -1,68 +1,77 @@
 /**
  * Initializes labels onto map/choropleth, returns information about label layers on map.
  */
-function InitializeSubmittedLabels(map, url, params, adminGSVLabelView, mapData) {
-    $.getJSON(url, function (data) {
-        var auditedStreetColor = params.streetColor;
-        // Count a number of each label type
-        var labelCounter = {
-            "CurbRamp": 0,
-            "NoCurbRamp": 0,
-            "Obstacle": 0,
-            "SurfaceProblem": 0,
-            "NoSidewalk": 0
+function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labelData) {
+    var colorMapping = util.misc.getLabelColors();
+    var geojsonMarkerOptions = {
+            radius: 5,
+            fillColor: "#ff7800",
+            color: "#ffffff",
+            weight: 1,
+            opacity: 0.5,
+            fillOpacity: 0.5,
+            "stroke-width": 1
         };
-        for (var i = data.features.length - 1; i >= 0; i--) {
-            labelCounter[data.features[i].properties.label_type] += 1;
-        }
-        document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
-        document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
-        document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
-        document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
-        document.getElementById("map-legend-no-sidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
-        document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='" + auditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-        if (params.isUserDash) {
-            document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
-            document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
-            document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
-            document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
-            document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
-            createLayer(data).addTo(map);
-            if (params.choroplethType === 'userDash') {
-                setRegionFocus(map);
-            }  
-        } else {    // When loading label map.
-            document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
-            document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
-             // Create layers for each of the 42 different label-severity combinations
-            for (var i = 0; i < data.features.length; i++) {
-                var labelType = data.features[i].properties.label_type;
-                if (data.features[i].properties.severity === 1) {
-                    mapData.allLayers[labelType][1].push(data.features[i]);
-                } else if (data.features[i].properties.severity === 2) {
-                    mapData.allLayers[labelType][2].push(data.features[i]);
-                } else if (data.features[i].properties.severity === 3) {
-                    mapData.allLayers[labelType][3].push(data.features[i]);
-                } else if (data.features[i].properties.severity === 4) {
-                    mapData.allLayers[labelType][4].push(data.features[i]);
-                } else if (data.features[i].properties.severity === 5) {
-                    mapData.allLayers[labelType][5].push(data.features[i]);
-                } else { // No severity level
-                    mapData.allLayers[labelType][0].push(data.features[i]);
-                }
-            }
-            Object.keys(mapData.allLayers).forEach(function (key) {
-                for (var i = 0; i < mapData.allLayers[key].length; i++) {
-                    mapData.allLayers[key][i] = createLayer({
-                        "type": "FeatureCollection",
-                        "features": mapData.allLayers[key][i]
-                    });
-                    mapData.allLayers[key][i].addTo(map);
-                }
-            })
-        } 
-    });
 
+    var auditedStreetColor = params.streetColor;
+    // Count a number of each label type
+    var labelCounter = {
+        "CurbRamp": 0,
+        "NoCurbRamp": 0,
+        "Obstacle": 0,
+        "SurfaceProblem": 0,
+        "NoSidewalk": 0
+    };
+    for (var i = labelData.features.length - 1; i >= 0; i--) {
+        labelCounter[labelData.features[i].properties.label_type] += 1;
+    }
+    document.getElementById("map-legend-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['CurbRamp'].fillStyle + "'></svg>";
+    document.getElementById("map-legend-no-curb-ramp").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoCurbRamp'].fillStyle + "'></svg>";
+    document.getElementById("map-legend-obstacle").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Obstacle'].fillStyle + "'></svg>";
+    document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
+    document.getElementById("map-legend-no-sidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
+    document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='" + auditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
+    if (params.isUserDash) {
+        document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
+        document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
+        document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];
+        document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
+        document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
+        createLayer(labelData).addTo(map);
+        if (params.choroplethType === 'userDash') {
+            setRegionFocus(map);
+        }  
+    } else {    // When loading label map.
+        document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
+        document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
+            // Create layers for each of the 42 different label-severity combinations
+        for (var i = 0; i < labelData.features.length; i++) {
+            var labelType = labelData.features[i].properties.label_type;
+            if (labelData.features[i].properties.severity === 1) {
+                mapData.allLayers[labelType][1].push(labelData.features[i]);
+            } else if (labelData.features[i].properties.severity === 2) {
+                mapData.allLayers[labelType][2].push(labelData.features[i]);
+            } else if (labelData.features[i].properties.severity === 3) {
+                mapData.allLayers[labelType][3].push(labelData.features[i]);
+            } else if (labelData.features[i].properties.severity === 4) {
+                mapData.allLayers[labelType][4].push(labelData.features[i]);
+            } else if (labelData.features[i].properties.severity === 5) {
+                mapData.allLayers[labelType][5].push(labelData.features[i]);
+            } else { // No severity level
+                mapData.allLayers[labelType][0].push(labelData.features[i]);
+            }
+        }
+        Object.keys(mapData.allLayers).forEach(function (key) {
+            for (var i = 0; i < mapData.allLayers[key].length; i++) {
+                mapData.allLayers[key][i] = createLayer({
+                    "type": "FeatureCollection",
+                    "features": mapData.allLayers[key][i]
+                });
+                mapData.allLayers[key][i].addTo(map);
+            }
+        })
+    }
+    
     function onEachLabelFeature(feature, layer) {
         if (params.labelPopup) {
             layer.on('click', function () {
@@ -76,24 +85,11 @@ function InitializeSubmittedLabels(map, url, params, adminGSVLabelView, mapData)
                     layer.setRadius(5);
                 }
             })
-        } else {    // When on user dash.
-            if (feature.properties && feature.properties.type) {
-                layer.bindPopup(feature.properties.type);
-            }
+        // When on user dash.
+        } else { 
+            layer.bindPopup(feature.properties.type);
         }
-        
     }
-
-    var colorMapping = util.misc.getLabelColors();
-    var geojsonMarkerOptions = {
-            radius: 5,
-            fillColor: "#ff7800",
-            color: "#ffffff",
-            weight: 1,
-            opacity: 0.5,
-            fillOpacity: 0.5,
-            "stroke-width": 1
-        };
 
     function createLayer(data) {
         return L.geoJson(data, {

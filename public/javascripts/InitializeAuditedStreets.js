@@ -1,7 +1,7 @@
 /**
 * This function queries the streets that the user audited and visualize them as segments on the map.
 */
-function InitializeAuditedStreets(map, url, params) {
+function InitializeAuditedStreets(map, params, streetData) {
     var auditedStreetLayer;
     var distanceAudited = 0,  // Distance audited in km
     streetLinestringStyle = {
@@ -20,48 +20,40 @@ function InitializeAuditedStreets(map, url, params) {
             }
         })
     }
-
-    $.ajax({
-        async: false,
-        url: url,
-        type: 'get',
-        success: function(data) {
-            // Render audited street segments
-            auditedStreetLayer = L.geoJson(data, {
-                pointToLayer: L.mapbox.marker.style,
-                style: function (feature) {
-                    var style = $.extend(true, {}, streetLinestringStyle);
-                    style.color = params.streetColor;
-                    style["stroke-width"] = 3;
-                    style.opacity = 0.75;
-                    style.weight = 3;
-                    return style;
-                },
-                onEachFeature: onEachStreetFeature
-            })
-                .addTo(map);
-            if (params.progress) {
-                // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
-                for (var i = data.features.length - 1; i >= 0; i--) {
-                    distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
-                }
-                document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
-                // Get total reward if a turker
-                if (params.userRole === 'Turker') {
-                    $.ajax({
-                        async: true,
-                        url: '/rewardEarned',
-                        type: 'get',
-                        success: function(rewardData) {
-                            document.getElementById("td-total-reward-earned").innerHTML = "$" + rewardData.reward_earned.toFixed(2);
-                        },
-                        error: function (xhr, ajaxOptions, thrownError) {
-                            console.log(thrownError);
-                        }
-                    })
-                }
-            }
-        }
+    // Render audited street segments
+    auditedStreetLayer = L.geoJson(streetData, {
+        pointToLayer: L.mapbox.marker.style,
+        style: function (feature) {
+            var style = $.extend(true, {}, streetLinestringStyle);
+            style.color = params.streetColor;
+            style["stroke-width"] = 3;
+            style.opacity = 0.75;
+            style.weight = 3;
+            return style;
+        },
+        onEachFeature: onEachStreetFeature
     })
+        .addTo(map);
+    if (params.progress) {
+        // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
+        for (var i = streetData.features.length - 1; i >= 0; i--) {
+            distanceAudited += turf.length(streetData.features[i], {units: i18next.t('common:unit-distance')});
+        }
+        document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
+        // Get total reward if a turker
+        if (params.userRole === 'Turker') {
+            $.ajax({
+                async: true,
+                url: '/rewardEarned',
+                type: 'get',
+                success: function(rewardData) {
+                    document.getElementById("td-total-reward-earned").innerHTML = "$" + rewardData.reward_earned.toFixed(2);
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError);
+                }
+            })
+        }
+    }
     return auditedStreetLayer;
 }
