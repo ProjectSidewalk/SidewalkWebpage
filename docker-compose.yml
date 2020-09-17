@@ -11,7 +11,7 @@ services:
       - db
     volumes:
       - "./:/opt/:delegated"
-      - "/opt/node_modules:delegated"
+      - "/opt/node_modules"
     ports:
       - "9000:9000"
     environment:
