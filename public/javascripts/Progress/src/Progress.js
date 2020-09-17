@@ -34,11 +34,13 @@ function Progress (_, $, difficultRegionIds, userRole) {
         userRole: userRole
     };
     var map;
-    var loadPolygons = $.getJSON('/adminapi/neighborhoodCompletionRate');
+    var loadPolygons = $.getJSON('/neighborhoods');
+    var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
+    var loadMapParams = $.getJSON('/cityMapParams');
     var loadAuditedStreets = $.getJSON('/contribution/streets');
     var loadSubmittedLabels = $.getJSON('/userapi/labels');
-    var renderPolygons = $.when(loadPolygons).done(function(data) {
-        map = Choropleth(_, $, difficultRegionIds, params, data);
+    var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
+        map = Choropleth(_, $, 'null', params, data1[0], data2[0], data3[0]);
     });
     var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
         InitializeAuditedStreets(map, streetParams, data2[0]);
