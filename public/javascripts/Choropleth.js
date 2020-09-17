@@ -1,7 +1,7 @@
 /**
  * Central function that handles the creation of choropleths and maps.
  */
-function Choropleth(_, $, difficultRegionIds, params, polygonData) {
+function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateData, mapParamData) {
     var labelText = {
         "NoSidewalk":"Missing Sidewalks",
         "NoCurbRamp": "Missing Curb Ramps",
@@ -27,21 +27,19 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData) {
     if (params.disableScrollWheel) choropleth.scrollWheelZoom.disable();
     if (params.zoomSlider) L.control.zoomslider().addTo(choropleth);
 
-    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
-    $.getJSON('/cityMapParams', function(data) {
-        choropleth.setView([data.city_center.lat, data.city_center.lng]);
-        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
-        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
-        choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
-        choropleth.setZoom(data.default_zoom);
-        if (params.resetButton) {
-            $("#reset-button").click(reset);
-            function reset() {
-                choropleth.setView([data.city_center.lat, data.city_center.lng], data.default_zoom);
-            }
+// Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
+    choropleth.setView([mapParamData.city_center.lat, mapParamData.city_center.lng]);
+    var southWest = L.latLng(mapParamData.southwest_boundary.lat, mapParamData.southwest_boundary.lng);
+    var northEast = L.latLng(mapParamData.northeast_boundary.lat, mapParamData.northeast_boundary.lng);
+    choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
+    choropleth.setZoom(mapParamData.default_zoom);
+    if (params.resetButton) {
+        $("#reset-button").click(reset);
+        function reset() {
+            choropleth.setView([mapParamData.city_center.lat, mapParamData.city_center.lng], mapParamData.default_zoom);
         }
-        if (params.overlayPolygon) initializeOverlayPolygon(choropleth, data.city_center.lat, data.city_center.lng);
-    });
+    }
+    if (params.overlayPolygon) initializeOverlayPolygon(choropleth, mapParamData.city_center.lat, mapParamData.city_center.lng);
 
     /**
      * This function adds a semi-transparent white polygon on top of a map.
@@ -186,16 +184,14 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData) {
                 });
             }
         }
-
+        
         // adds the neighborhood polygons to the map
-        $.getJSON("/neighborhoods", function (data) {
-            regionData = data;
-            neighborhoodPolygonLayer = L.geoJson(data, {
+        regionData = polygonData;
+            neighborhoodPolygonLayer = L.geoJson(polygonData, {
                 style: style,
                 onEachFeature: onEachNeighborhoodFeature
             })
             .addTo(map);
-        });
 
         if (params.clickData) {
             // Logs when a region is selected from the choropleth and 'Click here' is clicked
@@ -299,21 +295,20 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData) {
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
     }
 
-        if (params.choroplethType === 'results') {
-            $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
-                //append label counts to region data with map/reduce
-                var regionData = _.map(polygonData, function(region) {
-                    var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
-                    region.labels = regionLabel ? regionLabel.labels : {};
-                    return region;
-                });
-                initializeChoropleth(regionData);
+    if (params.choroplethType === 'results') {
+        $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
+            //append label counts to region data with map/reduce
+            var regionData = _.map(polygonRateData, function(region) {
+                var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
+                region.labels = regionLabel ? regionLabel.labels : {};
+                return region;
             });
-        } else {
-            initializeChoropleth(polygonData);
-        }   
+            initializeChoropleth(regionData);
+        });
+    } else {
+        initializeChoropleth(polygonRateData);
+    }   
 
-    
     /**
      * This function takes data and initializes the choropleth with it.
      * 
