@@ -185,7 +185,7 @@ authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="/signUp">Sign up now</a>
 authenticate.username = Username
 authenticate.confirm.password = Confirm password
-authenticate.terms = You agree to our <a target="_blank" href="@routes.ApplicationController.terms">Terms of Use and Privacy Policy</a>
+authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
 authenticate.signup.new.account = Sign up for a new account
 authenticate.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
