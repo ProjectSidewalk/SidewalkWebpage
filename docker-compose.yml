@@ -10,8 +10,8 @@ services:
     depends_on:
       - db
     volumes:
-      - "./:/opt"
-      - "/opt/node_modules"
+      - "./:/opt/:delegated"
+      - "/opt/node_modules:delegated"
     ports:
       - "9000:9000"
     environment:
