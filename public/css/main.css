@@ -179,11 +179,11 @@ footer {
 
 .grayButton {
     position: relative;
-    background-color: #eee;
+    background-color: rgba(251, 215, 139, 1);
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
     border-radius:10px;
-    border:1px solid #eee;
+    border:1px solid rgba(251, 215, 139, 1);
     display:inline-block;
     position: relative;
     top:8px;
@@ -191,11 +191,14 @@ footer {
     color:#2D2A3F;
     font: normal normal normal 14px/1.4em raleway,sans-serif;
     font-family: 'Raleway', sans-serif;
+    text-align: start;
+    font-weight: bolder;
     font-size:14px;
     padding:5px 25px;
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
+
 .grayButton:hover {
     background-color:#fff;
     border:1px solid #fff;
@@ -1152,7 +1155,7 @@ kbd {
 
 .navbar-nav .open .dropdown-menu {
     position: absolute;
-    top: 100%;
+    top: 125%;
     right: 0;
     left: auto;
     z-index: 1000;
@@ -1374,7 +1377,7 @@ kbd {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 1250px) {
+@media only screen and (max-width: 1175px) {
     .navbar-header {
         float: none;
     }
@@ -1395,14 +1398,11 @@ kbd {
         border-radius: 5px;
         margin: 5px 0 5px 0;
         padding-top: 10px;
+        padding-bottom: 10px;
     }
 
     .navbar-nav > li {
         float: none;
-    }
-
-    .navbar-nav > :last-child {
-        padding-top: 5px;
     }
 
     .navbar-nav > li > a.navbarBtn {
