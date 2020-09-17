@@ -13,7 +13,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     var neighborhoodPolygonLayer;
 
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
         self.curbRampLayers[i] = [];
         self.missingCurbRampLayers[i] = [];
         self.obstacleLayers[i] = [];
@@ -38,20 +38,22 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "kotarohara.8e0c6890", {
+    var map = L.mapbox.map('admin-map', "mapbox.streets", {
         maxZoom: 19,
-        minZoom: 9
+        minZoom: 9,
+        zoomSnap: 0.5
     });
 
     // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('admin-choropleth', "kotarohara.8e0c6890", {
-            maxZoom: 19,
-            minZoom: 9,
-            legendControl: {
-                position: 'bottomleft'
-            }
-        });
+    var choropleth = L.mapbox.map('admin-choropleth', "mapbox.light", {
+        maxZoom: 19,
+        minZoom: 9,
+        legendControl: {
+            position: 'bottomleft'
+        },
+        zoomSnap: 0.5
+    });
     choropleth.scrollWheelZoom.disable();
 
     // Set the city-specific default zoom and location.
@@ -59,21 +61,27 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setView([data.city_center.lat, data.city_center.lng]);
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
+        choropleth.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
-
-    L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     // Initialize the map
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon(map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{
                 "type": "Feature", "geometry": {
                     "type": "Polygon", "coordinates": [
-                        [[-75, 36], [-75, 40], [-80, 40], [-80, 36], [-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                     ]
                 }
             }]
@@ -89,9 +97,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function initializeNeighborhoodPolygons(map) {
         var neighborhoodPolygonStyle = {
                 color: '#888',
-                weight: 1,
-                opacity: 0.25,
-                fillColor: "#ccc",
+                weight: 2,
+                opacity: 0.80,
+                fillColor: "#808080",
                 fillOpacity: 0.1
             },
             layers = [],
@@ -99,16 +107,23 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                url = "/audit/region/" + regionId,
+            var regionId = feature.properties.region_id;
+            var userCompleted = feature.properties.user_completed;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "???";
+
+            if (userCompleted) {
+                popupContent = "You already audited this entire neighborhood!";
+            } else {
                 popupContent = "Do you want to explore this area to find accessibility issues? " +
                     "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            }
             layer.bindPopup(popupContent);
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
                 this.setStyle({color: "red", fillColor: "red"});
-
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -142,16 +157,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function getColor(p) {
         //since this is a float, we cannot directly compare. Using epsilon to avoid floating point errors
         return Math.abs(p - 100) < Number.EPSILON ? '#03152f':
-                p > 90 ? '#08306b' :
-                    p > 80 ? '#08519c' :
-                        p > 70 ? '#08719c' :
-                            p > 60 ? '#2171b5' :
-                                p > 50 ? '#4292c6' :
-                                    p > 40 ? '#6baed6' :
-                                        p > 30 ? '#9ecae1' :
-                                            p > 20 ? '#c6dbef' :
-                                                p > 10 ? '#deebf7' :
-                                                    '#f7fbff';
+            p > 90 ? '#08306b' :
+                p > 80 ? '#08519c' :
+                    p > 70 ? '#08719c' :
+                        p > 60 ? '#2171b5' :
+                            p > 50 ? '#4292c6' :
+                                p > 40 ? '#6baed6' :
+                                    p > 30 ? '#82badb' :
+                                        p > 20 ? '#9ecae1' :
+                                            p > 10 ? '#b3d3e8' :
+                                                '#c6dbef';
     }
 
     /**
@@ -177,7 +192,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         weight: 1,
                         opacity: 0.25,
                         fillColor: getColor(rates[i].rate),
-                        fillOpacity: 0.25 + (0.5 * rates[i].rate / 100.0)
+                        fillOpacity: 0.35 + (0.4 * rates[i].rate / 100.0)
                     }
                 }
             }
@@ -186,44 +201,51 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                regionName = feature.properties.region_name,
-                compRate = -1.0,
-                milesLeft = -1.0,
-                url = "/audit/region/" + regionId,
-                popupContent = "???";
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var compRate = -1.0;
+            var milesLeft = -1.0;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "???";
             for (var i=0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(rates[i].rate);
-                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371
+                    distanceLeft = Math.round(distanceLeft);
 
                     var advancedMessage = '';
-                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                    if (difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
-                    if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to find accessibility issues in this neighborhood yourself!";
-                    }
-                    else if (milesLeft === 0) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else if (milesLeft === 1) {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.100-percent-complete") + "<br>" +
+                            i18next.t("map.thanks");
+                    } else if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.less-than-one-unit-left") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.distance-left-one-unit") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     }
                     break;
                 }
@@ -233,7 +255,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -335,7 +357,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='black' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
 
-            // Create layers for each of the 35 different label-severity combinations
+            // Create layers for each of the 42 different label-severity combinations
             initializeAllLayers(data);
         });
     }
@@ -381,25 +403,31 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     function initializeAllLayers(data) {
         for (var i = 0; i < data.features.length; i++) {
             var labelType = data.features[i].properties.label_type;
-            if(labelType === "Occlusion" || labelType === "NoSidewalk"){
+            if (labelType === "Occlusion") {
                 // console.log(data.features[i]);
             }
-            if (data.features[i].properties.severity == 1) {
-                self.allLayers[labelType][0].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 2) {
+
+            if (data.features[i].properties.severity === 1) {
                 self.allLayers[labelType][1].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 3) {
+            } else if (data.features[i].properties.severity === 2) {
                 self.allLayers[labelType][2].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 4) {
+            } else if (data.features[i].properties.severity === 3) {
                 self.allLayers[labelType][3].push(data.features[i]);
-            } else if (data.features[i].properties.severity == 5) {
+            } else if (data.features[i].properties.severity === 4) {
                 self.allLayers[labelType][4].push(data.features[i]);
+            } else if (data.features[i].properties.severity === 5) {
+                self.allLayers[labelType][5].push(data.features[i]);
+            } else { // No severity level
+                self.allLayers[labelType][0].push(data.features[i]);
             }
         }
 
         Object.keys(self.allLayers).forEach(function (key) {
             for (var i = 0; i < self.allLayers[key].length; i++) {
-                self.allLayers[key][i] = createLayer({"type": "FeatureCollection", "features": self.allLayers[key][i]});
+                self.allLayers[key][i] = createLayer({
+                    "type": "FeatureCollection",
+                    "features": self.allLayers[key][i]
+                });
                 self.allLayers[key][i].addTo(map);
             }
         })
@@ -423,7 +451,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     function toggleLayers(label, checkboxId, sliderId) {
         if (document.getElementById(checkboxId).checked) {
-            if(checkboxId == "occlusion" || checkboxId == "nosidewalk"){
+            if (checkboxId == "occlusion"){
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])) {
                         map.addLayer(self.allLayers[label][i]);
@@ -433,11 +461,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             else {
                 for (var i = 0; i < self.allLayers[label].length; i++) {
                     if (!map.hasLayer(self.allLayers[label][i])
-                        && ($(sliderId).slider("option", "value") == i ||
-                        $(sliderId).slider("option", "value") == 5 )) {
+                        && ($(sliderId).slider("option", "values")[0] <= i &&
+                        $(sliderId).slider("option", "values")[1] >= i )) {
                         map.addLayer(self.allLayers[label][i]);
-                    } else if ($(sliderId).slider("option", "value") != 5
-                        && $(sliderId).slider("option", "value") != i) {
+                    } else if ($(sliderId).slider("option", "values")[0] > i
+                        || $(sliderId).slider("option", "values")[1] < i) {
                         map.removeLayer(self.allLayers[label][i]);
                     }
                 }
@@ -460,7 +488,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     }
 
     function initializeAdminGSVLabelView() {
-        self.adminGSVLabelView = AdminGSVLabel();
+        self.adminGSVLabelView = AdminGSVLabelView(true);
+    }
+
+    function initializeAdminLabelSearch() {
+        self.adminLabelSearch = AdminLabelSearch();
     }
 
     function initializeLabelTable() {
@@ -490,7 +522,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         var mean = sum / filteredData.length;
         var i = filteredData.length / 2;
         filteredData.sort(function(a, b) {return (a[col] > b[col]) ? 1 : ((b[col] > a[col]) ? -1 : 0);} );
-        var median = (filteredData.length / 2) % 1 == 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
+
+        var median = 0;
+        var max = 0;
+        var min = 0;
+
+        if (filteredData.length > 0) { // Prevent errors in development where there may be no data
+            median = (filteredData.length / 2) % 1 == 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
+            min = filteredData[0][col];
+            max = filteredData[filteredData.length-1][col];
+        }
 
         var std = 0;
         for(var k = 0; k < filteredData.length; k++) {
@@ -498,7 +539,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         }
         std /= filteredData.length;
         std = Math.sqrt(std);
-        return {mean:mean, median:median, std:std, min:filteredData[0][col], max:filteredData[filteredData.length-1][col]};
+
+        return {mean:mean, median:median, std:std, min:min, max:max};
     }
 
     // takes in some data, summary stats, and optional arguments, and outputs the spec for a vega-lite chart
@@ -579,10 +621,12 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && self.mapLoaded == false) {
-            initializeOverlayPolygon(map);
             initializeNeighborhoodPolygons(map);
             initializeAuditedStreets(map);
-            initializeSubmittedLabels(map);
+            // Adding a 1 second wait to ensure that labels are the top layer and are thus clickable.
+            setTimeout(function(){
+                initializeSubmittedLabels(map);
+            }, 1000);
             initializeAdminGSVLabelView();
             setTimeout(function () {
                 map.invalidateSize(false);
@@ -598,31 +642,56 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
-                    "height": 300,
-                    "width": 875,
-                    "mark": "area",
                     "data": {"values": data[0], "format": {"type": "json"}},
-                    "encoding": {
-                        "x": {
-                            "field": "date",
-                            "type": "temporal",
-                            "axis": {"title": "Date", "labelAngle": 0}
-                        },
-                        "y": {
-                            "field": "completion",
-                            "type": "quantitative", "scale": {
-                                "domain": [0,100]
-                            },
-                            "axis": {
-                                "title": "City Coverage (%)"
-                            }
-                        }
-                    },
                     "config": {
                         "axis": {
                             "titleFontSize": 16
                         }
-                    }
+                    },
+                    "vconcat": [
+                        {
+                            "height":300,
+                            "width": 875,
+                            "mark": "area",
+                            "encoding": {
+                                "x": {
+                                    "field": "date",
+                                    "type": "temporal",
+                                    "scale": {"domain": {"selection": "brush", "field": "date"}},
+                                    "axis": {"title": "Date", "labelAngle": 0}
+                                },
+                                "y": {
+                                    "field": "completion", 
+                                    "type": "quantitative", "scale": {
+                                        "domain": [0,100]
+                                    },
+                                    "axis": {"title": "City Coverage (%)"}
+                                }
+                            }
+                        },
+                        {
+                        "height": 60,
+                        "width": 875,
+                        "mark": "area",
+                        "selection": {"brush": {"type": "interval", "encodings": ["x"]}},
+                        "encoding": {
+                            "x": {
+                                "field": "date", 
+                                "type": "temporal",
+                                "axis": {"title": "Date", "labelAngle": 0}
+                            },
+                            "y": {
+                                "field": "completion",
+                                "type": "quantitative", "scale": {
+                                    "domain": [0,100]
+                                },
+                                "axis": {
+                                    "title": "City Coverage (%)",
+                                    "tickCount": 3, "grid": true}
+                            }
+                        }
+                        }
+                    ]
                 };
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
@@ -636,9 +705,35 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var obstacles = data.features.filter(function(label) {return label.properties.label_type === "Obstacle"});
+                var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
+                
+                var curbRampStats = getSummaryStats(curbRamps, "severity");
+                $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
+                $("#curb-ramp-std").html((curbRampStats.std).toFixed(2));
+                
+                var noCurbRampStats = getSummaryStats(noCurbRamps, "severity");
+                $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
+                $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
+                
+                var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
+                $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
+                $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
+                
+                var obstacleStats = getSummaryStats(obstacles, "severity");
+                $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
+                $("#obstacle-std").html((obstacleStats.std).toFixed(2));
+                
+                var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
+                $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
+                $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
 
-                var subPlotHeight = 200;
-                var subPlotWidth = 199;
+                var allData = data.features;
+                var allDataStats = getSummaryStats(allData, "severity");
+                $("#labels-mean").html((allDataStats.mean).toFixed(2));
+                $("#labels-std").html((allDataStats.std).toFixed(2));
+                
+                var subPlotHeight = 150;
+                var subPlotWidth = 149;
                 var chart = {
                     "hconcat": [
                         {
@@ -682,6 +777,17 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                             "encoding": {
                                 "x": {"field": "severity", "type": "ordinal",
                                     "axis": {"title": "Obstacle Severity", "labelAngle": 0}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noSidewalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "severity", "type": "ordinal",
+                                    "axis": {"title": "No Sidewalk Severity", "labelAngle": 0}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         }
@@ -772,6 +878,32 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var coverageRateHist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                 vega.embed("#neighborhood-completed-distance", coverageRateHist, opt, function(error, results) {});
+
+            });
+            $.getJSON('/adminapi/validationCounts', function (data) {
+                var filteredData = data[0].map(function(x) {
+                    return {
+                        role: x.role,
+                        total: x.count,
+                        agreed: x.agreed,
+                    }
+                });
+
+                var pcts = filteredData.filter(function(x) { // Must have 10+ labels validated
+                    return x.total >= 10;
+                }).map(function (x) { // Convert to percentages
+                    return {
+                        count: (x.agreed / x.total) * 100,
+                        role: x.role
+                    };
+                });
+
+                var stats = getSummaryStats(pcts, "count");
+                $("#validation-agreed-std").html((stats.std).toFixed(2) + " %");
+
+                var histOpts = {xAxisTitle:"Validations Placed Agreed With (%)", xDomain:[0, 100], binStep:5};
+                var coverageRateHist = getVegaLiteHistogram(pcts, stats.mean, stats.median, histOpts);
+                vega.embed("#validation-agreed", coverageRateHist, opt, function(error, results) {});
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
@@ -872,7 +1004,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                                 },
                                 { // creates lines marking summary statistics
                                     "data": {"values": [
-                                        {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
+                                            {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
                                     },
                                     "mark": "rule",
                                     "encoding": {
@@ -903,6 +1035,70 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 };
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
+            $.getJSON("/userapi/validationCounts/all", function (data) {
+                var stats = getSummaryStats(data[0], "count");
+                $("#validation-std").html((stats.std).toFixed(2) + " Validations");
+
+                var histOpts = {xAxisTitle:"# Validations per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
+                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+
+                var chart = {
+                    "data": {"values": data[0]},
+                    "hconcat": [
+                        {
+                            "height": 300,
+                            "width": 550,
+                            "layer": [
+                                {
+                                    "mark": "bar",
+                                    "encoding": {
+                                        "x": {
+                                            "field": "date",
+                                            "type": "temporal",
+                                            "axis": {"title": "Date", "labelAngle": 0}
+                                        },
+                                        "y": {
+                                            "field": "count",
+                                            "type": "quantitative",
+                                            "axis": {
+                                                "title": "# Validations per Day"
+                                            }
+                                        }
+                                    }
+                                },
+                                { // creates lines marking summary statistics
+                                    "data": {"values": [
+                                            {"stat": "mean", "value": stats.mean}, {"stat": "median", "value": stats.median}]
+                                    },
+                                    "mark": "rule",
+                                    "encoding": {
+                                        "y": {
+                                            "field": "value", "type": "quantitative",
+                                            "axis": {"labels": false, "ticks": false, "title": ""},
+                                            "scale": {"domain": [0, stats.max]}
+                                        },
+                                        "color": {
+                                            "field": "stat", "type": "nominal", "scale": {"range": ["pink", "orange"]},
+                                            "legend": false
+                                        },
+                                        "size": {
+                                            "value": 2
+                                        }
+                                    }
+                                }
+                            ],
+                            "resolve": {"y": {"scale": "independent"}}
+                        },
+                        hist
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 16
+                        }
+                    }
+                };
+                vega.embed("#validation-count-chart", chart, opt, function(error, results) {});
+            });
             $.getJSON("/adminapi/userMissionCounts", function (data) {
                 var allData = data[0];
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
@@ -915,6 +1111,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
+
+                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
+                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
+                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
+                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
 
                 var allHistOpts = {
                     xAxisTitle: "# Missions per User (all)", xDomain: [0, allStats.max], width: 187,
@@ -948,13 +1149,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#missions-std").html((allFilteredStats.std).toFixed(2) + " Missions");
-                $("#reg-missions-std").html((regFilteredStats.std).toFixed(2) + " Missions");
-                $("#turker-missions-std").html((turkerStats.std).toFixed(2) + " Missions");
-                $("#anon-missions-std").html((anonStats.std).toFixed(2) + " Missions");
-
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
+                
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#mission-count-chart", combinedChartFiltered, opt, function (error, results) {
                 });
@@ -985,6 +1194,11 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
                 var turkerStats = getSummaryStats(turkerData, "count");
                 var anonStats = getSummaryStats(anonData, "count");
+
+                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
+                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
+                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
+                $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
 
                 var allHistOpts = {
                     xAxisTitle: "# Labels per User (all)", xDomain: [0, allStats.max], width: 187,
@@ -1018,13 +1232,21 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
                 var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
-                $("#all-labels-std").html((allFilteredStats.std).toFixed(2) + " Labels");
-                $("#reg-labels-std").html((regFilteredStats.std).toFixed(2) + " Labels");
-                $("#turker-labels-std").html((turkerStats.std).toFixed(2) + " Labels");
-                $("#anon-labels-std").html((anonStats.std).toFixed(2) + " Labels");
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
 
-                var combinedChart = {"hconcat": [allChart, turkerChart, regChart, anonChart]};
-                var combinedChartFiltered = {"hconcat": [allFilteredChart, turkerChart, regFilteredChart, anonChart]};
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
 
                 vega.embed("#label-count-hist", combinedChartFiltered, opt, function (error, results) {
                 });
@@ -1043,10 +1265,92 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     }
                 });
             });
+            $.getJSON("/adminapi/validationCounts", function (data) {
+                var allData = data[0];
+                var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
+                var turkerData = allData.filter(user => user.role === 'Turker');
+                var anonData = allData.filter(user => user.role === 'Anonymous');
+
+                var allStats = getSummaryStats(allData, "count");
+                var allFilteredStats = getSummaryStats(allData, "count", {excludeResearchers: true});
+                var regStats = getSummaryStats(regData, "count");
+                var regFilteredStats = getSummaryStats(regData, "count", {excludeResearchers: true});
+                var turkerStats = getSummaryStats(turkerData, "count");
+                var anonStats = getSummaryStats(anonData, "count");
+
+                $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
+                $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
+                $("#turker-validation-std").html((turkerStats.std).toFixed(2) + " Validations");
+                $("#anon-validation-std").html((anonStats.std).toFixed(2) + " Validations");
+
+                var allHistOpts = {
+                    xAxisTitle: "# Validations per User (all)", xDomain: [0, allStats.max], width: 187,
+                    binStep: 50, legendOffset: -80
+                };
+                var allFilteredHistOpts = {
+                    xAxisTitle: "# Validations per User (all)", xDomain: [0, allFilteredStats.max],
+                    width: 187, binStep: 50, legendOffset: -80, excludeResearchers: true
+                };
+                var regHistOpts = {
+                    xAxisTitle: "# Validations per Registered User", xDomain: [0, regStats.max], width: 187,
+                    binStep: 50, legendOffset: -80
+                };
+                var regFilteredHistOpts = {
+                    xAxisTitle: "# Validations per Registered User", width: 187, legendOffset: -80,
+                    xDomain: [0, regFilteredStats.max], excludeResearchers: true, binStep: 50
+                };
+                var turkerHistOpts = {
+                    xAxisTitle: "# Validations per Turker User", xDomain: [0, turkerStats.max], width: 187,
+                    binStep: 50, legendOffset: -80
+                };
+                var anonHistOpts = {
+                    xAxisTitle: "# Validations per Anon User", xDomain: [0, anonStats.max],
+                    width: 187, legendOffset: -80, binStep: 2
+                };
+
+                var allChart = getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
+                var allFilteredChart = getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+                var regChart = getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
+                var regFilteredChart = getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
+                var turkerChart = getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+                var anonChart = getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
+
+                // Only includes charts with data as charts with no data prevent all charts from rendering.
+                var combinedChart = {"hconcat": []};
+                var combinedChartFiltered = {"hconcat": []};
+
+                [allChart, regChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChart.hconcat.push(element);
+                    }
+                });
+                
+                [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
+                    if (element.data.values.length > 0) {
+                        combinedChartFiltered.hconcat.push(element);
+                    }
+                });
+
+                vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
+                });
+
+                var checkbox = document.getElementById("validation-count-include-researchers-checkbox").addEventListener("click", function (cb) {
+                    if (cb.srcElement.checked) {
+                        $("#all-validation-std").html((allStats.std).toFixed(2) + " Validations");
+                        $("#reg-validation-std").html((regStats.std).toFixed(2) + " Validations");
+                        vega.embed("#validation-count-hist", combinedChart, opt, function (error, results) {
+                        });
+                    } else {
+                        $("#all-validation-std").html((allFilteredStats.std).toFixed(2) + " Validations");
+                        $("#reg-validation-std").html((regFilteredStats.std).toFixed(2) + " Validations");
+                        vega.embed("#validation-count-hist", combinedChartFiltered, opt, function (error, results) {
+                        });
+                    }
+                });
+            });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
                 var stats = getSummaryStats(data[0], "count");
                 var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
-
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};
@@ -1073,7 +1377,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Index", function(clickStartExploringMainIndexEvents){
             $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Referrer=mturk", function(turkerRedirectEvents){
+            // YES, we encode twice. This solves an issue with routing on the test/production server. AdminController.scala decodes twice.
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartExploringNavIndexEvents){
+            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
                 // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
                 // TODO switch this to make use of versioning on the backend once it is implemented...
                 // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
@@ -1086,7 +1393,10 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 var numChoroplethClicks = choroplethClickEvents[0].filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
-                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].filter(function(event){
+                var numTurkerRedirects = turkerRedirectEvents[0].filter(function(event){
+                    return event.timestamp > 1500584520000;
+                }).length;
+                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].concat(clickStartExploringNavIndexEvents[0]).filter(function(event){
                     return event.timestamp > 1500584520000;
                 }).length;
 
@@ -1109,10 +1419,18 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 );
                 $("#audit-access-table-choro").append(
                     '<td style="text-align: right;">'+
-                        numChoroplethClicks+
+                    numChoroplethClicks+
                     '</td>'+
                     '<td style="text-align: right;">'+
-                        (parseInt(numChoroplethClicks)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
+                    (parseInt(numChoroplethClicks)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
+                    '</td>'
+                );
+                $("#audit-access-table-turker").append(
+                    '<td style="text-align: right;">'+
+                    numTurkerRedirects+
+                    '</td>'+
+                    '<td style="text-align: right;">'+
+                    (parseInt(numTurkerRedirects)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
                     '</td>'
                 );
                 $("#audit-access-table-total").append(
@@ -1123,6 +1441,8 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                         '100.0%'+
                     '</td>'
                 );
+            });
+            });
             });
             });
             });
@@ -1163,8 +1483,19 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         });
     }
 
+    function clearPlayCache() {
+        $.ajax( {
+            url: '/adminapi/clearPlayCache',
+            type: 'put',
+            success: function () {
+                clearPlayCacheSuccess.innerHTML = i18next.t("admin-clear-play-cache");
+            }
+        } )
+    }
+
     initializeLabelTable();
     initializeAdminGSVLabelView();
+    initializeAdminLabelSearch();
 
     self.clearMap = clearMap;
     self.redrawLabels = redrawLabels;
@@ -1172,8 +1503,15 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
     self.toggleLayers = toggleLayers;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
+    self.clearPlayCache = clearPlayCache;
 
     $('.change-role').on('click', changeRole);
+
+    // Functionality for the legend's minimize button.
+    $('#map-legend-minimize-button').click(function() {
+        $("#legend-table").slideToggle(0);
+        $(this).text(function(_, value) { return value === '-' ? '+' : '-'});
+    });
 
     return self;
 }

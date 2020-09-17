@@ -2,6 +2,8 @@
     position: absolute;
     left: 735px;
     top: 393px;
+    width: 200px;
+    height: 210px;
 }
 
 .google-maps-pane {
@@ -18,4 +20,12 @@
     font-size: 12px;
     z-index: 1;
 
+}
+
+.gm-style > button {
+    visibility: hidden;
+}
+
+.gm-svpc {
+    visibility: hidden;
 }

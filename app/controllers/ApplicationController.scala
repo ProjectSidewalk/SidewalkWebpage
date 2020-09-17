@@ -2,6 +2,7 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
+import scala.collection.JavaConverters._
 
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
@@ -10,8 +11,10 @@ import controllers.headers.ProvidesHeader
 import models.user._
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.street.StreetEdgeTable
 import play.api.Play
 import play.api.Play.current
+import play.api.i18n.Messages
 import java.util.Calendar
 import play.api.mvc._
 
@@ -62,7 +65,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             request.identity match {
               case Some(user) =>
                 // Have different cases when the user.username is the same as the workerId and when it isn't.
-                user.username match{
+                user.username match {
                   case `workerId` =>
                     activityLogText = activityLogText + "_reattempt=true"
                     // Unless they are mid-assignment, create a new assignment.
@@ -92,7 +95,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
             }
 
           case _ =>
-            val redirectTo: String = qString.get("to") match{
+            val redirectTo: String = qString.get("to") match {
               case Some(to) =>
                 to
               case None =>
@@ -116,11 +119,27 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           case Some(user) =>
             if(qString.isEmpty){
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
+              // Get city configs.
+              val envType: String = Play.configuration.getString("environment-type").get
               val cityStr: String = Play.configuration.getString("city-id").get
               val cityName: String = Play.configuration.getString("city-params.city-name." + cityStr).get
               val stateAbbreviation: String = Play.configuration.getString("city-params.state-abbreviation." + cityStr).get
               val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName)))
+              val mapathonLink: Option[String] = Play.configuration.getString("city-params.mapathon-event-link." + cityStr)
+              // Get names and URLs for other cities so we can link to them on landing page.
+              val otherCities: List[String] =
+                Play.configuration.getStringList("city-params.city-ids").get.asScala.toList.filterNot(_ == cityStr)
+              val otherCityUrls: List[(String, String)] = otherCities.map { otherCity =>
+                val otherName: String = Play.configuration.getString("city-params.city-name." + otherCity).get
+                val otherState: String = Play.configuration.getString("city-params.state-abbreviation." + otherCity).get
+                val otherURL: String = Play.configuration.getString("city-params.landing-page-url." + envType + "." + otherCity).get
+                (otherName + ", " + otherState, otherURL)
+              }
+              // Get total audited distance. If using metric system, convert from miles to kilometers.
+              val auditedDistance: Float =
+                if (Messages("measurement.system") == "metric") StreetEdgeTable.auditedStreetDistance(1) * 1.60934.toFloat
+                else StreetEdgeTable.auditedStreetDistance(1)
+              Future.successful(Ok(views.html.index("Project Sidewalk", Some(user), cityName, stateAbbreviation, cityShortName, mapathonLink, cityStr, otherCityUrls, auditedDistance)))
             } else{
               WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
@@ -133,24 +152,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
               Future.successful(Redirect("/anonSignUp?url=/%3F" + request.rawQueryString.replace("&", "%26")))
             }
         }
-    }
-  }
-
-  /**
-    * Returns an about page.
-    *
-    * @return
-    */
-  def about = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_About", timestamp))
-        Future.successful(Ok(views.html.about("Project Sidewalk - About", Some(user))))
-      case None =>
-        Future.successful(Redirect("/anonSignUp?url=/about"))
     }
   }
 
@@ -310,10 +311,10 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns the results page that contains a cool visualization.
-    *
-    * @return
-    */
+   * Returns the results page that contains a cool visualization.
+   *
+   * @return
+   */
   def results = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -324,6 +325,24 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(views.html.results("Project Sidewalk - Explore Accessibility", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/results"))
+    }
+  }
+
+  /**
+   * Returns the labelmap page that contains a cool visualization.
+   *
+   * @return
+   */
+  def labelMap = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_LabelMap", timestamp))
+        Future.successful(Ok(views.html.labelMap("Project Sidewalk - Explore Accessibility", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/labelmap"))
     }
   }
 

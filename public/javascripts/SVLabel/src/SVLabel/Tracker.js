@@ -63,6 +63,10 @@ function Tracker () {
     };
 
     this._isDeleteLabelAction = function (action) {
+        return action.indexOf("RemoveLabel") >= 0;
+    };
+
+    this._isClickLabelDeleteAction = function (action) {
         return action.indexOf("Click_LabelDelete") >= 0;
     };
 
@@ -194,7 +198,7 @@ function Tracker () {
                 notes['auditTaskId'] = labelProperties.audit_task_id;
             }
 
-        } else if (self._isDeleteLabelAction(action)){
+        } else if (self._isClickLabelDeleteAction(action)){
             var labelProperties = svl.canvas.getCurrentLabel().getProperties();
             currentLabel = labelProperties.temporary_label_id;
             updatedLabels.push(currentLabel);
@@ -210,7 +214,6 @@ function Tracker () {
 
         var item = self.create(action, notes, extraData);
         actions.push(item);
-
         var contextMenuLabel = true;
 
         if(self._isFinishLabelingAction(action) && (notes['labelType'] === 'NoSidewalk' || notes['labelType'] === 'Occlusion')){
@@ -226,13 +229,16 @@ function Tracker () {
         if (actions.length > 200 && !self._isCanvasInteraction(action) && !self._isContextMenuAction(action)) {
             self.submitForm();
         }
+
         return this;
     };
 
     this.submitForm = function() {
-        var task = svl.taskContainer.getCurrentTask();
-        var data = svl.form.compileSubmissionData(task);
-        svl.form.submit(data, task);
+        if (svl.hasOwnProperty('taskContainer')) {
+            var task = svl.taskContainer.getCurrentTask();
+            var data = svl.form.compileSubmissionData(task);
+            svl.form.submit(data, task);
+        }
     };
 
     this.initTaskId = function() {

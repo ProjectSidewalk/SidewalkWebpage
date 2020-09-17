@@ -4,17 +4,17 @@
  * @constructor
  */
 function Tracker() {
-    var self = this;
-    var panorama = undefined;
-    var actions = [];
-    var prevActions = [];
+    let self = this;
+    let panorama = undefined;
+    let actions = [];
+    let prevActions = [];
 
     function _init() {
         _trackWindowEvents();
     }
 
     function _trackWindowEvents() {
-        var prefix = "LowLevelEvent_";
+        let prefix = "LowLevelEvent_";
 
         // track all mouse related events
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
@@ -30,7 +30,7 @@ function Tracker() {
                 keyCode: 'keyCode' in e ? e.keyCode : null
             });
         });
-    };
+    }
 
     /**
      *
@@ -48,30 +48,29 @@ function Tracker() {
             extraData = {};
         }
 
-        var note = _notesToString(notes);
-        var timestamp = new Date().getTime();
+        let note = _notesToString(notes);
+        let timestamp = new Date().getTime();
 
-        if (!svv.panorama) {
-            console.log("Panorama does not exist");
-        } else {
-            panorama = svv.panorama;
-        }
+        panorama = svv.panorama ? svv.panorama : null;
+        let panoId = panorama ? panorama.getPanoId() : null;
+        let position = panorama ? panorama.getPosition() : null;  // sometimes buggy, so position will be null.
+        let pov = panorama ? panorama.getPov() : null;
 
-        var panoId = panorama.getPanoId();
-        var position = panorama.getPosition();  // sometimes buggy, so position will be null.
-        var pov = panorama.getPov();
+        let missionContainer = svv.missionContainer ? svv.missionContainer : null;
+        let currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
-        var data = {
+        let data = {
             action: action,
             gsv_panorama_id: panoId,
             lat: position ? position.lat : null,
             lng: position ? position.lng : null,
-            heading: pov.heading,
-            mission_id: svv.missionContainer.getCurrentMission().getProperty("missionId"),
+            heading: pov ? pov.heading : null,
+            mission_id: currentMission ? currentMission.getProperty("missionId") : null,
             note: note,
-            pitch: pov.pitch,
+            pitch: pov ? pov.pitch : null,
             timestamp: timestamp,
-            zoom: pov.zoom
+            zoom: pov ? pov.zoom : null,
+            is_mobile: isMobile()
         };
 
         return data;
@@ -85,8 +84,8 @@ function Tracker() {
         if (!notes)
             return "";
 
-        var noteString = "";
-        for (var key in notes) {
+        let noteString = "";
+        for (let key in notes) {
             if (noteString.length > 0)
                 noteString += ",";
             noteString += key + ':' + notes[key];
@@ -102,10 +101,10 @@ function Tracker() {
      * @param extraData (optional) Extra data that should not be stored in the db notes field
      */
     function push(action, notes, extraData) {
-        var item = _createAction(action, notes, extraData);
+        let item = _createAction(action, notes, extraData);
         actions.push(item);
         if (actions.length > 200) {
-            var data = svv.form.compileSubmissionData();
+            let data = svv.form.compileSubmissionData();
             svv.form.submit(data, true);
         }
         return this;

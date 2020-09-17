@@ -1,6 +1,7 @@
 package models.amt
 
 import java.sql.Timestamp
+import java.time.Instant
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
@@ -32,9 +33,10 @@ object AMTAssignmentTable {
   val db = play.api.db.slick.DB
   val amtAssignments = TableQuery[AMTAssignmentTable]
 
-  val TURKER_TUTORIAL_PAY: Double = 0.43D
-  val TURKER_PAY_PER_MILE: Double = 4.17D
+  val TURKER_TUTORIAL_PAY: Double = 1.00D
+  val TURKER_PAY_PER_MILE: Double = 5.00D
   val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
+  val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
   val VOLUNTEER_PAY: Double = 0.0D
 
   def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
@@ -57,6 +59,18 @@ object AMTAssignmentTable {
 
   def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = db.withSession { implicit session =>
     amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).list.headOption
+  }
+
+  /**
+    * Get the number of milliseconds between now and the end time of the worker's most recent assignment.
+    *
+    * @param workerId
+    * @return
+    */
+  def getMsLeftOnMostRecentAsmt(workerId: String): Option[Long] = db.withSession { implicit session =>
+    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val endOption: Option[Timestamp] = getMostRecentAsmtEnd(workerId)
+    endOption.map(end => end.getTime - now.getTime)
   }
 
   def getMostRecentConfirmationCode(workerId: String): Option[String] = db.withSession { implicit session =>

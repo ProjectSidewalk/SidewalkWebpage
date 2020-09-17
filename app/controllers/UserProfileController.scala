@@ -10,7 +10,7 @@ import formats.json.TaskFormats._
 import formats.json.MissionFormat._
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.mission.MissionTable
-import models.label.LabelTable
+import models.label.{LabelTable, LabelValidationTable}
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.extras.geojson
@@ -245,6 +245,14 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   def getAllLabelCounts = UserAwareAction.async { implicit request =>
     val labelCounts = LabelTable.selectLabelCountsPerDay
     val json = Json.arr(labelCounts.map(x => Json.obj(
+      "date" -> x.date, "count" -> x.count
+    )))
+    Future.successful(Ok(json))
+  }
+
+  def getAllValidationCounts = UserAwareAction.async { implicit request =>
+    val validationCounts = LabelValidationTable.getValidationsByDate
+    val json = Json.arr(validationCounts.map(x => Json.obj(
       "date" -> x.date, "count" -> x.count
     )))
     Future.successful(Ok(json))

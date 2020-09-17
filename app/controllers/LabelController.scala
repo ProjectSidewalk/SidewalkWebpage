@@ -5,7 +5,6 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import controllers.helper.LabelControllerHelper
 import formats.json.LabelFormats._
 import models.label._
 import models.user.User
@@ -26,9 +25,33 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   def getLabelsFromCurrentMission(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val labels = LabelControllerHelper._helpGetLabelsFromCurrentMission(regionId, user.userId)
+        val labels = LabelTable.getLabelsFromCurrentAuditMission(regionId, user.userId)
         val jsLabels = JsArray(labels.map(l => Json.toJson(l)))
         Future.successful(Ok(jsLabels))
+      case None =>
+        Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
+    }
+  }
+
+  /**
+    * Fetches the labels that a user has added in the current region they are working in.
+    * @param regionId Region id
+    * @return A list of labels
+    */
+  def getLabelsForMiniMap(regionId: Int) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val labels: List[LabelTable.MiniMapResumeMetadata] = LabelTable.resumeMiniMap(regionId, user.userId)
+        val jsonList: List[JsObject] = labels.map { label =>
+          Json.obj(
+            "label_id" -> label.labelId,
+            "label_type" -> label.labelType,
+            "label_lat" -> label.lat,
+            "label_lng" -> label.lng
+          )
+        }
+        val featureCollection: JsObject = Json.obj("labels" -> jsonList)
+        Future.successful(Ok(featureCollection))
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/label/currentMission?regionId=$regionId"))
     }

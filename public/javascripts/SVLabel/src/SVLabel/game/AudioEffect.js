@@ -13,14 +13,17 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
     if (typeof Audio == "undefined") Audio = function HTMLAudioElement () {}; // I need this for testing as PhantomJS does not support HTML5 Audio.
 
     var audios = {
-            applause: new Audio(fileDirectory + 'audio/applause.mp3'),
-            drip: new Audio(fileDirectory + 'audio/drip.wav'),
-            glug1: new Audio(fileDirectory + 'audio/glug1.wav'),
-            yay: new Audio(fileDirectory + 'audio/yay.mp3')
-        },
-        blinkInterval;
+        drip: new Audio(fileDirectory + 'audio/drip.mp3'),
+        glug1: new Audio(fileDirectory + 'audio/glug1.mp3'),
+        success: new Audio(fileDirectory + 'audio/success.mp3')
+    };
+    var blinkInterval;
 
     uiSoundButton.sound.on('click', toggleSound);
+
+    this._model.on("loadAudio", function (parameter) {
+        load(parameter.audioType);
+    });
 
     this._model.on("play", function (parameter) {
         play(parameter.audioType);
@@ -68,6 +71,17 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
         storage.set("muted", false);
     }
 
+    /**
+     * Load a sound effect
+     * @param name Name of the sound effect
+     * @returns {load}
+     */
+    function load (name) {
+        if (name in audios && typeof audios[name].load == "function") {
+            audios[name].load();
+        }
+        return this;
+    }
 
     /**
      * Play a sound effect
@@ -96,6 +110,7 @@ function AudioEffect (gameEffectModel, uiSoundButton, fileDirectory, storage) {
         unmute();
 
     self.blink = blink;
+    self.load = load;
     self.play = play;
     self.stopBlinking = stopBlinking;
     return self;

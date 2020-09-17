@@ -5,14 +5,15 @@
  * @constructor
  */
 function StatusExample (statusUI) {
-    var self = this;
-    var labelType = undefined;
-    var labelName = undefined;
-    var examplePath = 'assets/javascripts/SVValidate/img/ValidationExamples/';
-    var counterExamplePath = 'assets/javascripts/SVValidate/img/ValidationCounterexamples/';
+    let self = this;
+    let labelType = undefined;
+    let labelName = undefined;
+    let examplePath = '/assets/javascripts/SVValidate/img/ValidationExamples/';
+    let counterExamplePath = '/assets/javascripts/SVValidate/img/ValidationCounterexamples/';
 
-    $(".example-image").on('mouseover', _showExamplePopup);
-    $(".example-image").on('mouseout', _hideExamplePopup);
+    let exampleImage = $(".example-image");
+    exampleImage.on('mouseover', _showExamplePopup);
+    exampleImage.on('mouseout', _hideExamplePopup);
 
 
     /**
@@ -32,7 +33,7 @@ function StatusExample (statusUI) {
     }
 
     function _setPopupDescription (id) {
-        var description = undefined;
+        let description = undefined;
 
         switch (labelType) {
             case "CurbRamp":
@@ -56,12 +57,14 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Sets the horizontal position and height of the popup based on which picture was hovered over.
+     * Sets the horizontal and vertical position of the popup and popup pointer based on the picture's position.
      * @param id    ID name for the label example HTML element that the user hovered over.
      * @private
      */
     function _setPopupLocation (id) {
         // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
+
+        // Horizontal positioning.
         if (id.includes("1")) {
             statusUI.popup.css('left', '480px');
             statusUI.popupPointer.css('top', '50px');
@@ -75,27 +78,37 @@ function StatusExample (statusUI) {
             statusUI.popup.css('left', '580px');
             statusUI.popupPointer.css('top', '135px');
         }
+
+        // Vertical Positioning.
+        if (id.includes("counterexample")) {
+            statusUI.popup.css('top', '108px');
+        } else {
+            statusUI.popup.css('top', '-108px');
+        }
     }
 
     /**
-     * Sets the vertical position and title of the popup based on which picture was hovered over.
+     * Sets the title of the popup based on which picture was hovered over.
      * @param id    ID name for the label example HTML element that the user hovered over.
      * @private
      */
     function _setPopupTitle (id) {
-        var prefix = svv.statusField.createPrefix(labelType);
         if (id.includes("counterexample")) {
-            statusUI.popupTitle.html("Not " + prefix + labelName);
-            statusUI.popup.css('top', '208px');
+            statusUI.popupTitle.html(i18next.t('right-ui.incorrect.' + labelType + ".title"));
         } else {
-            statusUI.popupTitle.html(labelName);
-            statusUI.popup.css('top', '-8px');
+            statusUI.popupTitle.html(i18next.t('right-ui.correct.' + labelType + ".title"));
         }
     }
 
+    /**
+     * Handles mouseover events on examples/counterexamples. Displays an popup that shows an image
+     * of the label that was either correctly/incorrectly placed and a brief accompanying
+     * description.
+     * @private
+     */
     function _showExamplePopup() {
-        var imageSource = $(this).attr("src");
-        var id = $(this).attr("id");
+        let imageSource = $(this).attr("src");
+        let id = $(this).attr("id");
         statusUI.popupImage.attr('src', imageSource);
 
         _setPopupDescription(id);
@@ -106,8 +119,8 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Updates images that shows label counter-examples.
-     * @param labelType Type of label being displayed on the interface.
+     * Updates images that shows label counter-examples. Paths for label examples are found at:
+     * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeExampleX.png
      * @private
      */
     function _updateCounterExamples () {
@@ -118,8 +131,8 @@ function StatusExample (statusUI) {
     }
 
     /**
-     * Updates images that show label examples.
-     * @param labelType being displayed on the interface.
+     * Updates images that show label examples. Paths for label examples are found at:
+     * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeCounterExampleX.png
      * @private
      */
     function _updateExamples () {

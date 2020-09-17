@@ -5,110 +5,110 @@
  * @constructor
  */
 function StatusPopupDescriptions () {
-    var self = this;
+    let self = this;
 
     function getCurbRampDescription (id) {
         switch (id) {
             case "example-image-1":
-                return "This label is correctly placed at the bottom of a curb ramp";
+                return i18next.t('right-ui.correct.CurbRamp.example-1-to-4');
             case "example-image-2":
-                return "This label is correctly placed at the bottom of a curb ramp";
+                return i18next.t('right-ui.correct.CurbRamp.example-1-to-4');
             case "example-image-3":
-                return "This label is correctly placed at the bottom of a curb ramp";
+                return i18next.t('right-ui.correct.CurbRamp.example-1-to-4');
             case "example-image-4":
-                return "This label is correctly placed at the bottom of a curb ramp";
+                return i18next.t('right-ui.correct.CurbRamp.example-1-to-4');
             case "counterexample-image-1":
-                return "Sidewalk to driveway transitions are not curb ramps";
+                return i18next.t('right-ui.incorrect.CurbRamp.example-1-to-2');
             case "counterexample-image-2":
-                return "Sidewalk to driveway transitions are not curb ramps";
+                return i18next.t('right-ui.incorrect.CurbRamp.example-1-to-2');
             case "counterexample-image-3":
-                return "Driveways are not curb ramps";
+                return i18next.t('right-ui.incorrect.CurbRamp.example-3-to-4');
             case "counterexample-image-4":
-                return "Driveways are not curb ramps";
+                return i18next.t('right-ui.incorrect.CurbRamp.example-3-to-4');
         }
     }
 
     function getMissingCurbRampDescription (id) {
         switch (id) {
             case "example-image-1":
-                return "This intersection is lacking a curb ramp";
+                return i18next.t('right-ui.correct.NoCurbRamp.example-1-to-3');
             case "example-image-2":
-                return "This intersection is lacking a curb ramp";
+                return i18next.t('right-ui.correct.NoCurbRamp.example-1-to-3');
             case "example-image-3":
-                return "This intersection is lacking a curb ramp";
+                return i18next.t('right-ui.correct.NoCurbRamp.example-1-to-3');
             case "example-image-4":
-                return "This crosswalk indicates there should be a curb ramp here";
+                return i18next.t('right-ui.correct.NoCurbRamp.example-4');
             case "counterexample-image-1":
-                return "Residential walkways should not be labeled as a missing curb ramp";
+                return i18next.t('right-ui.incorrect.NoCurbRamp.example-1');
             case "counterexample-image-2":
-                return "This is not located on a pedestrian path";
+                return i18next.t('right-ui.incorrect.NoCurbRamp.example-2-and-4');
             case "counterexample-image-3":
-                return "This is not an intersection pedestrians should cross at";
+                return i18next.t('right-ui.incorrect.NoCurbRamp.example-3');
             case "counterexample-image-4":
-                return "This is not located on a pedestrian path";
+                return i18next.t('right-ui.incorrect.NoCurbRamp.example-2-and-4');
         }
     }
 
     function getObstacleDescription (id) {
         switch (id) {
             case "example-image-1":
-                return "These construction cones are blocking a pedestrian crosswalk";
+                return i18next.t('right-ui.correct.Obstacle.example-1');
             case "example-image-2":
-                return "This tree blocks the entire sidewalk";
+                return i18next.t('right-ui.correct.Obstacle.example-2');
             case "example-image-3":
-                return "This pole blocks the sidewalk and a curb ramp entrance";
+                return i18next.t('right-ui.correct.Obstacle.example-3');
             case "example-image-4":
-                return "This fire hydrant blocks the sidewalk";
+                return i18next.t('right-ui.correct.Obstacle.example-4');
             case "counterexample-image-1":
-                return "There is enough space to comfortably maneuver around this pole";
+                return i18next.t('right-ui.incorrect.Obstacle.example-1');
             case "counterexample-image-2":
-                return "This pole located between, but not on these curb ramps";
+                return i18next.t('right-ui.incorrect.Obstacle.example-2');
             case "counterexample-image-3":
-                return "This tree is not on the pedestrian path";
+                return i18next.t('right-ui.incorrect.Obstacle.example-3');
             case "counterexample-image-4":
-                return "There is enough space to comfortably maneuver around this lid";
+                return i18next.t('right-ui.incorrect.Obstacle.example-4');
         }
     }
 
     function getSurfaceProblemDescription (id) {
         switch (id) {
             case "example-image-1":
-                return "This sidewalk is very uneven";
+                return i18next.t('right-ui.correct.SurfaceProblem.example-1');
             case "example-image-2":
-                return "Brick sidewalks are bumpy and can be difficult to pass";
+                return i18next.t('right-ui.correct.SurfaceProblem.example-2');
             case "example-image-3":
-                return "This sidewalk is cracked";
+                return i18next.t('right-ui.correct.SurfaceProblem.example-3');
             case "example-image-4":
-                return "There is a substantial amount of grass growing between the sidewalk cracks";
+                return i18next.t('right-ui.correct.SurfaceProblem.example-4');
             case "counterexample-image-1":
-                return "Surface problems on curb ramps should not be labeled as surface problems";
+                return i18next.t('right-ui.incorrect.SurfaceProblem.example-1');
             case "counterexample-image-2":
-                return "This gravel is not on the pedestrian path";
+                return i18next.t('right-ui.incorrect.SurfaceProblem.example-2');
             case "counterexample-image-3":
-                return "This grass is not on the pedestrian path";
+                return i18next.t('right-ui.incorrect.SurfaceProblem.example-3');
             case "counterexample-image-4":
-                return "Normal sidewalk tiles are not surface problems";
+                return i18next.t('right-ui.incorrect.SurfaceProblem.example-4');
         }
     }
 
     function getNoSidewalkDescription (id) {
         switch (id) {
             case "example-image-1":
-                return "This is an abruptly ending sidewalk";
+                return i18next.t('right-ui.correct.NoSidewalk.example-1-to-2');
             case "example-image-2":
-                return "This is an abruptly ending sidewalk";
+                return i18next.t('right-ui.correct.NoSidewalk.example-1-to-2');
             case "example-image-3":
-                return "This street is missing a sidewalk";
+                return i18next.t('right-ui.correct.NoSidewalk.example-3');
             case "example-image-4":
-                return "This intersection is missing a sidewalk";
+                return i18next.t('right-ui.correct.NoSidewalk.example-4');
             case "counterexample-image-1":
-                return "Narrow sidewalks should not be labeled as missing sidewalks";
+                return i18next.t('right-ui.incorrect.NoSidewalk.example-1');
             case "counterexample-image-2":
-                return "Driveways should not be labeled as missing sidewalks";
+                return i18next.t('right-ui.incorrect.NoSidewalk.example-2');
             case "counterexample-image-3":
-                return "Traffic medians should not be labeled as missing sidewalks";
+                return i18next.t('right-ui.incorrect.NoSidewalk.example-3');
             case "counterexample-image-4":
-                return "Alleyways and side streets should not be labeled as missing sidewalks";
+                return i18next.t('right-ui.incorrect.NoSidewalk.example-4');
         }
     }
 

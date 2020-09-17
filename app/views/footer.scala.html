@@ -1,0 +1,11 @@
+@import views.html.bootstrap._
+@import models.user.VersionTable
+
+@()(implicit lang: Lang)
+
+<div id="mini-footer-audit">
+    @Html(Messages("footer.designed.operated"))<br>
+    <span id="application-version">
+        @Html(Messages("footer.version", VersionTable.currentVersionId(), VersionTable.currentVersionTimestamp()))
+    </span>
+</div>

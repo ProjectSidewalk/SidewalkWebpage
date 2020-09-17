@@ -8,74 +8,81 @@
 function LabelCounter (d3) {
     var self = this;
 
-    var radius = 0.2, dR = radius / 3,
-        svgWidth = 200, svgHeight = 120,
-        margin = {top: 10, right: 10, bottom: 10, left: 0},
-        padding = {left: 5, top: 15},
-        width = 200 - margin.left - margin.right,
-        height = 40 - margin.top - margin.bottom,
-        colorScheme = util.misc.getLabelColors(),
-        imageWidth = 22, imageHeight = 22,
-        rightColumn = 1.8;
+    var svgWidth = 200;
+    var svgHeight = 120;
+    var margin = {top: 10, right: 10, bottom: 10, left: 0};
+    var padding = {left: 5, top: 15};
+    var width = 200 - margin.left - margin.right;
+    var height = 40 - margin.top - margin.bottom;
+    var colorScheme = util.misc.getLabelColors();
+    var imageWidth = 22;
+    var imageHeight = 22;
+    var rightColumn = 1.8;
 
     // Prepare a group to store svg elements, and declare a text
     var dotPlots = {
-      "CurbRamp": {
-        id: "CurbRamp",
-        description: "curb ramp",
-        left: margin.left,
-        top: margin.top,
-        fillColor: colorScheme["CurbRamp"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_CurbRamp.png",
-        count: 0,
-        data: []
-      },
-      "NoCurbRamp": {
-          id: "NoCurbRamp",
-          description: "missing curb ramp",
-          left: margin.left,
-          top: (2 * margin.top) + margin.bottom + height,
-          // top: 2 * margin.top + margin.bottom + height,
-          fillColor: colorScheme["NoCurbRamp"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
-          count: 0,
-          data: []
-      },
-      "Obstacle": {
-        id: "Obstacle",
-        description: "obstacle",
-        left: margin.left,
-        // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
-        top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
-        fillColor: colorScheme["Obstacle"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
-        count: 0,
-        data: []
-      },
-      "SurfaceProblem": {
-        id: "SurfaceProblem",
-        description: "surface problem",
-        left: margin.left + (width/rightColumn),
-        //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
-          top: margin.top,
-        fillColor: colorScheme["SurfaceProblem"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
-        count: 0,
-        data: []
-      },
-      "NoSidewalk": {
-        id: "NoSidewalk",
-        description: "no sidewalk",
-        left: margin.left + (width/rightColumn),        
-        top: (2 * margin.top) + margin.bottom + height,  
-        fillColor: colorScheme["NoSidewalk"].fillStyle,
-          imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoSidewalk.png",
-        count: 0,
-        data: []
-      },
+        "CurbRamp": {
+            id: "CurbRamp",
+            description: i18next.t('curb-ramp'),
+            descriptionPlural: i18next.t('curb-ramps'),
+            left: margin.left,
+            top: margin.top,
+            fillColor: colorScheme["CurbRamp"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_CurbRamp.png",
+            count: 0,
+            data: []
+        },
+        "NoCurbRamp": {
+            id: "NoCurbRamp",
+            description: i18next.t('missing-curb-ramp'),
+            descriptionPlural: i18next.t('missing-curb-ramps'),
+            left: margin.left,
+            top: (2 * margin.top) + margin.bottom + height,
+            // top: 2 * margin.top + margin.bottom + height,
+            fillColor: colorScheme["NoCurbRamp"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoCurbRamp.png",
+            count: 0,
+            data: []
+        },
+        "Obstacle": {
+            id: "Obstacle",
+            description: i18next.t('obstacle'),
+            descriptionPlural: i18next.t('obstacles'),
+            left: margin.left,
+            // top: 3 * margin.top + 2 * margin.bottom + 2 * height,
+            top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
+            fillColor: colorScheme["Obstacle"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_Obstacle.png",
+            count: 0,
+            data: []
+        },
+        "SurfaceProblem": {
+            id: "SurfaceProblem",
+            description: i18next.t('surface-problem'),
+            descriptionPlural: i18next.t('surface-problems'),
+            left: margin.left + (width/rightColumn),
+            //top: 4 * margin.top + 3 * margin.bottom + 3 * height,
+            top: margin.top,
+            fillColor: colorScheme["SurfaceProblem"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_SurfaceProblem.png",
+            count: 0,
+            data: []
+        },
+        "NoSidewalk": {
+            id: "NoSidewalk",
+            description: i18next.t('no-sidewalk'),
+            descriptionPlural: i18next.t('no-sidewalks'),
+            left: margin.left + (width/rightColumn),
+            top: (2 * margin.top) + margin.bottom + height,
+            fillColor: colorScheme["NoSidewalk"].fillStyle,
+            imagePath: svl.rootDirectory + "/img/icons/Sidewalk/Icon_NoSidewalk.png",
+            count: 0,
+            data: []
+        },
         "Other": {
             id: "Other",
-            description: "other",
+            description: i18next.t('other'),
+            descriptionPlural: i18next.t('others'),
             left: margin.left + (width/rightColumn),
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
@@ -120,11 +127,11 @@ function LabelCounter (d3) {
             .enter()
             .append("text")
             .text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
+                var ret = dotPlots[key].count + " ";
+                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
                 return ret;
             })
-            .style("font-size", "9px")
+            .style("font-size", "8px")
             .attr("class", "visible")
             .attr('transform', 'translate(0,' + imageHeight + ')');
 
@@ -171,50 +178,64 @@ function LabelCounter (d3) {
         function _update(key) {
             if (keys.indexOf(key) == -1) { key = "Other"; }
 
-            var fiftyCircles = parseInt(dotPlots[key].count / 50),
-              tenCircles = parseInt((dotPlots[key].count % 50) / 10),
-              oneCircles = dotPlots[key].count % 10,
-              count = fiftyCircles + tenCircles + oneCircles;
+            var hundredCircles = parseInt(dotPlots[key].count / 100);
+            var fiftyCircles = parseInt((dotPlots[key].count % 100) / 50);
+            var tenCircles = parseInt((dotPlots[key].count % 50) / 10);
+            var oneCircles = dotPlots[key].count % 10;
+            var count = hundredCircles + fiftyCircles + tenCircles + oneCircles;
+            var multiplier = Math.max(0.5, 1.0 - parseInt(dotPlots[key].count) / 1500.0);
+            var radius = 0.2 * multiplier;
+            var dR = radius / 3;
 
-            /* 
-            the code of these three functions was being used so much I decided to separately declare them
-            the d3 calls look much cleaner now :)
-            */
+            // The code of these three functions was being used so much I decided to separately declare them.
+            // The d3 calls look much cleaner now. :)
             function setCX(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
-                return x(i * 4 * radius + dR);
-              }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
-                return x(fiftyCircles * 4 * radius + dR) + x((i - fiftyCircles) * 2 * (radius + dR));
-              }
-              else{
-                return x(fiftyCircles * 2 * radius + dR) + x(tenCircles * 1.9 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
-              }
+               if (i < hundredCircles && hundredCircles != 0) {
+                   return x(i * 5.33 * radius + 2 * dR)
+               }
+               else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0) {
+                   return x(hundredCircles * 5.33 * radius);
+               }
+               else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0) {
+                   return x(hundredCircles * 2.6 * radius) + x(fiftyCircles * 3.3 * radius) +
+                     x((i - fiftyCircles) * 2 * (radius + dR));
+               }
+               else {
+                   return x(hundredCircles * 3.2 * radius) + x(fiftyCircles * 1.3 * radius) +
+                     x(tenCircles * 1.95 * (radius + dR))+ x((i - tenCircles) * 2 * radius);
+               }
             }
             
             function setCY(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
+              if (i < hundredCircles && hundredCircles != 0) {
                 return 0;
               }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
-                return x(dR);
+              else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0) {
+                return x(2 * dR);
               }
-              else{
-                return x(radius);
+              else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0) {
+                return x(radius + dR);
+              }
+              else {
+                return x(2 * radius);
               }
             }
 
             function setR(d, i){
-              if (i < fiftyCircles && fiftyCircles != 0){
+              if (i < hundredCircles && hundredCircles != 0) {
+                return x(2 * (radius + dR));
+              }
+              else if (i < hundredCircles + fiftyCircles && fiftyCircles != 0) {
                 return x(2 * radius);
               }
-              else if (i < fiftyCircles + tenCircles && tenCircles != 0){
+              else if (i < hundredCircles + fiftyCircles + tenCircles && tenCircles != 0) {
                 return x(radius + dR);
               }
-              else{
+              else {
                 return x(radius);
               }
             }
+
             // Update the dot plot
             if (dotPlots[key].data.length >= count) {
               // Remove dots
@@ -258,8 +279,8 @@ function LabelCounter (d3) {
                 .attr("r", setR);
             }
             dotPlots[key].label.text(function () {
-                var ret = dotPlots[key].count + " " + dotPlots[key].description;
-                ret += dotPlots[key].count > 1 ? "s" : "";
+                var ret = dotPlots[key].count + " ";
+                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
                 return ret;
             });
         }

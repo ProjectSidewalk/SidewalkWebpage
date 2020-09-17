@@ -16,13 +16,14 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('choropleth', "kotarohara.8e0c6890", {
+    var choropleth = L.mapbox.map('choropleth', "mapbox.light", {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: false,
         legendControl: {
             position: 'topright'
-        }
+        },
+        zoomSnap: 0.5
     });
     choropleth.scrollWheelZoom.disable();
 
@@ -33,9 +34,11 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
         choropleth.setZoom(data.default_zoom);
+        $("#reset-button").click(reset);
+        function reset() {
+            choropleth.setView([data.city_center.lat, data.city_center.lng], data.default_zoom);
+        }
     });
-
-    L.mapbox.styleLayer('mapbox://styles/mapbox/light-v9').addTo(choropleth);
 
     L.control.zoomslider().addTo(choropleth);
 
@@ -102,61 +105,67 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                regionName = feature.properties.region_name,
-                compRate = -1.0,
-                milesLeft = -1.0,
-                url = "/audit/region/" + regionId,
-                popupContent = "";
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var compRate = -1.0;
+            var milesLeft = -1.0;
+            var url = "/audit/region/" + regionId;
+            var popupContent = "";
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
-                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371;
+                    distanceLeft = Math.round(distanceLeft);
 
                     var advancedMessage = '';
-                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                    if (difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
-                    if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to find accessibility issues in this neighborhood yourself!";
-                    }
-                    else if (milesLeft === 0) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else if (milesLeft === 1) {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.100-percent-complete") + "<br>" +
+                            i18next.t("map.thanks");
+                    } else if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.100-percent-complete") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.less-than-one-unit-left") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.distance-left-one-unit") + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
+                    } else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
+                            i18next.t("map.click-to-help", { url: url, regionId: regionId });
                     }
 
                     var labels = rates[i].labels;
                     var counts = {};
-                    for(var j in labelText){
-                        if(typeof labels[j] != 'undefined')
+                    for (var j in labelText){
+                        if (typeof labels[j] != 'undefined')
                             counts[j] = labels[j];
                         else
                             counts[j] = 0;
                     }
 
                     popupContent += '<div class="resultsImages"><table><tbody>'+
-                                    '<tr><td>Missing Sidewalks<br/>'+
-                                    '</td><td>Missing Ramps<br/>'+
-                                    '</td><td>Surface Problems<br/>'+
-                                    '</td><td>Sidewalk Obstacles<br/>'+
-                                    '</td></tr>'+
+                                    '<tr><td>' + i18next.t('missing-sidewalks') + '<br/></td>'+
+                                    '<td>' + i18next.t('missing-ramps') + '<br/></td>'+
+                                    '<td>' + i18next.t('surface-problems') + '<br/>'+
+                                    '<td>' + i18next.t('sidewalk-obstacles') + '<br/></td></td></tr>' +
                                     '<tr><td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoSidewalk.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_NoCurbRamp.png"></td>'+
                                     '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_SurfaceProblem.png"></td>'+
@@ -171,7 +180,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
             layer.on('mouseover', function (e) {
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-
+                this.openPopup()
             });
             layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
@@ -192,16 +201,16 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 var compRate = Math.round(100.0 * ratesEl.rate);
                 var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
                 var distanceLeft = "";
-                if(compRate === 100){
+                if (compRate === 100) {
                     distanceLeft = "0";
                 }
-                else if(milesLeft === 0){
+                else if (milesLeft === 0) {
                     distanceLeft = "<1";
                 }
-                else if(milesLeft === 1){
+                else if (milesLeft === 1) {
                     distanceLeft = "1";
                 }
-                else{
+                else {
                     distanceLeft = ">1";
                 }
                 var activity = "Click_module=ResultsChoropleth_regionId="+regionId+"_distanceLeft="+distanceLeft+"_target=inspect";
@@ -230,16 +239,16 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";
-            if(compRate === 100){
+            if (compRate === 100) {
                 distanceLeft = "0";
             }
-            else if(milesLeft === 0){
+            else if (milesLeft === 0) {
                 distanceLeft = "<1";
             }
-            else if(milesLeft === 1){
+            else if (milesLeft === 1) {
                 distanceLeft = "1";
             }
-            else{
+            else {
                 distanceLeft = ">1";
             }
 

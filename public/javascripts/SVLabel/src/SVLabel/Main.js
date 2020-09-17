@@ -24,6 +24,7 @@ function Main (params) {
     svl.isOnboarding = function () {
         return svl.onboarding != null && svl.onboarding.isOnboarding();
     };
+    svl.missionsCompleted = params.missionSetProgress;
     svl.canvasWidth = 720;
     svl.canvasHeight = 480;
     svl.svImageHeight = 6656;
@@ -82,6 +83,8 @@ function Main (params) {
 
     function _init (params) {
         params = params || {};
+
+        svl.userHasCompletedAMission = params.hasCompletedAMission;
         var panoId = params.panoId;
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
 
@@ -131,7 +134,7 @@ function Main (params) {
 
 
         svl.pointCloud = new PointCloud();
-        svl.labelFactory = new LabelFactory(svl);
+        svl.labelFactory = new LabelFactory(svl, params.nextTemporaryLabelId);
         svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
         // Game effects
@@ -155,7 +158,7 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        // Mission.
+        // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
@@ -165,16 +168,36 @@ function Main (params) {
         svl.missionModel.trigger("MissionFactory:create", params.mission); // create current mission and set as current
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.navigationModel, svl.neighborhoodModel,
             svl.panoramaContainer, svl.taskContainer, svl.map, svl.compass, svl.tracker, params.form);
-        svl.tracker.initTaskId();
+        if (params.mission.current_audit_task_id) {
+            var currTask = svl.taskContainer.getCurrentTask();
+            currTask.setProperty("auditTaskId", params.mission.current_audit_task_id);
+        } else {
+            svl.tracker.initTaskId();
+        }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svl.tracker.push("PageGainedFocus");
+            } else {
+                svl.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);
-        svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.taskContainer,
-            modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete, svl.modalModel,
-            svl.statusModel, svl.onboardingModel, svl.userModel);
+        svl.modalMissionComplete = new ModalMissionComplete(svl, svl.missionContainer, svl.missionModel,
+            svl.taskContainer, modalMissionCompleteMap, modalMissionCompleteProgressBar, svl.ui.modalMissionComplete,
+            svl.modalModel, svl.statusModel, svl.onboardingModel, svl.userModel);
         svl.modalMissionComplete.hide();
 
         svl.modalComment = new ModalComment(svl, svl.tracker, svl.ribbon, svl.taskContainer, svl.ui.leftColumn, svl.ui.modalComment, svl.onboardingModel);
@@ -191,12 +214,6 @@ function Main (params) {
         var task = svl.taskContainer.getCurrentTask();
         if (task && typeof google != "undefined") {
           google.maps.event.addDomListener(window, 'load', task.render);
-        }
-
-        // Mark neighborhood as complete if the initial task's completion count > 0
-        // Proxy for knowing if the neighborhood is complete across all users
-        if(task.streetCompletedByAnyUser()) {
-            svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
         }
 
         $("#toolbar-onboarding-link").on('click', function () {
@@ -241,7 +258,7 @@ function Main (params) {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'top',
-                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
                 });
             }
         });
@@ -253,7 +270,7 @@ function Main (params) {
                 $(this).attr({
                     'data-toggle': 'tooltip',
                     'data-placement': 'left',
-                    'title': 'Press the "' + util.misc.getLabelDescriptions(val)['shortcut']['keyChar'] + '" key'
+                    'title': i18next.t('top-ui.press-key', {key: util.misc.getLabelDescriptions(val)['shortcut']['keyChar']})
                 });
             }
         });
@@ -265,13 +282,12 @@ function Main (params) {
 
     function loadData (taskContainer, missionModel, neighborhoodModel, contextMenu, tutorialStreetId) {
         // Fetch an onboarding task.
-
-        taskContainer.fetchATask("onboarding", tutorialStreetId, function () {
+        taskContainer.fetchATask(tutorialStreetId, {tutorialTask: true}, function () {
             loadingAnOnboardingTaskCompleted = true;
             handleDataLoadComplete();
         });
 
-        // Fetch tasks in the onboarding region.
+        // Fetch tasks in the current region.
         taskContainer.fetchTasks(function () {
             loadingTasksCompleted = true;
             handleDataLoadComplete();
@@ -328,6 +344,7 @@ function Main (params) {
     }
 
     function startTheMission(mission, neighborhood) {
+        document.getElementById("google-maps-holder").style.backgroundColor = "#e5e3df";
         if(params.init !== "noInit") {
             // Popup the message explaining the goal of the current mission
             if (svl.missionContainer.onlyMissionOnboardingDone() || svl.missionContainer.isTheFirstMission()) {
@@ -354,7 +371,7 @@ function Main (params) {
         svl.labelContainer.fetchLabelsInTheCurrentMission(
             neighborhood.getProperty("regionId"),
             function (result) {
-                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "Other": 0};
+                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0};
                 for (var i = 0, len = result.length; i < len; i++) {
                     switch (result[i].label_type_id) {
                         case 1:
@@ -369,6 +386,9 @@ function Main (params) {
                         case 4:
                             counter['SurfaceProblem'] += 1;
                             break;
+                        case 7:
+                            counter['NoSidewalk'] += 1;
+                            break;
                         default:
                             counter['Other'] += 1;
                     }
@@ -377,10 +397,33 @@ function Main (params) {
                 svl.labelCounter.set('NoCurbRamp', counter['NoCurbRamp']);
                 svl.labelCounter.set('Obstacle', counter['Obstacle']);
                 svl.labelCounter.set('SurfaceProblem', counter['SurfaceProblem']);
+                svl.labelCounter.set('NoSidewalk', counter['NoSidewalk']);
                 svl.labelCounter.set('Other', counter['Other']);
             });
 
-        var unit = {units: 'miles'};
+        /**
+         * Loads the labels onto the mini map when user start auditing if they are near any previously
+         * placed labels
+         */
+        svl.labelContainer.miniMapLabelsInRegion(
+            neighborhood.getProperty("regionId"),
+            function (result) {
+                var labelsArr = result.labels;
+                for (var i = 0; i < labelsArr.length; i++) {
+                    var imagePaths = util.misc.getIconImagePaths();
+                    var url = imagePaths[labelsArr[i].label_type].googleMapsIconImagePath;
+                    var googleMarker = new google.maps.Marker({
+                        position: {lat: labelsArr[i].label_lat, lng: labelsArr[i].label_lng},
+                        map: svl.map.getMap(),
+                        title: "Mini-Map Label",
+                        icon: url,
+                        size: new google.maps.Size(20, 20)
+                    });
+                    googleMarker.setMap(svl.map.getMap());
+                }
+            });
+
+        var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);
         svl.statusFieldNeighborhood.setAuditedDistance(distance.toFixed(1), unit);
     }
@@ -390,8 +433,15 @@ function Main (params) {
         if (loadingAnOnboardingTaskCompleted && loadingTasksCompleted &&
             loadingMissionsCompleted && loadNeighborhoodsCompleted &&
             loadDifficultNeighborhoodsCompleted && loadLabelTags) {
-            // Check if the user has completed the onboarding tutorial..
+
+            // Mark neighborhood as complete if there are no streets left with max priority (= 1).
+            if(!svl.taskContainer.hasMaxPriorityTask()) {
+                svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+            }
+
+            // Check if the user has completed the onboarding tutorial.
             var mission = svl.missionContainer.getCurrentMission();
+            svl.loadComplete = true;
             $("#page-loading").css({"visibility": "hidden"});
             $(".toolUI").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
@@ -400,6 +450,7 @@ function Main (params) {
                 $("#mini-footer-audit").css("visibility", "hidden");
                 startOnboarding();
             } else {
+                svl.taskContainer.removeTutorialTask();
                 _calculateAndSetTasksMissionsOffset();
                 var currentNeighborhood = svl.neighborhoodContainer.getStatus("currentNeighborhood");
                 $("#mini-footer-audit").css("visibility", "visible");
@@ -505,9 +556,14 @@ function Main (params) {
         // Modal
         svl.ui.modalSkip = {};
         svl.ui.modalSkip.holder = $("#modal-skip-holder");
-        svl.ui.modalSkip.ok = $("#modal-skip-ok-button");
-        svl.ui.modalSkip.cancel = $("#modal-skip-cancel-button");
-        svl.ui.modalSkip.radioButtons = $(".modal-skip-radio-buttons");
+        svl.ui.modalSkip.firstBox = $("#modal-skip-box");
+        svl.ui.modalSkip.unavailable = $("#modal-skip-unavailable");
+        svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
+        svl.ui.modalSkip.cancelFirst = $("#modal-skip-cancel-first-button");
+        svl.ui.modalSkip.secondBox = $("#modal-skip-box-neighborhood");
+        svl.ui.modalSkip.redirect = $("#modal-skip-redirect-jump");
+        svl.ui.modalSkip.explore = $("#modal-skip-explore");
+        svl.ui.modalSkip.cancelSecond = $("#modal-skip-cancel-second-button");
         svl.ui.modalComment = {};
         svl.ui.modalComment.holder = $("#modal-comment-holder");
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
@@ -541,8 +597,10 @@ function Main (params) {
         svl.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svl.ui.modalMissionComplete.map = $("#modal-mission-complete-map");
         svl.ui.modalMissionComplete.completeBar = $('#modal-mission-complete-complete-bar');
-        svl.ui.modalMissionComplete.closeButton = $("#modal-mission-complete-close-button");
+        svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
+        svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
+        svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
         svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
         svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
@@ -557,11 +615,6 @@ function Main (params) {
         // Zoom control
         svl.ui.zoomControl = {};
         svl.ui.zoomControl.holder = $("#zoom-control-holder");
-        svl.ui.zoomControl.holder.append('<button id="zoom-in-button" class="button zoom-control-button" title="Press the &quot;Z&quot; key" data-toggle="tooltip" data-placement="top">' +
-            '<img src="' + svl.rootDirectory + 'img/icons/ZoomIn.svg" class="zoom-button-icon" alt="Zoom in">' +
-            '<br /><u>Z</u>oom In</button>');
-        svl.ui.zoomControl.holder.append('<button id="zoom-out-button" class="button zoom-control-button" title="Press the &quot;Shift + Z&quot; keys" data-toggle="tooltip" data-placement="top">' +
-            '<img src="' + svl.rootDirectory + 'img/icons/ZoomOut.svg" class="zoom-button-icon" alt="Zoom out"><br />Zoom Out</button>');
         svl.ui.zoomControl.zoomIn = $("#zoom-in-button");
         svl.ui.zoomControl.zoomOut = $("#zoom-out-button");
 
@@ -609,10 +662,21 @@ function Main (params) {
         svl.ui.onboarding.handGestureHolder = $("#hand-gesture-holder");
     }
 
-    if(params.init !== "noInit") {
-        _initUI();
-        _init(params);
-    }
+    // Gets all the text on the audit page for the correct language.
+    i18next.use(i18nextXHRBackend);
+    i18next.init({
+        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+        fallbackLng: 'en',
+        ns: ['audit', 'common'],
+        defaultNS: 'audit',
+        lng: params.language,
+        debug: false
+    }, function(err, t) {
+        if(params.init !== "noInit") {
+            _initUI();
+            _init(params);
+        }
+    });
 
     self.loadData = loadData;
 

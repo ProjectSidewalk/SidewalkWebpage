@@ -17,7 +17,10 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
     _missionModel.on("MissionProgress:update", function (parameters) {
         var mission = parameters.mission;
         var neighborhood = parameters.neighborhood;
-        self.update(mission, neighborhood);
+        // We track mission progress separately for CV ground truth missions.
+        if (!svl.isCVGroundTruthAudit) {
+            self.update(mission, neighborhood);
+        }
     });
 
     _neighborhoodModel.on("Neighborhood:completed", function (parameters) {
@@ -51,8 +54,8 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         mission.complete();
 
         // TODO Audio should listen to MissionProgress instead of MissionProgress telling what to do.
-        _gameEffectModel.playAudio({audioType: "yay"});
-        _gameEffectModel.playAudio({audioType: "applause"});
+        _gameEffectModel.loadAudio({audioType: "success"});
+        _gameEffectModel.playAudio({audioType: "success"});
 
         // Update the neighborhood status
         if ("labelContainer" in svl) {
@@ -62,6 +65,8 @@ function MissionProgress (svl, gameEffectModel, missionModel, modalModel, neighb
         }
 
         _missionModel.completeMission(mission);
+
+        svl.missionsCompleted += 1;
     };
 
     this._checkMissionComplete = function (mission, neighborhood) {

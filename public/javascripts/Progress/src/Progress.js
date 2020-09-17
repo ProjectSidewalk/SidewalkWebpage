@@ -1,6 +1,5 @@
 function Progress (_, $, c3, L, role, difficultRegionIds) {
     var self = {};
-    var completedInitializingOverlayPolygon = false;
     var completedInitializingNeighborhoodPolygons = false;
     var completedInitializingAuditedStreets = false;
     var completedInitializingSubmittedLabels = false;
@@ -9,9 +8,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     var neighborhoodPolygonStyle = {
             color: '#888',
-            weight: 1,
-            opacity: 0.25,
-            fillColor: "#ccc",
+            weight: 2,
+            opacity: 0.80,
+            fillColor: "#808080",
             fillOpacity: 0.1
         },
         layers = [],
@@ -32,9 +31,10 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('map', "kotarohara.8e0c6890", {
+    var map = L.mapbox.map('map', "mapbox.streets", {
         maxZoom: 19,
-        minZoom: 9
+        minZoom: 9,
+        zoomSnap: 0.5
     });
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
@@ -44,13 +44,13 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
+        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
     var popup = L.popup().setContent('<p>Hello!</p>');
 
     function handleInitializationComplete (map) {
-        if (completedInitializingOverlayPolygon &&
-            completedInitializingNeighborhoodPolygons &&
+        if (completedInitializingNeighborhoodPolygons &&
             completedInitializingAuditedStreets &&
             completedInitializingSubmittedLabels &&
             completedInitializingAuditCountChart &&
@@ -82,18 +82,24 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     }
 
     /**
-     * This function adds a semi-transparent white polygon on top of a map
+     * This function adds a semi-transparent white polygon on top of a map.
      */
-    function initializeOverlayPolygon (map) {
+    function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
             "type": "FeatureCollection",
             "features": [{"type": "Feature", "geometry": {
                 "type": "Polygon", "coordinates": [
-                    [[-75, 36], [-75, 40], [-80, 40], [-80, 36],[-75, 36]]
+                        [
+                            [lng + 2, lat - 2],
+                            [lng + 2, lat + 2],
+                            [lng - 2, lat + 2],
+                            [lng - 2, lat - 2],
+                            [lng + 2, lat - 2]
+                        ]
                 ]}}]};
-        L.geoJson(overlayPolygon).addTo(map);
-        completedInitializingOverlayPolygon = true;
-        handleInitializationComplete(map);
+        var layer = L.geoJson(overlayPolygon);
+        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
+        layer.addTo(map);
     }
 
     /**
@@ -102,46 +108,53 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
     function initializeNeighborhoodPolygons(map, rates) {
         function onEachNeighborhoodFeature(feature, layer) {
 
-            var regionId = feature.properties.region_id,
-                regionName = feature.properties.region_name,
-                url = "/audit/region/" + regionId,
-                // default popup content if we don't find neighborhood in list of neighborhoods from query
-                popupContent = "Do you want to find accessibility problems in " + regionName + "? " +
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>",
-                compRate = 0,
-                milesLeft = 0;
+            var regionId = feature.properties.region_id;
+            var regionName = feature.properties.region_name;
+            var userCompleted = feature.properties.user_completed;
+            var url = "/audit/region/" + regionId;
+            // default popup content if we don't find neighborhood in list of neighborhoods from query
+            var popupContent = "Do you want to find accessibility problems in " + regionName + "? " +
+                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
+            var compRate = 0;
+            var milesLeft = 0;
             for (var i = 0; i < rates.length; i++) {
                 if (rates[i].region_id === feature.properties.region_id) {
+                    var measurementSystem = i18next.t('common:measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
-                    milesLeft = Math.round(0.000621371 * (rates[i].total_distance_m - rates[i].completed_distance_m));
-                    
+                    distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
+                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    if (measurementSystem === "metric") distanceLeft *= 0.001;
+                    else distanceLeft *= 0.000621371;
+                    distanceLeft = Math.round(distanceLeft);
+
                     var advancedMessage = '';
-                    if(difficultRegionIds.includes(feature.properties.region_id)) {
+                    if (difficultRegionIds.includes(feature.properties.region_id)) {
                            advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
-                    if (compRate === 100) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to find accessibility issues in this neighborhood yourself!";
-                    }
-                    else if (milesLeft === 0) {
-                        popupContent = "<strong>" + regionName + "</strong>: " + compRate +
-                            "\% Complete<br>Less than a mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else if (milesLeft === 1) {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " mile left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
-                    }
-                    else {
-                        var popupContent = "<strong>" + regionName + "</strong>: " + compRate + "\% Complete<br>Only " +
-                            milesLeft + " miles left!<br>" + advancedMessage +
-                            "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Click here</a>" +
-                            " to help finish this neighborhood!";
+                    if (userCompleted) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.100-percent-complete") + "<br>" +
+                            i18next.t("common:map.thanks");
+                    } else if (compRate === 100) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.100-percent-complete") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 0) {
+                        popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.less-than-one-unit-left") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else if (distanceLeft === 1) {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.distance-left-one-unit") + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
+                    } else {
+                        var popupContent = "<strong>" + regionName + "</strong>: " +
+                            i18next.t("common:map.percent-complete", { percent: compRate }) + "<br>" +
+                            i18next.t("common:map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
+                            i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
                     }
                     break;
                 }
@@ -150,6 +163,7 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
+                this.openPopup();
                 this.setStyle({color: "red", fillColor: "red"});
 
             });
@@ -174,16 +188,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var compRate = Math.round(100.0 * ratesEl.rate);
                 var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
                 var distanceLeft = "";
-                if(compRate === 100){
+                if (compRate === 100) {
                     distanceLeft = "0";
                 }
-                else if(milesLeft === 0){
+                else if (milesLeft === 0) {
                     distanceLeft = "<1";
                 }
-                else if(milesLeft === 1){
+                else if (milesLeft === 1) {
                     distanceLeft = "1";
                 }
-                else{
+                else {
                     distanceLeft = ">1";
                 }
                 var url = "/userapi/logWebpageActivity";
@@ -232,16 +246,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             var compRate = Math.round(100.0 * ratesEl.rate);
             var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
             var distanceLeft = "";
-            if(compRate === 100){
+            if (compRate === 100) {
                 distanceLeft = "0";
             }
-            else if(milesLeft === 0){
+            else if (milesLeft === 0) {
                 distanceLeft = "<1";
             }
-            else if(milesLeft === 1){
+            else if (milesLeft === 1) {
                 distanceLeft = "1";
             }
-            else{
+            else {
                 distanceLeft = ">1";
             }
             var url = "/userapi/logWebpageActivity";
@@ -299,11 +313,11 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             })
                 .addTo(map);
 
-            // Calculate total distance audited in (km)
+            // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
             for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.length(data.features[i], {units: 'miles'});
+                distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
             }
-            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " mi";
+            document.getElementById("td-total-distance-audited").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
 
             // Get total reward if a turker
             if (role === 'Turker') {
@@ -388,8 +402,8 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
     function initializeAuditCountChart (c3, map) {
         $.getJSON("/contribution/auditCounts", function (data) {
-            var dates = ['Date'].concat(data[0].map(function (x) { return x.date; })),
-                counts = ['Audit Count'].concat(data[0].map(function (x) { return x.count; }));
+            var dates = ['Date'].concat(data[0].map(function (x) { return x.date; }));
+            var counts = [i18next.t("audit-count")].concat(data[0].map(function (x) { return x.count; }));
             var chart = c3.generate({
                 bindto: "#audit-count-chart",
                 data: {
@@ -400,10 +414,14 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 axis: {
                     x: {
                         type: 'timeseries',
-                        tick: { format: '%Y-%m-%d' }
+                        tick: {
+                            format: function(x) {
+                                return moment(x).format('D MMMM YYYY');
+                            }
+                        }
                     },
                     y: {
-                        label: "Street Audit Count",
+                        label: i18next.t("street-audit-count"),
                         min: 0,
                         padding: { top: 50, bottom: 10 }
                     }
@@ -427,14 +445,6 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
         $.getJSON("/getMissions", function (data) {
             _data.tasks = data;
             completedInitializingAuditedTasks = true;
-
-            // http://stackoverflow.com/questions/3552461/how-to-format-a-javascript-date
-            var monthNames = [
-                "Jan.", "Feb.", "Mar.",
-                "Apr.", "May", "June", "July",
-                "Aug.", "Sept.", "Oct.",
-                "Nov.", "Dec."
-            ];
 
 
             // sorts all labels the user has completed by mission
@@ -491,12 +501,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                         labelCounter[labelType] += 1;
                     }
                 }
-
-                var date = new Date(grouped[missionId][0]["mission_end"]);
-                var day = date.getDate();
-                var monthIndex = date.getMonth();
-                var year = date.getFullYear();
-
+                
+                // No need to load locale, correct locale loaded for timestamp.
+                var localDate = moment(new Date(grouped[missionId][0]["mission_end"]));
 
                 var neighborhood;
                 // neighborhood name is tutorial if there is no neighborhood
@@ -510,9 +517,9 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
                 var dateString;
                 // Date is "In Progress" if the mission has not yet been completed
                 if (grouped[missionId][0]["completed"]) {
-                    dateString = (day + ' ' + monthNames[monthIndex] + ' ' + year);
+                    dateString = localDate.format('D MMM YYYY');
                 } else {
-                    dateString = "In Progress";
+                    dateString = i18next.t("in-progress");
                 }
 
                 missionNumber++;
@@ -539,7 +546,6 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
 
 
     $.getJSON('/adminapi/neighborhoodCompletionRate', function (neighborhoodCompletionData) {
-        initializeOverlayPolygon(map);
         initializeNeighborhoodPolygons(map, neighborhoodCompletionData);
         initializeAuditedStreets(map);
         initializeSubmittedLabels(map);

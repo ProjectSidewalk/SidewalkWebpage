@@ -29,13 +29,6 @@ svg {
 }
 
 
-.leaflet-overlay-pane svg g:first-child path {
-    fill: #fff !important;
-    fill-opacity: 0.4 !important;
-    stroke-width: 2px !important;
-    stroke-opacity: 1 !important;
-    stroke: #ffffff !important;
-}
 .c3 text {
     font-size: 9pt;
 }

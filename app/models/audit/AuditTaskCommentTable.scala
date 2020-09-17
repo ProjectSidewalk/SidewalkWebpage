@@ -5,14 +5,16 @@ import java.sql.Timestamp
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
+import models.validation.ValidationTaskCommentTable
 import play.api.Play.current
 
 import scala.slick.lifted.ForeignKeyQuery
 
-case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, userId: String,
+case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, username: String,
                             ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
-                            pitch: Option[Double],  zoom: Option[Int], lat: Option[Double], lng: Option[Double],
+                            pitch: Option[Double], zoom: Option[Int], lat: Option[Double], lng: Option[Double],
                             timestamp: Timestamp, comment: String)
+case class GenericComment(commentType: String, username: String, gsvPanoramaId: Option[String], timestamp: Timestamp, comment: String)
 
 class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some("sidewalk"), "audit_task_comment") {
   def auditTaskCommentId = column[Int]("audit_task_comment_id", O.PrimaryKey, O.AutoInc)
@@ -72,17 +74,26 @@ object AuditTaskCommentTable {
   }
 
   /**
-    * Take the last n comments.
+    * Take last n comments from either audit or validation comment tables.
     *
     * @param n
     * @return
     */
-  def takeRight(n: Integer): List[AuditTaskComment] = db.withTransaction { implicit session =>
-    val comments = (for {
+  def takeRightAuditAndValidationComments(n: Integer): List[GenericComment] = db.withSession { implicit session =>
+    val auditComments = (for {
       (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-    } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
-      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
+    } yield ("audit", u.username, c.gsvPanoramaId, c.timestamp, c.comment)).take(n).list.map(GenericComment.tupled(_))
 
-    comments.take(n)
+    val validationComments = (for {
+      (c, u) <- ValidationTaskCommentTable.validationTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
+    } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment)).take(n).list.map(c => GenericComment(c._1, c._2, Some(c._3), c._4, c._5))
+
+    (auditComments ++ validationComments).sortBy(_.timestamp).reverse.take(n)
+  }
+
+  // Defining ordered method for Timestamp so they can be used in sortBy.
+  // https://stackoverflow.com/questions/29985911/sort-scala-arraybuffer-of-timestamp
+  implicit def ordered: Ordering[Timestamp] = new Ordering[Timestamp] {
+    def compare(x: Timestamp, y: Timestamp): Int = x compareTo y
   }
 }

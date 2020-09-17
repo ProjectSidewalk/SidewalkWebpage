@@ -9,7 +9,7 @@
 @import models.user.UserCurrentRegionTable
 @import models.region.RegionPropertyTable
 
-@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))
+@(title: String, admin: Option[User] = None, user: Option[DBUser] = Some(DBUser("unknown", "unknown", "unknown")))(implicit lang: Lang)
 
 @main(title) {
     @navbar(admin)
@@ -19,13 +19,13 @@
                 <div id="map-holder">
                     <div id="admin-map"></div>
                     <div id="map-label-legend">
-                        <table class="table">
-                            <tr><td id="map-legend-curb-ramp"></td><td>Curb Ramp</td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>Missing Curb Ramp</td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>Obstacle in Path</td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>Surface Problem</td></tr>
-                            <tr><td id="map-legend-nosidewalk"></td><td>No Sidewalk</td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>Audited Street</td></tr>
+                        <table class="table legend">
+                            <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td><td id="td-number-of-curb-ramps"></td></tr>
+                            <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td><td id="td-number-of-missing-curb-ramps"></td></tr>
+                            <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td><td id="td-number-of-obstacles"></td></tr>
+                            <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td><td id="td-number-of-surface-problems"></td></tr>
+                            <tr><td id="map-legend-nosidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
+                            <tr><td id="map-legend-audited-street"></td><td>@Messages("dashboard.audited.street")</td></tr>
                         </table>
                     </div>
                 </div>
@@ -36,12 +36,13 @@
             <div class="col-lg-12">
                 <table class="table table-striped table-condensed">
                     <tr>
-                        <th class="col-md-2">Username</th>
-                        <th class="col-md-2">User Id</th>
-                        <th class="col-md-2">Email</th>
-                        <th class="col-md-2">Mission Count</th>
-                        <th class="col-md-2">Audited Street Count</th>
-                        <th class="col-md-2">Label Count</th>
+                        <th class="col-md">Username</th>
+                        <th class="col-md">User Id</th>
+                        <th class="col-md">Email</th>
+                        <th class="col-md">Mission Count</th>
+                        <th class="col-md">Audited Street Count</th>
+                        <th class="col-md">Label Count</th>
+                        <th class="col-md">Total Distance Audited</th>
                     </tr>
                     <tr>
                         <td>@user.get.username</td>
@@ -50,6 +51,7 @@
                         <td>@MissionTable.countCompletedMissionsByUserId(UUID.fromString(user.get.userId), includeOnboarding = false)</td>
                         <td>@AuditTaskTable.countCompletedAuditsByUserId(UUID.fromString(user.get.userId))</td>
                         <td>@LabelTable.countLabelsByUserId(UUID.fromString(user.get.userId))</td>
+                        <td id="td-total-distance-audited-admin"></td>
                     </tr>
                 </table>
             </div>
@@ -65,24 +67,6 @@
                 </table>
             </div>
             <div class="col-lg-12">
-                <table class="table table-striped table-condensed">
-                    <tr>
-                        <th>Label Type</th>
-                        <th>Curb Ramps</th>
-                        <th>Missing Curb Ramps</th>
-                        <th>Obstacles</th>
-                        <th>Surface Problems</th>
-                        <th>No Sidewalk</th>
-                    </tr>
-                    <tr>
-                        <th>Number of Labels</th>
-                        <td id="td-number-of-curb-ramps"></td>
-                        <td id="td-number-of-missing-curb-ramps"></td>
-                        <td id="td-number-of-obstacles"></td>
-                        <td id="td-number-of-surface-problems"></td>
-                        <td id="td-number-of-no-sidewalks"></td>
-                    </tr>
-                </table>
             </div>
         </div>
 
@@ -103,7 +87,7 @@
                     <tbody>
                     @LabelTable.selectTopLabelsAndMetadataByUser(1000, UUID.fromString(user.get.userId)).map { userLabel =>
                         <tr>
-                            <td>@userLabel.timestamp</td>
+                            <td class = 'timestamp'>@userLabel.timestamp</td>
                             <td>@userLabel.labelTypeKey</td>
                             <td>@userLabel.severity</td>
                             <td>@userLabel.temporary</td>
@@ -153,10 +137,10 @@
                     <tr>
                         <td class="col-md-2">@mission.missionId</td>
                         <td class="col-md-2">@mission.missionType</td>
-                        <td class="col-md-1">@mission.regionId</td>
-                        <td class="col-md-2">@mission.regionName</td>
-                        <td class="col-md-3">@("%1.1f".format(mission.distanceMeters.getOrElse(0))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
-                        <th class="col-md-2">@mission.labelsValidated.getOrElse(0)</th>
+                        <td class="col-md-1">@mission.regionId.map(_.toString).getOrElse("N/A")</td>
+                        <td class="col-md-2">@mission.regionName.getOrElse("N/A")</td>
+                        <td class="col-md-3">@("%1.1f".format(mission.distanceMeters.getOrElse(0F))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) * 3.28084F)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0F) / 1609.344051499F)}</td>
+                        <td class="col-md-2">@mission.labelsValidated.getOrElse(0)</td>
                     </tr>
                 }
                 </tbody>
@@ -170,7 +154,7 @@
                     <tr><th class="col-md-3">Timestamp</th><th class="col-md-3">Panorama Id</th><th class="col-md-6">Comment</th></tr>
                     @AuditTaskCommentTable.all(user.get.username).getOrElse(List()).map { comment =>
                         <tr>
-                            <td>@comment.timestamp</td>
+                            <td class = 'timestamp'>@comment.timestamp</td>
                             <td>@comment.gsvPanoramaId</td>
                             <td>@comment.comment</td>
                         </tr>
@@ -184,20 +168,46 @@
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript">
+        updateTimestamps("@lang.code");
+    </script>
+
+    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     <script>
-            $(document).ready(function () {
+        $(document).ready(function () {
+            // Gets all translations before loading the choropleth.
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['dashboard', 'common'],
+                defaultNS: 'dashboard',
+                lng: "@lang.code",
+                debug: false
+            }, function(err, t) {
                 var username = '@user.get.username';
                 window.admin = AdminUser({username: username});
                 $('#labelTable').dataTable();
             });
+        });
     </script>
 }

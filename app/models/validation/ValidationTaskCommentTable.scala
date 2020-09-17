@@ -12,7 +12,7 @@ import scala.slick.lifted.ForeignKeyQuery
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
                                  userId: String, ipAddress: String, gsvPanoramaId: String,
                                  heading: Double, pitch: Double, zoom: Int, lat: Double,
-                                lng: Double, timestamp: Option[Timestamp], comment: String)
+                                lng: Double, timestamp: Timestamp, comment: String)
 
 class ValidationTaskCommentTable(tag: Tag) extends Table[ValidationTaskComment](tag, Some("sidewalk"), "validation_task_comment") {
   def validationTaskCommentId = column[Int]("validation_task_comment_id", O.PrimaryKey, O.AutoInc)
@@ -26,7 +26,7 @@ class ValidationTaskCommentTable(tag: Tag) extends Table[ValidationTaskComment](
   def zoom = column[Int]("zoom", O.NotNull)
   def lat = column[Double]("lat", O.NotNull)
   def lng = column[Double]("lng", O.NotNull)
-  def timestamp = column[Option[Timestamp]]("timestamp", O.Nullable)
+  def timestamp = column[Timestamp]("timestamp", O.Nullable)
   def comment = column[String]("comment", O.NotNull)
 
   def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, gsvPanoramaId, heading,

@@ -58,11 +58,11 @@ describe("ModalMissionComplete", function () {
                 <div id="modal-mission-complete-complete-bar"></div> \
                 <table class="table"> \
                 <tr> \
-                    <th>Audited in this mission</th> \
+                    <th>Explored in this mission</th> \
                     <td id="modal-mission-complete-mission-distance" class="col-right"></td> \
                 </tr> \
                 <tr> \
-                    <th>Audited in this neighborhood</th> \
+                    <th>Explored in this neighborhood</th> \
                     <td id="modal-mission-complete-total-audited-distance" class="col-right"></td> \
                 </tr> \
                 <tr> \
@@ -70,7 +70,7 @@ describe("ModalMissionComplete", function () {
                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td> \
                 </tr> \
             </table> \
-            <button class="btn blue-btn" id="modal-mission-complete-close-button">Continue</button> \
+            <button class="btn btn-primary" id="modal-mission-complete-close-button-primary">Continue</button> \
             </div> \
         </div> \
         </div> \
@@ -172,20 +172,20 @@ describe("ModalMissionComplete", function () {
 
     describe("`_updateMissionProgressStatistics` method", function () {
         it("should set the distance traveled in the current mission", function () {
-            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24);
             expect(uiModalMissionComplete.missionDistance.text()).toBe("0.4 miles");
         });
 
         it("should set the cumulative distance traveled in the current neighborhood", function () {
-            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24);
             expect(uiModalMissionComplete.totalAuditedDistance.text()).toBe("0.8 miles");
         });
 
         it("should set the remaining distance to audit in the current neighborhood", function () {
-            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(0.38, 0.76, 9.24);
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("9.2 miles");
 
-            modalMissionComplete._updateMissionProgressStatistics(1.1, 10.1, -0.1, "miles");
+            modalMissionComplete._updateMissionProgressStatistics(1.1, 10.1, -0.1);
             expect(uiModalMissionComplete.remainingDistance.text()).toBe("0.0 miles");
         });
     });

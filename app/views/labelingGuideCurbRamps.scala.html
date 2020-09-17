@@ -1,9 +1,10 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/labelingGuide/curbRamps"))
     <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
@@ -39,9 +40,7 @@
                 <div class="help-item" id="corners-with-only-one-curb-ramp">
                     <h2>Curb Ramps</h2>
                     <p>
-                        A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible
-                        curb ramp is one that provides an accessible route for people with mobility impairments to safely
-                        transition from a curbed sidewalk to a roadway, or vice versa
+                        @Html(Messages("labeling.guide.curb.ramp.summary"))
                         (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>).
                     </p>
                     <h3 class="question">How should I label corners with only one curb ramp?
@@ -331,11 +330,14 @@
                     <div class="row">
                         <div class="col-sm-12">
                             <p>
-                                If the island interferes with the crosswalk, you should place a <i>Curb Ramp</i> label or
+                                If the island would interfere with the crosswalk, you should place a <i>Curb Ramp</i> label or
                                 a <i>Missing Curb Ramp</i> label as in the image below (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#curbramps">ADA 406.7</a>).
                             </p>
                             <p>
-                                If the island is cut or if the island does not interfere with the crosswalk, you should
+                                If the island has a curb cut as in the middle image below, you should place a <i>Curb Ramp</i> label.
+                            </p>
+                            <p>
+                                If the island does not interfere with the crosswalk, you should
                                 <strong>not</strong> place a <i>Curb Ramp</i> label or a <i>Missing Curb Ramp</i> label.
                             </p>
                             <p>

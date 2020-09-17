@@ -1,9 +1,10 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/labelingGuide/surfaceProblems"))
     <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
@@ -40,11 +41,7 @@
 
                 <div class="help-item">
                     <h2 id="obstacles">Surface Problems</h2>
-                    <p>
-                        A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience
-                        for someone using a wheelchair or other assistive devices. If something on a surface would make
-                        it hard or impossible to cross, it should be labeled as a <i>Surface Problem</i>.
-                    </p>
+                    <p>@Html(Messages("labeling.guide.surface.problem.summary"))</p>
 
                     <h3 class="question" id="sidewalk-cracks">How should I label sidewalk cracks?
                         <a href="#sidewalk-cracks" title="Permalink to this sub-section" class="permalink-anchor">
@@ -184,16 +181,16 @@
                 </div>
 
                 <div class="help-item">
-                    <h3 class="question" id="cobblestone-and-other-rough-surfaces">
-                        How should I label cobblestone and other rough surfaces?
-                        <a href="#cobblestone-and-other-rough-surfaces" title="Permalink to this sub-section" class="permalink-anchor">
+                    <h3 class="question" id="cobblestone-brick-and-other-rough-surfaces">
+                        How should I label cobblestone, brick, and other rough surfaces?
+                        <a href="#cobblestone-brick-and-other-rough-surfaces" title="Permalink to this sub-section" class="permalink-anchor">
                             <img src='@routes.Assets.at("assets/link.png")' alt="A link" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
                         <div class="col-sm-12">
                             <p>
-                                You should label cobblestone and other rough surfaces, since they can be difficult and
+                                You should label cobblestone, brick, and other rough surfaces, since they can be difficult and
                                 painful to traverse due to the vibrations and catching of wheelchair casters
                                 (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006158">USAB ADA guidelines
                                 302.1</a>). These surfaces can also make it difficult to control the joystick in electric

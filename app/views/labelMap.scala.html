@@ -1,0 +1,163 @@
+@import models.user.User
+@import models.region.RegionTable
+@import play.api.libs.json.Json
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
+
+@main(title) {
+    @navbar(user, Some("/labelmap"))
+    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
+
+
+    <div class="container" id="results-choropleth-container" style="width: 100%;
+        position: relative;">
+        <div id="map-holder">
+            <div id="admin-map"></div>
+            <div id="map-label-legend">
+                <div id="map-legend-title-holder">
+                    <label id="map-legend-title">Legend</label>
+                    <button id="map-legend-minimize-button" class="close">-</button>
+                </div>
+                <table class="table filter" id="legend-table">
+                    <tr>
+                        <td></td>
+                        <td colspan="2" align="left" style="font-weight:bold">Label Type</td>
+                        <td colspan="2" align="left" style="font-weight:bold">Severity</td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-curb-ramp" width="12px"></td>
+                        <td width="190px">Curb Ramp</td>
+                        <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "map.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
+                        <td width="126px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
+                        <td width="80px" align= "center" ><span id="curb-ramp-severity-label">N/A - 5</span></td>
+
+                    </tr>
+                    <tr>
+                        <td id="map-legend-no-curb-ramp"></td>
+                        <td>Missing Curb Ramp</td>
+                        <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "map.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
+                        <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
+                        <td align= "center"><span id="missing-curb-ramp-severity-label">N/A - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-obstacle"></td>
+                        <td>Obstacle in Path</td>
+                        <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="map.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')"></td>
+                        <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
+                        <td align= "center"><span id="obstacle-severity-label">N/A - 5</span></td>
+                    </tr>
+                    <tr><td id="map-legend-surface-problem"></td>
+                        <td>Surface Problem</td>
+                        <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="map.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
+                        <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
+                        <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-nosidewalk"></td>
+                        <td>No Sidewalk</td>
+                        <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="map.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
+                        <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
+                        <td align="center"><span id="no-sidewalk-severity-label">N/A - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-other"></td>
+                        <td>Other</td>
+                        <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="map.toggleLayers('Other', 'other', '#other-slider')"></td>
+                        <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
+                        <td align= "center"><span id="other-severity-label">N/A - 5</span></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-occlusion"></td>
+                        <td>Can't see sidewalk</td>
+                        <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="map.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider')"></td>
+                    </tr>
+                    <tr>
+                        <td id="map-legend-audited-street"></td>
+                        <td>Audited Street</td>
+                        <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="map.toggleAuditedStreetLayer();"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript">
+        updateTimestamps("@lang.code");
+    </script>
+
+    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/LabelMap.js")'></script>
+
+
+    <script>
+            var labelArr = ["N/A", 1, 2, 3, 4, 5];
+            var sliderToLabelMap = {};
+            sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
+            sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
+            sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
+            sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
+            sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
+            sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
+            sliderToLabelMap["other-slider"] = "#other-severity-label";
+
+            $( "*[id*='slider']" ).each(function() {
+                $(this).slider({
+                    range: true,
+                    min : 0,
+                    max : 5,
+                    step: 1,
+                    values: [0,5],
+                    slide: function(event, ui) {
+                        if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
+                            $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
+                        } else {
+                            $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
+                        }
+                    },
+                    change: function(event,ui) {
+                        if (this.id == "curb-ramp-slider") {
+                            map.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
+                        } else if (this.id == "missing-curb-ramp-slider") {
+                            map.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
+                        } else if (this.id == "obstacle-slider") {
+                            map.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
+                        } else if (this.id == 'surface-problem-slider') {
+                            map.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
+                        } else if (this.id == 'occlusion-slider') {
+                            map.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
+                        } else if (this.id == 'no-sidewalk-slider') {
+                            map.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
+                        } else if (this.id == 'other-slider') {
+                            map.toggleLayers('Other', 'other', '#other-slider');
+                        }
+                    }
+                });
+            });
+
+    </script>
+
+
+    <script>
+            $(document).ready(function () {
+                window.map = LabelMap(_, $);
+            });
+            $(window).load(function() {
+                $(".loader").fadeOut("slow");
+            })
+    </script>
+}

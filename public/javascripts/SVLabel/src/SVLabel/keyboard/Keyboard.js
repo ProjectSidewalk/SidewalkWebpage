@@ -300,8 +300,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                         break;
                     case 90:
                         if (contextMenu.isOpen()) {
-                            contextMenu.hide();
                             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
+                            contextMenu.hide();
                         }
                         // "z" for zoom. By default, it will zoom in. If "shift" is down, it will zoom out.
                         // if shift was down w/in 100 ms of the z up, then it will also zoom out. 
@@ -322,90 +322,152 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 }
 
                 // Hotkeys for tag selection
-                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen()) {
+                if (contextMenu.getTargetLabel() != null && contextMenu.isOpen() && !contextMenu.isTagDisabled()) {
                     var labelType = contextMenu.getTargetLabel().getProperty('labelType');
+                    var tags;
+                    var tagId;
                     if (labelType === 'CurbRamp') { // Curb Ramp
+                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "CurbRamp");
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['narrow']['keyNumber']: // 'a' for 'narrow'
-                                $('.narrow-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'narrow')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['points into traffic']['keyNumber']: // 'p' for 'points into traffic'
-                                $('.pointIntoTraffic-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'points into traffic')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['missing friction strip']['keyNumber']: // 'f' for 'missing friction strip'
-                                $('.missingFrictionStrip-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'missing friction strip')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['steep']['keyNumber']: // 't' for 'steep'
-                                $('.steep-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'steep')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['not enough landing space']['keyNumber']: // 'l' for 'not enough landing space'
+                                tagId = tags.filter(tag => tag.tag === 'not enough landing space')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'NoCurbRamp') { // Missing Curb Ramp
+                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "NoCurbRamp");
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['alternate route present']['keyNumber']: // 'a' for 'alternate route present'
-                                $('.alternateRoutePresent-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'alternate route present')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['no alternate route']['keyNumber']: // 'l' for 'no alternate route'
-                                $('.noAlternateRoute-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'no alternate route')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('NoCurbRamp')['tagInfo']['unclear if needed']['keyNumber']: // 'u' for 'unclear if needed'
-                                $('.unclearIfNeeded-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'unclear if needed')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'Obstacle') { // Obstacle in Path
+                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "Obstacle");
                         switch (e.keyCode) {
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash can']['keyNumber']: // 'r' for 'trash can'
-                                $('.trashCan-tag').first().trigger("click", {lowLevelLogging: false});
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash/recycling can']['keyNumber']: // 'r' for 'trash can'
+                                tagId = tags.filter(tag => tag.tag === 'trash/recycling can')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['fire hydrant']['keyNumber']: // 'f' for 'fire hydrant'
-                                $('.fireHydrant-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'fire hydrant')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['pole']['keyNumber']: // 'p' for 'pole'
-                                $('.pole-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'pole')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['tree']['keyNumber']: // 't' for 'tree'
-                                $('.tree-tag').first().trigger("click", {lowLevelLogging: false});
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['tree']['keyNumber']: // 'e' for 'tree'
+                                tagId = tags.filter(tag => tag.tag === 'tree')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['vegetation']['keyNumber']: // 'v' for 'vegetation'
-                                $('.vegetation-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'vegetation')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked car']['keyNumber']: // 'a' for 'parked car'
+                                tagId = tags.filter(tag => tag.tag === 'parked car')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked bike']['keyNumber']: // 'i' for 'parked bike'
+                                tagId = tags.filter(tag => tag.tag === 'parked bike')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['construction']['keyNumber']: // 't' for 'construction'
+                                tagId = tags.filter(tag => tag.tag === 'construction')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['sign']['keyNumber']: // 'g' for 'sign'
+                                tagId = tags.filter(tag => tag.tag === 'sign')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'SurfaceProblem') { // Surface Problem
+                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "SurfaceProblem");
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['bumpy']['keyNumber']: // 'p' for 'bumpy'
-                                $('.bumpy-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'bumpy')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['uneven']['keyNumber']: // 'u' for 'uneven'
-                                $('.uneven-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'uneven')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['cracks']['keyNumber']: // 'r' for 'cracks'
-                                $('.cracks-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'cracks')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber']: // 'g' for 'grass'
-                                $('.grass-tag').first().trigger("click", {lowLevelLogging: false});
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][0]: // 'g' for 'grass'
+                                tagId = tags.filter(tag => tag.tag === 'grass')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][1]: // 'r' for 'grass'
+                                tagId = tags.filter(tag => tag.tag === 'grass')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['narrow sidewalk']['keyNumber']  : // 'a' for 'narrow sidewalk'
-                                $('.narrowSidewalk-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'narrow sidewalk')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['brick']['keyNumber']  : // 'i' for 'brick'
+                                tagId = tags.filter(tag => tag.tag === 'brick')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['construction']['keyNumber']  : // 't' for 'construction'
+                                tagId = tags.filter(tag => tag.tag === 'construction')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'Other') { // Other
+                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "Other");
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('Other')['tagInfo']['missing crosswalk']['keyNumber']: // 'i' for 'missing crosswalk'
-                                $('.missingCrosswalk-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'missing crosswalk')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('Other')['tagInfo']['no bus stop access']['keyNumber']: // 'a' for 'no bus stop access'
-                                $('.noBusStopAccess-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'no bus stop access')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     } else if (labelType === 'NoSidewalk') { // No Sidewalk
+                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "NoSidewalk");
                         switch (e.keyCode) {
                             case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['ends abruptly']['keyNumber']: // 'a' for 'ends abruptly'
-                                $('.endsAbruptly-tag').first().trigger("click", {lowLevelLogging: false});
+                                tagId = tags.filter(tag => tag.tag === 'ends abruptly')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has a sidewalk']['keyNumber']: // 't' for 'street has a sidewalk'
-                                $('.streetHasASidewalk-tag').first().trigger("click", {lowLevelLogging: false});
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has a sidewalk']['keyNumber']: // 'r' for 'street has a sidewalk'
+                                tagId = tags.filter(tag => tag.tag === 'street has a sidewalk')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has no sidewalks']['keyNumber']: // 'r' for 'street has no sidewalks'
-                                $('.streetHasNoSidewalks-tag').first().trigger("click", {lowLevelLogging: false});
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has no sidewalks']['keyNumber']: // 't' for 'street has no sidewalks'
+                                tagId = tags.filter(tag => tag.tag === 'street has no sidewalks')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
                     }
@@ -421,17 +483,17 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     // "Enter"
                     if(contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                        contextMenu.hide();
                         contextMenu.handleSeverityPopup();
                         svl.tracker.push("ContextMenu_ClosePressEnter");
+                        contextMenu.hide();
                     }
                     break;
                 case 27:
                     // "Escape"
                     if(contextMenu.isOpen()) {
                         svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-                        contextMenu.hide();
                         svl.tracker.push("ContextMenu_CloseKeyboardShortcut");
+                        contextMenu.hide();
                     }
 
                     if (canvas.getStatus('drawing')) {
@@ -451,10 +513,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
     function _closeContextMenu(key) {
         if (contextMenu.isOpen()) {
             svl.tracker.push("KeyboardShortcut_CloseContextMenu");
-            contextMenu.hide();
             svl.tracker.push("ContextMenu_CloseKeyboardShortcut", {
                 keyCode: key
             });
+            contextMenu.hide();
         }
     }
 

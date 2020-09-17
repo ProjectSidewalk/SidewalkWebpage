@@ -1,5 +1,6 @@
 @import models.user.User
-@(title: String, url: Option[String] = Some("/"))(content: Html)
+@import models.user.VersionTable
+@(title: String, url: Option[String] = Some("/"))(content: Html)(implicit lang: Lang)
 
 
 @import views.html.bootstrap._
@@ -25,20 +26,21 @@
 
     <!--<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7/leaflet.css" />-->
     <!--<script src="lib/jquery-1.7.2.min.js"></script>-->
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/backbone-min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/mapbox.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
     <script type="text/javascript"
-        src="https://maps.googleapis.com/maps/api/js?v=3.31&key=AIzaSyB0ToxwyHzvubTo9gm0zbtECWuEe3yYo8M&libraries=geometry">
+        src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@VersionTable.getGoogleMapsAPIKey()&libraries=geometry">
     </script>
     <link href='@routes.Assets.at("stylesheets/fonts.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/mapbox.css")' rel='stylesheet' />
     <!--<link href='@routes.Assets.at("stylesheets/main.css")' rel="stylesheet"/>-->
     <link rel="stylesheet" href='@routes.Assets.at("css/main.css")'>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/isMobile.js")'></script>
     <!--<script src='@routes.Assets.at("assets/homepage.js")'></script>-->
     <script src='@routes.Assets.at("assets/countUp.js")'></script>
     <script src='@routes.Assets.at("assets/bowser.min.js")'></script>
@@ -73,14 +75,8 @@
             document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
 
-        <div id="mini-footer-audit">
-          Project Sidewalk is designed and operated by the
-          <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the
-          <a href="http://www.umd.edu/">University of Maryland</a> and
-              <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-          <span id="application-version"></span>
-        </div>
-
+        <!-- footer code found in app/views/footer.scala.html -->
+        @footer()
     } else{
 
     <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
@@ -90,40 +86,45 @@
             <div class="col-sm-4 footerlink">
                 <span class="footerheader">PROJECT SIDEWALK</span><br/>
                 <!-- Back to top<br>-->
-                <a href='@routes.ApplicationController.about' id="sidewalk-about-link">About Us</a> <br/>
-                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">Terms of Use</a> <br/>
-                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">Help</a> <br/>
-                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">Labeling Guide</a> <br/>
+                <a href='http://makeabilitylab.io/projects/sidewalk' id="sidewalk-about-link">@Messages("footer.about")</a> <br/>
+                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link">@Messages("footer.terms")</a> <br/>
+                <a href='@routes.ApplicationController.help' id="sidewalk-help-link">@Messages("footer.help")</a> <br/>
+                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link">@Messages("footer.guide")</a> <br/>
             </div>
             <div class="col-sm-4 footerlink">
-                <span class="footerheader">DEVELOPER</span><br/>
-                <a href='@routes.ApplicationController.developer' id="developer-api-link">Sidewalk API </a><br/>
+                <span class="footerheader">@Messages("footer.developer")</span><br/>
+                <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a><br/>
             </div>
             <div class="col-sm-4 footerlink">
-                <span class="footerheader">CONNECT</span><br/>
+                <span class="footerheader">@Messages("footer.connect")</span><br/>
                 <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.at("assets/github_logo.png")'>&nbsp;Github</a> <br/>
                 <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.at("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
-                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;Email Us</a><br/>
+                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.at("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
                 <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.at("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
             </div>
         </div>
     </div>
     <div class="container" id="info-footer">
         <br>
-        <p><span id="funding-title">WE ARE PROUDLY FUNDED BY</span></p>
+        <p><span id="funding-title">@Messages("footer.funding")</span></p>
         <div class="row" style="max-width: 900px; margin: 0 auto;">
 
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
                     <img src="@routes.Assets.at("assets/nsf.png")">
                 </a>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <a href="https://sloan.org/fellowships/" id ="sloan-link">
                     <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
+                </a>
+            </div>
+            <div class="col-sm-3">
+                <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+                    <img src="@routes.Assets.at("assets/pactrans_logo.png")">
                 </a>
             </div>
 
@@ -139,11 +140,10 @@
 
         </div>
 
-        Project Sidewalk is designed and operated by the
-        <a href="https://makeabilitylab.cs.washington.edu/" id="makeability-link">Makeability Lab</a> at the
-        <a href="http://www.umd.edu/" id="umd-link">University of Maryland</a> and
-        <a href="http://www.uw.edu/" id="umd-link">University of Washington</a><br>
-        <span id="application-version"></span>
+        @Html(Messages("footer.designed.operated"))<br>
+        <span id="application-version">
+            @Html(Messages("footer.version", VersionTable.currentVersionId(), VersionTable.currentVersionTimestamp()))
+        </span>
     </div>
 
   }
@@ -154,7 +154,8 @@
                     m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
             })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
-            ga('create', 'UA-76528208-1', 'auto');
+            var analyticsStr = "@{Play.configuration.getString("city-params.google-analytics-id." + Play.configuration.getString("environment-type").get + "." + Play.configuration.getString("city-id").get)}";
+            ga('create', analyticsStr, 'auto');
             ga('send', 'pageview');
 
 
@@ -193,6 +194,23 @@
                         console.error(result);
                     }
                 });
+
+                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+                if (link === "about") {
+                    $.ajax({
+                        async: async,
+                        contentType: 'application/json; charset=utf-8',
+                        url: url,
+                        type: 'post',
+                        data: JSON.stringify("Visit_About"),
+                        dataType: 'json',
+                        success: function(result){},
+                        error: function (result) {
+                            console.error(result);
+                        }
+                    });
+                }
             });
 
             // Log clicks on links in the information footer to WebpageActivityTable
@@ -216,5 +234,11 @@
                     }
                 });
             });
+    </script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript">
+        updateTimestamps("@lang.code");
     </script>
 </body>

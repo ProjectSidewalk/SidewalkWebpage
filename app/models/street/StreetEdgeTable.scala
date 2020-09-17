@@ -120,7 +120,7 @@ object StreetEdgeTable {
     * @return
     */
   def countTotalStreets(): Int = db.withSession { implicit session =>
-    all.size
+    streetEdgesWithoutDeleted.size.run
   }
 
   /**
@@ -132,7 +132,7 @@ object StreetEdgeTable {
     */
   def auditCompletionRate(auditCount: Int, userType: String = "All"): Float = db.withSession { implicit session =>
     val auditedStreetCount = countAuditedStreets(1, userType).toFloat
-    val allEdgesCount: Int = streetEdgesWithoutDeleted.list.length
+    val allEdgesCount: Int = streetEdgesWithoutDeleted.size.run
     auditedStreetCount / allEdgesCount
   }
 
@@ -156,10 +156,9 @@ object StreetEdgeTable {
     */
   def totalStreetDistance(): Float = db.withSession { implicit session =>
     Cache.getOrElse("totalStreetDistance()") {
-      // DISTINCT query: http://stackoverflow.com/questions/18256768/select-distinct-in-scala-slick
 
-      // get length of each street segment, sum the lengths, and convert from meters to miles
-      val distances: List[Float] = streetEdgesWithoutDeleted.groupBy(x => x).map(_._1.geom.transform(26918).length).list
+      // Get length of each street segment, sum the lengths, and convert from meters to miles.
+      val distances: List[Float] = streetEdgesWithoutDeleted.map(_.geom.transform(26918).length).list
       (distances.sum * 0.000621371).toFloat
     }
   }
@@ -198,6 +197,41 @@ object StreetEdgeTable {
       val distances: List[Float] = edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).list
       (distances.sum * 0.000621371).toFloat
     }
+  }
+
+
+  /**
+    * Calculates the distance audited today by all users.
+    * 
+    * @return The distance audited today by all users in miles.
+    */
+  def auditedStreetDistanceToday(): Float = db.withSession { implicit session =>
+    val getDistanceQuery = Q.queryNA[Float](
+      """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
+        |FROM street_edge
+        |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+        |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
+        |     AND street_edge.deleted = FALSE
+        |     AND audit_task.completed = TRUE""".stripMargin
+    )
+    (getDistanceQuery.first * 0.000621371).toFloat;
+  }
+
+  /**
+    * Calculates the distance audited yesterday by all users.
+    *
+    * @return The distance audited yesterday by all users in miles.
+    */
+  def auditedStreetDistanceYesterday(): Float = db.withSession { implicit session =>
+    val getDistanceQuery = Q.queryNA[Float](
+        """SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
+            |FROM street_edge
+            |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+            |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+            |     AND street_edge.deleted = FALSE
+            |     AND audit_task.completed = TRUE""".stripMargin
+        )
+    (getDistanceQuery.first * 0.000621371).toFloat;
   }
 
   /**
@@ -369,26 +403,6 @@ object StreetEdgeTable {
       if _tasks.userId === userId.toString
     } yield _edges
     auditedStreets.groupBy(x => x).map(_._1) // does a select distinct
-  }
-
-  /** Returns the total distance that the specified user has audited in miles */
-  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
-
-    val dist = selectAllStreetsAuditedByAUserQuery(userId).groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-    (dist * 0.000621371).toFloat // converts to miles
-  }
-
-  /** Returns the total distance audited by the specified user within the specified region, in miles */
-  def getDistanceAudited(userId: UUID, region: Int): Float = db.withSession { implicit session =>
-    // get the street edges from only this region
-    val auditedStreetsInRegion = for {
-      _edgeRegions <- streetEdgeRegion if _edgeRegions.regionId === region
-      _edges <- selectAllStreetsAuditedByAUserQuery(userId) if _edges.streetEdgeId === _edgeRegions.streetEdgeId
-    } yield _edges
-
-    // compute sum of lengths of the streets audited by the user in the region
-    val dist = auditedStreetsInRegion.groupBy(x => x).map(_._1.geom.transform(26918).length).list.sum
-    (dist * 0.000621371).toFloat // converts to miles
   }
 
   /** Returns the sum of the lengths of all streets in the region that have been audited */

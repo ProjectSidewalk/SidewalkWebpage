@@ -17,13 +17,12 @@
 function Form (labelContainer, missionModel, missionContainer, navigationModel, neighborhoodModel, panoramaContainer, taskContainer, mapService, compass, tracker, params) {
     var self = this;
     var properties = {
-        dataStoreUrl : undefined
+        dataStoreUrl : undefined,
+        beaconDataStoreUrl : undefined
     };
 
     missionModel.on("MissionProgress:complete", function (parameters) {
-        var task = taskContainer.getCurrentTask();
-        var data = self.compileSubmissionData(task);
-        self.submit(data, task);
+        self.submitData(true);
     });
 
     /**
@@ -41,6 +40,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             mission_id: mission.getProperty("missionId"),
             distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
             completed: mission.getProperty("isComplete"),
+            audit_task_id: task.getAuditTaskId(),
             skipped: mission.getProperty("skipped")
         };
 
@@ -48,7 +48,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             street_edge_id: task.getStreetEdgeId(),
             task_start: task.getTaskStart(),
             audit_task_id: task.getAuditTaskId(),
-            completed: task.isComplete()
+            completed: task.isComplete(),
+            current_lat: navigationModel.getPosition().lat,
+            current_lng: navigationModel.getPosition().lng,
+            start_point_reversed: task.getProperty("startPointReversed")
         };
 
         data.environment = {
@@ -58,9 +61,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             browser_height: $(window).height(),
             screen_width: screen.width,
             screen_height: screen.height,
-            avail_width: screen.availWidth,		// total width - interface (taskbar)
-            avail_height: screen.availHeight,		// total height - interface };
-            operating_system: util.getOperatingSystem()
+            avail_width: screen.availWidth,              // total width - interface (taskbar)
+            avail_height: screen.availHeight,            // total height - interface };
+            operating_system: util.getOperatingSystem(),
+            language: i18next.language
         };
 
         data.interactions = tracker.getActions();
@@ -180,6 +184,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
         if (skipReasonLabel === "GSVNotAvailable") {
             taskContainer.endTask(task);
+            missionContainer.getCurrentMission().pushATaskToTheRoute(task);
             util.misc.reportNoStreetView(task.getStreetEdgeId());
         } else {
             // Set the tasksMissionsOffset so that the mission progress bar remains the same after the jump.
@@ -221,14 +226,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     /**
-     * Submit the data
+     * Submit the data via an AJAX post request.
      * @param data
      * @param task
      * @param async
      */
     this.submit = function (data, task, async) {
         if (typeof async === "undefined") { async = true; }
-
         if (data.constructor !== Array) { data = [data]; }
 
         if ('interactions' in data[0] && data[0].constructor === Array) {
@@ -250,6 +254,12 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     var taskId = result.audit_task_id;
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
+
+                    // If the back-end says it is time to switch to validations, then do it immediately (mostly to
+                    // prevent turkers from modifying JS variables to prevent switching to validation).
+                    if (result.switch_to_validation) window.location.replace('/validate');
+
+                    // If a new mission was sent, create an object for it on the front-end.
                     if (result.mission) missionModel.createAMission(result.mission);
                 }
             },
@@ -260,11 +270,34 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     };
 
     properties.dataStoreUrl = params.dataStoreUrl;
+    properties.beaconDataStoreUrl = params.beaconDataStoreUrl;
 
     $(window).on('beforeunload', function () {
         tracker.push("Unload");
+
+        // // April 17, 2019
+        // // What we want here is type: 'application/json'. Can't do that quite yet because the
+        // // feature has been disabled, but we should switch back when we can.
+        //
+        // // For now, we send plaintext and the server converts it to actual JSON
+        //
+        // // Source for fix and ongoing discussion is here:
+        // // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
+        var task = taskContainer.getCurrentTask();
+        var data = [self.compileSubmissionData(task)];
+        var jsonData = JSON.stringify(data);
+        navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
+    });
+
+    /**
+     * Manually triggers form submission from other functions.
+     * @param async     Whether data should be submitted asynchronously or not (if undefined,
+     *                  then submits asynchronously by default)
+     */
+    this.submitData = function (async) {
+        if (typeof async === "undefined") { async = true; }
         var task = taskContainer.getCurrentTask();
         var data = self.compileSubmissionData(task);
-        self.submit(data, task, false);
-    });
+        self.submit(data, task, async);
+    }
 }

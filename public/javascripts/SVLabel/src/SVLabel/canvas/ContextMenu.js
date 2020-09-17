@@ -1,8 +1,10 @@
 function ContextMenu (uiContextMenu) {
+
     var self = { className: "ContextMenu" },
         status = {
             targetLabel: null,
-            visibility: 'hidden'
+            visibility: 'hidden',
+            disableTagging: false
         };
     var $menuWindow = uiContextMenu.holder,
         $connector = uiContextMenu.connector,
@@ -21,11 +23,11 @@ function ContextMenu (uiContextMenu) {
         //event.stopPropagation();
         var clicked_out = !(context_menu_el.contains(event.target));
         if (isOpen()){
-            hide();
             if (clicked_out) {
              svl.tracker.push('ContextMenu_CloseClickOut');
             handleSeverityPopup();
             }
+            hide();
         }
     }); //handles clicking outside of context menu holder
     //document.addEventListener("mousedown", hide);
@@ -127,16 +129,16 @@ function ContextMenu (uiContextMenu) {
     }
 
     function handleCloseButtonClick () {
-        hide();
         svl.tracker.push('ContextMenu_CloseButtonClick');
         handleSeverityPopup();
+        hide();
 
     }
 
     function _handleOKButtonClick () {
-        hide();
         svl.tracker.push('ContextMenu_OKButtonClick');
         handleSeverityPopup();
+        hide();
 
     }
 
@@ -225,6 +227,7 @@ function ContextMenu (uiContextMenu) {
      */
     function _handleTagClick (e) {
         var label = getTargetLabel();
+        var labelType = label.getLabelType();
         var labelTags = label.getProperty('tagIds');
 
         // Use position of cursor to determine whether or not the click came from the mouse, or from a keyboard shortcut
@@ -232,55 +235,52 @@ function ContextMenu (uiContextMenu) {
 
         $("body").unbind('click').on('click', 'button', function (e) {
             if (e.target.name == 'tag') {
-                var tagValue = e.target.textContent || e.target.innerText;
+
+                // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
+                var currTagId = parseInt($(e.target).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                var tag = self.labelTags.filter(tag => tag.tag_id === currTagId)[0];
 
                 // Adds or removes tag from the label's current list of tags.
-                self.labelTags.forEach(function (tag) {
-                    if (tag.tag === tagValue) {
-                        if (!labelTags.includes(tag.tag_id)) {
-                            var alternateRoutePresentStr = 'alternate route present';
-                            var noAlternateRouteStr = 'no alternate route';
-                            // Automatically deselect one of the tags above if the other one is selected
-                            if (tagValue === alternateRoutePresentStr) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(noAlternateRouteStr, labelTags);
-                                
-                            } else if (tagValue === noAlternateRouteStr) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentStr, labelTags);
-                            }
-
-                            var streetHasOneSidewalk = 'street has a sidewalk';
-                            var streetHasNoSidewalks = 'street has no sidewalks';
-                            // Automatically deselect one of the tags above if the other one is selected
-                            if (tagValue === streetHasOneSidewalk) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasNoSidewalks, labelTags);
-
-                            } else if (tagValue === streetHasNoSidewalks) {
-                                labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalk, labelTags);
-                            }
-
-                            labelTags.push(tag.tag_id);
-                            if (wasClickedByMouse) {
-                                svl.tracker.push('ContextMenu_TagAdded',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            } else {
-                                svl.tracker.push('KeyboardShortcut_TagAdded',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            }
-                        } else {
-                            var index = labelTags.indexOf(tag.tag_id);
-                            labelTags.splice(index, 1);
-                            if (wasClickedByMouse) {
-                                svl.tracker.push('ContextMenu_TagRemoved',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            } else {
-                                svl.tracker.push('KeyboardShortcut_TagRemoved',
-                                    {tagId: tag.tag_id, tagName: tag.tag});
-                            }
-                        }
-                        _toggleTagColor(labelTags, tag.tag_id, e.target);
-                        label.setProperty('tagIds', labelTags);
+                if (!labelTags.includes(tag.tag_id)) {
+                    var alternateRoutePresentId = self.labelTags.filter(tag => tag.tag === 'alternate route present')[0].tag_id;
+                    var noAlternateRouteId = self.labelTags.filter(tag => tag.tag === 'no alternate route')[0].tag_id;
+                    // Automatically deselect one of the tags above if the other one is selected
+                    if (currTagId === alternateRoutePresentId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(noAlternateRouteId, labelTags);
+                    } else if (currTagId === noAlternateRouteId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(alternateRoutePresentId, labelTags);
                     }
-                });
+
+                    var streetHasOneSidewalkId = self.labelTags.filter(tag => tag.tag === 'street has a sidewalk')[0].tag_id;
+                    var streetHasNoSidewalksId = self.labelTags.filter(tag => tag.tag === 'street has no sidewalks')[0].tag_id;
+                    // Automatically deselect one of the tags above if the other one is selected
+                    if (currTagId === streetHasOneSidewalkId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasNoSidewalksId, labelTags);
+                    } else if (currTagId === streetHasNoSidewalksId) {
+                        labelTags = autoRemoveAlternateLabelAndUpdateUI(streetHasOneSidewalkId, labelTags);
+                    }
+
+                    labelTags.push(tag.tag_id);
+                    if (wasClickedByMouse) {
+                        svl.tracker.push('ContextMenu_TagAdded',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    } else {
+                        svl.tracker.push('KeyboardShortcut_TagAdded',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    }
+                } else {
+                    var index = labelTags.indexOf(tag.tag_id);
+                    labelTags.splice(index, 1);
+                    if (wasClickedByMouse) {
+                        svl.tracker.push('ContextMenu_TagRemoved',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    } else {
+                        svl.tracker.push('KeyboardShortcut_TagRemoved',
+                            {tagId: tag.tag_id, tagName: tag.tag});
+                    }
+                }
+                _toggleTagColor(labelTags, tag.tag_id, e.target);
+                label.setProperty('tagIds', labelTags);
                 e.target.blur();
                 getContextMenuUI().tags.trigger('tagIds-updated'); // For events that depend on tagIds to be up-to-date
             }
@@ -288,14 +288,22 @@ function ContextMenu (uiContextMenu) {
     }
 
     /**
-     * Remove the alternate lable, update UI, and add the selected label.
-     * @param {*} labelName     The name of the label to be removed.
+     * Remove the alternate label, update UI, and add the selected label.
+     * @param {*} tagId     The name of the label to be removed.
      * @param {*} labelTags     List of tags that the current label has.
      */
-    function autoRemoveAlternateLabelAndUpdateUI(labelName, labelTags) {
-        $tags.each((index, tag) => {if (tag.innerText === labelName) {tag.style.backgroundColor = "white"; } });
+    function autoRemoveAlternateLabelAndUpdateUI(tagId, labelTags) {
+        // Find the tag that has the class named "tag-id-<tagId>" and change it's background color.
+        $tags.each((index, tag) => {
+            var classWithTagId = tag.className.split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0];
+            if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
+                tag.style.backgroundColor = "white";
+            }
+        });
+
+        // Remove tag from list of tags and log the automated removal.
         self.labelTags.forEach(tag => {
-            if (tag.tag === labelName && labelTags.includes(tag.tag_id)) {
+            if (tag.tag_id === tagId && labelTags.includes(tagId)) {
                 labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
                 svl.tracker.push('ContextMenu_TagAutoRemoved',
                     { tagId: tag.tag_id, tagName: tag.tag });
@@ -376,6 +384,34 @@ function ContextMenu (uiContextMenu) {
         return this;
     }
 
+    /**
+     * Disable tagging. Adds the disabled visual effects to the
+     * tags on current context menu.
+     */
+    function disableTagging () {
+        setStatus('disableTagging', true);
+        $("body").find("button[name=tag]").each(function(t) {
+            $(this).addClass('disabled');
+        });
+    }
+
+    /**
+     * Enable tagging. Removes the disabled visual effects to the
+     * tags on current context menu.
+     */
+    function enableTagging () {
+        setStatus('disableTagging', false);
+        $("body").find("button[name=tag]").each(function(t) {
+            $(this).removeClass('disabled');
+        });
+    }
+
+    /**
+     * Returns true if tagging is currently disabled.
+     */
+    function isTagDisabled () {
+        return getStatus('disableTagging');
+    }
 
     /**
      * Sets the color of a label's tags based off of tags that were previously chosen.
@@ -386,14 +422,7 @@ function ContextMenu (uiContextMenu) {
         $("body").find("button[name=tag]").each(function(t) {
             var buttonText = $(this).text();
             if (buttonText) {
-                var tagId = undefined;
-
-                // Finds the tag id based of the current button based off text description.
-                self.labelTags.forEach(function (tag) {
-                    if (tag.tag === buttonText) {
-                        tagId = tag.tag_id;
-                    }
-                });
+                var tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
                 // Sets color to be white or gray if the label tag has been selected.
                 if (labelTags.includes(tagId)) {
@@ -410,7 +439,7 @@ function ContextMenu (uiContextMenu) {
      * @param label     Current label being modified.
      */
     function setTags (label) {
-        var maxTags = 5;
+        var maxTags = 10;
         if (label) {
             var labelTags = self.labelTags;
             if (labelTags) {
@@ -423,9 +452,8 @@ function ContextMenu (uiContextMenu) {
                         // Remove all leftover tags from last labeling. Warning to future devs: will remove any other classes you add to the tags
                         $("body").find("button[id=" + count + "]").attr('class', 'context-menu-tag');
 
-                        // Add tag name as a class so that finding the element is easier laster. For example, will add "narrowSidewalk-tag" as a class
-                        var newClass = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['id'] + "-tag";
-                        $("body").find("button[id=" + count + "]").addClass(newClass);
+                        // Add tag id as a class so that finding the element is easier later.
+                        $("body").find("button[id=" + count + "]").addClass("tag-id-" + tag.tag_id);
 
                         // Set tag texts to new underlined version as defined in the util label description map
                         var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
@@ -471,6 +499,7 @@ function ContextMenu (uiContextMenu) {
                 setStatus('targetLabel', param.targetLabel);
                 setTags(param.targetLabel);
                 setTagColor(param.targetLabel);
+                if (getStatus('disableTagging')) { disableTagging(); }
                 windowHeight = $('#context-menu-holder').outerHeight();
 
                 $("#test-rectangle").css({
@@ -492,25 +521,12 @@ function ContextMenu (uiContextMenu) {
                     connectorCoordinate = windowHeight;
                 }
 
-                $menuWindow.css({
-                    visibility: 'visible',
-                    left: x - windowWidth / 2,
-                    top: topCoordinate
-                });
-
-                $connector.css({
-                    visibility: 'visible',
-                    top: topCoordinate + connectorCoordinate,
-                    left: x - 3
-                });
-
                 if (param) {
                     if ('targetLabelColor' in param) {
                         setBorderColor(param.targetLabelColor);
                         lastShownLabelColor = param.targetLabelColor;
                     }
                 }
-                setStatus('visibility', 'visible');
 
                 // Set the menu value if label has it's value set.
                 var severity = param.targetLabel.getProperty('severity'),
@@ -526,10 +542,24 @@ function ContextMenu (uiContextMenu) {
                     $temporaryLabelCheckbox.prop("checked", temporaryLabel);
                 }
 
+                $menuWindow.css({
+                    visibility: 'visible',
+                    left: x - windowWidth / 2,
+                    top: topCoordinate
+                });
+
+                $connector.css({
+                    visibility: 'visible',
+                    top: topCoordinate + connectorCoordinate,
+                    left: x - 3
+                });
+
+                setStatus('visibility', 'visible');
+
                 if (description) {
                     $descriptionTextBox.val(description);
                 } else {
-                    var defaultText = "Description (optional)";
+                    var defaultText = i18next.t('center-ui.context-menu.description');
                     $descriptionTextBox.prop("placeholder", defaultText);
                 }
                 var labelProperties = self.getTargetLabel().getProperties();
@@ -563,5 +593,8 @@ function ContextMenu (uiContextMenu) {
     self.unhide = unhide;
     self.isOpen = isOpen;
     self.show = show;
+    self.disableTagging = disableTagging;
+    self.enableTagging = enableTagging;
+    self.isTagDisabled = isTagDisabled;
     return self;
 }

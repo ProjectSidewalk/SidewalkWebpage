@@ -1,0 +1,79 @@
+#validation-button-holder-large {
+    margin-top: 7px;
+    margin-left: -6px;
+    width: 733px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.validation-holder-small {
+    margin-top: -2px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.validation-comment-box {
+    height: 33px;
+    width: 726px;
+    background-color: "#F5F5F5";
+    margin-top: 5px;
+    color: black;
+    border-radius: 5px;
+    margin-left: -3px;
+    padding: 5px;
+    line-height: normal;
+    border-width: 2px;
+    border-color: grey;
+    resize: none;    
+    outline: none;
+}
+
+/* Put buttons here */
+.validation-button-large {
+    height: 70px;
+    width: 242px;
+    background-color: white;
+    margin-right: 2px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+}
+
+.validation-button-small {
+    height: 25px;
+    width: 79px;
+    background-color: white;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+}
+
+.validate {
+    outline: none;
+    border: none;
+    background-color: lightgrey;
+}
+
+.validation-status-icon {
+    height: 20px;
+    margin-right: 2px;
+}
+
+.validation-status-icon-small {
+    height: 10px;
+    margin-bottom: 5px;
+}
+
+.validation-button-small:active, .validation-button-large:active {
+    outline: none;
+    border: none;
+    background-color: lightgrey;
+}
+
+.validation-button-small:focus, .validation-button-large:focus {
+    outline: none;
+}
+
+.validation-button-small:hover, .validation-button-large:hover {
+    background-color: lightgrey;
+}

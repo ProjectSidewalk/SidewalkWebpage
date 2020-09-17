@@ -1,0 +1,85 @@
+@import models.user.User
+@(title: String, user: Option[User] = None)
+
+@main(title) {
+    @navbar(user, Some("/audit/groundtruth"))
+    <script>
+            /**
+             * After user provides list of panoIds and clicks submit, this method checks that the provided panoIds are valid
+             * and submits them to the server to create a new ground truth audit mission.
+             */
+            function verifyAndSubmitCVGroundTruthAuditPanoids() {
+                let streetViewQueryService = new google.maps.StreetViewService();
+                let lines = $('textarea#panoid-textarea').val().split('\n');
+                let panoIds_json = {
+                    panos: [],
+                    num_panos: 0
+                };
+                // Read each panoId, create object, and add to list.
+                for (let i = 0; i < lines.length; i++) {
+                    let panoId = lines[i].trim();
+                    if (panoId.length === 0) {
+                        continue;
+                    }
+                    panoIds_json['panos'].push({panoId: panoId, lat: 0, lng: 0});
+                }
+
+                // Query street view service to validate and find lat/lng position of each panoId.
+                let numPanosValidated = 0;
+                for (let i = 0; i < panoIds_json['panos'].length; i++) {
+                    // Async-in-a-for-loop; need to wait for all queries to the street view service to complete before submitting.
+                    // https://stackoverflow.com/questions/11488014/asynchronous-process-inside-a-javascript-for-loop
+                    (function (cntr) {
+                        streetViewQueryService.getPanorama({pano: panoIds_json['panos'][cntr].panoId}, function (panoData, status) {
+                            if (status === google.maps.StreetViewStatus.OK) {
+                                panoIds_json['panos'][cntr].lat = panoData.location.latLng.lat();
+                                panoIds_json['panos'][cntr].lng = panoData.location.latLng.lng();
+
+                            } else {
+                                // An invalid panoId was found.
+                                let shouldProceed = confirm("PanoId " + panoIds_json['panos'][cntr].panoId + " is invalid and will be skipped. Proceed?");
+                                panoIds_json['panos'][cntr] = null;
+                                if (!shouldProceed) {
+                                    return;
+                                }
+                            }
+
+                            numPanosValidated++;
+                            // Once all panos have been checked, submit the list and reload page.
+                            if (numPanosValidated === panoIds_json['panos'].length) {
+                                panoIds_json['panos'] = panoIds_json['panos'].filter(Boolean);
+                                let url = '/audit/groundtruth/create';
+                                panoIds_json['num_panos'] = panoIds_json['panos'].length;
+                                $.ajax({
+                                    async: true,
+                                    contentType: 'application/json; charset=utf-8',
+                                    url: url,
+                                    type: 'post',
+                                    dataType: 'json',
+                                    data: JSON.stringify(panoIds_json),
+                                    success: function (data) {
+                                        location.reload();
+                                    }
+                                });
+                            }
+                        });
+                    })(i);
+                }
+            }
+    </script>
+    <div id="cvgroundtruth-panoid-entry-form-overlay">
+        <div class="overlay-text">
+            <div id="cvgroundtruth-panoid-entry-form-text">
+                <p>
+                    <span class="overlay-header">CV Ground Truth Audit Tool</span>
+                </p>
+                <p>
+                    Enter PanoIDs to audit below, one per line:<br>
+                    <textarea id="panoid-textarea" rows="25" cols="50"></textarea>
+                </p>
+                <span class="overlay-option" onClick="verifyAndSubmitCVGroundTruthAuditPanoids()">Start</span>
+
+            </div>
+        </div>
+    </div>
+}

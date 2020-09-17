@@ -12,13 +12,14 @@ $(document).ready(function () {
         mapboxTiles = L.tileLayer(tileUrl, {
             attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
         }),
-        map = L.mapbox.map('map', "kotarohara.8e0c6890", {
+        map = L.mapbox.map('map', "mapbox.streets", {
             // set that bounding box as maxBounds to restrict moving the map
             // see full maxBounds documentation:
             // http://leafletjs.com/reference.html#map-maxbounds
             maxBounds: bounds,
             maxZoom: 19,
-            minZoom: 9
+            minZoom: 9,
+            zoomSnap: 0.5
         })
         // .addLayer(mapboxTiles)
         .fitBounds(bounds)

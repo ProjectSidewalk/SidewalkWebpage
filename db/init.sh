@@ -24,6 +24,7 @@ psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
 EOSQL
 
 psql -U sidewalk -d sidewalk -a -f /opt/schema.sql
+psql -U sidewalk -d sidewalk -a -f /opt/fix-auto-inc.sql
 
 psql -U sidewalk -d sidewalk -c 'CREATE EXTENSION IF NOT EXISTS postgis'
 psql -U sidewalk -d sidewalk -c 'CREATE EXTENSION IF NOT EXISTS postgis_topology'

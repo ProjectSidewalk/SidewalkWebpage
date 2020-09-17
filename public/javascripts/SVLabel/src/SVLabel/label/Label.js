@@ -194,20 +194,6 @@ function Label (svl, pathIn, params) {
         return this;
     }
 
-    self.fetchLabelTags = function (callback) {
-        $.when($.ajax({
-            contentType: 'application/json; charset=utf-8',
-            url: "/label/tags",
-            type: 'get',
-            success: function (json) {
-                self.labelTags = json;
-            },
-            error: function (result) {
-                throw result;
-            }
-        })).done(callback);
-    };
-
     /**
      * This method changes the fill color of the path and points that constitute the path.
      * @param fillColor
@@ -257,16 +243,6 @@ function Label (svl, pathIn, params) {
      */
     function getImageCoordinates () {
         return path ? path.getImageCoordinates() : false;
-    }
-
-    function getLabelTags() {
-        var tags = [];
-        self.labelTags.forEach(function (tag) {
-            if (tag.label_type === properties.labelType) {
-                tags.push(tag.tag);
-            }
-        });
-        return tags;
     }
 
     /**
@@ -533,7 +509,9 @@ function Label (svl, pathIn, params) {
     }
 
     /**
-     * This function renders a tag on a canvas to show a property of the label
+     * This function renders a tag on a canvas to show a property of the label.
+     *
+     * NOTE "tag" here means the box that is shown when hovering over a label. This doesn't refer to tags for a label.
      * @param ctx
      * @returns {boolean}
      */
@@ -551,8 +529,8 @@ function Label (svl, pathIn, params) {
             labelRows = 1,
             severityImage = new Image(),
             severityImagePath = undefined,
-            severityMessage = 'Please click to label a severity',
-            msg = properties.labelDescription,
+            severityMessage = i18next.t('center-ui.context-menu.severity'),
+            msg = i18next.t(properties.labelType + '-description'),
             messages = msg.split('\n'),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
 
@@ -621,7 +599,9 @@ function Label (svl, pathIn, params) {
         ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + properties.tagHeight + padding.top);
-            ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
+            if (properties.severity != undefined) {
+              ctx.drawImage(severityImage, labelCoordinate.x + padding.left + ctx.measureText(severityMessage).width + 5, labelCoordinate.y + 25, 16, 16);
+            }
         }
 
         ctx.restore();
@@ -922,8 +902,13 @@ function Label (svl, pathIn, params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            var imageCoordinates = path.getImageCoordinates(),
+            var imageCoordinates = path.getImageCoordinates();
+            var pc = null;
+            if (properties.panoId === "tutorial") {
+                pc = svl.onboarding.getTutorialPointCloud();
+            } else  {
                 pc = svl.pointCloud.getPointCloud(properties.panoId);
+            }
             if (pc) {
                 var minDx = 1000, minDy = 1000, i, delta, latlng,
                     p, idx, dx, dy, r, minR;
@@ -979,7 +964,6 @@ function Label (svl, pathIn, params) {
     self.getGSVImageCoordinate = getGSVImageCoordinate;
     self.getImageCoordinates = getImageCoordinates;
     self.getLabelId = getLabelId;
-    self.getLabelTags = getLabelTags;
     self.getLabelType = getLabelType;
     self.getPath = getPath;
     self.getPoint = getPoint;

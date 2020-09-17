@@ -1,9 +1,10 @@
 @import models.user.User
-@(title: String, user: Option[User] = None)
+@(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    @navbar(user)
+    @navbar(user, Some("/labelingGuide/obstacles"))
     <script type="text/javascript" src='@routes.Assets.at("javascripts/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
 
@@ -42,12 +43,8 @@
                 <div class="help-item">
                     <h2 id="obstacles">Obstacles</h2>
                     <p>
-                        Obstacles are objects that are directly on the path of a pedestrian route, thus
-                        blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor
-                        or ground space" along accessible pedestrian routes (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006198">ADA 305</a>).
-                        This allows pedestrians, especially those using walkers or wheelchairs, to remain safely
-                        on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible
-                        or may cause imbalance, tripping, or other hazards.
+                        @Html(Messages("labeling.guide.obstacle.summary"))
+                        (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006198">ADA 305</a>)
                     </p>
 
                     <h3 class=question id="how-should-I-mark-an-obstacle">How should I mark an obstacle?
@@ -232,6 +229,23 @@
                                     <figcaption>Vehicle in motion. Hopefully self-explanatory.</figcaption>
                                 </figure>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <h3 class="question" id="obstacles-in-a-crosswalk">How should I label obstacles in a crosswalk?
+                        <a href="#obstacles-in-a-crosswalk" title="Permalink to this sub-section" class="permalink-anchor">
+                            <img src='@routes.Assets.at("assets/link.png")' alt="A link" class="permalink-icon">
+                        </a>
+                    </h3>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>
+                                Even though obstacles in a crosswalk are not part of the sidewalk, they are part of the
+                                route that pedestrians are meant to follow, so you should label obstacles on a crosswalk
+                                in the same manner as other obstacles.
+                            </p>
                         </div>
                     </div>
                 </div>

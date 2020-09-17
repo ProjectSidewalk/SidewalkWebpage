@@ -10,11 +10,11 @@ function JumpAlert(alertHandler, jumpModel) {
     };
 
     _jumpModel.on("JumpAlert:clickJumpMsg", function () {
-        self.showJumpTipMessage('You have been moved to a new location');
+        self.showJumpTipMessage(i18next.t('popup.jump'));
     });
 
     _jumpModel.on("JumpAlert:tooFar", function () {
-        self.showJumpTipMessage("We have automatically moved you to a new location.");
+        self.showJumpTipMessage(i18next.t('popup.jump-auto'));
     });
 
 }

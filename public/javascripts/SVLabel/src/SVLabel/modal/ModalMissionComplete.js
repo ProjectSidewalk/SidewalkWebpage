@@ -2,6 +2,7 @@
  *
  * @param svl. Todo. Get rid of this dependency eventually.
  * @param missionContainer
+ * @param missionModel
  * @param taskContainer
  * @param taskContainer
  * @param modalMissionProgressBar
@@ -25,10 +26,12 @@
  * @returns {{className: string}}
  * @constructor
  */
-function ModalMissionComplete (svl, missionContainer, taskContainer,
+function ModalMissionComplete (svl, missionContainer, missionModel, taskContainer,
                                modalMissionCompleteMap, modalMissionProgressBar,
                                uiModalMissionComplete, modalModel, statusModel, onboardingModel, userModel) {
     var self = this;
+    var _missionModel = missionModel;
+    var _missionContainer = missionContainer;
     var _modalModel = modalModel;
     this._userModel = userModel;
 
@@ -41,6 +44,8 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         isOpen: false
     };
     this._closeModalClicked = false;
+    this.showingMissionCompleteScreen = false;
+    this._canShowContinueButton = false;
 
     this._uiModalMissionComplete = uiModalMissionComplete;
     this._modalMissionCompleteMap = modalMissionCompleteMap;
@@ -65,46 +70,94 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
         var neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
         var neighborhoodName = neighborhood.getProperty("name");
         self.setMissionTitle("Bravo! You completed " + neighborhoodName + " neighborhood!");
-        uiModalMissionComplete.closeButton.html('Audit Another Neighborhood');
+        uiModalMissionComplete.closeButtonPrimary.html('Explore Another Neighborhood');
+        self._canShowContinueButton = true;
+        if (self.showingMissionCompleteScreen) {
+            self._enableContinueButton();
+        }
     });
 
-    // TODO maybe deal with lost connection causing modal to not close
-    this._handleBackgroundClick = function (e) {
-        self._closeModalClicked = true;
-        // self._handleLoadNextMission();
-        self._closeModal();
+    _missionModel.on("MissionProgress:complete", function (parameters) {
+        self._canShowContinueButton = false;
+    });
+
+    _missionContainer.on("MissionContainer:missionLoaded", function(mission) {
+        self._canShowContinueButton = true;
+        if (self.showingMissionCompleteScreen) {
+            self._enableContinueButton();
+        }
+    });
+
+    // Enables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
+    this._enableContinueButton = function() {
+        uiModalMissionComplete.closeButtonPrimary.on("click", { button: 'primary' }, self._handleCloseButtonClick);
+        uiModalMissionComplete.closeButtonSecondary.on("click", { button: 'secondary' }, self._handleCloseButtonClick);
+
+        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
+        uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
+
+        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
+        uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
+    };
+
+    // Disables clicking of continue button. Only enabled when next mission loaded mission complete modal shown.
+    this._disableContinueButton = function() {
+        uiModalMissionComplete.closeButtonPrimary.off('click');
+        uiModalMissionComplete.closeButtonSecondary.off('click');
+
+        uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
+        uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
+
+        uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
+        uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
     };
 
     // TODO maybe deal with lost connection causing modal to not close
-    this._handleCloseButtonClick = function (e) {
+    this._handleCloseButtonClick = function (event) {
         self._closeModalClicked = true;
-        // self._handleLoadNextMission();
-        self._closeModal();
+        self._closeModal(event);
     };
 
-    this._closeModal = function (e) {
-        if (svl.neighborhoodModel.isNeighborhoodCompleted) {
-            // reload the page to load another neighborhood
+    /**
+     * Closes mission complete modal. Either starts a new mission or loads the validation page.
+     *
+     * If the user clicks the 'Start validating' button send them to the validation page (only shows up if this was
+     * their third audit mission in a row or they are not a turker and this is their first audit mission ever). If they
+     * just finished a neighborhood, reload the audit page. Otherwise start a new audit mission like normal.
+     * @param event
+     * @private
+     */
+    this._closeModal = function (event) {
+        var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
+        var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
+        if (event.data.button === 'primary' && ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0)) {
+            window.location.replace('/validate');
+        } else if (svl.neighborhoodModel.isNeighborhoodCompleted) {
+            // Reload the page to load another neighborhood.
             window.location.replace('/audit');
         } else {
-            // TODO can we require that we have a new mission before doing this?
             var nextMission = missionContainer.getCurrentMission();
             _modalModel.triggerMissionCompleteClosed( { nextMission: nextMission } );
             self.hide();
         }
     };
 
+    // Hides all the pieces of the mission complete modal.
     this.hide = function () {
         this._status.isOpen = false;
         this._uiModalMissionComplete.holder.css('visibility', 'hidden');
         this._uiModalMissionComplete.foreground.css('visibility', "hidden");
         this._uiModalMissionComplete.background.css('visibility', "hidden");
-        this._uiModalMissionComplete.closeButton.css('visibility', "hidden");
-        // this._horizontalBarMissionLabel.style("visibility", "hidden");
+        this._uiModalMissionComplete.closeButtonPrimary.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+        this._uiModalMissionComplete.closeButtonPrimary.off('click');
+        this._uiModalMissionComplete.closeButtonSecondary.off('click');
+
         this._modalMissionCompleteMap.hide();
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
-        if(this._uiModalMissionComplete.confirmationText!=null && this._uiModalMissionComplete.confirmationText!=undefined){
+        if (this._uiModalMissionComplete.confirmationText !== null
+            && this._uiModalMissionComplete.confirmationText !== undefined) {
             this._uiModalMissionComplete.confirmationText.empty();
             this._uiModalMissionComplete.confirmationText.remove();
             delete this._uiModalMissionComplete.confirmationText;
@@ -112,32 +165,57 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             svl.ui.leftColumn.confirmationCode.css('visibility', '');
             svl.ui.leftColumn.confirmationCode.popover();
         }
+        self.showingMissionCompleteScreen = false;
     };
 
+    /**
+     * Shows all components of mission complete modal. Decides which continue button(s) to show (audit or validation).
+     */
     this.show = function () {
         this._status.isOpen = true;
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', "visible");
         uiModalMissionComplete.background.css('visibility', "visible");
-        uiModalMissionComplete.closeButton.css('visibility', "visible");
+        uiModalMissionComplete.background.off("click");
+        uiModalMissionComplete.closeButtonPrimary.css('visibility', "visible");
+
+        // If the user just completed their first audit mission ever (and they aren't a turker) or they finished their
+        // third in a row, make the primary button they see a 'Start validating' button. If they are not a turker, then
+        // also show a secondary button that lets them continue auditing. On any other mission just show a 'Continue'
+        // button that has them audit more.
+        var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
+        var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
+        if ((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0) {
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
+
+            if (self._userModel.getUser().getProperty("role") === 'Turker') {
+                uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+            } else {
+                uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
+                uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
+                uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
+                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
+            }
+        } else {
+            uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
+            uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-continue'));
+            uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+        }
+
+        self.showingMissionCompleteScreen = true;
+        if (self._canShowContinueButton) {
+            self._enableContinueButton();
+        } else {
+            self._disableContinueButton();
+        }
         // horizontalBarMissionLabel.style("visibility", "visible");
         modalMissionCompleteMap.show();
 
-        // Start GET request for next mission. If this req is complete and the user clicks continue/next button, the
-        // next mission shows up. So clicking continue does nothing until the mission is received from the back-end.
-        // This should never happen, unless we completely lose connection to the back-end anyway.
-        // missionContainer.nextMission(function() {
-        //     self._gotNextMission = true;
-        //     self._handleLoadNextMission();
-        // });
-
-        /*If the user has completed his first mission then hide the continue button.
-         Display the generate confirmation button. When clicked, remove this button completely
-         and make the Continue button visible again.
-         */
-        if(uiModalMissionComplete.generateConfirmationButton!=null && uiModalMissionComplete.generateConfirmationButton!=undefined) {
-            uiModalMissionComplete.closeButton.css('visibility', "hidden");
-            // Assignment Completion Data
+        // If the user has completed their first mission then display the confirmation code and add show the
+        // confirmation code button on the left column UI.
+        if (uiModalMissionComplete.generateConfirmationButton !== null
+            && uiModalMissionComplete.generateConfirmationButton !== undefined) {
             var data = {
                 amt_assignment_id: svl.amtAssignmentId,
                 completed: true
@@ -160,18 +238,17 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             var confirmationCodeElement = document.createElement("h3");
             confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
                 "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
-                "Confirmation Code: " +
+                i18next.t('common:mission-complete-confirmation-code') +
                 svl.confirmationCode +
                 "<p></p>";
             confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
             uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
             uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
-            uiModalMissionComplete.closeButton.css('visibility', "visible");
             uiModalMissionComplete.generateConfirmationButton.remove();
             delete uiModalMissionComplete.generateConfirmationButton;
 
             svl.ui.leftColumn.confirmationCode.attr('data-toggle','popover');
-            svl.ui.leftColumn.confirmationCode.attr('title','Submit this code for HIT verification on Amazon Mechanical Turk');
+            svl.ui.leftColumn.confirmationCode.attr('title', i18next.t('common:left-ui-turk-submit-code'));
             svl.ui.leftColumn.confirmationCode.attr('data-content',svl.confirmationCode);
 
             //Hide the mTurk confirmation code popover on clicking the background (i.e. outside the popover)
@@ -191,20 +268,26 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
     };
 
     this.update = function (mission, neighborhood) {
-        // Update the horizontal bar chart to show how much distance the user has audited
-        var unit = {units: 'miles'};
+        // Update the horizontal bar chart to show the distance the user has audited.
+        var unit = {units: i18next.t('common:unit-distance')};
+        
         var regionId = neighborhood.getProperty("regionId");
 
-        var missionDistance = mission.getDistance("miles");
+        var missionDistance = mission.getDistance(unit.units);
         var missionPay = mission.getProperty("pay");
-        var auditedDistance = neighborhood.completedLineDistance(unit);
-        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - auditedDistance;
+        var userAuditedDistance = neighborhood.completedLineDistance(unit);
+        var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority(unit);
+        var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
+        var remainingDistance = neighborhood.totalLineDistanceInNeighborhood(unit) - allAuditedDistance;
 
-        var completedTasks = taskContainer.getCompletedTasks(regionId);
+        var userCompletedTasks = taskContainer.getCompletedTasks();
+        var allCompletedTasks = taskContainer.getCompletedTasksAllUsersUsingPriority();
+        mission.pushATaskToTheRoute(taskContainer.getCurrentTask());
         var missionTasks = mission.getRoute();
         var totalLineDistance = taskContainer.totalLineDistanceInNeighborhood(unit);
         var missionDistanceRate = missionDistance / totalLineDistance;
-        var auditedDistanceRate = Math.max(0, auditedDistance / totalLineDistance - missionDistanceRate);
+        var userAuditedDistanceRate = Math.max(0, userAuditedDistance / totalLineDistance - missionDistanceRate);
+        var otherAuditedDistanceRate = Math.max(0, otherAuditedDistance / totalLineDistance);
 
         var labelCount = mission.getLabelCount(),
             curbRampCount = labelCount ? labelCount["CurbRamp"] : 0,
@@ -215,18 +298,17 @@ function ModalMissionComplete (svl, missionContainer, taskContainer,
             otherCount = labelCount ? labelCount["Other"] : 0;
 
         var neighborhoodName = neighborhood.getProperty("name");
-        this.setMissionTitle(neighborhoodName + ": Mission Complete!");
+        this.setMissionTitle(neighborhoodName + ": " + i18next.t('mission-complete.title'));
 
         modalMissionCompleteMap.update(mission, neighborhood);
-        modalMissionCompleteMap.updateStreetSegments(missionTasks, completedTasks);
-        modalMissionProgressBar.update(missionDistanceRate, auditedDistanceRate);
+        modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks);
+        modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, missionPay, auditedDistance, remainingDistance, unit);
+        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
-    uiModalMissionComplete.background.on("click", this._handleBackgroundClick);
-    uiModalMissionComplete.closeButton.on("click", this._handleCloseButtonClick);
+    uiModalMissionComplete.closeButtonPrimary.on("click", { button: 'primary' }, this._handleCloseButtonClick);
     this.hide();
 }
 
@@ -248,12 +330,17 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, cumulativeAuditedDistance, remainingDistance, unit) {
-    if (!unit) unit = {units: 'kilometers'};
-    remainingDistance = Math.max(remainingDistance, 0);
-    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.totalAuditedDistance.html(cumulativeAuditedDistance.toFixed(1) + " " + unit.units);
-    this._uiModalMissionComplete.remainingDistance.html(remainingDistance.toFixed(1) + " " + unit.units);
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance) {
+    var distanceType = i18next.t('mission-complete.distance-type-display-string');
+    if(remainingDistance > 0.00 && remainingDistance <= 0.10){
+        remainingDistance = 0.1;
+    }
+    var positiveRemainingDistance = Math.max(remainingDistance, 0);
+    var positiveOthersAuditedDistance = Math.max(othersAuditedDistance, 0);
+    this._uiModalMissionComplete.missionDistance.html(missionDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.totalAuditedDistance.html(userTotalDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.othersAuditedDistance.html(positiveOthersAuditedDistance.toFixed(1) + " " + distanceType);
+    this._uiModalMissionComplete.remainingDistance.html(positiveRemainingDistance.toFixed(1) + " " + distanceType);
 
     // Update the reward HTML if the user is a turker.
     if (this._userModel.getUser().getProperty("role") === "Turker") {

@@ -52,6 +52,10 @@ object RegionCompletionTable {
   val userCurrentRegions = TableQuery[UserCurrentRegionTable]
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
+  val regionCompletionsWithoutDeleted = for {
+    (rc, r) <- regionCompletions.innerJoin(regionsWithoutDeleted).on(_.regionId === _.regionId)
+    if r.deleted === false
+  } yield rc
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
   val neighborhoods = regionsWithoutDeleted.filter(_.regionTypeId === 2)
   val streetEdgeNeighborhood = for { (se, n) <- streetEdgeRegion.innerJoin(neighborhoods).on(_.regionId === _.regionId) } yield se
@@ -63,7 +67,7 @@ object RegionCompletionTable {
     */
   def selectAllNamedNeighborhoodCompletions: List[NamedRegionCompletion] = db.withSession { implicit session =>
     val namedRegionCompletions = for {
-      (_neighborhoodCompletions, _regionProperties) <- regionCompletions.leftJoin(regionProperties).on(_.regionId === _.regionId)
+      (_neighborhoodCompletions, _regionProperties) <- regionCompletionsWithoutDeleted.leftJoin(regionProperties).on(_.regionId === _.regionId)
       if _regionProperties.key === "Neighborhood Name"
     } yield (_neighborhoodCompletions.regionId, _regionProperties.value.?, _neighborhoodCompletions.totalDistance, _neighborhoodCompletions.auditedDistance)
 

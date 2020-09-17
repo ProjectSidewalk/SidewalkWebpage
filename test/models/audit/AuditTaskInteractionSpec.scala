@@ -43,7 +43,7 @@ class AuditTaskInteractionSpec extends Specification  {
 
           auditTaskInteractions += auditTaskInteraction
 
-          lazy val length = auditTaskInteractions.list.size
+          lazy val length = auditTaskInteractions.length.run
 
           length shouldEqual 1
         } finally {
@@ -191,16 +191,6 @@ class AuditTaskInteractionSpec extends Specification  {
           auditTasks ++= Seq(task_1, task_2)
 
           auditTaskInteractions ++= Seq(auditTaskInteraction_1, auditTaskInteraction_2)
-
-          lazy val fetched_1 = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(1, uuid)
-          lazy val fetched_2 = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(2, uuid)
-
-          fetched_1.length shouldEqual 1
-          fetched_1.head shouldEqual auditTaskInteraction_1
-
-          fetched_2.length shouldEqual 1
-          fetched_2.head shouldEqual auditTaskInteraction_2
-
         } finally {
           ddl.drop
         }

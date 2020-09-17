@@ -11,10 +11,15 @@ services:
       - db
     volumes:
       - "./:/opt/:delegated"
+      - "/opt/node_modules:delegated"
     ports:
-      - "127.0.0.1:9000:9000"
+      - "9000:9000"
     environment:
       - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
+      - SIDEWALK_CITY_ID=washington-dc
+      - SIDEWALK_EMAIL_ADDRESS=DUMMY_EMAIL_ADDRESS
+      - SIDEWALK_EMAIL_PASSWORD=DUMMY_EMAIL_PASSWORD
+      - ENV_TYPE=test
 
   db:
     image: projectsidewalk/db
@@ -26,3 +31,6 @@ services:
       - "./db:/opt"
     ports:
       - "5432:5432"
+    environment: 
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=sidewalk

@@ -4,9 +4,10 @@ $(document).ready(function () {
     L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
 
     tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-    map = L.mapbox.map('map', "kotarohara.8e0c6890", {
-            maxZoom: 19,
-            minZoom: 9
+    map = L.mapbox.map('map', "mapbox.streets", {
+        maxZoom: 19,
+        minZoom: 9,
+        zoomSnap: 0.5
     });
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
@@ -16,10 +17,11 @@ $(document).ready(function () {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
+
+        initializeNeighborhoodPolygons(map, data.southwest_boundary, data.northeast_boundary);
+        initializeSubmittedLabels(map, data.southwest_boundary, data.northeast_boundary);
     });
 
-    initializeNeighborhoodPolygons(map);
-    initializeSubmittedLabels(map);
 
     // Add legends
     var colorMapping = util.misc.getLabelColors();
@@ -32,11 +34,6 @@ $(document).ready(function () {
         "<rect width='10' height='10' x='12' y='10' style='fill:#f1b6da;' />" +
         "<rect width='10' height='10' x='24' y='10' style='fill:#b8e186;' />" +
         "<rect width='10' height='10' x='36' y='10' style='fill:#4dac26;' /></svg>";
-
-    // '#4dac26' :
-    // d > 0.5 ? '#b8e186' :
-    //     d > 0.25 ? '#f1b6da' :
-    //         '#d01c8b';
 
     // Add an overlay polygon
     L.geoJson({ "type": "FeatureCollection",
@@ -116,21 +113,15 @@ function updateAccessScore (significance) {
                 };
 
                 neighborhoodLayers[i].setStyle(neighborhoodPolygonStyle);
-
-                // Set popup content
-                // var popupContent = properties.region_name ? "<span class='bold'>" + properties.region_name + "</span><br/>" : "";
-                // popupContent += properties.score ? ("Access Score: " + score.toFixed(1)) : "Access Score not available";
-                // neighborhoodLayers[i]._popup.setContent(popupContent);
-                // neighborhoodLayers[i]._popup.update()
             }
         }
     }
 }
 
 /**
- * Render accessibiltiy feature points
+ * Render accessibility attribute points
  */
-function initializeNeighborhoodPolygons(map) {
+function initializeNeighborhoodPolygons(map, southwest, northeast) {
     var layers = [],
         currentLayer;
 
@@ -198,7 +189,7 @@ function initializeNeighborhoodPolygons(map) {
         layers.push(layer);
     }
 
-    $.getJSON("/v1/access/score/neighborhoods?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830", function (data) {
+    $.getJSON(`/v2/access/score/neighborhoods?lat1=${southwest.lat}&lng1=${southwest.lng}&lat2=${northeast.lat}&lng2=${northeast.lng}`, function (data) {
         var neighborhoodPolygonStyle = {
             color: '#888',
             weight: 1,
@@ -224,7 +215,7 @@ function initializeNeighborhoodPolygons(map) {
     });
 }
 
-function initializeSubmittedLabels(map) {
+function initializeSubmittedLabels(map, southwest, northeast) {
     var colorMapping = util.misc.getLabelColors(),
         geojsonMarkerOptions = {
             radius: 5,
@@ -236,10 +227,10 @@ function initializeSubmittedLabels(map) {
             "stroke-width": 1
         };
 
-    $.getJSON("/v1/access/features?lat1=38.761&lng1=-77.262&lat2=39.060&lng2=-76.830", function (data) {
+    $.getJSON(`/v2/access/attributes?lat1=${southwest.lat}&lng1=${southwest.lng}&lat2=${northeast.lat}&lng2=${northeast.lng}`, function (data) {
         // Render submitted labels
         var acceptedLabelTypes = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem"];
-        data = data.features.filter(function (d) { return acceptedLabelTypes.indexOf(d.properties.label_type) >= 0; })
+        data = data.features.filter(function (d) { return acceptedLabelTypes.indexOf(d.properties.label_type) >= 0; });
 
         var featureLayer = L.geoJson(data, {
             pointToLayer: function (feature, latlng) {

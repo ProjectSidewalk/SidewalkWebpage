@@ -75,7 +75,7 @@ describe("Label module", function () {
             return {x : x, y : y};
         };
         util.misc = UtilitiesMisc(JSON);
-        svl.labelFactory = new LabelFactory(svl);
+        svl.labelFactory = new LabelFactory(svl, 1);
 
 
         param = {};

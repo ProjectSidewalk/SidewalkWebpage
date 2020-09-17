@@ -1,0 +1,25 @@
+.button.label-visibility-control-button:focus {
+    outline: none;
+}
+
+.button.label-visibility-control-button {
+    color: rgba(0,0,0,1);
+    font-size: 9px;
+    height: 36px;
+    width: 65px;
+}
+
+.label-visibility-control-button-icon {
+    height: 18px;
+    width: 18px;
+}
+
+#label-visibility-control-holder {
+    background: transparent;
+    position: absolute;
+    left: 524px;
+    top: 30px;
+    height: 55px;
+    width: 65px;
+}
+

@@ -16,7 +16,7 @@ import play.filters.gzip.GzipFilter
 
 import scala.concurrent.Future
 import play.api.Play.current
-import utils.actor.RecalculateStreetPriorityActor
+import utils.actor._
 
 /**
  * The global object.
@@ -73,6 +73,9 @@ trait Global extends GlobalSettings with SecuredSettings with Logger {
 
   override def onStart(app: Application) = {
     Akka.system.actorOf(RecalculateStreetPriorityActor.props, RecalculateStreetPriorityActor.Name)
+    Akka.system.actorOf(ClusterLabelAttributesActor.props, ClusterLabelAttributesActor.Name)
+    Akka.system.actorOf(UserStatActor.props, UserStatActor.Name)
+    Akka.system.actorOf(AuthTokenCleanerActor.props, AuthTokenCleanerActor.Name)
   }
 
   /**
