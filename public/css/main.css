@@ -199,31 +199,6 @@ footer {
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 
-.grayButtonMobile {
-    position: relative;
-    background-color: rgba(251, 215, 139, 1);
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:10px;
-    border:1px solid rgba(251, 215, 139, 1);
-    display:inline-block;
-    position: absolute;
-    right: 20px;
-    top: 30px;
-    cursor:pointer;
-    color:#2D2A3F;
-    font: normal normal normal 14px/1.4em raleway,sans-serif;
-    font-family: 'Raleway', sans-serif;
-    text-align: center;
-    font-weight: bolder;
-    font-size:42px;
-    padding:5px 25px;
-    text-decoration:none;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-    width: 220px;
-    height: 90px;
-}
-
 .grayButton:hover {
     background-color:#fff;
     border:1px solid #fff;
