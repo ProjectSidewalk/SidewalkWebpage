@@ -202,11 +202,21 @@
                 choroplethType: 'labelMap',
                 streetColor: 'black'
             };
-            var map = Choropleth(_, $, "null", params);
             var self = {};
-            self.mapData = InitializeSubmittedLabels(map, "/labels/all", streetParams, AdminGSVLabelView(false), LayerController());
-            self.auditedStreetLayer = InitializeAuditedStreets(map, "/contribution/streets/all", streetParams);
-            self.map = map;
+            var map;
+            var loadPolygons = $.getJSON('/adminapi/neighborhoodCompletionRate');
+            var loadAuditedStreets = $.getJSON('/contribution/streets/all');
+            var loadSubmittedLabels = $.getJSON('/labels/all');
+            var renderPolygons = $.when(loadPolygons).done(function(data) {
+                map = Choropleth(_, $, difficultRegionIds, params, data);
+                self.map = map;
+            });
+            var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
+                self.auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
+            });
+            $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+                self.mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(false), LayerController(), data2[0])
+            })
             window.map = self;
         });
         $(window).load(function() {
