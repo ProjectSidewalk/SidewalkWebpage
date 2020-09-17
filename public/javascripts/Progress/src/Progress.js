@@ -33,10 +33,19 @@ function Progress (_, $, difficultRegionIds, userRole) {
         progressElement: 'td-total-distance-audited',
         userRole: userRole
     };
-    var map = Choropleth(_, $, difficultRegionIds, params);
-    // Return value not stored because the audited street layer never needs to be toggled.
-    InitializeAuditedStreets(map, "/contribution/streets", streetParams);
-    InitializeSubmittedLabels(map, "/userapi/labels", streetParams, 'null', LayerController());
+    var map;
+    var loadPolygons = $.getJSON('/adminapi/neighborhoodCompletionRate');
+    var loadAuditedStreets = $.getJSON('/contribution/streets');
+    var loadSubmittedLabels = $.getJSON('/userapi/labels');
+    var renderPolygons = $.when(loadPolygons).done(function(data) {
+        map = Choropleth(_, $, difficultRegionIds, params, data);
+    });
+    var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
+        InitializeAuditedStreets(map, streetParams, data2[0]);
+    });
+    $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
+        InitializeSubmittedLabels(map, streetParams, 'null', LayerController(), data2[0])
+    })
     initializeAuditCountChart();
     initializeSubmittedMissions();
 
@@ -76,8 +85,6 @@ function Progress (_, $, difficultRegionIds, userRole) {
     /**
      * This method appends all the missions a user has to the task
      * contribution table in the user dashboard
-     *
-     * @param map
      */
     function initializeSubmittedMissions() {
         $.getJSON("/getMissions", function (data) {
@@ -174,5 +181,4 @@ function Progress (_, $, difficultRegionIds, userRole) {
             $("#task-contribution-table").append(tableRows);
         });
     }
-    return self;
 }
