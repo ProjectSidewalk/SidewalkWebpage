@@ -472,7 +472,11 @@
                         <p>@Messages("audit.left.ui.jump.title")</p>
                     </div>
                     <div id="modal-skip-box-content">
-                        <input type="button" class="overlay-option" id="modal-skip-explore" value="@Messages("audit.left.ui.jump.button.explore")">
+                        @if(user) {
+                            @if(user.get.role.getOrElse("") != "Turker") {
+                                <input type="button" class="overlay-option" id="modal-skip-explore" value="@Messages("audit.left.ui.jump.button.explore")">
+                            }
+                        }
                         <input type="button" class="overlay-option" id="modal-skip-unavailable" value="@Messages("audit.left.ui.jump.button.unavailable")">
                     </div>
                     <div class="modal-skip-cancel-button">
