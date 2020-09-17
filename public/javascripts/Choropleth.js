@@ -1,7 +1,7 @@
 /**
  * Central function that handles the creation of choropleths and maps.
  */
-function Choropleth(_, $, difficultRegionIds, params) {
+function Choropleth(_, $, difficultRegionIds, params, polygonData) {
     var labelText = {
         "NoSidewalk":"Missing Sidewalks",
         "NoCurbRamp": "Missing Curb Ramps",
@@ -298,11 +298,11 @@ function Choropleth(_, $, difficultRegionIds, params) {
                '<td><img src="/assets/javascripts/SVLabel/img/cursors/Cursor_Obstacle.png"></td>'+
                '<tr><td>'+ counts['NoSidewalk'] +'</td><td>'+ counts['NoCurbRamp'] +'</td><td>'+ counts['SurfaceProblem'] +'</td><td>'+ counts['Obstacle'] +'</td></tr></tbody></table></div>';    
     }
-    $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+
         if (params.choroplethType === 'results') {
             $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
                 //append label counts to region data with map/reduce
-                var regionData = _.map(data, function(region) {
+                var regionData = _.map(polygonData, function(region) {
                     var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
                     region.labels = regionLabel ? regionLabel.labels : {};
                     return region;
@@ -310,9 +310,9 @@ function Choropleth(_, $, difficultRegionIds, params) {
                 initializeChoropleth(regionData);
             });
         } else {
-            initializeChoropleth(data);
+            initializeChoropleth(polygonData);
         }   
-    });
+
     
     /**
      * This function takes data and initializes the choropleth with it.
