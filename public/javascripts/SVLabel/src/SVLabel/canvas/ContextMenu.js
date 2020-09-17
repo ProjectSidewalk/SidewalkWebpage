@@ -421,14 +421,7 @@ function ContextMenu (uiContextMenu) {
         $("body").find("button[name=tag]").each(function(t) {
             var buttonText = $(this).text();
             if (buttonText) {
-                var tagId = undefined;
-
-                // Finds the tag id based of the current button based off text description.
-                self.labelTags.forEach(function (tag) {
-                    if (tag.tag === buttonText) {
-                        tagId = tag.tag_id;
-                    }
-                });
+                var tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
                 // Sets color to be white or gray if the label tag has been selected.
                 if (labelTags.includes(tagId)) {

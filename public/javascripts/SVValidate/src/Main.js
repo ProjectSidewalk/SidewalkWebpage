@@ -96,6 +96,7 @@ function Main (param) {
         svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
         svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");
+        svv.ui.modalMissionComplete.yourOverallTotalCount = $("#modal-mission-complete-your-overall-total-count");
 
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
@@ -171,6 +172,22 @@ function Main (param) {
 
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
+
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svv.tracker.push("PageGainedFocus");
+            } else {
+                svv.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
 
         svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {

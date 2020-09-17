@@ -291,6 +291,8 @@
                         <h1></h1>
 
                     </div>
+                    <button onclick="admin.clearPlayCache()">@Messages("admin.clear.play.cache")</button>
+                    <p id="clearPlayCacheSuccess" style="color:green"></p>
                 </div>
                 <div class="row">
                     <h1>Comments</h1>
@@ -467,6 +469,25 @@
 
                     <h2>Severity Ratings by Label Type</h2>
                     <div class="col-lg-12">
+                        <div class="stats-grid">
+                            <p>
+                                <span>Average (curb ramp): </span><span id="curb-ramp-mean"></span><br>
+                                <span>Average (missing curb ramp): </span><span id="missing-ramp-mean"></span><br>
+                                <span>Average (surface problem): </span><span id="surface-mean"></span><br>
+                                <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
+                                <span>Average (no sidewalk): </span><span id="no-sidewalk-mean"></span><br>
+                                <span>Average (all label types): </span><span id="labels-mean"></span><br>
+                            </p>
+                            <p>
+                                <span>Standard Deviation (curb ramp): </span><span id="curb-ramp-std"></span><br>
+                                <span>Standard Deviation (missing curb ramp): </span><span id="missing-ramp-std"></span><br>
+                                <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
+                                <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
+                                <span>Standard Deviation (no sidewalk): </span><span id="no-sidewalk-std"></span><br>
+                                <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
+                            </p>
+                        </div>
+
                         <div id="severity-histograms"></div>
                     </div>
 

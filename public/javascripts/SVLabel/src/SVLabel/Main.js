@@ -158,7 +158,7 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        // Mission.
+        // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
@@ -176,6 +176,21 @@ function Main (params) {
         }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svl.tracker.push("PageGainedFocus");
+            } else {
+                svl.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
@@ -356,7 +371,7 @@ function Main (params) {
         svl.labelContainer.fetchLabelsInTheCurrentMission(
             neighborhood.getProperty("regionId"),
             function (result) {
-                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "Other": 0};
+                var counter = {"CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0};
                 for (var i = 0, len = result.length; i < len; i++) {
                     switch (result[i].label_type_id) {
                         case 1:
@@ -371,6 +386,9 @@ function Main (params) {
                         case 4:
                             counter['SurfaceProblem'] += 1;
                             break;
+                        case 7:
+                            counter['NoSidewalk'] += 1;
+                            break;
                         default:
                             counter['Other'] += 1;
                     }
@@ -379,6 +397,7 @@ function Main (params) {
                 svl.labelCounter.set('NoCurbRamp', counter['NoCurbRamp']);
                 svl.labelCounter.set('Obstacle', counter['Obstacle']);
                 svl.labelCounter.set('SurfaceProblem', counter['SurfaceProblem']);
+                svl.labelCounter.set('NoSidewalk', counter['NoSidewalk']);
                 svl.labelCounter.set('Other', counter['Other']);
             });
 

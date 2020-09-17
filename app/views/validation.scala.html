@@ -151,6 +151,10 @@
                                     <th>@Messages("validate.mission.complete.not.sure")</th>
                                     <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
                                 </tr>
+                                <tr id="your-overall-total">
+                                    <th>@Messages("validate.mission.complete.your.overall.total")</th>
+                                    <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
+                                </tr>
                             </table>
                             <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
                             <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
@@ -327,7 +331,6 @@
                     param.labelList[key] = new Label(labelMetadata);
                 });
             }
-
             svv.main = new Main(param);
         }
 

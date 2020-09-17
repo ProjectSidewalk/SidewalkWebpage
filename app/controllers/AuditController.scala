@@ -54,7 +54,13 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     request.identity match {
       case Some(user) =>
-        // Get current region if we aren't assigning new one; otherwise assign new region
+        // If the user is a Turker and has audited less than 50 meters in the current region, then delete the current region.
+        val currentMeters: Option[Float] = MissionTable.getMetersAuditedInCurrentMission(user.userId)
+        if (user.role.getOrElse("") == "Turker" &&  currentMeters.isDefined && currentMeters.get < 50) {
+          UserCurrentRegionTable.delete(user.userId)
+        }
+
+        // Get current region if we aren't assigning new one; otherwise assign new region.
         var region: Option[NamedRegion] = nextRegion match {
           case Some("easy") => // Assign an easy region if the query string has nextRegion=easy.
             UserCurrentRegionTable.assignEasyRegion(user.userId)
