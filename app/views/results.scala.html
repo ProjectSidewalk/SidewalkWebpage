@@ -128,7 +128,10 @@
                 mapStyle: "mapbox.light",
                 accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
-            window.choropleth = Choropleth(_, $, difficultRegionIds, params);
+            var loadPolygons = $.getJSON('/adminapi/neighborhoodCompletionRate');
+            window.choropleth = $.when(loadPolygons).done(function(data) {
+                return Choropleth(_, $, difficultRegionIds, params, data);
+            });
         });
     });
 </script>
