@@ -179,14 +179,23 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
+                for (var i = layers.length - 1; i >= 0; i--) {
+                    if (currentLayer !== layers[i]) {
+                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                    }   
+                }
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-                console.log("accessChoropleth")
-                this.openPopup()
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                var mouseoutTrigger = e.originalEvent.toElement.className;
+                if (mouseoutTrigger != "leaflet-popup-content" && mouseoutTrigger != "leaflet-popup-content-wrapper" && mouseoutTrigger != "region-selection-trigger") {
+                    for (var i = layers.length - 1; i >= 0; i--) {
+                        if (currentLayer !== layers[i]) {
+                            layers[i].setStyle({opacity: 0.25, weight: 1});
+                        }   
+                    }
+                    currentLayer = null;
                 }
             });
             layer.on('click', function (e) {

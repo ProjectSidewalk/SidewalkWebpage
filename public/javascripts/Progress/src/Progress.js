@@ -163,15 +163,24 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
+                for (var i = layers.length - 1; i >= 0; i--) {
+                    if (currentLayer !== layers[i]) {
+                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                    }   
+                }
+                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
                 this.openPopup();
-                this.setStyle({color: "red", fillColor: "red"});
-                console.log("Progess")
 
             });
             layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle(neighborhoodPolygonStyle);
+                var mouseoutTrigger = e.originalEvent.toElement.className;
+                if (mouseoutTrigger != "leaflet-popup-content" && mouseoutTrigger != "leaflet-popup-content-wrapper" && mouseoutTrigger != "region-selection-trigger") {
+                    for (var i = layers.length - 1; i >= 0; i--) {
+                        if (currentLayer !== layers[i]) {
+                            layers[i].setStyle(neighborhoodPolygonStyle);
+                        }   
+                    }
+                    currentLayer = null;
                 }
                 //this.setStyle(neighborhoodPolygonStyle);
             });

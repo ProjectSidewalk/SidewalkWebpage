@@ -139,18 +139,24 @@ function Choropleth(_, $, difficultRegionIds) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-                this.openPopup()
-                console.log("choropleth")
-            });
-            layer.on('mouseout', function (e) {
                 for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i]){
+                    if (currentLayer !== layers[i]) {
                         layers[i].setStyle({opacity: 0.25, weight: 1});
                     }   
                 }
-                this.closePopup();
-                currentLayer = null;
+                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+                this.openPopup();
+            });
+            layer.on('mouseout', function (e) {
+                var mouseoutTrigger = e.originalEvent.toElement.className;
+                if (mouseoutTrigger != "leaflet-popup-content" && mouseoutTrigger != "leaflet-popup-content-wrapper" && mouseoutTrigger != "region-selection-trigger") {
+                    for (var i = layers.length - 1; i >= 0; i--) {
+                        if (currentLayer !== layers[i]) {
+                            layers[i].setStyle({opacity: 0.25, weight: 1});
+                        }   
+                    }
+                    currentLayer = null;
+                }
             });
             layer.on('click', function (e) {
                 currentLayer = this;
