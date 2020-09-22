@@ -9,13 +9,13 @@ The development environment is set up using Docker containers. Hence, in order t
 If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
 
 ### Running the application locally
-To run the web server locally, from the root of the SidewalkWebpage directory:
+To run the web server locally, from the **root** of the SidewalkWebpage directory:
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `db` directory.
 
 1. If the database dump is for a city other than DC, modify the 2nd line of `conf/cityparams.conf` to use the appropriate ID. You can find the IDs for the cities starting at line 7 of that file.
 
-1. Run `make dev`. This will download the docker images, spin up the containers, and open a Docker shell into the webpage container. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
+1. From the root SidewalkWebpage dir, run `make dev`. This will download the docker images, spin up the containers, and open a Docker shell into the webpage container. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
     Successfully built [container-id]
