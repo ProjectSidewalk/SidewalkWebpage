@@ -25,6 +25,10 @@ db/*-dump
 # .idea/workspace.xml
 # .idea/tasks.xml
 # .idea/dictionaries
+.ivy2/cache/com.google.code.findbugs/jsr305/ivydata-[1.3, 1.4).properties
+.ivy2/cache/com.google.inject.extensions/guice-multibindings/ivy-4.0-beta5.xml
+.ivy2/cache/com.google.inject.extensions/guice-multibindings/ivy-4.0-beta5.xml.original
+.ivy2/cache/com.google.inject.extensions/guice-multibindings/ivydata-4.0-beta5.properties
 
 # Sensitive or high-churn files:
 # .idea/dataSources.ids
@@ -106,3 +110,4 @@ nohup.out
 
 # docker db files
 db/dump
+
