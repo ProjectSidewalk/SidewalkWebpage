@@ -24,8 +24,30 @@
                 </div>
             </div>
         </div>
-        <div class="row"><div class="spacer10"></div></div>
-        <div class="row">
+
+        <!-- JEF: note to self, currently working on the following which is related to:
+             https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1680
+        -->
+        <div class="row" style="margin-top: 20px">
+            <table class="table table-striped table-condensed">
+                <tr>
+                    <th>@Messages("dashboard.distance")</th>
+                    <th>@Messages("dashboard.missions")</th>
+                    @if(user){
+                        @if(user.get.role.getOrElse("") == "Turker") {
+                            <th>Total Reward Earned</th>
+                        }
+                    }
+                </tr>
+                <tr>
+                    <td id="td-total-distance-audited"></td>
+                    <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
+                    <td id="td-total-reward-earned"></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="row" style="margin-top: 20px">
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>@Messages("dashboard.distance")</th>
