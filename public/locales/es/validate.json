@@ -21,11 +21,11 @@
     },
     "correct": {
       "CurbRamp": {
-        "title": "Rampa peatonal <i>CORRECTA</i>",
+        "title": "Rampa peatonal <strong>Correcta</strong>",
         "example-1-to-4": "Esta etiqueta está colocada correctamente en la parte inferior de una rampa peatonal"
       },
       "NoCurbRamp": {
-        "title": "Rampa peatonal ausente <i>CORRECTA</i>",
+        "title": "Rampa peatonal ausente <strong>Correcta</strong>",
         "example-1-to-3": "Esta intersección carece de una rampa peatonal",
         "example-4": "Este cruce peatonal indica que debería haber una rampa peatonal aquí"
       },
@@ -52,12 +52,12 @@
     },
     "incorrect": {
       "CurbRamp": {
-        "title": "Rampa peatonal <i>INCORRECTA</i>",
+        "title": "Rampa peatonal <strong>Incorrecta</strong>",
         "example-1-to-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
         "example-3-to-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
       },
       "NoCurbRamp": {
-        "title": "Rampa peatonal ausente <i>INCORRECTA</i>",
+        "title": "Rampa peatonal ausente <strong>Incorrecta</strong>",
         "example-1": "Los caminos de las entradas residenciales no deben marcarse como una rampa peatonal ausente",
         "example-2-and-4": "Esto no está ubicado en un camino peatonal",
         "example-3": "Esta no es una intersección en la que las personas peatonas deben cruzar"
