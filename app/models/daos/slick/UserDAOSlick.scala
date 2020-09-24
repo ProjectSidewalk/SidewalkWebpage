@@ -273,8 +273,8 @@ object UserDAOSlick {
                    |$highQualityOnlySql
                  """.stripMargin
 
-    println(s"Running query: countAllUsersContributedTimeInterval(timeInterval=$timeInterval, taskCompletedOnly=$taskCompletedOnly, highQualityOnly=$highQualityOnly)")
-    println(query)
+    // println(s"Running query: countAllUsersContributedTimeInterval(timeInterval=$timeInterval, taskCompletedOnly=$taskCompletedOnly, highQualityOnly=$highQualityOnly)")
+    // println(query)
 
     val countQuery = Q.queryNA[Int](query)
     countQuery.list.head
