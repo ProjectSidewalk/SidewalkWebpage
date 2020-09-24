@@ -447,7 +447,7 @@ object UserDAOSlick {
   }
 
   /**
-   * Count the number of researchers who contributed yesterday (includes Researcher, Adminstrator, and Owner roles).
+   * Count the number of researchers who contributed yesterday (includes Researcher, Administrator, and Owner roles).
    *
    * @return
    */
