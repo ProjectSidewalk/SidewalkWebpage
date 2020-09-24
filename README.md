@@ -50,7 +50,7 @@ To run the web server locally, from the **root** of the SidewalkWebpage director
     (Server started, use Ctrl+D to stop and go back to the console...)
     ```
 
-1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage.
+1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. It might take time to load initially.
 
 ### Setting up another database or city
 1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.
