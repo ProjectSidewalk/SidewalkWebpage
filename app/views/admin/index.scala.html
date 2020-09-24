@@ -52,6 +52,7 @@
                 <div class="row">
                     <div class="col-lg-7">
                         <h1>Activities</h1>
+                        Today and Yesterday are based on the Pacific time zone.
                         <table class="table table-striped table-condensed">
                             <tr>
                                 <th></th>
@@ -59,7 +60,30 @@
                                 <th>Today</th>
                                 <th>Yesterday</th>
                             </tr>
-
+                            <tr>
+                                <th>Total Users</th>
+                                <th>@UserDAOSlick.countAllUsersContributed(false) (@UserDAOSlick.countAllUsersContributed(true))</th>
+                                <th>@UserDAOSlick.countAllUsersContributedToday</th>
+                                <th>@UserDAOSlick.countAllUsersContributedYesterday</th>
+                            </tr>
+                            <tr>
+                                <th>Total Users 2</th>
+                                <th>@UserDAOSlick.countAllUsersContributed(false) (@UserDAOSlick.countAllUsersContributed(true))</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("today")</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("yesterday")</th>
+                            </tr>
+                            <tr>
+                                <th>Total Users (All Quality)</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("all time", false, false) (@UserDAOSlick.countAllUsersContributedTimeInterval("all time", true, false))</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("today", false, false) (@UserDAOSlick.countAllUsersContributedTimeInterval("today", true, false))</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("yesterday", false, false) (@UserDAOSlick.countAllUsersContributedTimeInterval("yesterday", true, false))</th>
+                            </tr>
+                            <tr>
+                                <th>Total Users (High Quality)</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("all time", false, true) (@UserDAOSlick.countAllUsersContributedTimeInterval("all time", true, true))</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("today", false, true) (@UserDAOSlick.countAllUsersContributedTimeInterval("today", true, true))</th>
+                                <th>@UserDAOSlick.countAllUsersContributedTimeInterval("yesterday", false, true) (@UserDAOSlick.countAllUsersContributedTimeInterval("yesterday", true, true))</th>
+                            </tr>
                             <tr>
                                 <th>Total Audit Users</th>
                                 <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
@@ -211,9 +235,9 @@
                                 <td>@LabelValidationTable.countYesterdayValidationsBasedOnResult(3) (@("%.0f".format(LabelValidationTable.countYesterdayValidationsBasedOnResult(3) * 100.0 / LabelValidationTable.countYesterdayValidations))%)</td>
                             </tr>
                         </table>
-                        <sup>*</sup>Number of users in the parentheses represent #users who have completed at least 1
+                        <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have completed at least 1
                         audit task (in the case of # of audit users) or have validated at least one label (in the case
-                        of # of validation users). Numbers outside the parenthesis represent total #users who opened
+                        of # of validation users). The X is the total number of users who opened
                         the audit tool regardless of finishing a task.
                     </div>
                     <div class="col-lg-5">

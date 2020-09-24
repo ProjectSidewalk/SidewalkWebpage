@@ -15,6 +15,7 @@ import models.label.LabelTable
 import models.mission.MissionTable
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
 import models.user.{UserRoleTable, User}
+import models.audit.AuditTaskTable.completedTasks
 
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
@@ -189,6 +190,130 @@ object UserDAOSlick {
     } yield _user
 
     anonUsers ++ otherUsers
+  }
+
+  /**
+   * Returns a count of all users who have ever started (or completed) an audit or validation task (across all roles).
+   * That is, this method counts the number of unique users across both audit users and validation users
+   *
+   * @param taskCompleted
+   * @return
+   */
+  def countAllUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
+    val tasks = if (taskCompleted) AuditTaskTable.completedTasks else auditTaskTable
+    val users = tasks.map(_.userId) ++ LabelValidationTable.validationLabels.map(_.userId)
+
+    // groupBy gives us a list of pairs of userid to userid and then map gives us
+    // the first element of the pair for each item
+    val distinctUsers = users.groupBy(x => x).map(_._1)
+
+    distinctUsers.size.run
+  }
+
+  /**
+   * Returns a count of all users who completed at least one audit task or at least one validation today
+   *
+   * @return
+   */
+  def countAllUsersContributedToday(): Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[Int](
+      """SELECT COUNT(DISTINCT(users.user_id))
+        |FROM (
+        |    SELECT DISTINCT(user_id)
+        |    FROM label_validation
+        |    WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
+        |    UNION
+        |    SELECT DISTINCT(user_id)
+        |    FROM audit_task
+        |    WHERE audit_task.completed = TRUE
+        |       AND (audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
+        |) users
+        |INNER JOIN user_stat ON users.user_id = user_stat.user_id
+        """.stripMargin
+    )
+    countQuery.list.head
+  }
+
+  /**
+   * Returns a count of all users who completed at least one audit task or at least one validation today
+   *
+   * @param timeInterval: can be "today", "yesterday", "week", or "month". If anything else, defaults to "all time"
+   * @param taskCompletedOnly: if true, only counts users who have completed one audit task or at least one validation
+   * @param highQualityOnly: if true, only counts users who are marked as high quality
+   * @return
+   */
+  def countAllUsersContributedTimeInterval(timeInterval: String = "all time", taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): Int = db.withSession { implicit session =>
+    var lblValidationTimeIntervalSql = ""
+    var auditTaskTimeIntervalSql = ""
+    if(timeInterval.equalsIgnoreCase("today")){
+      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"""
+      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"""
+    }else if(timeInterval.equalsIgnoreCase("yesterday")){
+      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"""
+      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"""
+    }else if(timeInterval.equalsIgnoreCase("week")){
+      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"""
+      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"""
+    }else if(timeInterval.equalsIgnoreCase("month")){
+      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"""
+      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"""
+    }
+
+    var highQualityOnlySql = ""
+    if(highQualityOnly){
+      highQualityOnlySql = """WHERE user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL;"""
+    }
+
+    var auditTaskCompletedSql = ""
+    if(taskCompletedOnly){
+      auditTaskCompletedSql = """audit_task.completed = TRUE"""
+    }else{
+      auditTaskCompletedSql = """(audit_task.completed = TRUE OR audit_task.completed = FALSE)"""
+    }
+
+    val query = s"""SELECT COUNT(DISTINCT(users.user_id))
+                   |FROM (
+                   |    SELECT DISTINCT(user_id)
+                   |    FROM label_validation
+                   |    $lblValidationTimeIntervalSql
+                   |    UNION
+                   |    SELECT DISTINCT(user_id)
+                   |    FROM audit_task
+                   |    WHERE $auditTaskCompletedSql
+                   |       $auditTaskTimeIntervalSql
+                   |) users
+                   |INNER JOIN user_stat ON users.user_id = user_stat.user_id
+                   |$highQualityOnlySql
+                 """.stripMargin
+    println(s"Running query: countAllUsersContributedTimeInterval(timeInterval=$timeInterval, taskCompletedOnly=$taskCompletedOnly, highQualityOnly=$highQualityOnly)")
+    println(query)
+    val countQuery = Q.queryNA[Int](query)
+    countQuery.list.head
+
+  }
+
+  /**
+   * Returns a count of all users who completed at least one audit task or at least one validation yesterday
+   *
+   * @return
+   */
+  def countAllUsersContributedYesterday(): Int = db.withSession { implicit session =>
+    val countQuery = Q.queryNA[Int](
+      """SELECT COUNT(DISTINCT(users.user_id))
+        |FROM (
+        |    SELECT DISTINCT(user_id)
+        |    FROM label_validation
+        |    WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+        |    UNION
+        |    SELECT DISTINCT(user_id)
+        |    FROM audit_task
+        |    WHERE audit_task.completed = TRUE
+        |        AND (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
+        |) users
+        |INNER JOIN user_stat ON users.user_id = user_stat.user_id
+        """.stripMargin
+    )
+    countQuery.list.head
   }
 
   /**
