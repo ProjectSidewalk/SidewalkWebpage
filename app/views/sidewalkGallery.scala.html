@@ -1,26 +1,51 @@
 @import models.user.User
-@import models.region.RegionTable
+@import models.user.VersionTable
 @import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title) {
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/Main.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/Main.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/Card.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/cards/CardContainer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/CardFilter.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/RibbonMenu.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Tag.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/util/GalleryPanoUtilities.js")'></script>
 
     @navbar(user, Some("/sidewalkGallery"))
-    <div class="gallery-overview-container">
-        <h1 class="gallery-title"></h1>
-        <div class="tag-container">
+    <div id="gallery-overview-container">
+        <h1 class="gallery-title">Welcome to Sidewalk Gallery</h1>
+        <div id="card-filter">
+            <h2>View different sidewalk accessibility issues</h2>
+            <div id="ribbon-menu-holder">
+                <span id="label-type-holder">
+                    <button id="Button_CurbRamp" class="modeSwitch" val="CurbRamp">
+                        <div class="modeSwitch_Name">Curb Ramp</div>
+                    </button>
+                    <button id="Button_NoCurbRamp" class="modeSwitch" val="NoCurbRamp">
+                        <div class="modeSwitch_Name">Missing Curb Ramp</div>
+                    </button>
+                    <button id="Button_Obstacle" class="modeSwitch" val="Obstacle">
+                        <div class="modeSwitch_Name">Obstacle in Path</div>
+                    </button>
+                </span>
+            </div>
+            <span id="tags">
+            </span>
         </div>
-        <div class="image-container">
+        <div id="image-card-container">
         </div>
     </div>
     @footer()
+
+    <script type="text/javascript">
+            var sg = sg || {};
+            let param = {};
+
+            sg.main = new Main(param);
+    </script>
+
+    <link href='@routes.Assets.at("stylesheets/SidewalkGallery/cards.css")' rel='stylesheet' />
+    <link href='@routes.Assets.at("stylesheets/SidewalkGallery/tags.css")' rel='stylesheet' />
+    <link href='@routes.Assets.at("stylesheets/SidewalkGallery/gallery.css")' rel='stylesheet' />
 }
-
-<script type="text/javascript">
-    var sg = sg || {};
-    var param = {};
-
-    sg.main = new Main(param);
-
-</script>
