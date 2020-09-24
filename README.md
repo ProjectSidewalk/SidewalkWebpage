@@ -1,5 +1,7 @@
 # Sidewalk Webpage
-Want a Project Sidewalk server set up for your city/municipality? We have had various discussions on Github about what we are looking for when choosing new cities to deploy in (geographic diversity, presence of local advocates, funding, etc.), which you can read through [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1379), [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1626), and [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/281). If you would like to suggest that we deploy in your city/municipality, please email us at sidewalk@cs.uw.edu!
+Want a Project Sidewalk server set up for your city/municipality? You can read about things we consider when choosing new deployment cities on our [Wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities) including geographic diversity, presence of local advocates, funding, etc. You can also read some past discussions [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1379), [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1626), and [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/281). 
+
+If you would like to suggest that we deploy in your city/municipality, please email us at sidewalk@cs.uw.edu!
 
 ## Development Instructions
 
