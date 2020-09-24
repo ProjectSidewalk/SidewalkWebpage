@@ -13,7 +13,7 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 ### Running the application locally
 To run the web server locally, from the **root** of the SidewalkWebpage directory:
 
-1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `db` directory.
+1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `SidewalkWebpage/db` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
 
 1. If the database dump is for a city other than DC, modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
 
