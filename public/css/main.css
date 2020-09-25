@@ -1411,6 +1411,23 @@ kbd {
   border-top: 3px solid #999999;
 }
 
+.leaderboardTable {
+    padding-right: 30px;
+}
+
+.leaderboard-table-striped>tbody>tr:nth-child(even)>td,
+.leaderboard-table-striped>tbody>tr:nth-child(even)>th {
+    background-color: #fce6b5;
+    color: black;
+}
+
+.leaderboardContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
