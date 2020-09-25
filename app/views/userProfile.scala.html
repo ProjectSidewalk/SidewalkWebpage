@@ -1,6 +1,7 @@
 @import models.user.User
 @import models.region.RegionTable
 @import models.mission.MissionTable
+@import models.label.LabelTable
 @import play.api.libs.json.Json
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
@@ -29,22 +30,10 @@
              https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1680
         -->
         <div class="row" style="margin-top: 20px">
-            <table class="table table-striped table-condensed">
-                <tr>
-                    <th>@Messages("dashboard.distance")</th>
-                    <th>@Messages("dashboard.missions")</th>
-                    @if(user){
-                        @if(user.get.role.getOrElse("") == "Turker") {
-                            <th>Total Reward Earned</th>
-                        }
-                    }
-                </tr>
-                <tr>
-                    <td id="td-total-distance-audited"></td>
-                    <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
-                    <td id="td-total-reward-earned"></td>
-                </tr>
-            </table>
+            Num completed missions: @MissionTable.countCompletedMissionsByUserId(user.get.userId, true)
+            <br/>Total distance audited: @MissionTable.getDistanceAudited(user.get.userId)
+            <br/>Num labels: @LabelTable.countLabelsByUserId(user.get.userId)
+            <br/>Num validations: @MissionTable.countCompletedValidationsByUserID(user.get.userId)
         </div>
 
         <div class="row" style="margin-top: 20px">
@@ -59,7 +48,8 @@
                     }
                 </tr>
                 <tr>
-                    <td id="td-total-distance-audited"></td>
+                    <!-- The id='td-total-distance-audited' is automatically filled by "javascripts/Progress/build/Progress.js"-->
+                    <td id="td-total-distance-audited">Hello</td>
                     <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
                     <td id="td-total-reward-earned"></td>
                 </tr>
