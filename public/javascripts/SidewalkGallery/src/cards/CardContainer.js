@@ -90,25 +90,25 @@ function CardContainer(uiCardContainer) {
             currentCards = currentCards.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
         } else {
            clearCurrentCards();
-           let newCards = [];
-           let initialCardsSet = false;
+           let newCards = cardsOfType;
+           //let initialCardsSet = false;
            let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType];
-           console.log(tagsToCheck.length);
+           //console.log(tagsToCheck.length);
            for (let i = 0; i < tagsToCheck.length; i++) {
                let tag = tagsToCheck[i];
                if (tag.getStatus().applied) {
-                   if (initialCardsSet) {
-                       newCards = newCards.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
-                   } else {
-                       newCards = cardsOfType.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
-                       initialCardsSet = true;
-                   }
+                   //if (initialCardsSet) {
+                   newCards = newCards.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+                   // } else {
+                   //     newCards = cardsOfType.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+                   //     initialCardsSet = true;
+                   // }
                }
            }
 
-           if (!initialCardsSet) {
-               cardsOfType.forEach(card => newCards.push(card));
-           }
+           // if (!initialCardsSet) {
+           //     cardsOfType.forEach(card => newCards.push(card));
+           // }
 
            currentCards = newCards;
            console.log(currentCards.length);
