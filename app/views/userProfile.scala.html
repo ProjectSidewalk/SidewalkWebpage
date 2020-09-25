@@ -58,25 +58,24 @@
             </div>
         </div>
 
-        <div class="row" style="margin-top: 20px">
-            <table class="table table-striped table-condensed">
-                <tr>
-                    <th>@Messages("dashboard.distance")</th>
-                    <th>@Messages("dashboard.missions")</th>
-                    @if(user){
-                        @if(user.get.role.getOrElse("") == "Turker") {
-                            <th>Total Reward Earned</th>
-                        }
-                    }
-                </tr>
-                <tr>
-                    <!-- The id='td-total-distance-audited' is automatically filled by "javascripts/Progress/build/Progress.js"-->
-                    <td id="td-total-distance-audited">Hello</td>
-                    <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
-                    <td id="td-total-reward-earned"></td>
-                </tr>
-            </table>
-        </div>
+        @* Only show this table if the current user is a turker *@
+        @if(user && user.get.role.getOrElse("") == "Turker") {
+            <div class="row" style="margin-top: 20px">
+                <table class="table table-striped table-condensed">
+                    <tr>
+                        <th>@Messages("dashboard.distance")</th>
+                        <th>@Messages("dashboard.missions")</th>
+                        <th>Total Reward Earned</th>
+                    </tr>
+                    <tr>
+                        <!-- The id='td-total-distance-audited' is automatically filled by "javascripts/Progress/build/Progress.js"-->
+                        <td id="td-total-distance-audited">Hello</td>
+                        <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
+                        <td id="td-total-reward-earned"></td>
+                    </tr>
+                </table>
+            </div>
+        }
 @*        <div class="row">*@
 @*            <table class="table table-striped table-condensed">*@
 @*                <tr><th>@Messages("dashboard.contributions")</th></tr>*@
