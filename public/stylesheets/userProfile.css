@@ -79,4 +79,30 @@ svg {
     width: 15%;
 }
 
+.primary-user-stats-holder {
+    /*min-width: 800px;*/
+    /*max-width: 1400px;*/
+
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-gap: 5px;
+
+    text-align: center;
+}
+
+.primary-user-stats-holder img{
+    height:70px;
+    margin: auto; /* centers the image horizontally */
+}
+
+.primary-user-stats-holder-stat-header {
+    font-size: 30px;
+    font-family: raleway-extrabold, sans-serif;
+}
+
+.ps-skyline-stats-holder-stat-number {
+    font-size: 30px;
+    font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif
+}
+
 

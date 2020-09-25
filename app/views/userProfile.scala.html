@@ -26,14 +26,36 @@
             </div>
         </div>
 
-        <!-- JEF: note to self, currently working on the following which is related to:
-             https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1680
-        -->
-        <div class="row" style="margin-top: 20px">
-            Num completed missions: @MissionTable.countCompletedMissionsByUserId(user.get.userId, true)
-            <br/>Total distance audited: @MissionTable.getDistanceAudited(user.get.userId)
-            <br/>Num labels: @LabelTable.countLabelsByUserId(user.get.userId)
-            <br/>Num validations: @MissionTable.countCompletedValidationsByUserID(user.get.userId)
+@*        <div class="row" style="margin-top: 20px">*@
+@*            Num completed missions: @MissionTable.countCompletedMissionsByUserId(user.get.userId, true)*@
+@*            <br/>Total distance audited: @("%.1f".format(MissionTable.getDistanceAudited(user.get.userId)))*@
+@*            <br/>Num labels: @LabelTable.countLabelsByUserId(user.get.userId)*@
+@*            <br/>Num validations: @MissionTable.countCompletedValidationsByUserID(user.get.userId)*@
+@*        </div>*@
+
+        <div class="row" style="margin-top: 30px">
+            <div class="primary-user-stats-holder">
+                <span class="primary-user-stats-holder-stat-header">Your Distance</span>
+                <span class="primary-user-stats-holder-stat-header">Labels</span>
+                <span class="primary-user-stats-holder-stat-header">Accuracy</span>
+                <span class="primary-user-stats-holder-stat-header">Missions</span>
+
+                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")'/>
+                <img src='@routes.Assets.at("images/icons/noun_pin location_2342268_cropped.png")'/>
+                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")'/>
+                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")'/>
+
+                <span class="ps-skyline-stats-holder-stat-number">@("%.1f".format(MissionTable.getDistanceAudited(user.get.userId))) mi</span>
+                <span class="ps-skyline-stats-holder-stat-number">@LabelTable.countLabelsByUserId(user.get.userId)</span>
+                <span class="ps-skyline-stats-holder-stat-number">N/A</span>
+                <span class="ps-skyline-stats-holder-stat-number">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
+@*                <span class="ps-skyline-stats-holder-stat-label">of SPGG mapped</span>*@
+@*                <span class="ps-skyline-stats-holder-stat-label">miles covered</span>*@
+@*                <span class="ps-skyline-stats-holder-stat-label">labels</span>*@
+@*                <a href="/validate">*@
+@*                    <span class="ps-skyline-stats-holder-stat-label">validations</span>*@
+@*                </a>*@
+            </div>
         </div>
 
         <div class="row" style="margin-top: 20px">
