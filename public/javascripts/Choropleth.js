@@ -139,22 +139,14 @@ function Choropleth(_, $, difficultRegionIds) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i]) {
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
-                    }   
-                }
+                clearChoroplethRegionOutlines(currentLayer, layers);
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
                 this.openPopup();
             });
             layer.on('mouseout', function (e) {
                 var mouseoutTrigger = e.originalEvent.toElement.className;
-                if (mouseoutTrigger != "leaflet-popup-content" && mouseoutTrigger != "leaflet-popup-content-wrapper" && mouseoutTrigger != "region-selection-trigger") {
-                    for (var i = layers.length - 1; i >= 0; i--) {
-                        if (currentLayer !== layers[i]) {
-                            layers[i].setStyle({opacity: 0.25, weight: 1});
-                        }   
-                    }
+                 if (['leaflet-popup-content', 'leaflet-popup-content-wrapper', 'region-selection-trigger'].includes(mouseoutTrigger) === false) {
+                    clearChoroplethRegionOutlines(currentLayer, layers);
                     currentLayer = null;
                 }
             });
@@ -237,6 +229,13 @@ function Choropleth(_, $, difficultRegionIds) {
         }, 1);
     });
 
+    function clearChoroplethRegionOutlines(currentLayer, layers) {
+        for (var i = layers.length - 1; i >= 0; i--) {
+            if (currentLayer !== layers[i]) {
+                layers[i].setStyle({opacity: 0.25, weight: 1});
+            }   
+        }
+    }
 
     // Makes POST request that logs `activity` in WebpageActivityTable
     function postToWebpageActivity(activity){

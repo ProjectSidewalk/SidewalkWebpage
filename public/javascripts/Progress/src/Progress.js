@@ -163,23 +163,16 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i]) {
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
-                    }   
-                }
+                console.log("progess")
+                clearChoroplethRegionOutlines(currentLayer, layers);
                 this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
                 this.openPopup();
 
             });
             layer.on('mouseout', function (e) {
                 var mouseoutTrigger = e.originalEvent.toElement.className;
-                if (mouseoutTrigger != "leaflet-popup-content" && mouseoutTrigger != "leaflet-popup-content-wrapper" && mouseoutTrigger != "region-selection-trigger") {
-                    for (var i = layers.length - 1; i >= 0; i--) {
-                        if (currentLayer !== layers[i]) {
-                            layers[i].setStyle(neighborhoodPolygonStyle);
-                        }   
-                    }
+                if (['leaflet-popup-content', 'leaflet-popup-content-wrapper', 'region-selection-trigger'].includes(mouseoutTrigger) === false) {
+                    clearChoroplethRegionOutlines(currentLayer, layers);
                     currentLayer = null;
                 }
                 //this.setStyle(neighborhoodPolygonStyle);
@@ -286,6 +279,15 @@ function Progress (_, $, c3, L, role, difficultRegionIds) {
             });
         });
     }
+
+    function clearChoroplethRegionOutlines(currentLayer, layers) {
+        for (var i = layers.length - 1; i >= 0; i--) {
+            if (currentLayer !== layers[i]) {
+                layers[i].setStyle({opacity: 0.25, weight: 1});;
+            }   
+        }
+    }
+
 
     /**
      * This function queries the streets that the user audited and visualize them as segments on the map.
