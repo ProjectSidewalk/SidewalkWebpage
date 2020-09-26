@@ -135,6 +135,29 @@ object LabelValidationTable {
     }
   }
 
+  def getUserAccuracy(userId: String): Option[Float] = db.withSession { implicit session =>
+    val accuracyQuery = Q.query[String, Option[Float]](
+      """SELECT CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
+			FROM (
+				SELECT user_id,
+					   CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy,
+					   COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
+				FROM (
+					SELECT mission.user_id, label.label_id,
+						   COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
+						   COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
+					FROM mission
+					INNER JOIN label ON mission.mission_id = label.mission_id
+					INNER JOIN label_validation ON label.label_id = label_validation.label_id
+					WHERE mission.user_id = ?
+					GROUP BY mission.user_id, label.label_id
+				) agree_count
+				GROUP BY user_id
+			) "accuracy";""".stripMargin
+    )
+    accuracyQuery(userId).list.headOption.flatten
+  }
+
   /**
     * Select validation counts per user.
     *
