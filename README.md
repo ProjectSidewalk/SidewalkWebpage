@@ -1,5 +1,7 @@
 # Sidewalk Webpage
-Want a Project Sidewalk server set up for your city/municipality? We have had various discussions on Github about what we are looking for when choosing new cities to deploy in (geographic diversity, presence of local advocates, funding, etc.), which you can read through [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1379), [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1626), and [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/281). If you would like to suggest that we deploy in your city/municipality, please email us at sidewalk@cs.uw.edu!
+Want a Project Sidewalk server set up for your city/municipality? You can read about things we consider when choosing new deployment cities on our [Wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities) including geographic diversity, presence of local advocates, funding, etc. You can also read some past discussions [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1379), [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1626), and [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/281). 
+
+If you would like to suggest that we deploy in your city/municipality, please email us at sidewalk@cs.uw.edu!
 
 ## Development Instructions
 
@@ -9,24 +11,25 @@ The development environment is set up using Docker containers. Hence, in order t
 If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
 
 ### Running the application locally
-To run the web server locally, from the root of the SidewalkWebpage directory:
+To run the web server locally, from the **root** of the SidewalkWebpage directory:
 
-1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `db` directory.
+1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `SidewalkWebpage/db` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
 
-1. If the database dump is for a city other than DC, modify the 2nd line of the conf/cityparams.conf to use the appropriate ID. You can find the IDs for the cities starting at line 7 of that file.
+1. If the database dump is for a city other than DC, modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
 
-1. Run `make dev`. This will download the docker images, spin up the containers, and open a Docker shell into the webpage container. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
+1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
     Successfully built [container-id]
     Successfully tagged projectsidewalk/web:latest
-    WARNING: Image for service web was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
+    WARNING: Image for service web was built because it did not already exist. 
+    To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take awhile depending on the size of the dump.
+1. In a separate terminal, run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take awhile depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) (particularly, [this entry](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#running-make-import-dump-dbsidewalk-fails)).
 
-1. Run `npm start` from inside the Docker shell. The result of this command is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (`~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
+1. Run `npm start` from inside the Docker shell. If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially (on my 2015 MacBook Pro, it took ~9 mins) but will be orders of magnitude faster in the future (~10 secs). The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
 
     ```
     > grunt watch & sbt clean "~ run"
@@ -47,7 +50,7 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
     (Server started, use Ctrl+D to stop and go back to the console...)
     ```
 
-1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage.
+1. Head on over to your browser and navigate to `127.0.0.1:9000`. This should display the Project Sidewalk webpage. It might take time to load initially.
 
 ### Setting up another database or city
 1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.
@@ -64,8 +67,17 @@ To run the web server locally, from the root of the SidewalkWebpage directory:
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
 
 ### Programming environment
-The IDE [IntelliJ IDEA](https://www.jetbrains.com/idea/) is highly recommended for development, particularly with Scala. You should be able to get a [student license](https://www.jetbrains.com/student/) to get the "ultimate" edition of IntelliJ IDEA. If using IntelliJ IDEA, we would recommend installing the [Play Routes](https://plugins.jetbrains.com/plugin/10053-play-routes/), [i18n support](https://plugins.jetbrains.com/plugin/12981-i18n-support/), and [HOCON](https://plugins.jetbrains.com/plugin/10481-hocon) plugins.
+We recommend the [IntelliJ IDEA](https://www.jetbrains.com/idea/) IDE for development. You should be able to get a [student license](https://www.jetbrains.com/student/) to get the "ultimate" edition of IntelliJ IDEA. 
 
+#### IntelliJ IDEA
+On the first run of IntelliJ IDEA, make sure to select the Scala plugin. In addition, we recommend installing the [Play Routes](https://plugins.jetbrains.com/plugin/10053-play-routes/), [i18n support](https://plugins.jetbrains.com/plugin/12981-i18n-support/), and [HOCON](https://plugins.jetbrains.com/plugin/10481-hocon) plugins. 
+
+To install the plugins, open IDEA and select `File -> Settings`. In the Settings window, select the `Plugins` option on the left sidebar and then `Marketplace` (on top menubar). In the "search area" (textfield next to magnifying glass):
+- Type in "play routes" and select "Play Routes" by Tomáš Milata (31.6K downloads with 3.72 star rating at the time of writing). Hit the `Install` button.
+- Type in "i18n support" and install the "i18n support" plugin by i18nPlugin (10.6K downloads with 4.56 star rating)
+- Type in "hocon" and install the "HOCON" plugin by Roman Janusz *et al.* (739.8K downloads with 3.54 star rating)
+
+#### Database tools
 To look at and run queries on your database, you will want to install a database client. [Valentina Studio](https://www.valentina-db.com/en/valentina-studio-overview) is a good cross-platform database client. People also like using [Postico](https://eggerapps.at/postico/) for Mac or [PGAdmin](https://www.pgadmin.org/download/) on Windows/Mac.
 
 You'll connect to the database using the following credentials:
