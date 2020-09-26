@@ -147,7 +147,7 @@ object UserStatTable {
       case "lifetime" => """TIMESTAMP 'epoch'"""
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
     }
-    val allStats = Q.queryNA[(String, Int, Int, Float, Option[Float])](
+    val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float])](
       s"""SELECT usernames.username,
         |	label_counts.label_count,
         |	mission_count,
@@ -196,7 +196,27 @@ object UserStatTable {
         |) "accuracy" ON label_counts.user_id = accuracy.user_id
         |ORDER BY label_counts.label_count DESC;""".stripMargin
     )
-    allStats.list.map(LeaderboardStat.tupled)
+    // Run the query and remove the "@X.Y" from usernames that are valid email addresses.
+    statsQuery.list.map(stat =>
+      if (isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5)
+      else LeaderboardStat.tupled(stat)
+    )
+  }
+
+  /**
+   * Check if the input string is a valid email address.
+   *
+   * We use a regex found in the Play Framework's code: https://github.com/playframework/playframework/blob/ddf3a7ee4285212ec665826ec268ef32b5a76000/core/play/src/main/scala/play/api/data/validation/Validation.scala#L79
+   * @param maybeEmail
+   * @return
+   */
+  def isValidEmail(maybeEmail: String): Boolean = {
+    val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+    maybeEmail match {
+      case e if e.trim.isEmpty => false
+      case e if emailRegex.findFirstMatchIn(e).isDefined => true
+      case _ => false
+    }
   }
 
   /**
