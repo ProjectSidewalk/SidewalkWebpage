@@ -1,5 +1,7 @@
 package models.label
 
+import java.util.UUID
+
 import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -135,7 +137,26 @@ object LabelValidationTable {
     }
   }
 
-  def getUserAccuracy(userId: String): Option[Float] = db.withSession { implicit session =>
+  /**
+   * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed
+   * if and only if the users' labels have been validated 10 or more times. The simplest way to think about
+   * the accuracy calculation is something like:
+   *
+   *   number of labels validated correct / (number of labels validated - number of labels marked as unsure)
+   *
+   * Which does not penalize users for labels that they supplied but were rated as unsure by other users
+   *
+   * However, this calculation does not take into account that multiple users can validate a single label.
+   * So, a slightly more complicated version of this uses majority vote where a label is counted as correct
+   * if and only if the number of agreement ratings > number of disagreement ratings. If the num of
+   * agreement ratings - num of disagreement ratings = 0, then it counts as unsure
+   *
+   * This is the version implemented below.
+   *
+   * @param userId
+   * @return
+   */
+  def getUserAccuracy(userId: UUID): Option[Float] = db.withSession { implicit session =>
     val accuracyQuery = Q.query[String, Option[Float]](
       """SELECT CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
 			FROM (
@@ -155,7 +176,7 @@ object LabelValidationTable {
 				GROUP BY user_id
 			) "accuracy";""".stripMargin
     )
-    accuracyQuery(userId).list.headOption.flatten
+    accuracyQuery(userId.toString).list.headOption.flatten
   }
 
   /**
