@@ -48,8 +48,8 @@
 
                 <span class="ps-skyline-stats-holder-stat-number">@("%.1f".format(MissionTable.getDistanceAudited(user.get.userId))) mi</span>
                 <span class="ps-skyline-stats-holder-stat-number">@LabelTable.countLabelsByUserId(user.get.userId)</span>
-@*                The following line is failing so commented out*@
-                <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.getUserAccuracy(user.get.userId)</span>
+
+                <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
                 
                 <span class="ps-skyline-stats-holder-stat-number">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
 @*                <span class="ps-skyline-stats-holder-stat-label">of SPGG mapped</span>*@
