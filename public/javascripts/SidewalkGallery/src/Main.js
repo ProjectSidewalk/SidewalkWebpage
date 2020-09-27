@@ -8,7 +8,7 @@ var sg = sg || {};
  * @returns {Main}
  * @constructor
  */
-function Main (param) {
+function Main (params) {
     let self = this;
 
     function _initUI() {
@@ -26,6 +26,7 @@ function Main (param) {
 
     function _init() {
         console.log("Sidewalk Gallery initialized");
+        sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         sg.ribbonMenu = new RibbonMenu(sg.ui.ribbonMenu);
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu);

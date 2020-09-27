@@ -1,8 +1,15 @@
 .gallery-card {
+    position: relative;
     display: inline-block;
     border-style: solid;
     padding: 5px;
     border-radius: 5px;
     margin: 5px;
+}
+
+.label-icon {
+    position: absolute;
+    width: 12px;
+    z-index: 2;
 }
 

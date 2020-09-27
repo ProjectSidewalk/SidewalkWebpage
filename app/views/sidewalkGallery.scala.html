@@ -40,9 +40,10 @@
 
     <script type="text/javascript">
             var sg = sg || {};
-            let param = {};
+            let params = {};
+            params.rootDirectory = "/assets/javascripts/SVLabel/";
 
-            sg.main = new Main(param);
+            sg.main = new Main(params);
     </script>
 
     <link href='@routes.Assets.at("stylesheets/SidewalkGallery/cards.css")' rel='stylesheet' />

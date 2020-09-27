@@ -71,12 +71,10 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
    * @param label Label to retrieve the FOV for.
    */
   def getFov(zoom: Int): Double = {
-    if (zoom == 1) {
-      47.5
-    } else if (zoom == 2) {
-      52.5
+    if (zoom <= 2) {
+      126.5 - zoom * 36.75
     } else {
-      57.5
+      195.93 / scala.math.pow(1.92, zoom * 1.0)
     }
   }
 }

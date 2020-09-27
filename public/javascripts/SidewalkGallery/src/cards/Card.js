@@ -37,6 +37,15 @@ function Card (params, imageUrl) {
             properties[attrName] = param[attrName];
         }
 
+        let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
+        let labelIcon = new Image();
+        labelIcon.src = iconUrl.iconImagePath;
+        labelIcon.className = "label-icon";
+        let iconCoords = getIconCoords();
+        labelIcon.style.left = iconCoords.x + "px";
+        labelIcon.style.top = iconCoords.y + "px";
+
+
         const cardHtml = `
             <img src="${imageUrl}" width="360" height="240">
             <h2>
@@ -48,6 +57,14 @@ function Card (params, imageUrl) {
         card = document.createElement('div');
         card.className = "gallery-card";
         card.innerHTML = cardHtml;
+        card.appendChild(labelIcon);
+    }
+
+    function getIconCoords () {
+        return {
+            x: 360 * properties.canvas_x / properties.canvas_width,
+            y: 240 * properties.canvas_y / properties.canvas_height
+        };
     }
 
     /**
@@ -55,7 +72,7 @@ function Card (params, imageUrl) {
      * @returns {string}
      */
     function getLabelId () {
-        return properties.labelId;
+        return properties.label_id;
     }
 
     /**
@@ -63,7 +80,7 @@ function Card (params, imageUrl) {
      * @returns {*}
      */
     function getLabelType () {
-        return properties.labelType;
+        return properties.label_type;
     }
 
     /**

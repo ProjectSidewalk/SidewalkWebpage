@@ -7,6 +7,46 @@
 function GalleryPanoUtilities () {
     let self = this;
 
+    // Returns image paths corresponding to each label type.
+    function getIconImagePaths(category) {
+        let imagePaths = {
+            CurbRamp: {
+                id: 'CurbRamp',
+                iconImagePath : sg.rootDirectory + 'img/cursors/Cursor_CurbRamp.png'
+            },
+            NoCurbRamp: {
+                id: 'NoCurbRamp',
+                iconImagePath : sg.rootDirectory + 'img/cursors/Cursor_NoCurbRamp.png'
+            },
+            Obstacle: {
+                id: 'Obstacle',
+                iconImagePath: sg.rootDirectory + 'img/cursors/Cursor_Obstacle.png'
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                iconImagePath: sg.rootDirectory + 'img/cursors/Cursor_SurfaceProblem.png'
+            },
+            Other: {
+                id: 'Other',
+                iconImagePath: sg.rootDirectory + 'img/cursors/Cursor_Other.png'
+            },
+            Occlusion: {
+                id: 'Occlusion',
+                iconImagePath: sg.rootDirectory + 'img/cursors/Cursor_Other.png'
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                iconImagePath: sg.rootDirectory + 'img/cursors/Cursor_NoSidewalk.png'
+            },
+            Void: {
+                id: 'Void',
+                iconImagePath : null
+            }
+        };
+
+        return category ? imagePaths[category] : imagePaths;
+    }
+
     /**
      * From PanoMarker spec
      * @param zoom
@@ -141,7 +181,8 @@ function GalleryPanoUtilities () {
         return target;
     }
 
-    self.get3dFov = _get3dFov();
+    self.getIconImagePaths = getIconImagePaths;
+    self.get3dFov = _get3dFov;
     self.povToPixel3d = povToPixel3d;
 
     return this;
