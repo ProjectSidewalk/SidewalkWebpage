@@ -28,6 +28,15 @@ svg {
     border-top: 0;
 }
 
+h3{
+    font-size: 20px;
+    font-family: raleway-extrabold, sans-serif;
+}
+
+h2{
+    font-size: 30px;
+    font-family: raleway-extrabold, sans-serif;
+}
 
 .c3 text {
     font-size: 9pt;
@@ -98,6 +107,26 @@ svg {
 .primary-user-stats-holder-stat-header {
     font-size: 30px;
     font-family: raleway-extrabold, sans-serif;
+}
+
+.achievements-outer-grid{
+    display: grid;
+    grid-template-columns: 2fr 0.5fr 2fr;
+    grid-gap: 5px;
+}
+
+.achievements-badge-grid{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 2px;
+}
+
+.achievements-badge-grid img{
+    height: 100px;
+}
+
+.achievements-encouraging-statement{
+    margin-bottom: 8px;
 }
 
 .ps-skyline-stats-holder-stat-number {
