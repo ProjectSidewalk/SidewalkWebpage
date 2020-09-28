@@ -1,81 +1,93 @@
 @import models.user._
 
-@(title: String, user: Option[User] = None, url: String = "/", leaderboardStats: List[LeaderboardStat], leaderboardStatsThisWeek: List[LeaderboardStat])(implicit lang: Lang)
+@(url: Option[String] = Some("/"))(implicit lang: Lang)
 
-@main(title) {
-    @navbar(None)
+@leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
+@leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
 
-    <div class="leaderboardContainer">
-        <div class="item leaderboardTable">
-            <h1>Lifetime Leaderboard:</h1>
-            <div class="panel panel-default">
-                <table class="table table-bordered leaderboard-table-striped">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Username</th>
-                            <th scope="col">Labels</th>
-                            <th scope="col">Missions</th>
-                            <th scope="col">Distance</th>
-                            <th scope="col">Accuracy</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for((stat, i) <- leaderboardStats.view.zipWithIndex) {
-                            <tr>
-                                <th scope="row">@{i + 1}</th>
-                                <td>@{stat.asInstanceOf[LeaderboardStat].username}</td>
-                                <td>@{stat.asInstanceOf[LeaderboardStat].labelCount}</td>
-                                <td>@{stat.asInstanceOf[LeaderboardStat].missionCount}</td>
-                                <td>@{"%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)} km</td>
-                                <td>@{"%.1f".format(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.0).asInstanceOf[Float]*100)}%</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+<div class="leaderboardContainer">
+    <div class="item leaderboardTable">
+        <h1 class="leaderboardHeader">Lifetime Leaderboard:</h1>
+        <div class="panel panel-default">
+            <table class="table table-bordered leaderboard-table-striped">
+                <thead class="leaderboardTableHeader">
+                    <tr>
+                        <th class="leaderboardTableFont" scope="col">#</th>
+                        <th class="leaderboardTableFont" scope="col">Username</th>
+                        <th class="leaderboardTableFont" scope="col">Labels</th>
+                        <th class="leaderboardTableFont" scope="col">Missions</th>
+                        <th class="leaderboardTableFont" scope="col">Distance</th>
+                        <th class="leaderboardTableFont" scope="col">Accuracy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @for((stat, i) <- leaderboardStats.view.zipWithIndex) {
+                    <tr>
+                        <th class="leaderboardTableFont" scope="row">@{
+                            i + 1
+                        }</th>
+                        <td class="leaderboardTableFont">@{
+                            stat.asInstanceOf[LeaderboardStat].username
+                        }</td>
+                        <td class="leaderboardTableFont">@{
+                            stat.asInstanceOf[LeaderboardStat].labelCount
+                        }</td>
+                        <td class="leaderboardTableFont">@{
+                            stat.asInstanceOf[LeaderboardStat].missionCount
+                        }</td>
+                        <td class="leaderboardTableFont">@{
+                            "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
+                        } km</td>
+                        <td class="leaderboardTableFont">@{
+                            "%.1f".format(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.0).asInstanceOf[Float] * 100)
+                        }%</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
         </div>
+    </div>
+    @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length > 5) {
         <div class="item leaderboardTable">
-            <h1>Weekly Leaderboard:</h1>
+            <h1 class="leaderboardHeader">Weekly Leaderboard:</h1>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
-                    <thead>
+                    <thead class="leaderboardTableHeader">
                         <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Username</th>
-                            <th scope="col">Labels</th>
-                            <th scope="col">Missions</th>
-                            <th scope="col">Distance</th>
-                            <th scope="col">Accuracy</th>
+                            <th class="leaderboardTableFont" scope="col">#</th>
+                            <th class="leaderboardTableFont" scope="col">Username</th>
+                            <th class="leaderboardTableFont" scope="col">Labels</th>
+                            <th class="leaderboardTableFont" scope="col">Missions</th>
+                            <th class="leaderboardTableFont" scope="col">Distance</th>
+                            <th class="leaderboardTableFont" scope="col">Accuracy</th>
                         </tr>
                     </thead>
                     <tbody>
                     @for((stat, i) <- leaderboardStatsThisWeek.view.zipWithIndex) {
                         <tr>
-                            <th scope="row">@{i + 1}</th>
-                            <td>@{stat.asInstanceOf[LeaderboardStat].username}</td>
-                            <td>@{stat.asInstanceOf[LeaderboardStat].labelCount}</td>
-                            <td>@{stat.asInstanceOf[LeaderboardStat].missionCount}</td>
-                            <td>@{"%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)} km</td>
-                            <td>@{"%.1f".format(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float]*100)}%</td>
+                            <th class="leaderboardTableFont" scope="row">@{
+                                i + 1
+                            }</th>
+                            <td class="leaderboardTableFont">@{
+                                stat.asInstanceOf[LeaderboardStat].username
+                            }</td>
+                            <td class="leaderboardTableFont">@{
+                                stat.asInstanceOf[LeaderboardStat].labelCount
+                            }</td>
+                            <td class="leaderboardTableFont">@{
+                                stat.asInstanceOf[LeaderboardStat].missionCount
+                            }</td>
+                            <td class="leaderboardTableFont">@{
+                                "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
+                            } km</td>
+                            <td class="leaderboardTableFont">@{
+                                "%.1f".format(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.0).asInstanceOf[Float] * 100)
+                            }%</td>
                         </tr>
                     }
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-    <style>
-        h1{
-            font-weight: bold;
-        }
-        th, td {
-            font-size: 20px;
-        }
-        thead{
-            background-color: rgba(251, 215, 139, 1);
-            font-weight: bold;
-        }
-
-    </style>
-}
+    }
+</div>

@@ -1407,6 +1407,19 @@ kbd {
     visibility: hidden;
 }
 
+.leaderboardHeader {
+    font-weight: bold;
+}
+
+.leaderboardTableFont {
+    font-size: 20px;
+}
+
+.leaderboardTableHeader {
+    background-color: rgba(251, 215, 139, 1);
+    font-weight: bold;
+}
+
 #your-overall-total {
   border-top: 3px solid #999999;
 }
@@ -1423,6 +1436,7 @@ kbd {
 
 .leaderboardContainer {
     display: flex;
+    flex-wrap: wrap;
     flex-direction: row;
     justify-content: center;
     align-items: center;
