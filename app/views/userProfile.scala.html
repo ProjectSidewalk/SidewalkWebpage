@@ -36,22 +36,25 @@
 
         <div class="row" style="margin-top: 30px">
             <div class="primary-user-stats-holder">
-                <span class="primary-user-stats-holder-stat-header">Your Distance</span>
+                <span class="primary-user-stats-holder-stat-header">Your Missions</span>
+                <span class="primary-user-stats-holder-stat-header">Distance</span>
                 <span class="primary-user-stats-holder-stat-header">Labels</span>
+                <span class="primary-user-stats-holder-stat-header">Validations</span>
                 <span class="primary-user-stats-holder-stat-header">Accuracy</span>
-                <span class="primary-user-stats-holder-stat-header">Missions</span>
 
+
+                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")'/>
                 <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")'/>
                 <img src='@routes.Assets.at("images/icons/noun_pin location_2342268_cropped.png")'/>
+                <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")'/>
                 <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")'/>
 
+                <span class="ps-skyline-stats-holder-stat-number">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
                 <span class="ps-skyline-stats-holder-stat-number">@("%.1f".format(MissionTable.getDistanceAudited(user.get.userId))) mi</span>
                 <span class="ps-skyline-stats-holder-stat-number">@LabelTable.countLabelsByUserId(user.get.userId)</span>
-
+                <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
                 <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
-                
-                <span class="ps-skyline-stats-holder-stat-number">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
+
 @*                <span class="ps-skyline-stats-holder-stat-label">of SPGG mapped</span>*@
 @*                <span class="ps-skyline-stats-holder-stat-label">miles covered</span>*@
 @*                <span class="ps-skyline-stats-holder-stat-label">labels</span>*@
