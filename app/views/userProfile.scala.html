@@ -86,8 +86,9 @@
         <div class="row" id="achievements">
 
             <h2>Achievements</h2>
+            <!-- The achievements-outer-grid is 3 columns -->
             <div class="achievements-outer-grid">
-                <div>
+                <div class="achievements-outer-col1">
                     <h3>Missions</h3>
                     <p class="achievements-encouraging-statement">Just XX more labels until your next mission achievement.</p>
                     <div class="achievements-badge-grid">
@@ -98,9 +99,20 @@
                         <img src='@routes.Assets.at("images/badges/Badge_Missions_Badge5.png")'>
                     </div>
                 </div>
-                <div><!--Empty middle cell in outer grid--></div>
+                <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
+                <div class="achievements-outer-col3">
+                    <h3>Distance</h3>
+                    <p class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
+                    <div class="achievements-badge-grid">
+                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge1.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge2.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge3_NoCape.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge4.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge5.png")'>
+                    </div>
+                </div>
 
-                <div>
+                <div class="achievements-outer-col1">
                     <h3>Labels</h3>
                     <p class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
                     <div class="achievements-badge-grid">
@@ -111,6 +123,19 @@
                         <img src='@routes.Assets.at("images/badges/Badge_Labels_Badge5.png")'>
                     </div>
                 </div>
+                <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
+                <div class="achievements-outer-col3">
+                    <h3>Validations</h3>
+                    <p class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
+                    <div class="achievements-badge-grid">
+                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge1.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge2.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge3.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge4.png")'>
+                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge5.png")'>
+                    </div>
+                </div>
+
             </div>
         </div>
 @*        <div class="row">*@
