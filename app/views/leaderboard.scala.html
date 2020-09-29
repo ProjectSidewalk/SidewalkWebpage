@@ -35,14 +35,26 @@
                         <td class="leaderboardTableFont">@{
                             stat.asInstanceOf[LeaderboardStat].missionCount
                         }</td>
-                        @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] > 2000) {
-                            <td class="leaderboardTableFont">@{
-                                "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float]/ 1000)
-                            } km</td>
+                        @if(Messages("measurement.system") == "metric") {
+                            @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] > 2000) {
+                                <td class="leaderboardTableFont">@{
+                                    "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float]/ 1000)
+                                } km</td>
+                            } else {
+                                <td class="leaderboardTableFont">@{
+                                    "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
+                                } m</td>
+                            }
                         } else {
-                            <td class="leaderboardTableFont">@{
-                                "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
-                            } m</td>
+                            @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                <td class="leaderboardTableFont">@{
+                                    "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
+                                } miles</td>
+                            } else {
+                                <td class="leaderboardTableFont">@{
+                                    "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28)
+                                } ft</td>
+                            }
                         }
                         @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
                             <td class="leaderboardTableFont accuracyCell">N/A
@@ -95,14 +107,26 @@
                             <td class="leaderboardTableFont">@{
                                 stat.asInstanceOf[LeaderboardStat].missionCount
                             }</td>
-                            @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] > 2000) {
-                                <td class="leaderboardTableFont">@{
-                                    "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float]/ 1000)
-                                } km</td>
+                            @if(Messages("measurement.system") == "metric") {
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] > 2000) {
+                                    <td class="leaderboardTableFont">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float]/ 1000)
+                                    } km</td>
+                                } else {
+                                    <td class="leaderboardTableFont">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
+                                    } m</td>
+                                }
                             } else {
-                                <td class="leaderboardTableFont">@{
-                                    "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
-                                } meters</td>
+                                @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
+                                    <td class="leaderboardTableFont">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
+                                    } miles</td>
+                                } else {
+                                    <td class="leaderboardTableFont">@{
+                                        "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28)
+                                    } ft</td>
+                                }
                             }
                             @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
                                 <td class="leaderboardTableFont accuracyCell">N/A
