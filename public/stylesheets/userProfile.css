@@ -111,7 +111,7 @@ h2{
 
 .achievements-outer-grid{
     display: grid;
-    grid-template-columns: 2fr 0.5fr 2fr;
+    grid-template-columns: 2fr 0.3fr 2fr;
     grid-gap: 5px;
 }
 
