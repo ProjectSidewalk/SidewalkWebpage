@@ -1411,6 +1411,34 @@ kbd {
     font-weight: bold;
 }
 
+.weeklyCell{
+    position: relative;
+    text-decoration:underline;
+    text-decoration-style: dotted;
+}
+
+.weeklyTooltip{
+    display:none;
+    position:absolute;
+    z-index:100;
+    border:1px;
+    border-radius: 5px;
+    background-color:#eeeeee;
+    border-style:solid;
+    border-width:1px;
+    border-color:black;
+    padding:3px;
+    color:black;
+    left:20px;
+    font-size: 14px;
+    font-weight: normal;
+    width: 175px;
+}
+
+.weeklyCell:hover span.weeklyTooltip{
+    display:block;
+}
+
 .leaderboardTableFont {
     font-size: 20px;
 }
@@ -1426,6 +1454,7 @@ kbd {
 
 .leaderboardTable {
     padding-right: 30px;
+    min-width: 650px;
 }
 
 .leaderboard-table-striped>tbody>tr:nth-child(even)>td,
@@ -1439,7 +1468,35 @@ kbd {
     flex-wrap: wrap;
     flex-direction: row;
     justify-content: center;
+    text-align: center;
     align-items: center;
+}
+
+.accuracyCell{
+    position: relative;
+    text-decoration:underline;
+    text-decoration-style: dotted;
+}
+
+.accuracyTooltip{
+    display:none;
+    position:absolute;
+    z-index:100;
+    border:1px;
+    border-radius: 5px;
+    background-color:#eeeeee;
+    border-style:solid;
+    border-width:1px;
+    border-color:black;
+    padding:3px;
+    color:black;
+    left:40px;
+    font-size: 14px;
+    width: 150%;
+}
+
+.accuracyCell:hover span.accuracyTooltip{
+    display:block;
 }
 
 /*
