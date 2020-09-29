@@ -838,9 +838,11 @@ p#conditional-text {
 .collaborator-image {
     padding: 15px;
 }
-.collaborator-image > img {
+
+.collaborator-image img {
     height: 220px;
 }
+
 #press-container2, #brought-to-you-by-container {
     position: relative;
     max-width: 900px;
