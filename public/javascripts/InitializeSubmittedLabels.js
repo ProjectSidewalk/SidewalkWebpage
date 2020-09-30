@@ -14,7 +14,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
         };
 
     var auditedStreetColor = params.streetColor;
-    // Count a number of each label type
+    // Count a number of each label type.
     var labelCounter = {
         "CurbRamp": 0,
         "NoCurbRamp": 0,
@@ -44,7 +44,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
     } else {    // When loading label map.
         document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
         document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
-            // Create layers for each of the 42 different label-severity combinations
+        // Separate labels into an array for each label type and severity.
         for (var i = 0; i < labelData.features.length; i++) {
             var labelType = labelData.features[i].properties.label_type;
             if (labelData.features[i].properties.severity === 1) {
@@ -105,11 +105,11 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
         })
     }
 
+    // Searches for a region id in the query string. If you find one, focus on that region.
     function setRegionFocus(map) {
-        // Search for a region id in the query string. If you find one, focus on that region.
-        var regionId = util.getURLParameter("regionId"),
-        i,
-        len;
+        var regionId = util.getURLParameter("regionId")
+        var i;
+        var len;
         if (regionId && layers) {
             len = layers.length;
             for (i = 0; i < len; i++) {

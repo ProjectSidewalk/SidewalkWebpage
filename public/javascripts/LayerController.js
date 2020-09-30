@@ -11,6 +11,7 @@ function LayerController() {
     mapData.cantSeeSidewalkLayers = [];
     mapData.noSidewalkLayers = [];
     mapData.otherLayers = [];
+    // Make arrays to hold labels split by severity (null and 1 through 5).
     for (var i = 0; i < 6; i++) {
         mapData.curbRampLayers[i] = [];
         mapData.missingCurbRampLayers[i] = [];

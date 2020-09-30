@@ -3,19 +3,13 @@
  */
 function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateData, mapParamData) {
     var labelText = {
-        "NoSidewalk":"Missing Sidewalks",
+        "NoSidewalk": "Missing Sidewalks",
         "NoCurbRamp": "Missing Curb Ramps",
         "SurfaceProblem": "Surface Problems",
         "Obstacle": "Obstacles",
     };
-
-// var tileUrl = "https://a.tiles.mapbox.com/v4/kotarohara.mmoldjeh/page.html?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA#13/38.8998/-77.0638";
-    var tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
-    var mapboxTiles = L.tileLayer(tileUrl, {
-        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
-    });
     
-// a grayscale tileLayer for the choropleth
+    // Create base map.
     L.mapbox.accessToken = params.accessToken;
     var choropleth = L.mapbox.map(params.mapName, params.mapStyle, {
         maxZoom: 19,
@@ -27,7 +21,7 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
     if (params.disableScrollWheel) choropleth.scrollWheelZoom.disable();
     if (params.zoomSlider) L.control.zoomslider().addTo(choropleth);
 
-// Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
+    // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     choropleth.setView([mapParamData.city_center.lat, mapParamData.city_center.lng]);
     var southWest = L.latLng(mapParamData.southwest_boundary.lat, mapParamData.southwest_boundary.lng);
     var northEast = L.latLng(mapParamData.northeast_boundary.lat, mapParamData.northeast_boundary.lng);
@@ -42,7 +36,7 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
     if (params.overlayPolygon) initializeOverlayPolygon(choropleth, mapParamData.city_center.lat, mapParamData.city_center.lng);
 
     /**
-     * This function adds a semi-transparent white polygon on top of a map.
+     * Adds a semi-transparent white polygon on top of a map.
      */
     function initializeOverlayPolygon(map, lat, lng) {
         var overlayPolygon = {
@@ -62,7 +56,7 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
         layer.addTo(map);
     }
 
-    // render the neighborhood polygons, colored by completion percentage 
+    // Renders the neighborhood polygons, colored by completion percentage.
     function initializeChoroplethNeighborhoodPolygons(map, rates) {
         var regionData;
          // Default region color, used to check if any regions are missing data.
@@ -70,19 +64,23 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
             layers = [],
             currentLayer;
 
-        // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
+        // Finds the matching neighborhood's completion percentage, and uses it to determine the fill color.
         function style(feature) {
-            if (params.singleRegionColor) return params.neighborhoodPolygonStyle;
-            else {
+            if (params.singleRegionColor) {
+                return params.neighborhoodPolygonStyle;
+            } else {
                 for (var i = 0; i < rates.length; i++) {
                     if (rates[i].region_id === feature.properties.region_id) {
-                        if (params.choroplethType === 'results') return findAccessibilityChoroplethColor(rates[i])
-                        return {
-                            color: '#888',
-                            weight: 1,
-                            opacity: 0.25,
-                            fillColor: getColor(100.0 * rates[i].rate),
-                            fillOpacity: 0.35 + (0.4 * rates[i].rate)
+                        if (params.choroplethType === 'results') {
+                            return findAccessibilityChoroplethColor(rates[i])
+                        } else {
+                            return {
+                                color: '#888',
+                                weight: 1,
+                                opacity: 0.25,
+                                fillColor: getColor(100.0 * rates[i].rate),
+                                fillOpacity: 0.35 + (0.4 * rates[i].rate)
+                            }
                         }
                     }
                 }
@@ -95,7 +93,6 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
             var regionName = feature.properties.region_name;
             var userCompleted = feature.properties.user_completed;
             var compRate = -1.0;
-            var milesLeft = -1.0;
             var url = "/audit/region/" + regionId;
             var popupContent = "???";
             for (var i = 0; i < rates.length; i++) {
@@ -103,7 +100,7 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
                     var measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(100.0 * rates[i].rate);
                     distanceLeft = rates[i].total_distance_m - rates[i].completed_distance_m;
-                    // If using metric system, convert from meters to kilometers. If using IS system, convert from meters to miles.
+                    // If using metric system, convert from meters to km. If using IS system, convert to miles.
                     if (measurementSystem === "metric") distanceLeft *= 0.001;
                     else distanceLeft *= 0.000621371;
                     distanceLeft = Math.round(distanceLeft);
@@ -157,11 +154,10 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
                 layer.on('click', function (e) {
                     currentLayer = this;
 
-                    // Log when a user clicks on a region on the choropleth
+                    // Log when a user clicks on a region on the choropleth. Stored in WebpageActivityTable.
                     // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
-                    // Log is stored in WebpageActivityTable
                     var regionId = e.target.feature.properties.region_id;
-                    var ratesEl = rates.find(function(x){
+                    var ratesEl = rates.find(function(x) {
                         return regionId == x.region_id;
                     });
                     var compRate = Math.round(100.0 * ratesEl.rate);
@@ -185,13 +181,13 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
             }
         }
         
-        // adds the neighborhood polygons to the map
+        // Add the neighborhood polygons to the map.
         regionData = polygonData;
-            neighborhoodPolygonLayer = L.geoJson(polygonData, {
-                style: style,
-                onEachFeature: onEachNeighborhoodFeature
-            })
-            .addTo(map);
+        neighborhoodPolygonLayer = L.geoJson(polygonData, {
+            style: style,
+            onEachFeature: onEachNeighborhoodFeature
+        })
+        .addTo(map);
 
         if (params.clickData) {
             // Logs when a region is selected from the choropleth and 'Click here' is clicked
