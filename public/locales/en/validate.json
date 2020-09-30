@@ -44,7 +44,7 @@
         "example-4": "There is a lot of grass growing between the sidewalk cracks"
       },
       "NoSidewalk": {
-        "title": "<strong>Correct</i> No Sidewalk",
+        "title": "<strong>Correct</strong> No Sidewalk",
         "example-1-to-2": "This is an abruptly ending sidewalk",
         "example-3": "This street has no sidewalk",
         "example-4": "This intersection has no sidewalk"
