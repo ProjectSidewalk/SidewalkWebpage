@@ -46,12 +46,12 @@ function Card (params, imageUrl) {
         labelIcon.style.top = iconCoords.y + "px";
 
 
+        // TODO: Can we modularize this in some separate HTML
+        //  file so we don't have to use template string?
         const cardHtml = `
             <img src="${imageUrl}" width="360" height="240">
-            <h2>
-                ${properties.label_id}
-            </h2>
-            <p>${properties.label_type}</p>
+            <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
+            <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
         `;
 
         card = document.createElement('div');

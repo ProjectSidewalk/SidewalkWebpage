@@ -154,6 +154,13 @@ function CardContainer(uiCardContainer) {
         render();
     }
 
+    function sortCards() {
+        uiCardContainer.holder.empty();
+        currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
+
+        render();
+    }
+
     /**
      * Renders current cards
      */
@@ -187,6 +194,7 @@ function CardContainer(uiCardContainer) {
     self.updateCardsByType = updateCardsByType;
     self.updateCardsByTag = updateCardsByTag;
     self.updateCardsBySeverity = updateCardsBySeverity;
+    self.sortCards = sortCards;
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;
     self.clearCards = clearCards;

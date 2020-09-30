@@ -20,9 +20,11 @@ function Main (params) {
         sg.ui.ribbonMenu = {};
         sg.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
         sg.ui.ribbonMenu.buttons = $('button.modeSwitch');
+        sg.ui.cardSortMenu = {};
+        sg.ui.cardSortMenu.holder = $("#card-sort-menu-holder");
+        sg.ui.cardSortMenu.switches = $('span.sortSwitch');
         sg.ui.cardContainer = {};
         sg.ui.cardContainer.holder = $("#image-card-container");
-
     }
 
     function _init() {
@@ -30,6 +32,7 @@ function Main (params) {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
 
         sg.ribbonMenu = new RibbonMenu(sg.ui.ribbonMenu);
+        sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.tagContainer = new CardFilter(sg.ui.cardFilter, sg.ribbonMenu);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer);
 

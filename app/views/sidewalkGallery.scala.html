@@ -11,6 +11,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/RibbonMenu.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Tag.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Severity.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/CardSortMenu.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/util/GalleryPanoUtilities.js")'></script>
 
     @navbar(user, Some("/sidewalkGallery"))
@@ -31,6 +32,11 @@
                     </button>
                 </span>
                 
+            </div>
+            <div id="card-sort-menu-holder">
+                <span id="sort_severity" class="sortSwitch" val="severity">Least Severe</span>
+@*                <span>Newest</span>*@
+@*                <span>Oldest</span>*@
             </div>
             <span id="tags">
             </span>

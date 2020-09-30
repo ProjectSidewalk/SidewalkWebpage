@@ -2,6 +2,7 @@
     position: relative;
     display: inline-block;
     border-style: solid;
+    border-width: 2px;
     padding: 5px;
     border-radius: 5px;
     margin: 5px;
@@ -12,4 +13,10 @@
     width: 12px;
     z-index: 2;
 }
+
+p.label-severity, p.label-tags {
+    margin: 5px 0;
+}
+
+
 
