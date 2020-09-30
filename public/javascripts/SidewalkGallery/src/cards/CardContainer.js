@@ -177,6 +177,7 @@ function CardContainer(uiCardContainer) {
      */
     function clearCards() {
         cardsOfType = [];
+        tagFiltered = [];
     }
 
     self.fetchLabelsByType = fetchLabelsByType;
