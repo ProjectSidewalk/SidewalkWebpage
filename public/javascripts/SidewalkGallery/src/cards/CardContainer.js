@@ -25,6 +25,8 @@ function CardContainer(uiCardContainer) {
     // Current labels being displayed of current type based off filters
     let currentCards = [];
 
+    let tagFiltered = [];
+
     function fetchLabelsByType(labelTypeId, callback) {
         $.getJSON("/label/labelsByType?labelTypeId=" + labelTypeId, function (data) {
             if ("labelsOfType" in data) {
@@ -42,6 +44,7 @@ function CardContainer(uiCardContainer) {
                 if (callback) callback();
             }
         });
+        
     }
 
     /**
@@ -65,6 +68,7 @@ function CardContainer(uiCardContainer) {
     function push(card) {
         cardsOfType.push(card);
         currentCards.push(card);
+        tagFiltered.push(card);
     }
 
     /**
@@ -109,10 +113,43 @@ function CardContainer(uiCardContainer) {
            // if (!initialCardsSet) {
            //     cardsOfType.forEach(card => newCards.push(card));
            // }
-
-           currentCards = newCards;
-           console.log(currentCards.length);
+           tagFiltered = newCards;
+           console.log(newCards.length);
+           console.log(tagFiltered.length);
+           updateCardsBySeverity();
         }
+
+        render();
+    }
+
+    function updateCardsBySeverity(){
+        uiCardContainer.holder.empty();
+        // clearCurrentCards();
+        let newCards = [];
+        for (let i = 0; i < tagFiltered.length; i++){
+            // console.log(currentCards[i].getProperty("severity") == severity.getSeverity());
+            let severities = sg.tagContainer.getSeverities();
+
+            for (let j = 0; j < severities.length; j++){
+                if (severities[j].getActive()){
+                    if (tagFiltered[i].getProperty("severity") == severities[j].getSeverity()){
+                        newCards.push(tagFiltered[i]);
+                        // console.log(tagFiltered[i].getProperty("severity") == severities[j].getSeverity());
+                    }
+                }
+            }
+            // severities.forEach( severity => {
+            //     if (currentCards[i].getProperty("severity") == severity.getSeverity() && severity.getActive()){
+            //         newTags.push(currentCards[i]);
+            //     }}
+            // );
+            
+        }
+        console.log(newCards.length);
+        currentCards = newCards;
+        
+            
+       
 
         render();
     }
@@ -148,6 +185,7 @@ function CardContainer(uiCardContainer) {
     self.push = push;
     self.updateCardsByType = updateCardsByType;
     self.updateCardsByTag = updateCardsByTag;
+    self.updateCardsBySeverity = updateCardsBySeverity;
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;
     self.clearCards = clearCards;

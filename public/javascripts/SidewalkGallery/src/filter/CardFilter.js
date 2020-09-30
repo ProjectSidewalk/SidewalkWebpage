@@ -25,10 +25,17 @@ function CardFilter(uiCardFilter, ribbonMenu) {
 
     let currentTags = [];
 
+    let severities = [];
+   
     function _init() {
         getTags(function () {
             console.log("tags received");
         });
+
+        for(let i = 1; i <= 5; i++ ){
+            severities.push(new Severity(i));
+        }
+    
     }
 
     function getTags(callback) {
@@ -61,6 +68,11 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         for (let i = 0; i < currentTags.length; i++) {
             currentTags[i].render(uiCardFilter.tags);
         }
+        for (let i = 0; i < severities.length; i++){
+            severities[i].render(uiCardFilter.severity);
+        }
+        
+
     }
 
     function getTagsByType() {
@@ -79,6 +91,10 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         }
     }
 
+    function getSeverities() {
+        return severities;
+    }
+
     function clearCurrentTags() {
         uiCardFilter.tags.empty();
         currentTags = [];
@@ -89,6 +105,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     self.getTagsByType = getTagsByType;
     self.getStatus = getStatus;
     self.setStatus = setStatus;
+    self.getSeverities = getSeverities;
 
     _init();
     return this;

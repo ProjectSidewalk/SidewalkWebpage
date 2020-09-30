@@ -10,6 +10,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/CardFilter.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/RibbonMenu.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Tag.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Severity.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/util/GalleryPanoUtilities.js")'></script>
 
     @navbar(user, Some("/sidewalkGallery"))
@@ -29,8 +30,11 @@
                         <div class="modeSwitch_Name">Obstacle in Path</div>
                     </button>
                 </span>
+                
             </div>
             <span id="tags">
+            </span>
+            <span id="severity">
             </span>
         </div>
         <div id="image-card-container">

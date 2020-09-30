@@ -16,6 +16,7 @@ function Main (params) {
         sg.ui.cardFilter = {};
         sg.ui.cardFilter.holder = $("#card-filter");
         sg.ui.cardFilter.tags = $("#tags");
+        sg.ui.cardFilter.severity = $("#severity");
         sg.ui.ribbonMenu = {};
         sg.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
         sg.ui.ribbonMenu.buttons = $('button.modeSwitch');
