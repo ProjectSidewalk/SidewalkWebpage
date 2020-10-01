@@ -510,13 +510,37 @@ object MissionTable {
   }
 
   /**
-    * Gets total distance audited by a user in miles.
+    * Gets total distance audited by a user in kilometers or miles.
     *
-    * @param userId
+    * @param userId the UUID of the user
+    * @param inMiles if True (default), returns distance in miles. Otherwise, meters
     * @return
     */
-  def getDistanceAudited(userId: UUID): Float = db.withSession { implicit session =>
-    missions.filter(_.userId === userId.toString).map(_.distanceProgress).sum.run.getOrElse(0F) * METERS_TO_MILES
+  def getDistanceAudited(userId: UUID, inMiles: Boolean = true): Float = db.withSession { implicit session =>
+    var distance = missions.filter(_.userId === userId.toString).map(_.distanceProgress).sum.run.getOrElse(0F)
+    if(inMiles){
+      distance *= METERS_TO_MILES
+    }else{
+      distance /= 1000f // convert meters to km
+    }
+    distance
+  }
+
+  /**
+   * Gets total distance audited by a user in kilometers or miles as a formatted string
+   *
+   * @param userId the UUID of the user
+   * @param inMiles if True (default), returns distance in miles. Otherwise, meters
+   * @return
+   */
+  def getDistanceAuditedString(userId: UUID, inMiles: Boolean = true): String = db.withSession { implicit session =>
+    var distance = getDistanceAudited(userId, inMiles)
+    println(distance)
+    if(inMiles){
+      "%.1f mi".format(distance)
+    }else{
+      "%.1f km".format(distance)
+    }
   }
 
   /**
