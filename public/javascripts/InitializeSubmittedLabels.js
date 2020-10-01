@@ -1,5 +1,10 @@
 /**
  * Initializes labels onto map/choropleth, returns information about label layers on map.
+ * @param map Map that labels are rendered onto.
+ * @param params Object that include properties that can change the process of label rendering.
+ * @param adminGSVLabelView Allows on click label popup GSV functionality.
+ * @param mapData Object that stores the layers of the map.
+ * @param labelData Data about submitted labels.
  */
 function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labelData) {
     var colorMapping = util.misc.getLabelColors();
