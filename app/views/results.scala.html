@@ -132,7 +132,7 @@
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
             var loadMapParams = $.getJSON('/cityMapParams');
             window.choropleth = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                return Choropleth(_, $, difficultRegionIds, params, data1[0], data2[0], data3[0]);
+                return Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
             });
         });
     });

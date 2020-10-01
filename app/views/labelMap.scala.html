@@ -97,7 +97,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/ToggleController.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/MapUtilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeMapLayerContainer.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
     <script type="text/javascript">
@@ -210,7 +210,7 @@
             var loadAuditedStreets = $.getJSON('/contribution/streets/all');
             var loadSubmittedLabels = $.getJSON('/labels/all');
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                map = Choropleth(_, $, difficultRegionIds, params, data1[0], data2[0], data3[0]);
+                map = Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
                 self.map = map;
             });
             var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
