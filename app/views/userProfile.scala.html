@@ -27,14 +27,6 @@
             </div>
         </div>
 
-@*        <div class="row" style="margin-top: 20px">*@
-@*            Num completed missions: @MissionTable.countCompletedMissionsByUserId(user.get.userId, true)*@
-@*            <br/>Total distance audited: @("%.1f".format(MissionTable.getDistanceAudited(user.get.userId)))*@
-@*            <br/>Num labels: @LabelTable.countLabelsByUserId(user.get.userId)*@
-@*            <br/>Num validations: @MissionTable.countCompletedValidationsByUserID(user.get.userId)*@
-@*        </div>*@
-
-        Measurement system: @Messages("measurement.system")
         <div class="row" style="margin-top: 30px">
             <div class="primary-user-stats-holder">
 
@@ -100,7 +92,6 @@
                     <p class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
                     <div class="achievements-badge-grid">
                         <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge1.png")'>
-
                         <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge2.png")' class="badge-not-yet-earned">
                         <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge3_NoCape.png")' class="badge-not-yet-earned">
                         <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge4.png")' class="badge-not-yet-earned">
