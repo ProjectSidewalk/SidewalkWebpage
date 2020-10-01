@@ -1,7 +1,7 @@
 /**
  * Returns an object that holds layers for maps.
  */
-function LayerController() {
+function InitializeMapLayerContainer() {
     var mapData = {};
     mapData.markerLayer = null;
     mapData.curbRampLayers = [];
