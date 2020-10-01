@@ -253,16 +253,16 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
      * 
      * @param {*} rate Object from which information about labels is retrieved.
      */
-    function findAccessibilityChoroplethColor(rate) {
+    function findAccessibilityChoroplethColor(polygonData) {
         var totalIssues = 0;
-        for (var issue in rate.labels) {
-            if (rate.labels.hasOwnProperty(issue)) {
-                totalIssues += rate.labels[issue];
+        for (var issue in polygonData.labels) {
+            if (polygonData.labels.hasOwnProperty(issue)) {
+                totalIssues += polygonData.labels[issue];
             }
         }
-        var significantData = rate.rate >= .3;
-        var fillColor = significantData ? getColor(1000.0 * totalIssues / rate.completed_distance_m) : '#888';
-        var fillOpacity = significantData ? 0.4 + (totalIssues / rate.completed_distance_m) : .25;
+        var significantData = polygonData.rate >= .3;
+        var fillColor = significantData ? getColor(1000.0 * totalIssues / polygonData.completed_distance_m) : '#888';
+        var fillOpacity = significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25;
         return {
             color: '#888',
             weight: 1,
