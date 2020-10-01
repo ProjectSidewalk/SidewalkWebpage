@@ -1,7 +1,7 @@
 /**
  * Central function that handles the creation of choropleths and maps.
  */
-function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateData, mapParamData) {
+function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polygonRateData, mapParamData) {
     var labelText = {
         "NoSidewalk": "Missing Sidewalks",
         "NoCurbRamp": "Missing Curb Ramps",
@@ -57,12 +57,11 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
     }
 
     // Renders the neighborhood polygons, colored by completion percentage.
-    function initializeChoroplethNeighborhoodPolygons(map, rates) {
+    function initializeChoroplethNeighborhoodPolygons(map, rates, layers) {
         var regionData;
          // Default region color, used to check if any regions are missing data.
-        var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle,
-            layers = [],
-            currentLayer;
+        var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle
+        var currentLayer;
 
         // Finds the matching neighborhood's completion percentage, and uses it to determine the fill color.
         function style(feature) {
@@ -312,7 +311,7 @@ function Choropleth(_, $, difficultRegionIds, params, polygonData, polygonRateDa
      */
     function initializeChoropleth(data) {
         // make a choropleth of neighborhood completion percentages
-        initializeChoroplethNeighborhoodPolygons(choropleth, data);
+        initializeChoroplethNeighborhoodPolygons(choropleth, data, layers);
         $('#loadingChoropleth').hide();
     }
     
