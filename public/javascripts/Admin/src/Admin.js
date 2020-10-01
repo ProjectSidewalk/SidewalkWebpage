@@ -2,7 +2,7 @@ function Admin(_, $, difficultRegionIds) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
-    var mapData = LayerController();
+    var mapData = InitializeMapLayerContainer();
     var map;
     var auditedStreetLayer;
     var params = {
@@ -216,7 +216,7 @@ function Admin(_, $, difficultRegionIds) {
                 auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
             });
             $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), LayerController(), data2[0])
+                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), mapData, data2[0])
             })
             mapLoaded = true;
         }

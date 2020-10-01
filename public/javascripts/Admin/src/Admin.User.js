@@ -44,7 +44,7 @@ function AdminUser(user) {
         InitializeAuditedStreets(map, streetParams, data2[0]);
     });
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-        InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), LayerController(), data2[0])
+        InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), InitializeMapLayerContainer(), data2[0])
     })
     
     $.getJSON("/adminapi/tasks/" + params.username, function (data) {

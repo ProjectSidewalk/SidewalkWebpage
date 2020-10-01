@@ -98,7 +98,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeAuditedStreets.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeSubmittedLabels.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/ToggleController.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/LayerController.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/InitializeMapLayerContainer.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
@@ -217,7 +217,7 @@
                 self.auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
             });
             $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-                self.mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(false), LayerController(), data2[0])
+                self.mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(false), InitializeMapLayerContainer(), data2[0])
             })
             window.map = self;
         });

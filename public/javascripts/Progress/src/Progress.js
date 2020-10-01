@@ -46,7 +46,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
         InitializeAuditedStreets(map, streetParams, data2[0]);
     });
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-        InitializeSubmittedLabels(map, streetParams, 'null', LayerController(), data2[0])
+        InitializeSubmittedLabels(map, streetParams, 'null', InitializeMapLayerContainer(), data2[0])
     })
     initializeAuditCountChart();
     initializeSubmittedMissions();
