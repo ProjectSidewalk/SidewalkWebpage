@@ -28,7 +28,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
     var streetParams = {
         isUserDash: true,
         streetColor: 'rgba(128, 128, 128, 1.0)',
-        progress: true,
+        useTotalAuditedDistance: true,
         progressElement: 'td-total-distance-audited',
         userRole: userRole
     };

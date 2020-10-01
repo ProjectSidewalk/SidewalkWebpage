@@ -34,7 +34,7 @@ function InitializeAuditedStreets(map, params, streetData) {
         onEachFeature: onEachStreetFeature
     })
         .addTo(map);
-    if (params.progress) {
+    if (params.useTotalAuditedDistance) {
         // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
         for (var i = streetData.features.length - 1; i >= 0; i--) {
             distanceAudited += turf.length(streetData.features[i], {units: i18next.t('common:unit-distance')});

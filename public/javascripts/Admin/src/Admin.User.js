@@ -28,7 +28,7 @@ function AdminUser(user) {
         labelPopup: true,
         isUserDash: true,
         streetColor: 'rgba(128, 128, 128, 1.0)',
-        progress: true,
+        useTotalAuditedDistance: true,
         progressElement: 'td-total-distance-audited-admin'
     };
     var map;
