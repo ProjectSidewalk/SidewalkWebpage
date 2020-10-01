@@ -38,12 +38,17 @@ function AdminUser(user) {
     var loadMapParams = $.getJSON('/cityMapParams');
     var loadAuditedStreets = $.getJSON('/adminapi/auditedStreets/' + params.username);
     var loadSubmittedLabels = $.getJSON('/adminapi/labelLocations/' + params.username);
+    // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
     var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
         map = Choropleth(_, $, 'null', params, layers, data1[0], data2[0], data3[0]);
     });
+    // When the polygons have been rendered and the audited streets have loaded,
+    // the audited streets can be rendered.
     var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
         InitializeAuditedStreets(map, streetParams, data2[0]);
     });
+    // When the audited streets have been rendered and the submitted labels have loaded,
+    // the submitted labels can be rendered.
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
         InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), InitializeMapLayerContainer(), data2[0])
         if (streetParams.isUserDash) setRegionFocus(map, layers)
