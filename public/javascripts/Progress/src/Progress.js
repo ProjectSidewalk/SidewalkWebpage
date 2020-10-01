@@ -1,4 +1,4 @@
-function Progress (_, $, c3, L, role, difficultRegionIds) {
+function Progress (_, $, L, role, difficultRegionIds) {
     var self = {};
     var completedInitializingNeighborhoodPolygons = false;
     var completedInitializingAuditedStreets = false;
