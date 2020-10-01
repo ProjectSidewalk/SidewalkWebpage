@@ -830,17 +830,19 @@ p#conditional-text {
     height: 200px;
 }
 
-.collborator-images-container {
+.collaborator-images-container {
     display: flex;
     justify-content: space-around;
 }
 
-.collborator-image {
+.collaborator-image {
     padding: 15px;
 }
-.collborator-image > img {
+
+.collaborator-image img {
     height: 220px;
 }
+
 #press-container2, #brought-to-you-by-container {
     position: relative;
     max-width: 900px;
