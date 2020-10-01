@@ -126,12 +126,6 @@
             </div>
         </div>
     </div>
-    <link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
@@ -150,7 +144,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.progress = Progress(_, $, c3, L, "@user.get.role", difficultRegionIds);
+            window.progress = Progress(_, $, L, "@user.get.role", difficultRegionIds);
         });
     });
     </script>
