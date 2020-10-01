@@ -38,9 +38,6 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
         document.getElementById("td-number-of-surface-problems").innerHTML = labelCounter["SurfaceProblem"];
         document.getElementById("td-number-of-no-sidewalks").innerHTML = labelCounter["NoSidewalk"];
         createLayer(labelData).addTo(map);
-        if (params.choroplethType === 'userDash') {
-            setRegionFocus(map);
-        }  
     } else {    // When loading label map.
         document.getElementById("map-legend-other").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
         document.getElementById("map-legend-occlusion").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle + "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
@@ -103,30 +100,6 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             },
             onEachFeature: onEachLabelFeature
         })
-    }
-
-    // Searches for a region id in the query string. If you find one, focus on that region.
-    function setRegionFocus(map) {
-        var regionId = util.getURLParameter("regionId")
-        var i;
-        var len;
-        if (regionId && layers) {
-            len = layers.length;
-            for (i = 0; i < len; i++) {
-                if ("feature" in layers[i] && "properties" in layers[i].feature && regionId == layers[i].feature.properties.region_id) {
-                    var center = turf.center(layers[i].feature),
-                        coordinates = center.geometry.coordinates,
-                        latlng = L.latLng(coordinates[1], coordinates[0]),
-                        zoom = map.getZoom();
-                    zoom = zoom > 14 ? zoom : 14;
-
-                    map.setView(latlng, zoom, {animate: true});
-                    layers[i].setStyle({color: "red", fillColor: "red"});
-                    currentLayer = layers[i];
-                    break;
-                }
-            }
-        }
     }
     return mapData;
 }
