@@ -1,5 +1,8 @@
 /**
 * This function queries the streets that the user audited and visualize them as segments on the map.
+* @param map Map that audited streets are rendered onto.
+* @param params Object that includes properties that can change the map.
+* @param streetData Data about streets that have been audited.
 */
 function InitializeAuditedStreets(map, params, streetData) {
     var auditedStreetLayer;
