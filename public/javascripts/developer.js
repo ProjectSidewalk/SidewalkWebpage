@@ -38,11 +38,14 @@ $(document).ready(function () {
         // Use parameters to fill in example URLs.
         var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
         var attributesURLCSV = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv`;
+        var attributesURLShapeFile = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=shapefile`;
         var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
         var streetsURL = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`;
         var streetsURLCSV = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=csv`;
+        var streetsURLShapeFile = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=shapefile`;
         var regionsURL = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}`;
         var regionsURLCSV = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=csv`;
+        var regionsURLShapeFile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
 
         // Fill in example URLs in HTML.
         $('#attributes-link').attr('href', attributesURL);
@@ -51,14 +54,20 @@ $(document).ready(function () {
         $('#attributes-with-labels-code').html(attributeWithLabelsURL);
         $('#attributes-link-CSV').attr('href', attributesURLCSV);
         $('#attributes-code-CSV').html(attributesURLCSV);
+        $('#attributes-link-ShapeFile').attr('href', attributesURLShapeFile);
+        $('#attributes-code-ShapeFile').html(attributesURLShapeFile);
         $('#streets-link').attr('href', streetsURL);
         $('#streets-code').html(streetsURL);
         $('#streets-link-CSV').attr('href', streetsURLCSV);
         $('#streets-code-CSV').html(streetsURLCSV);
+        $('#streets-link-ShapeFile').attr('href', streetsURLShapeFile);
+        $('#streets-code-ShapeFile').html(streetsURLShapeFile);
         $('#regions-link').attr('href', regionsURL);
         $('#regions-code').html(regionsURL);
         $('#regions-link-CSV').attr('href', regionsURLCSV);
         $('#regions-code-CSV').html(regionsURLCSV);
+        $('#regions-link-ShapeFile').attr('href', regionsURLShapeFile);
+        $('#regions-code-ShapeFile').html(regionsURLShapeFile);
 
         // Set view center and max bounds for each map.
         mapAccessAttributes.setView([data.attribute.center_lat, data.attribute.center_lng], data.attribute.zoom);
