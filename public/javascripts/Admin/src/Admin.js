@@ -209,12 +209,17 @@ function Admin(_, $, difficultRegionIds) {
             var loadMapParams = $.getJSON('/cityMapParams');
             var loadAuditedStreets = $.getJSON('/contribution/streets/all');
             var loadSubmittedLabels = $.getJSON('/labels/all');
+            // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
                 map = Choropleth(_, $, difficultRegionIds, mapParams, [], data1[0], data2[0], data3[0]);
             });
+            // When the polygons have been rendered and the audited streets have loaded,
+            // the audited streets can be rendered.
             var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
                 auditedStreetLayer = InitializeAuditedStreets(map, streetParams, data2[0]);
             });
+            // When the audited streets have been rendered and the submitted labels have loaded,
+            // the submitted labels can be rendered.
             $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
                 mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), mapData, data2[0])
             })
