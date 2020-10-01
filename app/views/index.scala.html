@@ -32,9 +32,10 @@
                     <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs) {
+                    @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA")) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName.replace(" ", " ")</a> &nbsp;
+                        <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
+                        <a id="@cityName" class="otherCityLink" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
@@ -150,16 +151,17 @@
     </div>-->
     </div>
 
-    <div class="container" id="vidembed">
-        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">
-        <div id="videooverlay">
-            <div id="videotext">
-                <span>@Messages("landing.video.title")</span>
-                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
-                cursor: pointer;" onclick="playVideo()">@Messages("landing.video.watch")</span></span>
-            </div>
-        </div>
-    </div>
+@*    <!-- JEF: commenting out the embedded video given Issue 2247. Just commenting out for now. Can remove later. -->*@
+@*    <div class="container" id="vidembed">*@
+@*        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">*@
+@*        <div id="videooverlay">*@
+@*            <div id="videotext">*@
+@*                <span>@Messages("landing.video.title")</span>*@
+@*                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;*@
+@*                cursor: pointer;" onclick="playVideo()">@Messages("landing.video.watch")</span></span>*@
+@*            </div>*@
+@*        </div>*@
+@*    </div>*@
 
     <div class="container" id="choropleth-container" style="width: 100%;
         position: relative;">

@@ -289,8 +289,7 @@ object LabelValidationTable {
    * @returns the number of validations performed by this user
    */
   def countValidationsByUserId(userId: UUID): Int = db.withSession { implicit session =>
-    // TODO: JEF and Mikey
-    -1
+    validationLabels.filter(_.userId === userId.toString).size.run
   }
 
   /**
