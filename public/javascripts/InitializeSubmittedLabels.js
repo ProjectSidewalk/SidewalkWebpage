@@ -93,7 +93,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             pointToLayer: function (feature, latlng) {
                 var style = $.extend(true, {}, geojsonMarkerOptions);
                 style.fillColor = colorMapping[feature.properties.label_type].fillStyle;
-                if (params.choroplethType === 'labelMap') {
+                if (params.includeLabelColor) {
                     style.color = colorMapping[feature.properties.label_type].strokeStyle;
                 }
                 return L.circleMarker(latlng, style);

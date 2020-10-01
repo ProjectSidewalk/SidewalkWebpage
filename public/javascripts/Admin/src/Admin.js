@@ -62,7 +62,7 @@ function Admin(_, $, difficultRegionIds) {
     };
     var streetParams = {
         labelPopup: true,
-        choroplethType: 'labelMap',
+        includeLabelColor: true,
         streetColor: 'black'
     };
 
