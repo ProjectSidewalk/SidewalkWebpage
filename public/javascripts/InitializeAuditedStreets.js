@@ -20,7 +20,7 @@ function InitializeAuditedStreets(map, params, streetData) {
             }
         })
     }
-    // Render audited street segments
+    // Render audited street segments.
     auditedStreetLayer = L.geoJson(streetData, {
         pointToLayer: L.mapbox.marker.style,
         style: function (feature) {

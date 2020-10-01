@@ -89,7 +89,7 @@ function Admin(_, $, difficultRegionIds) {
         toggleAuditedStreetLayer(map, auditedStreetLayer);
     }
 
-    // Takes an array of objects and the name of a property of the objects, returns summary stats for that property
+    // Takes an array of objects and the name of a property of the objects, returns summary stats for that property.
     function getSummaryStats(data, col, options) {
         options = options || {};
         var excludeResearchers = options.excludeResearchers || false;
@@ -388,13 +388,15 @@ function Admin(_, $, difficultRegionIds) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
             });
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+                // Create a choropleth.
                 var loadPolygons = $.getJSON('/neighborhoods');
                 var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
                 var loadMapParams = $.getJSON('/cityMapParams');
                 $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
                     Choropleth(_, $, difficultRegionIds, params, data1[0], data2[0], data3[0]);
                 });
-                // make charts showing neighborhood completion rate
+
+                // Make charts showing neighborhood completion rate.
                 for (var j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0; // change from proportion to percent
                 }
@@ -1037,7 +1039,7 @@ function Admin(_, $, difficultRegionIds) {
         }
     });
 
-    function changeRole(e){
+    function changeRole(e) {
         var userId = $(this).parent() // <li>
             .parent() // <ul>
             .siblings('button')
@@ -1057,7 +1059,7 @@ function Admin(_, $, difficultRegionIds) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                // Change dropdown button to reflect new role
+                // Change dropdown button to reflect new role.
                 var button = $('#userRoleDropdown' + result.user_id);
                 var buttonContents = button.html();
                 var newRole = result.role;
