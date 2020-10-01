@@ -134,7 +134,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val attributeList: JavaList[Attribute] = new JavaArrayList();
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currAttribute: Attribute = new Attribute();
-        currAttribute.coordinate = new JTSCoordinate(current.lat.toDouble, current.lng.toDouble)
+        currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
         currAttribute.id = current.globalAttributeId
         currAttribute.labelType = current.labelType
         currAttribute.neighborhood = current.neighborhoodName
@@ -148,7 +148,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val labelList: JavaList[Label] = new JavaArrayList[Label]()
       for(current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)){
         val currLabel: Label = new Label();
-        currLabel.coordinate = new JTSCoordinate(current.labelLat.toDouble, current.labelLng.toDouble)
+        currLabel.coordinate = new JTSCoordinate(current.labelLng.toDouble, current.labelLat.toDouble)
         currLabel.labelId = current.labelId
         currLabel.attributeId = current.globalAttributeId
         currLabel.neighborhoodName = current.neighborhoodName
@@ -207,7 +207,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val attributeList: JavaList[Attribute] = new JavaArrayList();
       for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
         val currAttribute: Attribute = new Attribute();
-        currAttribute.coordinate = new JTSCoordinate(current.lat.toDouble, current.lng.toDouble)
+        currAttribute.coordinate = new JTSCoordinate(current.lng.toDouble, current.lat.toDouble)
         currAttribute.id = current.globalAttributeId
         currAttribute.labelType = current.labelType
         currAttribute.neighborhood = current.neighborhoodName
