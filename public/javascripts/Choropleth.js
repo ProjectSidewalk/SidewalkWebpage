@@ -1,5 +1,13 @@
 /**
  * Central function that handles the creation of choropleths and maps.
+ * @param _ Allows the use of Underscore.js
+ * @param $ Allows the use of jQuery.
+ * @param difficultRegionIds Used to identify difficult regions.
+ * @param params Object that includes properties that can change the process of choropleth creation.
+ * @param layers Object that receives data during execution to pass outside of this function.
+ * @param polygonData Data concerning which neighborhood polygons are to be rendered.
+ * @param polygonRateData Rate data of each neighborhood polygon.
+ * @param mapParamData Data used to initialize the choropleth properties.
  */
 function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polygonRateData, mapParamData) {
     var labelText = {
