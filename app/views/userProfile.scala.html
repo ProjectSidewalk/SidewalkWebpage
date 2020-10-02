@@ -41,7 +41,7 @@
                 <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")'/>
                 <img src='@routes.Assets.at("images/icons/noun_pin location_2342268_cropped.png")'/>
                 <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")'/>
+                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' title="Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users."/>
 
                 <span class="ps-skyline-stats-holder-stat-number">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
                 <span class="ps-skyline-stats-holder-stat-number">@MissionTable.getDistanceAuditedString(user.get.userId, Messages("measurement.system") != "metric")</span>

@@ -46,9 +46,12 @@ class AchievementTracker{
     }
 
     /**
+     * Gets the current badge for the given badgeType and value (where value corresponds to the current number
+     * of completed missions, total distance, num of labels, etc. for that user)
      *
      * @param badgeType: is one of four BadgeTypes: "missions", "distance", "labels", or "validations"
-     * @param value:
+     * @param value: value corresponds to the current number of completed missions, total distance, num of labels, etc.
+     *               corresponding to the passed badgeType
      * @returns {null} null if no badge earned or if no badge found for the passed badgeType. Otherwise, the Badge
      *          corresponding to the highest level earned
      */
@@ -67,6 +70,15 @@ class AchievementTracker{
         return null;
     }
 
+    /**
+     * Updates the badge achievement grid based on the current number of missions, current distance (in miles),
+     * current label count, and current validation count
+     *
+     * @param curMissionCnt: current mission count
+     * @param curDistance: current completed distance amount (in miles)
+     * @param curLabelsCnt: current label count
+     * @param curValidationsCnt: current validation count
+     */
     updateBadgeAchievementGrid(curMissionCnt, curDistance, curLabelsCnt, curValidationsCnt){
         const BADGE_NOT_YET_EARNED_CLASS_NAME = "badge-not-yet-earned";
         let mapBadgeTypesToCurrentValues = {};
@@ -84,7 +96,6 @@ class AchievementTracker{
                 let badgeHtmlId = badge.type + "-badge" + badge.level;
                 let badgeHtmlElement = document.getElementById(badgeHtmlId);
 
-                console.log(badgeHtmlId, badgeHtmlElement, curValue);
                 if (badge.threshold > curValue){
                     badgeHtmlElement.className = BADGE_NOT_YET_EARNED_CLASS_NAME;
                 }else{
@@ -92,11 +103,20 @@ class AchievementTracker{
                 }
             }
 
-            this.updateBadgeEncouragementHtml(badgeType, curValue);
+            let badgeEncouragementHtmlId = badgeType + "-badge-encouragement";
+            document.getElementById(badgeEncouragementHtmlId).innerHTML = this.getBadgeEncouragementHtml(badgeType, curValue);
         }
     }
 
-    updateBadgeEncouragementHtml(badgeType, curValue){
+    /**
+     * Get a dynamic encouragement statement for the given badge type with the current value
+     *
+     * @param badgeType: is one of four BadgeTypes: "missions", "distance", "labels", or "validations"
+     * @param curValue: value corresponds to the current number of completed missions, total distance, num of labels, etc.
+     *               corresponding to the passed badgeType
+     */
+    getBadgeEncouragementHtml(badgeType, curValue){
+        let mapLevelsToBadge = this.mapBadges[badgeType]
         let nextBadgeToUnlock = null;
         if (badgeType in this.mapBadges){
             let mapLevelsToBadge = this.mapBadges[badgeType]
@@ -111,28 +131,83 @@ class AchievementTracker{
         }
 
         let htmlStatement = "";
+
+        let badgeName = badgeType;
+        if(badgeName != BadgeTypes.Distance){
+            badgeName = badgeName.slice(0, -1); // remove the 's' from missions, labels, and validations
+        }
+
         if (nextBadgeToUnlock != null){
             let diffValue = nextBadgeToUnlock.threshold - curValue;
+
+            let curBadge = null;
+            const curBadgeLevel = nextBadgeToUnlock.level - 1;
+            let fractionComplete = 0;
+            if(curBadgeLevel in mapLevelsToBadge){
+                curBadge = mapLevelsToBadge[curBadgeLevel];
+                let badgeValueRange = nextBadgeToUnlock.threshold - curBadge.threshold;
+                fractionComplete = (curValue - curBadge.threshold) / badgeValueRange;
+            }else{
+                fractionComplete = curValue / nextBadgeToUnlock.threshold;
+            }
 
             let moreNoun = badgeType;
             if(badgeType == BadgeTypes.Distance){
                 moreNoun = "miles";
+                diffValue = diffValue.toFixed(1); // yes, makes diffValue into a String
             }
 
             if(diffValue == 1){
                 moreNoun = moreNoun.slice(0, -1); // remove the 's' as non-plural
             }
-            htmlStatement = "Just " + diffValue + " more " + moreNoun + " until your next achievement."
-        }else{
-            let badgeName = badgeType;
-            if(badgeName != BadgeTypes.Distance){
-                badgeName = badgeName.slice(0, -1); // remove the 's' from missions, labels, and validations
+
+            console.log(badgeType, "fractionComplete", fractionComplete, "curBadgeLevel", curBadgeLevel, "curValue", curValue, "diffValue", diffValue);
+            if(fractionComplete > 0.95){
+                htmlStatement += "So close! Just ";
+            }else if(fractionComplete > 0.85){
+                htmlStatement += "Wow, almost there! Just ";
+            }else if(fractionComplete > 0.1 || curBadgeLevel > 0){
+                let randVal = Math.random();
+                if(randVal >= 0.9){
+                    htmlStatement += "Awesome! ";
+                }else if(randVal >= 0.8){
+                    htmlStatement += "Woohoo! ";
+                }else if(randVal >= 0.7){
+                    htmlStatement += "You can do it! ";
+                }else if(randVal >= 0.6){
+                    htmlStatement += "Amazing work! ";
+                }else if(randVal >= 0.5){
+                    htmlStatement += "Nice job! ";
+                }else if(randVal >= 0.4){
+                    htmlStatement += "Keep it up! ";
+                }else if(randVal >= 0.3){
+                    htmlStatement += "Now we're rolling! ";
+                }else if(randVal >= 0.2){
+                    htmlStatement += "Thanks for helping! ";
+                }else if(randVal >= 0.1){
+                    if(fractionComplete > 0.5){
+                        htmlStatement += "You're more than halfway! ";
+                    }else {
+                        htmlStatement += "Making great progress! ";
+                    }
+                }else{
+                    htmlStatement += "Great job! ";
+                }
             }
+
+            htmlStatement += "<strong>" + diffValue + " more " + moreNoun + "</strong> until your";
+            if(curBadgeLevel == 0){
+                htmlStatement += " first "
+            }else{
+                htmlStatement += " next "
+            }
+
+            htmlStatement += badgeName + " achievement.";
+        }else{
             htmlStatement = "Congratulations, you've earned all " + badgeName + " badges!";
         }
 
-        let badgeEncouragementHtmlId = badgeType + "-badge-encouragement";
-        document.getElementById(badgeEncouragementHtmlId).innerHTML = htmlStatement;
+        return htmlStatement;
     }
 }
 
