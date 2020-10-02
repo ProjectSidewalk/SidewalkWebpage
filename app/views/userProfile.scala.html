@@ -8,6 +8,7 @@
 
 @main(title) {
     @navbar(user, user.map(u=> "/contribution/" + u.username))
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/AchievementTracker.js")'></script>
     <div class="container">
         <div class="row" id="maprow">
             <div class="col-lg-12" id="mapcolumn">
@@ -71,55 +72,59 @@
         }
 
         <div class="row" id="achievements">
+            <script>
+                    const achievementTracker = new AchievementTracker();
+                console.log(achievementTracker.getBadgeEarned("missions", @MissionTable.countCompletedMissionsByUserId(user.get.userId, true)));
 
+            </script>
             <h2>Achievements</h2>
             <!-- The achievements-outer-grid is 3 columns -->
             <div class="achievements-outer-grid">
                 <div class="achievements-outer-col1">
                     <h3>Missions</h3>
-                    <p class="achievements-encouraging-statement">Just XX more labels until your next mission achievement.</p>
-                    <div class="achievements-badge-grid">
-                        <img src='@routes.Assets.at("images/badges/Badge_Missions_Badge1.png")'>
-                        <img src='@routes.Assets.at("images/badges/Badge_Missions_Badge2.png")'>
-                        <img src='@routes.Assets.at("images/badges/Badge_Missions_Badge3.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Missions_Badge4.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Missions_Badge5.png")' class="badge-not-yet-earned">
+                    <p id="missions-badge-encouragement" class="achievements-encouraging-statement">Just XX more missions until your next mission achievement.</p>
+                    <div id="missions-badge-grid" class="achievements-badge-grid">
+                        <img id="missions-badge1" src='@routes.Assets.at("images/badges/badge_missions_badge1.png")'>
+                        <img id="missions-badge2" src='@routes.Assets.at("images/badges/badge_missions_badge2.png")'>
+                        <img id="missions-badge3" src='@routes.Assets.at("images/badges/badge_missions_badge3.png")'>
+                        <img id="missions-badge4" src='@routes.Assets.at("images/badges/badge_missions_badge4.png")'>
+                        <img id="missions-badge5" src='@routes.Assets.at("images/badges/badge_missions_badge5.png")'>
                     </div>
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
                 <div class="achievements-outer-col3">
                     <h3>Distance</h3>
-                    <p class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
-                    <div class="achievements-badge-grid">
-                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge1.png")'>
-                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge2.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge3_NoCape.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge4.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Distance_Badge5.png")' class="badge-not-yet-earned">
+                    <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
+                    <div id="distance-badge-grid" class="achievements-badge-grid">
+                        <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_badge1.png")'>
+                        <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_badge2.png")' >
+                        <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_badge3_nocape.png")'>
+                        <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_badge4.png")'>
+                        <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_badge5.png")'>
                     </div>
                 </div>
 
                 <div class="achievements-outer-col1">
                     <h3>Labels</h3>
-                    <p class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
-                    <div class="achievements-badge-grid">
-                        <img src='@routes.Assets.at("images/badges/Badge_Labels_Badge1.png")'>
-                        <img src='@routes.Assets.at("images/badges/Badge_Labels_Badge2.png")'>
-                        <img src='@routes.Assets.at("images/badges/Badge_Labels_Badge3.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Labels_Badge4.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Labels_Badge5.png")' class="badge-not-yet-earned">
+                    <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
+                    <div id="labels-badge-grid" class="achievements-badge-grid">
+                        <img id="labels-badge1" src='@routes.Assets.at("images/badges/badge_labels_badge1.png")'>
+                        <img id="labels-badge2" src='@routes.Assets.at("images/badges/badge_labels_badge2.png")'>
+                        <img id="labels-badge3" src='@routes.Assets.at("images/badges/badge_labels_badge3.png")'>
+                        <img id="labels-badge4" src='@routes.Assets.at("images/badges/badge_labels_badge4.png")'>
+                        <img id="labels-badge5" src='@routes.Assets.at("images/badges/badge_labels_badge5.png")'>
                     </div>
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
                 <div class="achievements-outer-col3">
                     <h3>Validations</h3>
-                    <p class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
-                    <div class="achievements-badge-grid">
-                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge1.png")'>
-                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge2.png")'>
-                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge3.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge4.png")' class="badge-not-yet-earned">
-                        <img src='@routes.Assets.at("images/badges/Badge_Validation_Badge5.png")' class="badge-not-yet-earned">
+                    <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
+                    <div id="validations-badge-grid" class="achievements-badge-grid">
+                        <img id="validations-badge1" src='@routes.Assets.at("images/badges/badge_validation_badge1.png")'>
+                        <img id="validations-badge2" src='@routes.Assets.at("images/badges/badge_validation_badge2.png")'>
+                        <img id="validations-badge3" src='@routes.Assets.at("images/badges/badge_validation_badge3.png")'>
+                        <img id="validations-badge4" src='@routes.Assets.at("images/badges/badge_validation_badge4.png")'>
+                        <img id="validations-badge5" src='@routes.Assets.at("images/badges/badge_validation_badge5.png")'>
                     </div>
                 </div>
 
@@ -146,6 +151,11 @@
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             window.progress = Progress(_, $, L, "@user.get.role", difficultRegionIds);
         });
+
+        achievementTracker.updateBadgeAchievementGrid(@MissionTable.countCompletedMissionsByUserId(user.get.userId, true),
+                @MissionTable.getDistanceAudited(user.get.userId, true),
+                @LabelTable.countLabelsByUserId(user.get.userId),
+                @LabelValidationTable.countValidationsByUserId(user.get.userId));
     });
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
