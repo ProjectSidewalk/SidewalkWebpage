@@ -65,7 +65,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     }
 
     // Renders the neighborhood polygons, colored by completion percentage.
-    function initializeChoroplethNeighborhoodPolygons(map, rates, layers) {
+    function initializeChoroplethNeighborhoodPolygons(map, rates, layers, labelData) {
         var regionData;
          // Default region color, used to check if any regions are missing data.
         var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle
@@ -79,7 +79,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 for (var i = 0; i < rates.length; i++) {
                     if (rates[i].region_id === feature.properties.region_id) {
                         if (params.polygonFillStyle === 'issueCount') {
-                            return getRegionStyleFromIssueCount(rates[i])
+                            return getRegionStyleFromIssueCount(rates[i], labelData[i].labels)
                         } else {
                             return getRegionStyleFromCompletionRate(rates[i]);
                         }
@@ -133,7 +133,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                             i18next.t("common:map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
                             i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
                     }
-                    if (params.choroplethType === 'results') popupContent += setRegionPopupContent(rates[i])
+                    if (params.choroplethType === 'results') popupContent += setRegionPopupContent(labelData[i].labels)
                     break;
                 }
             }
@@ -245,13 +245,14 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     /**
      * This function finds the color for a specific region of the accessibility choropleth.
      * 
-     * @param {*} polygonData Object from which information about labels is retrieved.
+     * @param polygonData Object from which information about labels is retrieved.
+     * @param labels Data about issue counts in a region.
      */
-    function getRegionStyleFromIssueCount(polygonData) {
+    function getRegionStyleFromIssueCount(polygonData, labels) {
         var totalIssues = 0;
-        for (var issue in polygonData.labels) {
-            if (polygonData.labels.hasOwnProperty(issue)) {
-                totalIssues += polygonData.labels[issue];
+        for (var issue in labels) {
+            if (labels.hasOwnProperty(issue)) {
+                totalIssues += labels[issue];
             }
         }
         var significantData = polygonData.rate >= .3;
@@ -284,10 +285,9 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     /**
      * Gets issue count HTML to add to popups on the results page.
      * 
-     * @param {*} polygonData Object from which information about labels is retrieved.
+     * @param {*} labels Object from which information about labels is retrieved.
      */
-    function setRegionPopupContent(polygonData) {
-        var labels = polygonData.labels;
+    function setRegionPopupContent(labels) {
         var counts = {};
         for (var j in labelText) {
             if (typeof labels[j] != 'undefined')
@@ -310,25 +310,29 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     if (params.choroplethType === 'results') {
         $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
             //append label counts to region data with map/reduce
-            var regionData = _.map(polygonRateData, function(region) {
+            var labelData = _.map(polygonRateData, function(region) {
                 var regionLabel = _.find(labelCounts, function(x){ return x.region_id == region.region_id });
-                region.labels = regionLabel ? regionLabel.labels : {};
-                return region;
+                return regionLabel ? regionLabel : {};
             });
-            initializeChoropleth(regionData);
+            initializeChoropleth(polygonRateData, labelData);
         });
     } else {
-        initializeChoropleth(polygonRateData);
+        initializeChoropleth(polygonRateData, 'NA');
     }   
 
     /**
      * This function takes data and initializes the choropleth with it.
      * 
-     * @param {*} data The data to initialize the regions of the choropleth with.
+     * @param data The data to initialize the regions of the choropleth with.
+     * @param labelData Data concerning issue counts for different regions.
      */
-    function initializeChoropleth(data) {
-        // make a choropleth of neighborhood completion percentages
-        initializeChoroplethNeighborhoodPolygons(choropleth, data, layers);
+    function initializeChoropleth(data, labelData) {
+        if (params.choroplethType === 'results' && labelData === undefined) {
+            console.log("Error: no issue count data for results choropleth.")
+        } else {
+            // make a choropleth of neighborhood completion percentages
+            initializeChoroplethNeighborhoodPolygons(choropleth, data, layers, labelData);
+        }
         $('#loadingChoropleth').hide();
     }
     
