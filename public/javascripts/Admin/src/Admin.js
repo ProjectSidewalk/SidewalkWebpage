@@ -5,7 +5,7 @@ function Admin(_, $, difficultRegionIds) {
     var mapData = InitializeMapLayerContainer();
     var map;
     var auditedStreetLayer;
-    var params = {
+    var analyticsTabMapParams = {
         regionColors: [
             '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
             '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
@@ -32,7 +32,7 @@ function Admin(_, $, difficultRegionIds) {
         mapStyle: "mapbox.light",
         accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
     };
-    var mapParams = {
+    var mapTabMapParams = {
         choroplethType: 'labelMap',
             neighborhoodPolygonStyle: {
                 color: '#888',
@@ -211,7 +211,7 @@ function Admin(_, $, difficultRegionIds) {
             var loadSubmittedLabels = $.getJSON('/labels/all');
             // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
             var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                map = Choropleth(_, $, difficultRegionIds, mapParams, [], data1[0], data2[0], data3[0]);
+                map = Choropleth(_, $, difficultRegionIds, mapTabMapParams, [], data1[0], data2[0], data3[0]);
             });
             // When the polygons have been rendered and the audited streets have loaded,
             // the audited streets can be rendered.
@@ -398,7 +398,7 @@ function Admin(_, $, difficultRegionIds) {
                 var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
                 var loadMapParams = $.getJSON('/cityMapParams');
                 $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                    Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
+                    Choropleth(_, $, difficultRegionIds, analyticsTabMapParams, [], data1[0], data2[0], data3[0]);
                 });
 
                 // Make charts showing neighborhood completion rate.
