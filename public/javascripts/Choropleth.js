@@ -79,7 +79,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 for (var i = 0; i < rates.length; i++) {
                     if (rates[i].region_id === feature.properties.region_id) {
                         if (params.choroplethType === 'results') {
-                            return findAccessibilityChoroplethColor(rates[i])
+                            return getRegionStyleFromIssueCount(rates[i])
                         } else {
                             return {
                                 color: '#888',
@@ -165,7 +165,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                     // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
                     var regionId = e.target.feature.properties.region_id;
                     var ratesEl = rates.find(function(x) {
-                        return regionId == x.region_id;
+                        return regionId === x.region_id;
                     });
                     var compRate = Math.round(100.0 * ratesEl.rate);
                     var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
@@ -203,7 +203,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             $("#choropleth").on('click', '.region-selection-trigger', function () {
                 var regionId = $(this).attr('regionId');
                 var ratesEl = rates.find(function(x){
-                    return regionId == x.region_id;
+                    return regionId === x.region_id;
                 });
                 var compRate = Math.round(100.0 * ratesEl.rate);
                 var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
@@ -253,7 +253,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
      * 
      * @param {*} rate Object from which information about labels is retrieved.
      */
-    function findAccessibilityChoroplethColor(polygonData) {
+    function getRegionStyleFromIssueCount(polygonData) {
         var totalIssues = 0;
         for (var issue in polygonData.labels) {
             if (polygonData.labels.hasOwnProperty(issue)) {
