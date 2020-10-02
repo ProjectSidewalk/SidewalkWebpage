@@ -81,7 +81,7 @@
             <!-- The achievements-outer-grid is 3 columns -->
             <div class="achievements-outer-grid">
                 <div class="achievements-outer-col1">
-                    <h3>Missions</h3>
+                    <h3>@Messages("dashboard.missions")</h3>
                     <p id="missions-badge-encouragement" class="achievements-encouraging-statement">Just XX more missions until your next mission achievement.</p>
                     <div id="missions-badge-grid" class="achievements-badge-grid">
                         <img id="missions-badge1" src='@routes.Assets.at("images/badges/badge_missions_badge1.png")'>
@@ -93,7 +93,7 @@
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
                 <div class="achievements-outer-col3">
-                    <h3>Distance</h3>
+                    <h3>@Messages("dashboard.distance")</h3>
                     <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
                     <div id="distance-badge-grid" class="achievements-badge-grid">
                         @if(Messages("measurement.system") == "metric") {
@@ -113,7 +113,7 @@
                 </div>
 
                 <div class="achievements-outer-col1">
-                    <h3>Labels</h3>
+                    <h3>@Messages("dashboard.labels")</h3>
                     <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
                     <div id="labels-badge-grid" class="achievements-badge-grid">
                         <img id="labels-badge1" src='@routes.Assets.at("images/badges/badge_labels_badge1.png")'>
@@ -125,7 +125,7 @@
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
                 <div class="achievements-outer-col3">
-                    <h3>Validations</h3>
+                    <h3>@Messages("dashboard.validations")</h3>
                     <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
                     <div id="validations-badge-grid" class="achievements-badge-grid">
                         <img id="validations-badge1" src='@routes.Assets.at("images/badges/badge_validation_badge1.png")'>
@@ -158,13 +158,15 @@
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             window.progress = Progress(_, $, L, "@user.get.role", difficultRegionIds);
+
+            achievementTracker.updateBadgeAchievementGrid(@MissionTable.countCompletedMissionsByUserId(user.get.userId, true),
+                    @MissionTable.getDistanceAudited(user.get.userId, true),
+                    @LabelTable.countLabelsByUserId(user.get.userId),
+                    @LabelValidationTable.countValidationsByUserId(user.get.userId),
+                    "@Messages("measurement.system")");
         });
 
-        achievementTracker.updateBadgeAchievementGrid(@MissionTable.countCompletedMissionsByUserId(user.get.userId, true),
-                @MissionTable.getDistanceAudited(user.get.userId, true),
-                @LabelTable.countLabelsByUserId(user.get.userId),
-                @LabelValidationTable.countValidationsByUserId(user.get.userId),
-                "@Messages("measurement.system")");
+
     });
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>

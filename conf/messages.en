@@ -235,6 +235,7 @@ dashboard.labels.per.mission = Labels per Mission
 dashboard.mission.number = Mission Number
 dashboard.date = Date
 dashboard.neighborhood = Neighborhood
+dashboard.missions = Missions
 dashboard.your.missions = Your missions
 dashboard.distance = Distance
 dashboard.labels = Labels

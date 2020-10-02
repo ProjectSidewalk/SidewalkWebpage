@@ -75,15 +75,15 @@ class AchievementTracker{
      * current label count, and current validation count
      *
      * @param curMissionCnt: current mission count
-     * @param curDistance: current completed distance amount (in miles)
+     * @param curDistanceInMiles: current completed distance amount (in miles)
      * @param curLabelsCnt: current label count
      * @param curValidationsCnt: current validation count
      */
-    updateBadgeAchievementGrid(curMissionCnt, curDistance, curLabelsCnt, curValidationsCnt){
+    updateBadgeAchievementGrid(curMissionCnt, curDistanceInMiles, curLabelsCnt, curValidationsCnt, measurementSystem){
         const BADGE_NOT_YET_EARNED_CLASS_NAME = "badge-not-yet-earned";
         let mapBadgeTypesToCurrentValues = {};
         mapBadgeTypesToCurrentValues[BadgeTypes.Missions] = curMissionCnt;
-        mapBadgeTypesToCurrentValues[BadgeTypes.Distance] = curDistance;
+        mapBadgeTypesToCurrentValues[BadgeTypes.Distance] = curDistanceInMiles;
         mapBadgeTypesToCurrentValues[BadgeTypes.Labels] = curLabelsCnt;
         mapBadgeTypesToCurrentValues[BadgeTypes.Validations] = curValidationsCnt;
 
@@ -104,7 +104,7 @@ class AchievementTracker{
             }
 
             let badgeEncouragementHtmlId = badgeType + "-badge-encouragement";
-            document.getElementById(badgeEncouragementHtmlId).innerHTML = this.getBadgeEncouragementHtml(badgeType, curValue);
+            document.getElementById(badgeEncouragementHtmlId).innerHTML = this.getBadgeEncouragementHtml(badgeType, curValue, measurementSystem);
         }
     }
 
@@ -115,7 +115,7 @@ class AchievementTracker{
      * @param curValue: value corresponds to the current number of completed missions, total distance, num of labels, etc.
      *               corresponding to the passed badgeType
      */
-    getBadgeEncouragementHtml(badgeType, curValue){
+    getBadgeEncouragementHtml(badgeType, curValue, measurementSystem){
         let mapLevelsToBadge = this.mapBadges[badgeType]
         let nextBadgeToUnlock = null;
         if (badgeType in this.mapBadges){
@@ -132,11 +132,7 @@ class AchievementTracker{
 
         let htmlStatement = "";
 
-        let badgeName = badgeType;
-        if(badgeName != BadgeTypes.Distance){
-            badgeName = badgeName.slice(0, -1); // remove the 's' from missions, labels, and validations
-        }
-
+        let badgeName = i18next.t('dashboard:' + "badge-name-" + badgeType)
         if (nextBadgeToUnlock != null){
             let diffValue = nextBadgeToUnlock.threshold - curValue;
 
@@ -151,9 +147,47 @@ class AchievementTracker{
                 fractionComplete = curValue / nextBadgeToUnlock.threshold;
             }
 
-            let moreNoun = badgeType;
+            if(fractionComplete > 0.95){
+                htmlStatement += i18next.t('dashboard:so-close') + " " + i18next.t('dashboard:just') + " ";
+            }else if(fractionComplete > 0.85){
+                htmlStatement += i18next.t('dashboard:wow-almost-there') + " " + i18next.t('dashboard:just') + " ";
+            }else if(fractionComplete > 0.1 || curBadgeLevel > 0){
+                let randVal = Math.random();
+                if(randVal >= 0.9){
+                    htmlStatement += i18next.t('dashboard:awesome') + " ";
+                }else if(randVal >= 0.8){
+                    htmlStatement += i18next.t('dashboard:woohoo') + " ";
+                }else if(randVal >= 0.7){
+                    htmlStatement += i18next.t('dashboard:you-can-do-it') + " ";
+                }else if(randVal >= 0.6){
+                    htmlStatement += i18next.t('dashboard:amazing-work') + " ";
+                }else if(randVal >= 0.5){
+                    htmlStatement += i18next.t('dashboard:nice-job') + " ";
+                }else if(randVal >= 0.4){
+                    htmlStatement += i18next.t('dashboard:amazing-work') + " ";
+                }else if(randVal >= 0.3){
+                    htmlStatement += i18next.t('dashboard:now-were-rolling') + " ";
+                }else if(randVal >= 0.2){
+                    htmlStatement += i18next.t('dashboard:thanks-for-helping') + " ";
+                }else if(randVal >= 0.1){
+                    if(fractionComplete > 0.5){
+                        htmlStatement += i18next.t('dashboard:more-than-halfway') + " ";
+                    }else {
+                        htmlStatement += i18next.t('dashboard:making-great-progress') + " ";
+                    }
+                }else{
+                    htmlStatement += i18next.t('dashboard:great-job') + " ";
+                }
+            }
+
+            let moreNoun = i18next.t('dashboard:' + "badge-type-" + badgeType);
             if(badgeType == BadgeTypes.Distance){
-                moreNoun = "miles";
+                if(measurementSystem == "metric"){
+                    moreNoun = "kms";
+                    diffValue /= 1.60934;
+                }else{
+                    moreNoun = i18next.t('dashboard:miles');
+                }
                 diffValue = diffValue.toFixed(1); // yes, makes diffValue into a String
             }
 
@@ -161,50 +195,26 @@ class AchievementTracker{
                 moreNoun = moreNoun.slice(0, -1); // remove the 's' as non-plural
             }
 
-            console.log(badgeType, "fractionComplete", fractionComplete, "curBadgeLevel", curBadgeLevel, "curValue", curValue, "diffValue", diffValue);
-            if(fractionComplete > 0.95){
-                htmlStatement += "So close! Just ";
-            }else if(fractionComplete > 0.85){
-                htmlStatement += "Wow, almost there! Just ";
-            }else if(fractionComplete > 0.1 || curBadgeLevel > 0){
-                let randVal = Math.random();
-                if(randVal >= 0.9){
-                    htmlStatement += "Awesome! ";
-                }else if(randVal >= 0.8){
-                    htmlStatement += "Woohoo! ";
-                }else if(randVal >= 0.7){
-                    htmlStatement += "You can do it! ";
-                }else if(randVal >= 0.6){
-                    htmlStatement += "Amazing work! ";
-                }else if(randVal >= 0.5){
-                    htmlStatement += "Nice job! ";
-                }else if(randVal >= 0.4){
-                    htmlStatement += "Keep it up! ";
-                }else if(randVal >= 0.3){
-                    htmlStatement += "Now we're rolling! ";
-                }else if(randVal >= 0.2){
-                    htmlStatement += "Thanks for helping! ";
-                }else if(randVal >= 0.1){
-                    if(fractionComplete > 0.5){
-                        htmlStatement += "You're more than halfway! ";
-                    }else {
-                        htmlStatement += "Making great progress! ";
-                    }
-                }else{
-                    htmlStatement += "Great job! ";
-                }
-            }
-
+            // Sólo 1 misión más hasta tu próximo logro
+            // Just 1 more mission until your next achievement
+            // Sólo 2 misiones más hasta tu próximo logro
+            // Just 2 more missions until your next achievement
+            // Sólo "X" km más hasta tu próximo logro
+            // Sólo 1 etiqueta más hasta tu próximo logro
+            // Solo 1 etiqueta más hasta tu primer logro
+            // Sólo "X" etiquetas más hasta tu próximo logro
+            // Sólo 1 validación más hasta tu primer logro
+            // Sólo "X" validaciones más hasta tu próximo logro
             htmlStatement += "<strong>" + diffValue + " more " + moreNoun + "</strong> until your";
             if(curBadgeLevel == 0){
-                htmlStatement += " first "
+                htmlStatement += " " + i18next.t('dashboard:first') + " "
             }else{
-                htmlStatement += " next "
+                htmlStatement += " " + i18next.t('dashboard:next') + " "
             }
 
-            htmlStatement += badgeName + " achievement.";
+            htmlStatement += i18next.t('dashboard:achievement') + ".";
         }else{
-            htmlStatement = "Congratulations, you've earned all " + badgeName + " badges!";
+            htmlStatement = i18next.t('dashboard:' + "badge-" + badgeType + "-earned-all");
         }
 
         return htmlStatement;

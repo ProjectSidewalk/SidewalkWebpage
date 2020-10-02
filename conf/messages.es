@@ -234,6 +234,7 @@ dashboard.labels.per.mission = Etiquetas por misión
 dashboard.mission.number = Número de misión
 dashboard.date = Fecha
 dashboard.neighborhood = Colonia
+dashboard.missions = Misiones
 dashboard.your.missions = Tus misiones
 dashboard.distance = Distancia
 dashboard.labels = Etiquetas
