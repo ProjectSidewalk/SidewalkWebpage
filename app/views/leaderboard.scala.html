@@ -1,13 +1,14 @@
 @import models.user._
 
-@(url: Option[String] = Some("/"))(implicit lang: Lang)
+@(min: Int,url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
 
 <div class="leaderboardContainer">
     <div class="item leaderboardTable">
-        <h1 class="leaderboardHeader">Lifetime Leaderboard:</h1>
+        <h1 class="leaderboardHeader">Overall Leaderboard</h1>
+        <h5 class="leaderboardDetail">Leaders are calculated based on their labels, distance, and accuracy.</h5>
         <div class="panel panel-default">
             <table class="table table-bordered leaderboard-table-striped">
                 <thead class="leaderboardTableHeader">
@@ -73,9 +74,9 @@
             </table>
         </div>
     </div>
-    @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length > 5) {
+    @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length > min) {
         <div class="item leaderboardTable">
-            <h1 class="leaderboardHeader">Weekly Leaderboard:</h1>
+            <h1 class="leaderboardHeader">Weekly Leaderboard</h1>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboardTableHeader">

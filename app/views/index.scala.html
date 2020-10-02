@@ -47,9 +47,6 @@
     </div>
 
     <div id="content">
-
-
-        @leaderboard()
         <div class="container" id="banner2" style="width: 100%;
             position: relative;">
             <div class="im-centered">
@@ -219,6 +216,7 @@
                 <span class="ps-skyline-stats-holder-stat-label" >@Messages("landing.stats.validations")</span>
             </a>
         </div>
+        @leaderboard(5)
         <div class="ps-skyline-overlay">
             <div class="row" id="skyline-spacing">@Messages("landing.stats.title")</div>
             <div class="row" id="content-text-2">

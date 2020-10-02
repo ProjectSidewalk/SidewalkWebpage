@@ -1409,6 +1409,11 @@ kbd {
 
 .leaderboardHeader {
     font-weight: bold;
+    font-family: Raleway-regular, sans-serif;
+}
+
+.leaderboardDetail {
+    font-family: Raleway-regular, sans-serif;
 }
 
 .weeklyCell{
