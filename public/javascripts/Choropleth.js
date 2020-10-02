@@ -81,13 +81,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                         if (params.choroplethType === 'results') {
                             return getRegionStyleFromIssueCount(rates[i])
                         } else {
-                            return {
-                                color: '#888',
-                                weight: 1,
-                                opacity: 0.25,
-                                fillColor: getColor(100.0 * rates[i].rate),
-                                fillOpacity: 0.35 + (0.4 * rates[i].rate)
-                            }
+                            return getRegionStyleFromCompletionRate(rates[i]);
                         }
                     }
                 }
@@ -251,7 +245,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     /**
      * This function finds the color for a specific region of the accessibility choropleth.
      * 
-     * @param {*} rate Object from which information about labels is retrieved.
+     * @param {*} polygonData Object from which information about labels is retrieved.
      */
     function getRegionStyleFromIssueCount(polygonData) {
         var totalIssues = 0;
@@ -269,6 +263,21 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             opacity: 0.25,
             fillColor: fillColor,
             fillOpacity: fillOpacity
+        }
+    }
+    
+    /**
+     * This function finds the color for a specific region of the choropleth.
+     * 
+     * @param {*} polygonData Object from which information about labels is retrieved.
+     */
+    function getRegionStyleFromCompletionRate(polygonData) {
+        return {
+            color: '#888',
+            weight: 1,
+            opacity: 0.25,
+            fillColor: getColor(100.0 * polygonData.rate),
+            fillOpacity: 0.35 + (0.4 * polygonData.rate)
         }
     }
 
