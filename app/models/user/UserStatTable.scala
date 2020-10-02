@@ -162,7 +162,7 @@ object UserStatTable {
         |	INNER JOIN label ON mission.mission_id = label.mission_id
         |	WHERE label.deleted = FALSE
         |	    AND label.tutorial = FALSE
-        |	    AND role.role IN ('Registered', 'Owner', 'Administrator', 'Researcher')
+        |	    AND role.role IN ('Registered', 'Administrator', 'Researcher')
         |	    AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |	GROUP BY sidewalk_user.user_id
         |	ORDER BY label_count DESC
