@@ -133,7 +133,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                             i18next.t("common:map.distance-left", { n: distanceLeft }) + "<br>" + advancedMessage +
                             i18next.t("common:map.click-to-help", { url: url, regionId: regionId });
                     }
-                    if (params.choroplethType === 'results') popupContent += setAccessibilityChoroplethPopupContent(rates[i])
+                    if (params.choroplethType === 'results') popupContent += setRegionPopupContent(rates[i])
                     break;
                 }
             }
@@ -265,7 +265,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             fillOpacity: fillOpacity
         }
     }
-    
+
     /**
      * This function finds the color for a specific region of the choropleth.
      * 
@@ -282,12 +282,12 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     }
 
     /**
-     * This function sets the specific popup content of each region of the accessibility choropleth.
+     * Gets issue count HTML to add to popups on the results page.
      * 
-     * @param {*} rate Object from which information about labels is retrieved.
+     * @param {*} polygonData Object from which information about labels is retrieved.
      */
-    function setAccessibilityChoroplethPopupContent(rate) {
-        var labels = rate.labels;
+    function setRegionPopupContent(polygonData) {
+        var labels = polygonData.labels;
         var counts = {};
         for (var j in labelText) {
             if (typeof labels[j] != 'undefined')
