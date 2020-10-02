@@ -96,11 +96,19 @@
                     <h3>Distance</h3>
                     <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
                     <div id="distance-badge-grid" class="achievements-badge-grid">
-                        <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_badge1.png")'>
-                        <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_badge2.png")' >
-                        <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_badge3.png")'>
-                        <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_badge4.png")'>
-                        <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_badge5.png")'>
+                        @if(Messages("measurement.system") == "metric") {
+                            <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_km_badge1.png")'>
+                            <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_km_badge2.png")'>
+                            <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_km_badge3.png")'>
+                            <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_km_badge4.png")'>
+                            <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_km_badge5.png")'>
+                        }else{
+                            <img id="distance-badge1" src='@routes.Assets.at("images/badges/badge_distance_badge1.png")'>
+                            <img id="distance-badge2" src='@routes.Assets.at("images/badges/badge_distance_badge2.png")'>
+                            <img id="distance-badge3" src='@routes.Assets.at("images/badges/badge_distance_badge3.png")'>
+                            <img id="distance-badge4" src='@routes.Assets.at("images/badges/badge_distance_badge4.png")'>
+                            <img id="distance-badge5" src='@routes.Assets.at("images/badges/badge_distance_badge5.png")'>
+                        }
                     </div>
                 </div>
 
@@ -155,7 +163,8 @@
         achievementTracker.updateBadgeAchievementGrid(@MissionTable.countCompletedMissionsByUserId(user.get.userId, true),
                 @MissionTable.getDistanceAudited(user.get.userId, true),
                 @LabelTable.countLabelsByUserId(user.get.userId),
-                @LabelValidationTable.countValidationsByUserId(user.get.userId));
+                @LabelValidationTable.countValidationsByUserId(user.get.userId),
+                "@Messages("measurement.system")");
     });
     </script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
