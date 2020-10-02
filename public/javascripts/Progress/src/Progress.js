@@ -17,7 +17,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
             fillColor: "#808080"
         },
         webpageActivity: "Click_module=UserMap_regionId=",
-        singleRegionColor: true,
+        polygonFillStyle: 'singleColor',
         zoomControl: true,
         overlayPolygon: true,
         clickData: true,

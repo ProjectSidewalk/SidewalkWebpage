@@ -73,12 +73,12 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
         // Finds the matching neighborhood's completion percentage, and uses it to determine the fill color.
         function style(feature) {
-            if (params.singleRegionColor) {
+            if (params.polygonFillStyle === 'singleColor') {
                 return params.neighborhoodPolygonStyle;
             } else {
                 for (var i = 0; i < rates.length; i++) {
                     if (rates[i].region_id === feature.properties.region_id) {
-                        if (params.choroplethType === 'results') {
+                        if (params.polygonFillStyle === 'issueCount') {
                             return getRegionStyleFromIssueCount(rates[i])
                         } else {
                             return getRegionStyleFromCompletionRate(rates[i]);

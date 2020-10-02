@@ -16,7 +16,7 @@ function AdminUser(user) {
             fillColor: "#808080"
         },
         webpageActivity: "Click_module=UserMap_regionId=",
-        singleRegionColor: true,
+        polygonFillStyle: 'singleColor',
         zoomControl: true,
         overlayPolygon: true,
         username: user,

@@ -414,12 +414,13 @@
                    opacity: 0.25,
                    weight: 1 
                 },
-                webpageActivity: "Click_module=Choropleth_regionId=",
+                polygonFillStyle: 'completionRate',
+                webpageActivity: 'Click_module=Choropleth_regionId=',
                 zoomSlider: true,
                 clickData: true,
                 disableScrollWheel: true,
                 mapName: 'choropleth',
-                mapStyle: "mapbox.light",
+                mapStyle: 'mapbox.light',
                 accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
             var loadPolygons = $.getJSON('/neighborhoods');

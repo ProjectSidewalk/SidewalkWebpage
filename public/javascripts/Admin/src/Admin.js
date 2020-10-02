@@ -26,6 +26,7 @@ function Admin(_, $, difficultRegionIds) {
            opacity: 0.25,
            weight: 1 
         },
+        polygonFillStyle: 'completionRate',
         zoomControl: true,
         disableScrollWheel: true,
         mapName: 'admin-choropleth',
@@ -52,7 +53,7 @@ function Admin(_, $, difficultRegionIds) {
                 fillColor: "#808080",
                 fillOpacity: 0.1
             },
-            singleRegionColor: true,
+            polygonFillStyle: 'singleColor',
             scrollWheel: true,
             zoomControl: true,
             overlayPolygon: true,
