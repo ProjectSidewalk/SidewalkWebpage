@@ -29,7 +29,8 @@ function Card (params, imageUrl) {
     };
 
     let status = {
-        visibility: 'hidden'
+        visibility: 'hidden',
+        imageFetched: false
     };
 
     function _init (param) {
@@ -45,11 +46,10 @@ function Card (params, imageUrl) {
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
 
-
         // TODO: Can we modularize this in some separate HTML
         //  file so we don't have to use template string?
         const cardHtml = `
-            <img src="${imageUrl}" width="360" height="240">
+            <img id="${"label_id_" + properties.label_id}" class="static-gallery-image" width="360" height="240">
             <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
             <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
         `;
@@ -57,6 +57,7 @@ function Card (params, imageUrl) {
         card = document.createElement('div');
         card.className = "gallery-card";
         card.innerHTML = cardHtml;
+
         card.appendChild(labelIcon);
     }
 
@@ -113,6 +114,13 @@ function Card (params, imageUrl) {
      */
     function render (cardContainer) {
         cardContainer.append(card);
+
+        if (!status.imageFetched) {
+            console.log("grabbing image");
+            status.imageFetched = true;
+            document.getElementById("label_id_" + properties.label_id).src = imageUrl;
+        }
+        
         setStatus("visibility", "visible");
         //card.visiblility = status.visibility;
     }
