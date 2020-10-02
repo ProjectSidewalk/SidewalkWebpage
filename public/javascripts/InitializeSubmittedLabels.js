@@ -36,7 +36,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
     document.getElementById("map-legend-surface-problem").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['SurfaceProblem'].fillStyle + "'></svg>";
     document.getElementById("map-legend-no-sidewalk").innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['NoSidewalk'].fillStyle + "' stroke='" + colorMapping['NoSidewalk'].strokeStyle + "'></svg>";
     document.getElementById("map-legend-audited-street").innerHTML = "<svg width='20' height='20'><path stroke='" + auditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-    if (params.isUserDash) {
+    if (params.includeLabelCounts) {
         document.getElementById("td-number-of-curb-ramps").innerHTML = labelCounter["CurbRamp"];
         document.getElementById("td-number-of-missing-curb-ramps").innerHTML = labelCounter["NoCurbRamp"];
         document.getElementById("td-number-of-obstacles").innerHTML = labelCounter["Obstacle"];

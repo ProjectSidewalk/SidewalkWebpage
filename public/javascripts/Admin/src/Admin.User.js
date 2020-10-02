@@ -26,7 +26,7 @@ function AdminUser(user) {
     };
     var streetParams = {
         labelPopup: true,
-        isUserDash: true,
+        includeLabelCounts: true,
         streetColor: 'rgba(128, 128, 128, 1.0)',
         useTotalAuditedDistance: true,
         progressElement: 'td-total-distance-audited-admin'
@@ -51,7 +51,7 @@ function AdminUser(user) {
     // the submitted labels can be rendered.
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
         InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true), InitializeMapLayerContainer(), data2[0])
-        if (streetParams.isUserDash) setRegionFocus(map, layers)
+        setRegionFocus(map, layers)
     })
     
     $.getJSON("/adminapi/tasks/" + params.username, function (data) {

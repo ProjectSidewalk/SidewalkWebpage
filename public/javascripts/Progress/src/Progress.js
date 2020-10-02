@@ -26,7 +26,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
         accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
     };
     var streetParams = {
-        isUserDash: true,
+        includeLabelCounts: true,
         streetColor: 'rgba(128, 128, 128, 1.0)',
         useTotalAuditedDistance: true,
         progressElement: 'td-total-distance-audited',
@@ -52,7 +52,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
     // the submitted labels can be rendered.
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
         InitializeSubmittedLabels(map, streetParams, 'null', InitializeMapLayerContainer(), data2[0])
-        if(streetParams.isUserDash) setRegionFocus(map, layers);
+        setRegionFocus(map, layers);
     })
     initializeAuditCountChart();
     initializeSubmittedMissions();
