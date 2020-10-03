@@ -119,6 +119,7 @@ h2{
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-gap: 2px;
+    visibility: hidden;
 }
 
 .achievements-badge-grid img{

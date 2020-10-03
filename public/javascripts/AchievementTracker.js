@@ -101,6 +101,9 @@ class AchievementTracker{
                 }else{
                     badgeHtmlElement.classList.remove(BADGE_NOT_YET_EARNED_CLASS_NAME);
                 }
+
+                // the parent element 'achievements-badge-grid' starts out invisible to make initial rendering cleaner
+                badgeHtmlElement.parentElement.style.visibility = 'visible';
             }
 
             let badgeEncouragementHtmlId = badgeType + "-badge-encouragement";
