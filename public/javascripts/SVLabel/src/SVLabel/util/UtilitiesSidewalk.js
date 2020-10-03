@@ -437,10 +437,10 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.gravel-dirt-road')
                     },
-                    'shared pedestrain/car space': {
+                    'shared pedestrian/car space': {
                         keyNumber: 80,
                         keyChar: 'P',
-                        text: i18next.t('center-ui.context-menu.tag.shared-pedestrain-car-space')
+                        text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space')
                     }
                 }
             },
