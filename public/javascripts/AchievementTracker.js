@@ -20,7 +20,7 @@ class AchievementTracker{
 
         this.mapBadges[BadgeTypes.Distance] = {
             // All distances currently in miles
-            1 : new Badge(BadgeTypes.Distance, 1, 0.094697), // 500 ft
+            1 : new Badge(BadgeTypes.Distance, 1, 0.09), // approximately 500 ft
             2 : new Badge(BadgeTypes.Distance, 2, 0.25),
             3 : new Badge(BadgeTypes.Distance, 3, 0.5),
             4 : new Badge(BadgeTypes.Distance, 4, 1),
@@ -188,7 +188,7 @@ class AchievementTracker{
                 }else{
                     moreNoun = i18next.t('dashboard:miles');
                 }
-                diffValue = diffValue.toFixed(1); // yes, makes diffValue into a String
+                diffValue = diffValue.toFixed(2); // yes, makes diffValue into a String
             }
 
             if(diffValue == 1){
