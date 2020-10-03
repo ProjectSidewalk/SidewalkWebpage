@@ -349,6 +349,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 tagId = tags.filter(tag => tag.tag === 'not enough landing space')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
+                            case util.misc.getLabelDescriptions('CurbRamp')['tagInfo']['not level with street']['keyNumber']: // 'v' for 'not level with street'
+                                tagId = tags.filter(tag => tag.tag === 'not level with street')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
                         }
                     } else if (labelType === 'NoCurbRamp') { // Missing Curb Ramp
                         tags = contextMenu.labelTags.filter(tag => tag.label_type === "NoCurbRamp");
@@ -369,7 +373,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     } else if (labelType === 'Obstacle') { // Obstacle in Path
                         tags = contextMenu.labelTags.filter(tag => tag.label_type === "Obstacle");
                         switch (e.keyCode) {
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash/recycling can']['keyNumber']: // 'r' for 'trash can'
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['trash/recycling can']['keyNumber']: // 'y' for 'trash/recycling can'
                                 tagId = tags.filter(tag => tag.tag === 'trash/recycling can')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
@@ -393,7 +397,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 tagId = tags.filter(tag => tag.tag === 'parked car')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked bike']['keyNumber']: // 'i' for 'parked bike'
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['parked bike']['keyNumber']: // 'k' for 'parked bike'
                                 tagId = tags.filter(tag => tag.tag === 'parked bike')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
@@ -401,8 +405,24 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 tagId = tags.filter(tag => tag.tag === 'construction')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['sign']['keyNumber']: // 'g' for 'sign'
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['sign']['keyNumber']: // 'i' for 'sign'
                                 tagId = tags.filter(tag => tag.tag === 'sign')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['garage entrance']['keyNumber']: // 'g' for 'garage entrance'
+                                tagId = tags.filter(tag => tag.tag === 'garage entrance')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['stairs']['keyNumber']: // 'r' for 'stairs'
+                                tagId = tags.filter(tag => tag.tag === 'stairs')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['street vendor']['keyNumber']: // 'd' for 'street vendor'
+                                tagId = tags.filter(tag => tag.tag === 'street vendor')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Obstacle')['tagInfo']['large step']['keyNumber']: // 'l' for 'large step'
+                                tagId = tags.filter(tag => tag.tag === 'large step')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
@@ -413,19 +433,15 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 tagId = tags.filter(tag => tag.tag === 'bumpy')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['uneven']['keyNumber']: // 'u' for 'uneven'
-                                tagId = tags.filter(tag => tag.tag === 'uneven')[0].tag_id;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['uneven/slanted']['keyNumber']: // 'u' for 'uneven/slanted'
+                                tagId = tags.filter(tag => tag.tag === 'uneven/slanted')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                             case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['cracks']['keyNumber']: // 'r' for 'cracks'
                                 tagId = tags.filter(tag => tag.tag === 'cracks')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][0]: // 'g' for 'grass'
-                                tagId = tags.filter(tag => tag.tag === 'grass')[0].tag_id;
-                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
-                                break;
-                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber'][1]: // 'r' for 'grass'
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['grass']['keyNumber']: // 'g' for 'grass'
                                 tagId = tags.filter(tag => tag.tag === 'grass')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
@@ -441,16 +457,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 tagId = tags.filter(tag => tag.tag === 'construction')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
-                        }
-                    } else if (labelType === 'Other') { // Other
-                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "Other");
-                        switch (e.keyCode) {
-                            case util.misc.getLabelDescriptions('Other')['tagInfo']['missing crosswalk']['keyNumber']: // 'i' for 'missing crosswalk'
-                                tagId = tags.filter(tag => tag.tag === 'missing crosswalk')[0].tag_id;
-                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
-                                break;
-                            case util.misc.getLabelDescriptions('Other')['tagInfo']['no bus stop access']['keyNumber']: // 'a' for 'no bus stop access'
-                                tagId = tags.filter(tag => tag.tag === 'no bus stop access')[0].tag_id;
+                            case util.misc.getLabelDescriptions('SurfaceProblem')['tagInfo']['very broken']['keyNumber']  : // 'r' for 'very broken'
+                                tagId = tags.filter(tag => tag.tag === 'very broken')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
@@ -467,6 +475,26 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                                 break;
                             case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['street has no sidewalks']['keyNumber']: // 't' for 'street has no sidewalks'
                                 tagId = tags.filter(tag => tag.tag === 'street has no sidewalks')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['gravel/dirt road']['keyNumber']: // 'g' for 'gravel/dirt road'
+                                tagId = tags.filter(tag => tag.tag === 'gravel/dirt road')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('NoSidewalk')['tagInfo']['shared pedestrain/car space']['keyNumber']: // 'p' for 'shared pedestrain/car space'
+                                tagId = tags.filter(tag => tag.tag === 'shared pedestrian/car space')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                        }
+                    } else if (labelType === 'Other') { // Other
+                        tags = contextMenu.labelTags.filter(tag => tag.label_type === "Other");
+                        switch (e.keyCode) {
+                            case util.misc.getLabelDescriptions('Other')['tagInfo']['missing crosswalk']['keyNumber']: // 'i' for 'missing crosswalk'
+                                tagId = tags.filter(tag => tag.tag === 'missing crosswalk')[0].tag_id;
+                                $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
+                                break;
+                            case util.misc.getLabelDescriptions('Other')['tagInfo']['no bus stop access']['keyNumber']: // 'a' for 'no bus stop access'
+                                tagId = tags.filter(tag => tag.tag === 'no bus stop access')[0].tag_id;
                                 $('.tag-id-' + tagId).first().trigger("click", {lowLevelLogging: false});
                                 break;
                         }
