@@ -192,7 +192,7 @@ class AchievementTracker{
             }
 
             if(diffValue == 1){
-                moreNoun = moreNoun.slice(0, -1); // remove the 's' as non-plural
+                moreNoun = i18next.t('dashboard:' + "badge-" + badgeType + "-singular");
             }
 
             // Sólo 1 misión más hasta tu próximo logro
@@ -205,7 +205,9 @@ class AchievementTracker{
             // Sólo "X" etiquetas más hasta tu próximo logro
             // Sólo 1 validación más hasta tu primer logro
             // Sólo "X" validaciones más hasta tu próximo logro
-            htmlStatement += "<strong>" + diffValue + " more " + moreNoun + "</strong> until your";
+            htmlStatement += "<strong>" + diffValue + " ";
+            htmlStatement += i18next.t('dashboard:more-badge', {badge: moreNoun}) + "</strong>";
+            htmlStatement += " " + i18next.t('dashboard:until-your');
             if(curBadgeLevel == 0){
                 htmlStatement += " " + i18next.t('dashboard:first') + " "
             }else{
