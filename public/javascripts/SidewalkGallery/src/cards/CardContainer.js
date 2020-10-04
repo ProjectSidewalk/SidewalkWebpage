@@ -19,13 +19,19 @@ function CardContainer(uiCardContainer) {
 
     let currentLabelType = null;
 
-    // Fetched labels of current type
-    let cardsOfType = [];
+    let cardsByType = {
+        CurbRamp: null,
+        NoCurbRamp: null,
+        Obstacle: null,
+        SurfaceProblem: null,
+        Other: null,
+        Occlusion: null,
+        NoSidewalk: null,
+        Problem: null
+    };
 
     // Current labels being displayed of current type based off filters
-    let currentCards = [];
-
-    let tagFiltered = [];
+    let currentCards = new CardBucket();
 
     function fetchLabelsByType(labelTypeId, callback) {
         $.getJSON("/label/labelsByType?labelTypeId=" + labelTypeId, function (data) {
@@ -51,7 +57,7 @@ function CardContainer(uiCardContainer) {
      * Returns cards of current type
      */
     function getCards() {
-        return cardsOfType;
+        return cardsByType;
     }
 
     /**
@@ -66,9 +72,9 @@ function CardContainer(uiCardContainer) {
      * @param card
      */
     function push(card) {
-        cardsOfType.push(card);
+        cardsByType[card.getLabelType()].push(card);
         currentCards.push(card);
-        tagFiltered.push(card);
+        // tagFiltered.push(card);
     }
 
     /**
@@ -78,96 +84,107 @@ function CardContainer(uiCardContainer) {
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
             currentLabelType = filterLabelType;
-            clearCards();
             clearCurrentCards();
-            fetchLabelsByType(labelTypeIds[filterLabelType], function () {
-                console.log("new labels gathered");
+
+            if (!cardsByType[currentLabelType]) {
+                cardsByType[currentLabelType] = new CardBucket();
+                fetchLabelsByType(labelTypeIds[filterLabelType], function () {
+                    console.log("new labels gathered");
+                    render();
+                });
+            } else {
+                currentCards = cardsByType[currentLabelType];
                 render();
-            });
+            }
         }
     }
 
     function updateCardsByTag(tag) {
-        uiCardContainer.holder.empty();
-
         if (tag.getStatus().applied) {
-            currentCards = currentCards.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+            let bucket = currentCards.getCards();
+            for (let severity in bucket) {
+                bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+            }
         } else {
-           clearCurrentCards();
-           let newCards = cardsOfType;
-           //let initialCardsSet = false;
+           //clearCurrentCards();
+           currentCards = cardsByType[currentLabelType].copy();
+           let bucket = currentCards.getCards();
+
            let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType];
-           //console.log(tagsToCheck.length);
            for (let i = 0; i < tagsToCheck.length; i++) {
                let tag = tagsToCheck[i];
                if (tag.getStatus().applied) {
-                   //if (initialCardsSet) {
-                   newCards = newCards.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
-                   // } else {
-                   //     newCards = cardsOfType.filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
-                   //     initialCardsSet = true;
-                   // }
+                   for (let severity in bucket) {
+                       bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+                   }
                }
            }
-
-           // if (!initialCardsSet) {
-           //     cardsOfType.forEach(card => newCards.push(card));
-           // }
-           tagFiltered = newCards;
-           console.log(newCards.length);
-           console.log(tagFiltered.length);
-           updateCardsBySeverity();
+           //updateCardsBySeverity();
+            console.log(currentCards.getCards());
         }
 
         render();
     }
 
-    function updateCardsBySeverity(){
-        uiCardContainer.holder.empty();
-        // clearCurrentCards();
-        let newCards = [];
-        for (let i = 0; i < tagFiltered.length; i++){
-            // console.log(currentCards[i].getProperty("severity") == severity.getSeverity());
-            let severities = sg.tagContainer.getSeverities();
-
-            for (let j = 0; j < severities.length; j++){
-                if (severities[j].getActive()){
-                    if (tagFiltered[i].getProperty("severity") == severities[j].getSeverity()){
-                        newCards.push(tagFiltered[i]);
-                        // console.log(tagFiltered[i].getProperty("severity") == severities[j].getSeverity());
-                    }
-                }
-            }
-            // severities.forEach( severity => {
-            //     if (currentCards[i].getProperty("severity") == severity.getSeverity() && severity.getActive()){
-            //         newTags.push(currentCards[i]);
-            //     }}
-            // );
-            
-        }
-        console.log(newCards.length);
-        currentCards = newCards;
-        
-            
-       
-
-        render();
-    }
+    // function updateCardsBySeverity(){
+    //     uiCardContainer.holder.empty();
+    //     // clearCurrentCards();
+    //     let newCards = [];
+    //     for (let i = 0; i < tagFiltered.length; i++){
+    //         // console.log(currentCards[i].getProperty("severity") == severity.getSeverity());
+    //         let severities = sg.tagContainer.getSeverities();
+    //
+    //         for (let j = 0; j < severities.length; j++){
+    //             if (severities[j].getActive()){
+    //                 if (tagFiltered[i].getProperty("severity") == severities[j].getSeverity()){
+    //                     newCards.push(tagFiltered[i]);
+    //                     // console.log(tagFiltered[i].getProperty("severity") == severities[j].getSeverity());
+    //                 }
+    //             }
+    //         }
+    //         // severities.forEach( severity => {
+    //         //     if (currentCards[i].getProperty("severity") == severity.getSeverity() && severity.getActive()){
+    //         //         newTags.push(currentCards[i]);
+    //         //     }}
+    //         // );
+    //
+    //     }
+    //     console.log(newCards.length);
+    //     currentCards = newCards;
+    //
+    //
+    //
+    //
+    //     render();
+    // }
 
     function sortCards() {
-        uiCardContainer.holder.empty();
-        currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
-
-        render();
+        // uiCardContainer.holder.empty();
+        // currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
+        //
+        // render();
     }
 
     /**
      * Renders current cards
      */
     function render() {
-        let num = currentCards.length >= 10 ? 10 : currentCards.length;
-        for (let i = 0; i < num; i++) {
-            currentCards[i].render(uiCardContainer.holder);
+        uiCardContainer.holder.empty();
+
+        //TODO: refactor render method to handle going through currentCard CardBucket and rendering those of selected severities
+        let num = 0;
+        let cardBucket = currentCards.getCards();
+        let severities = sg.tagContainer.getSeverities();
+
+        for (let i = 0; i < severities.length; i++){
+            if (severities[i].getActive()){
+                let subBucket = cardBucket[severities[i].getSeverity()];
+                for (let j = 0; j < subBucket.length; j++) {
+                    if (num >= 10) break;
+                    subBucket[j].render(uiCardContainer.holder);
+                    num++;
+                }
+            }
         }
     }
 
@@ -175,16 +192,17 @@ function CardContainer(uiCardContainer) {
      * Flush all cards currently being rendered
      */
     function clearCurrentCards() {
-        currentCards = [];
-        uiCardContainer.holder.empty();
+        currentCards = new CardBucket();
+        //uiCardContainer.holder.empty();
     }
 
     /**
      * Flush all cards from cardsOfType
      */
     function clearCards() {
-        cardsOfType = [];
-        tagFiltered = [];
+        for (let labelType in cardsByType) {
+            cardsByType[labelType] = null;
+        }
     }
 
     self.fetchLabelsByType = fetchLabelsByType;
@@ -193,7 +211,7 @@ function CardContainer(uiCardContainer) {
     self.push = push;
     self.updateCardsByType = updateCardsByType;
     self.updateCardsByTag = updateCardsByTag;
-    self.updateCardsBySeverity = updateCardsBySeverity;
+    //self.updateCardsBySeverity = updateCardsBySeverity;
     self.sortCards = sortCards;
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;

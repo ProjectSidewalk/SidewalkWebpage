@@ -120,7 +120,7 @@ function Card (params, imageUrl) {
             status.imageFetched = true;
             document.getElementById("label_id_" + properties.label_id).src = imageUrl;
         }
-        
+
         setStatus("visibility", "visible");
         //card.visiblility = status.visibility;
     }

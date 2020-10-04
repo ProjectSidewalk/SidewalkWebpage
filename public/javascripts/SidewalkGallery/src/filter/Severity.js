@@ -41,7 +41,8 @@ function Severity (params){
             severityElement.setAttribute("style", "background-color: none");
         }
 
-        sg.cardContainer.updateCardsBySeverity();
+        //sg.cardContainer.updateCardsBySeverity();
+        sg.cardContainer.render();
     }
 
     function toggleActive(){
