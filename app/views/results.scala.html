@@ -64,8 +64,11 @@
                     <p style="font-size: 11px;margin-top: 7px;line-height: 14px;">@Messages("results.legend.body")</div>
             </div>
             <div id="choropleth"></div>
-            <div id="loadingChoropleth">
-                <img src='/assets/images/loader.gif' alt='loading' />
+            <div id="page-loading">
+                <div id="loading-gif">
+                    <p class="loading-text">Loading...</p>
+                    <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title="Loading..."/>
+                </div>
             </div>
             <div>
                 <a id="reset-button" href="javascript:null"> @Messages("results.reset.view") </a>

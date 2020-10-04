@@ -1164,6 +1164,7 @@ kbd {
     left:50%;
     overflow:visible;
 }
+
 #loading-gif {
     position: relative;
     max-width: 100%;
@@ -1171,6 +1172,14 @@ kbd {
     margin-top: -50%;
     margin-left: -50%;
 }
+
+.loading-text{
+    font-family: raleway, sans-serif;
+    text-align: left;
+    font-size: 35px;
+    color: #2D2A3F;
+}
+
 .navbar-xs { min-height: 45px; height: 45px; }
 .navbar-xs .navbar-xs-brand{ padding: 0px 15px;font-size: 16px;line-height: 20px; padding-bottom: 17px; padding-top: 0px; height: 38px; float: left; }
 .navbar-xs .navbar-nav > li > a {
@@ -1314,6 +1323,7 @@ kbd {
   overflow: auto;
   border-radius: 10px;
 }
+
 #resultsAlert {
     height: 100px;
     margin-top: 20px;
@@ -1321,15 +1331,8 @@ kbd {
     padding: 5px;
     margin-bottom: 20px;
 }
-#loadingChoropleth{
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    height: 138px;
-    width: 138px;
-    margin-top: -69px;
-    margin-left: -69px;
-}
+
+
 .leaflet-bottom > .map-legends.wax-legends {
     right: 0px;
     top: 0px;

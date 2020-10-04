@@ -11,7 +11,12 @@
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
-    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+    <div id="page-loading">
+        <div id="loading-gif">
+            <p class="loading-text">Loading...</p>
+            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title="Loading..."/>
+        </div>
+    </div>
 
     @if(Some(User)) {
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
