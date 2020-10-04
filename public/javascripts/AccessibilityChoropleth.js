@@ -276,7 +276,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             setTimeout(function () {
                 choropleth.invalidateSize(false);
             }, 1);
-            $('#page-loading').hide();
+            // $('#page-loading').hide();
         });
     });
 

@@ -1171,13 +1171,28 @@ kbd {
     max-height: 100%;
     margin-top: -50%;
     margin-left: -50%;
+    /*display: block;*/
+    /*margin: 0 auto;*/
+}
+
+#loading-gif img{
+    display: block;
+    margin: 0 auto;
 }
 
 .loading-text{
     font-family: raleway, sans-serif;
-    text-align: left;
-    font-size: 35px;
+    text-align: center;
+    font-size: 45px;
     color: #2D2A3F;
+}
+
+.loading-sub-text{
+    font-family: raleway, sans-serif;
+    text-align: center;
+    font-size: 15px;
+    color: #2D2A3F;
+    margin-top: 5px;
 }
 
 .navbar-xs { min-height: 45px; height: 45px; }
