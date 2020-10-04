@@ -13,9 +13,9 @@
     @navbar(user, Some("/audit"))
     <div id="page-loading">
         <div id="loading-gif">
-            <p class="loading-text">Loading...</p>
-            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title="Loading..."/>
-            <p class="loading-sub-text">Let's do this!</p>
+            <p class="loading-text">@Messages("loading")</p>
+            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+            <p class="loading-sub-text">@Messages("loading.encouragement")</p>
         </div>
     </div>
 

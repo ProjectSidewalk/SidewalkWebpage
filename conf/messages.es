@@ -10,6 +10,9 @@ ok = OK
 cancel = Cancelar
 error = ¡Error!
 thanks = ¡Gracias!
+    
+loading = Cargando...
+loading.encouragement = ¡Hagámoslo!
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
