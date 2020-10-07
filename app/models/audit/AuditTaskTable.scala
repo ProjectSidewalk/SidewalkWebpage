@@ -606,7 +606,7 @@ object AuditTaskTable {
     * @param timestamp
     * @return
     */
-  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float) = db.withTransaction { implicit session =>
+  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float): Int = db.withTransaction { implicit session =>
     val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng)
     q.update((Some(timestamp), lat, lng))
   }
