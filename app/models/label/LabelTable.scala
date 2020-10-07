@@ -725,8 +725,14 @@ object LabelTable {
       (l, t) <- addSeverity.leftJoin(temporariness).on(_._1.labelId === _.labelId)
     } yield (l._1, l._2, l._3, l._4, t.temporary.?.getOrElse(false))
 
+    val addGSVData = for {
+      (l, e) <- addTemporariness.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
+    } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
+
+    val removeExpiredPanos = addGSVData.filter(_._6 === false)
+
     val addDescriptions = for {
-      (l, d) <- addTemporariness.leftJoin(descriptions).on(_._1.labelId === _.labelId)
+      (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
