@@ -302,7 +302,7 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                    @text(forms.SignUpForm.form("username"), Messages("authenticate.username"), icon = "person")
+                    @text(forms.SignUpForm.form("username"), Messages("username"), icon = "person")
                     @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
                     @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
                     @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")

@@ -10,6 +10,7 @@ ok = OK
 cancel = Cancelar
 error = ¡Error!
 thanks = ¡Gracias!
+username = Nombre de usuario/a
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -182,7 +183,6 @@ authenticate.password = Contraseña
 authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
-authenticate.username = Nombre de usuario/a
 authenticate.confirm.password = Confirmar contraseña
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate

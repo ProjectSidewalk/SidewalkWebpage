@@ -7,18 +7,18 @@
 
 <div class="leaderboardContainer">
     <div class="item leaderboardTable">
-        <h1 class="leaderboardHeader">Overall Leaderboard</h1>
-        <h5 class="leaderboardDetail">Leaders are calculated based on their labels, distance, and accuracy.</h5>
+        <h1 class="leaderboardHeader">@Messages("leaderboard.overall.title")</h1>
+        <h5 class="leaderboardDetail">@Messages("leaderboard.detail")</h5>
         <div class="panel panel-default">
             <table class="table table-bordered leaderboard-table-striped">
                 <thead class="leaderboardTableHeader">
                     <tr>
                         <th class="leaderboardTableFont" scope="col">#</th>
-                        <th class="leaderboardTableFont" scope="col">Username</th>
-                        <th class="leaderboardTableFont" scope="col">Labels</th>
-                        <th class="leaderboardTableFont" scope="col">Missions</th>
-                        <th class="leaderboardTableFont" scope="col">Distance</th>
-                        <th class="leaderboardTableFont" scope="col">Accuracy</th>
+                        <th class="leaderboardTableFont" scope="col">@Messages("username")</th>
+                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.labels")</th>
+                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.missions")</th>
+                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.distance")</th>
+                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.accuracy")</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -60,7 +60,7 @@
                         @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
                             <td class="leaderboardTableFont accuracyCell">N/A
                                 <span class="accuracyTooltip">
-                                    Accuracy is only shown if at least 10 of your labels have been validated
+                                    @Messages("leaderboard.tooltip.accuracy")
                                 </span>
                             </td>
                         } else {
@@ -76,21 +76,21 @@
     </div>
     @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length > min) {
         <div class="item leaderboardTable">
-            <h1 class="leaderboardHeader">Weekly Leaderboard</h1>
+            <h1 class="leaderboardHeader">@Messages("leaderboard.weekly.title")</h1>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboardTableHeader">
                         <tr>
                             <th class="leaderboardTableFont weeklyCell" scope="col">#
                                 <span class="weeklyTooltip">
-                                    Stats reset every Sunday morning at 12 AM
+                                    @Messages("leaderboard.tooltip.weekly.reset")
                                 </span>
                             </th>
-                            <th class="leaderboardTableFont" scope="col">Username</th>
-                            <th class="leaderboardTableFont" scope="col">Labels</th>
-                            <th class="leaderboardTableFont" scope="col">Missions</th>
-                            <th class="leaderboardTableFont" scope="col">Distance</th>
-                            <th class="leaderboardTableFont" scope="col">Accuracy</th>
+                            <th class="leaderboardTableFont" scope="col">@Messages("username")</th>
+                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.labels")</th>
+                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.missions")</th>
+                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.distance")</th>
+                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.accuracy")</th>
                         </tr>
                     </thead>
                     <tbody>
