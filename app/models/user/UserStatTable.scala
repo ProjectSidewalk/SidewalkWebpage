@@ -158,11 +158,13 @@ object UserStatTable {
         |	FROM sidewalk_user
         |	INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |	INNER JOIN role ON user_role.role_id = role.role_id
+        | INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
         |	INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
         |	INNER JOIN label ON mission.mission_id = label.mission_id
         |	WHERE label.deleted = FALSE
         |	    AND label.tutorial = FALSE
         |	    AND role.role IN ('Registered', 'Administrator', 'Researcher')
+        |     AND (user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)
         |	    AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |	GROUP BY sidewalk_user.user_id
         |	ORDER BY label_count DESC
