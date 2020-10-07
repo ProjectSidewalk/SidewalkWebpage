@@ -99,11 +99,6 @@
                     </a>
                     <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                         <li>
-                            <a href='@routes.ApplicationController.leaderboard' role="menuitem">
-                            @Messages("navbar.leaderboard")
-                            </a>
-                        </li>
-                        <li>
                             <a href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
@@ -112,6 +107,11 @@
                                 <a href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                             </li>
                         }
+                        <li>
+                            <a href='@routes.ApplicationController.leaderboard' role="menuitem">
+                            @Messages("navbar.leaderboard")
+                            </a>
+                        </li>
                         <li>
                             <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a>
                         </li>
