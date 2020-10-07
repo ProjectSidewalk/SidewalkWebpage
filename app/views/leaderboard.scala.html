@@ -5,66 +5,66 @@
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
 
-<div class="leaderboardContainer">
-    <div class="item leaderboardTable">
-        <h1 class="leaderboardHeader">@Messages("leaderboard.overall.title")</h1>
-        <h5 class="leaderboardDetail">@Messages("leaderboard.detail")</h5>
+<div class="leaderboard-container">
+    <div class="item leaderboard-table">
+        <h1 class="leaderboard-header">@Messages("leaderboard.overall.title")</h1>
+        <h5 class="leaderboard-detail">@Messages("leaderboard.detail")</h5>
         <div class="panel panel-default">
             <table class="table table-bordered leaderboard-table-striped">
-                <thead class="leaderboardTableHeader">
+                <thead class="leaderboard-table-header">
                     <tr>
-                        <th class="leaderboardTableFont" scope="col">#</th>
-                        <th class="leaderboardTableFont" scope="col">@Messages("username")</th>
-                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.labels")</th>
-                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.missions")</th>
-                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.distance")</th>
-                        <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.accuracy")</th>
+                        <th class="leaderboard-table-font" scope="col">#</th>
+                        <th class="leaderboard-table-font" scope="col">@Messages("username")</th>
+                        <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.labels")</th>
+                        <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.missions")</th>
+                        <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.distance")</th>
+                        <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.accuracy")</th>
                     </tr>
                 </thead>
                 <tbody>
                 @for((stat, i) <- leaderboardStats.view.zipWithIndex) {
                     <tr>
-                        <th class="leaderboardTableFont" scope="row">@{
+                        <th class="leaderboard-table-font" scope="row">@{
                             i + 1
                         }</th>
-                        <td class="leaderboardTableFont">@{
+                        <td class="leaderboard-table-font">@{
                             stat.asInstanceOf[LeaderboardStat].username
                         }</td>
-                        <td class="leaderboardTableFont">@{
+                        <td class="leaderboard-table-font">@{
                             stat.asInstanceOf[LeaderboardStat].labelCount
                         }</td>
-                        <td class="leaderboardTableFont">@{
+                        <td class="leaderboard-table-font">@{
                             stat.asInstanceOf[LeaderboardStat].missionCount
                         }</td>
                         @if(Messages("measurement.system") == "metric") {
                             @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] > 2000) {
-                                <td class="leaderboardTableFont">@{
+                                <td class="leaderboard-table-font">@{
                                     "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float]/ 1000)
                                 } km</td>
                             } else {
-                                <td class="leaderboardTableFont">@{
+                                <td class="leaderboard-table-font">@{
                                     "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
                                 } m</td>
                             }
                         } else {
                             @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
-                                <td class="leaderboardTableFont">@{
+                                <td class="leaderboard-table-font">@{
                                     "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                 } miles</td>
                             } else {
-                                <td class="leaderboardTableFont">@{
+                                <td class="leaderboard-table-font">@{
                                     "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28)
                                 } ft</td>
                             }
                         }
                         @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
-                            <td class="leaderboardTableFont accuracyCell">N/A
-                                <span class="accuracyTooltip">
+                            <td class="leaderboard-table-font accuracy-cell">N/A
+                                <span class="accuracy-tooltip">
                                     @Messages("leaderboard.tooltip.accuracy")
                                 </span>
                             </td>
                         } else {
-                            <td class="leaderboardTableFont">@{
+                            <td class="leaderboard-table-font">@{
                                 "%.1f".format(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100)
                             }%</td>
                         }
@@ -75,68 +75,68 @@
         </div>
     </div>
     @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length > min) {
-        <div class="item leaderboardTable">
-            <h1 class="leaderboardHeader">@Messages("leaderboard.weekly.title")</h1>
+        <div class="item leaderboard-table">
+            <h1 class="leaderboard-header">@Messages("leaderboard.weekly.title")</h1>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
-                    <thead class="leaderboardTableHeader">
+                    <thead class="leaderboard-table-header">
                         <tr>
-                            <th class="leaderboardTableFont weeklyCell" scope="col">#
-                                <span class="weeklyTooltip">
+                            <th class="leaderboard-table-font weekly-cell" scope="col">#
+                                <span class="weekly-tooltip">
                                     @Messages("leaderboard.tooltip.weekly.reset")
                                 </span>
                             </th>
-                            <th class="leaderboardTableFont" scope="col">@Messages("username")</th>
-                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.labels")</th>
-                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.missions")</th>
-                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.distance")</th>
-                            <th class="leaderboardTableFont" scope="col">@Messages("leaderboard.header.accuracy")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("username")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.labels")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.missions")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.distance")</th>
+                            <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.accuracy")</th>
                         </tr>
                     </thead>
                     <tbody>
                     @for((stat, i) <- leaderboardStatsThisWeek.view.zipWithIndex) {
                         <tr>
-                            <th class="leaderboardTableFont" scope="row">@{
+                            <th class="leaderboard-table-font" scope="row">@{
                                 i + 1
                             }</th>
-                            <td class="leaderboardTableFont">@{
+                            <td class="leaderboard-table-font">@{
                                 stat.asInstanceOf[LeaderboardStat].username
                             }</td>
-                            <td class="leaderboardTableFont">@{
+                            <td class="leaderboard-table-font">@{
                                 stat.asInstanceOf[LeaderboardStat].labelCount
                             }</td>
-                            <td class="leaderboardTableFont">@{
+                            <td class="leaderboard-table-font">@{
                                 stat.asInstanceOf[LeaderboardStat].missionCount
                             }</td>
                             @if(Messages("measurement.system") == "metric") {
                                 @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] > 2000) {
-                                    <td class="leaderboardTableFont">@{
+                                    <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float]/ 1000)
                                     } km</td>
                                 } else {
-                                    <td class="leaderboardTableFont">@{
+                                    <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters)
                                     } m</td>
                                 }
                             } else {
                                 @if(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 > 5280) {
-                                    <td class="leaderboardTableFont">@{
+                                    <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28 / 5280)
                                     } miles</td>
                                 } else {
-                                    <td class="leaderboardTableFont">@{
+                                    <td class="leaderboard-table-font">@{
                                         "%.1f".format(stat.asInstanceOf[LeaderboardStat].distanceMeters.asInstanceOf[Float] * 3.28)
                                     } ft</td>
                                 }
                             }
                             @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
-                                <td class="leaderboardTableFont accuracyCell">N/A
-                                    <span class="accuracyTooltip">
+                                <td class="leaderboard-table-font accuracy-cell">N/A
+                                    <span class="accuracy-tooltip">
                                         Accuracy is only shown if at least 10 of your labels have been validated
                                     </span>
                                 </td>
                             } else {
-                                <td class="leaderboardTableFont">@{
+                                <td class="leaderboard-table-font">@{
                                     "%.1f".format(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100)
                                 }%</td>
                             }

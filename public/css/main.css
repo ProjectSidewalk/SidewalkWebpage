@@ -1347,27 +1347,27 @@ kbd {
     font-size: 16px;
     content: counter(item);
 }
-#survey-modal-container ol> li h4{
+#survey-modal-container ol> li h4 {
     font-size: 16px;
     font-weight: bold;
 }
-.survey-question{
+.survey-question {
     margin-bottom: 10px;
 }
-.survey-textarea{
+.survey-textarea {
     width: 100%;
     height: 64px;
     font-weight: normal;
     font-size: 14px;
 }
-.survey-option-holder{
+.survey-option-holder {
     list-style:none;
     width:100%;
     margin:0;
     padding:0 0 10px;
     display:block;
 }
-.survey-option{
+.survey-option {
     display:inline-block;
     width:19%;
     text-align:center;
@@ -1407,22 +1407,22 @@ kbd {
     visibility: hidden;
 }
 
-.leaderboardHeader {
+.leaderboard-header {
     font-weight: bold;
     font-family: Raleway-regular, sans-serif;
 }
 
-.leaderboardDetail {
+.leaderboard-detail {
     font-family: Raleway-regular, sans-serif;
 }
 
-.weeklyCell{
+.weekly-cell {
     position: relative;
     text-decoration:underline;
     text-decoration-style: dotted;
 }
 
-.weeklyTooltip{
+.weekly-tooltip {
     display:none;
     position:absolute;
     z-index:100;
@@ -1440,15 +1440,15 @@ kbd {
     width: 175px;
 }
 
-.weeklyCell:hover span.weeklyTooltip{
+.weekly-cell:hover span.weekly-tooltip {
     display:block;
 }
 
-.leaderboardTableFont {
+.leaderboard-table-font {
     font-size: 20px;
 }
 
-.leaderboardTableHeader {
+.leaderboard-table-header {
     background-color: rgba(251, 215, 139, 1);
     font-weight: bold;
 }
@@ -1457,7 +1457,7 @@ kbd {
   border-top: 3px solid #999999;
 }
 
-.leaderboardTable {
+.leaderboard-table {
     padding-right: 30px;
     min-width: 650px;
 }
@@ -1468,7 +1468,7 @@ kbd {
     color: black;
 }
 
-.leaderboardContainer {
+.leaderboard-container {
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
@@ -1477,13 +1477,13 @@ kbd {
     align-items: center;
 }
 
-.accuracyCell{
+.accuracy-cell {
     position: relative;
     text-decoration:underline;
     text-decoration-style: dotted;
 }
 
-.accuracyTooltip{
+.accuracy-tooltip {
     display:none;
     position:absolute;
     z-index:100;
@@ -1500,7 +1500,7 @@ kbd {
     width: 150%;
 }
 
-.accuracyCell:hover span.accuracyTooltip{
+.accuracy-cell:hover span.accuracy-tooltip {
     display:block;
 }
 
