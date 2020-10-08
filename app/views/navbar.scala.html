@@ -108,6 +108,11 @@
                             </li>
                         }
                         <li>
+                            <a href='@routes.ApplicationController.leaderboard' role="menuitem">
+                            @Messages("navbar.leaderboard")
+                            </a>
+                        </li>
+                        <li>
                             <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a>
                         </li>
                     </ul>
@@ -297,7 +302,7 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                    @text(forms.SignUpForm.form("username"), Messages("authenticate.username"), icon = "person")
+                    @text(forms.SignUpForm.form("username"), Messages("username"), icon = "person")
                     @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
                     @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
                     @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")

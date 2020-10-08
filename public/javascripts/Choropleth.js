@@ -64,8 +64,7 @@ function Choropleth(_, $, difficultRegionIds) {
                 fillColor: "#f00",
                 fillOpacity: 1.0
             },
-            layers = [],
-            currentLayer;
+            layers = [];
 
         // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
         function style(feature) {
@@ -105,9 +104,8 @@ function Choropleth(_, $, difficultRegionIds) {
 
                     var advancedMessage = '';
                     if (difficultRegionIds.includes(feature.properties.region_id)) {
-                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                        advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
-
                     if (userCompleted) {
                         popupContent = "<strong>" + regionName + "</strong>: " +
                             i18next.t("map.100-percent-complete") + "<br>" +
@@ -135,22 +133,41 @@ function Choropleth(_, $, difficultRegionIds) {
                     break;
                 }
             }
-            layer.bindPopup(popupContent);
+            // Add listeners to popup so the popup closes when the mouse leaves the popup area.
+            layer.bindPopup(popupContent).on("popupopen", () => {
+                var popupWrapper = $('.leaflet-popup-content-wrapper');
+                var popupCloseButton = $('.leaflet-popup-close-button');
+                popupWrapper.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                popupCloseButton.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                // Make sure the region outline is removed when the popup close button is clicked.
+                popupCloseButton.on('click', e => {
+                    clearChoroplethRegionOutlines(layers);
+                });
+            });
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-                this.openPopup()
+                clearChoroplethRegionOutlines(layers);
+                addChoroplethRegionOutline(this);
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                    clearChoroplethRegionOutlines(layers);
+                    this.closePopup();
                 }
             });
             layer.on('click', function (e) {
-                currentLayer = this;
-
                 // Log when a user clicks on a region on the choropleth
                 // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
                 // Log is stored in WebpageActivityTable
@@ -227,6 +244,15 @@ function Choropleth(_, $, difficultRegionIds) {
         }, 1);
     });
 
+    function clearChoroplethRegionOutlines(layers) {
+        for (var i = layers.length - 1; i >= 0; i--) {
+            layers[i].setStyle({opacity: 0.25, weight: 1, color: "#888"});
+        }
+    }
+
+    function addChoroplethRegionOutline(layer) {
+        layer.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+    }
 
     // Makes POST request that logs `activity` in WebpageActivityTable
     function postToWebpageActivity(activity){
