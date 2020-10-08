@@ -74,7 +74,7 @@
             </table>
         </div>
     </div>
-    @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length > min) {
+    @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
             <h1 class="leaderboard-header">@Messages("leaderboard.weekly.title")</h1>
             <div class="panel panel-default">
@@ -132,7 +132,7 @@
                             @if(stat.asInstanceOf[LeaderboardStat].accuracy.getOrElse(0.00f).asInstanceOf[Float] * 100 < 10)  {
                                 <td class="leaderboard-table-font accuracy-cell">N/A
                                     <span class="accuracy-tooltip">
-                                        Accuracy is only shown if at least 10 of your labels have been validated
+                                    @Messages("leaderboard.tooltip.accuracy")
                                     </span>
                                 </td>
                             } else {
