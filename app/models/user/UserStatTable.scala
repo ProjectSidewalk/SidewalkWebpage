@@ -142,9 +142,20 @@ object UserStatTable {
     }
   }
 
-  def getLeaderboardStats(n: Int, timePeriod: String = "lifetime"): List[LeaderboardStat] = db.withSession { implicit session =>
+  /**
+   * Gets leaderboard stats for the top `n` users in the given time period.
+   *
+   * The top users are currently calculated solely on label count, then we also get stats on their mission count,
+   * distance, and accuracy. Only overall and weekly time periods have been implemented. We only include accuracy if the
+   * user has at least 10 validated labels (must have either agree or disagree based off majority vote; an unsure or tie
+   * does not count).
+   * @param n The number of top users to get stats for
+   * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
+   * @return
+   */
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall"): List[LeaderboardStat] = db.withSession { implicit session =>
     val statStartTime = timePeriod.toLowerCase() match {
-      case "lifetime" => """TIMESTAMP 'epoch'"""
+      case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float])](
