@@ -216,7 +216,6 @@
                 <span class="ps-skyline-stats-holder-stat-label" >@Messages("landing.stats.validations")</span>
             </a>
         </div>
-        @leaderboard(5)
         <div class="ps-skyline-overlay">
             <div class="row" id="skyline-spacing">@Messages("landing.stats.title")</div>
             <div class="row" id="content-text-2">
@@ -238,7 +237,7 @@
             var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
     </script>
     </div>
-
+    @leaderboard(5)
 
     <div class="container" id="machinelearning-container">
 
