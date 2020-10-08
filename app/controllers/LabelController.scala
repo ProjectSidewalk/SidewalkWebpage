@@ -10,9 +10,11 @@ import models.label._
 import models.user.User
 import play.api.libs.json._
 import play.api.mvc.Action
+import play.api.Play
+import play.api.Play.current
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
-
 
 class LabelController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
@@ -63,7 +65,11 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     * @return
     */
   def getLabelTags() = Action.async { implicit request =>
-    Future.successful(Ok(JsArray(TagTable.selectAllTags().map { tag => Json.obj(
+    val cityStr: String = Play.configuration.getString("city-id").get
+    val countryID: String = Play.configuration.getString("city-params.country-id." + cityStr).get
+    val excludedTags: List[String] = Play.configuration.getList("city-params.excluded-tags." + countryID).get.unwrapped().asInstanceOf[java.util.List[String]].asScala.toList
+    val tags: List[Tag] = TagTable.selectAllTags().filter( tag => !excludedTags.contains(tag.tag))
+    Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
       "tag_id" -> tag.tagId,
       "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
       "tag" -> tag.tag
