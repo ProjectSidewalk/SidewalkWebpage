@@ -185,8 +185,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Leaderboard", timestamp))
-        Future.successful(Ok(views.html.leaderboardPage("Project Sidewalk - Leaderboard", Some(user),
-          UserStatTable.getLeaderboardStats(10), UserStatTable.getLeaderboardStats(10, "weekly"))))
+        Future.successful(Ok(views.html.leaderboardPage("Project Sidewalk - Leaderboard", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/leaderboard"))
     }
