@@ -27,17 +27,6 @@
     top: 10px;
 }
 
-#Holder_LabelEditIcon {
-    cursor: pointer;
-    visibility: hidden;
-    /* Position */
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    left: -40px;
-    top: 10px;
-}
-
 #LabelDeleteIcon, #LabelEditIcon {
     height: 20px;
     width: 20px;

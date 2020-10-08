@@ -10,6 +10,7 @@ ok = OK
 cancel = Cancelar
 error = ¡Error!
 thanks = ¡Gracias!
+username = Nombre de usuario/a
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -22,6 +23,7 @@ navbar.results = Mapa de resultados
 navbar.data = Datos
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
+navbar.leaderboard = Tabla de clasificación
 navbar.retake.tutorial = Volver a tomar el tutorial
 navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
@@ -182,7 +184,6 @@ authenticate.password = Contraseña
 authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
-authenticate.username = Nombre de usuario/a
 authenticate.confirm.password = Confirmar contraseña
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
@@ -242,5 +243,14 @@ labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay ban
 labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
 admin.overview.distance = km
-
 admin.clear.play.cache = Borrar caché de Play
+
+leaderboard.overall.title = Tabla de clasificación general
+leaderboard.weekly.title = Tabla de clasificación semanal
+leaderboard.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
+leaderboard.header.labels = Etiquetas
+leaderboard.header.missions = Misiones
+leaderboard.header.distance = Distancia
+leaderboard.header.accuracy = Precisión
+leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
+leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
