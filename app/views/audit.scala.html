@@ -349,9 +349,6 @@
                     <div id="delete-icon-holder">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="LabelDeleteIcon" />
                     </div>
-                    <div id="Holder_LabelEditIcon">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_Edit.png")' id="LabelEditIcon" />
-                    </div>
                     <div id="context-menu-holder">
                         <div id="context-menu-close-button-holder">
                             <button type="button" id="context-menu-close-button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -472,7 +469,9 @@
                         <p>@Messages("audit.left.ui.jump.title")</p>
                     </div>
                     <div id="modal-skip-box-content">
-                        <input type="button" class="overlay-option" id="modal-skip-explore" value="@Messages("audit.left.ui.jump.button.explore")">
+                        @if(user.isEmpty || user.get.role.getOrElse("") != "Turker") {
+                            <input type="button" class="overlay-option" id="modal-skip-explore" value="@Messages("audit.left.ui.jump.button.explore")">
+                        }
                         <input type="button" class="overlay-option" id="modal-skip-unavailable" value="@Messages("audit.left.ui.jump.button.unavailable")">
                     </div>
                     <div class="modal-skip-cancel-button">
@@ -844,7 +843,7 @@
                 hitExpired = true;
             }
         }
-        if(hitExpired) {
+        if (hitExpired) {
             $(".toolUI").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else @if(task) {

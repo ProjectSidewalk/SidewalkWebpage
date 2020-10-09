@@ -358,7 +358,7 @@ object UserDAOSlick {
   /**
    * Count the number of researchers who have ever started (or completed) an audit task.
    *
-   * Researchers include the Researcher, Adminstrator, and Owner roles.
+   * Researchers include the Researcher, Administrator, and Owner roles.
    *
    * @param taskCompleted
    * @return
