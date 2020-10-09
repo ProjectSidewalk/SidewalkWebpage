@@ -68,6 +68,18 @@ function Card (params, imageUrl) {
         };
     }
 
+    // function getImageProcess(src) {
+    //     return new Promise((resolve, reject) => {
+    //         console.log("grabbing image");
+    //         let img = document.getElementById("label_id_" + properties.label_id);
+    //         img.onload = () => resolve;
+    //         img.onerror = reject;
+    //         img.src = src;
+    //         status.imageFetched = true;
+    //         console.log(status.imageFetched);
+    //     });
+    // }
+
     /**
      * This function returns labelId property
      * @returns {string}
@@ -116,9 +128,15 @@ function Card (params, imageUrl) {
         cardContainer.append(card);
 
         if (!status.imageFetched) {
-            console.log("grabbing image");
-            status.imageFetched = true;
-            document.getElementById("label_id_" + properties.label_id).src = imageUrl;
+            let img = document.getElementById("label_id_" + properties.label_id);
+            img.onload = () => {
+                status.imageFetched = true;
+                cardContainer.append(card);
+            };
+
+            img.src = imageUrl;
+        } else {
+            cardContainer.append(card);
         }
 
         setStatus("visibility", "visible");

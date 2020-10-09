@@ -176,6 +176,7 @@ function CardContainer(uiCardContainer) {
         let cardBucket = currentCards.getCards();
         let severities = sg.tagContainer.getSeverities();
 
+        //console.time('render cards');
         for (let i = 0; i < severities.length; i++){
             if (severities[i].getActive()){
                 let subBucket = cardBucket[severities[i].getSeverity()];
@@ -186,6 +187,7 @@ function CardContainer(uiCardContainer) {
                 }
             }
         }
+        //console.timeEnd('render cards');
     }
 
     /**
