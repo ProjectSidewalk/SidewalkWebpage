@@ -66,7 +66,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getLabelTags() = Action.async { implicit request =>
     val cityStr: String = Play.configuration.getString("city-id").get
-    val excludedTags: List[String] = Play.configuration.getList("city-params.excluded-tags." + cityStr).get.unwrapped().asInstanceOf[java.util.List[String]].asScala.toList
+    val excludedTags: List[String] = Play.configuration.getStringList("city-params.excluded-tags." + cityStr).get.asScala.toList
     val tags: List[Tag] = TagTable.selectAllTags().filter( tag => !excludedTags.contains(tag.tag))
     Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
       "tag_id" -> tag.tagId,
