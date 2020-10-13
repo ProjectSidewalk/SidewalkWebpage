@@ -21,30 +21,30 @@
     },
     "correct": {
       "CurbRamp": {
-        "title": "Rampa peatonal <i>CORRECTA</i>",
+        "title": "Rampa peatonal <strong>correcta</strong>",
         "example-1-to-4": "Esta etiqueta está colocada correctamente en la parte inferior de una rampa peatonal"
       },
       "NoCurbRamp": {
-        "title": "Rampa peatonal ausente <i>CORRECTA</i>",
+        "title": "Rampa peatonal ausente <strong>correcta</strong>",
         "example-1-to-3": "Esta intersección carece de una rampa peatonal",
         "example-4": "Este cruce peatonal indica que debería haber una rampa peatonal aquí"
       },
       "Obstacle": {
-        "title": "Obstáculo <i>CORRECTO</i>",
+        "title": "Obstáculo <strong>correcto</strong>",
         "example-1": "Estos conos de construcción están bloqueando un paso peatonal",
         "example-2": "Este árbol bloquea toda la banqueta",
         "example-3": "Este poste bloquea la banqueta y la entrada de la rampa peatonal",
         "example-4": "Este hidrante contra incendio bloquea la banqueta"
       },
       "SurfaceProblem": {
-        "title": "Problema en superficie <i>CORRECTO</i>",
+        "title": "Problema en superficie <strong>correcto</strong>",
         "example-1": "La banqueta está muy dispareja",
         "example-2": "Las banquetas de ladrillo son irregulares y pueden ser difíciles de transitar",
         "example-3": "La banqueta está agrietada",
         "example-4": "Hay mucha hierba creciendo entre las grietas de la banqueta"
       },
       "NoSidewalk": {
-        "title": "No hay banqueta <i>CORRECTO</i>",
+        "title": "No hay banqueta <strong>correcto</strong>",
         "example-1-to-2": "Esta es una banqueta que termina abruptamente",
         "example-3": "Esta calle no tiene banqueta",
         "example-4": "Esta intersección no tiene banqueta"
@@ -52,32 +52,32 @@
     },
     "incorrect": {
       "CurbRamp": {
-        "title": "Rampa peatonal <i>INCORRECTA</i>",
+        "title": "Rampa peatonal <strong>incorrecta</strong>",
         "example-1-to-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
         "example-3-to-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
       },
       "NoCurbRamp": {
-        "title": "Rampa peatonal ausente <i>INCORRECTA</i>",
+        "title": "Rampa peatonal ausente <strong>incorrecta</strong>",
         "example-1": "Los caminos de las entradas residenciales no deben marcarse como una rampa peatonal ausente",
         "example-2-and-4": "Esto no está ubicado en un camino peatonal",
         "example-3": "Esta no es una intersección en la que las personas peatonas deben cruzar"
       },
       "Obstacle": {
-        "title": "Obstáculo <i>INCORRECTO</i>",
+        "title": "Obstáculo <strong>incorrecto</strong>",
         "example-1": "Hay suficiente espacio para maniobrar cómodamente alrededor de este poste",
         "example-2": "Este poste está ubicado entre las rampas peatonales, pero en ellas",
         "example-3": "Este árbol no está en el camino peatonal",
         "example-4": "Hay suficiente espacio para maniobrar cómodamente alrededor de esta tapadera"
       },
       "SurfaceProblem": {
-        "title": "Problema en superficie <i>INCORRECTO</i>",
+        "title": "Problema en superficie <strong>incorrecto</strong>",
         "example-1": "Los problemas en la superficie de las rampas peatonales deben marcarse con una etiqueta de rampa peatonal más grave",
         "example-2": "Este cascajo no está en el camino peatonal",
         "example-3": "Esta hierba no está en el camino peatonal",
         "example-4": "Las baldosas normales de las banquetas no son un problemas de superficie"
       },
       "NoSidewalk": {
-        "title": "No hay banqueta <i>INCORRECTO</i>",
+        "title": "No hay banqueta <strong>incorrecto</strong>",
         "example-1": "Las banquetas muy angosta no deben etiquetarse como sin banqueta",
         "example-2": "Los caminos de las entradas residenciales no deben etiquetarse como \"no hay banqueta\"",
         "example-3": "Los camellones no deben etiquetarse como \"no hay banqueta\"",
