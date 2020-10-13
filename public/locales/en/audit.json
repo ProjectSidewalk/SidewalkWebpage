@@ -124,7 +124,7 @@
                 "alternate-route-present": "<tag-underline>a</tag-underline>lternate route present",
                 "no-alternate-route": "no a<tag-underline>l</tag-underline>ternate route",
                 "unclear-if-needed": "<tag-underline>u</tag-underline>nclear if needed",
-                "trash-recycling-can": "trash/rec<tag-underline>y</tag-underline>cling can",
+                "trash-recycling-can": "tras<tag-underline>h</tag-underline>/recycling can",
                 "fire-hydrant": "<tag-underline>f</tag-underline>ire hydrant",
                 "pole": "<tag-underline>p</tag-underline>ole",
                 "tree": "tr<tag-underline>e</tag-underline>e",
@@ -147,7 +147,7 @@
                 "ends-abruptly": "ends <tag-underline>a</tag-underline>bruptly",
                 "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a sidewalk",
                 "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no sidewalks",
-                "gravel-dirt-road": "<tag-underline>g</tag-underline>ravel/dirt road",
+                "gravel-dirt-road": "gravel/<tag-underline>d</tag-underline>irt road",
                 "shared-pedestrian-car-space": "shared <tag-underline>p</tag-underline>edestrian/car space",
                 "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing crosswalk",
                 "no-bus-stop-access": "no bus stop <tag-underline>a</tag-underline>ccess"

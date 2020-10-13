@@ -293,8 +293,8 @@ function UtilitiesMisc (JSON) {
                 },
                 tagInfo: {
                     'trash/recycling can': {
-                        keyNumber: 89,
-                        keyChar: 'Y',
+                        keyNumber: 72,
+                        keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.trash-recycling-can')
                     },
                     'fire hydrant': {
@@ -433,8 +433,8 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks')
                     },
                     'gravel/dirt road': {
-                        keyNumber: 71,
-                        keyChar: 'G',
+                        keyNumber: 68,
+                        keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.gravel-dirt-road')
                     },
                     'shared pedestrian/car space': {

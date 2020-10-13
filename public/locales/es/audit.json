@@ -124,7 +124,7 @@
                 "alternate-route-present": "hay una ruta <tag-underline>a</tag-underline>lternativa segura para cruzar",
                 "no-alternate-route": "no hay una ruta a<tag-underline>l</tag-underline>ternativa para cruzar",
                 "unclear-if-needed": "poco claro si es necesario (<tag-underline>u</tag-underline>)",
-                "trash-recycling-can": "basurero (<tag-underline>y</tag-underline>)",
+                "trash-recycling-can": "basurero (<tag-underline>h</tag-underline>)",
                 "fire-hydrant": "hidrante contra incendio (<tag-underline>f</tag-underline>)",
                 "pole": "<tag-underline>p</tag-underline>oste",
                 "tree": "árbol (<tag-underline>e</tag-underline>)",
@@ -147,7 +147,7 @@
                 "ends-abruptly": "termina <tag-underline>a</tag-underline>bruptamente",
                 "street-has-a-sidewalk": "la calle tiene una banqueta (<tag-underline>r</tag-underline>)",
                 "street-has-no-sidewalks": "la calle no <tag-underline>t</tag-underline>iene banquetas",
-                "gravel-dirt-road": "camino de tierra (<tag-underline>g</tag-underline>)",
+                "gravel-dirt-road": "camino <tag-underline>d</tag-underline>e tierra",
                 "shared-pedestrian-car-space": "<tag-underline>p</tag-underline>lataforma única",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús"
