@@ -105,7 +105,7 @@ audit.right.ui.red.line = Sigue la línea roja
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
 audit.center.ui.add.tags = Agregar etiquetas:
-audit.center.ui.temporary = Temporal (p. ej., construcción)
+audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
 audit.center.ui.show.again = No mostrar de nuevo
 
 audit.mission.complete.labels.title = Etiquetas de la misión
