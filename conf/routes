@@ -25,6 +25,7 @@ GET     /labelingGuide/occlusion                             @controllers.Applic
 GET     /mobile                                              @controllers.ValidationController.mobileValidate
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
+GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")

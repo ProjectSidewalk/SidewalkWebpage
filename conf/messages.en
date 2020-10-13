@@ -11,6 +11,7 @@ ok = OK
 cancel = Cancel
 error = Error!
 thanks = Thanks!
+username = Username
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -23,6 +24,7 @@ navbar.results = Results Map
 navbar.data = Data
 navbar.labelmap = Label Map
 navbar.help = Help
+navbar.leaderboard = Leaderboard
 navbar.retake.tutorial = Retake Tutorial
 navbar.signin = Sign in
 navbar.signout = Sign out
@@ -165,11 +167,14 @@ validate.bottom.ui.disagree = <u>D</u>isagree
 validate.bottom.ui.not.sure = <u>N</u>ot sure
 validate.bottom.ui.add.comment = Add comment here...
 validate.right.ui.current.mission = Current Mission
+validate.right.ui.correct.examples = <strong>Correct</strong> Examples
+validate.right.ui.incorrect.examples = <strong>Incorrect</strong> Examples
 validate.mission.complete.category = Category
 validate.mission.complete.agree = Agree
 validate.mission.complete.disagree = Disagree
 validate.mission.complete.not.sure = Not Sure
 validate.mission.complete.your.overall.total = Your Overall Total
+
 
 mobile.validate.leave.feedback = Leave Feedback
 
@@ -183,7 +188,6 @@ authenticate.password = Password
 authenticate.submit = Submit
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="/signUp">Sign up now</a>
-authenticate.username = Username
 authenticate.confirm.password = Confirm password
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
@@ -243,5 +247,14 @@ labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starti
 labeling.guide.occlusion.summary = Sometimes the view of the sidewalk is completely blocked. In these cases, you should place a "Can&#39;t See the Sidewalk" label. This should rarely be used, so only place the "Can&#39;t See the Sidewalk" label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
 
 admin.overview.distance = km
-
 admin.clear.play.cache = Clear Play cache
+
+leaderboard.overall.title = Overall Leaderboard
+leaderboard.weekly.title = Weekly Leaderboard
+leaderboard.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.header.labels = Labels
+leaderboard.header.missions = Missions
+leaderboard.header.distance = Distance
+leaderboard.header.accuracy = Accuracy
+leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
+leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
