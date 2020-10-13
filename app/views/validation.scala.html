@@ -184,7 +184,9 @@
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header-1" id="label-type-example"></h1>
+                    <h1 class="status-holder-header-1" id="label-type-example">
+                        @Html(Messages("validate.right.ui.correct.examples"))
+                    </h1>
                     <div id="example-image-holder">
                         <img id="example-image-1" class="example-image">
                         <img id="example-image-2" class="example-image">
@@ -193,7 +195,9 @@
                     </div>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header-2" id="label-type-counterexample"></h1>
+                    <h1 class="status-holder-header-2" id="label-type-counterexample">
+                        @Html(Messages("validate.right.ui.incorrect.examples"))
+                    </h1>
                     <div id="example-image-holder">
                         <img id="counterexample-image-1" class="example-image">
                         <img id="counterexample-image-2" class="example-image">

@@ -10,6 +10,7 @@ ok = OK
 cancel = Cancelar
 error = ¡Error!
 thanks = ¡Gracias!
+username = Nombre de usuario/a
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -22,6 +23,7 @@ navbar.results = Mapa de resultados
 navbar.data = Datos
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
+navbar.leaderboard = Tabla de clasificación
 navbar.retake.tutorial = Volver a tomar el tutorial
 navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
@@ -103,7 +105,7 @@ audit.right.ui.red.line = Sigue la línea roja
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
 audit.center.ui.add.tags = Agregar etiquetas:
-audit.center.ui.temporary = Temporal (p. ej., construcción)
+audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
 audit.center.ui.show.again = No mostrar de nuevo
 
 audit.mission.complete.labels.title = Etiquetas de la misión
@@ -164,6 +166,8 @@ validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro
 validate.bottom.ui.add.comment = Agrega un comentario aquí...
 validate.right.ui.current.mission = Misión actual
+validate.right.ui.correct.examples = Ejemplo <strong>Correcto</strong>
+validate.right.ui.incorrect.examples = Ejemplo <strong>Incorrecto</strong>
 validate.mission.complete.category = Categoría
 validate.mission.complete.agree = De Acuerdo
 validate.mission.complete.disagree = No Estoy de acuerdo
@@ -182,7 +186,6 @@ authenticate.password = Contraseña
 authenticate.submit = Enviar
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
 authenticate.non.member = ¿No eres un miembro? <a href="/signUp">Regístrate ahora</a>
-authenticate.username = Nombre de usuario/a
 authenticate.confirm.password = Confirmar contraseña
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
@@ -244,8 +247,17 @@ labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atr
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
-labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
+labeling.guide.occlusion.summary = A veces no puedes ver la acera en absoluto. En estos casos, debes colocar una etiqueta de "No Puedo Ver la Banqueta". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
 admin.overview.distance = km
-
 admin.clear.play.cache = Borrar caché de Play
+
+leaderboard.overall.title = Tabla de clasificación general
+leaderboard.weekly.title = Tabla de clasificación semanal
+leaderboard.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
+leaderboard.header.labels = Etiquetas
+leaderboard.header.missions = Misiones
+leaderboard.header.distance = Distancia
+leaderboard.header.accuracy = Precisión
+leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de tus etiquetas han sido validadas
+leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)

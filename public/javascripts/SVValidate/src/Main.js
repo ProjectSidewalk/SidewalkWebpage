@@ -100,8 +100,6 @@ function Main (param) {
 
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
-        svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
-        svv.ui.status.labelTypeExample = $("#label-type-example");
         svv.ui.status.missionDescription = $("#current-mission-description");
         svv.ui.status.currentMissionReward = $("#current-mission-reward");
         svv.ui.status.totalMissionReward = $("#total-mission-reward");
