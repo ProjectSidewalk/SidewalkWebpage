@@ -6,7 +6,7 @@ surface.problem = Surface Problem
 no.sidewalk = No Sidewalk
 other = Other
 labels = labels
-miles = miles
+dist.metric.abbr = mi
 ok = OK
 cancel = Cancel
 error = Error!
@@ -251,7 +251,7 @@ labeling.guide.surface.problem.summary = A surface problem is a problem that wou
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
 labeling.guide.occlusion.summary = Sometimes the view of the sidewalk is completely blocked. In these cases, you should place a "Can''t See the Sidewalk" label. This should rarely be used, so only place the "Can''t See the Sidewalk" label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
 
-admin.overview.distance = km
+dist.metric.abbr = km
 admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard

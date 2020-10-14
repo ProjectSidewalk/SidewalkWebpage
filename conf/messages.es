@@ -6,6 +6,7 @@ surface.problem = Problema en superficie
 no.sidewalk = No hay banqueta
 other = Otro
 labels = etiquetas
+dist.metric.abbr = km
 ok = OK
 cancel = Cancelar
 error = ¡Error!
@@ -249,7 +250,6 @@ labeling.guide.surface.problem.summary = Un problema en la superficie es un inco
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
 labeling.guide.occlusion.summary = A veces no puedes ver la acera en absoluto. En estos casos, debes colocar una etiqueta de "No Puedo Ver la Banqueta". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
-admin.overview.distance = km
 admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general

@@ -14,6 +14,7 @@ import models.label.{LabelTable, LabelValidationTable}
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.extras.geojson
+import play.api.i18n.Messages
 
 
 import scala.concurrent.Future
@@ -31,7 +32,11 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         val username: String = user.username
-        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user))))
+        // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+        val auditedDistance: Float =
+          if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
+          else MissionTable.getDistanceAudited(user.userId)
+        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user), auditedDistance)))
       case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }
   }
