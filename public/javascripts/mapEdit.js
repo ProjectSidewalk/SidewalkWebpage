@@ -12,7 +12,7 @@ $(document).ready(function () {
         mapboxTiles = L.tileLayer(tileUrl, {
             attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
         }),
-        map = L.mapbox.map('map', "mapbox.streets", {
+        map = L.mapbox.map('map', null, {
             // set that bounding box as maxBounds to restrict moving the map
             // see full maxBounds documentation:
             // http://leafletjs.com/reference.html#map-maxbounds
@@ -21,9 +21,9 @@ $(document).ready(function () {
             minZoom: 9,
             zoomSnap: 0.5
         })
-        // .addLayer(mapboxTiles)
-        .fitBounds(bounds)
-        .setView([38.912651, -76.993827], 16);
+            .fitBounds(bounds)
+            .setView([38.912651, -76.993827], 16)
+            .addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     var svg = d3.select(map.getPanes().overlayPane).append("svg"),
         g = svg.append("g").attr("class", "leaflet-zoom-hide");
@@ -38,7 +38,7 @@ $(document).ready(function () {
         minLng = southWest.lng,
         maxLat = northEast.lat,
         maxLng = northEast.lng,
-        url = "/geometry/streets?minLat=" + minLat + "&minLng=" + minLng + "&maxLat=" + maxLat + "&maxLng=" + maxLng,
+        url = "/v2/access/score/streets?lat1=" + minLat + "&lng1=" + minLng + "&lat2=" + maxLat + "&lng2=" + maxLng,
         graph = new Graph(_),
         graphEdit;
 

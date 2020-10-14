@@ -105,7 +105,7 @@ audit.right.ui.red.line = Sigue la línea roja
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
 audit.center.ui.add.tags = Agregar etiquetas:
-audit.center.ui.temporary = Temporal (p. ej., construcción)
+audit.center.ui.temporary = Temporal (p. ej., obra en construcción)
 audit.center.ui.show.again = No mostrar de nuevo
 
 audit.mission.complete.labels.title = Etiquetas de la misión
@@ -242,7 +242,7 @@ labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atr
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
-labeling.guide.occlusion.summary = La oclusión es cuando no puedes ver nada en absoluto. En estos casos, debes colocar una etiqueta de "Oclusión". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
+labeling.guide.occlusion.summary = A veces no puedes ver la acera en absoluto. En estos casos, debes colocar una etiqueta de "No Puedo Ver la Banqueta". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
 admin.overview.distance = km
 admin.clear.play.cache = Borrar caché de Play
