@@ -42,11 +42,11 @@ function LabelMap(_, $) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "mapbox.streets", {
+    var map = L.mapbox.map('admin-map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     // Set the city-specific default zoom and location.
     $.getJSON('/cityMapParams', function(data) {

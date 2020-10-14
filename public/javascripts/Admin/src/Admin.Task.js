@@ -9,9 +9,12 @@ function AdminTask(params) {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
 
-    var map = L.mapbox.map('map', "mapbox.streets", {zoomControl: false})
-    // .addLayer(mapboxTiles)
-        .setView([38.910, -77.040], 17);
+    var map = L.mapbox.map('map', null, {
+        zoomControl: false,
+        scrollWheelZoom: false
+    })
+        .setView([38.910, -77.040], 17)
+        .addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     // Don't allow zooming (yet!)
     map.touchZoom.disable();
