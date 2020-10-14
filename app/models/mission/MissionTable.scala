@@ -22,9 +22,6 @@ import scala.slick.jdbc.GetResult
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
                            distanceMeters: Option[Float], labelsValidated: Option[Int])
 
-case class AuditMission(userId: String, username: String, missionId: Int, completed: Boolean, missionStart: Timestamp,
-                        missionEnd: Timestamp, neighborhood: Option[String], labelId: Option[Int], labelType: Option[String])
-
 case class MissionSetProgress(missionType: String, numComplete: Int)
 
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
@@ -107,10 +104,6 @@ object MissionTable {
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
-
-  val labels = TableQuery[LabelTable]
-  val labelTypes = TableQuery[LabelTypeTable]
-  val regionProperties = TableQuery[RegionPropertyTable]
 
   // Distances for first few missions: 500 ft, 500 ft, 750 ft, then 1,000 ft for all remaining.
   val distancesForFirstAuditMissions: List[Float] = List(152.4F, 152.4F, 228.6F)
@@ -434,41 +427,6 @@ object MissionTable {
     )
 
     regionalMissions.sortBy(rm => (rm.regionId, rm.missionId))
-  }
-
-  /**
-    * Return a list of missions for a specific user
-    *
-    * @param userId User id
-    * @return
-    */
-  def selectMissions(userId: UUID): List[AuditMission] = db.withSession { implicit session =>
-    // gets all the missions that correspond to the user
-    val userMissions = for {
-      _users <- users if _users.userId === userId.toString
-      _missions <- missions if _missions.skipped === false && _missions.userId === _users.userId
-      _missionTypes <- missionTypes if _missions.missionTypeId === _missionTypes.missionTypeId &&
-                                       (_missionTypes.missionType === "audit" ||
-                                       _missionTypes.missionType === "auditOnboarding")
-    } yield (_users.userId, _users.username, _missions.missionId, _missions.completed, _missions.missionStart, _missions.missionEnd, _missions.regionId)
-
-    // gets all the labels for all the missions but maintains missions that have no labels
-    val userMissionLabels = for {
-      (_userMissions, _labels) <- userMissions.leftJoin(labels).on(_._3 === _.missionId)
-    } yield (_userMissions._1, _userMissions._2, _userMissions._3, _userMissions._4, _userMissions._5, _userMissions._6, _userMissions._7, _labels.labelId.?, _labels.labelTypeId.?)
-
-    // changes the id of each label to a string representing its label type
-    val missionsWithLabels = for {
-      (_userMissionLabels, _labelTypes) <- userMissionLabels.leftJoin(labelTypes).on(_._9 === _.labelTypeId)
-    } yield (_userMissionLabels._1, _userMissionLabels._2, _userMissionLabels._3, _userMissionLabels._4, _userMissionLabels._5, _userMissionLabels._6, _userMissionLabels._7, _userMissionLabels._8, _labelTypes.labelType.?)
-
-    // changes the region id to the name of the neighborhood
-    val missionsWithNeighborhoods = for {
-      (_missionsWithLabels, _regionProperties) <- missionsWithLabels.leftJoin(regionProperties).on(_._7 === _.regionId)
-    } yield (_missionsWithLabels._1, _missionsWithLabels._2, _missionsWithLabels._3, _missionsWithLabels._4, _missionsWithLabels._5, _missionsWithLabels._6, _regionProperties.value.?, _missionsWithLabels._8, _missionsWithLabels._9)
-
-    // formats the finalized JSON object using the format in the MissionFormat class
-    missionsWithNeighborhoods.list.map(x => AuditMission.tupled(x))
   }
 
   /**

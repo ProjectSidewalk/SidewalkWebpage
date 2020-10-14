@@ -3,8 +3,6 @@ function Progress (_, $, L, role, difficultRegionIds) {
     var completedInitializingNeighborhoodPolygons = false;
     var completedInitializingAuditedStreets = false;
     var completedInitializingSubmittedLabels = false;
-    var completedInitializingAuditCountChart = false;
-    var completedInitializingAuditedTasks = false;
 
     var neighborhoodPolygonStyle = {
             color: '#888',
@@ -50,9 +48,7 @@ function Progress (_, $, L, role, difficultRegionIds) {
     function handleInitializationComplete (map) {
         if (completedInitializingNeighborhoodPolygons &&
             completedInitializingAuditedStreets &&
-            completedInitializingSubmittedLabels &&
-            completedInitializingAuditCountChart &&
-            completedInitializingAuditedTasks
+            completedInitializingSubmittedLabels
         ) {
 
             // Search for a region id in the query string. If you find one, focus on that region.

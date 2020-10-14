@@ -7,7 +7,6 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
-import formats.json.MissionFormat._
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.mission.MissionTable
 import models.label.{LabelTable, LabelValidationTable}
@@ -111,22 +110,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    *
-    * @return
-    */
-  def getMissions = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val tasksWithLabels = MissionTable.selectMissions(user.userId).map(x => Json.toJson(x))
-        Future.successful(Ok(JsArray(tasksWithLabels)))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
-    }
-  }
-
-  /**
    * Get a list of labels submitted by the user
    * @return
    */
@@ -213,25 +196,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
             "message" -> "There are no existing audit records."
           )))
         }
-      case None => Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "We could not find your username."
-      )))
-    }
-  }
-
-  /**
-    *
-    * @return
-    */
-  def getAuditCounts = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val auditCounts = AuditTaskTable.selectAuditCountsPerDayByUserId(user.userId)
-        val json = Json.arr(auditCounts.map(x => Json.obj(
-          "date" -> x.date, "count" -> x.count
-        )))
-        Future.successful(Ok(json))
       case None => Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "We could not find your username."
