@@ -9,16 +9,16 @@ function Choropleth(_, $, difficultRegionIds) {
 
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('choropleth', "mapbox.light", {
+    var choropleth = L.mapbox.map('choropleth', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: false,
+        scrollWheelZoom: false,
         legendControl: {
             position: 'bottomleft'
         },
         zoomSnap: 0.5
-    });
-    choropleth.scrollWheelZoom.disable();
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
 
     L.control.zoomslider().addTo(choropleth);
 

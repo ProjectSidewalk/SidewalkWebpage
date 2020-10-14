@@ -16,16 +16,16 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('choropleth', "mapbox.light", {
+    var choropleth = L.mapbox.map('choropleth', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: false,
+        scrollWheelZoom: false,
         legendControl: {
             position: 'topright'
         },
         zoomSnap: 0.5
-    });
-    choropleth.scrollWheelZoom.disable();
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
