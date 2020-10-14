@@ -16,35 +16,37 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/util/GalleryPanoUtilities.js")'></script>
 
     @navbar(user, Some("/sidewalkGallery"))
-    <div id="gallery-overview-container">
-        <h1 class="gallery-title">Welcome to Sidewalk Gallery</h1>
-        <div id="card-filter">
-            <h2>View different sidewalk accessibility issues</h2>
-            <div id="ribbon-menu-holder">
-                <span id="label-type-holder">
-                    <button id="Button_CurbRamp" class="modeSwitch" val="CurbRamp">
-                        <div class="modeSwitch_Name">Curb Ramp</div>
-                    </button>
-                    <button id="Button_NoCurbRamp" class="modeSwitch" val="NoCurbRamp">
-                        <div class="modeSwitch_Name">Missing Curb Ramp</div>
-                    </button>
-                    <button id="Button_Obstacle" class="modeSwitch" val="Obstacle">
-                        <div class="modeSwitch_Name">Obstacle in Path</div>
-                    </button>
+    <div id="gallery-overview-container" class="container-fluid">
+        <h1>Welcome to Sidewalk Gallery</h1>
+        <h2>View different sidewalk accessibility issues</h2>
+        <div class="row">
+            <div id="card-filter" class="col-md-2">
+                <div id="ribbon-menu-holder">
+                    <span id="label-type-holder">
+                        <button id="Button_CurbRamp" class="modeSwitch" val="CurbRamp">
+                            <div class="modeSwitch_Name">Curb Ramp</div>
+                        </button>
+                        <button id="Button_NoCurbRamp" class="modeSwitch" val="NoCurbRamp">
+                            <div class="modeSwitch_Name">Missing Curb Ramp</div>
+                        </button>
+                        <button id="Button_Obstacle" class="modeSwitch" val="Obstacle">
+                            <div class="modeSwitch_Name">Obstacle in Path</div>
+                        </button>
+                    </span>
+                    
+                </div>
+                <div id="card-sort-menu-holder">
+                    <span id="sort_severity" class="sortSwitch" val="severity">Least Severe</span>
+    @*                <span>Newest</span>*@
+    @*                <span>Oldest</span>*@
+                </div>
+                <span id="tags">
                 </span>
-                
+                <span id="severity">
+                </span>
             </div>
-            <div id="card-sort-menu-holder">
-                <span id="sort_severity" class="sortSwitch" val="severity">Least Severe</span>
-@*                <span>Newest</span>*@
-@*                <span>Oldest</span>*@
+            <div id="image-card-container" class="col-md-10">
             </div>
-            <span id="tags">
-            </span>
-            <span id="severity">
-            </span>
-        </div>
-        <div id="image-card-container">
         </div>
     </div>
     @footer()
