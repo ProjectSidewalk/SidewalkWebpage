@@ -8,20 +8,20 @@ $(document).ready(function () {
     });
 
     // Maps
-    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', "mapbox.streets", {
+    var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
-    var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', "mapbox.streets", {
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+    var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
-    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', "mapbox.streets", {
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+    var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
         maxZoom: 19,
         minZoom: 9
-    });
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     var colorMapping = util.misc.getLabelColors();
 
