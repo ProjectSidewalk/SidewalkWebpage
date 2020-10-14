@@ -28,12 +28,12 @@
         </div>
         
         <div class="row" style="margin-top: 30px">
-            <div class="primary-user-stats-holder">
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.your.missions")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.distance")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.labels")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.validations")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.accuracy")</span>
+            <div class="user-stats-holder">
+                <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
+                <span class="user-stats-header">@Messages("dashboard.distance")</span>
+                <span class="user-stats-header">@Messages("dashboard.labels")</span>
+                <span class="user-stats-header">@Messages("dashboard.validations")</span>
+                <span class="user-stats-header">@Messages("dashboard.accuracy")</span>
 
                 <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")'/>
                 <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")'/>
@@ -41,11 +41,11 @@
                 <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")'/>
                 <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")'/>
 
-                <span class="ps-skyline-stats-holder-stat-number">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
-                <span class="ps-skyline-stats-holder-stat-number">@{s"%.1f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
-                <span class="ps-skyline-stats-holder-stat-number">@LabelTable.countLabelsByUserId(user.get.userId)</span>
-                <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
-                <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
+                <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
+                <span class="user-stats-stat">@{s"%.1f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
+                <span class="user-stats-stat">@LabelTable.countLabelsByUserId(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
 
             </div>
         </div>
