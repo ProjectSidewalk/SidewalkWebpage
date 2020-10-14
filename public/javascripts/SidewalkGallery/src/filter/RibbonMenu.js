@@ -14,19 +14,18 @@ function RibbonMenu(uiRibbonMenu) {
 
     function _init() {
         if (uiRibbonMenu) {
-            uiRibbonMenu.buttons.bind({
-                click: handleLabelTypeSwitchClickCallback
-            });
+            uiRibbonMenu.select.bind({
+                change: handleLabelSelectSwitchChangeCallback
+            })
         }
     }
 
-    function handleLabelTypeSwitchClickCallback() {
-        let labelType = $(this).attr('val');
+    function handleLabelSelectSwitchChangeCallback() {
+        let labelType = $(this).val();
         setStatus("currentLabelType", labelType);
-
-        //TODO: Can we do this without referencing sg namespace?
         sg.tagContainer.update();
     }
+
 
     function getCurrentLabelType() {
         return status.currentLabelType;

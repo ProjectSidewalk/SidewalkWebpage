@@ -58,27 +58,21 @@ function CardSortMenu(uiCardSortMenu) {
     let self = this;
 
     let status = {
-        severity: 1
+        severity: 1,
+        sortType: "none"
     };
 
     function _init() {
         if (uiCardSortMenu) {
-            uiCardSortMenu.switches.bind({
-                click: handleSortSwitchClickCallback
+            uiCardSortMenu.sort.bind({
+                change: handleSortSwitchClickCallback
             });
         }
     }
 
     function handleSortSwitchClickCallback() {
-        let domElem = $(this);
-        if (domElem.text() === "Least Severe") {
-            domElem.text("Most Severe");
-        } else {
-            domElem.text("Least Severe");
-        }
-
-        let sortType = domElem.attr('val');
-        setStatus(sortType, status[sortType] * -1);
+        let sortType = $(this).val();
+        setStatus("sortType", sortType);
 
         //TODO: Can we do this without referencing sg namespace?
         sg.cardContainer.sortCards();

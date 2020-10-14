@@ -19,10 +19,10 @@ function Main (params) {
         sg.ui.cardFilter.severity = $("#severity");
         sg.ui.ribbonMenu = {};
         sg.ui.ribbonMenu.holder = $("#ribbon-menu-holder");
-        sg.ui.ribbonMenu.buttons = $('button.modeSwitch');
+        sg.ui.ribbonMenu.select = $('#label-select');
         sg.ui.cardSortMenu = {};
         sg.ui.cardSortMenu.holder = $("#card-sort-menu-holder");
-        sg.ui.cardSortMenu.switches = $('span.sortSwitch');
+        sg.ui.cardSortMenu.sort = $('#card-sort-select');
         sg.ui.cardContainer = {};
         sg.ui.cardContainer.holder = $("#image-card-container");
     }
