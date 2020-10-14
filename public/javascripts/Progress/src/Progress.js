@@ -317,16 +317,7 @@ function Progress (_, $, L, role, difficultRegionIds) {
             })
                 .addTo(map);
 
-            // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
-            for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
-            }
-            var totalDistanceAuditedElement = document.getElementById("td-total-distance-audited")
-            if (totalDistanceAuditedElement != null){
-                totalDistanceAuditedElement.innerHTML = distanceAudited.toPrecision(2) + " " +
-                    i18next.t("common:unit-abbreviation-distance-user-dashboard");
-            }
-            // Get total reward if a turker
+            // Get total reward if a turker.
             if (role === 'Turker') {
                 $.ajax({
                     async: true,

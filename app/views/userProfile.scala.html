@@ -55,14 +55,9 @@
             <div class="row" style="margin-top: 20px">
                 <table class="table table-striped table-condensed">
                     <tr>
-                        <th>@Messages("dashboard.distance")</th>
-                        <th>@Messages("dashboard.missions")</th>
-                        <th>Total Reward Earned</th>
+                        <th>@Messages("turk.reward.earned")</th>
                     </tr>
                     <tr>
-                        <!-- The id='td-total-distance-audited' is automatically filled by "javascripts/Progress/build/Progress.js"-->
-                        <td id="td-total-distance-audited">Hello</td>
-                        <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
                         <td id="td-total-reward-earned"></td>
                     </tr>
                 </table>
