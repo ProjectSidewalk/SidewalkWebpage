@@ -30,11 +30,14 @@ function CardContainer(uiCardContainer) {
         Problem: null
     };
 
+    // Keep track of labels we have loaded already as to not grab the same label from the backend
+    let loadedLabelIds = new Set();
+
     // Current labels being displayed of current type based off filters
     let currentCards = new CardBucket();
 
-    function fetchLabelsByType(labelTypeId, callback) {
-        $.getJSON("/label/labelsByType?labelTypeId=" + labelTypeId, function (data) {
+    function fetchLabelsByType(labelTypeId, n, loadedLabels, callback) {
+        $.getJSON("/label/labelsByType", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels)}, function (data) {
             if ("labelsOfType" in data) {
                 let labels = data.labelsOfType,
                     card,
@@ -45,6 +48,7 @@ function CardContainer(uiCardContainer) {
                     if ("label" in labelProp && "imageUrl" in labelProp) {
                         card = new Card(labelProp.label, labelProp.imageUrl);
                         self.push(card);
+                        loadedLabelIds.add(card.getLabelId());
                     }
                 }
                 if (callback) callback();
@@ -88,7 +92,8 @@ function CardContainer(uiCardContainer) {
 
             if (!cardsByType[currentLabelType]) {
                 cardsByType[currentLabelType] = new CardBucket();
-                fetchLabelsByType(labelTypeIds[filterLabelType], function () {
+                console.log(Array.from(loadedLabelIds));
+                fetchLabelsByType(labelTypeIds[filterLabelType], 30, Array.from(loadedLabelIds), function () {
                     console.log("new labels gathered");
                     render();
                 });

@@ -705,12 +705,15 @@ object LabelTable {
   }
 
   /**
-   * Retrieve labels of a specified type
+   * Retrieve n random labels of a specified type
    *
    * @param labelTypeId    Label Type ID of labels requested.
+   * @param n              Number of labels to grab
+   * @param loadedLabelIds Label Ids of labels already grabbed
    * @return               Seq[LabelValidationMetadata]
    */
-  def retrieveLabelsByType(labelTypeId: Int) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    val rand = SimpleFunction.nullary[Double]("random")
     val _labels = for {
       _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
@@ -738,7 +741,22 @@ object LabelTable {
 
     Logger.debug(addDescriptions.list.size + "")
 
-    addDescriptions.list.map(label => labelAndTagsToLabelValidationMetadata(LabelValidationMetadataWithoutTags.tupled(label), getTagsFromLabelId(label._1)))
+    val newRandomLabels = addDescriptions.sortBy(x => rand).take(n)
+    val newRandomLabelsList = newRandomLabels.list.map(
+      label => labelAndTagsToLabelValidationMetadata(LabelValidationMetadataWithoutTags.tupled(label), getTagsFromLabelId(label._1))
+    ).filter(label => !loadedLabelIds.contains(label.labelId)).toSeq
+
+    Logger.debug(newRandomLabelsList.size + "")
+    if (n != newRandomLabelsList.size) {
+      Logger.debug("have to grab more")
+      val diff = n - newRandomLabelsList.size
+      val selectedLabelIds = newRandomLabelsList.map(_.labelId)
+      val newLoadedLabelIds = loadedLabelIds ++ selectedLabelIds
+      // We recursively grab more labels and concatenate to the end of our label list
+      newRandomLabelsList ++ retrieveLabelsByType(labelTypeId, diff, newLoadedLabelIds)
+    } else { 
+      newRandomLabelsList
+    }
   }
 
   /**

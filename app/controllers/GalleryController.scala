@@ -10,7 +10,8 @@ import models.label.LabelTable
 import models.label.LabelTable._
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, Json, JsValue, JsArray}
+import play.api.Logger
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -24,11 +25,11 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
    * @param count Number of curb ramp labels to return.
    * @return
    */
-  def getLabelsByType(labelTypeId: Int) = UserAwareAction.async { implicit request =>
+  def getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-
-        val labels: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelsByType(labelTypeId)
+        val loadedLabelIds: Set[Int] = Json.parse(loadedLabels).as[JsArray].value.map(_.as[Int]).toSet
+        val labels: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelsByType(labelTypeId, n, loadedLabelIds)
         val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
             "label" -> LabelTable.validationLabelMetadataToJson(l),
             "imageUrl" -> getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
@@ -39,7 +40,9 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
         Future.successful(Ok(labelList))
 
       // If the user doesn't already have an anonymous ID, sign them up and rerun.
-      case _ => Future.successful(Redirect(s"/anonSignUp?url=/label/labelsByType?labelTypeId=" + labelTypeId))
+      case _ => Future.successful(
+        Redirect(s"/anonSignUp?url=/label/labelsByType?labelTypeId=" + labelTypeId + "&n=" + n + "&loadedLabels=" + loadedLabels)
+      )
     }
   }
 
