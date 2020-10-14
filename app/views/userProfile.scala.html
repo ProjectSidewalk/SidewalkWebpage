@@ -35,11 +35,11 @@
                 <span class="user-stats-header">@Messages("dashboard.validations")</span>
                 <span class="user-stats-header">@Messages("dashboard.accuracy")</span>
 
-                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")'/>
+                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")' alt="Wheelchair user holding a flag"/>
+                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="Icon showing curved path to destination"/>
+                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="Minimalist map icon with large destination marker"/>
+                <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="Checklist next to a pencil"/>
+                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="Target with an arrow in the bullseye"/>
 
                 <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
                 <span class="user-stats-stat">@{s"%.1f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
