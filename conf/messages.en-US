@@ -1,9 +1,9 @@
 measurement.system = IS
 
+dist.metric.abbr = mi
+
 landing.stats.distance = miles covered
 landing.stats.content.unfinished = Users like you have already mapped {0} miles of {1}, {2}—that''s {3}% of the city!
 landing.stats.content.finished = We did it! Users like you have mapped all {0} miles of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 
 audit.right.ui.distance = miles
-
-admin.overview.distance = mi

@@ -1,4 +1,4 @@
-function Admin(_, $, c3, turf, difficultRegionIds) {
+function Admin(_, $, turf, difficultRegionIds) {
     var self = {};
     self.markerLayer = null;
     self.curbRampLayers = [];
@@ -10,7 +10,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.otherLayers = [];
     self.mapLoaded = false;
     self.graphsLoaded = false;
-
     var neighborhoodPolygonLayer;
 
     for (var i = 0; i < 6; i++) {

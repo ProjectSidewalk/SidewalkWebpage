@@ -6,7 +6,7 @@ surface.problem = Surface Problem
 no.sidewalk = No Sidewalk
 other = Other
 labels = labels
-miles = miles
+dist.metric.abbr = mi
 ok = OK
 cancel = Cancel
 error = Error!
@@ -182,6 +182,7 @@ turk.expired.title = Assignment Expired!
 turk.expired.body = You should receive your bonus amount in the next day or two. If you completed the HIT but did not submit your confirmation code on the mturk website, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
 turk.submit.code = Submit this code for HIT verification on Amazon Mechanical Turk
 turk.mturk.code = Mturk Code
+turk.reward.earned = Total earned reward
 
 authenticate.email = Email address
 authenticate.password = Password
@@ -230,15 +231,15 @@ results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
 
 dashboard.audited.street = Audited Street
-dashboard.distance = Total Distance Explored
-dashboard.missions = Number of Missions Completed
+dashboard.total.distance.explored = Total Distance Explored
+dashboard.number.completed.missions = Number of Completed Missions
 dashboard.label.type = Label Type
 dashboard.number.of.labels = Number of Labels
-dashboard.contributions = Daily Contributions
-dashboard.labels.per.mission = Labels per Mission
-dashboard.mission.number = Mission Number
-dashboard.date = Date
-dashboard.neighborhood = Neighborhood
+dashboard.your.missions = Your missions
+dashboard.distance = Distance
+dashboard.labels = Labels
+dashboard.validations = Validations
+dashboard.accuracy = Accuracy
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
@@ -246,7 +247,7 @@ labeling.guide.surface.problem.summary = A surface problem is a problem that wou
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
 labeling.guide.occlusion.summary = Sometimes the view of the sidewalk is completely blocked. In these cases, you should place a "Can''t See the Sidewalk" label. This should rarely be used, so only place the "Can''t See the Sidewalk" label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
 
-admin.overview.distance = km
+dist.metric.abbr = km
 admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
