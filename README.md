@@ -6,17 +6,20 @@ If you would like to suggest that we deploy in your city/municipality, please em
 ## Development Instructions
 
 ### Setting up the development environment
-The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows users may also need to install `make`. You will also need to clone the SidewalkWebpage Github repo by navigating to your desired location in the terminal and entering `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
+The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows users may also need to install `make`. 
 
 ### Windows OS Setup
 #### Windows with Linux Distribution (WSL2) (Recommended)
 
-1. If you are working on Windows, we recommended using WSL2 (essential for Windows Home users for reasonable compile times). WSL2 provides an actual Linux kernel running within a lightweight VM unlike the older WSL which tried to emulate a linux kernel with the Windows kernel; in essence, it will greatly increase compile times you may see prior to using WSL2 by orders of magnitude. [Follow these intructions](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to download it. \
+1. If you are working on Windows, we recommended using WSL2 (essential for Windows Home users for reasonable compile times). WSL2 provides an actual Linux kernel running within a lightweight VM unlike the older WSL which tried to emulate a linux kernel with the Windows kernel; in essence, it will greatly increase compile times you may see prior to using WSL2 by orders of magnitude. [Follow these intructions](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to download it. 
+
 1. After you complete the WSL2 setup, enter Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home). 
 
-1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.\
+1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
 
-1. Finally, open your Linux VM shell and navigate to where you would like to setup your Project Sidewalk repository. WSL2 should be all set to go!
+1. Then, open your Linux VM shell and navigate to where you would like to setup your Project Sidewalk repository. 
+
+1. Finally, enter `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`. WSL2 with Windows should be all set to go!
 
 ##### Transfering files from Windows to Linux VM
   One issue you may encounter when setting up your dev environment within the Linux VM is transferring the API key text files and sidewalk database dump file into the VM itself. 
@@ -28,14 +31,18 @@ The development environment is set up using Docker containers. Hence, in order t
 
 #### Windows without Linux Distribution 
 Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
+1. First clone in your desired location by running `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the terminal.
 1. Enable use of Hyper-V on Windows [(follow this tutorial)](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)
-2. Open the docker dashboard, and click the settings gear icon on the top right
+1. Open the docker dashboard, and click the settings gear icon on the top right
     * If the settings gear icon is disabled, make sure to sign in to Docker
-3. Go to **Resources &rarr; Advanced**.
-4. Slide the CPU bar all the way to the right.
+1. Go to **Resources &rarr; Advanced**.
+1. Slide the CPU bar all the way to the right.
     * This will increase the speed of compile times. Docker will only use all cores during compile, so there is no need to worry about the performance of other programs.
 
 If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
+
+### Mac/Linux OS Setup
+After installing Docker, clone the SidewalkWebpage repository in your desired location by running `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the terminal.
 
 ### Running the application locally
 Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebage dir. 
