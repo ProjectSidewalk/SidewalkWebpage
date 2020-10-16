@@ -11,20 +11,32 @@ The development environment is set up using Docker containers. Hence, in order t
 ### Windows OS Setup
 #### Windows with Linux Distribution (WSL2) (Recommended)
 
-If you are working on Windows, we recommended using WSL2 (essential for Windows Home users for reasonable compile times). WSL2 provides an actual Linux kernel running within a lightweight VM unlike the older WSL which tried (and unfortunately failed) to emulate a linux kernel with the Windows kernel; in essence, it will greatly increase compile times you may see prior to using WSL2 by orders of magnitude. [Follow these intructions](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to download it. \
-After you complete the WSL2 setup, enter Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home). Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.\
-Finally, open your Linux VM shell and navigate to where you would like to setup your Project Sidewalk repository. WSL2 should be all set to go!
+1. If you are working on Windows, we recommended using WSL2 (essential for Windows Home users for reasonable compile times). WSL2 provides an actual Linux kernel running within a lightweight VM unlike the older WSL which tried (and unfortunately failed) to emulate a linux kernel with the Windows kernel; in essence, it will greatly increase compile times you may see prior to using WSL2 by orders of magnitude. [Follow these intructions](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to download it. \
+1. After you complete the WSL2 setup, enter Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home). 
+
+1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.\
+
+1. Finally, open your Linux VM shell and navigate to where you would like to setup your Project Sidewalk repository. WSL2 should be all set to go!
+
 ##### Transfering files from Windows to Linux VM
-One issue you may encounter when setting up your dev environment within the Linux VM is transferring the API key text files and sidewalk database dump file into the VM itself. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). Locate the Linux VM with your Project Sidewalk repository (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
+  One issue you may encounter when setting up your dev environment within the Linux VM is transferring the API key text files and sidewalk database dump file into the VM itself. 
+  
+  1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
+  1. Locate the Linux VM with your Project Sidewalk repository (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
+  1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
+  1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage repo where you can drag and drop files.
 
 #### Windows without Linux Distribution 
 Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
 1. Enable use of Hyper-V on Windows [(follow this tutorial)](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)
+
 2. Open the docker dashboard, and click the settings gear icon on the top right
-  * If the settings gear icon is disabled, make sure to sign in to Docker
+    * If the settings gear icon is disabled, make sure to sign in to Docker
+
 3. Go to **Resources &rarr; Advanced**.
+
 4. Slide the CPU bar all the way to the right.
-  * This will increase the speed of compile times. Docker will only use all cores during compile, so there is no need to worry about the performance of other programs.
+    * This will increase the speed of compile times. Docker will only use all cores during compile, so there is no need to worry about the performance of other programs.
 
 If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
 
