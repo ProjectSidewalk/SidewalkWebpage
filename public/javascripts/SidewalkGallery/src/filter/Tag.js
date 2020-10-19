@@ -37,16 +37,24 @@ function Tag (params) {
 
     function handleTagClickCallback() {
         if (status.applied) {
-            setStatus("applied", false);
-            console.log("clicked and toggled off");
-            tagElement.setAttribute("style", "background-color: none");
+            unapply();
         } else {
-            setStatus("applied", true);
-            console.log("clicked and toggled on");
-            tagElement.setAttribute("style", "background-color: coral");
+            apply();
         }
 
         sg.cardContainer.updateCardsByTag(self);
+    }
+
+    function apply() {
+        setStatus("applied", true);
+        console.log("clicked and toggled on");
+        tagElement.setAttribute("style", "background-color: coral");
+    }
+
+    function unapply() {
+        setStatus("applied", false);
+        console.log("clicked and toggled off");
+        tagElement.setAttribute("style", "background-color: none");
     }
 
     /**
@@ -115,6 +123,8 @@ function Tag (params) {
         filterContainer.append(tagElement);
     }
 
+    self.apply = apply;
+    self.unapply = unapply;
     self.getTagId = getTagId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;

@@ -85,10 +85,12 @@ function CardContainer(uiCardContainer) {
      * Updates cardsOfType if card type changes, and currentCards if filter changes
      */
     function updateCardsByType() {
+        uiCardContainer.holder.empty();
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
-            currentLabelType = filterLabelType;
+            sg.tagContainer.unapplyTags(currentLabelType)
             clearCurrentCards();
+            currentLabelType = filterLabelType;
 
             if (!cardsByType[currentLabelType]) {
                 cardsByType[currentLabelType] = new CardBucket();
@@ -98,7 +100,7 @@ function CardContainer(uiCardContainer) {
                     render();
                 });
             } else {
-                currentCards = cardsByType[currentLabelType];
+                currentCards = cardsByType[currentLabelType].copy();;
                 render();
             }
         }

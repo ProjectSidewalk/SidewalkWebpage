@@ -1,8 +1,8 @@
-function CardBucket(bucket) {
+function CardBucket(bucket, size) {
     let self = this;
 
     // TODO: Is this needed?
-    let size = 0;
+    size = size || 0;
 
     bucket = bucket || {
         1: [],
@@ -39,7 +39,7 @@ function CardBucket(bucket) {
             4: bucket['4'],
             5: bucket['5'],
             null: bucket['null']
-        });
+        }, size);
     }
 
     self.push = push;

@@ -713,12 +713,15 @@ object LabelTable {
    * @return               Seq[LabelValidationMetadata]
    */
   def retrieveLabelsByType(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     val rand = SimpleFunction.nullary[Double]("random")
-    val _labels = for {
+    val _labelsUnfiltered = for {
       _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
     } yield (_lb, _lp, _lt.labelType)
+
+    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
 
     val addSeverity = for {
       (l, s) <- _labels.leftJoin(severities).on(_._1.labelId === _.labelId)
@@ -739,24 +742,36 @@ object LabelTable {
     } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
              l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
 
-    Logger.debug(addDescriptions.list.size + "")
+    Logger.debug(addDescriptions.list.size + " addDescriptions")
 
-    val newRandomLabels = addDescriptions.sortBy(x => rand).take(n)
-    val newRandomLabelsList = newRandomLabels.list.map(
-      label => labelAndTagsToLabelValidationMetadata(LabelValidationMetadataWithoutTags.tupled(label), getTagsFromLabelId(label._1))
-    ).filter(label => !loadedLabelIds.contains(label.labelId)).toSeq
+    // Let's grab extra to compensate for ones that might not have iamge data
+    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
+
+    var potentialStartIdx: Int = 0
 
     Logger.debug(newRandomLabelsList.size + "")
-    if (n != newRandomLabelsList.size) {
-      Logger.debug("have to grab more")
-      val diff = n - newRandomLabelsList.size
-      val selectedLabelIds = newRandomLabelsList.map(_.labelId)
-      val newLoadedLabelIds = loadedLabelIds ++ selectedLabelIds
-      // We recursively grab more labels and concatenate to the end of our label list
-      newRandomLabelsList ++ retrieveLabelsByType(labelTypeId, diff, newLoadedLabelIds)
-    } else { 
-      newRandomLabelsList
+    while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
+      //Logger.debug("entered the loop with " + selectedLabels.length + " labels")
+      val labelsNeeded: Int = n - selectedLabels.length
+      val newLabels: Seq[LabelValidationMetadata] =
+        newRandomLabelsList.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
+
+          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+          if (panoExists(currLabel.gsvPanoramaId)) {
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
+            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+            Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
+          } else {
+            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+            None
+          }
+        }.seq
+
+      potentialStartIdx += labelsNeeded
+      selectedLabels ++= newLabels
     }
+    selectedLabels
   }
 
   /**
@@ -821,8 +836,35 @@ object LabelTable {
       case e: SocketException => false
       case e: Exception => false
     }
-
   }
+
+  // /**
+  //   * Checks if the panorama associated with a label exists by pinging Google Maps.
+  //   * @param gsvPanoId  Panorama ID
+  //   * @return           True if the panorama exists, false otherwise
+  //   */
+  // def checkImageMetaDataStatus(gsvPanoId: String): Boolean = {
+  //   try {
+  //     val now = new DateTime(DateTimeZone.UTC)
+  //     val urlString : String = "http://maps.google.com/cbk?output=tile&panoid=" + gsvPanoId + "&zoom=1&x=0&y=0&date=" + now.getMillis
+  //     // println("URL: " + urlString)
+  //     val panoURL : URL = new java.net.URL(urlString)
+  //     val connection : HttpURLConnection = panoURL.openConnection.asInstanceOf[HttpURLConnection]
+  //     connection.setConnectTimeout(5000)
+  //     connection.setReadTimeout(5000)
+  //     connection.setRequestMethod("GET")
+  //     val responseCode: Int = connection.getResponseCode
+  //     // println("Response Code: " + responseCode)
+
+  //     // URL is only valid if the response code is between 200 and 399.
+  //     200 <= responseCode && responseCode <= 399
+  //   } catch {
+  //     case e: ConnectException => false
+  //     case e: SocketException => false
+  //     case e: Exception => false
+  //   }
+
+  // }
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
     Json.obj(

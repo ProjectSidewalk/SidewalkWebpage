@@ -95,6 +95,17 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         return severities;
     }
 
+    function unapplyTags(labelType) {
+        if (labelType != null) {
+            console.log("tags unapplied");
+            console.log(tagsByType[labelType]);
+            let tagsToUnapply = tagsByType[labelType];
+            for (let i = 0; i < tagsToUnapply.length; i++) {
+                tagsToUnapply[i].unapply();
+            } 
+        }
+    }
+
     function clearCurrentTags() {
         uiCardFilter.tags.empty();
         currentTags = [];
@@ -106,6 +117,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     self.getStatus = getStatus;
     self.setStatus = setStatus;
     self.getSeverities = getSeverities;
+    self.unapplyTags = unapplyTags;
 
     _init();
     return this;
