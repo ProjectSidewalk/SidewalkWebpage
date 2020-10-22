@@ -3,8 +3,6 @@ function Progress (_, $, L, role, difficultRegionIds) {
     var completedInitializingNeighborhoodPolygons = false;
     var completedInitializingAuditedStreets = false;
     var completedInitializingSubmittedLabels = false;
-    var completedInitializingAuditCountChart = false;
-    var completedInitializingAuditedTasks = false;
 
     var neighborhoodPolygonStyle = {
             color: '#888',
@@ -13,8 +11,7 @@ function Progress (_, $, L, role, difficultRegionIds) {
             fillColor: "#808080",
             fillOpacity: 0.1
         },
-        layers = [],
-        currentLayer;
+        layers = [];
 
     var _data = {
         neighborhoodPolygons: null,
@@ -31,11 +28,11 @@ function Progress (_, $, L, role, difficultRegionIds) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('map', "mapbox.streets", {
+    var map = L.mapbox.map('map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
@@ -44,7 +41,6 @@ function Progress (_, $, L, role, difficultRegionIds) {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
-        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
     var popup = L.popup().setContent('<p>Hello!</p>');
@@ -52,9 +48,7 @@ function Progress (_, $, L, role, difficultRegionIds) {
     function handleInitializationComplete (map) {
         if (completedInitializingNeighborhoodPolygons &&
             completedInitializingAuditedStreets &&
-            completedInitializingSubmittedLabels &&
-            completedInitializingAuditCountChart &&
-            completedInitializingAuditedTasks
+            completedInitializingSubmittedLabels
         ) {
 
             // Search for a region id in the query string. If you find one, focus on that region.
@@ -73,33 +67,11 @@ function Progress (_, $, L, role, difficultRegionIds) {
 
                         map.setView(latlng, zoom, {animate: true});
                         layers[i].setStyle({color: "red", fillColor: "red"});
-                        currentLayer = layers[i];
                         break;
                     }
                 }
             }
         }
-    }
-
-    /**
-     * This function adds a semi-transparent white polygon on top of a map.
-     */
-    function initializeOverlayPolygon(map, lat, lng) {
-        var overlayPolygon = {
-            "type": "FeatureCollection",
-            "features": [{"type": "Feature", "geometry": {
-                "type": "Polygon", "coordinates": [
-                        [
-                            [lng + 2, lat - 2],
-                            [lng + 2, lat + 2],
-                            [lng - 2, lat + 2],
-                            [lng - 2, lat - 2],
-                            [lng + 2, lat - 2]
-                        ]
-                ]}}]};
-        var layer = L.geoJson(overlayPolygon);
-        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
-        layer.addTo(map);
     }
 
     /**
@@ -129,7 +101,7 @@ function Progress (_, $, L, role, difficultRegionIds) {
 
                     var advancedMessage = '';
                     if (difficultRegionIds.includes(feature.properties.region_id)) {
-                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                        advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
                     if (userCompleted) {
@@ -159,25 +131,42 @@ function Progress (_, $, L, role, difficultRegionIds) {
                     break;
                 }
             }
-            layer.bindPopup(popupContent);
+            // Add listeners to popup so the popup closes when the mouse leaves the popup area.
+            layer.bindPopup(popupContent).on("popupopen", () => {
+                var popupWrapper = $('.leaflet-popup-content-wrapper');
+                var popupCloseButton = $('.leaflet-popup-close-button');
+                popupWrapper.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                popupCloseButton.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                // Make sure the region outline is removed when the popup close button is clicked.
+                popupCloseButton.on('click', e => {
+                    clearChoroplethRegionOutlines(layers);
+                });
+            });
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
+                clearChoroplethRegionOutlines(layers);
+                addChoroplethRegionOutline(this);
                 this.openPopup();
-                this.setStyle({color: "red", fillColor: "red"});
 
             });
             layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle(neighborhoodPolygonStyle);
+                if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                    clearChoroplethRegionOutlines(layers);
+                    this.closePopup();
                 }
-                //this.setStyle(neighborhoodPolygonStyle);
             });
             layer.on('click', function (e) {
-                currentLayer = this;
-
-
                 // Log when a user clicks on a region on the user map
                 // Logs are of the form "Click_module=UserMap_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
                 // Log is stored in WebpageActivityTable
@@ -277,6 +266,17 @@ function Progress (_, $, L, role, difficultRegionIds) {
         });
     }
 
+    function clearChoroplethRegionOutlines(layers) {
+        for (var i = layers.length - 1; i >= 0; i--) {
+            layers[i].setStyle({opacity: 0.8, weight: 2, color: "#888"});
+        }
+    }
+
+    function addChoroplethRegionOutline(layer) {
+        layer.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+    }
+
+
     /**
      * This function queries the streets that the user audited and visualize them as segments on the map.
      */
@@ -313,16 +313,7 @@ function Progress (_, $, L, role, difficultRegionIds) {
             })
                 .addTo(map);
 
-            // Calculate total distance audited in kilometers/miles depending on the measurement system used in the user's country.
-            for (var i = data.features.length - 1; i >= 0; i--) {
-                distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
-            }
-            var totalDistanceAuditedElement = document.getElementById("td-total-distance-audited")
-            if (totalDistanceAuditedElement != null){
-                totalDistanceAuditedElement.innerHTML = distanceAudited.toPrecision(2) + " " +
-                    i18next.t("common:unit-abbreviation-distance-user-dashboard");
-            }
-            // Get total reward if a turker
+            // Get total reward if a turker.
             if (role === 'Turker') {
                 $.ajax({
                     async: true,

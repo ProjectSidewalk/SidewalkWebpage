@@ -11,7 +11,9 @@ The development environment is set up using Docker containers. Hence, in order t
 If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
 
 ### Running the application locally
-To run the web server locally, from the **root** of the SidewalkWebpage directory:
+Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebage dir. 
+
+On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7) (built in to Win10). On Mac, use the basic terminal or, even better, [iTerm2](https://www.iterm2.com/). 
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `SidewalkWebpage/db` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
 

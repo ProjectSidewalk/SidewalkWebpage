@@ -28,28 +28,6 @@ svg {
     border-top: 0;
 }
 
-h3{
-    font-size: 20px;
-    font-family: raleway-extrabold, sans-serif;
-}
-
-h2{
-    font-size: 30px;
-    font-family: raleway-extrabold, sans-serif;
-}
-
-.c3 text {
-    font-size: 9pt;
-}
-
-.c3-axis text {
-    fill: #888;
-}
-
-.c3-axis line, .c3-axis path {
-    stroke: #888;
-}
-
 .table-fixed thead {
     width: 98.5%;
 }
@@ -76,35 +54,21 @@ h2{
     width: 14.285714285714285714285714285714%;
 }
 
-.col-xxs-1 {
-    width: 9%;
-}
-
-.col-neighborhood {
-    width: 22%;
-}
-
-.col-date {
-    width: 15%;
-}
-
-.primary-user-stats-holder {
+.user-stats-holder {
     /*min-width: 800px;*/
     /*max-width: 1400px;*/
-
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
     grid-gap: 5px;
-
     text-align: center;
 }
 
-.primary-user-stats-holder img{
+.user-stats-holder img {
     height:70px;
     margin: auto; /* centers the image horizontally */
 }
 
-.primary-user-stats-holder-stat-header {
+.user-stats-header {
     font-size: 30px;
     font-family: raleway-extrabold, sans-serif;
 }
@@ -135,7 +99,7 @@ h2{
     color: #2d2a3f;
 }
 
-.ps-skyline-stats-holder-stat-number {
+.user-stats-stat {
     font-size: 30px;
     font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif
 }

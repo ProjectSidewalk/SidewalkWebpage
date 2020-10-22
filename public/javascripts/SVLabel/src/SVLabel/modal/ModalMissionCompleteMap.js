@@ -2,12 +2,12 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     // Map visualization
     L.mapbox.accessToken = 'pk.eyJ1IjoicHJvamVjdHNpZGV3YWxrIiwiYSI6ImNpdmZtODFobjAxcjEydHBkbmg0Y2F0MGgifQ.tDBFPXecLVjgJA0Z1LFhhw';
     var self = this;
-    this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), "mapbox.streets", {
+    this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
         maxZoom: 19,
         minZoom: 10,
         style: 'mapbox://styles/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj',
         zoomSnap: 0.5
-    });
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
@@ -17,11 +17,6 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         self._map.setMaxBounds(L.latLngBounds(southWest, northEast));
         self._map.setZoom(data.default_zoom);
     });
-
-    L.tileLayer('https://api.mapbox.com/styles/v1/projectsidewalk/civfm8qwi000l2iqo9ru4uhhj/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoicHJvamVjdHNpZGV3YWxrIiwiYSI6ImNpdmZtODFobjAxcjEydHBkbmg0Y2F0MGgifQ.tDBFPXecLVjgJA0Z1LFhhw', {
-        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-        accessToken: L.mapbox.accessToken
-    }).addTo(this._map);
 
     // These two are defined globally so that they can be added in show and removed in hide.
     this._overlayPolygon = null;

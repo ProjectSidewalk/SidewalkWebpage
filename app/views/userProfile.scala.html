@@ -4,7 +4,7 @@
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
 @import play.api.libs.json.Json
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 
 @main(title) {
     @navbar(user, user.map(u=> "/contribution/" + u.username))
@@ -29,25 +29,24 @@
         </div>
 
         <div class="row" style="margin-top: 30px">
-            <div class="primary-user-stats-holder">
+            <div class="user-stats-holder">
+                <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
+                <span class="user-stats-header">@Messages("dashboard.distance")</span>
+                <span class="user-stats-header">@Messages("dashboard.labels")</span>
+                <span class="user-stats-header">@Messages("dashboard.validations")</span>
+                <span class="user-stats-header">@Messages("dashboard.accuracy")</span>
 
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.your.missions")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.distance")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.labels")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.validations")</span>
-                <span class="primary-user-stats-holder-stat-header">@Messages("dashboard.accuracy")</span>
+                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")' alt="Wheelchair user holding a flag"/>
+                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' alt="Icon showing curved path to destination"/>
+                <img src='@routes.Assets.at("images/icons/noun_pin_location_2342268_cropped.png")' alt="Minimalist map icon with large destination marker"/>
+                <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="Checklist next to a pencil"/>
+                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="Target with an arrow in the bullseye" title="Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users."/>
 
-                <img src='@routes.Assets.at("images/icons/project_sidewalk_flag.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_pin location_2342268_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")'/>
-                <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' title="Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users."/>
-
-                <span class="ps-skyline-stats-holder-stat-number">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
-                <span class="ps-skyline-stats-holder-stat-number">@MissionTable.getDistanceAuditedString(user.get.userId, Messages("measurement.system") != "metric")</span>
-                <span class="ps-skyline-stats-holder-stat-number">@LabelTable.countLabelsByUserId(user.get.userId)</span>
-                <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
-                <span class="ps-skyline-stats-holder-stat-number">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
+                <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
+                <span class="user-stats-stat">@{s"%.1f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
+                <span class="user-stats-stat">@LabelTable.countLabelsByUserId(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
+                <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
 
             </div>
         </div>
@@ -57,14 +56,9 @@
             <div class="row" style="margin-top: 20px">
                 <table class="table table-striped table-condensed">
                     <tr>
-                        <th>@Messages("dashboard.distance")</th>
-                        <th>@Messages("dashboard.missions")</th>
-                        <th>Total Reward Earned</th>
+                        <th>@Messages("turk.reward.earned")</th>
                     </tr>
                     <tr>
-                        <!-- The id='td-total-distance-audited' is automatically filled by "javascripts/Progress/build/Progress.js"-->
-                        <td id="td-total-distance-audited">Hello</td>
-                        <td>@MissionTable.countCompletedMissionsByUserId(user.get.userId, includeOnboarding = false)</td>
                         <td id="td-total-reward-earned"></td>
                     </tr>
                 </table>
@@ -160,7 +154,7 @@
             window.progress = Progress(_, $, L, "@user.get.role", difficultRegionIds);
 
             achievementTracker.updateBadgeAchievementGrid(@MissionTable.countCompletedMissionsByUserId(user.get.userId, true),
-                    @MissionTable.getDistanceAudited(user.get.userId, true),
+                    @auditedDistance,
                     @LabelTable.countLabelsByUserId(user.get.userId),
                     @LabelValidationTable.countValidationsByUserId(user.get.userId),
                     "@Messages("measurement.system")");

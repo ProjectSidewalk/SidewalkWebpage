@@ -174,6 +174,24 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns a page with the Leaderboard(s) on it.
+   *
+   * @return
+   */
+  def leaderboard = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Leaderboard", timestamp))
+        Future.successful(Ok(views.html.leaderboardPage("Project Sidewalk - Leaderboard", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/leaderboard"))
+    }
+  }
+
+  /**
     * Returns a developer page.
     *
     * @return
