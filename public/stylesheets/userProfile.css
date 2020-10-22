@@ -73,28 +73,28 @@ svg {
     font-family: raleway-extrabold, sans-serif;
 }
 
-.achievements-outer-grid{
+.achievements-outer-grid {
     display: grid;
     grid-template-columns: 2fr 0.3fr 2fr;
     grid-gap: 5px;
 }
 
-.achievements-badge-grid{
+.achievements-badge-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-gap: 2px;
     visibility: hidden;
 }
 
-.achievements-badge-grid img{
+.achievements-badge-grid img {
     height: 100px;
 }
 
-.badge-not-yet-earned{
+.badge-not-yet-earned {
     opacity: 0.1;
 }
 
-.achievements-encouraging-statement{
+.achievements-encouraging-statement {
     margin-bottom: 8px;
     color: #2d2a3f;
 }
@@ -103,5 +103,3 @@ svg {
     font-size: 30px;
     font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif
 }
-
-
