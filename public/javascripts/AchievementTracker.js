@@ -69,7 +69,7 @@ class AchievementTracker {
      * @param measurementSystem: either IS or metric
      */
     updateBadgeAchievementGrid(curMissionCnt, curDistanceInMiles, curLabelsCnt, curValidationsCnt, measurementSystem) {
-        const BADGE_NOT_YET_EARNED_CLASS_NAME = "badge-not-yet-earned";
+        const BADGE_NOT_YET_EARNED_CLASS_NAME = 'badge-not-yet-earned';
         let mapBadgeTypesToCurrentValues = {};
         mapBadgeTypesToCurrentValues[BadgeTypes.Missions] = curMissionCnt;
         mapBadgeTypesToCurrentValues[BadgeTypes.Distance] = curDistanceInMiles;
@@ -82,7 +82,7 @@ class AchievementTracker {
 
             for (let level of Object.keys(mapLevelsToBadge)) {
                 let badge = mapLevelsToBadge[level];
-                let badgeHtmlId = badge.type + "-badge" + badge.level;
+                let badgeHtmlId = badge.type + '-badge' + badge.level;
                 let badgeHtmlElement = document.getElementById(badgeHtmlId);
 
                 if (badge.threshold > curValue) {
@@ -95,7 +95,7 @@ class AchievementTracker {
                 badgeHtmlElement.parentElement.style.visibility = 'visible';
             }
 
-            let badgeEncouragementHtmlId = badgeType + "-badge-encouragement";
+            let badgeEncouragementHtmlId = badgeType + '-badge-encouragement';
             document.getElementById(badgeEncouragementHtmlId).innerHTML = this.getBadgeEncouragementHtml(badgeType, curValue, measurementSystem);
         }
     }
@@ -124,7 +124,7 @@ class AchievementTracker {
             }
         }
 
-        let htmlStatement = "";
+        let htmlStatement = '';
 
         if (nextBadgeToUnlock != null) {
             let diffValue = nextBadgeToUnlock.threshold - curValue;
@@ -143,9 +143,9 @@ class AchievementTracker {
 
             // Add an encouraging statement based on how close they are to the next badge level.
             if (fractionComplete > 0.95) {
-                htmlStatement += i18next.t('dashboard:so-close') + " " + i18next.t('dashboard:just') + " ";
+                htmlStatement += i18next.t('dashboard:so-close') + ' ' + i18next.t('dashboard:just') + ' ';
             } else if (fractionComplete > 0.85) {
-                htmlStatement += i18next.t('dashboard:wow-almost-there') + " " + i18next.t('dashboard:just') + " ";
+                htmlStatement += i18next.t('dashboard:wow-almost-there') + ' ' + i18next.t('dashboard:just') + ' ';
             } else if (fractionComplete > 0.1 || curBadgeLevel > 0) {
                 let randStatement = encouragingStatements[Math.floor(Math.random() * encouragingStatements.length)];
                 htmlStatement += i18next.t(randStatement) + ' ';
@@ -169,7 +169,7 @@ class AchievementTracker {
                 firstOrNext: firstOrNextTranslation
             });
         } else {
-            htmlStatement = i18next.t('dashboard:' + "badge-" + badgeType + "-earned-all");
+            htmlStatement = i18next.t('dashboard:' + 'badge-' + badgeType + '-earned-all');
         }
 
         return htmlStatement;
@@ -177,10 +177,10 @@ class AchievementTracker {
 }
 
 const BadgeTypes = Object.freeze({
-    Missions: "missions",
-    Distance: "distance",
-    Labels: "labels",
-    Validations: "validations"
+    Missions: 'missions',
+    Distance: 'distance',
+    Labels: 'labels',
+    Validations: 'validations'
 });
 
 const encouragingStatements = [
@@ -205,11 +205,11 @@ class Badge {
      * @param badgeAwardThreshold
      */
     constructor(type, level, badgeAwardThreshold) {
-        const imagePath = "images/badges";
+        const imagePath = 'images/badges';
 
         this.type = type;
         this.level = level;
         this.threshold = badgeAwardThreshold;
-        this.imagePath = imagePath + "/" + "badge_" + type + "_badge" + level + ".png";
+        this.imagePath = imagePath + '/' + 'badge_' + type + '_badge' + level + '.png';
     }
 }
