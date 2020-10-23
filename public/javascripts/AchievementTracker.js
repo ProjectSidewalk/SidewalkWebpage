@@ -152,7 +152,7 @@ class AchievementTracker {
             }
 
             // Convert to from miles to kilometers if using metric system.
-            if (badgeType === BadgeTypes.Distance && measurementSystem === 'metric') diffValue /= 1.60934;
+            if (badgeType === BadgeTypes.Distance && measurementSystem === 'metric') diffValue *= 1.60934;
 
             // Get the appropriate distance unit, e.g., mission/misión, missions/misiones, labels/etiquetas.
             let unitTranslation;
