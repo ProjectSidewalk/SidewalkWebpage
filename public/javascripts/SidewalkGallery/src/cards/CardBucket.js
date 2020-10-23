@@ -1,7 +1,6 @@
 function CardBucket(bucket, size) {
     let self = this;
 
-    // TODO: Is this needed?
     size = size || 0;
 
     bucket = bucket || {
@@ -31,7 +30,6 @@ function CardBucket(bucket, size) {
     }
 
     function copy() {
-        // TODO: How do we copy the size across? Do we need to?
         return new CardBucket({
             1: bucket['1'],
             2: bucket['2'],

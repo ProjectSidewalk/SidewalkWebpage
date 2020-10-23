@@ -705,6 +705,89 @@ object LabelTable {
   }
 
   /**
+   * Retrieve n random labels of assorted types. 
+   * TODO: Currently, we just select n / (# of label types) labels for each label type. However, we may want to change this to fit the 
+   * actual distribution of label types
+   *
+   * @param n              Number of labels to grab 
+   * @param loadedLabelIds Label Ids of labels already grabbed
+   * @return               Seq[LabelValidationMetadata]
+   */
+  def retrieveAssortedLabels(n: Int, loadedLabelIds: Set[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
+    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
+    Logger.debug("Grabbing random assortment of labels");
+    val rand = SimpleFunction.nullary[Double]("random")
+    val _labelsUnfiltered = for {
+      _lb <- labelsWithoutDeleted
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+    } yield (_lb, _lp, _lt.labelType)
+
+    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
+
+    val addSeverity = for {
+      (l, s) <- _labels.leftJoin(severities).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, s.severity.?)
+
+    val addTemporariness = for {
+      (l, t) <- addSeverity.leftJoin(temporariness).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, t.temporary.?.getOrElse(false))
+
+    val addGSVData = for {
+      (l, e) <- addTemporariness.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
+    } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
+
+    val removeExpiredPanos = addGSVData.filter(_._6 === false)
+
+    val addDescriptions = for {
+      (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
+    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
+             l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
+
+    Logger.debug(addDescriptions.list.size + " addDescriptions")
+
+    // Let's grab extra to compensate for ones that might not have iamge data
+    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
+
+    Logger.debug("got past randomization")
+
+    val labelTypesAsStrings = Set("CurbRamp", "NoCurbRamp", "Obstacle")
+
+// TODO: change from 1 to 3 to the whole range of label types
+    for (labelType <- labelTypesAsStrings) {
+      Logger.debug("in the loop")
+      val labelsFilteredByType = newRandomLabelsList.filter(label => label.labelType == labelType)
+      Logger.debug(labelsFilteredByType.size + " filtered by type size")
+      val selectedLabelsOfType: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
+      var potentialStartIdx: Int = 0
+      while (selectedLabelsOfType.length < (n / 3) && potentialStartIdx < labelsFilteredByType.size) {
+        Logger.debug("entered the loop with " + selectedLabelsOfType.length + " labels")
+        val labelsNeeded: Int = (n / 3) - selectedLabelsOfType.length
+        val newLabels: Seq[LabelValidationMetadata] =
+          labelsFilteredByType.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
+
+            // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+            if (panoExists(currLabel.gsvPanoramaId)) {
+              val now = new DateTime(DateTimeZone.UTC)
+              val timestamp: Timestamp = new Timestamp(now.getMillis)
+              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+              Some(labelAndTagsToLabelValidationMetadata(currLabel, getTagsFromLabelId(currLabel.labelId)))
+            } else {
+              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+              None
+            }
+          }.seq
+
+        potentialStartIdx += labelsNeeded
+        selectedLabelsOfType ++= newLabels
+      }
+      selectedLabels ++= selectedLabelsOfType
+    }
+
+    selectedLabels
+  }
+
+  /**
    * Retrieve n random labels of a specified type
    *
    * @param labelTypeId    Label Type ID of labels requested.
@@ -771,6 +854,7 @@ object LabelTable {
       potentialStartIdx += labelsNeeded
       selectedLabels ++= newLabels
     }
+
     selectedLabels
   }
 

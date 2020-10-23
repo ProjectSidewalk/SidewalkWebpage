@@ -9,10 +9,11 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     let self = this;
 
     let status = {
-        currentLabelType: null
+        currentLabelType: 'Assorted' //change to 'Assorted' when the query is implemented
     };
 
     let tagsByType = {
+        Assorted: [],
         CurbRamp: [],
         NoCurbRamp: [],
         Obstacle: [],

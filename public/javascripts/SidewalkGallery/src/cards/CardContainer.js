@@ -14,12 +14,15 @@ function CardContainer(uiCardContainer) {
         Other: 5,
         Occlusion: 6,
         NoSidewalk: 7,
-        Problem: 8
+        Problem: 8,
+        Assorted: 9
     };
 
-    let currentLabelType = null;
+    let currentLabelType = 'Assorted';
 
+    // Assorted is a special bucket: all grabbed labels will be added to the assorted bucket 
     let cardsByType = {
+        Assorted: new CardBucket(),
         CurbRamp: null,
         NoCurbRamp: null,
         Obstacle: null,
@@ -35,6 +38,13 @@ function CardContainer(uiCardContainer) {
 
     // Current labels being displayed of current type based off filters
     let currentCards = new CardBucket();
+
+    function _init() {
+        fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
+            console.log("assorted labels loaded for landing page");
+            render();
+        });
+    }
 
     function fetchLabelsByType(labelTypeId, n, loadedLabels, callback) {
         $.getJSON("/label/labelsByType", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels)}, function (data) {
@@ -76,9 +86,15 @@ function CardContainer(uiCardContainer) {
      * @param card
      */
     function push(card) {
-        cardsByType[card.getLabelType()].push(card);
+        if (currentLabelType == 'Assorted') {
+            cardsByType[currentLabelType].push(card);
+        } else {
+            cardsByType[card.getLabelType()].push(card);
+        }
+        
+        // For now, we have to also add every label we grab to the Assorted bucket for the assorted option
+        //cardsByType['Assorted'].push(card);
         currentCards.push(card);
-        // tagFiltered.push(card);
     }
 
     /**
@@ -226,5 +242,6 @@ function CardContainer(uiCardContainer) {
     self.clearCurrentCards = clearCurrentCards;
     self.clearCards = clearCards;
 
+    _init();
     return this;
 }
