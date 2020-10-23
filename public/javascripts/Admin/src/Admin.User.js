@@ -53,7 +53,7 @@ function AdminUser(params) {
             for (var i = data.features.length - 1; i >= 0; i--) {
                 distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
             }
-            document.getElementById("td-total-distance-audited-admin").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
+            document.getElementById("td-total-distance-audited-admin").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-distance-abbreviation");
 
     });
 
