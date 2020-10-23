@@ -251,6 +251,11 @@ function UtilitiesMisc (JSON) {
                         keyNumber: 76,
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.not-enough-landing-space')
+                    },
+                    'not level with street': {
+                        keyNumber: 86,
+                        keyChar: 'V',
+                        text: i18next.t('center-ui.context-menu.tag.not-level-with-street')
                     }
                 }
             },
@@ -288,8 +293,8 @@ function UtilitiesMisc (JSON) {
                 },
                 tagInfo: {
                     'trash/recycling can': {
-                        keyNumber: 82,
-                        keyChar: 'R',
+                        keyNumber: 72,
+                        keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.trash-recycling-can')
                     },
                     'fire hydrant': {
@@ -318,8 +323,8 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.parked-car')
                     },
                     'parked bike': {
-                        keyNumber: 73,
-                        keyChar: 'I',
+                        keyNumber: 75,
+                        keyChar: 'K',
                         text: i18next.t('center-ui.context-menu.tag.parked-bike')
                     },
                     'construction': {
@@ -328,9 +333,114 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.construction')
                     },
                     'sign': {
+                        keyNumber: 73,
+                        keyChar: 'I',
+                        text: i18next.t('center-ui.context-menu.tag.sign')
+                    },
+                    'garage entrance': {
                         keyNumber: 71,
                         keyChar: 'G',
-                        text: i18next.t('center-ui.context-menu.tag.sign')
+                        text: i18next.t('center-ui.context-menu.tag.garage-entrance')
+                    },
+                    'stairs': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.stairs')
+                    },
+                    'street vendor': {
+                        keyNumber: 68,
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.street-vendor')
+                    },
+                    'large step': {
+                        keyNumber: 76,
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.large-step')
+                    }
+                }
+            },
+            SurfaceProblem: {
+                id: 'SurfaceProblem',
+                text: 'Surface Problem',
+                shortcut: {
+                    keyNumber: 83,
+                    keyChar: 'S'
+                },
+                tagInfo: {
+                    'bumpy': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: i18next.t('center-ui.context-menu.tag.bumpy')
+                    },
+                    'uneven/slanted': {
+                        keyNumber: 85,
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.uneven-slanted')
+                    },
+                    'cracks': {
+                        keyNumber: 75,
+                        keyChar: 'K',
+                        text: i18next.t('center-ui.context-menu.tag.cracks')
+                    },
+                    'grass': {
+                        keyNumber: 71,
+                        keyChar: 'G',
+                        text: i18next.t('center-ui.context-menu.tag.grass')
+                    },
+                    'narrow sidewalk': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
+                    },
+                    'brick': {
+                        keyNumber: 73,
+                        keyChar: 'I',
+                        text: i18next.t('center-ui.context-menu.tag.brick')
+                    },
+                    'construction': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: i18next.t('center-ui.context-menu.tag.construction')
+                    },
+                    'very broken': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.very-broken')
+                    }
+                }
+            },
+            NoSidewalk: {
+                id: 'NoSidewalk',
+                text: 'No Sidewalk',
+                shortcut: {
+                    keyNumber: 78,
+                    keyChar: 'N'
+                },
+                tagInfo: {
+                    'ends abruptly': {
+                        keyNumber: 65,
+                        keyChar: 'A',
+                        text: i18next.t('center-ui.context-menu.tag.ends-abruptly')
+                    },
+                    'street has a sidewalk': {
+                        keyNumber: 82,
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk')
+                    },
+                    'street has no sidewalks': {
+                        keyNumber: 84,
+                        keyChar: 'T',
+                        text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks')
+                    },
+                    'gravel/dirt road': {
+                        keyNumber: 68,
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.gravel-dirt-road')
+                    },
+                    'shared pedestrian/car space': {
+                        keyNumber: 80,
+                        keyChar: 'P',
+                        text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space')
                     }
                 }
             },
@@ -356,76 +466,6 @@ function UtilitiesMisc (JSON) {
                 shortcut: {
                     keyNumber: 66,
                     keyChar: 'B'
-                }
-            },
-            NoSidewalk: {
-                id: 'NoSidewalk',
-                text: 'No Sidewalk',
-                shortcut: {
-                    keyNumber: 78,
-                    keyChar: 'N'
-                },
-                tagInfo: {
-                    'ends abruptly': {
-                        keyNumber: 65,
-                        keyChar: 'A',
-                        text: i18next.t('center-ui.context-menu.tag.ends-abruptly')
-                    },
-                    'street has a sidewalk': {
-                        keyNumber: 82,
-                        keyChar: 'R',
-                        text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk')
-                    },
-                    'street has no sidewalks': {
-                        keyNumber: 84,
-                        keyChar: 'T',
-                        text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks')
-                    }
-                }
-            },
-            SurfaceProblem: {
-                id: 'SurfaceProblem',
-                text: 'Surface Problem',
-                shortcut: {
-                    keyNumber: 83,
-                    keyChar: 'S'
-                },
-                tagInfo: {
-                    'bumpy': {
-                        keyNumber: 80,
-                        keyChar: 'P',
-                        text: i18next.t('center-ui.context-menu.tag.bumpy')
-                    },
-                    'uneven': {
-                        keyNumber: 85,
-                        keyChar: 'U',
-                        text: i18next.t('center-ui.context-menu.tag.uneven')
-                    },
-                    'cracks': {
-                        keyNumber: 75,
-                        keyChar: 'K',
-                        text: i18next.t('center-ui.context-menu.tag.cracks')
-                    },
-                    'grass': {
-                        keyNumber: [71, 82],
-                        keyChar: ['G', 'R'],
-                        text: i18next.t('center-ui.context-menu.tag.grass')
-                    },
-                    'narrow sidewalk': {
-                        keyNumber: 65,
-                        keyChar: 'A',
-                        text: i18next.t('center-ui.context-menu.tag.narrow-sidewalk')
-                    },
-                    'brick': {
-                        keyNumber: 73,
-                        keyChar: 'I',
-                        text: i18next.t('center-ui.context-menu.tag.brick')
-                    },
-                    'construction': {
-                        keyNumber: 84,
-                        keyChar: 'T',
-                        text: i18next.t('center-ui.context-menu.tag.construction')
-                    }
                 }
             },
             Void: {
