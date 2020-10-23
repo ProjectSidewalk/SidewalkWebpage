@@ -66,9 +66,8 @@ class AchievementTracker {
      * @param curDistanceInMiles: current completed distance amount (in miles)
      * @param curLabelsCnt: current label count
      * @param curValidationsCnt: current validation count
-     * @param measurementSystem: either IS or metric
      */
-    updateBadgeAchievementGrid(curMissionCnt, curDistanceInMiles, curLabelsCnt, curValidationsCnt, measurementSystem) {
+    updateBadgeAchievementGrid(curMissionCnt, curDistanceInMiles, curLabelsCnt, curValidationsCnt) {
         const BADGE_NOT_YET_EARNED_CLASS_NAME = 'badge-not-yet-earned';
         let mapBadgeTypesToCurrentValues = {};
         mapBadgeTypesToCurrentValues[BadgeTypes.Missions] = curMissionCnt;
@@ -96,7 +95,7 @@ class AchievementTracker {
             }
 
             let badgeEncouragementHtmlId = badgeType + '-badge-encouragement';
-            document.getElementById(badgeEncouragementHtmlId).innerHTML = this.getBadgeEncouragementHtml(badgeType, curValue, measurementSystem);
+            document.getElementById(badgeEncouragementHtmlId).innerHTML = this.getBadgeEncouragementHtml(badgeType, curValue);
         }
     }
 
@@ -106,9 +105,8 @@ class AchievementTracker {
      * @param badgeType: is one of four BadgeTypes: "missions", "distance", "labels", or "validations"
      * @param curValue: value corresponds to the current number of completed missions, total distance, num of labels, etc.
      *               corresponding to the passed badgeType
-     * @param measurementSystem: "IS" or "metric" determines whether to use miles or kilometers
      */
-    getBadgeEncouragementHtml(badgeType, curValue, measurementSystem) {
+    getBadgeEncouragementHtml(badgeType, curValue) {
         // Find next badge to unlock.
         let mapLevelsToBadge = this.mapBadges[badgeType]
         let nextBadgeToUnlock = null;
@@ -152,6 +150,7 @@ class AchievementTracker {
             }
 
             // Convert to from miles to kilometers if using metric system.
+            const measurementSystem = i18next.t('common:measurement-system');
             if (badgeType === BadgeTypes.Distance && measurementSystem === 'metric') diffValue *= 1.60934;
 
             // Get the appropriate distance unit, e.g., mission/misión, missions/misiones, labels/etiquetas.
