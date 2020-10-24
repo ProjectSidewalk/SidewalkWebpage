@@ -1,5 +1,7 @@
 package models.label
 
+import java.util.UUID
+
 import models.utils.MyPostgresDriver.simple._
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -136,6 +138,48 @@ object LabelValidationTable {
   }
 
   /**
+   * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
+   * if the users' labels have been validated 10 or more times. The simplest way to think about the accuracy calculation
+   * is something like:
+   *
+   *   number of labels validated correct / (number of labels validated - number of labels marked as unsure)
+   *
+   * Which does not penalize users for labels that they supplied but were rated as unsure by other users.
+   *
+   * However, this calculation does not take into account that multiple users can validate a single label. So, a
+   * slightly more complicated version of this uses majority vote where a label is counted as correct if and only if the
+   * number of agreement ratings > number of disagreement ratings. If the num of agreement ratings - num of disagreement
+   * ratings = 0, then it counts as unsure
+   *
+   * This is the version implemented below.
+   *
+   * @param userId
+   * @return
+   */
+  def getUserAccuracy(userId: UUID): Option[Float] = db.withSession { implicit session =>
+    val accuracyQuery = Q.query[String, Option[Float]](
+      """SELECT CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
+      FROM (
+        SELECT user_id,
+          CAST (COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END), 0) AS accuracy,
+          COUNT(CASE WHEN n_agree > n_disagree THEN 1 END) + COUNT(CASE WHEN n_disagree > n_agree THEN 1 END) AS validated_count
+        FROM (
+          SELECT mission.user_id, label.label_id,
+               COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS n_agree,
+               COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS n_disagree
+          FROM mission
+          INNER JOIN label ON mission.mission_id = label.mission_id
+          INNER JOIN label_validation ON label.label_id = label_validation.label_id
+          WHERE mission.user_id = ?
+          GROUP BY mission.user_id, label.label_id
+        ) agree_count
+        GROUP BY user_id
+      ) "accuracy";""".stripMargin
+    )
+    accuracyQuery(userId.toString).list.headOption.flatten
+  }
+
+  /**
     * Select validation counts per user.
     *
     * @return list of tuples of (labeler_id, validator_role, distinct_labels_validated, validation_count,
@@ -236,6 +280,16 @@ object LabelValidationTable {
       .filter(_._2.labelTypeId === typeID)
       .filter(_._1.validationResult === result)
       .size.run
+  }
+
+  /**
+   * Counts the number of validations performed by this user (given the supplied userId).
+   *
+   * @param userId
+   * @returns the number of validations performed by this user
+   */
+  def countValidationsByUserId(userId: UUID): Int = db.withSession { implicit session =>
+    validationLabels.filter(_.userId === userId.toString).size.run
   }
 
   /**

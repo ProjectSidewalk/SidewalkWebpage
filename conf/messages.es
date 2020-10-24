@@ -6,6 +6,7 @@ surface.problem = Problema en superficie
 no.sidewalk = No hay banqueta
 other = Otro
 labels = etiquetas
+dist.metric.abbr = km
 ok = OK
 cancel = Cancelar
 error = ¡Error!
@@ -180,6 +181,7 @@ turk.expired.title = ¡Asignación vencida!
 turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Si completaste el HIT pero no enviaste tu código de confirmación en el sitio web de mturk, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
 turk.submit.code = Envía este código para la verificación HIT en Amazon Mechanical Turk
 turk.mturk.code = Código de Mturk
+turk.reward.earned = Recompensa actual de la misión
 
 authenticate.email = Correo electrónico
 authenticate.password = Contraseña
@@ -228,15 +230,31 @@ results.legend.low = Bajo
 results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
 
 dashboard.audited.street = Calle auditada
-dashboard.distance = Distancia total explorada
-dashboard.missions = Número de misiones completadas
+dashboard.total.distance.explored = Distancia total explorada
+dashboard.number.completed.missions = Número de misiones completadas
 dashboard.label.type = Tipo de etiqueta
 dashboard.number.of.labels = Número de etiquetas
-dashboard.contributions = Contribuciones diarias
-dashboard.labels.per.mission = Etiquetas por misión
-dashboard.mission.number = Número de misión
-dashboard.date = Fecha
-dashboard.neighborhood = Colonia
+dashboard.missions = Misiones
+dashboard.your.missions = Tus misiones
+dashboard.distance = Distancia
+dashboard.labels = Etiquetas
+dashboard.validations = Validaciones
+dashboard.accuracy = Precisión
+dashboard.mission.icon.alt = Usuario de silla de ruedas sosteniendo una bandera
+dashboard.distance.icon.alt = Icono que muestra la trayectoria curva hacia el destino
+dashboard.label.icon.alt = Icono de mapa minimalista con marcador de destino grande
+dashboard.validation.icon.alt = Lista de verificación junto a un lápiz
+dashboard.accuracy.icon.alt = Apunta con una flecha en la diana
+dashboard.accuracy.icon.tooltip = Su precisión de etiquetado. Si se muestra N/A, significa que otros usuarios no han validado suficientes etiquetas.
+dashboard.first = primera
+dashboard.second = segunda
+dashboard.third = tercera
+dashboard.fourth = cuarta
+dashboard.fifth = quinta
+dashboard.mission.badge = {0} insignia de misión
+dashboard.distance.badge = {0} insignia de distancia
+dashboard.label.badge = {0} insignia de etiqueta
+dashboard.validation.badge = {0} insignia de validación
 
 labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
@@ -244,7 +262,6 @@ labeling.guide.surface.problem.summary = Un problema en la superficie es un inco
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
 labeling.guide.occlusion.summary = A veces no puedes ver la acera en absoluto. En estos casos, debes colocar una etiqueta de "No Puedo Ver la Banqueta". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
-admin.overview.distance = km
 admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general

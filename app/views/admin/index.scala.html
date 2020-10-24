@@ -148,9 +148,9 @@
                             </tr>
                             <tr>
                                 <th>Audited Distance</th>
-                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("admin.overview.distance")</td>
-                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceToday()))) @Messages("admin.overview.distance")</td>
-                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceYesterday()))) @Messages("admin.overview.distance")</td>
+                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr")</td>
+                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceToday()))) @Messages("dist.metric.abbr")</td>
+                                <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceYesterday()))) @Messages("dist.metric.abbr")</td>
                             </tr>
                             <tr>
                                 <th>Total Validation Users</th>
@@ -257,31 +257,31 @@
                             </tr>
                             <tr>
                                 <th>Distance</th>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("admin.overview.distance")</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("admin.overview.distance")</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr")</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("dist.metric.abbr")</td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Registered</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("admin.overview.distance")</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("dist.metric.abbr")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Anonymous</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("admin.overview.distance")</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("dist.metric.abbr")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Turker</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("admin.overview.distance")</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("dist.metric.abbr")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%</td>
                             </tr>
                             <tr style="font-size: 90%;">
                                 <td style="padding-left: 30px">Researcher</td>
-                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("admin.overview.distance")</td>
+                                <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("dist.metric.abbr")</td>
                                 <td></td>
                                 <td>@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%</td>
                             </tr>
@@ -791,7 +791,6 @@
 
 
 </div>
-<link href='@routes.Assets.at("stylesheets/c3.min.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/bootstrap.min.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/ekko-lightbox.css")' rel="stylesheet"/>
@@ -802,7 +801,6 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/c3.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
@@ -886,7 +884,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.admin = Admin(_, $, c3, turf, difficultRegionIds);
+            window.admin = Admin(_, $, turf, difficultRegionIds);
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();
