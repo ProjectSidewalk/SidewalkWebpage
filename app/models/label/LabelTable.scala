@@ -109,8 +109,6 @@ object LabelTable {
   val roleTable = TableQuery[RoleTable]
   val descriptions = TableQuery[LabelDescriptionTable]
   val temporariness = TableQuery[LabelTemporarinessTable]
-  val streetEdges = TableQuery[StreetEdgeTable]
-  val streetEdgesToRegion = TableQuery[StreetEdgeRegionTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
   val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
@@ -1203,7 +1201,7 @@ object LabelTable {
       _m <- missions if _m.userId === userId.toString && _m.regionId === regionId
       _lb <- labelsWithoutDeleted if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.lat.isDefined && _lp.lng.isDefined
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
     } yield (_lb, _lt.labelType, _lp, _gd.imageWidth, _gd.imageHeight)
 
@@ -1236,6 +1234,6 @@ object LabelTable {
         m <- missions if m.userId === userId.toString
         l <- labels if l.missionId === m.missionId
       } yield l.temporaryLabelId
-      userLabels.max.run.map(x => x + 1).getOrElse(1);
+      userLabels.max.run.map(x => x + 1).getOrElse(1)
   }
 }

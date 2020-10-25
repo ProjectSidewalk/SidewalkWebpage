@@ -66,86 +66,80 @@ function LabelContainer($) {
     };
 
     this.fetchLabelsToResumeMission = function (regionId, callback) {
-        $.getJSON(
-            '/label/resumeMission',
-            { regionId: regionId },
-            function (result) {
-                let labelArr = result.labels;
-                let len = labelArr.length;
-                for (let i = 0; i < len; i++) {
-                    console.log(labelArr[i].labelId);
-                    let povChange = svl.map.getPovChangeStatus();
+        $.getJSON('/label/resumeMission', { regionId: regionId }, function (result) {
+            let labelArr = result.labels;
+            let len = labelArr.length;
+            for (let i = 0; i < len; i++) {
+                console.log(labelArr[i].labelId);
+                let povChange = svl.map.getPovChangeStatus();
 
-                    // Temporarily change pov change status to true so that
-                    // we can use util function to calculate the canvas coordinate
-                    // to place label upon rerender
-                    povChange["status"] = true;
+                // Temporarily change pov change status to true so that
+                // we can use util function to calculate the canvas coordinate
+                // to place label upon rerender
+                povChange["status"] = true;
 
-                    let originalCanvasCoord = {
-                        x: labelArr[i].canvasX,
-                        y: labelArr[i].canvasY
-                    };
+                let originalCanvasCoord = {
+                    x: labelArr[i].canvasX,
+                    y: labelArr[i].canvasY
+                };
 
-                    let originalPov = {
-                        heading: labelArr[i].panoramaHeading,
-                        pitch: labelArr[i].panoramaPitch,
-                        zoom: labelArr[i].panoramaZoom
-                    };
+                let originalPov = {
+                    heading: labelArr[i].panoramaHeading,
+                    pitch: labelArr[i].panoramaPitch,
+                    zoom: labelArr[i].panoramaZoom
+                };
 
-                    let originalPointPov = {
-                        originalPov: util.panomarker.calculatePointPov(labelArr[i].canvasX, labelArr[i].canvasY, originalPov)
-                    };
+                let originalPointPov = {
+                    originalPov: util.panomarker.calculatePointPov(labelArr[i].canvasX, labelArr[i].canvasY, originalPov)
+                };
 
-                    let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(originalCanvasCoord,
-                                                                                  originalPointPov.originalPov,
-                                                                                  svl.map.getPov());
+                let rerenderCanvasCoord = util.panomarker.getCanvasCoordinate(originalCanvasCoord,
+                                                                                originalPointPov.originalPov,
+                                                                                svl.map.getPov());
 
-                    // Return the status to original
-                    povChange["status"] = false;
+                // Return the status to original
+                povChange["status"] = false;
 
-                    let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
-                    let labelFillStyle = util.misc.getLabelColors()[labelArr[i].labelType].fillStyle;
+                let iconImagePath = util.misc.getIconImagePaths(labelArr[i].labelType).iconImagePath;
+                let labelFillStyle = util.misc.getLabelColors()[labelArr[i].labelType].fillStyle;
 
-                    var pointParameters = {
-                        'fillStyleInnerCircle': labelFillStyle,
-                        'lineWidthOuterCircle': 2,
-                        'iconImagePath': iconImagePath,
-                        'radiusInnerCircle': 13,
-                        'radiusOuterCircle': 14,
-                        'strokeStyleOuterCircle': 'rgba(255,255,255,1)',
-                        'storedInDatabase': true
-                    };
+                var pointParameters = {
+                    'fillStyleInnerCircle': labelFillStyle,
+                    'lineWidthOuterCircle': 2,
+                    'iconImagePath': iconImagePath,
+                    'radiusInnerCircle': 13,
+                    'radiusOuterCircle': 14,
+                    'strokeStyleOuterCircle': 'rgba(255,255,255,1)',
+                    'storedInDatabase': true
+                };
 
-                    let labelPoint = new Point(svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters);
-                    
-                    labelPoint.setProperties(originalPointPov);
+                let labelPoint = new Point(svl, rerenderCanvasCoord.x, rerenderCanvasCoord.y, svl.map.getPov(), pointParameters);
+                
+                labelPoint.setProperties(originalPointPov);
 
-                    let path = new Path(svl, [labelPoint]);
-                    let label = svl.labelFactory.create(path, labelArr[i]);
-                    label.setProperty("audit_task_id", labelArr[i].audit_task_id);
-                    label.setProperty("labelLat", labelArr[i].labelLat);
-                    label.setProperty("labelLng", labelArr[i].labelLng);
-                    label.setProperty("labelFillStyle", labelFillStyle);
+                let path = new Path(svl, [labelPoint]);
+                let label = svl.labelFactory.create(path, labelArr[i]);
+                label.setProperty("audit_task_id", labelArr[i].audit_task_id);
+                label.setProperty("labelLat", labelArr[i].labelLat);
+                label.setProperty("labelLng", labelArr[i].labelLng);
+                label.setProperty("labelFillStyle", labelFillStyle);
 
-                    prevCanvasLabels.push(label);
+                prevCanvasLabels.push(label);
 
-                    // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
-                    var panoramaId = label.getProperty("panoId");
-                    if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
-                        svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
-                    }
+                // // Keep panorama meta data, especially the date when the Street View picture was taken to keep track of when the problem existed
+                // var panoramaId = label.getProperty("panoId");
+                // if ("panoramaContainer" in svl && svl.panoramaContainer && panoramaId && !svl.panoramaContainer.getPanorama(panoramaId)) {
+                //     svl.panoramaContainer.fetchPanoramaMetaData(panoramaId);
+                // }
 
-                    if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
-                        var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
-                        svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
-                    }
+                if ("neighborhoodContainer" in svl && "neighborhoodContainer" in svl) {
+                    var regionId = svl.neighborhoodContainer.getCurrentNeighborhood().getProperty("regionId");
+                    svl.labelContainer.pushToNeighborhoodLabels(regionId, label);
                 }
-
-
-
-                if (callback) callback(result);
             }
-        )
+
+            if (callback) callback(result);
+        });
     }
 
     /**

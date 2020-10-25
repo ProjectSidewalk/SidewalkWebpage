@@ -339,18 +339,14 @@ function Point (svl, x, y, pov, params) {
         //
         // Set pov parameters
         self.pov = self.pov || {};
-        if ('pov' in params) {
-            self.pov = params.pov;
-        }
+        if ('pov' in params) { self.pov = params.pov; }
         if ('heading' in params) { self.pov.heading = params.heading; }
         if ('pitch' in params) { self.pov.pitch = params.pitch; }
         if ('zoom' in params) { self.pov.zoom = params.zoom; }
 
         // Set original pov parameters
         self.originalPov = self.originalPov || {};
-        if ('originalPov' in params) {
-            self.originalPov = params.originalPov;
-        }
+        if ('originalPov' in params) { self.originalPov = params.originalPov; }
         if ('originalHeading' in params) { self.originalPov.heading = params.originalHeading; }
         if ('originalPitch' in params) { self.originalPov.pitch = params.originalPitch; }
         if ('originalZoom' in params) { self.originalPov.zoom = params.originalZoom; }

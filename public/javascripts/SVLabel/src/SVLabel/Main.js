@@ -423,12 +423,10 @@ function Main (params) {
         //         }
         //     });
 
-        svl.labelContainer.fetchLabelsToResumeMission(
-            neighborhood.getProperty("regionId"),
-            function (result) {
-                svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
-                console.log("label counts in neighborhood: " + svl.labelContainer.countLabels(neighborhood.getProperty("regionId")));
-            });
+        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getProperty("regionId"), function (result) {
+            svl.canvas.setVisibilityBasedOnLocation('visible', svl.map.getPanoId());
+            console.log("label counts in neighborhood: " + svl.labelContainer.countLabels(neighborhood.getProperty("regionId")));
+        });
 
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance(unit);

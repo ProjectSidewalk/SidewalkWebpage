@@ -342,6 +342,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
         }
 
+        // Remove any tag entries from database that were removed on the front-end and add any new ones.
         val labelTagIds: Set[Int] = label.tagIds.toSet
         val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(labelId).toSet
         val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
