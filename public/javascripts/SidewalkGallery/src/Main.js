@@ -25,6 +25,7 @@ function Main (params) {
         sg.ui.cardSortMenu.sort = $('#card-sort-select');
         sg.ui.cardContainer = {};
         sg.ui.cardContainer.holder = $("#image-card-container");
+        sg.ui.cardContainer.nextPage = $("#next-page");
     }
 
     function _init() {

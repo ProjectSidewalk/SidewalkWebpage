@@ -19,15 +19,17 @@ function CardContainer(uiCardContainer) {
 
     let currentLabelType = null;
 
+    let currentPage = 1;
+
     let cardsByType = {
-        CurbRamp: null,
-        NoCurbRamp: null,
-        Obstacle: null,
-        SurfaceProblem: null,
-        Other: null,
-        Occlusion: null,
-        NoSidewalk: null,
-        Problem: null
+        CurbRamp: [],
+        NoCurbRamp: [],
+        Obstacle: [],
+        SurfaceProblem: [],
+        Other: [],
+        Occlusion: [],
+        NoSidewalk: [],
+        Problem: []
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend
@@ -35,6 +37,24 @@ function CardContainer(uiCardContainer) {
 
     // Current labels being displayed of current type based off filters
     let currentCards = new CardBucket();
+
+    function _init() {
+        if (uiCardContainer) {
+            uiCardContainer.nextPage.bind({
+                click: handleNextPageClick
+            })
+        }
+    }
+
+    function handleNextPageClick() {
+        console.log('next page');
+        setPage(currentPage + 1);
+        updateCardsNewPage();
+    }
+
+    function setPage(pageNumber) {
+        currentPage = pageNumber;
+    }
 
     function fetchLabelsByType(labelTypeId, n, loadedLabels, callback) {
         $.getJSON("/label/labelsByType", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels)}, function (data) {
@@ -76,7 +96,7 @@ function CardContainer(uiCardContainer) {
      * @param card
      */
     function push(card) {
-        cardsByType[card.getLabelType()].push(card);
+        cardsByType[card.getLabelType()][currentPage - 1].push(card);
         currentCards.push(card);
         // tagFiltered.push(card);
     }
@@ -88,21 +108,35 @@ function CardContainer(uiCardContainer) {
         uiCardContainer.holder.empty();
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
+            // reset back to the first page
+            currentPage = 1;
             sg.tagContainer.unapplyTags(currentLabelType)
             clearCurrentCards();
             currentLabelType = filterLabelType;
 
-            if (!cardsByType[currentLabelType]) {
-                cardsByType[currentLabelType] = new CardBucket();
+            if (cardsByType[currentLabelType].length < currentPage) {
+                cardsByType[currentLabelType].push(new CardBucket());
                 console.log(Array.from(loadedLabelIds));
                 fetchLabelsByType(labelTypeIds[filterLabelType], 30, Array.from(loadedLabelIds), function () {
                     console.log("new labels gathered");
                     render();
                 });
             } else {
-                currentCards = cardsByType[currentLabelType].copy();;
+                currentCards = cardsByType[currentLabelType][currentPage - 1].copy();;
                 render();
             }
+        }
+    }
+
+    function updateCardsNewPage() {
+        if (cardsByType[currentLabelType].length < currentPage) {
+            console.log("Adding values to next page")
+            cardsByType[currentLabelType].push(new CardBucket());
+            console.log(Array.from(loadedLabelIds));
+            fetchLabelsByType(labelTypeIds[currentLabelType], 30, Array.from(loadedLabelIds), function () {
+                console.log("new labels gathered");
+                render();
+            });
         }
     }
 
@@ -114,7 +148,7 @@ function CardContainer(uiCardContainer) {
             }
         } else {
            //clearCurrentCards();
-           currentCards = cardsByType[currentLabelType].copy();
+           currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
            let bucket = currentCards.getCards();
 
            let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType];
@@ -210,7 +244,7 @@ function CardContainer(uiCardContainer) {
      */
     function clearCards() {
         for (let labelType in cardsByType) {
-            cardsByType[labelType] = null;
+            cardsByType[labelType] = [];
         }
     }
 
@@ -226,5 +260,6 @@ function CardContainer(uiCardContainer) {
     self.clearCurrentCards = clearCurrentCards;
     self.clearCards = clearCards;
 
+    _init();
     return this;
 }
