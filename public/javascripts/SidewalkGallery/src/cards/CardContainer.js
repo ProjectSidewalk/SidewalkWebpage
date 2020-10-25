@@ -14,14 +14,16 @@ function CardContainer(uiCardContainer) {
         Other: 5,
         Occlusion: 6,
         NoSidewalk: 7,
-        Problem: 8
+        Problem: 8,
+        Assorted: 9
     };
 
-    let currentLabelType = null;
+    let currentLabelType = 'Assorted';
 
     let currentPage = 1;
 
     let cardsByType = {
+        Assorted: [],
         CurbRamp: [],
         NoCurbRamp: [],
         Obstacle: [],
@@ -44,6 +46,10 @@ function CardContainer(uiCardContainer) {
                 click: handleNextPageClick
             })
         }
+        fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
+            console.log("assorted labels loaded for landing page");
+            render();
+        });
     }
 
     function handleNextPageClick() {
@@ -54,6 +60,7 @@ function CardContainer(uiCardContainer) {
 
     function setPage(pageNumber) {
         currentPage = pageNumber;
+        
     }
 
     function fetchLabelsByType(labelTypeId, n, loadedLabels, callback) {
@@ -96,9 +103,15 @@ function CardContainer(uiCardContainer) {
      * @param card
      */
     function push(card) {
-        cardsByType[card.getLabelType()][currentPage - 1].push(card);
+        if (currentLabelType == 'Assorted') {
+            cardsByType[currentLabelType][currentPage - 1].push(card);
+        } else {
+            cardsByType[card.getLabelType()][currentPage - 1].push(card);
+        }
+        
+        // For now, we have to also add every label we grab to the Assorted bucket for the assorted option
+        //cardsByType['Assorted'].push(card);
         currentCards.push(card);
-        // tagFiltered.push(card);
     }
 
     /**
