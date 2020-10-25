@@ -22,6 +22,8 @@ function CardContainer(uiCardContainer) {
 
     let currentPage = 1;
 
+    let pageNumberDisplay = null;
+
     let cardsByType = {
         Assorted: [],
         CurbRamp: [],
@@ -45,7 +47,14 @@ function CardContainer(uiCardContainer) {
             uiCardContainer.nextPage.bind({
                 click: handleNextPageClick
             })
+            uiCardContainer.prevPage.bind({
+                click: handlePrevPageClick
+            })
         }
+        pageNumberDisplay = document.createElement('h2');
+        pageNumberDisplay.innerText = "1";
+        uiCardContainer.pageNumber.append(pageNumberDisplay);
+        cardsByType[currentLabelType].push(new CardBucket());
         fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
             console.log("assorted labels loaded for landing page");
             render();
@@ -58,9 +67,18 @@ function CardContainer(uiCardContainer) {
         updateCardsNewPage();
     }
 
+    function handlePrevPageClick() {
+        if (currentPage > 1) {
+            console.log('previous page');
+            setPage(currentPage - 1);
+            updateCardsNewPage();
+        }
+    }
+
     function setPage(pageNumber) {
         currentPage = pageNumber;
-        
+        console.log("next page " + pageNumber)
+        pageNumberDisplay.innerText = pageNumber;
     }
 
     function fetchLabelsByType(labelTypeId, n, loadedLabels, callback) {
@@ -78,6 +96,7 @@ function CardContainer(uiCardContainer) {
                         loadedLabelIds.add(card.getLabelId());
                     }
                 }
+                currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
                 if (callback) callback();
             }
         });
@@ -111,7 +130,6 @@ function CardContainer(uiCardContainer) {
         
         // For now, we have to also add every label we grab to the Assorted bucket for the assorted option
         //cardsByType['Assorted'].push(card);
-        currentCards.push(card);
     }
 
     /**
@@ -122,7 +140,7 @@ function CardContainer(uiCardContainer) {
         let filterLabelType = sg.tagContainer.getStatus().currentLabelType;
         if (currentLabelType !== filterLabelType) {
             // reset back to the first page
-            currentPage = 1;
+            setPage(1);
             sg.tagContainer.unapplyTags(currentLabelType)
             clearCurrentCards();
             currentLabelType = filterLabelType;
@@ -135,7 +153,7 @@ function CardContainer(uiCardContainer) {
                     render();
                 });
             } else {
-                currentCards = cardsByType[currentLabelType][currentPage - 1].copy();;
+                currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
                 render();
             }
         }
@@ -150,11 +168,15 @@ function CardContainer(uiCardContainer) {
                 console.log("new labels gathered");
                 render();
             });
+        } else {
+            currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
+            render();
         }
     }
 
     function updateCardsByTag(tag) {
         if (tag.getStatus().applied) {
+            currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
             let bucket = currentCards.getCards();
             for (let severity in bucket) {
                 bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
