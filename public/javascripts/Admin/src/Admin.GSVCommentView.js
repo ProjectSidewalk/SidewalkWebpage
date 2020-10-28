@@ -11,14 +11,14 @@ function AdminGSVCommentView(admin) {
     function _resetModal() {
         var modalText =
             '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">'+
-                '<div class="modal-dialog" role="document" style="width: 570px">'+
+                '<div class="modal-dialog" role="document" style="width: 840px">'+
                     '<div class="modal-content">'+
                         '<div class="modal-header">'+
                             '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
                             '<h4 class="modal-title" id="myModalLabel"></h4>'+
                         '</div>'+
                         '<div class="modal-body">'+
-                            '<div id="svholder" style="width: 540px; height:360px">'+
+                            '<div id="svholder" style="width: 810px; height:540px">'+
                         '</div>'
                         +
                         '<div id="button-holder">' + '</div>' +
