@@ -6,46 +6,57 @@ If you would like to suggest that we deploy in your city/municipality, please em
 ## Development Instructions
 
 ### Setting up the development environment
-The development environment is set up using Docker containers. Hence, in order to set the development environment, [installation of Docker](https://www.docker.com/get-started) is necessary. Windows users may also need to install `make`. 
-
-### Windows OS Setup
-#### Windows with Linux Distribution (WSL2) (Recommended)
-
-1. If you are working on Windows, we recommended using WSL2 (essential for Windows Home users for reasonable compile times). WSL2 provides an actual Linux kernel running within a lightweight VM unlike the older WSL which tried to emulate a linux kernel with the Windows kernel; in essence, it will greatly increase compile times you may see prior to using WSL2 by orders of magnitude. [Follow these intructions](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to download it. 
-
-1. After you complete the WSL2 setup, enter Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home). 
-
-1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
-
-1. Then, open your Linux VM shell and navigate to where you would like to setup your Project Sidewalk repository. 
-
-1. Finally, enter `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`. WSL2 with Windows should be all set to go!
-
-##### Transfering files from Windows to Linux VM
-  One issue you may encounter when setting up your dev environment within the Linux VM is transferring the API key text files and sidewalk database dump file into the VM itself. 
-  
-  1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
-  1. Locate the Linux VM with your Project Sidewalk repository (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
-  1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
-  1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage repo where you can drag and drop files.
-
-#### Windows without Linux Distribution 
-Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
-1. First clone in your desired location by running `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the terminal.
-1. Enable use of Hyper-V on Windows [(follow this tutorial)](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)
-1. Open the docker dashboard, and click the settings gear icon on the top right
-    * If the settings gear icon is disabled, make sure to sign in to Docker
-1. Go to **Resources &rarr; Advanced**.
-1. Slide the CPU bar all the way to the right.
-    * This will increase the speed of compile times. Docker will only use all cores during compile, so there is no need to worry about the performance of other programs.
 
 If you run into any problems during setup, check the [Docker troubleshooting wiki page](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) and the [Github issues tagged as "Dev Environment"](https://github.com/ProjectSidewalk/SidewalkWebpage/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3A%22Dev+Environment%22+). If you don't find any answers there, then post in the "newbies" channel on Slack!
 
-### Mac/Linux OS Setup
-After installing Docker, clone the SidewalkWebpage repository in your desired location by running `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the terminal.
+<details><summary>Linux (Ubuntu)</summary>
+
+1. Install Docker. You will probably want to [install rootless Docker](https://docs.docker.com/engine/security/rootless/) to make development easier in the future, though it is a bit more complicated. Talk to Mikey if you're having issues.
+1. [Install docker-compose](https://docs.docker.com/compose/install/) separately (the docker daemon and docker-compose are only bundled on Mac/Windows).
+1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
+</details>
+
+<details><summary>Mac</summary>
+
+1. [Install  Docker](https://www.docker.com/get-started).
+1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
+</details>
+
+<details><summary>Windows</summary>
+<details><summary>Recommended: Using the Windows Subsystem for Linux (WSL2)</summary>     
+WSL2 is recommended for much faster compile times (especially for Windows Home users). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel.
+
+1. [Install  Docker](https://www.docker.com/get-started).
+1. [Install WSL2](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
+1. Enter the Docker Dashboard and click the settings gear icon in the top right. From there, click the "General" tab and select the "Use the WSL 2 based engine" check box (this will be grayed out and pre-checked if you're running Windows Home).
+1. Proceed by clicking **Resources &rarr; WSL Integration** and select your Linux VM of choice under "Enable integration with additional distros:". Here is some extra [documentation](https://docs.docker.com/docker-for-windows/wsl/) from Docker that may help out with this process.
+1. Open your Linux VM shell and navigate to where you would like to set up your Project Sidewalk repository.
+1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
+
+##### Transferring files from Windows to Linux VM
+One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the databse dump and API keys) into the VM itself. 
+
+1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
+1. Locate the Linux VM within your Project Sidewalk directory (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
+1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
+1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage directory where you can drag and drop files.
+
+</details>
+
+<details><summary>Without WSL2</summary>
+Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
+
+1. [Install  Docker](https://www.docker.com/get-started).
+1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git` in the directory where you want to put the code.
+1. [Enable use of Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v).
+1. Open the docker dashboard and click the settings gear icon on the top right (if the settings gear icon is disabled, make sure to sign in to Docker).
+1. Go to **Resources &rarr; Advanced**.
+1. Slide the CPU bar all the way to the right. This will increase the speed of compile times. Docker will use all cores only during compilation, so there is no need to worry about the performance of other programs.
+</details>
+</details>
 
 ### Running the application locally
-Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebage dir. 
+Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine, but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebage directory. 
 
 On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7) (built in to Win10). On Mac, use the basic terminal or, even better, [iTerm2](https://www.iterm2.com/). On Linux (or if you're using WSL2 on Windows), the default Linux Shell (such as [Bash](https://www.gnu.org/software/bash/)) is a great choice.
 
@@ -63,9 +74,11 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take awhile depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) (particularly, [this entry](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#running-make-import-dump-dbsidewalk-fails)).
+1. In a separate terminal, run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take awhile depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) (particularly, [this entry](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#running-make-import-dump-dbsidewalk-fails)). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
 
-1. Run `npm start` from inside the Docker shell. If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially (on my 2015 MacBook Pro, it took ~9 mins) but will be orders of magnitude faster in the future (~10 secs). The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Note that the first time compilation takes time. Successful output of this command will look like:
+1. Run `npm start` from inside the Docker shell. If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
+
+    The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Successful output of this command will look like:
 
     ```
     > grunt watch & sbt clean "~ run"
@@ -95,7 +108,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 
 1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/[db-name]`.
 
-1. If the database is for a city other than DC, modify the 2nd line of the `conf/cityparams.conf` file to be `city-id = "seattle-wa"` for Seattle or `city-id = "newberg-or"` for Newberg.
+1. If the database is for a city other than DC, modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
 
 1. Rerun `make dev`.
 
