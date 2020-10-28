@@ -23,7 +23,8 @@ If you run into any problems during setup, check the [Docker troubleshooting wik
 </details>
 
 <details><summary>Windows</summary>
-<details><summary>Recommended: Using the Windows Subsystem for Linux (WSL2)</summary>     
+<details><summary>Recommended: Using the Windows Subsystem for Linux (WSL2)</summary>
+
 WSL2 is recommended for much faster compile times (especially for Windows Home users). WSL2 provides an actual Linux kernel running within a lightweight VM, unlike the older WSL which tried to emulate a linux kernel within the Windows kernel.
 
 1. [Install  Docker](https://www.docker.com/get-started).
@@ -34,7 +35,7 @@ WSL2 is recommended for much faster compile times (especially for Windows Home u
 1. Run `git clone https://github.com/ProjectSidewalk/SidewalkWebpage.git`.
 
 ##### Transferring files from Windows to Linux VM
-One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the databse dump and API keys) into the VM itself. 
+One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump and API keys) into the VM itself. 
 
 1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
 1. Locate the Linux VM within your Project Sidewalk directory (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
@@ -44,6 +45,7 @@ One issue you may encounter when setting up your dev environment within the Linu
 </details>
 
 <details><summary>Without WSL2</summary>
+
 Should you choose not to use WSL2, you can still get some compile time speed up from enabling Hyper-V on your Windows system.
 
 1. [Install  Docker](https://www.docker.com/get-started).
@@ -56,14 +58,12 @@ Should you choose not to use WSL2, you can still get some compile time speed up 
 </details>
 
 ### Running the application locally
-Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine, but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebage directory. 
+Here are the instructions to run Project Sidewalk locally for the first time. If you've already run through this list and gotten Project Sidewalk to run locally on your machine, but you just want to run it again (*e.g.,* after a machine restart), then type `make dev` in the root SidewalkWebpage directory. 
 
 On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/powershell/scripting/overview?view=powershell-7) (built in to Win10). On Mac, use the basic terminal or, even better, [iTerm2](https://www.iterm2.com/). On Linux (or if you're using WSL2 on Windows), the default Linux Shell (such as [Bash](https://www.gnu.org/software/bash/)) is a great choice.
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for the two API key files and a database dump. You will put the API key files into the root directory of the project. Rename the database dump `sidewalk-dump` and put it in the `SidewalkWebpage/db` directory (other files in this dir include `init.sh` and `schema.sql`, for example).
-
 1. If the database dump is for a city other than DC, modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
-
 1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
@@ -74,8 +74,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/opt#
     ```
 
-1. In a separate terminal, run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take awhile depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) (particularly, [this entry](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#running-make-import-dump-dbsidewalk-fails)). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
-
+1. In a separate terminal, run `make import-dump db=sidewalk` from the root project directory outside the Docker shell. This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting) (particularly, [this entry](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#running-make-import-dump-dbsidewalk-fails)). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
 1. Run `npm start` from inside the Docker shell. If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
 
     The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Successful output of this command will look like:
@@ -103,13 +102,9 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 
 ### Setting up another database or city
 1. Acquire another database dump and rename it `[db-name]-dump`. I would suggest naming it `sidewalk-seattle-dump` if it is a Seattle database, for example. Just make sure it does not conflict with the name of any databases you already have set up.
-
 1. Run `make import-dump db=[db-name]` from the root project directory outside the Docker shell. Using the example from step 1., this would be `make import-dump db=sidewalk-seattle`.
-
 1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/[db-name]`.
-
 1. If the database is for a city other than DC, modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID. You can find the list of IDs for the cities starting at line 7 of `conf/cityparams.conf`.
-
 1. Rerun `make dev`.
 
 ### Additional tools
@@ -122,9 +117,9 @@ We recommend the [IntelliJ IDEA](https://www.jetbrains.com/idea/) IDE for develo
 On the first run of IntelliJ IDEA, make sure to select the Scala plugin. In addition, we recommend installing the [Play Routes](https://plugins.jetbrains.com/plugin/10053-play-routes/), [i18n support](https://plugins.jetbrains.com/plugin/12981-i18n-support/), and [HOCON](https://plugins.jetbrains.com/plugin/10481-hocon) plugins. 
 
 To install the plugins, open IDEA and select `File -> Settings`. In the Settings window, select the `Plugins` option on the left sidebar and then `Marketplace` (on top menubar). In the "search area" (textfield next to magnifying glass):
-- Type in "play routes" and select "Play Routes" by Tomáš Milata (31.6K downloads with 3.72 star rating at the time of writing). Hit the `Install` button.
-- Type in "i18n support" and install the "i18n support" plugin by i18nPlugin (10.6K downloads with 4.56 star rating)
-- Type in "hocon" and install the "HOCON" plugin by Roman Janusz *et al.* (739.8K downloads with 3.54 star rating)
+- Type in "play routes" and select "Play Routes" by Tomáš Milata (31.6K downloads with 3.72-star rating at the time of writing). Hit the `Install` button.
+- Type in "i18n support" and install the "i18n support" plugin by i18nPlugin (10.6K downloads with 4.56-star rating)
+- Type in "hocon" and install the "HOCON" plugin by Roman Janusz *et al.* (739.8K downloads with 3.54-star rating)
 
 #### Database tools
 To look at and run queries on your database, you will want to install a database client. [Valentina Studio](https://www.valentina-db.com/en/valentina-studio-overview) is a good cross-platform database client. People also like using [Postico](https://eggerapps.at/postico/) for Mac or [PGAdmin](https://www.pgadmin.org/download/) on Windows/Mac.
@@ -139,9 +134,7 @@ Database: sidewalk
 
 ### Making changes
 1. Before making changes, check out our [style guide](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Style-Guide) and [process for contributing new code](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Process-for-contributing-new-code) wiki pages.
-
 1. If you make any changes to the `build.sbt` or the configs, you'd need to press `Ctrl+D` and then `sbt clean` and then `npm start` from inside the Docker shell.
-
 1. If you make any changes to the views or other scala files, these changes will be automatically picked up by `sbt`. You'd need to reload the browser once the compilation finishes. For example, a change to `index.scala.html` file results in:
 
     ```
@@ -182,4 +175,4 @@ To run the application remotely,
 1. Use Play's dist tool to create jar files of the project (i,e., `activator dist`): https://www.playframework.com/documentation/2.3.x/ProductionDist
 1. Upload the zip file to the web server
 1. SSH into the server and unarchive the zip file (e.g., `unzip filename`).
-1. Run `nohup bin/sidewalk-webpage -Dhttp.port=9000 &` ([reference](http://alvinalexander.com/scala/play-framework-deploying-application-production-server)). Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.
+1. Run `nohup bin/sidewalk-webpage -Dhttp.port=9000 &` ([reference](http://alvinalexander.com/scala/play-framework-deploying-application-production-server)). Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify the pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.
