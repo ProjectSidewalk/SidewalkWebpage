@@ -479,6 +479,17 @@ function Admin(_, $, turf, difficultRegionIds) {
         self.adminGSVLabelView = AdminGSVLabelView(true);
     }
 
+    function initializeAdminGSVCommentView(){
+        self.adminGSVCommentView = AdminGSVCommentView(true);
+    }
+
+    function initializeAdminGSVCommentWindow(){
+        $('.showCommentLocation').click(function(e) { 
+            e.preventDefault();
+            self.adminGSVCommentView.showCommentGSV(this.innerHTML);
+        });
+    }
+
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
     }
@@ -1484,6 +1495,10 @@ function Admin(_, $, turf, difficultRegionIds) {
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
+
+    initializeAdminGSVCommentView();
+    initializeAdminGSVCommentWindow();
+    
 
     self.clearMap = clearMap;
     self.redrawLabels = redrawLabels;
