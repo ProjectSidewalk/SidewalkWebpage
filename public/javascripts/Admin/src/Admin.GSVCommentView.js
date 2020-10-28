@@ -31,7 +31,7 @@ function AdminGSVCommentView(admin) {
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
     }
 
-    //PASS GSV ID INTO HANDLEDATA, USE default heading, pitch, zoom
+    
     function showCommentGSV(commentGSV) {
         _resetModal();
 
