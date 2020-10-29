@@ -239,16 +239,16 @@ function Main (params) {
 
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
-            $(".toolUI").css('opacity', 1);
+            $(".tool-ui").css('opacity', 1);
         });
         $('#sign-in-modal-container').on('show.bs.modal', function () {
             svl.popUpMessage.disableInteractions();
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
         $('#sign-in-button').on('click', function(){
             $("#sign-in-modal").removeClass("hidden");
             $("#sign-up-modal").addClass("hidden");
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
 
         $(svl.ui.ribbonMenu.buttons).each(function() {
@@ -443,7 +443,7 @@ function Main (params) {
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;
             $("#page-loading").css({"visibility": "hidden"});
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
 
             if (mission.getProperty("missionType") === "auditOnboarding") {

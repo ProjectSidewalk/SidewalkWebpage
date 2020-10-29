@@ -199,19 +199,19 @@ $( document ).ready(function() {
 
     // Triggered when 'Start Exploring' in video container is clicked
     // Logs "Click_module=StartExploring_location=Index"
-    $(".bodyStartBtn").on("click", function(){
+    $(".body-start-btn").on("click", function(){
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
     // Triggered when the city or mapathon links are clicked.
-    // If a city link is clicked logs "Click_module=OtherCityLink_City=cityName".
+    // If a city link is clicked logs "Click_module=other-city-link_City=cityName".
     // If a mapathon link is clicked logs "Click_module=mapathonLink".
-    $(".otherCityLink").on("click", function(e){
+    $(".other-city-link").on("click", function(e){
         var cityName = e.currentTarget.id;
         if (cityName === "mapathonLink"){
             logWebpageActivity("Click_module=mapathonLink");
         }else{
-            logWebpageActivity("Click_module=OtherCityLink_City="+cityName);
+            logWebpageActivity("Click_module=other-city-link_City="+cityName);
         }
     });
 

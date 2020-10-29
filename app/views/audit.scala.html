@@ -80,7 +80,7 @@
         </div><!-- /.modal -->
 }
 
-    <div class="container toolUI" style = "visibility: hidden;">
+    <div class="container tool-ui" style = "visibility: hidden;">
         <div id="advanced-overlay">
             <div class="overlay-text">
                 <div id="advanced-neighborhood-text">
@@ -844,7 +844,7 @@
             }
         }
         if (hitExpired) {
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else @if(task) {
             var streetViewService = new google.maps.StreetViewService();
@@ -893,7 +893,7 @@
                 }
             });
         } else {
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $('#already-completed-neighborhood-overlay').show();
         }
 
