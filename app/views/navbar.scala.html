@@ -119,7 +119,7 @@
                 </li>
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
-                <li class="dropdown navbar-lnk" id="navbar-dropdown-list">
+                <li class="active dropdown navbar-lnk" id="navbar-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
                         
                         <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
@@ -181,34 +181,34 @@ $(document).ready(function () {
 
     // Triggered when 'Sign In' in navbar is clicked
     // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
-    $("#sign-in-button").on('click', function(){
-        logWebpageActivity("Click_module=SignIn");
-    });
+    // $("#sign-in-button").on('click', function(){
+    //     logWebpageActivity("Click_module=SignIn");
+    // });
 
-    // Triggered when 'Start Exploring' in navbar is clicked
-    $(".navbar-start-btn").on('click', function(){
-        logWebpageActivity("Click_module=StartExploring");
-    });
+    // // Triggered when 'Start Exploring' in navbar is clicked
+    // $(".navbar-start-btn").on('click', function(){
+    //     logWebpageActivity("Click_module=StartExploring");
+    // });
 
-    // Triggered when 'Start Validating' in navbar is clicked.
-    $(".navbar-validate-btn").on('click', function(){
-        logWebpageActivity("Click_module=StartValidating");
-    });
+    // // Triggered when 'Start Validating' in navbar is clicked.
+    // $(".navbar-validate-btn").on('click', function(){
+    //     logWebpageActivity("Click_module=StartValidating");
+    // });
 
-    // Triggered when 'How to Label' in navbar is clicked.
-    $(".navbar-guide-btn").on('click', function() {
-        logWebpageActivity("Click_module=LabelingGuide");
-    });
+    // // Triggered when 'How to Label' in navbar is clicked.
+    // $(".navbar-guide-btn").on('click', function() {
+    //     logWebpageActivity("Click_module=LabelingGuide");
+    // });
 
-    // Triggered when 'Results' in navbar is clicked.
-    $(".navbarResultsBtn ").on('click', function(){
-        logWebpageActivity("Click_module=Results");
-    });
+    // // Triggered when 'Results' in navbar is clicked.
+    // $(".navbarResultsBtn ").on('click', function(){
+    //     logWebpageActivity("Click_module=Results");
+    // });
 
-    // Triggered when 'Label Map' in navbar is clicked.
-    $(".navbarLabelMapBtn ").on('click', function(){
-        logWebpageActivity("Click_module=LabelMap");
-    });
+    // // Triggered when 'Label Map' in navbar is clicked.
+    // $(".navbarLabelMapBtn ").on('click', function(){
+    //     logWebpageActivity("Click_module=LabelMap");
+    // });
 
     // Triggered when links that are only shown on the audit page are clicked.
     // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
