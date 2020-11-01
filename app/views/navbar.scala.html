@@ -12,12 +12,12 @@
             <div class="navbar-logo">
                 <a id="brand navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
             </div>
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#collapsable-navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
                 <i class="fa fa-bars fa-2x" aria-hidden="true"></i>
             </button>
         </div>
-        <div id="navbar" class="collapse navbar-collapse">
+        <div id="collapsable-navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
                 @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
                     <li>
@@ -179,6 +179,14 @@ $(document).ready(function () {
         });
     }
 
+
+    $(document).click(function (event) {
+        var clickover = $(event.target);
+        var _opened = $("#collapsable-navbar").hasClass("navbar-collapse collapse in");
+        if (_opened === true && !clickover.hasClass("navbar-toggle")) {
+            $("button.navbar-toggle").click();
+        }
+    });
     // Triggered when 'Sign In' in navbar is clicked
     // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
     $("#sign-in-button").on('click', function(){
