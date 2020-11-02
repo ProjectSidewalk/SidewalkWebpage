@@ -217,7 +217,7 @@ function Panorama (label, id) {
         let pos = currentLabel.getPosition();
 
         if (!self.labelMarker) {
-            let controlLayer = isMobile() ? document.getElementById("viewControlLayerMobile") : document.getElementById("viewControlLayer");
+            let controlLayer = isMobile() ? document.getElementById("view-control-layer-mobile") : document.getElementById("view-control-layer");
             self.labelMarker = new PanoMarker({
                 id: "validate-pano-marker",
                 markerContainer: controlLayer,

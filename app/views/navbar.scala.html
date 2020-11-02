@@ -181,34 +181,34 @@ $(document).ready(function () {
 
     // Triggered when 'Sign In' in navbar is clicked
     // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
-    // $("#sign-in-button").on('click', function(){
-    //     logWebpageActivity("Click_module=SignIn");
-    // });
+    $("#sign-in-button").on('click', function(){
+        logWebpageActivity("Click_module=SignIn");
+    });
 
     // // Triggered when 'Start Exploring' in navbar is clicked
-    // $(".navbar-start-btn").on('click', function(){
-    //     logWebpageActivity("Click_module=StartExploring");
-    // });
+    $(".navbar-start-btn").on('click', function(){
+        logWebpageActivity("Click_module=StartExploring");
+    });
 
     // // Triggered when 'Start Validating' in navbar is clicked.
-    // $(".navbar-validate-btn").on('click', function(){
-    //     logWebpageActivity("Click_module=StartValidating");
-    // });
+    $(".navbar-validate-btn").on('click', function(){
+        logWebpageActivity("Click_module=StartValidating");
+    });
 
     // // Triggered when 'How to Label' in navbar is clicked.
-    // $(".navbar-guide-btn").on('click', function() {
-    //     logWebpageActivity("Click_module=LabelingGuide");
-    // });
+    $(".navbar-guide-btn").on('click', function() {
+        logWebpageActivity("Click_module=LabelingGuide");
+    });
 
     // // Triggered when 'Results' in navbar is clicked.
-    // $(".navbarResultsBtn ").on('click', function(){
-    //     logWebpageActivity("Click_module=Results");
-    // });
+    $(".navbarResultsBtn ").on('click', function(){
+        logWebpageActivity("Click_module=Results");
+    });
 
     // // Triggered when 'Label Map' in navbar is clicked.
-    // $(".navbarLabelMapBtn ").on('click', function(){
-    //     logWebpageActivity("Click_module=LabelMap");
-    // });
+    $(".navbarLabelMapBtn ").on('click', function(){
+        logWebpageActivity("Click_module=LabelMap");
+    });
 
     // Triggered when links that are only shown on the audit page are clicked.
     // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
@@ -517,7 +517,7 @@ $(document).ready(function () {
             });
     </script>
     <template id="navbar-user-dropdown-list-signed-in">
-        <a id="nav-user-dropdown" class="navbarBtn" role="button" data-toggle="dropdown" href="#">
+        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
             __USERNAME__
             <b class="caret"></b>
         </a>

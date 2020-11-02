@@ -49,11 +49,11 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                 return applyLatLngToLayer(d).y;
             });
 
-        var linePath = g.selectAll(".lineConnect")
+        var linePath = g.selectAll(".line-connect")
             .data([featuresData])
             .enter()
             .append("path")
-            .attr("class", "lineConnect");
+            .attr("class", "line-connect");
 
         // reset projection on zoom
         leafletMap.on("viewreset", reset);
@@ -98,7 +98,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                         // Remove after animation now that the scaling svg has been added (fixes #1839).
                         d3.select(self._map.getPanes().overlayPane)
                             .selectAll("svg")
-                            .selectAll(".lineConnect")
+                            .selectAll(".line-connect")
                             .remove();
                     }
                 });
