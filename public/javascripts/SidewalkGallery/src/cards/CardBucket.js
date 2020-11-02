@@ -17,6 +17,27 @@ function CardBucket(bucket, size) {
         size++;
     }
 
+    function filterByTag(tag) {
+        for (let severity in bucket) {
+            bucket[severity] = bucket[severity].filter(card => testInclusion(card, tag));
+        }
+    }
+    
+    function testInclusion(card, tag) {
+        let include = card.getProperty("tags").includes(tag.getProperty("tag"));
+        //TODO: fix decrement, it isn't working
+        if (!include) size--;
+        return include;
+    }
+
+    function getSize() {
+        return size;
+    }
+
+    function getSizeOfSeverity(severity) {
+        return bucket[severity].length;
+    }
+
     function getCards() {
         return bucket;
     }
@@ -41,6 +62,9 @@ function CardBucket(bucket, size) {
     }
 
     self.push = push;
+    self.filterByTag = filterByTag;
+    self.getSize = getSize;
+    self.getSizeOfSeverity = getSizeOfSeverity;
     self.getCards = getCards;
     self.getCardsBySeverity = getCardsBySeverity;
     self.copy = copy;

@@ -69,6 +69,10 @@ function Tag (params) {
         return properties.label_type;
     }
 
+    function getTag() {
+        return properties.tag;
+    }
+
     /**
      * Return the deep copy of the properties object,
      * so the caller can only modify properties from
@@ -127,6 +131,7 @@ function Tag (params) {
     self.unapply = unapply;
     self.getTagId = getTagId;
     self.getLabelType = getLabelType;
+    self.getTag = getTag;
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.getStatus = getStatus;

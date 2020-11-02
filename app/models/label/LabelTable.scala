@@ -704,6 +704,70 @@ object LabelTable {
     selectedLabels
   }
 
+  //TODO: write retrieveLabelsByTag and retrieveLabelsBySeverity, or think of another way to guarantee users see stuff
+  def retrieveLabelsOfTypeBySeverityAndTags(labelTypeId: Int, n: Int, loadedLabelIds: Set[Int], severity: Set[Int], tags: Set[String]): Seq[LabelValidationMetadata] = db.withSession { implicit session => 
+    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
+    Logger.debug("Grabbing labels by type severity and tags");
+    val rand = SimpleFunction.nullary[Double]("random")
+    val _labelsUnfiltered = for {
+      _lb <- labelsWithoutDeleted if _lb.labelTypeId === labelTypeId
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _ls <- severities if _lb.labelId === _ls.labelId && (_ls.severity inSet severity)
+    } yield (_lb, _lp, _lt.labelType, _ls.severity.?)
+
+    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
+
+    val addTemporariness = for {
+      (l, t) <- _labels.leftJoin(temporariness).on(_._1.labelId === _.labelId)
+    } yield (l._1, l._2, l._3, l._4, t.temporary.?.getOrElse(false))
+
+    val addGSVData = for {
+      (l, e) <- addTemporariness.leftJoin(gsvData).on(_._1.gsvPanoramaId === _.gsvPanoramaId)
+    } yield (l._1, l._2, l._3, l._4, l._5, e.expired)
+
+    val removeExpiredPanos = addGSVData.filter(_._6 === false)
+
+    val addDescriptions = for {
+      (l, d) <- removeExpiredPanos.leftJoin(descriptions).on(_._1.labelId === _.labelId)
+    } yield (l._1.labelId, l._3, l._1.gsvPanoramaId, l._2.heading, l._2.pitch,
+             l._2.zoom, l._2.canvasX, l._2.canvasY, l._2.canvasWidth, l._2.canvasHeight, l._4, l._5, d.description.?)
+
+    val newRandomLabelsList = addDescriptions.sortBy(x => rand).list.map(l => LabelValidationMetadataWithoutTags.tupled(l))
+
+    var potentialStartIdx: Int = 0
+
+    Logger.debug(newRandomLabelsList.size + "")
+    while (selectedLabels.length < n && potentialStartIdx < newRandomLabelsList.size) {
+      //Logger.debug("entered the loop with " + selectedLabels.length + " labels")
+      val labelsNeeded: Int = n - selectedLabels.length
+      val newLabels: Seq[LabelValidationMetadata] =
+        newRandomLabelsList.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
+
+          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+          if (panoExists(currLabel.gsvPanoramaId)) {
+            val now = new DateTime(DateTimeZone.UTC)
+            val timestamp: Timestamp = new Timestamp(now.getMillis)
+            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
+            val tagsToCheck = getTagsFromLabelId(currLabel.labelId)
+            if (tagsToCheck.toSet.equals(tags)) {
+              Some(labelAndTagsToLabelValidationMetadata(currLabel, tagsToCheck))
+            } else {
+              None
+            }
+          } else {
+            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
+            None
+          }
+        }.seq
+
+      potentialStartIdx += labelsNeeded
+      selectedLabels ++= newLabels
+    }
+
+    selectedLabels
+  }
+
   /**
    * Retrieve n random labels of assorted types. 
    * TODO: Currently, we just select n / (# of label types) labels for each label type. However, we may want to change this to fit the 

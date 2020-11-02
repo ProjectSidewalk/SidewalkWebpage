@@ -118,6 +118,7 @@ GET     /label/currentMission                                @controllers.LabelC
 GET     /label/tags                                          @controllers.LabelController.getLabelTags()
 GET     /label/miniMapResume                                 @controllers.LabelController.getLabelsForMiniMap(regionId: Int)
 GET     /label/labelsByType                                  @controllers.GalleryController.getLabelsByType(labelTypeId: Int, n: Int, loadedLabels: String)
+GET     /label/labelsBySeveritiesAndTags                       @controllers.GalleryController.getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String)
 POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 GET     /label/geo/:id                                       @controllers.ValidationTaskController.getLabelData(id: Int)
 
