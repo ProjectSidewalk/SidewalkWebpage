@@ -24,7 +24,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
-    <div class="container toolUI" style = "visibility: visible;">
+    <div class="container tool-ui" style = "visibility: visible;">
         <div id="HIT-expiration-overlay">
             <div class="overlay-text">
                 <div id="HIT-expiration-text">
@@ -76,7 +76,7 @@
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
                     <div id="svv-panorama-0" class="single-panorama">
-                        <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
+                        <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
                             <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
                             <div id="label-description-box"></div>
                         </div>
@@ -285,7 +285,7 @@
             }
         }
         if (hitExpired) {
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
             param.dataStoreUrl = '@routes.ValidationTaskController.post';

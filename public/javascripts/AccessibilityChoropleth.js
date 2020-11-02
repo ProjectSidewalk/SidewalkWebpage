@@ -160,7 +160,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                             counts[j] = 0;
                     }
 
-                    popupContent += '<div class="resultsImages"><table><tbody>'+
+                    popupContent += '<div class="results-images"><table><tbody>'+
                                     '<tr><td>' + i18next.t('missing-sidewalks') + '<br/></td>'+
                                     '<td>' + i18next.t('missing-ramps') + '<br/></td>'+
                                     '<td>' + i18next.t('surface-problems') + '<br/>'+

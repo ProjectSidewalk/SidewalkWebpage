@@ -99,7 +99,7 @@ footer {
     /* box-shadow: 0 0 5px rgba(0,0,0,.8); */
 }
 
-.navbarLink{
+.navbar-lnk{
     display: inline;
     margin-top: 4px;
     margin-left: 10px;
@@ -142,7 +142,7 @@ footer {
     margin-right: auto;
 }
 
-.navbar-nav > li > a.navbarBtn {
+.navbar-nav > li > a.navbar-button {
     -moz-border-radius: 15px;
     -webkit-border-radius: 15px;
     border-radius: 10px;
@@ -165,19 +165,19 @@ footer {
     background-color: #ffffff;
 }
 
-.navbar-nav > .active > a.navbarBtn:hover {
+.navbar-nav > .active > a.navbar-button:hover {
     background-color: #FCECBE;
     border: 1px solid #FCECBE;
     color: #2D2A3F;
     text-shadow: none;
 }
 
-.navbarStartBtn:active {
+.navbar-start-btn:active {
     position:relative;
     top:8px;
 }
 
-.grayButton {
+.gray-btn {
     position: relative;
     background-color: rgba(251, 215, 139, 1);
     -moz-border-radius:15px;
@@ -199,7 +199,7 @@ footer {
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 
-.grayButton:hover {
+.gray-btn:hover {
     background-color:#fff;
     border:1px solid #fff;
     color: #2D2A3F;
@@ -1013,7 +1013,7 @@ p#conditional-text {
     color: #FBD78B;
 }
 
-.bodyStartBtn {
+.body-start-btn {
     background-color:rgba(251, 215, 139, 1);
     -moz-border-radius:15px;
     -webkit-border-radius:15px;
@@ -1029,13 +1029,13 @@ p#conditional-text {
     text-decoration:none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
-.bodyStartBtn:hover {
+.body-start-btn:hover {
     background-color:#FCECBE;
     border:0px solid #eb734d;
     color:#2d2a3f;
     text-shadow: none;
 }
-.bodyStartBtn:active{
+.body-start-btn:active{
     position:relative;
     top:1px;
 }
@@ -1051,7 +1051,7 @@ p#conditional-text {
     /*left: -30px;*/
 }
 
-.otherCityLink:link {
+.other-city-link:link {
     color: #fff;
     text-decoration:underline;
     font-family: raleway;
@@ -1062,10 +1062,10 @@ p#conditional-text {
     position:relative;
     cursor: pointer;
 }
-.otherCityLink:visited {
+.other-city-link:visited {
     color: #fff;
 }
-.otherCityLink:hover {
+.other-city-link:hover {
     color: rgba(251, 215, 139, 1);
 }
 
@@ -1217,7 +1217,7 @@ kbd {
     box-shadow: 0 6px 12px rgba(0,0,0,.175);
 }
 
-.toolUI{
+.tool-ui{
     position: relative;
 }
 
@@ -1296,10 +1296,10 @@ kbd {
 
 /*Overlay box - end*/
 
-.resultsImages{
+.results-images{
     margin-top: 10px;
 }
-.resultsImages td {
+.results-images td {
     padding-left: 15px;
     text-align: center;
     padding-top: 5px;
@@ -1538,7 +1538,7 @@ kbd {
         float: none;
     }
 
-    .navbar-nav > li > a.navbarBtn {
+    .navbar-nav > li > a.navbar-button {
         -moz-border-radius: 0px;
         -webkit-border-radius: 0px;
         border-radius: 0px;
@@ -1547,12 +1547,12 @@ kbd {
         top: 0px;
     }
 
-    .navbarLink {
+    .navbar-lnk {
         margin-top: 0px;
         margin-left: 0px;
     }
 
-    .grayButton {
+    .gray-btn {
         top: 0px;
         border: none;
         width: 100%;
@@ -1565,7 +1565,7 @@ kbd {
         margin-left: 0px;
     }
 
-    .navbar-nav > .active > a.navbarBtn:hover {
+    .navbar-nav > .active > a.navbar-button:hover {
         border: none;
     }
 

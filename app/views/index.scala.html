@@ -29,13 +29,13 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
                     @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA")) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
                         <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
-                        <a id="@cityName" class="otherCityLink" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
+                        <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {

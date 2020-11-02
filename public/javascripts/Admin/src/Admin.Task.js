@@ -68,7 +68,7 @@ function AdminTask(params) {
             var marker = markerGroup.append("circle")
                 .attr("r", 2)
                 .attr("id", "marker")
-                .attr("class", "travelMarker");
+                .attr("class", "travel-marker");
             var markerNose = markerGroup.append("line")
                 .attr({'x1': 0, 'y1': -3, 'x2': 0, 'y2': -10})
                 .attr('stroke', 'gray')
