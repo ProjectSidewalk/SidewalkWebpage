@@ -489,7 +489,6 @@ function Main (params) {
         svl.ui.map.canvas = $("canvas#labelCanvas");
         svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
         svl.ui.map.pano = $("div#pano");
-        svl.ui.map.streetViewHolder = $("div#streetViewHolder");
         svl.ui.map.viewControlLayer = $("div#view-control-layer");
         svl.ui.map.modeSwitchWalk = $("span#mode-switch-walk");
         svl.ui.map.modeSwitchDraw = $("span#modeSwitchDraw");
