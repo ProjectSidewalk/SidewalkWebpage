@@ -9,13 +9,11 @@ import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import models.audit._
 import models.daos.slick.DBTableDefinitions._
 import models.daos.UserDAO
-import models.daos.slick.UserDAOSlick._
 import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
-import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
+import models.user.{RoleTable, WebpageActivityTable}
 import models.user.{UserRoleTable, User}
-import models.audit.AuditTaskTable.completedTasks
 
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
