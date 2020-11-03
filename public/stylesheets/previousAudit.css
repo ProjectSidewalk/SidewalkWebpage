@@ -11,7 +11,7 @@ svg {
     stroke-opacity: 1;
 }
 
-.travelMarker {
+.travel-marker {
     fill: yellow;
     stroke: gray;
     stroke-width: 1px;
@@ -26,7 +26,7 @@ svg {
     stroke: black;
     fill: red;
 }
-.lineConnect {
+.line-connect {
     fill: none;
     stroke: black;
     opacity: 1;

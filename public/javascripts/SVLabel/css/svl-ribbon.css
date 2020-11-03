@@ -28,7 +28,7 @@
     top: 2px;
 }
 
-.modeSwitch {
+.mode-switch {
     background: -moz-linear-gradient(center top , #fff, #eee);
     background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#eee));
     border-color: rgba(200,200,200,0.75);
@@ -46,13 +46,13 @@
     -moz-border-radius: 3px 3px 0 0;
 }
 
-.modeSwitch_Icon {
+.mode-switch-icon {
     position: absolute;
     top: 0;
     left: 8px;
 }
 
-.modeSwitch_Name {
+.mode-switch-name {
     background: transparent;
     color: black;
     display: inline-block;
@@ -67,7 +67,7 @@
     width: 100%;
 }
 
-#modeSwitchWalk {
+#mode-switch-walk {
     width: 56px;
     border: 3px solid rgba(0, 0, 0, 1);
     background: rgb(204, 204, 204);
@@ -88,7 +88,6 @@
 
 #ribbon-menu-left-column-holder {
     background: none;
-
     position: absolute;
     left: 0;
     top: 0;
@@ -119,7 +118,6 @@
 
 #label-type-holder {
     background: transparent;
-
     position: absolute;
     left: 64px;
     top: 0;
@@ -196,32 +194,4 @@
     margin-top: 0;
     margin-bottom: 0;
     border-top: 1px dashed #eee;
-}
-
-.ribbon-mode-switch-info-buttons {
-    position: absolute;
-    top: 46px;
-    left: -3px;
-    height: 20px;
-    width: 20px;
-}
-
-.ribbon-mode-switch-info-buttons polygon.curb-ramp {
-    fill: rgba(0, 222, 38, 1);
-}
-
-.ribbon-mode-switch-info-buttons polygon.no-curb-ramp {
-    fill: rgba(233, 39, 113, 1);
-}
-
-.ribbon-mode-switch-info-buttons polygon.obstacle {
-    fill: rgba(0, 161, 203, 1);
-}
-
-.ribbon-mode-switch-info-buttons polygon.surface-problem {
-    fill: rgba(241, 141, 5, 1);
-}
-
-.ribbon-mode-switch-info-buttons text {
-    visibility: visible;
 }

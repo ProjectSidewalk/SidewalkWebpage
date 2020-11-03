@@ -6,11 +6,12 @@ surface.problem = Surface Problem
 no.sidewalk = No Sidewalk
 other = Other
 labels = labels
-miles = miles
+dist.metric.abbr = mi
 ok = OK
 cancel = Cancel
 error = Error!
 thanks = Thanks!
+username = Username
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -23,6 +24,7 @@ navbar.results = Results Map
 navbar.data = Data
 navbar.labelmap = Label Map
 navbar.help = Help
+navbar.leaderboard = Leaderboard
 navbar.retake.tutorial = Retake Tutorial
 navbar.signin = Sign in
 navbar.signout = Sign out
@@ -31,7 +33,7 @@ navbar.admin = Admin
 
 landing.create.path = Let''s create a path for everyone
 landing.also.in = We are also in:
-landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="otherCityLink" href="{1}" target="_blank">a mapathon event in your area!</a>
+landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
 landing.how.you.help.content = Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
 landing.how.you.help.explore = EXPLORE
@@ -165,11 +167,14 @@ validate.bottom.ui.disagree = <u>D</u>isagree
 validate.bottom.ui.not.sure = <u>N</u>ot sure
 validate.bottom.ui.add.comment = Add comment here...
 validate.right.ui.current.mission = Current Mission
+validate.right.ui.correct.examples = <strong>Correct</strong> Examples
+validate.right.ui.incorrect.examples = <strong>Incorrect</strong> Examples
 validate.mission.complete.category = Category
 validate.mission.complete.agree = Agree
 validate.mission.complete.disagree = Disagree
 validate.mission.complete.not.sure = Not Sure
 validate.mission.complete.your.overall.total = Your Overall Total
+
 
 mobile.validate.leave.feedback = Leave Feedback
 
@@ -177,13 +182,13 @@ turk.expired.title = Assignment Expired!
 turk.expired.body = You should receive your bonus amount in the next day or two. If you completed the HIT but did not submit your confirmation code on the mturk website, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
 turk.submit.code = Submit this code for HIT verification on Amazon Mechanical Turk
 turk.mturk.code = Mturk Code
+turk.reward.earned = Total earned reward
 
 authenticate.email = Email address
 authenticate.password = Password
 authenticate.submit = Submit
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="/signUp">Sign up now</a>
-authenticate.username = Username
 authenticate.confirm.password = Confirm password
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
@@ -226,22 +231,47 @@ results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
 
 dashboard.audited.street = Audited Street
-dashboard.distance = Total Distance Explored
-dashboard.missions = Number of Missions Completed
+dashboard.total.distance.explored = Total Distance Explored
+dashboard.number.completed.missions = Number of Completed Missions
 dashboard.label.type = Label Type
 dashboard.number.of.labels = Number of Labels
-dashboard.contributions = Daily Contributions
-dashboard.labels.per.mission = Labels per Mission
-dashboard.mission.number = Mission Number
-dashboard.date = Date
-dashboard.neighborhood = Neighborhood
+dashboard.missions = Missions
+dashboard.your.missions = Your missions
+dashboard.distance = Distance
+dashboard.labels = Labels
+dashboard.validations = Validations
+dashboard.accuracy = Accuracy
+dashboard.mission.icon.alt = Wheelchair user holding a flag
+dashboard.distance.icon.alt = Icon showing curved path to destination
+dashboard.label.icon.alt = Minimalist map icon with large destination marker
+dashboard.validation.icon.alt = Checklist next to a pencil
+dashboard.accuracy.icon.alt = Target with an arrow in the bullseye
+dashboard.accuracy.icon.tooltip = Your labeling accuracy. If N/A is shown, then not enough of your labels have been validated by other users.
+dashboard.first = first
+dashboard.second = second
+dashboard.third = third
+dashboard.fourth = fourth
+dashboard.fifth = fifth
+dashboard.mission.badge = {0} mission badge
+dashboard.distance.badge = {0} distance badge
+dashboard.label.badge = {0} label badge
+dashboard.validation.badge = {0} validation badge
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
 labeling.guide.surface.problem.summary = A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience for someone using a wheelchair or other assistive devices. If something on a surface would make it hard or impossible to cross, it should be labeled as a Surface Problem. For surface problems that cover a large area, you should place a Surface Problem label at the start of the problem, and then continue placing labels every few feet (about 1 per panorama) until the end of the problem.
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
-labeling.guide.occlusion.summary = Occlusion is when you can't see something at all. In these cases, you should place an Occlusion label. This should rarely be used, so only place the Occlusion label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
+labeling.guide.occlusion.summary = Sometimes the view of the sidewalk is completely blocked. In these cases, you should place a "Can''t See the Sidewalk" label. This should rarely be used, so only place the "Can''t See the Sidewalk" label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
 
-admin.overview.distance = km
-
+dist.metric.abbr = km
 admin.clear.play.cache = Clear Play cache
+
+leaderboard.overall.title = Overall Leaderboard
+leaderboard.weekly.title = Weekly Leaderboard
+leaderboard.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.header.labels = Labels
+leaderboard.header.missions = Missions
+leaderboard.header.distance = Distance
+leaderboard.header.accuracy = Accuracy
+leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
+leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific

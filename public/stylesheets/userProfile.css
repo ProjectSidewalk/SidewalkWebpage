@@ -28,19 +28,6 @@ svg {
     border-top: 0;
 }
 
-
-.c3 text {
-    font-size: 9pt;
-}
-
-.c3-axis text {
-    fill: #888;
-}
-
-.c3-axis line, .c3-axis path {
-    stroke: #888;
-}
-
 .table-fixed thead {
     width: 98.5%;
 }
@@ -67,16 +54,52 @@ svg {
     width: 14.285714285714285714285714285714%;
 }
 
-.col-xxs-1 {
-    width: 9%;
+.user-stats-holder {
+    /*min-width: 800px;*/
+    /*max-width: 1400px;*/
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-gap: 5px;
+    text-align: center;
 }
 
-.col-neighborhood {
-    width: 22%;
+.user-stats-holder img {
+    height:70px;
+    margin: auto; /* centers the image horizontally */
 }
 
-.col-date {
-    width: 15%;
+.user-stats-header {
+    font-size: 30px;
+    font-family: raleway-extrabold, sans-serif;
 }
 
+.achievements-outer-grid {
+    display: grid;
+    grid-template-columns: 2fr 0.3fr 2fr;
+    grid-gap: 5px;
+}
 
+.achievements-badge-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 2px;
+    visibility: hidden;
+}
+
+.achievements-badge-grid img {
+    height: 100px;
+}
+
+.badge-not-yet-earned {
+    opacity: 0.1;
+}
+
+.achievements-encouraging-statement {
+    margin-bottom: 8px;
+    color: #2d2a3f;
+}
+
+.user-stats-stat {
+    font-size: 30px;
+    font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif
+}
