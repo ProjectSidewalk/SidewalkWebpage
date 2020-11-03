@@ -207,20 +207,20 @@ object UserDAOSlick {
     // Defaults to *not* specifying a time (which is the same thing as "all time").
     val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
       case "today" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date",
-        "(audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
       )
       case "yesterday" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day",
-        "(audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day"
       )
       case "week" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)",
-        "(audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)"
       )
       case "month" => (
-        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)",
-        "(audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)"
       )
       case _ => ("TRUE", "TRUE")
     }
