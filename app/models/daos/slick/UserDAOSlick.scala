@@ -227,19 +227,19 @@ object UserDAOSlick {
 
     // Build up SQL string related to validation and audit task time intervals
     // Defaults to *not* specifying a time (which is the same thing as "all time")
-    var lblValidationTimeIntervalSql = ""
+    var lblValidationTimeIntervalSql = "AND TRUE"
     var auditTaskTimeIntervalSql = ""
     if(timeInterval.equalsIgnoreCase("today")){
-      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"""
+      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"""
       auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"""
     }else if(timeInterval.equalsIgnoreCase("yesterday")){
-      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"""
+      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"""
       auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"""
     }else if(timeInterval.equalsIgnoreCase("week")){
-      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"""
+      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"""
       auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"""
     }else if(timeInterval.equalsIgnoreCase("month")){
-      lblValidationTimeIntervalSql = """WHERE (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"""
+      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"""
       auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"""
     }
 
@@ -260,8 +260,11 @@ object UserDAOSlick {
 
     val query = s"""SELECT COUNT(DISTINCT(users.user_id))
                    |FROM (
-                   |    SELECT DISTINCT(user_id)
-                   |    FROM label_validation
+                   |    SELECT DISTINCT(mission.user_id)
+                   |    FROM mission
+                   |    INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
+                   |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+                   |    WHERE mission_type.mission_type = 'validation'
                    |    $lblValidationTimeIntervalSql
                    |    UNION
                    |    SELECT DISTINCT(user_id)
