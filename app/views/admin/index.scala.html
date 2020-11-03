@@ -1,15 +1,11 @@
 @import models.user.User
-@import models.user.WebpageActivityTable
 @import models.region.RegionTable
-@import models.user.UserRoleTable
 @import models.daos.slick._
 @import models.audit._
 @import models.label._
-@import models.mission.MissionTable
 @import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
-@import java.util.UUID
 @import play.api.libs.json.Json
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
