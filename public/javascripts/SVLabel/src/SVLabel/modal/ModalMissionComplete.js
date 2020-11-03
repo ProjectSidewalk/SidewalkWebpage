@@ -239,9 +239,10 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
                 "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
                 i18next.t('common:mission-complete-confirmation-code') +
-                svl.confirmationCode +
-                "<p></p>";
+                svl.confirmationCode;
             confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
+            confirmationCodeElement.style.marginTop = "1px";
+            confirmationCodeElement.style.marginBottom = "1px";
             uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
             uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
             uiModalMissionComplete.generateConfirmationButton.remove();

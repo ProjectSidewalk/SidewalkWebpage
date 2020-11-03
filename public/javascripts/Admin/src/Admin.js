@@ -1,4 +1,4 @@
-function Admin(_, $, c3, turf, difficultRegionIds) {
+function Admin(_, $, turf, difficultRegionIds) {
     var self = {};
     self.markerLayer = null;
     self.curbRampLayers = [];
@@ -10,7 +10,6 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     self.otherLayers = [];
     self.mapLoaded = false;
     self.graphsLoaded = false;
-
     var neighborhoodPolygonLayer;
 
     for (var i = 0; i < 6; i++) {
@@ -38,23 +37,23 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "mapbox.streets", {
+    var map = L.mapbox.map('admin-map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
     // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('admin-choropleth', "mapbox.light", {
+    var choropleth = L.mapbox.map('admin-choropleth', null, {
         maxZoom: 19,
         minZoom: 9,
+        scrollWheelZoom: false,
         legendControl: {
             position: 'bottomleft'
         },
         zoomSnap: 0.5
-    });
-    choropleth.scrollWheelZoom.disable();
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
 
     // Set the city-specific default zoom and location.
     $.getJSON('/cityMapParams', function(data) {
@@ -62,34 +61,9 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
         map.setZoom(data.default_zoom);
         choropleth.setView([data.city_center.lat, data.city_center.lng]);
         choropleth.setZoom(data.default_zoom);
-        initializeOverlayPolygon(map, data.city_center.lat, data.city_center.lng);
     });
 
     // Initialize the map
-    /**
-     * This function adds a semi-transparent white polygon on top of a map.
-     */
-    function initializeOverlayPolygon(map, lat, lng) {
-        var overlayPolygon = {
-            "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature", "geometry": {
-                    "type": "Polygon", "coordinates": [
-                        [
-                            [lng + 2, lat - 2],
-                            [lng + 2, lat + 2],
-                            [lng - 2, lat + 2],
-                            [lng - 2, lat - 2],
-                            [lng + 2, lat - 2]
-                        ]
-                    ]
-                }
-            }]
-        };
-        var layer = L.geoJson(overlayPolygon);
-        layer.setStyle({color: "#ccc", fillColor: "#ccc"});
-        layer.addTo(map);
-    }
 
     /**
      * render points
@@ -102,38 +76,17 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 fillColor: "#808080",
                 fillOpacity: 0.1
             },
-            layers = [],
-            currentLayer;
+            layers = [];
 
         function onEachNeighborhoodFeature(feature, layer) {
-
-            var regionId = feature.properties.region_id;
-            var userCompleted = feature.properties.user_completed;
-            var url = "/audit/region/" + regionId;
-            var popupContent = "???";
-
-            if (userCompleted) {
-                popupContent = "You already audited this entire neighborhood!";
-            } else {
-                popupContent = "Do you want to explore this area to find accessibility issues? " +
-                    "<a href='" + url + "' class='region-selection-trigger' regionId='" + regionId + "'>Sure!</a>";
-            }
-            layer.bindPopup(popupContent);
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                this.setStyle({color: "red", fillColor: "red"});
-                this.openPopup();
+                clearChoroplethRegionFillColor(layers);
+                addChoroplethRegionFillColor(this);
             });
             layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle(neighborhoodPolygonStyle);
-                }
-                //this.setStyle(neighborhoodPolygonStyle);
-            });
-            layer.on('click', function (e) {
-                currentLayer = this;
+                clearChoroplethRegionFillColor(layers);
             });
         }
 
@@ -146,6 +99,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             })
                 .addTo(map);
         });
+    }
+
+    function clearChoroplethRegionFillColor(layers) {
+        for (var i = layers.length - 1; i >= 0; i--) {
+            layers[i].setStyle({color: "#888", fillColor: "#808080"});
+        }
+    }
+
+    function addChoroplethRegionFillColor(layer) {
+        layer.setStyle({color: "red", fillColor: "red"});
     }
 
     /**
@@ -180,8 +143,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                 fillColor: "#f00",
                 fillOpacity: 1.0
             },
-            layers = [],
-            currentLayer;
+            layers = [];
 
         // finds the matching neighborhood's completion percentage, and uses it to determine the fill color
         function style(feature) {
@@ -220,7 +182,7 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
 
                     var advancedMessage = '';
                     if (difficultRegionIds.includes(feature.properties.region_id)) {
-                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                        advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
                     if (userCompleted) {
@@ -250,22 +212,38 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
                     break;
                 }
             }
-            layer.bindPopup(popupContent);
+            // Add listeners to popup so the popup closes when the mouse leaves the popup area.
+            layer.bindPopup(popupContent).on("popupopen", () => {
+                var popupWrapper = $('.leaflet-popup-content-wrapper');
+                var popupCloseButton = $('.leaflet-popup-close-button');
+                popupWrapper.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                popupCloseButton.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                // Make sure the region outline is removed when the popup close button is clicked.
+                popupCloseButton.on('click', e => {
+                    clearChoroplethRegionOutlines(layers);
+                });
+            });
             layers.push(layer);
-
             layer.on('mouseover', function (e) {
-                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+                clearChoroplethRegionOutlines(layers);
+                addChoroplethRegionOutline(this);
                 this.openPopup();
             });
             layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                    clearChoroplethRegionOutlines(layers);
+                    this.closePopup();
                 }
-                //this.setStyle(neighborhoodPolygonStyle);
-            });
-            layer.on('click', function (e) {
-                currentLayer = this;
             });
         }
 
@@ -277,6 +255,16 @@ function Admin(_, $, c3, turf, difficultRegionIds) {
             })
                 .addTo(map);
         });
+    }
+
+    function clearChoroplethRegionOutlines(layers) {
+        for (var i = layers.length - 1; i >= 0; i--) {
+            layers[i].setStyle({opacity: 0.25, weight: 1, color: "#888"});
+        }
+    }
+
+    function addChoroplethRegionOutline(layer) {
+        layer.setStyle({opacity: 1.0, weight: 3, color: "#000"});
     }
 
     /**

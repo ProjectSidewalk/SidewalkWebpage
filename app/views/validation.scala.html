@@ -24,7 +24,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
-    <div class="container toolUI" style = "visibility: visible;">
+    <div class="container tool-ui" style = "visibility: visible;">
         <div id="HIT-expiration-overlay">
             <div class="overlay-text">
                 <div id="HIT-expiration-text">
@@ -76,7 +76,7 @@
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
                     <div id="svv-panorama-0" class="single-panorama">
-                        <div id="viewControlLayer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
+                        <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
                             <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
                             <div id="label-description-box"></div>
                         </div>
@@ -184,7 +184,9 @@
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header-1" id="label-type-example"></h1>
+                    <h1 class="status-holder-header-1" id="label-type-example">
+                        @Html(Messages("validate.right.ui.correct.examples"))
+                    </h1>
                     <div id="example-image-holder">
                         <img id="example-image-1" class="example-image">
                         <img id="example-image-2" class="example-image">
@@ -193,7 +195,9 @@
                     </div>
                 </div>
                 <div class="status-box">
-                    <h1 class="status-holder-header-2" id="label-type-counterexample"></h1>
+                    <h1 class="status-holder-header-2" id="label-type-counterexample">
+                        @Html(Messages("validate.right.ui.incorrect.examples"))
+                    </h1>
                     <div id="example-image-holder">
                         <img id="counterexample-image-1" class="example-image">
                         <img id="counterexample-image-2" class="example-image">
@@ -281,7 +285,7 @@
             }
         }
         if (hitExpired) {
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
             param.dataStoreUrl = '@routes.ValidationTaskController.post';

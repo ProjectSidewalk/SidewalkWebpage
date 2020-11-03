@@ -1,7 +1,7 @@
 {
   "measurement-system": "metric",
   "admin-clear-play-cache": "Reproducir caché borrada con éxito",
-  "unit-abbreviation-distance-user-dashboard": "km",
+  "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "missing-sidewalks": "Banqueta ausente",

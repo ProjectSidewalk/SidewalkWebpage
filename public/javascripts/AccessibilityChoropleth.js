@@ -16,16 +16,16 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
 // a grayscale tileLayer for the choropleth
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map('choropleth', "mapbox.light", {
+    var choropleth = L.mapbox.map('choropleth', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: false,
+        scrollWheelZoom: false,
         legendControl: {
             position: 'topright'
         },
         zoomSnap: 0.5
-    });
-    choropleth.scrollWheelZoom.disable();
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     $.getJSON('/cityMapParams', function(data) {
@@ -74,8 +74,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                 fillColor: "#f00",
                 fillOpacity: 1.0
             },
-            layers = [],
-            currentLayer;
+            layers = [];
 
         // finds matching neighborhood's completion percentage and num labels/km, uses it to determine the fill color
         function style(feature) {
@@ -124,7 +123,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
 
                     var advancedMessage = '';
                     if (difficultRegionIds.includes(feature.properties.region_id)) {
-                           advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
+                        advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
 
                     if (userCompleted) {
@@ -161,7 +160,7 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                             counts[j] = 0;
                     }
 
-                    popupContent += '<div class="resultsImages"><table><tbody>'+
+                    popupContent += '<div class="results-images"><table><tbody>'+
                                     '<tr><td>' + i18next.t('missing-sidewalks') + '<br/></td>'+
                                     '<td>' + i18next.t('missing-ramps') + '<br/></td>'+
                                     '<td>' + i18next.t('surface-problems') + '<br/>'+
@@ -175,22 +174,41 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
                     break;
                 }
             }
-            layer.bindPopup(popupContent);
+            // Add listeners to popup so the popup closes when the mouse leaves the popup area.
+            layer.bindPopup(popupContent).on("popupopen", () => {
+                var popupWrapper = $('.leaflet-popup-content-wrapper');
+                var popupCloseButton = $('.leaflet-popup-close-button');
+                popupWrapper.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                popupCloseButton.on('mouseout', e => {
+                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                        clearChoroplethRegionOutlines(layers);
+                        layer.closePopup();
+                    }
+                });
+                // Make sure the region outline is removed when the popup close button is clicked.
+                popupCloseButton.on('click', e => {
+                    clearChoroplethRegionOutlines(layers);
+                });
+            });
             layers.push(layer);
 
             layer.on('mouseover', function (e) {
-                this.setStyle({opacity: 1.0, weight: 3, color: "#000"});
-                this.openPopup()
+                clearChoroplethRegionOutlines(layers);
+                addChoroplethRegionOutline(this);
+                this.openPopup();
             });
             layer.on('mouseout', function (e) {
-                for (var i = layers.length - 1; i >= 0; i--) {
-                    if (currentLayer !== layers[i])
-                        layers[i].setStyle({opacity: 0.25, weight: 1});
+                if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
+                    clearChoroplethRegionOutlines(layers);
+                    this.closePopup();
                 }
             });
             layer.on('click', function (e) {
-                currentLayer = this;
-
                 // Log when a user clicks on a region on the choropleth
                 // Logs are of the form "Click_module=Choropleth_regionId=<regionId>_distanceLeft=<"0", "<1", "1" or ">1">_target=inspect"
                 // Log is stored in WebpageActivityTable
@@ -279,6 +297,16 @@ function AccessibilityChoropleth(_, $, turf, difficultRegionIds) {
             $('#page-loading').hide();
         });
     });
+
+    function clearChoroplethRegionOutlines(layers) {
+        for (var i = layers.length - 1; i >= 0; i--) {
+            layers[i].setStyle({opacity: 0.25, weight: 1});
+        }
+    }
+
+    function addChoroplethRegionOutline(layer) {
+        layer.setStyle({opacity: 1.0, weight: 3, color: "#000"});
+    }
 
     // Makes POST request that logs `activity` in WebpageActivityTable
     function postToWebpageActivity(activity){

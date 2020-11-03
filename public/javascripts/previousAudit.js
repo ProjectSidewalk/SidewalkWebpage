@@ -7,14 +7,15 @@ $(document).ready(function () {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
 
-    var map = L.mapbox.map('map', "mapbox.streets", {zoomControl: false})
-            // .addLayer(mapboxTiles)
-            .setView([38.910, -77.040], 17);
-
-    // Don't allow zooming (yet!)
-    map.touchZoom.disable();
-    map.doubleClickZoom.disable();
-    map.scrollWheelZoom.disable();
+    var map = L.mapbox.map('map', null, {
+        // Don't allow zooming (yet!)
+        zoomControl: false,
+        touchZoom: false,
+        doubleClickZoom: false,
+        scrollWheelZoom: false
+    })
+        .addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'))
+        .setView([38.910, -77.040], 17);
 
     (function mapAnimation () {
         var overlayPolygon = {
@@ -61,7 +62,7 @@ $(document).ready(function () {
             var marker = markerGroup.append("circle")
                     .attr("r", 2)
                     .attr("id", "marker")
-                    .attr("class", "travelMarker");
+                    .attr("class", "travel-marker");
             var markerNose = markerGroup.append("line")
                     .attr({'x1': 0, 'y1': -3, 'x2': 0, 'y2': -10})
                     .attr('stroke', 'gray')
@@ -147,7 +148,7 @@ $(document).ready(function () {
                                         .attr("cx", p.x)
                                         .attr("cy", p.y)
                                         .attr("fill", function () {
-                                            return svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5);
+                                            return util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5);
                                         })
                                         // .attr("color", "white")
                                         // .attr("stroke", "#ddd")
@@ -209,7 +210,7 @@ $(document).ready(function () {
           description: "Curb Ramp",
           left: margin.left,
           top: margin.top,
-          fillColor: svl.util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5),
+          fillColor: util.color.changeAlphaRGBA(colorScheme["CurbRamp"].fillStyle, 0.5),
           count: 0,
           data: []
         },
