@@ -181,10 +181,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
              */
             status.shiftDown = e.shiftKey;
             if (!status.focusOnTextField) {
-                // "e": "Walk", "c": "CurbRamp", "m": "NoCurbRamp", "o": "Obstacle", "s": "SurfaceProblem": "n": "NoSideawlk", "o": "Occlusion"
+                // e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk, o: Occlusion
                 for (const mode of ['Walk', 'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Occlusion']) {
-                    if (e.keyCode == util.misc.getLabelDescriptions(mode)['shortcut']['keyNumber']) {
-                        _closeContextMenu(e.keyCode);
+                    if (e.keyCode === util.misc.getLabelDescriptions(mode)['shortcut']['keyNumber']) {
+                        if (mode !== 'Walk') _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch(mode);
                         svl.tracker.push("KeyboardShortcut_ModeSwitch_" + mode, {
                             keyCode: e.keyCode
