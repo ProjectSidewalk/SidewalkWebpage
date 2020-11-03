@@ -225,38 +225,35 @@ object UserDAOSlick {
    */
   def countAllUsersContributed(timeInterval: String = "all time", taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): Int = db.withSession { implicit session =>
 
-    // Build up SQL string related to validation and audit task time intervals
-    // Defaults to *not* specifying a time (which is the same thing as "all time")
-    var lblValidationTimeIntervalSql = "AND TRUE"
-    var auditTaskTimeIntervalSql = ""
-    if(timeInterval.equalsIgnoreCase("today")){
-      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"""
-      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"""
-    }else if(timeInterval.equalsIgnoreCase("yesterday")){
-      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"""
-      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"""
-    }else if(timeInterval.equalsIgnoreCase("week")){
-      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"""
-      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"""
-    }else if(timeInterval.equalsIgnoreCase("month")){
-      lblValidationTimeIntervalSql = """AND (label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"""
-      auditTaskTimeIntervalSql = """AND (audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"""
+    // Build up SQL string related to validation and audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all time").
+    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
+      case "today" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date",
+        "(audit_task.task_end AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date"
+      )
+      case "yesterday" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day",
+        "(audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day"
+      )
+      case "week" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)",
+        "(audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 WEEK)"
+      )
+      case "month" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)",
+        "(audit_task.task_end AT TIME ZONE 'PST')::date > DATE_SUB(NOW() AT TIME ZONE 'PST', INTERVAL 1 MONTH)"
+      )
+      case _ => ("TRUE", "TRUE")
     }
 
-    // Add in the optional SQL WHERE statement for filtering on high quality users
-    var highQualityOnlySql = ""
-    if(highQualityOnly){
-      highQualityOnlySql = """WHERE user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL;"""
-    }
+    // Add in the optional SQL WHERE statement for filtering on high quality users.
+    val highQualityOnlySql =
+      if (highQualityOnly) "(user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)"
+      else "TRUE"
 
-    // Add in the task completion logic. Note: to keep the Scala code clean, if taskCompletedOnly is false
-    // then I put in a SQL statement to check both for all completed and all incompleted tasks.
-    var auditTaskCompletedSql = ""
-    if(taskCompletedOnly){
-      auditTaskCompletedSql = """audit_task.completed = TRUE"""
-    }else{
-      auditTaskCompletedSql = """(audit_task.completed = TRUE OR audit_task.completed = FALSE)"""
-    }
+    // Add in the task completion logic.
+    val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
 
     val query = s"""SELECT COUNT(DISTINCT(users.user_id))
                    |FROM (
@@ -265,19 +262,16 @@ object UserDAOSlick {
                    |    INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
                    |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
                    |    WHERE mission_type.mission_type = 'validation'
-                   |    $lblValidationTimeIntervalSql
+                   |        AND $lblValidationTimeIntervalSql
                    |    UNION
                    |    SELECT DISTINCT(user_id)
                    |    FROM audit_task
                    |    WHERE $auditTaskCompletedSql
-                   |       $auditTaskTimeIntervalSql
+                   |        AND $auditTaskTimeIntervalSql
                    |) users
                    |INNER JOIN user_stat ON users.user_id = user_stat.user_id
-                   |$highQualityOnlySql
+                   |WHERE $highQualityOnlySql;
                  """.stripMargin
-
-    // println(s"Running query: countAllUsersContributedTimeInterval(timeInterval=$timeInterval, taskCompletedOnly=$taskCompletedOnly, highQualityOnly=$highQualityOnly)")
-    // println(query)
 
     val countQuery = Q.queryNA[Int](query)
     countQuery.list.head
