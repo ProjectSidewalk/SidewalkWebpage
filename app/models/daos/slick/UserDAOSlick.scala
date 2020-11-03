@@ -193,29 +193,7 @@ object UserDAOSlick {
   }
 
   /**
-   * Returns a count of all users who have ever started (or completed) an audit or validation task (across all roles).
-   * That is, this method counts the number of unique users across both audit users and validation users
-   *
-   * This method is deprecated. Use the parameterized version of countAllUsersContributed instead
-   *
-   * @param taskCompleted
-   * @return
-   */
-//  def countAllUsersContributedOld(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-//    val tasks = if (taskCompleted) AuditTaskTable.completedTasks else auditTaskTable
-//    val users = tasks.map(_.userId) ++ LabelValidationTable.validationLabels.map(_.userId)
-//
-//    // groupBy gives us a list of pairs of userid to userid and then map gives us
-//    // the first element of the pair for each item
-//    val distinctUsers = users.groupBy(x => x).map(_._1)
-//
-//    distinctUsers.size.run
-//  }
-
-
-  /**
-   * Returns a count of all users who completed at least one audit task or at least one validation given
-   * the following parameters
+   * Returns a count of all users under the specified conditions.
    *
    * @param timeInterval: can be "today", "yesterday", "week", or "month". If anything else, defaults to "all time"
    * @param taskCompletedOnly: if true, only counts users who have completed one audit task or at least one validation.
@@ -255,7 +233,7 @@ object UserDAOSlick {
     // Add in the task completion logic.
     val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
 
-    val query = s"""SELECT COUNT(DISTINCT(users.user_id))
+    val countQuery = s"""SELECT COUNT(DISTINCT(users.user_id))
                    |FROM (
                    |    SELECT DISTINCT(mission.user_id)
                    |    FROM mission
@@ -273,8 +251,7 @@ object UserDAOSlick {
                    |WHERE $highQualityOnlySql;
                  """.stripMargin
 
-    val countQuery = Q.queryNA[Int](query)
-    countQuery.list.head
+    Q.queryNA[Int](countQuery).list.head
   }
 
   /**
