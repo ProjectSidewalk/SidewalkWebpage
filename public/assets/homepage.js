@@ -1,17 +1,6 @@
 
 var autoAdvanceLaptop = true;
 
-
-function playVideo(){
-    document.getElementById("vidembed").innerHTML = '<div class="video-container"><iframe id="youtubeframe" width="853" height="480" src="https://www.youtube.com/embed/wAdGXqRunQs?autoplay=1&rel=0" frameborder="0" allowfullscreen</iframe</div>';
-    var vidheight = $('#youtubeframe').height();
-    $('#vidembed').height(vidheight);
-}
-$( window ).resize(function() {
-    var vidheight = $('#youtubeframe').height();
-    $('#vidembed').height(vidheight);
-});
-
 function isScrolledIntoView(elem) {
     var docViewTop = $(window).scrollTop();
     var docViewBottom = docViewTop + $(window).height();
@@ -166,13 +155,6 @@ function autoAdvanceLaptopVideos() {
 }
 
 $( document ).ready(function() {
-    // Triggered when "Watch Now" or the arrow next to it is clicked
-    // Logs "Click_module=WatchNow" in WebpageActivityTable
-    $("#playlink").on('click', function(e){
-        if (e.target.innerText === "Watch Now"){
-            logWebpageActivity("Click_module=WatchNow");
-        }
-    });
 
     // Triggered upon clicking tabs in "How you can help" section
     // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
