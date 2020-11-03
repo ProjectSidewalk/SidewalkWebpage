@@ -31,7 +31,7 @@
                         <h4 class="modal-title" id="sign-in-label">@Html(Messages("audit.survey." + "title"))</h4>
                     </div>
                     <div class="modal-body">
-                        <form id="surveyForm" method="post">
+                        <form id="survey-form" method="post">
                             <ol>
                             @for(surveyQuestion <- SurveyQuestionTable.listAll) {
                                 <li>
@@ -1050,8 +1050,8 @@
 
         @if(user) {
         //Survey Submission
-        $("#surveyForm").submit(function submitSurvey(e) {
-            var formData = $('#surveyForm').serializeArray();
+        $("#survey-form").submit(function submitSurvey(e) {
+            var formData = $('#survey-form').serializeArray();
             //alert(formData);
 
             var surveyUrl = '/survey';

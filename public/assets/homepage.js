@@ -184,7 +184,7 @@ $( document ).ready(function() {
 
     // Triggered when links in Press section are clicked
     // Logs "Click_module=Press_type=<"img" or "text">_source=<"technically," "curbed," or "diamondback">"
-    $("#press-container2").on('click', '.newslink', function(e){
+    $("#press-container").on('click', '.newslink', function(e){
         var type = e.currentTarget.id.split('-')[1];
         var source = e.currentTarget.id.split('-')[0];
         logWebpageActivity("Click_module=Press_type="+type+"_source="+source);
