@@ -11,7 +11,13 @@
 
 @main(title, Some("/audit")) {
     @navbar(user, Some("/audit"))
-    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("assets/page-load.gif")'/></div>
+    <div id="page-loading">
+        <div id="loading-gif">
+            <p class="loading-text">@Messages("loading")</p>
+            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+            <p class="loading-sub-text">@Messages("loading.encouragement")</p>
+        </div>
+    </div>
 
     @if(Some(User)) {
         <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -25,7 +31,7 @@
                         <h4 class="modal-title" id="sign-in-label">@Html(Messages("audit.survey." + "title"))</h4>
                     </div>
                     <div class="modal-body">
-                        <form id="surveyForm" method="post">
+                        <form id="survey-form" method="post">
                             <ol>
                             @for(surveyQuestion <- SurveyQuestionTable.listAll) {
                                 <li>
@@ -449,7 +455,6 @@
                 </div>
             </div>
             <div id="page-overlay-holder">
-                <!--<img src='@routes.Assets.at("javascripts/SVLabel/img/misc/AjaxLoader.gif")' id="ajax-loader-image">-->
             </div>
             <div id="pop-up-message-holder" class="hidden">
                 <div id="pop-up-message-background"></div>
@@ -1045,8 +1050,8 @@
 
         @if(user) {
         //Survey Submission
-        $("#surveyForm").submit(function submitSurvey(e) {
-            var formData = $('#surveyForm').serializeArray();
+        $("#survey-form").submit(function submitSurvey(e) {
+            var formData = $('#survey-form').serializeArray();
             //alert(formData);
 
             var surveyUrl = '/survey';

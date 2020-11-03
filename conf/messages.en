@@ -12,6 +12,8 @@ cancel = Cancel
 error = Error!
 thanks = Thanks!
 username = Username
+loading = Loading...
+loading.encouragement = Let's do this!
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
