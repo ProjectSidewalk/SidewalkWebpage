@@ -1171,23 +1171,21 @@ kbd {
     max-height: 100%;
     margin-top: -50%;
     margin-left: -50%;
-    /*display: block;*/
-    /*margin: 0 auto;*/
 }
 
-#loading-gif img{
+#loading-gif img {
     display: block;
     margin: 0 auto;
 }
 
-.loading-text{
+.loading-text {
     font-family: raleway, sans-serif;
     text-align: center;
     font-size: 45px;
     color: #2D2A3F;
 }
 
-.loading-sub-text{
+.loading-sub-text {
     font-family: raleway, sans-serif;
     text-align: center;
     font-size: 15px;
@@ -1346,7 +1344,6 @@ kbd {
     padding: 5px;
     margin-bottom: 20px;
 }
-
 
 .leaflet-bottom > .map-legends.wax-legends {
     right: 0px;
