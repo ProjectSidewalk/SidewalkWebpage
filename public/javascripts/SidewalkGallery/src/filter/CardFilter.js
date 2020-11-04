@@ -76,6 +76,17 @@ function CardFilter(uiCardFilter, ribbonMenu) {
 
     }
 
+    function getAppliedTags() {
+        let appliedTags = [];
+        for (let i = 0; i < currentTags.length; i++) {
+            if (currentTags[i].getStatus().applied) {
+                appliedTags.push(currentTags[i].getProperty("tag"));
+            }
+        }
+
+        return appliedTags;
+    }
+
     function getTagsByType() {
         return tagsByType;
     }
@@ -114,6 +125,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
 
     self.update = update;
     self.render = render;
+    self.getAppliedTags = getAppliedTags;
     self.getTagsByType = getTagsByType;
     self.getStatus = getStatus;
     self.setStatus = setStatus;

@@ -6,6 +6,8 @@
 function CardContainer(uiCardContainer) {
     let self = this;
 
+    const cardsPerPage = 9;
+
     let labelTypeIds = {
         CurbRamp: 1,
         NoCurbRamp: 2,
@@ -25,15 +27,15 @@ function CardContainer(uiCardContainer) {
     let pageNumberDisplay = null;
 
     let cardsByType = {
-        Assorted: [],
-        CurbRamp: [],
-        NoCurbRamp: [],
-        Obstacle: [],
-        SurfaceProblem: [],
-        Other: [],
-        Occlusion: [],
-        NoSidewalk: [],
-        Problem: []
+        Assorted: null,
+        CurbRamp: null,
+        NoCurbRamp: null,
+        Obstacle: null,
+        SurfaceProblem: null,
+        Other: null,
+        Occlusion: null,
+        NoSidewalk: null,
+        Problem: null
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend
@@ -54,7 +56,7 @@ function CardContainer(uiCardContainer) {
         pageNumberDisplay = document.createElement('h2');
         pageNumberDisplay.innerText = "1";
         uiCardContainer.pageNumber.append(pageNumberDisplay);
-        cardsByType[currentLabelType].push(new CardBucket());
+        cardsByType[currentLabelType] = new CardBucket();
         fetchLabelsByType(9, 30, Array.from(loadedLabelIds), function() {
             console.log("assorted labels loaded for landing page");
             render();
@@ -96,11 +98,32 @@ function CardContainer(uiCardContainer) {
                         loadedLabelIds.add(card.getLabelId());
                     }
                 }
-                currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
+                currentCards = cardsByType[currentLabelType].copy();
                 if (callback) callback();
             }
         });
         
+    }
+
+    function fetchLabelsBySeverityAndTags(labelTypeId, n, loadedLabels, severities, tags, callback) {
+        $.getJSON("/label/labelsBySeveritiesAndTags", { labelTypeId: labelTypeId, n: n, loadedLabels: JSON.stringify(loadedLabels), severities: JSON.stringify(severities), tags: JSON.stringify(tags) }, function (data) {
+            if ("labelsOfType" in data) {
+                let labels = data.labelsOfType,
+                    card,
+                    i = 0,
+                    len = labels.length;
+                for (; i < len; i++) {
+                    let labelProp = labels[i];
+                    if ("label" in labelProp && "imageUrl" in labelProp) {
+                        card = new Card(labelProp.label, labelProp.imageUrl);
+                        self.push(card)
+                        loadedLabelIds.add(card.getLabelId());
+                    }
+                }
+                if (callback) callback();
+            }
+        });
+
     }
 
     /**
@@ -123,9 +146,9 @@ function CardContainer(uiCardContainer) {
      */
     function push(card) {
         if (currentLabelType == 'Assorted') {
-            cardsByType[currentLabelType][currentPage - 1].push(card);
+            cardsByType[currentLabelType].push(card);
         } else {
-            cardsByType[card.getLabelType()][currentPage - 1].push(card);
+            cardsByType[card.getLabelType()].push(card);
         }
         
         // For now, we have to also add every label we grab to the Assorted bucket for the assorted option
@@ -145,54 +168,98 @@ function CardContainer(uiCardContainer) {
             clearCurrentCards();
             currentLabelType = filterLabelType;
 
-            if (cardsByType[currentLabelType].length < currentPage) {
-                cardsByType[currentLabelType].push(new CardBucket());
+            if (cardsByType[currentLabelType] == null) {
+                cardsByType[currentLabelType] = new CardBucket();
                 console.log(Array.from(loadedLabelIds));
                 fetchLabelsByType(labelTypeIds[filterLabelType], 30, Array.from(loadedLabelIds), function () {
                     console.log("new labels gathered");
                     render();
                 });
             } else {
-                currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
+                currentCards = cardsByType[currentLabelType].copy();
                 render();
             }
         }
     }
 
     function updateCardsNewPage() {
-        if (cardsByType[currentLabelType].length < currentPage) {
-            console.log("Adding values to next page")
-            cardsByType[currentLabelType].push(new CardBucket());
-            console.log(Array.from(loadedLabelIds));
-            fetchLabelsByType(labelTypeIds[currentLabelType], 30, Array.from(loadedLabelIds), function () {
-                console.log("new labels gathered");
-                render();
-            });
-        } else {
-            currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
-            render();
+        let curr = cardsByType[currentLabelType].copy();
+        let bucket = curr.getCards();
+
+        let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType];
+        for (let i = 0; i < tagsToCheck.length; i++) {
+            let tag = tagsToCheck[i];
+            if (tag.getStatus().applied) {
+                for (let severity in bucket) {
+                    bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+                }
+            }
         }
+
+        const numCards = numCardsInBucket(bucket);
+        let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
+
+        if (numCards < cardsPerPage * currentPage) {
+            console.log("grabbed more cards of severity and tag, rendering afterwards");
+            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTags(), function() {
+                console.log("got new labels");
+                updateCardsNewPage();
+            });
+        }
+        render();
+    }
+
+    function numCardsInBucket(bucket) {
+        if (bucket == null) {
+            return 0;
+        }
+
+        let num = 0;
+        for (let severity in bucket) {
+            num += bucket[severity].length;
+        }
+        return num;
+    }
+
+    function getAppliedSeverities(severities) {
+        appliedSeverities = [];
+        for (let i = 0; i < severities.length; i++){
+            if (severities[i].getActive()){
+                appliedSeverities.push(severities[i].getSeverity());
+            }
+        }
+        return appliedSeverities;
     }
 
     function updateCardsByTag(tag) {
+        setPage(1);
         if (tag.getStatus().applied) {
-            currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
+            currentCards = cardsByType[currentLabelType].copy();
             let bucket = currentCards.getCards();
             for (let severity in bucket) {
                 bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
             }
+            const numCards = numCardsInBucket(bucket);
+            let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
+            if (numCards < cardsPerPage) {
+                console.log("grabbed more cards of severity and tag, rendering afterwards");
+                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTags(), function() {
+                    console.log("got new labels");
+                    updateCardsByTag(tag);
+                });
+            }
         } else {
            //clearCurrentCards();
-           currentCards = cardsByType[currentLabelType][currentPage - 1].copy();
+           currentCards = cardsByType[currentLabelType].copy();
            let bucket = currentCards.getCards();
 
            let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType];
            for (let i = 0; i < tagsToCheck.length; i++) {
-               let tag = tagsToCheck[i];
-               if (tag.getStatus().applied) {
-                   for (let severity in bucket) {
+                let tag = tagsToCheck[i];
+                if (tag.getStatus().applied) {
+                    for (let severity in bucket) {
                        bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
-                   }
+                    }
                }
            }
            //updateCardsBySeverity();
@@ -249,6 +316,7 @@ function CardContainer(uiCardContainer) {
 
         //TODO: refactor render method to handle going through currentCard CardBucket and rendering those of selected severities
         let num = 0;
+        let start = (currentPage - 1) * cardsPerPage;
         let cardBucket = currentCards.getCards();
         let severities = sg.tagContainer.getSeverities();
 
@@ -257,8 +325,8 @@ function CardContainer(uiCardContainer) {
             if (severities[i].getActive()){
                 let subBucket = cardBucket[severities[i].getSeverity()];
                 for (let j = 0; j < subBucket.length; j++) {
-                    if (num >= 10) break;
-                    subBucket[j].render(uiCardContainer.holder);
+                    if (num >= cardsPerPage * currentPage) break;
+                    if (num >= start) subBucket[j].render(uiCardContainer.holder);
                     num++;
                 }
             }

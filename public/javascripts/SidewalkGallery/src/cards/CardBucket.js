@@ -21,6 +21,18 @@ function CardBucket(bucket, size) {
         return bucket;
     }
 
+    function size() {
+        // let num = 0;
+        // for (let i = 1; i <= 5; i++) {
+        //     num += bucket[i].length;
+        // }
+        // num += bucket['null'].length;
+
+        // return num;
+        return size;
+
+    }
+
     function getCardsBySeverity(severity) {
         if (!bucket.hasOwnProperty(severity)) {
             throw self.className + ": No such severity bucket";

@@ -47,6 +47,32 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
     }
   }
 
+  def getLabelsBySeveritiesAndTags(labelTypeId: Int, n: Int, loadedLabels: String, severities: String, tags: String) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        val loadedLabelIds: Set[Int] = Json.parse(loadedLabels).as[JsArray].value.map(_.as[Int]).toSet
+        val severitiesToSelect: Set[Int] = Json.parse(severities).as[JsArray].value.map(_.as[Int]).toSet
+        val tagsToSelect: Set[String] = Json.parse(tags).as[JsArray].value.map(_.as[String]).toSet
+        val labels: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelsOfTypeBySeverityAndTags(labelTypeId, n, loadedLabelIds, severitiesToSelect, tagsToSelect)
+        val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
+            "label" -> LabelTable.validationLabelMetadataToJson(l),
+            "imageUrl" -> getImageUrl(l.gsvPanoramaId, l.canvasWidth, l.canvasHeight, l.heading, l.pitch, l.zoom)
+          )
+        )
+
+        val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
+        Future.successful(Ok(labelList))
+      case _ => Future.successful(
+        Redirect(s"/anonSignUp?url=/label/labelsBySeveritiesAndTags?labelTypeId=" + labelTypeId + 
+                                                                    "&n=" + n + 
+                                                                    "&loadedLabels=" + loadedLabels +
+                                                                    "&severities=" + severities +
+                                                                    "&tags=" + tags)
+      )
+    }
+
+  }
+
   /**
    * TODO: try to refactor this somewhere else
    *
