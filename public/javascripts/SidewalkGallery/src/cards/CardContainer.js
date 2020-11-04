@@ -183,8 +183,8 @@ function CardContainer(uiCardContainer) {
     }
 
     function updateCardsNewPage() {
-        let curr = cardsByType[currentLabelType].copy();
-        let bucket = curr.getCards();
+        currentCards = cardsByType[currentLabelType].copy();
+        let bucket = currentCards.getCards();
 
         let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType];
         for (let i = 0; i < tagsToCheck.length; i++) {
