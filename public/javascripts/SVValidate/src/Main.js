@@ -100,8 +100,6 @@ function Main (param) {
 
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
-        svv.ui.status.labelTypeCounterexample = $("#label-type-counterexample");
-        svv.ui.status.labelTypeExample = $("#label-type-example");
         svv.ui.status.missionDescription = $("#current-mission-description");
         svv.ui.status.currentMissionReward = $("#current-mission-reward");
         svv.ui.status.totalMissionReward = $("#total-mission-reward");
@@ -173,14 +171,30 @@ function Main (param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svv.tracker.push("PageGainedFocus");
+            } else {
+                svv.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
+
         svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
-            $(".toolUI").css('opacity', 1);
+            $(".tool-ui").css('opacity', 1);
         });
         $('#sign-in-modal-container').on('show.bs.modal', function () {
             svv.keyboard.disableKeyboard();
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
     }
 

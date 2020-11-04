@@ -25,6 +25,7 @@ GET     /labelingGuide/occlusion                             @controllers.Applic
 GET     /mobile                                              @controllers.ValidationController.mobileValidate
 GET     /noAvailableMissionIndex                             @controllers.ApplicationController.noAvailableMissionIndex
 GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
+GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
 
 # User authentication
 GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
@@ -111,7 +112,6 @@ POST    /validationLabelMap                                  @controllers.Valida
 
 # Missions
 GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
-GET     /getMissions                                         @controllers.UserProfileController.getMissions()
 GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
 
 # Labels
@@ -132,7 +132,6 @@ GET     /map/edit                                            @controllers.MapCon
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets
-GET     /contribution/auditCounts                            @controllers.UserProfileController.getAuditCounts
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
 GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit

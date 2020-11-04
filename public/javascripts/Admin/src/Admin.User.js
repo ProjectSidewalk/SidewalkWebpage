@@ -12,11 +12,11 @@ function AdminUser(params) {
     var mapboxTiles = L.tileLayer(tileUrl, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
-    var map = L.mapbox.map('admin-map', "mapbox.streets", {
+    var map = L.mapbox.map('admin-map', null, {
         maxZoom: 19,
         minZoom: 9,
         zoomSnap: 0.5
-    });
+    }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
     var popup = L.popup().setContent('<p>Hello world!<br />This is a nice popup.</p>');
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
@@ -53,7 +53,7 @@ function AdminUser(params) {
             for (var i = data.features.length - 1; i >= 0; i--) {
                 distanceAudited += turf.length(data.features[i], {units: i18next.t('common:unit-distance')});
             }
-            document.getElementById("td-total-distance-audited-admin").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
+            document.getElementById("td-total-distance-audited-admin").innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-distance-abbreviation");
     });
 
     // Visualize the labels collected

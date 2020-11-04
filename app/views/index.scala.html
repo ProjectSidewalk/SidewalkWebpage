@@ -29,12 +29,13 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
-                    @for((cityName, cityURL) <- otherCityURLs) {
+                    @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA")) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <a id="@cityName" class="otherCityLink" href="@{cityURL + "/audit"}">@cityName.replace(" ", " ")</a> &nbsp;
+                        <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
+                        <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
@@ -47,16 +48,13 @@
     </div>
 
     <div id="content">
-
-
-
         <div class="container" id="banner2" style="width: 100%;
             position: relative;">
             <div class="im-centered">
                 <div class="row">@Messages("landing.how.you.help")</div>
                 <br>
                 <div class="row" id="content-text-1">
-                    <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
+                    <div id="exploredesc">
                         @Messages("landing.how.you.help.content")
                     </div>
                         <br><br>
@@ -79,87 +77,15 @@
                             </div>
                     </div>
                         <div class="hidden-xs" id="greenbar">
-
                         </div>
                         <div id="instructionvideo">
-
                             <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
                             <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
                             <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4"> </video>
-
                         </div>
-
                 </div>
             </div>
-                <!--<div class="row" id="steps1">
-                <div class="col-sm-2">
-                </div>
-                <div class="col-sm-4 gauche">
-                    <span class="stepnumber">01</span><span class="stepword">EXPLORE</span>
-                    <br>
-                    <span class="stepdescription">
-                        Walk through your city's neighborhood from the comfort of your home and discover various accessibility problems that are in your town.
-                    </span>
-                </div>
-                <div class="col-sm-4 corps hidden-xs">
-                    <img src='@routes.Assets.at("assets/computer-1.png")' style="position: relative;
-                top: -80px;
-                height: 350px;"/>
         </div>
-        <div class="col-sm-2">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-5 corps hidden-xs compimage">
-            <img src='@routes.Assets.at("assets/computer-2.png")' style="position : relative ;
-            top : -80px ;
-            height : 350px ;
-            left : -100px ;
-            "/>
-        </div>
-        <div class="col-sm-4 gauche" id=step2right>
-            <span class="stepnumber">02</span><span class="stepword">CATEGORIZE</span>
-            <br>
-            <span class="stepdescription">
-                Once you have found an issue, we will need to know what kind of issues it is. There are various types of issues to choose from.
-            </span>
-        </div>
-        <div class="col-sm-1">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-4 gauche" >
-            <span class="stepnumber">03</span><span class="stepword">ASSESS</span>
-            <br>
-            <span class="stepdescription">
-                You rate the problem between one and five. Five means that the sidewalk is not passable due to erosion or no curb available at all.
-            </span>
-        </div>
-        <div class="col-sm-4 corps hidden-xs">
-            <img src='@routes.Assets.at("assets/computer-3.png")' style="position : relative ;
-            top : -80px ;
-            height : 350px ;
-            "/>
-        </div>
-        <div class="col-sm-2">
-        </div>
-    </div>-->
-    </div>
-
-    <div class="container" id="vidembed">
-        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">
-        <div id="videooverlay">
-            <div id="videotext">
-                <span>@Messages("landing.video.title")</span>
-                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;
-                cursor: pointer;" onclick="playVideo()">@Messages("landing.video.watch")</span></span>
-            </div>
-        </div>
-    </div>
 
     <div class="container" id="choropleth-container" style="width: 100%;
         position: relative;">
@@ -167,7 +93,7 @@
             <div class="row">@Messages("landing.choropleth.title")</div>
             <br>
             <div class="row" id="content-text-1">
-                <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
+                <div id="exploredesc">
                     @Messages("landing.choropleth.content")
                 </div>
             </div>
@@ -196,59 +122,55 @@
             <div id="choropleth"></div>
         </div>
     </div>
-    <div class="container" id="difference-container">
-        <div id="dcanim-div">
-            <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+    <div class="ps-skyline">
+        <div class="ps-skyline-container">
+            @if(cityName == "Washington" || cityName == "Seattle") {
+                <img src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+            } else {
+                <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
+            }
+            <img src="@routes.Assets.at("assets/" + "generic_cloud_overlay.png")" class="skyline-cloud-overlay">
         </div>
-        <div class="im-centered5">
-            <div class="row" style="margin: 0 auto; width: 450px;">@Messages("landing.stats.title")</div>
+        <div class="ps-skyline-stats-holder">
+            <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
+            <span class="ps-skyline-stats-holder-stat-number" id="distance">NA</span>
+            <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
+            <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
+            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent", cityShortName)</span>
+            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.distance")</span>
+            <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.labels")</span>
+            <span class="ps-skyline-stats-holder-stat-label" >@Messages("landing.stats.validations")</span>
+        </div>
+        <div class="ps-skyline-overlay">
+            <div class="row" id="skyline-spacing">@Messages("landing.stats.title")</div>
             <div class="row" id="content-text-2">
                 <p id="conditional-text">Keep Mapping!</p>
             </div>
-            <a id="exploreButton" href="@routes.ApplicationController.results">
-                @Messages("navbar.results")</a>
-            <br><br><br><br><br><br><br><br>
-            <div id="numberholder">
-                <div class="row" id="anim-numbers">
-                    <div class="col-md-3 col-sm-4"><span id="percentage">45</span></div>
-                    <div class="col-md-3 col-sm-4"><span id="distance">45</span></div>
-                    <div class="col-md-3 col-sm-4"><span id="numlabels">36,583</span></div>
-                    <div class="col-md-3 hidden-sm"><a href="/validate"><span id="numvalidation">123,583</span></a></div>
-                </div>
-                <br>
-                <div class="row" id="anim-labels">
-                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.percent", cityShortName)</div>
-                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.distance")</div>
-                    <div class="col-md-3 col-sm-4">@Messages("landing.stats.labels")</div>
-                    <div class="col-md-3 hidden-sm"><a href="/validate">@Messages("landing.stats.validations")</a></div>
-                </div>
-
-            </div>
-            <script language="javascript">
-                    if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
-                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
-                    } else {
-                        document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
-                    }
-                    var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
-                    var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
-                    var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
-                    var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
-            </script>
+            <a class="ps-skyline-overlay-btn" href="@routes.ApplicationController.results">
+                @Messages("navbar.results")
+            </a>
         </div>
+        <script language="javascript">
+            if (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)) < 100) {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation, "%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))";
+            } else {
+                document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished", "%,.0f".format(auditedDistance), cityName, stateAbbreviation)";
+            }
+            var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100)),1,2.5,{suffix:'%'});
+            var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)),1,2.5,{suffix:''});
+            var labelsAnim = new CountUp("numlabels", 0, @LabelTable.countLabels,0,2.5,{suffix:''});
+            var validationsAnim = new CountUp("numvalidation", 0, @LabelValidationTable.countValidations,0,2.5,{suffix:''});
+    </script>
     </div>
-
+    <!-- @leaderboard(5) -->
 
     <div class="container" id="machinelearning-container">
-
             <div class="im-centered3">
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
                 <br>
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
             </div>
-
-
     </div>
 
 
@@ -279,46 +201,40 @@
         </div>
     </div>
 
-    <div class= "container" id="brought-to-you-container">
-        <div class="row" style=" padding-bottom: 10px;
-        width: 100%;
-        text-align: center;
-        display: inline-block;
-        vertical-align: middle;
-        "> 
-            <div class="im-centered3" style = "font-size: 40px; margin-bottom: 20px;">
+    <div class= "container" id="collaborators-container">
+        <div class="row" id="collaborators-row">
+            <div class="im-centered3" id="collaborators-title">
                 <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
             </div>
-            <section class="collborator-images-container">
-                <div class="collborator-image">
-                    <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability_Logo'>
+            <section class="collaborator-images-container">
+                <div class="collaborator-image">
+                    <a href="https://makeabilitylab.cs.washington.edu/">
+                        <img src='@routes.Assets.at("assets/MakeabilityLogo.png")' alt='Makeability_Logo'>
+                    </a>
                 </div>
-                <div class="collborator-image">
-                    <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
+                <div class="collaborator-image">
+                    <a href="https://ligapeatonal.org/">
+                        <img src='@routes.Assets.at("assets/LigaLogo.png")' alt='LIGA_Logo'>
+                    </a>
                 </div>
                 @if("Columbus"== cityName){
-                    <div class="collborator-image">
-                        <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
+                    <div class="collaborator-image">
+                        <a href="https://www.meetup.com/OpenColumbus/">
+                            <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt='Open_Columbus_Logo'>
+                        </a>
                     </div>
                 }
             </section>
         </div>
     </div>
 
-    <div class="container" id="press-container">
+    <div class="container" id="press-header">
         <div class="im-centered3">
             <div class="row"><br>@Messages("landing.press.title")<br></div>
         </div>
-
     </div>
-    <div class="container" id="press-container2">
-
-        <div class="row" style=" padding-top: 50px;
-            width: 100%;
-            text-align: center;
-            display: inline-block;
-            vertical-align: middle;
-        ">
+    <div class="container" id="press-container">
+        <div class="row" id="press-image-row">
             <div class="col-sm-4">
                 <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-img-link">
                     <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
@@ -336,26 +252,19 @@
                 </a>
             </div>
         </div>
-        <div class="row" style=" padding-top: 20px;
-            width: 100%;
-            text-align: center;
-        ">
+        <div class="row" id="press-blurb-row">
             <div class="col-sm-4">
                 <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-text-link">
-
                     How Project Sidewalk is making DC more accessible
                 </a>
             </div>
             <div class="col-sm-4">
                 <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-text-link">
-
                     Make D.C.'s sidewalks more accessible with this crowd-sourced map
-
                 </a>
             </div>
             <div class="col-sm-4">
                 <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/" id="diamondback-text-link">
-
                     A UMD team made an app highlighting D.C. areas inaccessible to people with disabilities
                 </a>
             </div>

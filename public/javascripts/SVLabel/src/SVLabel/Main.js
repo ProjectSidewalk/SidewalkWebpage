@@ -158,7 +158,7 @@ function Main (params) {
         }
         svl.taskModel._taskContainer = svl.taskContainer;
 
-        // Mission.
+        // Mission
         svl.missionContainer = new MissionContainer (svl.statusFieldMission, svl.missionModel);
         svl.missionProgress = new MissionProgress(svl, svl.gameEffectModel, svl.missionModel, svl.modalModel,
             svl.neighborhoodModel, svl.statusModel, svl.missionContainer, svl.neighborhoodContainer, svl.taskContainer,
@@ -176,6 +176,21 @@ function Main (params) {
         }
         svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
 
+        // Logs when the page's focus changes.
+        function logPageFocus() {
+            if (document.hasFocus()) {
+                svl.tracker.push("PageGainedFocus");
+            } else {
+                svl.tracker.push("PageLostFocus");
+            }
+        }
+        window.addEventListener("focus", function(event) {
+            logPageFocus();
+        });
+        window.addEventListener("blur", function(event) {
+            logPageFocus();
+        });
+        logPageFocus();
 
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
@@ -224,16 +239,16 @@ function Main (params) {
 
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svl.popUpMessage.enableInteractions();
-            $(".toolUI").css('opacity', 1);
+            $(".tool-ui").css('opacity', 1);
         });
         $('#sign-in-modal-container').on('show.bs.modal', function () {
             svl.popUpMessage.disableInteractions();
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
         $('#sign-in-button').on('click', function(){
             $("#sign-in-modal").removeClass("hidden");
             $("#sign-up-modal").addClass("hidden");
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
 
         $(svl.ui.ribbonMenu.buttons).each(function() {
@@ -428,7 +443,7 @@ function Main (params) {
             var mission = svl.missionContainer.getCurrentMission();
             svl.loadComplete = true;
             $("#page-loading").css({"visibility": "hidden"});
-            $(".toolUI").css({"visibility": "visible"});
+            $(".tool-ui").css({"visibility": "visible"});
             $(".visible").css({"visibility": "visible"});
 
             if (mission.getProperty("missionType") === "auditOnboarding") {
@@ -474,9 +489,8 @@ function Main (params) {
         svl.ui.map.canvas = $("canvas#labelCanvas");
         svl.ui.map.drawingLayer = $("div#labelDrawingLayer");
         svl.ui.map.pano = $("div#pano");
-        svl.ui.map.streetViewHolder = $("div#streetViewHolder");
-        svl.ui.map.viewControlLayer = $("div#viewControlLayer");
-        svl.ui.map.modeSwitchWalk = $("span#modeSwitchWalk");
+        svl.ui.map.viewControlLayer = $("div#view-control-layer");
+        svl.ui.map.modeSwitchWalk = $("span#mode-switch-walk");
         svl.ui.map.modeSwitchDraw = $("span#modeSwitchDraw");
         svl.ui.googleMaps = {};
         svl.ui.googleMaps.holder = $("#google-maps-holder");
@@ -522,7 +536,7 @@ function Main (params) {
         svl.ui.ribbonMenu = {};
         svl.ui.ribbonMenu.holder = $("#ribbon-menu-label-type-button-holder");
         svl.ui.ribbonMenu.streetViewHolder = $("#street-view-holder");
-        svl.ui.ribbonMenu.buttons = $('span.modeSwitch');
+        svl.ui.ribbonMenu.buttons = $('span.mode-switch');
         svl.ui.ribbonMenu.bottonBottomBorders = $(".ribbon-menu-mode-switch-horizontal-line");
         svl.ui.ribbonMenu.connector = $("#ribbon-street-view-connector");
         svl.ui.ribbonMenu.subcategoryHolder = $("#ribbon-menu-other-subcategory-holder");
@@ -605,8 +619,6 @@ function Main (params) {
 
         // Form
         svl.ui.form = {};
-        svl.ui.form.holder = $("#form-holder");
-        svl.ui.form.commentField = $("#comment-field");
         svl.ui.form.skipButton = $("#skip-button");
         svl.ui.form.submitButton = $("#submit-button");
 
@@ -628,7 +640,7 @@ function Main (params) {
         svl.ui.canvas.drawingLayer = $("#labelDrawingLayer");
         svl.ui.canvas.deleteIconHolder = $("#delete-icon-holder");
         svl.ui.canvas.severityIconHolder = $("#severity-icon-holder");
-        svl.ui.canvas.deleteIcon = $("#LabelDeleteIcon");
+        svl.ui.canvas.deleteIcon = $("#label-delete-icon");
         svl.ui.canvas.severityIcon = $("#severity-icon");
 
         // Interaction viewer

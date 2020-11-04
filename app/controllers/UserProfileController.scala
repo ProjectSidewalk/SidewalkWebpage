@@ -7,13 +7,13 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
 import formats.json.TaskFormats._
-import formats.json.MissionFormat._
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, InteractionWithLabel}
 import models.mission.MissionTable
 import models.label.{LabelTable, LabelValidationTable}
 import models.user.User
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.extras.geojson
+import play.api.i18n.Messages
 
 
 import scala.concurrent.Future
@@ -31,7 +31,11 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         val username: String = user.username
-        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user))))
+        // Get distance audited by the user. If using metric units, convert from miles to kilometers.
+        val auditedDistance: Float =
+          if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
+          else MissionTable.getDistanceAudited(user.userId)
+        Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user), auditedDistance)))
       case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }
   }
@@ -98,22 +102,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val tasks = AuditTaskTable.selectCompletedTasks(user.userId).map(t => Json.toJson(t))
         Future.successful(Ok(JsArray(tasks)))
-      case None =>  Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "Your user id could not be found."
-      )))
-    }
-  }
-
-  /**
-    *
-    * @return
-    */
-  def getMissions = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val tasksWithLabels = MissionTable.selectMissions(user.userId).map(x => Json.toJson(x))
-        Future.successful(Ok(JsArray(tasksWithLabels)))
       case None =>  Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "Your user id could not be found."
@@ -208,25 +196,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
             "message" -> "There are no existing audit records."
           )))
         }
-      case None => Future.successful(Ok(Json.obj(
-        "error" -> "0",
-        "message" -> "We could not find your username."
-      )))
-    }
-  }
-
-  /**
-    *
-    * @return
-    */
-  def getAuditCounts = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val auditCounts = AuditTaskTable.selectAuditCountsPerDayByUserId(user.userId)
-        val json = Json.arr(auditCounts.map(x => Json.obj(
-          "date" -> x.date, "count" -> x.count
-        )))
-        Future.successful(Ok(json))
       case None => Future.successful(Ok(Json.obj(
         "error" -> "0",
         "message" -> "We could not find your username."

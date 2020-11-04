@@ -9,11 +9,10 @@ import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import models.audit._
 import models.daos.slick.DBTableDefinitions._
 import models.daos.UserDAO
-import models.daos.slick.UserDAOSlick._
 import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
-import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
+import models.user.{RoleTable, WebpageActivityTable}
 import models.user.{UserRoleTable, User}
 
 import play.api.db.slick._
@@ -192,6 +191,68 @@ object UserDAOSlick {
   }
 
   /**
+   * Returns a count of all users under the specified conditions.
+   *
+   * @param timeInterval: can be "today", "yesterday", "week", or "month". If anything else, defaults to "all time"
+   * @param taskCompletedOnly: if true, only counts users who have completed one audit task or at least one validation.
+   *                           Defaults to false.
+   * @param highQualityOnly: if true, only counts users who are marked as high quality. Defaults to false.
+   * @return
+   */
+  def countAllUsersContributed(timeInterval: String = "all time", taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): Int = db.withSession { implicit session =>
+
+    // Build up SQL string related to validation and audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all time").
+    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
+      case "today" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      )
+      case "yesterday" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date - interval '1' day"
+      )
+      case "week" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 WEEK)"
+      )
+      case "month" => (
+        "(label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date > DATE_SUB(NOW() AT TIME ZONE 'US/Pacific', INTERVAL 1 MONTH)"
+      )
+      case _ => ("TRUE", "TRUE")
+    }
+
+    // Add in the optional SQL WHERE statement for filtering on high quality users.
+    val highQualityOnlySql =
+      if (highQualityOnly) "(user_stat.high_quality_manual = TRUE OR user_stat.high_quality_manual IS NULL)"
+      else "TRUE"
+
+    // Add in the task completion logic.
+    val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
+
+    val countQuery = s"""SELECT COUNT(DISTINCT(users.user_id))
+                   |FROM (
+                   |    SELECT DISTINCT(mission.user_id)
+                   |    FROM mission
+                   |    INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
+                   |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+                   |    WHERE mission_type.mission_type = 'validation'
+                   |        AND $lblValidationTimeIntervalSql
+                   |    UNION
+                   |    SELECT DISTINCT(user_id)
+                   |    FROM audit_task
+                   |    WHERE $auditTaskCompletedSql
+                   |        AND $auditTaskTimeIntervalSql
+                   |) users
+                   |INNER JOIN user_stat ON users.user_id = user_stat.user_id
+                   |WHERE $highQualityOnlySql;
+                 """.stripMargin
+
+    Q.queryNA[Int](countQuery).list.head
+  }
+
+  /**
    * Count the number of users of the given role who have ever started (or completed) validating a label.
    *
    * @param roles
@@ -358,7 +419,7 @@ object UserDAOSlick {
   /**
    * Count the number of researchers who have ever started (or completed) an audit task.
    *
-   * Researchers include the Researcher, Adminstrator, and Owner roles.
+   * Researchers include the Researcher, Administrator, and Owner roles.
    *
    * @param taskCompleted
    * @return
@@ -447,7 +508,7 @@ object UserDAOSlick {
   }
 
   /**
-   * Count the number of researchers who contributed yesterday (includes Researcher, Adminstrator, and Owner roles).
+   * Count the number of researchers who contributed yesterday (includes Researcher, Administrator, and Owner roles).
    *
    * @return
    */

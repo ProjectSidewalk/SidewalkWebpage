@@ -259,8 +259,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     // prevent turkers from modifying JS variables to prevent switching to validation).
                     if (result.switch_to_validation) window.location.replace('/validate');
 
-                    // If a new mission was sent, create an object for it on the front-end.
-                    if (result.mission) missionModel.createAMission(result.mission);
+                    // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
+                    if (result.mission && !svl.isOnboarding()) missionModel.createAMission(result.mission);
                 }
             },
             error: function (result) {
