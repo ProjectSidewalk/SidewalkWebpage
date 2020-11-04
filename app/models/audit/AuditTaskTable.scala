@@ -374,28 +374,6 @@ object AuditTaskTable {
     _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
   }
 
-
-  /**
-    * Return audit counts for the last 31 days.
-    *
-    * @param userId User id
-    */
-  def selectAuditCountsPerDayByUserId(userId: UUID): List[AuditCountPerDay] = db.withSession { implicit session =>
-    val selectAuditCountQuery =  Q.query[String, (String, Int)](
-      """SELECT calendar_date::date, COUNT(audit_task_id)
-        |FROM
-        |(
-        |    SELECT current_date - (n || ' day')::INTERVAL AS calendar_date
-        |    FROM generate_series(0, 30) n
-        |) AS calendar
-        |LEFT JOIN sidewalk.audit_task ON audit_task.task_start::date = calendar_date::date
-        |                              AND audit_task.user_id = ?
-        |GROUP BY calendar_date
-        |ORDER BY calendar_date""".stripMargin
-    )
-    selectAuditCountQuery(userId.toString).list.map(x => AuditCountPerDay.tupled(x))
-  }
-
   /**
     *
     * @param userId

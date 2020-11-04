@@ -42,7 +42,7 @@ function InitializeAuditedStreets(map, params, streetData) {
         for (var i = streetData.features.length - 1; i >= 0; i--) {
             distanceAudited += turf.length(streetData.features[i], {units: i18next.t('common:unit-distance')});
         }
-        document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-abbreviation-distance-user-dashboard");
+        document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-distance-abbreviation");
         // Get total reward if a turker
         if (params.userRole === 'Turker') {
             $.ajax({

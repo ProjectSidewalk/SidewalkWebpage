@@ -70,30 +70,30 @@
                     </script>
                 }
                 @if(url.isDefined && url.get == "/audit") {
-                    <li class="navbarLink">
-                        <a class="navbarBtn" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/audit") {
-                    <li class="active navbarLink">
-                        <a class="navbarBtn navbarStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {
-                    <li class="navbarLink">
-                        <a class="navbarBtn navbarValidateBtn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
                 }
-                <li class="active navbarLink">
-                    <a class="navbarBtn navbarGuideBtn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                <li class="active navbar-lnk">
+                    <a class="navbar-button navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                 </li>
                 @if(url.isDefined && url.get == "/audit") {
-                    <li class = "navbarLink">
-                        <a class="navbarBtn" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
+                    <li class = "active navbar-lnk">
+                        <a class="navbar-button" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
-                <li class="dropdown navbarLink" id="navbar-dropdown-list">
-                    <a id="nav-user-dropdown" class="navbarBtn" role="button" data-toggle="dropdown" href="#">
+                <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
+                    <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
                         @Messages("navbar.data")
                         <b class="caret"></b>
                     </a>
@@ -108,16 +108,21 @@
                             </li>
                         }
                         <li>
+                            <a href='@routes.ApplicationController.leaderboard' role="menuitem">
+                            @Messages("navbar.leaderboard")
+                            </a>
+                        </li>
+                        <li>
                             <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a>
                         </li>
                     </ul>
                 </li>
 
                 <!--<li><a href="#">Explore Accessibility!</a></li>-->
-                <li class="dropdown navbarLink" id="navbar-dropdown-list">
+                <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
                         
-                        <a id="nav-user-dropdown" class="navbarBtn" role="button" data-toggle="dropdown" href="#">
+                        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
                             @user.get.username
                             <b class="caret"></b>
                         </a>
@@ -139,7 +144,7 @@
                             </li>
                         </ul>
                     } else {
-                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="grayButton" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
             </ul>
@@ -180,27 +185,27 @@ $(document).ready(function () {
         logWebpageActivity("Click_module=SignIn");
     });
 
-    // Triggered when 'Start Exploring' in navbar is clicked
-    $(".navbarStartBtn").on('click', function(){
+    // // Triggered when 'Start Exploring' in navbar is clicked
+    $(".navbar-start-btn").on('click', function(){
         logWebpageActivity("Click_module=StartExploring");
     });
 
-    // Triggered when 'Start Validating' in navbar is clicked.
-    $(".navbarValidateBtn").on('click', function(){
+    // // Triggered when 'Start Validating' in navbar is clicked.
+    $(".navbar-validate-btn").on('click', function(){
         logWebpageActivity("Click_module=StartValidating");
     });
 
-    // Triggered when 'How to Label' in navbar is clicked.
-    $(".navbarGuideBtn").on('click', function() {
+    // // Triggered when 'How to Label' in navbar is clicked.
+    $(".navbar-guide-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelingGuide");
     });
 
-    // Triggered when 'Results' in navbar is clicked.
+    // // Triggered when 'Results' in navbar is clicked.
     $(".navbarResultsBtn ").on('click', function(){
         logWebpageActivity("Click_module=Results");
     });
 
-    // Triggered when 'Label Map' in navbar is clicked.
+    // // Triggered when 'Label Map' in navbar is clicked.
     $(".navbarLabelMapBtn ").on('click', function(){
         logWebpageActivity("Click_module=LabelMap");
     });
@@ -210,7 +215,7 @@ $(document).ready(function () {
     var helpText = "@Messages("navbar.help")";
     var howtoText = "@Messages("navbar.howto")";
     @if(url.isDefined && url.get == "/audit") {
-        $(".navbarLink").on('click', function (e) {
+        $(".navbar-lnk").on('click', function (e) {
             var activity = "Click_module=RetakeTutorial";
             if (e.currentTarget.innerHTML.includes(helpText)) {
                 activity = "Click_module=Help";
@@ -297,7 +302,7 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                    @text(forms.SignUpForm.form("username"), Messages("authenticate.username"), icon = "person")
+                    @text(forms.SignUpForm.form("username"), Messages("username"), icon = "person")
                     @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
                     @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
                     @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
@@ -336,7 +341,7 @@ $(document).ready(function () {
                 // If on the sign in or sign up pages, remove the sign in button from the navbar.
                 if (location.pathname === '/signIn' || location.pathname === '/signUp') {
                     $('#sign-in-modal-container').remove();
-                    $('#navbar-dropdown-list').remove();
+                    $('#navbar-user-dropdown-list').remove();
                 }
             });
 
@@ -350,10 +355,10 @@ $(document).ready(function () {
                 }
 
                 //otherwise, reflect login changes on user's end
-                var htmlString = $("#navbar-dropdown-list-signed-in").html();
+                var htmlString = $("#navbar-user-dropdown-list-signed-in").html();
                 htmlString = htmlString.replace(/__USERNAME__/g, data.username);
 
-                $("#navbar-dropdown-list").html(htmlString);
+                $("#navbar-user-dropdown-list").html(htmlString);
                 var path = window.location.pathname;
 
                 // Toggle the sign-in modal 
@@ -511,8 +516,8 @@ $(document).ready(function () {
                 return false;
             });
     </script>
-    <template id="navbar-dropdown-list-signed-in">
-        <a id="nav-user-dropdown" role="button" data-toggle="dropdown" href="#">
+    <template id="navbar-user-dropdown-list-signed-in">
+        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
             __USERNAME__
             <b class="caret"></b>
         </a>
@@ -525,7 +530,7 @@ $(document).ready(function () {
             </li>
         </ul>
     </template>
-    <template id="navbar-dropdown-list-signed-out">
+    <template id="navbar-user-dropdown-list-signed-out">
         <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
             @Messages("navbar.signin")
         </a>

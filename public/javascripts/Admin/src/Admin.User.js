@@ -1,27 +1,29 @@
 function AdminUser(user) {
     var params = {
+        popupType: 'none',
         neighborhoodPolygonStyle: {
             color: '#888',
             weight: 2,
             opacity: 0.80,
-            fillColor: "#808080",
+            fillColor: '#808080',
             fillOpacity: 0.1
         },
         mouseoverStyle: {
-            color: "red",
-            fillColor: "red",
+            color: '#000',
+            opacity: 1.0,
+            weight: 3
         },
         mouseoutStyle: {
-            color: "#888",
-            fillColor: "#808080"
+            color: '#888',
+            opacity: 0.8,
+            weight: 2
         },
-        webpageActivity: "Click_module=UserMap_regionId=",
-        polygonFillStyle: 'singleColor',
+        webpageActivity: 'Click_module=UserMap_regionId=',
+        polygonFillMode: 'singleColor',
         zoomControl: true,
-        overlayPolygon: true,
         username: user,
         mapName: 'admin-map',
-        mapStyle: "mapbox.streets",
+        mapStyle: 'mapbox://styles/mapbox/streets-v11',
         accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
     };
     var streetParams = {
@@ -54,11 +56,11 @@ function AdminUser(user) {
         setRegionFocus(map, layers)
     })
     
-    $.getJSON("/adminapi/tasks/" + params.username, function (data) {
+    $.getJSON('/adminapi/tasks/' + params.username, function (data) {
         var grouped = _.groupBy(data, function (o) { return o.audit_task_id});
         var auditTaskId;
         var auditTaskIds = Object.keys(grouped);
-        var tableRows = "";
+        var tableRows = '';
         var labelCounter;
         var i;
         var auditTaskIdsLength = auditTaskIds.length;
@@ -74,14 +76,14 @@ function AdminUser(user) {
         });
 
         for (i = auditTaskIdsLength - 1; i >= 0; i--) {
-            labelCounter = { "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 0, "NoSidewalk": 0, "Other": 0 };
+            labelCounter = { 'CurbRamp': 0, 'NoCurbRamp': 0, 'Obstacle': 0, 'SurfaceProblem': 0, 'NoSidewalk': 0, 'Other': 0 };
             auditTaskId = auditTaskIds[i];
             labelsLength = grouped[auditTaskId].length;
             for (j = 0; j < labelsLength; j++) {
-                labelType = grouped[auditTaskId][j]["label_type"];
+                labelType = grouped[auditTaskId][j]['label_type'];
                 
                 if (!(labelType in labelCounter)) {
-                    labelType = "Other";
+                    labelType = 'Other';
                 }
                 labelCounter[labelType] += 1;
             }

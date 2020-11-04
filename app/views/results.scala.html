@@ -64,11 +64,14 @@
                     <p style="font-size: 11px;margin-top: 7px;line-height: 14px;">@Messages("results.legend.body")</div>
             </div>
             <div id="choropleth"></div>
-            <div id="loadingChoropleth">
-                <img src='/assets/images/loader.gif' alt='loading' />
+            <div id="page-loading">
+                <div id="loading-gif">
+                    <p class="loading-text">@Messages("loading")</p>
+                    <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+                </div>
             </div>
             <div>
-                <a id="reset-button" href="javascript:null"> @Messages("results.reset.view") </a>
+                <a id="reset-button"> @Messages("results.reset.view") </a>
             </div>
         </div>
     </div>
@@ -99,6 +102,7 @@
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
             var params = {
                 choroplethType: 'results',
+                popupType: 'issueCounts',
                 regionColors: [
                     '#99000a', '#b3000c', '#cc000e', '#e6000f', '#ff1a29',
                     '#ff3341', '#ff4d58', '#ff6670', '#ff8088', '#ff99a0'
@@ -119,14 +123,14 @@
                     opacity: 0.25,
                     weight: 1
                 },
-                polygonFillStyle: 'issueCount',
+                polygonFillMode: 'issueCount',
                 webpageActivity: "Click_module=ResultsChoropleth_regionId=",
                 zoomSlider: true,
                 resetButton: true,
                 clickData: true,
-                disableScrollWheel: true,
+                scrollWheelZoom: false,
                 mapName: 'choropleth',
-                mapStyle: "mapbox.light",
+                mapStyle: "mapbox://styles/mapbox/light-v10",
                 accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
             };
             var loadPolygons = $.getJSON('/neighborhoods');

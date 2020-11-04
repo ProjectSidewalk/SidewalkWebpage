@@ -183,7 +183,7 @@
         position: relative;
 }
 
-.modal-foreground .leaflet-zoom-hide .lineConnect {
+.modal-foreground .leaflet-zoom-hide .line-connect {
     fill: none;
     stroke: rgb(20,220,120);
     stroke-width: 5;
