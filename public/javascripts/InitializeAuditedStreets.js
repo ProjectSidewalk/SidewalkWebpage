@@ -8,7 +8,7 @@ function InitializeAuditedStreets(map, params, streetData) {
     var auditedStreetLayer;
     var distanceAudited = 0,  // Distance audited in km
     streetLinestringStyle = {
-        color: "black",
+        color: 'black',
         weight: 3,
         opacity: 0.75
     };
@@ -29,7 +29,7 @@ function InitializeAuditedStreets(map, params, streetData) {
         style: function (feature) {
             var style = $.extend(true, {}, streetLinestringStyle);
             style.color = params.streetColor;
-            style["stroke-width"] = 3;
+            style['stroke-width'] = 3;
             style.opacity = 0.75;
             style.weight = 3;
             return style;
@@ -42,15 +42,15 @@ function InitializeAuditedStreets(map, params, streetData) {
         for (var i = streetData.features.length - 1; i >= 0; i--) {
             distanceAudited += turf.length(streetData.features[i], {units: i18next.t('common:unit-distance')});
         }
-        document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + " " + i18next.t("common:unit-distance-abbreviation");
-        // Get total reward if a turker
+        document.getElementById(params.progressElement).innerHTML = distanceAudited.toPrecision(2) + ' ' + i18next.t('common:unit-distance-abbreviation');
+        // Get total reward if a turker.
         if (params.userRole === 'Turker') {
             $.ajax({
                 async: true,
                 url: '/rewardEarned',
                 type: 'get',
                 success: function(rewardData) {
-                    document.getElementById("td-total-reward-earned").innerHTML = "$" + rewardData.reward_earned.toFixed(2);
+                    document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
                     console.log(thrownError);

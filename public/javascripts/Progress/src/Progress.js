@@ -6,25 +6,25 @@ function Progress (_, $, difficultRegionIds, userRole) {
             color: '#888',
             weight: 2,
             opacity: 0.80,
-            fillColor: "#808080",
+            fillColor: '#808080',
             fillOpacity: 0.1
         },
         mouseoverStyle: {
-            color: "#000",
+            color: '#000',
             opacity: 1.0,
             weight: 3
         },
         mouseoutStyle: {
-            color: "#888",
+            color: '#888',
             opacity: 0.8,
             weight: 2
         },
-        webpageActivity: "Click_module=UserMap_regionId=",
+        webpageActivity: 'Click_module=UserMap_regionId=',
         polygonFillMode: 'singleColor',
         zoomControl: true,
         clickData: true,
         mapName: 'map',
-        mapStyle: "mapbox://styles/mapbox/streets-v11",
+        mapStyle: 'mapbox://styles/mapbox/streets-v11',
         accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
     };
     var streetParams = {

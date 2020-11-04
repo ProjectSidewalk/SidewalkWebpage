@@ -15,13 +15,13 @@ function Admin(_, $, difficultRegionIds) {
             color: '#888',
             weight: 1,
             opacity: 0.25,
-            fillColor: "#f00",
+            fillColor: '#f00',
             fillOpacity: 1.0
         },
         mouseoverStyle: {
             opacity: 1.0,
             weight: 3,
-            color: "#000"
+            color: '#000'
         },
         mouseoutStyle: {
             opacity: 0.25,
@@ -32,7 +32,7 @@ function Admin(_, $, difficultRegionIds) {
         zoomControl: true,
         scrollWheelZoom: false,
         mapName: 'admin-choropleth',
-        mapStyle: "mapbox://styles/mapbox/light-v10",
+        mapStyle: 'mapbox://styles/mapbox/light-v10',
         accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
     };
     var mapTabMapParams = {
@@ -42,16 +42,16 @@ function Admin(_, $, difficultRegionIds) {
             color: '#888',
             weight: 2,
             opacity: 0.80,
-            fillColor: "#808080",
+            fillColor: '#808080',
             fillOpacity: 0.1
         },
         mouseoverStyle: {
-            color: "#000",
+            color: '#000',
             opacity: 1.0,
             weight: 3
         },
         mouseoutStyle: {
-            color: "#888",
+            color: '#888',
             opacity: 0.8,
             weight: 2
         },
@@ -59,7 +59,7 @@ function Admin(_, $, difficultRegionIds) {
         scrollWheel: true,
         zoomControl: true,
         mapName: 'label-map',
-        mapStyle: "mapbox://styles/mapbox/streets-v11",
+        mapStyle: 'mapbox://styles/mapbox/streets-v11',
         accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
     };
     var streetParams = {

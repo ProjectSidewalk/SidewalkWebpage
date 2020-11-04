@@ -22,9 +22,13 @@ function InitializeMapLayerContainer() {
         mapData.otherLayers[i] = [];
     }
     mapData.allLayers = {
-        "CurbRamp": mapData.curbRampLayers, "NoCurbRamp": mapData.missingCurbRampLayers, "Obstacle": mapData.obstacleLayers,
-        "SurfaceProblem": mapData.surfaceProblemLayers, "Occlusion": mapData.cantSeeSidewalkLayers,
-        "NoSidewalk": mapData.noSidewalkLayers, "Other": mapData.otherLayers
+        'CurbRamp': mapData.curbRampLayers,
+        'NoCurbRamp': mapData.missingCurbRampLayers,
+        'Obstacle': mapData.obstacleLayers,
+        'SurfaceProblem': mapData.surfaceProblemLayers,
+        'Occlusion': mapData.cantSeeSidewalkLayers,
+        'NoSidewalk': mapData.noSidewalkLayers,
+        'Other': mapData.otherLayers
     };
     return mapData;
 }

@@ -89,7 +89,7 @@ function AdminUser(user) {
             }
 
             // No need to load locale, correct locale loaded in timestamp.
-            var localDate = moment(new Date(grouped[auditTaskId][0]["task_end"]));
+            var localDate = moment(new Date(grouped[auditTaskId][0]['task_end']));
 
             tableRows += "<tr>" +
                 "<td class='col-xs-1'>" + localDate.format('L') + "</td>" +
@@ -102,7 +102,7 @@ function AdminUser(user) {
                 "</tr>";
         }
 
-        $("#task-contribution-table").append(tableRows);
+        $('#task-contribution-table').append(tableRows);
     });
 
     return self;

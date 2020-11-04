@@ -837,17 +837,17 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
 <script>
-    var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
+    var labelArr = new Array('N/A', 1, 2, 3, 4, 5);
     var sliderToLabelMap = {};
-    sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
-    sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
-    sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
-    sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
-    sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
-    sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
-    sliderToLabelMap["other-slider"] = "#other-severity-label";
+    sliderToLabelMap['curb-ramp-slider'] = '#curb-ramp-severity-label';
+    sliderToLabelMap['missing-curb-ramp-slider'] = '#missing-curb-ramp-severity-label';
+    sliderToLabelMap['obstacle-slider'] = '#obstacle-severity-label';
+    sliderToLabelMap['surface-problem-slider'] = '#surface-problem-severity-label';
+    sliderToLabelMap['occlusion-slider']  = '#occlusion-severity-label';
+    sliderToLabelMap['no-sidewalk-slider'] = '#no-sidewalk-severity-label';
+    sliderToLabelMap['other-slider'] = '#other-severity-label';
 
-    $( "*[id*='slider']" ).each(function() {
+    $("*[id*='slider']").each(function() {
         $(this).slider({
             range: true,
             min : 0,
@@ -858,23 +858,23 @@
                 if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
                     $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
                 } else {
-                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
+                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ ' - ' + labelArr[ui.values[1]]);
                 }
             },
             change: function(event,ui) {
-                if (this.id == "curb-ramp-slider") {
+                if (this.id === 'curb-ramp-slider') {
                     admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
-                } else if (this.id == "missing-curb-ramp-slider") {
+                } else if (this.id === 'missing-curb-ramp-slider') {
                     admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
-                } else if (this.id == "obstacle-slider") {
+                } else if (this.id === 'obstacle-slider') {
                     admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider');
-                } else if (this.id == 'surface-problem-slider') {
+                } else if (this.id === 'surface-problem-slider') {
                     admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
-                } else if (this.id == 'occlusion-slider') {
+                } else if (this.id === 'occlusion-slider') {
                     admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
-                } else if (this.id == 'no-sidewalk-slider') {
+                } else if (this.id === 'no-sidewalk-slider') {
                     admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
-                } else if (this.id == 'other-slider') {
+                } else if (this.id === 'other-slider') {
                     admin.toggleLayers('Other', 'other', '#other-slider');
                 }
             }
@@ -891,7 +891,7 @@
             fallbackLng: 'en',
             ns: ['common'],
             defaultNS: 'common',
-            lng: "@lang.code",
+            lng: '@lang.code',
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
@@ -899,12 +899,12 @@
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();
-            $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
-            $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
+            $('#tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
+            $('#tabs li').removeClass('ui-corner-top').addClass('ui-corner-left');
         });
     });
     $(window).load(function() {
-        $(".loader").fadeOut("slow");
+        $('.loader').fadeOut('slow');
     })
 </script>
 }
