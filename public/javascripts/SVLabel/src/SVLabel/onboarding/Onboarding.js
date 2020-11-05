@@ -248,8 +248,17 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     function drawDoubleClickIcon(x, y) {
         // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
         var image = document.getElementById("double-click-icon");
+        var line1 = document.getElementById("double-click-overlay-text-1").innerHTML;
+        var line2 = document.getElementById("double-click-overlay-text-2").innerHTML;
+
         ctx.save();
         ctx.drawImage(image, x - 50, y - 50, 100, 100);
+        
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = "center";
+        ctx.fillText(line1, x, y + 20, 75);
+        ctx.fillText(line2, x, y + 35, 65);
+        
         ctx.restore();
         return this;
     }

@@ -75,8 +75,20 @@ audit.tutorial.welcome.1 = En <span class="bold">Project Sidewalk,</span> viajar
 audit.tutorial.welcome.2 = Comenzaremos con un breve tutorial interactivo.
 audit.tutorial.welcome.3 = ¡Empecemos!
 audit.tutorial.welcome.4 = ¿Ya tomaste el tutorial? ¿Tienes una cuenta? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Iniciar sesión</a> o <a value="Skip" class="onboarding-transition-trigger">saltar el tutorial</a>.
+audit.tutorial.photo.1 = Rampas Peatonales
+audit.tutorial.photo.2 = Rampas Peatonales Ausentes
+audit.tutorial.photo.3 = Obstáculos En La Banqueta
+audit.tutorial.photo.4 = Problemas En Superficie
+audit.tutorial.accessible = <span style="color:limegreen">Accesible</span>
+audit.tutorial.inaccessible = <span style="color:red">Inaccesible</span>
+audit.tutorial.complete.photoLabel.1 = Las <span style="color:limegreen">rampas peatonales</span> ayudan a las personas usuarias de sillas de ruedas a subir y bajar de las banquetas.
+audit.tutorial.complete.photoLabel.2 = Las personas usuarias de sillas de ruedas no pueden circular por las banquetas cuando <span style="color:fuchsia">faltan las rampas.</span>
+audit.tutorial.complete.photoLabel.3 = <span style="color:limegreen">Los obstáculos</span> en la banqueta bloquean el camino de las personas usuarias de sillas de ruedas.
+audit.tutorial.complete.photoLabel.4 = Las banquetas con <span style="color:fuchsia">problemas en la superficie</span> pueden no ser transitables.
 audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <b>etiqueta los siguientes atributos de accesibilidad, en Google Street View</b>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
 audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
+audit.tutorial.double.click.line.1 = Haz doble
+audit.tutorial.double.click.line.2 = clic Aquí
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
 audit.ribbon.explore = <u>E</u>xplorar

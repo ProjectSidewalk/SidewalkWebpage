@@ -335,7 +335,9 @@
                             <p></p>
                         </div>
                         <div style="display:none;">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClick.png")' id="double-click-icon" width="200" alt="Double click icon"/>
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/DoubleClickNoText.png")' id="double-click-icon" width="400" alt="Double click icon"/>
+                            <p id="double-click-overlay-text-1">@Messages("audit.tutorial.double.click.line.1")</p>
+                            <p id="double-click-overlay-text-2">@Messages("audit.tutorial.double.click.line.2")</p>
                         </div>
                     </div>
                     <div id="userControlLayer"  class="window-streetview" style="z-index: 0;">
@@ -745,8 +747,17 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
+                <table style="width:100%;">
+                    <tbody><tr> 
+                        <th style="text-align:center; width:25%">@Html(Messages("audit.tutorial.photo.1"))</th>
+                        <th style="text-align:center; width:25%">@Html(Messages("audit.tutorial.photo.2"))</th>
+                        <th style="text-align:center; width:25%">@Html(Messages("audit.tutorial.photo.3"))  </th>
+                        <th style="text-align:center; width:25%">@Html(Messages("audit.tutorial.photo.4"))</th>
+                    </tr>
+                    
+                </tbody></table>
                 <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v2.png")' id="onboarding-example-image-1"
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures03_v3.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
 
@@ -782,10 +793,42 @@
         <div class="row">
             <div class="col-md-12">
                 <p>@Html(Messages("audit.tutorial.end.1"))</p>
+                <table style="width:100%;">
+                    <tbody><tr>
+                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.accessible"))</th>
+                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    </tr>
+                </tbody></table>
                 <p>
-                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02.png")' id="onboarding-example-image-2"
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' id="onboarding-example-image-2"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
+                
+                <table style="width:100%;  font-size:65%;">
+                    <tbody><tr>
+                        <th style="text-align:center; width:50%;">@Html(Messages("audit.tutorial.complete.photoLabel.1"))</th>
+                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.complete.photoLabel.2"))</th>
+                    </tr>
+                </tbody></table>
+                <p></p>
+                <table style="width:100%">
+                    <tbody><tr>
+                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                        <th style="text-align:center;width:50%">@Html(Messages("audit.tutorial.inaccessible"))</th>
+                    </tr>
+                </tbody></table>
+                <p>
+                    <img src='@routes.Assets.at("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' id="onboarding-example-image-2"
+                    alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
+                </p>
+
+                <table style="width:100%; font-size:65%;">
+                    <tbody><tr>
+                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.complete.photoLabel.3"))</th>
+                        <th style="text-align:center; width:50%">@Html(Messages("audit.tutorial.complete.photoLabel.4"))</th>
+                    </tr>
+                </tbody></table>
+                <p></p>
                 <p>@Html(Messages("audit.tutorial.end.2"))</p>
             </div>
         </div>
