@@ -18,13 +18,12 @@ function AdminUser(user) {
             opacity: 0.8,
             weight: 2
         },
-        webpageActivity: 'Click_module=UserMap_regionId=',
+        webpageActivity: 'Click_module=AdminUserMap_regionId=',
         polygonFillMode: 'singleColor',
         zoomControl: true,
         username: user,
         mapName: 'admin-map',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11',
-        accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
+        mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
     var streetParams = {
         labelPopup: true,

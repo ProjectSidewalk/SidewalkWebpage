@@ -32,8 +32,7 @@ function Admin(_, $, difficultRegionIds) {
         zoomControl: true,
         scrollWheelZoom: false,
         mapName: 'admin-choropleth',
-        mapStyle: 'mapbox://styles/mapbox/light-v10',
-        accessToken: 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug'
+        mapStyle: 'mapbox://styles/mapbox/light-v10'
     };
     var mapTabMapParams = {
         choroplethType: 'labelMap',
@@ -59,8 +58,7 @@ function Admin(_, $, difficultRegionIds) {
         scrollWheel: true,
         zoomControl: true,
         mapName: 'label-map',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11',
-        accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
+        mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
     var streetParams = {
         labelPopup: true,

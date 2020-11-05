@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
 
     // Construct a bounding box for this map that the user cannot move out of
     // https://www.mapbox.com/mapbox.js/example/v1.0.0/maxbounds/

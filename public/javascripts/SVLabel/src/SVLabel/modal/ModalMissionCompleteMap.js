@@ -1,6 +1,6 @@
 function ModalMissionCompleteMap(uiModalMissionComplete) {
     // Map visualization
-    L.mapbox.accessToken = 'pk.eyJ1IjoicHJvamVjdHNpZGV3YWxrIiwiYSI6ImNpdmZtODFobjAxcjEydHBkbmg0Y2F0MGgifQ.tDBFPXecLVjgJA0Z1LFhhw';
+    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var self = this;
     this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
         maxZoom: 19,

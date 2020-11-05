@@ -62,7 +62,6 @@ function setRegionFocus(map, layers) {
 
                 map.setView(latlng, zoom, {animate: true});
                 layers[i].setStyle({color: 'red', fillColor: 'red'});
-                currentLayer = layers[i];
                 break;
             }
         }

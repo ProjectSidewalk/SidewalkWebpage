@@ -24,8 +24,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
         zoomControl: true,
         clickData: true,
         mapName: 'map',
-        mapStyle: 'mapbox://styles/mapbox/streets-v11',
-        accessToken: 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA'
+        mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
     var streetParams = {
         includeLabelCounts: true,
