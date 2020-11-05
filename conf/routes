@@ -131,8 +131,6 @@ GET     /map/edit                                            @controllers.MapCon
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
-GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
-GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                              @controllers.UserProfileController.userProfile(username: String)
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
