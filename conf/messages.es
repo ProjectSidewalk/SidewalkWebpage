@@ -88,7 +88,7 @@ audit.tutorial.complete.photoLabel.4 = Las banquetas con <span style="color:oran
 audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <b>etiqueta los siguientes atributos de accesibilidad, en Google Street View</b>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
 audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
 audit.tutorial.double.click.line.1 = Haz doble
-audit.tutorial.double.click.line.2 = clic Aquí
+audit.tutorial.double.click.line.2 = clic aquí
 
 audit.ribbon.find.and.label = Encuentra y etiqueta lo siguiente
 audit.ribbon.explore = <u>E</u>xplorar
