@@ -83,8 +83,8 @@ audit.tutorial.accessible = <span style="color:limegreen">Accesible</span>
 audit.tutorial.inaccessible = <span style="color:red">Inaccesible</span>
 audit.tutorial.complete.photoLabel.1 = Las <span style="color:limegreen">rampas peatonales</span> ayudan a las personas usuarias de sillas de ruedas a subir y bajar de las banquetas.
 audit.tutorial.complete.photoLabel.2 = Las personas usuarias de sillas de ruedas no pueden circular por las banquetas cuando <span style="color:fuchsia">faltan las rampas.</span>
-audit.tutorial.complete.photoLabel.3 = <span style="color:limegreen">Los obstáculos</span> en la banqueta bloquean el camino de las personas usuarias de sillas de ruedas.
-audit.tutorial.complete.photoLabel.4 = Las banquetas con <span style="color:fuchsia">problemas en la superficie</span> pueden no ser transitables.
+audit.tutorial.complete.photoLabel.3 = <span style="color:RoyalBlue">Los obstáculos</span> en la banqueta bloquean el camino de las personas usuarias de sillas de ruedas.
+audit.tutorial.complete.photoLabel.4 = Las banquetas con <span style="color:orange">problemas en la superficie</span> pueden no ser transitables.
 audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <b>etiqueta los siguientes atributos de accesibilidad, en Google Street View</b>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
 audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
 audit.tutorial.double.click.line.1 = Haz doble
