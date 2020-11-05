@@ -29,7 +29,7 @@ case class AuditTaskInteraction(auditTaskInteractionId: Int,
 case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, missionId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
-                                note: Option[String], timestamp: java.sql.Timestamp,
+                                note: Option[String], timestamp: java.sql.Timestamp, labelId: Option[Int],
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int)
 
@@ -74,6 +74,7 @@ object AuditTaskInteractionTable {
       r.nextIntOption, // zoom
       r.nextStringOption, // note
       r.nextTimestamp, // timestamp
+      r.nextIntOption, // label_id
       r.nextStringOption, // label_type
       r.nextFloatOption, // label_lat
       r.nextFloatOption, // label_lng
@@ -156,6 +157,7 @@ object AuditTaskInteractionTable {
         |       interaction.zoom,
         |       interaction.note,
         |       interaction.timestamp,
+        |       label.label_id,
         |       label_type.label_type,
         |       label_point.lat AS label_lat,
         |       label_point.lng AS label_lng,
@@ -169,6 +171,11 @@ object AuditTaskInteractionTable {
         |LEFT JOIN sidewalk.label_type ON label.label_type_id = label_type.label_type_id
         |LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
         |WHERE interaction.audit_task_id = ?
+        |    AND interaction.action NOT IN (
+        |        'LowLevelEvent_mousemove', 'POV_Changed', 'LowLevelEvent_mouseover', 'LowLevelEvent_mouseout',
+        |        'LowLevelEvent_click', 'LowLevelEvent_mouseup', 'LowLevelEvent_mousedown', 'ViewControl_MouseDown',
+        |        'ViewControl_MouseUp', 'RefreshTracker', 'ModeSwitch_Walk', 'LowLevelEvent_keydown'
+        |    )
         |ORDER BY interaction.timestamp""".stripMargin
     )
     val interactions: List[InteractionWithLabel] = selectInteractionWithLabelQuery(auditTaskId).list
@@ -210,6 +217,7 @@ object AuditTaskInteractionTable {
           "action" -> interaction.action,
           "note" -> interaction.note,
           "label" -> Json.obj(
+            "label_id" -> interaction.labelId,
             "label_type" -> interaction.labelType,
             "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
             "canvasX" -> interaction.canvasX,

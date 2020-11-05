@@ -122,13 +122,29 @@ function AdminTask(params) {
 
 
             // Chain transitions
+            var totalDuration = 0;
+            const MAX_WAIT_MS = 10000;
+            const SKIP_FILL_TIME_MS = 1000;
+            var totalSkips = 0;
+            var skippedTime = 0;
             for (var i = 0; i < featuresdata.length; i++) {
                 // This controls the speed.
                 featuresdata[i].properties.timestamp /= 1;
-            }
 
-            var totalDuration =
-                featuresdata[featuresdata.length-1].properties.timestamp - featuresdata[0].properties.timestamp;
+                if (i > 0) {
+                    let duration = featuresdata[i].properties.timestamp - featuresdata[i - 1].properties.timestamp;
+
+                    // If there is a greater than MAX_WAIT_MS pause, only pause for SKIP_FILL_TIME_MS.
+                    if (duration > MAX_WAIT_MS) {
+                        totalSkips += 1;
+                        skippedTime += duration;
+                        duration = SKIP_FILL_TIME_MS;
+                    }
+                    totalDuration += duration;
+                }
+            }
+            console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
+            console.log(`Total watch time: ${totalDuration / 1000} seconds`);
 
             $("#timeline-active").animate({
                 width: '360px'
@@ -139,9 +155,15 @@ function AdminTask(params) {
             }, totalDuration);
 
             var currentTimestamp = featuresdata[0].properties.timestamp;
+            var currPano = null;
+            var renderedLabels = [];
             for (var i = 0; i < featuresdata.length; i++) {
-                var duration = featuresdata[i].properties.timestamp - currentTimestamp,
-                    currentTimestamp = featuresdata[i].properties.timestamp;
+                var duration = featuresdata[i].properties.timestamp - currentTimestamp;
+                currentTimestamp = featuresdata[i].properties.timestamp;
+                // If there is a greater than 30 second pause, log to console but only pause for 1 second.
+                if (duration > MAX_WAIT_MS) {
+                    duration = SKIP_FILL_TIME_MS;
+                }
                 markerGroup = markerGroup.transition()
                     .duration(duration)
                     .attr("transform", function () {
@@ -154,31 +176,28 @@ function AdminTask(params) {
                             "rotate(" + heading + ")";
                     })
                     .each("start", function () {
-                        // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
                         var counter = d3.select(this).attr("counter");
                         var d = featuresdata[counter];
 
-                        if(!self.panorama)
-                            self.panorama = AdminPanorama($("#svholder")[0]);
+                        if (!self.panorama) self.panorama = AdminPanorama($("#svholder")[0]);
 
-                        self.panorama.changePanoId(d.properties.panoId);
+                        if (currPano === null || currPano !== d.properties.panoId) {
+                            currPano = d.properties.panoId;
+                            self.panorama.setPano(d.properties.panoId, d.properties.heading, d.properties.pitch, d.properties.zoom);
+                        } else {
+                            self.panorama.setPov(d.properties.heading, d.properties.pitch, d.properties.zoom);
+                        }
 
-                        self.panorama.setPov({
-                            heading: d.properties.heading,
-                            pitch: d.properties.pitch,
-                            zoom: d.properties.zoom
-                        });
 
                         self.showEvent(d.properties);
 
                         if (d) {
                             map.setView([d.geometry.coordinates[1], d.geometry.coordinates[0]], 18);
 
-                            if ("label" in d.properties) {
+                            // If the "label" is in the data, draw the label data and attach mouseover/mouseout events.
+                            if ("label" in d.properties && !renderedLabels.includes(d.properties.label.label_id)) {
                                 var label = d.properties.label;
                                 var fill = (label.label_type in colorScheme) ? colorScheme[label.label_type].fillStyle : "rgb(128, 128, 128)";
-                                // console.log(label)
-                                // console.log(fill)
                                 var p = map.latLngToLayerPoint(new L.LatLng(label.coordinates[1], label.coordinates[0]));
                                 var c = g.append("circle")
                                     .attr("r", 5)
@@ -195,12 +214,13 @@ function AdminTask(params) {
                                         d3.select(this).attr("r", 5);
                                     });
 
-                                var adminPanoramaLabel = AdminPanoramaLabel(label.label_type, label.canvasX, label.canvasY,
-                                                                d.properties.canvasWidth, d.properties.canvasHeight);
+                                var adminPanoramaLabel = AdminPanoramaLabel(
+                                    label.label_id, label.label_type, label.canvasX, label.canvasY,
+                                    d.properties.canvasWidth, d.properties.canvasHeight, d.properties.heading,
+                                    d.properties.pitch, d.properties.zoom
+                                );
                                 self.panorama.renderLabel(adminPanoramaLabel);
-                                // Update the chart as well
-                                // dotPlotVisualization.increment(label.label_type);
-                                // dotPlotVisualization.update();
+                                renderedLabels.push(label.label_id);
 
                             }
                         }

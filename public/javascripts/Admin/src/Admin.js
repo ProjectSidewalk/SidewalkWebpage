@@ -66,6 +66,10 @@ function Admin(_, $, difficultRegionIds) {
         streetColor: 'black'
     };
 
+    function initializeAdminGSVLabelView() {
+        self.adminGSVLabelView = AdminGSVLabelView(true);
+    }
+
     function initializeAdminLabelSearch() {
         self.adminLabelSearch = AdminLabelSearch();
     }
@@ -1087,6 +1091,7 @@ function Admin(_, $, difficultRegionIds) {
     }
 
     initializeLabelTable();
+    initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
 
     self.clearPlayCache = clearPlayCache;
