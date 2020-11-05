@@ -40,15 +40,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
-  def previousAudit = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val username: String = user.username
-        Future.successful(Ok(views.html.previousAudit(s"Project Sidewalk - $username", Some(user))))
-      case None => Future.successful(Redirect("/anonSignUp?url=/contribution/previousAudit"))
-    }
-  }
-
   /**
    * Get a list of edges that are audited by users.
     *
@@ -161,20 +152,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         "error" -> "0",
         "message" -> "Your user id could not be found."
       )))
-    }
-  }
-
-
-  def getInteractions = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val interactions = AuditTaskInteractionTable.selectAuditTaskInteractionsOfAUser(user.userId).map(x => Json.toJson(x))
-        Future.successful(Ok(JsArray(interactions)))
-      case None =>
-        Future.successful(Ok(Json.obj(
-          "error" -> "0",
-          "message" -> "We could not find your username."
-        )))
     }
   }
 

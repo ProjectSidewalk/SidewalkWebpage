@@ -104,7 +104,6 @@ object AuditTaskInteractionTable {
 
 
   val db = play.api.db.slick.DB
-  val auditTasks = TableQuery[AuditTaskTable]
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
   val labels = TableQuery[LabelTable]
   val labelPoints = TableQuery[LabelPointTable]
@@ -134,19 +133,6 @@ object AuditTaskInteractionTable {
     */
   def selectAuditTaskInteractionsOfAnActionType(actionType: String): List[AuditTaskInteraction] = db.withTransaction { implicit session =>
     auditTaskInteractions.filter(_.action === actionType).list
-  }
-
-  /**
-    * Select all the audit task interactions of the specified user
-    * @param userId User id
-    * @return
-    */
-  def selectAuditTaskInteractionsOfAUser(userId: UUID): List[AuditTaskInteraction] = db.withSession { implicit session =>
-    val _auditTaskInteractions = for {
-      (_auditTasks, _auditTaskInteractions) <- auditTasks.innerJoin(auditTaskInteractions).on(_.auditTaskId === _.auditTaskId)
-      if _auditTasks.userId === userId.toString
-    } yield _auditTaskInteractions
-    _auditTaskInteractions.list
   }
 
   /**
