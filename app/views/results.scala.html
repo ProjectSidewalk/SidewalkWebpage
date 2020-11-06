@@ -64,8 +64,11 @@
                     <p style="font-size: 11px;margin-top: 7px;line-height: 14px;">@Messages("results.legend.body")</div>
             </div>
             <div id="choropleth"></div>
-            <div id="loadingChoropleth">
-                <img src='/assets/images/loader.gif' alt='loading' />
+            <div id="page-loading">
+                <div id="loading-gif">
+                    <p class="loading-text">@Messages("loading")</p>
+                    <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+                </div>
             </div>
             <div>
                 <a id="reset-button"> @Messages("results.reset.view") </a>
@@ -82,8 +85,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/AccessibilityChoropleth.js")'></script>
-
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -98,7 +100,43 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.choropleth = AccessibilityChoropleth(_, $, turf, difficultRegionIds);
+            var params = {
+                popupType: 'issueCounts',
+                regionColors: [
+                    '#99000a', '#b3000c', '#cc000e', '#e6000f', '#ff1a29',
+                    '#ff3341', '#ff4d58', '#ff6670', '#ff8088', '#ff99a0'
+                ],
+                neighborhoodPolygonStyle: {
+                    color: '#000',
+                    weight: 1,
+                    opacity: 0.25,
+                    fillColor: "f00",
+                    fillOpacity: 1.0
+                },
+                mouseoverStyle: {
+                    opacity: 1.0,
+                    weight: 3,
+                    color: "#000"
+                },
+                mouseoutStyle: {
+                    opacity: 0.25,
+                    weight: 1
+                },
+                polygonFillMode: 'issueCount',
+                webpageActivity: "Click_module=ResultsChoropleth_regionId=",
+                zoomSlider: true,
+                resetButton: true,
+                clickData: true,
+                scrollWheelZoom: false,
+                mapName: 'choropleth',
+                mapStyle: "mapbox://styles/mapbox/light-v10"
+            };
+            var loadPolygons = $.getJSON('/neighborhoods');
+            var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
+            var loadMapParams = $.getJSON('/cityMapParams');
+            window.choropleth = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
+                return Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
+            });
         });
     });
 </script>

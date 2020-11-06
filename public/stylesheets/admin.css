@@ -19,7 +19,7 @@
     overflow-x: scroll;
 }
 
-#admin-map {
+#label-map, #admin-map {
     width: 100%;
     height: 800px;
     margin-top: 25px;

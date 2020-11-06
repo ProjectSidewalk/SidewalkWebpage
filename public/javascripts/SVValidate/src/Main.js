@@ -190,11 +190,11 @@ function Main (param) {
         svv.statusField.refreshLabelCountsDisplay();
         $('#sign-in-modal-container').on('hide.bs.modal', function () {
             svv.keyboard.enableKeyboard();
-            $(".toolUI").css('opacity', 1);
+            $(".tool-ui").css('opacity', 1);
         });
         $('#sign-in-modal-container').on('show.bs.modal', function () {
             svv.keyboard.disableKeyboard();
-            $(".toolUI").css('opacity', 0.5);
+            $(".tool-ui").css('opacity', 0.5);
         });
     }
 

@@ -1,4 +1,4 @@
-#modal-skip-holder, #modal-comment-holder, #modal-mission-holder {
+#modal-comment-holder, #modal-mission-holder {
     position: absolute;
     left: 0;
     top: 0;
@@ -8,7 +8,7 @@
     visibility: hidden;
 }
 
-#modal-skip-background, #modal-comment-background, #modal-mission-background {
+#modal-comment-background, #modal-mission-background {
     position: absolute;
     left: 0px;
     top: 0;
@@ -64,12 +64,6 @@
     float: right;
 }
 
-.modal-close-button-holder {
-    position: absolute;
-    top: 0;
-    right: 5px;
-}
-
 #modal-mission-instruction {
     text-align: center;
 }
@@ -78,7 +72,7 @@
     visibility: hidden;
 }
 
-#modal-skip-background, #modal-comment-background, #modal-mission-background {
+#modal-comment-background, #modal-mission-background {
     position: absolute;
     left: 0px;
     top: 0;
@@ -88,7 +82,7 @@
     width: 110%;
 }
 
-#modal-skip-box, #modal-comment-box {
+#modal-comment-box {
     background: rgba(255, 255, 255, 1);
     /*border: 3px solid rgba(200, 200, 200, 1);*/
     color: rgba(80, 80, 80, 1);
