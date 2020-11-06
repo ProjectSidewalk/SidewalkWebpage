@@ -4,7 +4,6 @@
 
 # Home page
 GET     /                                                    @controllers.ApplicationController.index
-POST    /                                                    controllers.TeaserController.teaserPost
 
 GET     /home                                                @controllers.ApplicationController.index
 GET     /api                                                 @controllers.ApplicationController.developer
