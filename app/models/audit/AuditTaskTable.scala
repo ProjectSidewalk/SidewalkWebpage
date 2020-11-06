@@ -375,15 +375,6 @@ object AuditTaskTable {
   }
 
   /**
-    *
-    * @param userId
-    * @return
-    */
-  def selectCompletedTasks(userId: UUID): List[AuditTask] = db.withSession { implicit session =>
-    completedTasks.filter(_.userId === userId.toString).list
-  }
-
-  /**
     * Get the sum of the line distance of all streets in the region that the user has not audited.
     *
     * @param userId

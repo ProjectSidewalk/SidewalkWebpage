@@ -7,7 +7,7 @@ svg {
     position: relative;
 }
 
-#map {
+#choropleth {
     height: 100%;
 }
 
@@ -15,7 +15,7 @@ svg {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
     left: 15px;
-    width: 220px;
+    width: 250px;
     bottom: 30px;
     border: solid 1px #ccc;
 }

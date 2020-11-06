@@ -588,7 +588,7 @@ p#conditional-text {
 #mapcolumn {
     height: 100%;
 }
-#map {
+#choropleth {
     height: 100%;
 }
 #map-chart {
@@ -608,7 +608,7 @@ p#conditional-text {
 
 .legend {
     height: inherit;
-    width: 220px;
+    width: 250px;
 }
 
 #press-header {

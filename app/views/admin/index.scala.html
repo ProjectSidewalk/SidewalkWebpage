@@ -336,11 +336,11 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div id="map-holder">
-                            <div id="admin-map"></div>
+                            <div id="label-map"></div>
                             <div id="map-label-legend">
                                 <div id="map-legend-title-holder">
                                     <label id="map-legend-title">Legend</label>
-                                    <button id="map-legend-minimize-button" class="close">-</button>
+                                    <button id="map-legend-minimize-button" class="close" onclick="toggleLegend()">-</button>
                                 </div>
                                 <table class="table filter" id="legend-table">
                                     <tr>
@@ -377,7 +377,7 @@
                                         <td align="center"><span id="surface-problem-severity-label">N/A - 5</span></td>
                                     </tr>
                                     <tr>
-                                        <td id="map-legend-nosidewalk"></td>
+                                        <td id="map-legend-no-sidewalk"></td>
                                         <td>No Sidewalk</td>
                                         <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
                                         <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
@@ -398,7 +398,7 @@
                                     <tr>
                                       <td id="map-legend-audited-street"></td>
                                       <td>Audited Street</td>
-                                      <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer();"></td>
+                                      <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.toggleAuditedStreetLayer()"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -796,7 +796,6 @@
         </div>
     </div>
 
-
 </div>
 <link href='@routes.Assets.at("stylesheets/bootstrap.min.css")' rel="stylesheet"/>
 <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
@@ -808,7 +807,12 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -833,17 +837,17 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 
 <script>
-    var labelArr = new Array("N/A", 1, 2, 3, 4, 5);
+    var labelArr = new Array('N/A', 1, 2, 3, 4, 5);
     var sliderToLabelMap = {};
-    sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
-    sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
-    sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
-    sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
-    sliderToLabelMap["occlusion-slider"]  = "#occlusion-severity-label";
-    sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
-    sliderToLabelMap["other-slider"] = "#other-severity-label";
+    sliderToLabelMap['curb-ramp-slider'] = '#curb-ramp-severity-label';
+    sliderToLabelMap['missing-curb-ramp-slider'] = '#missing-curb-ramp-severity-label';
+    sliderToLabelMap['obstacle-slider'] = '#obstacle-severity-label';
+    sliderToLabelMap['surface-problem-slider'] = '#surface-problem-severity-label';
+    sliderToLabelMap['occlusion-slider']  = '#occlusion-severity-label';
+    sliderToLabelMap['no-sidewalk-slider'] = '#no-sidewalk-severity-label';
+    sliderToLabelMap['other-slider'] = '#other-severity-label';
 
-    $( "*[id*='slider']" ).each(function() {
+    $("*[id*='slider']").each(function() {
         $(this).slider({
             range: true,
             min : 0,
@@ -854,23 +858,23 @@
                 if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
                     $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
                 } else {
-                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
+                    $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ ' - ' + labelArr[ui.values[1]]);
                 }
             },
             change: function(event,ui) {
-                if (this.id == "curb-ramp-slider") {
+                if (this.id === 'curb-ramp-slider') {
                     admin.toggleLayers('CurbRamp', 'curbramp', '#curb-ramp-slider');
-                } else if (this.id == "missing-curb-ramp-slider") {
+                } else if (this.id === 'missing-curb-ramp-slider') {
                     admin.toggleLayers('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
-                } else if (this.id == "obstacle-slider") {
-                    admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider')
-                } else if (this.id == 'surface-problem-slider') {
+                } else if (this.id === 'obstacle-slider') {
+                    admin.toggleLayers('Obstacle', 'obstacle', '#obstacle-slider');
+                } else if (this.id === 'surface-problem-slider') {
                     admin.toggleLayers('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
-                } else if (this.id == 'occlusion-slider') {
+                } else if (this.id === 'occlusion-slider') {
                     admin.toggleLayers('Occlusion', 'occlusion', '#occlusion-slider');
-                } else if (this.id == 'no-sidewalk-slider') {
+                } else if (this.id === 'no-sidewalk-slider') {
                     admin.toggleLayers('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
-                } else if (this.id == 'other-slider') {
+                } else if (this.id === 'other-slider') {
                     admin.toggleLayers('Other', 'other', '#other-slider');
                 }
             }
@@ -887,20 +891,20 @@
             fallbackLng: 'en',
             ns: ['common'],
             defaultNS: 'common',
-            lng: "@lang.code",
+            lng: '@lang.code',
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.admin = Admin(_, $, turf, difficultRegionIds);
+            window.admin = Admin(_, $, difficultRegionIds);
             $('#commentsTable').dataTable();
             $('#labelTable').dataTable();
             $('#userTable').dataTable();
-            $("#tabs").tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
-            $("#tabs li").removeClass("ui-corner-top").addClass("ui-corner-left");
+            $('#tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
+            $('#tabs li').removeClass('ui-corner-top').addClass('ui-corner-left');
         });
     });
     $(window).load(function() {
-        $(".loader").fadeOut("slow");
+        $('.loader').fadeOut('slow');
     })
 </script>
 }

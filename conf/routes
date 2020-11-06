@@ -4,7 +4,6 @@
 
 # Home page
 GET     /                                                    @controllers.ApplicationController.index
-POST    /                                                    controllers.TeaserController.teaserPost
 
 GET     /home                                                @controllers.ApplicationController.index
 GET     /api                                                 @controllers.ApplicationController.developer
@@ -123,16 +122,11 @@ GET     /label/geo/:id                                       @controllers.Valida
 GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods
 GET     /neighborhoods/difficult                             @controllers.RegionController.getDifficultNeighborhoods
 
-# Map Edit
-GET     /map/edit                                            @controllers.MapController.edit
-
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
 GET     /contribution/streets/all                            @controllers.UserProfileController.getAllAuditedStreets
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
-GET     /contribution/auditInteractions                      @controllers.UserProfileController.getInteractions
-GET     /contribution/previousAudit                          @controllers.UserProfileController.previousAudit
 GET     /contribution/:username                              @controllers.UserProfileController.userProfile(username: String)
 
 GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
