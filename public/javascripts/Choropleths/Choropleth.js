@@ -4,13 +4,27 @@
  * @param $ Allows the use of jQuery.
  * @param difficultRegionIds Used to identify difficult regions.
  * @param params Object that includes properties that can change the process of choropleth creation.
+ * @param params.mapName {string} name of the HTML ID of the map.
+ * @param params.mapStyle {string} URL of a Mapbox style.
+ * @param params.regionColors list of colors to use along a gradient to fill a neighborhood
+ * @param params.neighborhoodPolygonStyle a default style for the neighborhood polygons.
+ * @param params.mouseoverStyle style changes to make when mousing over a neighborhood.
+ * @param params.mouseoutStyle style changes to make when mousing out of a neighborhood.
+ * @param params.polygonFillMode one of 'singleColor', 'completionRate', or 'issueCount'.
+ * @param params.webpageActivity string showing how to represent the choropleth in logging.
+ * @param params.zoomSlider {boolean} whether to include zoom slider.
+ * @param params.clickData {boolean} whether clicks should be logged when it takes you to the audit page.
+ * @param params.scrollWheelZoom {boolean} whether to allow zooming with the scroll wheel.
+ * @param params.popupType {string} one of 'none', 'completionRate', or 'issueCounts'.
+ * @param params.resetButton {boolean} whether to include a 'reset view' button.
+ * @param params.zoomControl {boolean} whether to allow zoom control.
  * @param layers Object that receives data during execution to pass outside of this function.
  * @param polygonData Data concerning which neighborhood polygons are to be rendered.
  * @param polygonRateData Rate data of each neighborhood polygon.
  * @param mapParamData Data used to initialize the choropleth properties.
  */
 function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polygonRateData, mapParamData) {
-    var labelText = {
+    const labelText = {
         'NoSidewalk': 'Missing Sidewalks',
         'NoCurbRamp': 'Missing Curb Ramps',
         'SurfaceProblem': 'Surface Problems',
@@ -19,7 +33,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     
     // Create base map.
     L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
-    var choropleth = L.mapbox.map(params.mapName, null, {
+    let choropleth = L.mapbox.map(params.mapName, null, {
         maxZoom: 19,
         minZoom: 9,
         zoomControl: params.zoomControl,
@@ -31,8 +45,8 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
     // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
     choropleth.setView([mapParamData.city_center.lat, mapParamData.city_center.lng]);
-    var southWest = L.latLng(mapParamData.southwest_boundary.lat, mapParamData.southwest_boundary.lng);
-    var northEast = L.latLng(mapParamData.northeast_boundary.lat, mapParamData.northeast_boundary.lng);
+    let southWest = L.latLng(mapParamData.southwest_boundary.lat, mapParamData.southwest_boundary.lng);
+    let northEast = L.latLng(mapParamData.northeast_boundary.lat, mapParamData.northeast_boundary.lng);
     choropleth.setMaxBounds(L.latLngBounds(southWest, northEast));
     choropleth.setZoom(mapParamData.default_zoom);
     if (params.resetButton) {
@@ -44,16 +58,15 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
     // Renders the neighborhood polygons, colored by completion percentage.
     function initializeChoroplethNeighborhoodPolygons(map, rates, layers, labelData) {
-        var regionData;
          // Default region color, used to check if any regions are missing data.
-        var neighborhoodPolygonStyle = params.neighborhoodPolygonStyle
+        let neighborhoodPolygonStyle = params.neighborhoodPolygonStyle;
 
         // Finds the matching neighborhood's completion percentage, and uses it to determine the fill color.
         function style(feature) {
             if (params.polygonFillMode === 'singleColor') {
                 return params.neighborhoodPolygonStyle;
             } else {
-                var ratesIndex = rates.findIndex(function(r) { return r.region_id === feature.properties.region_id; });
+                let ratesIndex = rates.findIndex(function(r) { return r.region_id === feature.properties.region_id; });
                 if (ratesIndex > -1) {
                     if (params.polygonFillMode === 'issueCount') {
                         return getRegionStyleFromIssueCount(rates[ratesIndex], labelData[ratesIndex].labels)
@@ -66,6 +79,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             }  
         }
 
+        // Adds popup text, mouseover and click events, etc. to the neighborhood polygons.
         function onEachNeighborhoodFeature(feature, layer) {
             if (params.popupType === 'none') {
                 layers.push(layer);
@@ -78,22 +92,22 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                     clearChoroplethRegionMouseoverStyle(layers);
                 });
             } else {
-                var regionId = feature.properties.region_id;
-                var regionName = feature.properties.region_name;
-                var userCompleted = feature.properties.user_completed;
-                var compRate = -1.0;
-                var url = '/audit/region/' + regionId;
-                var popupContent = '???';
-                var ratesIndex = rates.findIndex(function(r) { return r.region_id === feature.properties.region_id; });
+                let regionId = feature.properties.region_id;
+                let regionName = feature.properties.region_name;
+                let userCompleted = feature.properties.user_completed;
+                let compRate = -1.0;
+                let url = '/audit/region/' + regionId;
+                let popupContent = '???';
+                let ratesIndex = rates.findIndex(function(r) { return r.region_id === feature.properties.region_id; });
                 if (ratesIndex > -1) {
-                    var measurementSystem = i18next.t('measurement-system');
+                    let measurementSystem = i18next.t('measurement-system');
                     compRate = Math.round(100.0 * rates[ratesIndex].rate);
-                    distanceLeft = rates[ratesIndex].total_distance_m - rates[ratesIndex].completed_distance_m;
+                    let distanceLeft = rates[ratesIndex].total_distance_m - rates[ratesIndex].completed_distance_m;
                     // If using metric system, convert from meters to km. If using IS system, convert to miles.
                     if (measurementSystem === 'metric') distanceLeft *= 0.001;
                     else distanceLeft *= 0.000621371;
                     distanceLeft = Math.round(distanceLeft);
-                    var advancedMessage = '';
+                    let advancedMessage = '';
                     if (difficultRegionIds.includes(feature.properties.region_id)) {
                         advancedMessage = '<br><b>Careful!</b> This neighborhood is not recommended for new users.<br><br>';
                     }
@@ -126,8 +140,8 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 }
                 // Add listeners to popup so the popup closes when the mouse leaves the popup area.
                 layer.bindPopup(popupContent).on('popupopen', () => {
-                    var popupWrapper = $('.leaflet-popup-content-wrapper');
-                    var popupCloseButton = $('.leaflet-popup-close-button');
+                    let popupWrapper = $('.leaflet-popup-content-wrapper');
+                    let popupCloseButton = $('.leaflet-popup-close-button');
                     popupWrapper.on('mouseout', e => {
                         if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
                             clearChoroplethRegionMouseoverStyle(layers);
@@ -147,6 +161,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 });
                 layers.push(layer);
 
+                // Update the styles when brushing on/off the neighborhood.
                 layer.on('mouseover', function (e) {
                     clearChoroplethRegionMouseoverStyle(layers);
                     addChoroplethRegionMouseoverStyle(this);
@@ -162,7 +177,6 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         }
         
         // Add the neighborhood polygons to the map.
-        regionData = polygonData;
         neighborhoodPolygonLayer = L.geoJson(polygonData, {
             style: style,
             onEachFeature: onEachNeighborhoodFeature
@@ -173,32 +187,24 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
             // Logs are of the form 'Click_module=Choropleth_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
             // Log is stored in WebpageActivityTable
             $('#choropleth').on('click', '.region-selection-trigger', function () {
-                var regionId = parseInt($(this).attr('regionId'));
-                var ratesEl = rates.find(function(x) { return regionId === x.region_id; });
-                var compRate = Math.round(100.0 * ratesEl.rate);
-                var milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
-                var distanceLeft = '';
-                if (compRate === 100){
-                    distanceLeft = '0';
-                }
-                else if (milesLeft === 0){
-                    distanceLeft = '<1';
-                }
-                else if (milesLeft === 1){
-                    distanceLeft = '1';
-                }
-                else{
-                    distanceLeft = '>1';
-                }
-                var activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=' + target;
+                let regionId = parseInt($(this).attr('regionId'));
+                let ratesEl = rates.find(function(x) { return regionId === x.region_id; });
+                let compRate = Math.round(100.0 * ratesEl.rate);
+                let milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                let distanceLeft = '';
+                if (compRate === 100) distanceLeft = '0';
+                else if (milesLeft === 0) distanceLeft = '<1';
+                else if (milesLeft === 1) distanceLeft = '1';
+                else distanceLeft = '>1';
+                let activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=' + target;
                 postToWebpageActivity(activity);
             });
         }
-        return regionData;
+        return polygonData;
     }
 
     function clearChoroplethRegionMouseoverStyle(layers) {
-        for (var i = layers.length - 1; i >= 0; i--) {
+        for (let i = layers.length - 1; i >= 0; i--) {
             layers[i].setStyle(params.mouseoutStyle);
         }
     }
@@ -235,15 +241,15 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
      * @param labels Data about issue counts in a region.
      */
     function getRegionStyleFromIssueCount(polygonData, labels) {
-        var totalIssues = 0;
-        for (var issue in labels) {
+        let totalIssues = 0;
+        for (let issue in labels) {
             if (labels.hasOwnProperty(issue)) {
                 totalIssues += labels[issue];
             }
         }
-        var significantData = polygonData.rate >= .3;
-        var fillColor = significantData ? getColor(1000.0 * totalIssues / polygonData.completed_distance_m) : '#888';
-        var fillOpacity = significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25;
+        let significantData = polygonData.rate >= .3;
+        let fillColor = significantData ? getColor(1000.0 * totalIssues / polygonData.completed_distance_m) : '#888';
+        let fillOpacity = significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25;
         return {
             color: '#888',
             weight: 1,
@@ -274,8 +280,8 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
      * @param {*} labels Object from which information about labels is retrieved.
      */
     function getIssueCountPopupContent(labels) {
-        var counts = {};
-        for (var j in labelText) {
+        let counts = {};
+        for (let j in labelText) {
             if (typeof labels[j] != 'undefined')
                 counts[j] = labels[j];
             else
@@ -295,9 +301,9 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
 
     if (params.popupType === 'issueCounts') {
         $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
-            //append label counts to region data with map/reduce
-            var labelData = _.map(polygonRateData, function(region) {
-                var regionLabel = _.find(labelCounts, function(x){ return x.region_id === region.region_id });
+            // Append label counts to region data with map/reduce.
+            let labelData = _.map(polygonRateData, function(region) {
+                let regionLabel = _.find(labelCounts, function(x){ return x.region_id === region.region_id });
                 return regionLabel ? regionLabel : {};
             });
             initializeChoropleth(polygonRateData, labelData);
@@ -307,7 +313,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     }
 
     /**
-     * This function takes data and initializes the choropleth with it.
+     * Takes data and initializes the choropleth with it.
      * 
      * @param data The data to initialize the regions of the choropleth with.
      * @param labelData Data concerning issue counts for different regions.
@@ -316,14 +322,12 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
         if (params.popupType === 'issueCounts' && labelData === undefined) {
             console.log('Error: no issue count data for results choropleth.')
         } else {
-            // make a choropleth of neighborhood completion percentages
+            // Make a choropleth of neighborhood completion percentages.
             initializeChoroplethNeighborhoodPolygons(choropleth, data, layers, labelData);
         }
         $('#page-loading').hide();
     }
 
-
-    
     // Makes POST request that logs `activity` in WebpageActivityTable.
     function postToWebpageActivity(activity) {
         $.ajax({

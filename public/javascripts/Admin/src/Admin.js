@@ -35,7 +35,6 @@ function Admin(_, $, difficultRegionIds) {
         mapStyle: 'mapbox://styles/mapbox/light-v10'
     };
     var mapTabMapParams = {
-        choroplethType: 'labelMap',
         popupType: 'none',
         neighborhoodPolygonStyle: {
             color: '#888',

@@ -1,6 +1,5 @@
 function Progress (_, $, difficultRegionIds, userRole) {
     var params = {
-        choroplethType: 'userDash',
         popupType: 'completionRate',
         neighborhoodPolygonStyle: {
             color: '#888',

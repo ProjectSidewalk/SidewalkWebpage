@@ -21,7 +21,6 @@ function AdminUser(user) {
         webpageActivity: 'Click_module=AdminUserMap_regionId=',
         polygonFillMode: 'singleColor',
         zoomControl: true,
-        username: user,
         mapName: 'admin-map',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
@@ -37,8 +36,8 @@ function AdminUser(user) {
     var loadPolygons = $.getJSON('/neighborhoods');
     var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
     var loadMapParams = $.getJSON('/cityMapParams');
-    var loadAuditedStreets = $.getJSON('/adminapi/auditedStreets/' + params.username);
-    var loadSubmittedLabels = $.getJSON('/adminapi/labelLocations/' + params.username);
+    var loadAuditedStreets = $.getJSON('/adminapi/auditedStreets/' + user);
+    var loadSubmittedLabels = $.getJSON('/adminapi/labelLocations/' + user);
     // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
     var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
         map = Choropleth(_, $, 'null', params, layers, data1[0], data2[0], data3[0]);
@@ -55,7 +54,7 @@ function AdminUser(user) {
         setRegionFocus(map, layers)
     })
     
-    $.getJSON('/adminapi/tasks/' + params.username, function (data) {
+    $.getJSON('/adminapi/tasks/' + user, function (data) {
         var grouped = _.groupBy(data, function (o) { return o.audit_task_id});
         var auditTaskId;
         var auditTaskIds = Object.keys(grouped);

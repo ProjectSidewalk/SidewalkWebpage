@@ -3,15 +3,15 @@
  */
 function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
     if (document.getElementById(checkboxId).checked) {
-        if(checkboxId == 'occlusion'){
-            for (var i = 0; i < allLayers[label].length; i++) {
+        if(checkboxId === 'occlusion'){
+            for (let i = 0; i < allLayers[label].length; i++) {
                 if (!map.hasLayer(allLayers[label][i])) {
                     map.addLayer(allLayers[label][i]);
                 }
             }
         }
         else {
-            for (var i = 0; i < allLayers[label].length; i++) {
+            for (let i = 0; i < allLayers[label].length; i++) {
                 if (!map.hasLayer(allLayers[label][i])
                     && ($(sliderId).slider('option', 'values')[0] <= i &&
                         $(sliderId).slider('option', 'values')[1] >= i )) {
@@ -23,7 +23,7 @@ function toggleLayers(label, checkboxId, sliderId, map, allLayers) {
             }
         }
     } else {
-        for (var i = 0; i < allLayers[label].length; i++) {
+        for (let i = 0; i < allLayers[label].length; i++) {
             if (map.hasLayer(allLayers[label][i])) {
                 map.removeLayer(allLayers[label][i]);
             }
@@ -47,17 +47,15 @@ function toggleLegend() {
 
 // Searches for a region id in the query string. If you find one, focus on that region.
 function setRegionFocus(map, layers) {
-    var regionId = util.getURLParameter('regionId')
-    var i;
-    var len;
+    let regionId = util.getURLParameter('regionId')
     if (regionId && layers) {
-        len = layers.length;
-        for (i = 0; i < len; i++) {
-            if ('feature' in layers[i] && 'properties' in layers[i].feature && regionId == layers[i].feature.properties.region_id) {
-                var center = turf.center(layers[i].feature),
-                    coordinates = center.geometry.coordinates,
-                    latlng = L.latLng(coordinates[1], coordinates[0]),
-                    zoom = map.getZoom();
+        let len = layers.length;
+        for (let i = 0; i < len; i++) {
+            if ('feature' in layers[i] && 'properties' in layers[i].feature && regionId === layers[i].feature.properties.region_id) {
+                let center = turf.center(layers[i].feature);
+                let coordinates = center.geometry.coordinates;
+                let latlng = L.latLng(coordinates[1], coordinates[0]);
+                let zoom = map.getZoom();
                 zoom = zoom > 14 ? zoom : 14;
 
                 map.setView(latlng, zoom, {animate: true});
