@@ -172,9 +172,9 @@ object AuditTaskInteractionTable {
         |LEFT JOIN sidewalk.label_point ON label.label_id = label_point.label_id
         |WHERE interaction.audit_task_id = ?
         |    AND interaction.action NOT IN (
-        |        'LowLevelEvent_mousemove', 'POV_Changed', 'LowLevelEvent_mouseover', 'LowLevelEvent_mouseout',
-        |        'LowLevelEvent_click', 'LowLevelEvent_mouseup', 'LowLevelEvent_mousedown', 'ViewControl_MouseDown',
-        |        'ViewControl_MouseUp', 'RefreshTracker', 'ModeSwitch_Walk', 'LowLevelEvent_keydown'
+        |        'LowLevelEvent_mousemove', 'LowLevelEvent_mouseover', 'LowLevelEvent_mouseout', 'LowLevelEvent_click',
+        |        'LowLevelEvent_mouseup', 'LowLevelEvent_mousedown', 'ViewControl_MouseDown', 'ViewControl_MouseUp',
+        |        'RefreshTracker', 'ModeSwitch_Walk', 'LowLevelEvent_keydown', 'LabelingCanvas_MouseOut'
         |    )
         |ORDER BY interaction.timestamp""".stripMargin
     )

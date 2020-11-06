@@ -123,13 +123,14 @@ function AdminTask(params) {
 
             // Chain transitions
             var totalDuration = 0;
-            const MAX_WAIT_MS = 10000;
-            const SKIP_FILL_TIME_MS = 1000;
+            const SPEEDUP_MULTIPLIER = 2;
+            const MAX_WAIT_MS = 10000 / SPEEDUP_MULTIPLIER;
+            const SKIP_FILL_TIME_MS = 1000 / SPEEDUP_MULTIPLIER;
             var totalSkips = 0;
             var skippedTime = 0;
             for (var i = 0; i < featuresdata.length; i++) {
                 // This controls the speed.
-                featuresdata[i].properties.timestamp /= 1;
+                featuresdata[i].properties.timestamp /= SPEEDUP_MULTIPLIER;
 
                 if (i > 0) {
                     let duration = featuresdata[i].properties.timestamp - featuresdata[i - 1].properties.timestamp;
@@ -143,6 +144,7 @@ function AdminTask(params) {
                     totalDuration += duration;
                 }
             }
+            console.log(`Speed being multiplied by ${SPEEDUP_MULTIPLIER}.`)
             console.log(`${totalSkips} pauses over ${MAX_WAIT_MS / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${SKIP_FILL_TIME_MS / 1000} sec during those.`);
             console.log(`Total watch time: ${totalDuration / 1000} seconds`);
 
