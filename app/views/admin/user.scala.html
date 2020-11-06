@@ -24,7 +24,7 @@
                             <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td><td id="td-number-of-missing-curb-ramps"></td></tr>
                             <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td><td id="td-number-of-obstacles"></td></tr>
                             <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td><td id="td-number-of-surface-problems"></td></tr>
-                            <tr><td id="map-legend-nosidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
+                            <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
                             <tr><td id="map-legend-audited-street"></td><td>@Messages("dashboard.audited.street")</td></tr>
                         </table>
                     </div>
@@ -183,7 +183,13 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesPanomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/TimestampLocalization.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
     </script>
@@ -202,8 +208,7 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                var username = '@user.get.username';
-                window.admin = AdminUser({username: username});
+                AdminUser('@user.get.username');
                 $('#labelTable').dataTable();
             });
         });
