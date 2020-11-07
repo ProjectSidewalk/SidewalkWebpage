@@ -1,8 +1,12 @@
 measurement.system = metric
 curb.ramp = Curb Ramp
+curb.ramps = Curb Ramps
 missing.ramp = Missing Curb Ramp
+missing.ramps = Missing Curb Ramps
 obstacle = Obstacle in Path
+obstacles = Obstacles in Path
 surface.problem = Surface Problem
+surface.problems = Surface Problems
 no.sidewalk = No Sidewalk
 other = Other
 labels = labels
@@ -75,14 +79,10 @@ audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’
 audit.tutorial.welcome.2 = We''ll begin with a short, interactive tutorial.
 audit.tutorial.welcome.3 = Let''s get started!
 audit.tutorial.welcome.4 = Already taken the tutorial? Have an account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Sign in</a> now or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
-audit.tutorial.photo.1 = Curb Ramps
-audit.tutorial.photo.2 = Missing Curb Ramps
-audit.tutorial.photo.3 = Sidewalk Obstacles
-audit.tutorial.photo.4 = Surface Problems
 audit.tutorial.accessible = <span style="color:limegreen">Accessible</span>
 audit.tutorial.inaccessible = <span style="color:red">Inaccessible</span>
 audit.tutorial.complete.photoLabel.1 = <span style="color:limegreen">Curb ramps</span> help wheelchair users get on and off the sidewalks
-audit.tutorial.complete.photoLabel.2 = Wheelchair users cannot navigate sidewalks when <span style="color:fuchsia">curb ramps are missing</span>
+audit.tutorial.complete.photoLabel.2 = Wheelchair users cannot navigate sidewalks when <span style="color:#ff0066">curb ramps are missing</span>
 audit.tutorial.complete.photoLabel.3 = <span style="color:RoyalBlue">Obstacles</span> block the paths of wheelchair users
 audit.tutorial.complete.photoLabel.4 = Sidewalks with <span style="color:orange">surface problems</span> may not be navigable
 audit.tutorial.end.1 = Great! You’ve learned how to use the interface! Now, go ahead and <span class="bold">label the following accessibility attributes in Google Street View</span> that significantly affect how wheelchair users move about the city:
