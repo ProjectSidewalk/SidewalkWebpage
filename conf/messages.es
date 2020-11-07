@@ -1,6 +1,6 @@
 measurement.system = metric
 curb.ramp = Rampa peatonal
-curb.ramps= Rampas peatonales
+curb.ramps = Rampas peatonales
 missing.ramp = Rampa peatonal ausente
 missing.ramps = Rampas peatonales ausentes
 obstacle = Obstáculo en la banqueta
