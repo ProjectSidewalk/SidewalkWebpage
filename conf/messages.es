@@ -268,7 +268,8 @@ admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general
 leaderboard.weekly.title = Tabla de clasificación semanal
-leaderboard.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
+leaderboard.detail.overall = Las posiciones se calculan en base a las etiquetas, distancia y precisión
+leaderboard.detail.weekly = 
 leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
 leaderboard.header.distance = Distancia

@@ -8,7 +8,7 @@
 <div class="leaderboard-container">
     <div class="item leaderboard-table">
         <h1 class="leaderboard-header">@Messages("leaderboard.overall.title")</h1>
-        <h5 class="leaderboard-detail">@Messages("leaderboard.detail")</h5>
+        <h5 class="leaderboard-detail">@Messages("leaderboard.detail.overall")</h5>
         <div class="panel panel-default">
             <table class="table table-bordered leaderboard-table-striped">
                 <thead class="leaderboard-table-header">
@@ -77,6 +77,7 @@
     @if(leaderboardStatsThisWeek.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
             <h1 class="leaderboard-header">@Messages("leaderboard.weekly.title")</h1>
+            <h5>@Messages("leaderboard.detail.weekly")</h5>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboard-table-header">

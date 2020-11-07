@@ -270,7 +270,8 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
-leaderboard.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.detail.overall = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.detail.weekly = Weekly leaders are calculated based on their labels and distance within the last 7 days.
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
