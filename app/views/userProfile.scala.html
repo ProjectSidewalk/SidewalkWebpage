@@ -42,7 +42,7 @@
                 <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("dashboard.accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
                 <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
-                <span class="user-stats-stat">@{s"%.1f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
+                <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
                 <span class="user-stats-stat">@LabelTable.countLabelsByUserId(user.get.userId)</span>
                 <span class="user-stats-stat">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
                 <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
