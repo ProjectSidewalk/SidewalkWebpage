@@ -128,11 +128,6 @@ module.exports = function(grunt) {
                 ]
             }
         },
-        jsdoc : {
-            dist : {
-                src: 'public/javascripts/SVLabel/src/SVLabel/*.js'
-            }
-        },
         watch : {
             scripts: {
                 files: [
@@ -160,7 +155,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-concat-css');
     grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-jsdoc');
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-jasmine');
 
