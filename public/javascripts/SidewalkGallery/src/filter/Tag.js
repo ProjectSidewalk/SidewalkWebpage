@@ -42,7 +42,7 @@ function Tag (params) {
             apply();
         }
 
-        sg.cardContainer.updateCardsByTag(self);
+        sg.cardContainer.updateCardsByTag();
     }
 
     function apply() {
@@ -55,6 +55,10 @@ function Tag (params) {
         setStatus("applied", false);
         console.log("clicked and toggled off");
         tagElement.setAttribute("style", "background-color: none");
+    }
+
+    function getTag() {
+        return properties.tag;
     }
 
     /**
@@ -125,6 +129,7 @@ function Tag (params) {
 
     self.apply = apply;
     self.unapply = unapply;
+    self.getTag = getTag;
     self.getTagId = getTagId;
     self.getLabelType = getLabelType;
     self.getProperties = getProperties;

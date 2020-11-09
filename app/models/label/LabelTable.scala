@@ -98,6 +98,8 @@ object LabelTable {
   val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
   val gsvData = TableQuery[GSVDataTable]
   val labelTypes = TableQuery[LabelTypeTable]
+  val labelTags = TableQuery[LabelTagTable]
+  val tagTable = TableQuery[TagTable]
   val labelPoints = TableQuery[LabelPointTable]
   val labelValidations = TableQuery[LabelValidationTable]
   val missions = TableQuery[MissionTable]
@@ -713,9 +715,16 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _ls <- severities if _lb.labelId === _ls.labelId && (_ls.severity inSet severity)
+      _labeltags <- labelTags if _lb.labelId === _labeltags.labelId
+      _tags <- tagTable if _labeltags.tagId === _tags.tagId && (_tags.tag inSet tags)
     } yield (_lb, _lp, _lt.labelType, _ls.severity.?)
 
-    val _labels = _labelsUnfiltered.filter(label => !(label._1.labelId inSet loadedLabelIds))
+    Logger.debug(_labelsUnfiltered.size.run + "")   
+    // Could be optimized by grouping on less rows
+    val _labelsGrouped = _labelsUnfiltered.groupBy(x => x).map(_._1)
+    Logger.debug(_labelsGrouped.size.run + "")
+
+    val _labels = _labelsGrouped.filter(label => !(label._1.labelId inSet loadedLabelIds))
 
     val addTemporariness = for {
       (l, t) <- _labels.leftJoin(temporariness).on(_._1.labelId === _.labelId)
@@ -749,7 +758,7 @@ object LabelTable {
             val timestamp: Timestamp = new Timestamp(now.getMillis)
             GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
             val tagsToCheck = getTagsFromLabelId(currLabel.labelId)
-            if (tagsToCheck.toSet.equals(tags)) {
+            if (tagsToCheck.exists(tags.contains(_))) {
               Some(labelAndTagsToLabelValidationMetadata(currLabel, tagsToCheck))
             } else {
               None

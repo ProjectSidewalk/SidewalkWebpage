@@ -201,7 +201,7 @@ function CardContainer(uiCardContainer) {
 
         if (numCards < cardsPerPage * currentPage) {
             console.log("grabbed more cards of severity and tag, rendering afterwards");
-            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTags(), function() {
+            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTagNames(), function() {
                 console.log("got new labels");
                 updateCardsNewPage();
             });
@@ -231,42 +231,77 @@ function CardContainer(uiCardContainer) {
         return appliedSeverities;
     }
 
-    function updateCardsByTag(tag) {
+    // Fix how this filter works
+    function updateCardsByTag() {
         setPage(1);
-        if (tag.getStatus().applied) {
-            currentCards = cardsByType[currentLabelType].copy();
-            let bucket = currentCards.getCards();
-            for (let severity in bucket) {
-                bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
-            }
-            const numCards = numCardsInBucket(bucket);
-            let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
-            if (numCards < cardsPerPage) {
-                console.log("grabbed more cards of severity and tag, rendering afterwards");
-                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTags(), function() {
-                    console.log("got new labels");
-                    updateCardsByTag(tag);
-                });
-            }
-        } else {
-           //clearCurrentCards();
-           currentCards = cardsByType[currentLabelType].copy();
-           let bucket = currentCards.getCards();
+        // if (tag.getStatus().applied) {
+        //     currentCards = cardsByType[currentLabelType].copy();
+        //     let bucket = currentCards.getCards();
+        //     for (let severity in bucket) {
+        //         bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+        //     }
+        //     const numCards = numCardsInBucket(bucket);
+        //     let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
+        //     if (numCards < cardsPerPage) {
+        //         console.log("grabbed more cards of severity and tag, rendering afterwards");
+        //         fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTagNames(), function() {
+        //             console.log("got new labels");
+        //             updateCardsByTag(tag);
+        //         });
+        //     }
+        // } else {
+        //    //clearCurrentCards();
+        //    currentCards = cardsByType[currentLabelType].copy();
+        //    let bucket = currentCards.getCards();
 
-           let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType];
-           for (let i = 0; i < tagsToCheck.length; i++) {
-                let tag = tagsToCheck[i];
-                if (tag.getStatus().applied) {
-                    for (let severity in bucket) {
-                       bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
-                    }
-               }
-           }
-           //updateCardsBySeverity();
-            console.log(currentCards.getCards());
+        //    let tagsToCheck = sg.tagContainer.getTagsByType()[currentLabelType].getTags();
+        //    for (let i = 0; i < tagsToCheck.length; i++) {
+        //         let tag = tagsToCheck[i];
+        //         if (tag.getStatus().applied) {
+        //             for (let severity in bucket) {
+        //                bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").includes(tag.getProperty("tag")));
+        //             }
+        //        }
+        //    }
+        //    //updateCardsBySeverity();
+        //     console.log(currentCards.getCards());
+        // }
+        
+        // let appliedTags = sg.tagContainer.getAppliedTagNames();
+        // currentCards = cardsByType[currentLabelType].copy();
+
+        // if (appliedTags.length > 0) {
+        //     currentCards.filterOnTags(appliedTags);
+        // }
+
+        // const numCards = numCardsInBucket(currentCards.getCards());
+        // let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
+        // if (numCards < cardsPerPage) {
+        //     console.log("grabbed more cards of severity and tag, rendering afterwards");
+        //     fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTagNames(), function() {
+        //         console.log("got new labels");
+        //         updateCardsByTag();
+        //     });
+        // }
+        console.log("grabbed more cards of severity and tag, rendering afterwards");
+        let appliedTags = sg.tagContainer.getAppliedTagNames();
+
+        if (appliedTags.length > 0) {
+            let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
+            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+                console.log("got new labels");
+                currentCards = cardsByType[currentLabelType].copy();
+
+                currentCards.filterOnTags(appliedTags);
+
+                render();
+            });
+        } else {
+            currentCards = cardsByType[currentLabelType].copy();
+            render();
         }
 
-        render();
+        // render();
     }
 
     // function updateCardsBySeverity(){
