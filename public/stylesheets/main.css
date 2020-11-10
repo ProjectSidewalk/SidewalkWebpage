@@ -920,17 +920,6 @@ kbd {
     font-weight: bold;
     color: #fff;
 }
-#mobile-content img {
-    width: 100%;
-    margin-bottom: 7vh;
-}
-#mobile-thanks {
-    font-size: 77px;
-}
-#mobile-message {
-    font-size: 49px;
-    margin-top: 2vh;
-}
 
 #page-loading {
     position:absolute;
