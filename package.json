@@ -13,8 +13,5 @@
     "debug": "npm run grunt-concat && grunt watch & sbt -jvm-debug 9998 run",
     "start": "npm run grunt-concat && grunt watch & sbt -Dsbt.ivy.home='.ivy2' -Dsbt.global.base='.sbt' -Dsbt.repository.config='.sbt/repositories' compile \"~ run\"",
     "test": "grunt && grunt test"
-  },
-  "dependencies": {
-    "@turf/turf": "^5.1.6"
   }
 }

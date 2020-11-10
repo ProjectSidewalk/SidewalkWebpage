@@ -51,6 +51,7 @@ module.exports = function(grunt) {
             },
             dist_validate: {
                 src: [
+                    'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/data/*.js',
                     'public/javascripts/SVValidate/src/keyboard/*.js',
                     'public/javascripts/SVValidate/src/label/*.js',
@@ -62,7 +63,6 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
-                    'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/Panomarker.js',
                     'public/javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js'
                 ],

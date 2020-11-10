@@ -7,7 +7,7 @@
 
 @main(title) {
     @navbar(user, Some("/"))
-    <script src='@routes.Assets.at("assets/homepage.js")'></script>
+    <script src='@routes.Assets.at("javascripts/homepage.js")'></script>
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
@@ -128,7 +128,7 @@
             } else {
                 <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
             }
-            <img src="@routes.Assets.at("assets/" + "generic_cloud_overlay.png")" class="skyline-cloud-overlay">
+            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay">
         </div>
         <div class="ps-skyline-stats-holder">
             <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
