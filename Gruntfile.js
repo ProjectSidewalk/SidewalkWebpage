@@ -70,12 +70,6 @@ module.exports = function(grunt) {
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             }
         },
-        uglify: {
-            build: {
-                src: 'public/javascripts/SVLabel/build/SVLabel.js',
-                dest: 'public/javascripts/SVLabel/build/SVLabel.min.js'
-            }
-        },
         concat_css: {
             dist_all: {
                 src: [
@@ -154,10 +148,8 @@ module.exports = function(grunt) {
     // 3. Where we tell Grunt we plan to use this plug-in.
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-concat-css');
-    grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-jasmine');
-
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
     grunt.registerTask('default', ['concat', 'concat_css']);
