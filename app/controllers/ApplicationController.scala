@@ -367,15 +367,6 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a page that tells Turkers that there are no further missions for them to complete at this time.
-    *
-    * @return
-    */
-  def noAvailableMissionIndex = Action.async { implicit request =>
-    Future.successful(Ok(views.html.noAvailableMissionIndex("Project Sidewalk")))
-  }
-
-  /**
     * Returns a page telling the turker that they already signed in with their worker id.
     *
     * @return
