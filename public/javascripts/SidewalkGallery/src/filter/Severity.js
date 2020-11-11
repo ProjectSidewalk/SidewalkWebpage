@@ -25,7 +25,6 @@ function Severity (params){
         severityElement.className = 'gallery-tag';
         severityElement.id = properties.severity;
         severityElement.innerText = properties.severity;
-        severityElement.setAttribute("style", "background-color: coral");
 
         severityElement.onclick = handleOnClickCallback;
 

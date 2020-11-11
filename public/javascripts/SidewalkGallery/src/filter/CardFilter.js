@@ -99,6 +99,15 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         return severities;
     }
 
+    function isSeverityApplied() {
+        for (let i = 0; i < severities.length; i++){
+            if (severities[i].getActive()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function unapplyTags(labelType) {
         if (labelType != null) {
             console.log("tags unapplied");
@@ -119,6 +128,7 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     self.getStatus = getStatus;
     self.setStatus = setStatus;
     self.getSeverities = getSeverities;
+    self.isSeverityApplied = isSeverityApplied;
     self.unapplyTags = unapplyTags;
 
     _init();

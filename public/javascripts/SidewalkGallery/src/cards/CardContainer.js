@@ -272,9 +272,10 @@ function CardContainer(uiCardContainer) {
         let cardBucket = currentCards.getCards();
         let severities = sg.tagContainer.getSeverities();
 
+        let noSeverities = !sg.tagContainer.isSeverityApplied();
         //console.time('render cards');
         for (let i = 0; i < severities.length; i++){
-            if (severities[i].getActive()){
+            if (severities[i].getActive() || noSeverities){
                 let subBucket = cardBucket[severities[i].getSeverity()];
                 for (let j = 0; j < subBucket.length; j++) {
                     if (num >= cardsPerPage * currentPage) break;
