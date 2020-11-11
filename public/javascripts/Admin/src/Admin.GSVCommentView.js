@@ -40,7 +40,9 @@ function AdminGSVCommentView(admin) {
         
         //Parameters: (gsv_id, heading, pitch, zoom)
         //Heading, Pitch, Zoom, set to default values(0)
-        self.panorama.setPano(commentGSV, 0, 0, 0);
+        self.panorama.setPano(commentGSV,0,0,0);
+
+      
 
     }
  
