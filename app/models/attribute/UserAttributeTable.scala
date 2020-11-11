@@ -1,15 +1,10 @@
 package models.attribute
 
-/**
-  * Created by misaugstad on 4/27/17.
-  */
-
 import models.label.{LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
-
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.language.postfixOps
 
@@ -22,7 +17,6 @@ case class UserAttribute(userAttributeId: Int,
                          lng: Float,
                          severity: Option[Int],
                          temporary: Boolean)
-
 
 class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidewalk"), "user_attribute") {
   def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
@@ -56,15 +50,11 @@ class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidew
 }
 
 /**
-  * Data access object for the UserAttributeTable table
+  * Data access object for the UserAttributeTable table.
   */
 object UserAttributeTable {
   val db: slick.Database = play.api.db.slick.DB
   val userAttributes: TableQuery[UserAttributeTable] = TableQuery[UserAttributeTable]
-
-  def getAllUserAttributes: List[UserAttribute] = db.withTransaction { implicit session =>
-    userAttributes.list
-  }
 
   def countUserAttributes: Int = db.withTransaction { implicit session =>
     userAttributes.length.run

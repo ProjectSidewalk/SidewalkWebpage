@@ -3,7 +3,6 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -15,19 +14,15 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
 import models.label._
-import models.mission.{Mission, MissionTable, MissionSetProgress}
+import models.mission.{Mission, MissionTable}
 import models.region._
 import models.street.StreetEdgePriorityTable
 import models.user.{User, UserCurrentRegionTable}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
-
 import scala.concurrent.Future
 
-/**
- * Task controller
- */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
@@ -42,6 +37,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
     * This method returns a task definition specified by the streetEdgeId.
+    *
     * @return Task definition
     */
   def getTaskByStreetEdgeId(streetEdgeId: Int) = Action.async { implicit request =>
@@ -53,8 +49,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     * This endpoint accepts a panoId from the client and returns a JSON payload representing a task created from
     * the street edge closest to the panoId. Note this method *only* works for panoIds that are part of an active CV
     * Ground truth mission for the logged-in user.
-    * @param panoid
-    * @return
     */
   def getCVGroundTruthTaskByPanoId(panoid: String) = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -74,12 +68,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     }
   }
 
-
-  /**
-    *
-    * @param regionId Region id
-    * @return
-    */
   def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
@@ -92,12 +80,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-   * Insert or update the submitted audit task in the database
-   * @param user
-   * @param auditTask
-   * @param missionId
-   * @param amtAssignmentId
-   * @return
+   * Insert or update the submitted audit task in the database.
    */
   def updateAuditTaskTable(user: Option[User], auditTask: TaskSubmission, missionId: Int, amtAssignmentId: Option[Int]): Int = {
     if (auditTask.auditTaskId.isDefined) {
@@ -109,7 +92,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
       id
     } else {
-      // Insert audit task
+      // Insert audit task.
       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
       val auditTaskObj = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
@@ -128,8 +111,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   /**
     * Updates the progress of the audit mission in the database, creating a new mission if this one is complete.
     *
-    * @param user
-    * @param missionProgress
     * @return Option[Mission] a new mission if the old one was completed, o/w None.
     */
   def updateMissionTable(user: Option[User], missionProgress: AuditMissionProgress): Option[Mission] = {
@@ -175,9 +156,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
   }
 
   /**
-    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON
-    *
-    * @return
+    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
     */
   def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
     val json = Json.parse(request.body)
@@ -194,8 +173,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
   /**
    * Parse the submitted data and insert them into tables.
-   *
-   * @return
    */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
@@ -219,7 +196,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       if (data.auditTask.auditTaskId.isDefined) {
         userOption match {
           case Some(user) =>
-            // Update the street's priority only if the user has not completed this street previously
+            // Update the street's priority only if the user has not completed this street previously.
             if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
               data.auditTask.completed.map { completed =>
                 if (completed) {
@@ -228,7 +205,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               }
             }
           case None =>
-            // Update the street's priority for anonymous user
+            // Update the street's priority for anonymous user.
             Logger.warn("User without user_id audited a street, but every user should have a user_id.")
             data.auditTask.completed.map { completed =>
               if (completed) {
@@ -239,12 +216,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
 
 
-      // Update the AuditTaskTable and get auditTaskId
-      // Set the task to be completed and increment task completion count
+      // Update the AuditTaskTable and get auditTaskId.
+      // Set the task to be completed and increment task completion count.
       val auditTaskId: Int = updateAuditTaskTable(userOption, data.auditTask, missionId, data.amtAssignmentId)
       updateAuditTaskCompleteness(auditTaskId, data.auditTask, data.incomplete)
 
-      // Update the MissionTable and get missionId
+      // Update the MissionTable and get missionId.
       val isCVGroundTruthMission: Boolean = MissionTable.isCVGroundTruthMission(missionId)
 
       val possibleNewMission: Option[Mission] = if (!isCVGroundTruthMission) {
@@ -254,13 +231,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       }
       // val missionId: Int = updateMissionTable() -- same as updateAuditTaskTable()
 
-      // Insert the skip information or update task street_edge_assignment_count.completion_count
+      // Insert the skip information or update task street_edge_assignment_count.completion_count.
       if (data.incomplete.isDefined) {
         val incomplete: IncompleteTaskSubmission = data.incomplete.get
         AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, missionId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
       }
 
-      // Insert labels
+      // Insert labels.
       for (label: LabelSubmission <- data.labels) {
         val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
 
@@ -278,7 +255,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             LabelTable.updateDeleted(labId, label.deleted.value)
             labId
           case None =>
-            // get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp
+            // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
             val timeCreated: Option[Timestamp] = label.timeCreated match {
               case Some(time) => Some(new Timestamp(time))
               case None =>
@@ -302,7 +279,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               label.tutorial, calculatedStreetEdgeId))
         }
 
-        // Insert label points
+        // Insert label points.
         for (point: LabelPointSubmission <- label.points) {
           val pointGeom: Option[Point] = (point.lat, point.lng) match {
             case (Some(lat), Some(lng)) =>
@@ -350,23 +327,23 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, labelId, tagId)) }
       }
 
-      // Insert interactions
+      // Insert interactions.
       AuditTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
         AuditTaskInteraction(0, auditTaskId, missionId, interaction.action, interaction.gsvPanoramaId,
           interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
           interaction.temporaryLabelId, new Timestamp(interaction.timestamp))
       })
 
-      // Insert environment
+      // Insert environment.
       val env: EnvironmentSubmission = data.environment
       val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, missionId, env.browser,
         env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
         env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language)
       AuditTaskEnvironmentTable.save(taskEnv)
 
-      // Insert Street View metadata
+      // Insert Street View metadata.
       for (panorama <- data.gsvPanoramas) {
-        // Check the presence of the data
+        // Check the presence of the data.
         if (!GSVDataTable.panoramaExists(panorama.gsvPanoramaId)) {
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           val gsvData: GSVData = GSVData(panorama.gsvPanoramaId, 13312, 6656, 512, 512, panorama.imageDate, 1, "", false, Some(timestamp))
@@ -396,5 +373,4 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       "switch_to_validation" -> returnValues.head.switchToValidation
     )))
   }
-
 }

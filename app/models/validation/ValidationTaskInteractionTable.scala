@@ -1,15 +1,9 @@
 package models.validation
 
-import java.util.UUID
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
-import play.extras.geojson
-
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
-
 
 case class ValidationTaskInteraction(validationTaskInteractionId: Int,
                                      missionId: Option[Int],
@@ -57,9 +51,6 @@ object ValidationTaskInteractionTable {
 
   /**
     * Inserts a sequence of interactions into the validation_task_interaction table.
-    *
-    * @param interactions
-    * @return
     */
   def saveMultiple(interactions: Seq[ValidationTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
     (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) ++= interactions

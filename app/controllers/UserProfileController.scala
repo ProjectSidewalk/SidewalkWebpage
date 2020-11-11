@@ -1,7 +1,6 @@
 package controllers
 
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
@@ -13,10 +12,7 @@ import models.user.User
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
-
-
 import scala.concurrent.Future
-
 
 /**
  * The basic application controller.
@@ -41,8 +37,6 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
 
   /**
    * Get a list of edges that are audited by users.
-    *
-    * @return
    */
   def getAuditedStreets = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -84,8 +78,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Get a list of labels submitted by the user
-   * @return
+   * Get a list of labels submitted by the user.
    */
   def getSubmittedLabels(regionId: Option[Int]) = UserAwareAction.async { implicit request =>
     request.identity match {
