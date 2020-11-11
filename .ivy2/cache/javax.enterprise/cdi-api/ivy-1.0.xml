@@ -4,7 +4,7 @@
 		module="cdi-api"
 		revision="1.0"
 		status="release"
-		publication="20091108144421"
+		publication="20091108224421"
 	>
 		<description homepage="">
 		APIs for JSR-299: Contexts and Dependency Injection for Java EE

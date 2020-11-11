@@ -4,7 +4,7 @@
 		module="twirl-api_2.10"
 		revision="1.0.2"
 		status="release"
-		publication="20140615031007"
+		publication="20140615101007"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="https://github.com/playframework/twirl">

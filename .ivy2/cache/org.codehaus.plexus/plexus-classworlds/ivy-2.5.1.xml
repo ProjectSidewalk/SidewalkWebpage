@@ -4,7 +4,7 @@
 		module="plexus-classworlds"
 		revision="2.5.1"
 		status="release"
-		publication="20130815133022"
+		publication="20130815203022"
 	>
 		<description homepage="">
 		A class loader framework

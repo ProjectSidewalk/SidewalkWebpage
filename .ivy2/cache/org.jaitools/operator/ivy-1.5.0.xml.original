@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.jaitools</groupId>
+        <artifactId>jaitools</artifactId>
+        <version>1.5.0</version>
+    </parent>
+
+    <artifactId>operator</artifactId>
+    <packaging>pom</packaging>
+
+    <name>JAITools - image operators</name>
+
+    <description>
+        Image operators compatible with Java Advanced Imaging (JAI)
+    </description>
+
+    <modules>
+        <module>attributeop</module>
+        <module>contour</module>
+        <module>generate</module>
+        <module>kernelstats</module>
+        <module>maskedconvolve</module>
+        <module>rangelookup</module>
+        <module>regionalize</module>
+        <module>vectorbinarize</module>
+        <module>vectorize</module>
+        <module>zonalstats</module>
+        <module>classifiedstats</module>
+  </modules>
+</project>

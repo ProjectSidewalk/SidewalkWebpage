@@ -4,7 +4,7 @@
 		module="xalan"
 		revision="2.7.1"
 		status="release"
-		publication="20080930010254"
+		publication="20080930080254"
 	>
 		<description homepage="http://xml.apache.org/xalan-j/">
 		Xalan-Java is an XSLT processor for transforming XML documents into HTML,

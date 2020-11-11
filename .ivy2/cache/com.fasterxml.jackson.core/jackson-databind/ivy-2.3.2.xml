@@ -4,7 +4,7 @@
 		module="jackson-databind"
 		revision="2.3.2"
 		status="release"
-		publication="20140301191312"
+		publication="20140302031312"
 	>
 		<description homepage="http://wiki.fasterxml.com/JacksonHome">
 		General data-binding functionality for Jackson: works on core streaming API

@@ -4,7 +4,7 @@
 		module="httpmime"
 		revision="4.3.1"
 		status="release"
-		publication="20131003124349"
+		publication="20131003194349"
 	>
 		<description homepage="http://hc.apache.org/httpcomponents-client">
 		HttpComponents HttpClient - MIME coded entities

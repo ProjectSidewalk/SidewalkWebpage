@@ -4,7 +4,7 @@
 		module="postgresql"
 		revision="9.3-1102-jdbc4"
 		status="release"
-		publication="20140718073830"
+		publication="20140718143830"
 	>
 		<license name="BSD License" url="http://jdbc.postgresql.org/license.html" />
 		<description homepage="http://jdbc.postgresql.org">

@@ -4,7 +4,7 @@
 		module="jsch"
 		revision="0.1.46"
 		status="release"
-		publication="20120202043927"
+		publication="20120202123927"
 	>
 		<license name="Revised BSD" url="http://www.jcraft.com/jsch/LICENSE.txt" />
 		<description homepage="http://www.jcraft.com/jsch/">

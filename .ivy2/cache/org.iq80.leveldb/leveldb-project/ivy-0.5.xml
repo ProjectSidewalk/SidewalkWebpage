@@ -4,7 +4,7 @@
 		module="leveldb-project"
 		revision="0.5"
 		status="release"
-		publication="20130122103934"
+		publication="20130122183934"
 	>
 		<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="http://github.com/dain/leveldb">

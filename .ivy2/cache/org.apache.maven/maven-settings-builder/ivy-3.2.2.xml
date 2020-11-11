@@ -4,7 +4,7 @@
 		module="maven-settings-builder"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065119"
+		publication="20140617135119"
 	>
 		<description homepage="">
 		The effective settings builder, with inheritance and password decryption.

@@ -4,7 +4,7 @@
 		module="org.eclipse.sisu.plexus"
 		revision="0.0.0.M5"
 		status="release"
-		publication="20130725162947"
+		publication="20130725232947"
 	>
 		<description homepage="" />
 		<m:properties__tycho-version>0.18.1</m:properties__tycho-version>

@@ -4,7 +4,7 @@
 		module="httpcomponents-core"
 		revision="4.0.1"
 		status="release"
-		publication="20090621040641"
+		publication="20090621110641"
 	>
 		<license name="Apache License" url="LICENSE.txt" />
 		<description homepage="http://hc.apache.org/httpcomponents-core/">
