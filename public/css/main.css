@@ -1175,13 +1175,13 @@ kbd {
     font-family: Raleway-regular, sans-serif;
 }
 
-.weekly-cell, .accuracy-cell {
+.accuracy-cell {
     position: relative;
     text-decoration:underline;
     text-decoration-style: dotted;
 }
 
-.weekly-tooltip, .accuracy-tooltip {
+.accuracy-tooltip {
     display:none;
     position:absolute;
     z-index:100;
@@ -1199,7 +1199,7 @@ kbd {
     width: 175px;
 }
 
-.weekly-cell:hover span.weekly-tooltip, .accuracy-cell:hover span.accuracy-tooltip {
+.accuracy-cell:hover span.accuracy-tooltip {
     display:block;
 }
 
