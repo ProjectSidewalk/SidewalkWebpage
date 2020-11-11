@@ -184,16 +184,25 @@ function CardContainer(uiCardContainer) {
         let bucket = currentCards.getCards();
 
         currentCards.filterOnTags(sg.tagContainer.getAppliedTagNames());
+        let numTags = sg.tagContainer.getAppliedTagNames().length;
 
         const numCards = numCardsInBucket(bucket);
         let appliedSeverities = getAppliedSeverities(sg.tagContainer.getSeverities());
 
         if (numCards < cardsPerPage * currentPage) {
             console.log("grabbed more cards of severity and tag, rendering afterwards");
-            fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTagNames(), function() {
-                console.log("got new labels");
-                updateCardsNewPage();
-            });
+            if (numTags == 0) {
+                fetchLabelsByType(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), function() {
+                    console.log("got new labels");
+                    render();
+                });
+            } else {
+                fetchLabelsBySeverityAndTags(labelTypeIds[currentLabelType], cardsPerPage, Array.from(loadedLabelIds), appliedSeverities, sg.tagContainer.getAppliedTagNames(), function() {
+                    console.log("got new labels");
+                    updateCardsNewPage();
+                });
+            }
+            
         }
         render();
     }
