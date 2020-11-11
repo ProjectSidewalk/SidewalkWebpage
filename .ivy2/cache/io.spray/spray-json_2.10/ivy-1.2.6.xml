@@ -4,7 +4,7 @@
 		module="spray-json_2.10"
 		revision="1.2.6"
 		status="release"
-		publication="20140410014706"
+		publication="20140410084706"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="https://github.com/spray/spray-json">

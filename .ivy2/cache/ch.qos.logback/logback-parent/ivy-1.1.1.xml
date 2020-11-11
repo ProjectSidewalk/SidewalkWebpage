@@ -4,7 +4,7 @@
 		module="logback-parent"
 		revision="1.1.1"
 		status="release"
-		publication="20140205151134"
+		publication="20140205231134"
 	>
 		<license name="Eclipse Public License - v 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
 		<license name="GNU Lesser General Public License" url="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html" />

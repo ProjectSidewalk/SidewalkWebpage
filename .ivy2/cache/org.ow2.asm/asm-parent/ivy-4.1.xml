@@ -4,7 +4,7 @@
 		module="asm-parent"
 		revision="4.1"
 		status="release"
-		publication="20121014083726"
+		publication="20121014153726"
 	>
 		<license name="BSD" url="http://asm.objectweb.org/license.html" />
 		<description homepage="http://asm.objectweb.org/">

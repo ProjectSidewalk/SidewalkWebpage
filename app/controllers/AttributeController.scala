@@ -3,14 +3,12 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import play.api.libs.json._
 import controllers.headers.ProvidesHeader
 import controllers.helper.AttributeControllerHelper
 import models.user.User
-
 import scala.concurrent.Future
 import play.api.mvc._
 import play.api.libs.json.Json
@@ -25,8 +23,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 
   /**
     * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
-    *
-    * @return
     */
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -39,7 +35,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   /**
     * Checks if the user is an administrator.
     *
-    * @param user
     * @return Boolean indicating if the user is an admin.
    */
   def isAdmin(user: Option[User]): Boolean = user match {
@@ -50,8 +45,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
 
   /**
     * Reads a key from a file and compares against input key, returning true if they match.
-    *
-    * @param key
     *
     * @return Boolean indicating whether the input key matches the true key.
     */
@@ -64,7 +57,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     * Calls the appropriate clustering function(s); either single-user clustering, multi-user clustering, or both.
     *
     * @param clusteringType One of "singleUser", "multiUser", or "both".
-    * @return
     */
   def runClustering(clusteringType: String) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -80,7 +72,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @param key A key used for authentication.
     * @param userId The user_id of the user who's labels should be retrieved.
-    * @return
     */
   def getUserLabelsToCluster(key: String, userId: String) = UserAwareAction.async { implicit request =>
 
@@ -97,7 +88,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @param key A key used for authentication.
     * @param regionId The region who's labels should be retrieved.
-    * @return
     */
   def getClusteredLabelsInRegion(key: String, regionId: Int) = UserAwareAction.async { implicit request =>
     val json = if (authenticate(key)) {
@@ -114,7 +104,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @param key A key used for authentication.
     * @param userId The user_id address of the user who's labels were clustered.
-    * @return
     */
   def postSingleUserClusteringResults(key: String, userId: String) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
     // The maxLength argument above allows a 100MB max load size for the POST request.
@@ -154,7 +143,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
                   cluster.temporary
                 )
               )
-            // Add all the labels associated with that user_attribute to the user_attribute_label table
+            // Add all the labels associated with that user_attribute to the user_attribute_label table.
             groupedLabels get cluster.clusterNum match {
               case Some(group) =>
                 for (label <- group) yield {
@@ -177,7 +166,6 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     *
     * @param key A key used for authentication.
     * @param regionId The region who's labels were clustered.
-    * @return
     */
   def postMultiUserClusteringResults(key: String, regionId: Int) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
     // The maxLength argument above allows a 100MB max load size for the POST request.
@@ -217,7 +205,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
                   cluster.severity,
                   cluster.temporary)
               )
-            // Add all the associated labels to the global_attribute_user_attribute table
+            // Add all the associated labels to the global_attribute_user_attribute table.
             groupedLabels get cluster.clusterNum match {
               case Some(group) =>
                 for (label <- group) yield {

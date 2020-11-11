@@ -4,7 +4,7 @@
 		module="akka-actor_2.10"
 		revision="2.3.4"
 		status="release"
-		publication="20140630043924"
+		publication="20140630113924"
 	>
 		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="http://akka.io/">

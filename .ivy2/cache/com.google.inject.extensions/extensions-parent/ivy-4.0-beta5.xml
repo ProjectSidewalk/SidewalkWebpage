@@ -4,7 +4,7 @@
 		module="extensions-parent"
 		revision="4.0-beta5"
 		status="release"
-		publication="20140924140327"
+		publication="20140924210327"
 	>
 		<description homepage="" />
 		<m:properties__guice.with.jarjar>true</m:properties__guice.with.jarjar>
@@ -18,7 +18,7 @@
 		<m:dependency.management__com.google.guava__guava-testlib__version>16.0.1</m:dependency.management__com.google.guava__guava-testlib__version>
 		<m:properties__guice.api.version>1.4</m:properties__guice.api.version>
 		<m:dependency.management__cglib__cglib__version>3.1</m:dependency.management__cglib__cglib__version>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__guice.with.no_aop>true</m:properties__guice.with.no_aop>
 		<m:maven.plugins>null__maven-gpg-plugin__1.4|null__maven-gpg-plugin__1.4|null__maven-remote-resources-plugin__null|org.codehaus.mojo__animal-sniffer-maven-plugin__null|org.apache.felix__maven-bundle-plugin__null|null__maven-source-plugin__null|null__maven-javadoc-plugin__null</m:maven.plugins>
 	</info>

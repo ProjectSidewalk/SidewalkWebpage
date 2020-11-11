@@ -1,7 +1,6 @@
 package models.user
 
 import java.util.UUID
-
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -36,7 +35,7 @@ object WebpageActivityTable {
   }
 
   /**
-    * Returns a list of signin counts, each element being a count of logins for a user
+    * Returns a list of signin counts, each element being a count of logins for a user.
     *
     * @return List[(userId: String, role: String, count: Int)]
     */
@@ -54,29 +53,15 @@ object WebpageActivityTable {
 
   /**
     * See if the user has previous logs for a specific activity.
-    * @param userId
-    * @param activity
-    * @return List[WebpageActivity]
     */
   def findUserActivity(activity: String, userId: UUID): List[WebpageActivity] = db.withSession { implicit session =>
     activities.filter(a => a.userId === userId.toString && a.activity === activity).list
   }
 
-  /**
-    * Returns all WebpageActivities that contain the given string in their 'activity' field
-    */
-  def find(activity: String): List[WebpageActivity] = db.withSession { implicit session =>
-    activities.filter(_.activity.like("%"++activity++"%")).list
-  }
-
-  /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field
+  /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field.
     *
     * Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins
-    * with "Cli...", such as "Click" will be matched)
-    *
-    * @param activity
-    * @param keyVals
-    * @return
+    * with "Cli...", such as "Click" will be matched).
     */
   def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = db.withSession { implicit session =>
     var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
@@ -86,7 +71,7 @@ object WebpageActivityTable {
     filteredActivities.list
   }
 
-  // Returns all webpage activities
+  // Returns all webpage activities.
   def getAllActivities: List[WebpageActivity] = db.withSession{implicit session =>
     activities.list
   }
@@ -104,5 +89,4 @@ object WebpageActivityTable {
       "timestamp" -> webpageActivity.timestamp
     )
   }
-
 }

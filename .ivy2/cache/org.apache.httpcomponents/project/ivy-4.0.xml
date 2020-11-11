@@ -4,7 +4,7 @@
 		module="project"
 		revision="4.0"
 		status="release"
-		publication="20091210110316"
+		publication="20091210190316"
 	>
 		<description homepage="http://hc.apache.org/">
 		Components to build HTTP enabled services

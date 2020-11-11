@@ -150,21 +150,24 @@ Database: sidewalk
     [success] Compiled in 124s
     ```
 
-1. If you make any changes to the assets (look in `Gruntfile.js` under `watch` block), these changes will be picked up by `grunt`. You'd need to reload the browser once the compilation finishes. For example, a change to `public/javascripts/FAQ/src/tableOfContents.js` file results in (output has been trimmed):
+1. If you make any changes to the assets (look in `Gruntfile.js` under `watch` block), these changes will be picked up by `grunt`. You'd need to reload the browser once the compilation finishes. For example, a change to `public/javascripts/HELP/src/tableOfContents.js` file results in (output has been trimmed):
 
     ```
-    >> File "public/javascripts/FAQ/src/tableOfContents.js" changed.
-    Running "concat:dist_svl" (concat) task
+    >> File "public/javascripts/Help/src/tableOfContents.js" changed.
+    Running "concat:dist_audit" (concat) task
     Running "concat:dist_progress" (concat) task
     Running "concat:dist_admin" (concat) task
-    Running "concat:dist_faq" (concat) task
-    Running "concat_css:all" (concat_css) task
+    Running "concat:dist_help" (concat) task
+    Running "concat:dist_validate" (concat) task
+    Running "concat_css:dist_audit" (concat_css) task
     File "public/javascripts/SVLabel/build/SVLabel.css" created.
+    Running "concat_css:dist_validate" (concat_css) task
+    File "public/javascripts/SVValidate/build/SVValidate.css" created.
 
     Done.
     Completed in 23.905s at Thu Dec 20 2018 09:31:45 GMT+0000 (Coordinated Universal Time) - Waiting...
 
-    [success] Compiled in 90s
+    [success] Compiled in 5s
     ```
 
 ## Running the application remotely

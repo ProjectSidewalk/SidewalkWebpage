@@ -1,23 +1,9 @@
 package models.mission
 
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
-
-import models.amt.{AMTAssignment, AMTAssignmentTable}
-import models.audit.AuditTaskTable
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.utils.MyPostgresDriver.simple._
-import models.region._
-import models.user.{RoleTable, UserRoleTable}
-import models.label.{LabelTable, LabelTypeTable}
-import models.region.RegionPropertyTable
-import play.api.Logger
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
-
-import scala.slick.lifted.{ForeignKeyQuery, QueryBase}
-import scala.slick.jdbc.GetResult
+import scala.slick.lifted.ForeignKeyQuery
 
 case class CVMissionPanoStatus(itemId: Int, linkedMissionId: Int, panoId: String, completed: Boolean, lat: Float, lng: Float)
 
@@ -44,6 +30,7 @@ object MissionProgressCVGroundtruthTable {
 
   /**
     * Fetches the remaining panos that still need to be audited for a particular user and ground truth audit mission.
+    *
     * @param userId a user id
     * @param missionId the id of a ground truth audit mission that belongs to this user
     * @return a list of panoIds that still need to be audited in this mission
@@ -59,13 +46,11 @@ object MissionProgressCVGroundtruthTable {
   }
 
   /**
-    * Marks a pano complete and updates the database. If all panos are complete, the entire mission is also marked
-    * as complete.
+    * Marks a pano complete and updates the database. If all panos complete, entire mission is also marked as complete.
     *
     * @param userId a user id
     * @param missionId id of a CV ground truth audit mission belonging to this user
     * @param panoId a panoID that is part of the mission, to mark as complete
-    * @return
     */
   def markPanoComplete(userId: UUID, missionId: Int, panoId: String) = db.withSession { implicit session =>
     cvMissionPanoStatuses.filter(panoStatus =>
@@ -102,7 +87,7 @@ object MissionProgressCVGroundtruthTable {
   }
 
   /**
-    * Adds a new row to the table
+    * Adds a new row to the table.
     */
   def save(requiredPanoStatus: CVMissionPanoStatus): Int = db.withTransaction { implicit session =>
     val requiredPanoStatusId: Int =

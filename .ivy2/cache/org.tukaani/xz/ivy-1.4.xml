@@ -4,7 +4,7 @@
 		module="xz"
 		revision="1.4"
 		status="release"
-		publication="20130922031433"
+		publication="20130922101433"
 	>
 		<license name="Public Domain" />
 		<description homepage="http://tukaani.org/xz/java.html">

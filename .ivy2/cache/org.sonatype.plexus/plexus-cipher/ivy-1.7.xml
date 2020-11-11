@@ -4,7 +4,7 @@
 		module="plexus-cipher"
 		revision="1.7"
 		status="release"
-		publication="20110726110634"
+		publication="20110726180634"
 	>
 		<description homepage="http://spice.sonatype.org/${project.artifactId}" />
 		<m:dependency.management__junit__junit__version>4.5</m:dependency.management__junit__junit__version>

@@ -1,19 +1,14 @@
 package models.label
 
-import models.audit.{AuditTask, AuditTaskTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class LabelPoint(labelPointId: Int, labelId: Int, svImageX: Int, svImageY: Int, canvasX: Int, canvasY: Int,
                       heading: Float, pitch: Float, zoom: Int, canvasHeight: Int, canvasWidth: Int,
                       alphaX: Float, alphaY: Float, lat: Option[Float], lng: Option[Float], geom: Option[Point])
 
-/**
- *
- */
 class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some("sidewalk"), "label_point") {
   def labelPointId = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
@@ -37,21 +32,17 @@ class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some
 
   def label: ForeignKeyQuery[LabelTable, Label] =
     foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
-
 }
 
 /**
- * Data access object for the label table
+ * Data access object for the label table.
  */
 object LabelPointTable {
   val db = play.api.db.slick.DB
   val labelPoints = TableQuery[LabelPointTable]
 
   /**
-    * Find a label point
-    *
-    * @param labelId
-    * @return
+    * Find a label point.
     */
   def find(labelId: Int): Option[LabelPoint] = db.withSession { implicit session =>
     val labelList = labelPoints.filter(_.labelId === labelId).list
@@ -59,18 +50,11 @@ object LabelPointTable {
   }
 
   /**
-   * Stores a label point into the label_point table
-   * @param point
-   * @return
+   * Stores a label point into the label_point table.
    */
   def save(point: LabelPoint): Int = db.withTransaction { implicit session =>
     val labelPointId: Int =
       (labelPoints returning labelPoints.map(_.labelPointId)) += point
     labelPointId
   }
-
-  /**
-   * Todo. I need to
-   * SELECT label_point_id, ST_SetSRID(ST_Point(lng, lat),4326) from sidewalk.label_point
-   */
 }

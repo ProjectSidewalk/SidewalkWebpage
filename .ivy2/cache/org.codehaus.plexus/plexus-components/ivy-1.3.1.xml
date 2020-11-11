@@ -4,7 +4,7 @@
 		module="plexus-components"
 		revision="1.3.1"
 		status="release"
-		publication="20121201155224"
+		publication="20121201235224"
 	>
 		<description homepage="http://plexus.codehaus.org/plexus-components" />
 		<m:dependency.management__junit__junit__version>3.8.2</m:dependency.management__junit__junit__version>

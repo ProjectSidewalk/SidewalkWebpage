@@ -4,7 +4,7 @@
 		module="sisu-guice"
 		revision="3.1.3"
 		status="release"
-		publication="20130131171432"
+		publication="20130201011432"
 	>
 		<description homepage="" />
 		<m:properties__guice.with.jarjar>true</m:properties__guice.with.jarjar>

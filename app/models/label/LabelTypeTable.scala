@@ -5,9 +5,6 @@ import play.api.Play.current
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
-/**
- *
- */
 class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
   def labelType = column[String]("label_type", O.NotNull)
@@ -17,30 +14,23 @@ class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("
 }
 
 /**
- * Data access object for the label_type table
+ * Data access object for the label_type table.
  */
 object LabelTypeTable {
   val db = play.api.db.slick.DB
   val labelTypes = TableQuery[LabelTypeTable]
 
   /**
-    * Gets the label type id from the label type name
-    *
-    * @param labelType
-    * @return
+    * Gets the label type id from the label type name.
     */
   def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
     labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).list.head
   }
 
   /**
-    * Gets the label type name from the label type id
-    *
-    * @param labelTypeId
-    * @return
+    * Gets the label type name from the label type id.
     */
   def labelTypeIdToLabelType(labelTypeId: Int): String = db.withTransaction { implicit session =>
     labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).list.head
   }
 }
-

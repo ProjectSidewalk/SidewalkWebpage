@@ -4,7 +4,7 @@
 		module="trireme-node10src"
 		revision="0.7.5"
 		status="release"
-		publication="20140516162310"
+		publication="20140516232310"
 	>
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>

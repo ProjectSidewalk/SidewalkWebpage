@@ -3,18 +3,15 @@ package models.label
 import java.net.{ConnectException, HttpURLConnection, SocketException, URL}
 import java.sql.Timestamp
 import java.util.UUID
-
-import models.audit.{AuditTask, AuditTaskEnvironmentTable, AuditTaskTable}
+import models.audit.{AuditTask, AuditTaskTable}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable, MissionTypeTable}
-import models.region.RegionTable
 import models.user.{RoleTable, UserRoleTable}
 import models.utils.MyPostgresDriver.simple._
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
-
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
@@ -49,14 +46,6 @@ case class LabelLocationWithSeverity(labelId: Int,
                                      lat: Float,
                                      lng: Float)
 
-
-case class LabelValidationLocation(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                   heading: Float, pitch: Float, zoom: Float, canvasX: Int,
-                                   canvasY: Int, canvasWidth: Int, canvasHeight: Int)
-
-/**
- *
- */
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
@@ -87,30 +76,23 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
 }
 
 /**
- * Data access object for the label table
+ * Data access object for the label table.
  */
 object LabelTable {
   val db = play.api.db.slick.DB
   val labels = TableQuery[LabelTable]
   val auditTasks = TableQuery[AuditTaskTable]
-  val completedAudits = auditTasks.filter(_.completed === true)
-  val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
   val gsvData = TableQuery[GSVDataTable]
   val labelTypes = TableQuery[LabelTypeTable]
   val labelPoints = TableQuery[LabelPointTable]
   val labelValidations = TableQuery[LabelValidationTable]
   val missions = TableQuery[MissionTable]
-  val regions = TableQuery[RegionTable]
   val severities = TableQuery[LabelSeverityTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
 
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
-  val neighborhoods = regions.filter(_.deleted === false).filter(_.regionTypeId === 2)
-
-  // Filters out the labels placed during onboarding (aka panoramas that are used during onboarding
-  // Onboarding labels have to be filtered out before a user's labeling frequency is computed
   val labelsWithoutDeletedOrOnboarding = labelsWithoutDeleted.filter(_.tutorial === false)
 
   case class LabelCountPerDay(date: String, count: Int)
@@ -167,10 +149,7 @@ object LabelTable {
   val labelTypeIdList: List[Int] = List(1, 2, 3, 4, 7)
 
   /**
-    * Find a label
-    *
-    * @param labelId
-    * @return
+    * Find a label.
     */
   def find(labelId: Int): Option[Label] = db.withSession { implicit session =>
     val labelList = labels.filter(_.labelId === labelId).list
@@ -178,9 +157,7 @@ object LabelTable {
   }
 
   /**
-    * Find all labels with given regionId and userId
-    * @param labelId
-    * @return
+    * Find all labels with given regionId and userId.
     */
   def resumeMiniMap(regionId: Int, userId: UUID): List[MiniMapResumeMetadata] = db.withSession { implicit session =>
     val labelsWithCVMetadata = for {
@@ -195,10 +172,6 @@ object LabelTable {
 
   /**
     * Find a label based on temp_label_id and audit_task_id.
-    *
-    * @param tempLabelId
-    * @param auditTaskId
-    * @return
     */
   def find(tempLabelId: Int, auditTaskId: Int): Option[Int] = db.withSession { implicit session =>
     val labelIds = labels.filter(x => x.temporaryLabelId === tempLabelId && x.auditTaskId === auditTaskId).map{
@@ -217,9 +190,8 @@ object LabelTable {
 
   /*
   * Counts the number of labels added today.
-  * If the task goes over two days, then all labels for that audit task
-  * will be added for the task end date
-  * Date: Aug 28, 2016
+  *
+  * If the task goes over two days, then all labels for that audit task will be added for the task end date.
   */
   def countTodayLabels: Int = db.withSession { implicit session =>
 
@@ -235,9 +207,8 @@ object LabelTable {
 
   /*
   * Counts the number of specific label types added today.
-  * If the task goes over two days, then all labels for that audit task
-  * will be added for the task end date
-  * Date: Aug 28, 2016
+  *
+  * If the task goes over two days, then all labels for that audit task will be added for the task end date.
   */
   def countTodayLabelsBasedOnType(labelType: String): Int = db.withSession { implicit session =>
 
@@ -255,8 +226,7 @@ object LabelTable {
   }
 
   /*
-  * Counts the number of labels added yesterday
-  * Date: Aug 28, 2016
+  * Counts the number of labels added yesterday.
   */
   def countYesterdayLabels: Int = db.withTransaction { implicit session =>
     val countQuery = Q.queryNA[(Int)](
@@ -270,7 +240,7 @@ object LabelTable {
   }
 
   /*
-  * Counts the number of specific label types added yesterday
+  * Counts the number of specific label types added yesterday.
   * Date: Aug 28, 2016
   */
   def countYesterdayLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
@@ -289,7 +259,7 @@ object LabelTable {
 
 
   /**
-    * This method returns the number of labels submitted by the given user
+    * Returns the number of labels submitted by the given user.
     *
     * @param userId User id
     * @return A number of labels submitted by the user
@@ -302,16 +272,13 @@ object LabelTable {
     _labels.length.run
   }
 
-  def updateDeleted(labelId: Int, deleted: Boolean) = db.withTransaction { implicit session =>
+  def updateDeleted(labelId: Int, deleted: Boolean): Int = db.withTransaction { implicit session =>
     val labs = labels.filter(_.labelId === labelId).map(lab => lab.deleted)
     labs.update(deleted)
   }
 
   /**
-   * Saves a new label in the table
-    *
-    * @param label
-   * @return
+   * Saves a new label in the table.
    */
   def save(label: Label): Int = db.withTransaction { implicit session =>
     val labelId: Int =
@@ -321,7 +288,6 @@ object LabelTable {
 
   /**
     * Returns all labels with sufficient metadata to produce crops for computer vision tasks.
-    * @return
     */
   def retrieveCVMetadata: List[LabelCVMetadata] = db.withSession { implicit session =>
     val labelsWithCVMetadata = for {
@@ -547,6 +513,7 @@ object LabelTable {
 
   /**
     * Retrieves a label with a given labelID for validation.
+    *
     * @param labelId  Label ID for label to retrieve.
     * @return         LabelValidationMetadata object.
     */
@@ -569,7 +536,6 @@ object LabelTable {
   /**
     * Returns how many labels this user has available to validate for each label type.
     *
-    * @param userId User ID.
     * @return List[(label_type_id, label_count)]
     */
   def getAvailableValidationLabelsByType(userId: UUID): List[(Int, Int)] = db.withSession { implicit session =>
@@ -601,7 +567,7 @@ object LabelTable {
     * @param userId         User ID for the current user.
     * @param n              Number of labels we need to query.
     * @param labelTypeId    Label Type ID of labels requested.
-    * @param skippedLabelid Label ID of the label that was just skipped (if applicable)
+    * @param skippedLabelId Label ID of the label that was just skipped (if applicable)
     * @return               Seq[LabelValidationMetadata]
     */
   def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]) : Seq[LabelValidationMetadata] = db.withSession { implicit session =>
@@ -714,15 +680,6 @@ object LabelTable {
   }
 
   /**
-    * Retrieves a random validation label type id (1, 2, 3, 4, 7).
-    * @return Integer corresponding to the label type id.
-    */
-  def retrieveRandomValidationLabelTypeId(): Int = db.withSession { implicit session =>
-    val labelTypeId: Int = labelTypeIdList(scala.util.Random.nextInt(labelTypeIdList.size))
-    labelTypeId
-  }
-
-  /**
     * Retrieves a list of possible label types that the user can validate.
     *
     * We do this by getting the number of labels available to validate for each label type. We then filter out label
@@ -732,7 +689,6 @@ object LabelTable {
     * @param userId               User ID of the current user.
     * @param count                Number of labels for this mission.
     * @param currentLabelTypeId   Label ID of the current mission
-    * @return
     */
   def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
     getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(labelTypeIdList.contains(_))
@@ -740,6 +696,7 @@ object LabelTable {
 
     /**
     * Checks if the panorama associated with a label exists by pinging Google Maps.
+    *
     * @param gsvPanoId  Panorama ID
     * @return           True if the panorama exists, false otherwise
     */
@@ -801,9 +758,6 @@ object LabelTable {
 
   /**
    * Returns a labelAndValidationsToMetadata object that has the label properties as well as the validation counts.
-   * @param label
-   * @param validations
-   * @return
    */
   def labelAndValidationsToMetadata(label: LabelMetadata, validations: Map[String, Int]): LabelMetadataWithValidation = {
     LabelMetadataWithValidation(
@@ -816,6 +770,7 @@ object LabelTable {
 
   /**
     * Returns a LabelMetadataWithValidation object that has label properties, tags, and validation results.
+    *
     * @param label label from query
     * @param tags list of tags as strings
     * @return LabelMetadata object
@@ -885,8 +840,7 @@ object LabelTable {
   /**
     * This method returns a list of strings with all the tags associated with a label
     *
-    * @param labelId Label id
-    * @return A list of strings with all the tags asscociated with a label
+    * @return A list of strings with all the tags associated with a label.
     */
   def getTagsFromLabelId(labelId: Int): List[String] = db.withSession { implicit session =>
       val getTagsQuery = Q.query[Int, (String)](
@@ -904,8 +858,6 @@ object LabelTable {
 
   /**
    * Returns validation counts for a label ("agree" -> Int, "diagree" -> Int, "unclear" -> Int).
-   * @param labelId
-   * @return
    */
   def getValidationsFromLabelId(labelId: Int): Map[String, Int] = db.withSession {implicit session =>
     val getValidationsQuery = Q.query[Int, (String, Int)](
@@ -923,46 +875,28 @@ object LabelTable {
   }
 
   /*
-   * Retrieve label metadata for a labelId
-   * @param labelId
+   * Retrieve label metadata for a labelId.
    */
   def getLabelMetadata(labelId: Int): LabelMetadataWithValidation = db.withSession { implicit session =>
     retrieveSingleLabelMetadata(labelId)
   }
 
-  /**
-    * Returns all the labels submitted by the given user
-    * @param userId
-    * @return
-    */
-  def selectLabelsByUserId(userId: UUID): List[Label] = db.withSession { implicit session =>
-    val _labels = for {
-      (_labels, _auditTasks) <- labelsWithoutDeleted.innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
-      if _auditTasks.userId === userId.toString
-    } yield _labels
-    _labels.list
-  }
-
   /*
-   * Retrieves label and its metadata
-   * Date: Sep 1, 2016
+   * Retrieves label and its metadata.
    */
   def selectTopLabelsAndMetadata(n: Int): List[LabelMetadataWithValidation] = db.withSession { implicit session =>
     retrieveLabelMetadata(n)
   }
 
   /*
-   * Retrieves label by user and its metadata
-   * Date: Sep 2, 2016
+   * Retrieves label by user and its metadata.
    */
   def selectTopLabelsAndMetadataByUser(n: Int, userId: UUID): List[LabelMetadata] = db.withSession { implicit session =>
     retrieveLabelMetadata(n, userId.toString)
   }
 
   /**
-    * This method returns all the submitted labels
-    *
-    * @return
+    * Returns all the submitted labels.
     */
   def selectLocationsOfLabels: List[LabelLocation] = db.withSession { implicit session =>
     val _labels = for {
@@ -978,9 +912,7 @@ object LabelTable {
   }
 
   /**
-    * This method returns all the submitted labels with their severities included.
-    *
-    * @return
+    * Returns all the submitted labels with their severities included.
     */
   def selectLocationsAndSeveritiesOfLabels: List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
@@ -1000,13 +932,7 @@ object LabelTable {
   }
 
   /**
-    * Retrieve Label Locations within a given bounding box
-    *
-    * @param minLat
-    * @param minLng
-    * @param maxLat
-    * @param maxLng
-    * @return
+    * Retrieve Label Locations within a given bounding box.
     */
   def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
     val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
@@ -1027,10 +953,7 @@ object LabelTable {
   }
 
   /**
-   * This method returns a list of labels submitted by the given user.
-    *
-    * @param userId
-   * @return
+   * Returns a list of labels submitted by the given user.
    */
   def selectLocationsOfLabelsByUserId(userId: UUID): List[LabelLocation] = db.withSession { implicit session =>
     val _labels = for {
@@ -1046,7 +969,7 @@ object LabelTable {
     labelLocationList
   }
 
-  def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int) = db.withSession { implicit session =>
+  def selectLocationsOfLabelsByUserIdAndRegionId(userId: UUID, regionId: Int): List[LabelLocation] = db.withSession { implicit session =>
     val selectQuery = Q.query[(String, Int), LabelLocation](
       """SELECT label.label_id,
         |       label.audit_task_id,
@@ -1091,8 +1014,6 @@ object LabelTable {
 
   /**
     * Returns a count of the number of labels placed on each day there were labels placed.
-    *
-    * @return
     */
   def selectLabelCountsPerDay: List[LabelCountPerDay] = db.withSession { implicit session =>
     val selectLabelCountQuery =  Q.queryNA[(String, Int)](
@@ -1109,7 +1030,6 @@ object LabelTable {
     )
     selectLabelCountQuery.list.map(x => LabelCountPerDay.tupled(x))
   }
-
 
   /**
     * Select label counts per user.
@@ -1132,10 +1052,8 @@ object LabelTable {
 
 
   /**
-    * Select street_edge_id of street closest to lat/lng position
+    * Select street_edge_id of street closest to lat/lng position.
     *
-    * @param lat
-    * @param lng
     * @return street_edge_id
     */
   def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): Option[Int] = db.withSession { implicit session =>
@@ -1150,10 +1068,6 @@ object LabelTable {
 
   /**
     * Gets the labels placed in the most recent mission.
-    *
-    * @param regionId
-    * @param userId
-    * @return
     */
   def getLabelsFromCurrentAuditMission(regionId: Int, userId: UUID): List[Label] = db.withSession { implicit session =>
     val recentMissionId: Option[Int] = MissionTable.missions
@@ -1169,9 +1083,6 @@ object LabelTable {
 
   /**
     * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
-    *
-    * @param auditTaskId
-    * @return
     */
   def nextTempLabelId(auditTaskId: Option[Int]): Int = db.withSession { implicit session =>
     labels.filter(_.auditTaskId === auditTaskId).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)

@@ -4,7 +4,7 @@
 		module="jcl-over-slf4j"
 		revision="1.7.6"
 		status="release"
-		publication="20140205143958"
+		publication="20140205223958"
 	>
 		<description homepage="http://www.slf4j.org">
 		JCL 1.1.1 implemented over SLF4J

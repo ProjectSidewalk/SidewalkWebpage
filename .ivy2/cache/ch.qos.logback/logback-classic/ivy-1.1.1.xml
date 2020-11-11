@@ -4,7 +4,7 @@
 		module="logback-classic"
 		revision="1.1.1"
 		status="release"
-		publication="20140205151300"
+		publication="20140205231300"
 	>
 		<license name="Eclipse Public License - v 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
 		<license name="GNU Lesser General Public License" url="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html" />
@@ -25,7 +25,7 @@
 		<m:properties__javax.mail.version>1.4</m:properties__javax.mail.version>
 		<m:properties__tomcat.version>7.0.21</m:properties__tomcat.version>
 		<m:dependency.management__org.codehaus.groovy__groovy-all__version>2.0.7</m:dependency.management__org.codehaus.groovy__groovy-all__version>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__maven-surefire-plugin.version>2.14.1</m:properties__maven-surefire-plugin.version>
 		<m:properties__maven-license-plugin.version>1.9.0</m:properties__maven-license-plugin.version>
 		<m:dependency.management__mysql__mysql-connector-java__version>5.1.9</m:dependency.management__mysql__mysql-connector-java__version>

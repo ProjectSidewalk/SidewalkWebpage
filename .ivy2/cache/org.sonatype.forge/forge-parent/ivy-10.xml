@@ -4,7 +4,7 @@
 		module="forge-parent"
 		revision="10"
 		status="release"
-		publication="20110331074733"
+		publication="20110331144733"
 	>
 		<description homepage="http://forge.sonatype.com/" />
 		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>

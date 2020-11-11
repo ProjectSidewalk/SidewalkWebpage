@@ -1,9 +1,6 @@
 package controllers
 
 import javax.inject.Inject
-import java.sql.Timestamp
-import java.time.Instant
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
@@ -13,17 +10,13 @@ import models.user.{User, UserCurrentRegionTable}
 import models.amt.AMTAssignmentTable
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
-
 import scala.concurrent.Future
-
 
 class MissionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
     * Return the completed missions in the user's current region in a JSON array.
-    *
-    * @return
     */
   def getMissionsInCurrentRegion() = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -45,8 +38,6 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
 
   /**
     * Return the total reward earned by the user.
-    *
-    * @return
     */
   def getTotalRewardEarned() = UserAwareAction.async { implicit request =>
     request.identity match {
@@ -78,4 +69,3 @@ class MissionController @Inject() (implicit val env: Environment[User, SessionAu
     )
   }
 }
-

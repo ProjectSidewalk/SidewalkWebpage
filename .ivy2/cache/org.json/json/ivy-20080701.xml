@@ -4,7 +4,7 @@
 		module="json"
 		revision="20080701"
 		status="release"
-		publication="20080720114729"
+		publication="20080720184729"
 	>
 		<license name="provided without support or warranty" url="http://www.json.org/license.html" />
 		<description homepage="http://www.json.org/java/index.html">
