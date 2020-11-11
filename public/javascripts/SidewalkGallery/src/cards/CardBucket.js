@@ -17,11 +17,18 @@ function CardBucket(bucket, size) {
         size++;
     }
 
+    function filterOnTags(tags) {
+        let tagSet = new Set(tags);
+        for (let severity in bucket) {
+            bucket[severity] = bucket[severity].filter(card => card.getProperty("tags").some(tag => tagSet.has(tag)));
+        }
+    }
+
     function getCards() {
         return bucket;
     }
 
-    function size() {
+    function getSize() {
         // let num = 0;
         // for (let i = 1; i <= 5; i++) {
         //     num += bucket[i].length;
@@ -53,7 +60,9 @@ function CardBucket(bucket, size) {
     }
 
     self.push = push;
+    self.filterOnTags = filterOnTags;
     self.getCards = getCards;
+    self.getSize = getSize;
     self.getCardsBySeverity = getCardsBySeverity;
     self.copy = copy;
 

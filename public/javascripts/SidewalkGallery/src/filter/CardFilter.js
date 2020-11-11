@@ -13,18 +13,18 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     };
 
     let tagsByType = {
-        Assorted: [],
-        CurbRamp: [],
-        NoCurbRamp: [],
-        Obstacle: [],
-        SurfaceProblem: [],
-        Other: [],
-        Occlusion: [],
-        NoSidewalk: [],
-        Problem: []
+        Assorted: new TagBucket(),
+        CurbRamp: new TagBucket(),
+        NoCurbRamp: new TagBucket(),
+        Obstacle: new TagBucket(),
+        SurfaceProblem: new TagBucket(),
+        Other: new TagBucket(),
+        Occlusion: new TagBucket(),
+        NoSidewalk: new TagBucket(),
+        Problem: new TagBucket()
     };
 
-    let currentTags = [];
+    let currentTags = new TagBucket();
 
     let severities = [];
    
@@ -66,9 +66,8 @@ function CardFilter(uiCardFilter, ribbonMenu) {
     }
 
     function render() {
-        for (let i = 0; i < currentTags.length; i++) {
-            currentTags[i].render(uiCardFilter.tags);
-        }
+        currentTags.render(uiCardFilter.tags);
+
         for (let i = 0; i < severities.length; i++){
             severities[i].render(uiCardFilter.severity);
         }
@@ -76,15 +75,8 @@ function CardFilter(uiCardFilter, ribbonMenu) {
 
     }
 
-    function getAppliedTags() {
-        let appliedTags = [];
-        for (let i = 0; i < currentTags.length; i++) {
-            if (currentTags[i].getStatus().applied) {
-                appliedTags.push(currentTags[i].getProperty("tag"));
-            }
-        }
-
-        return appliedTags;
+    function getAppliedTagNames() {
+        return currentTags.getAppliedTags().map(tag => tag.getTag());
     }
 
     function getTagsByType() {
@@ -111,21 +103,18 @@ function CardFilter(uiCardFilter, ribbonMenu) {
         if (labelType != null) {
             console.log("tags unapplied");
             console.log(tagsByType[labelType]);
-            let tagsToUnapply = tagsByType[labelType];
-            for (let i = 0; i < tagsToUnapply.length; i++) {
-                tagsToUnapply[i].unapply();
-            } 
+            tagsByType[labelType].unapplyTags();
         }
     }
 
     function clearCurrentTags() {
         uiCardFilter.tags.empty();
-        currentTags = [];
+        currentTags = new TagBucket();
     }
 
     self.update = update;
     self.render = render;
-    self.getAppliedTags = getAppliedTags;
+    self.getAppliedTagNames = getAppliedTagNames;
     self.getTagsByType = getTagsByType;
     self.getStatus = getStatus;
     self.setStatus = setStatus;
