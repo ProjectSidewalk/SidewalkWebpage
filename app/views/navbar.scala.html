@@ -10,7 +10,7 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="brand navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-id").get + "/sidewalk-logo.png")'></a>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
@@ -76,44 +76,44 @@
                 }
                 @if(url.isDefined && url.get != "/audit") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
+                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
                     </li>
                 }
                 <li class="active navbar-lnk">
-                    <a class="navbar-button navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                    <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
                 </li>
                 @if(url.isDefined && url.get == "/audit") {
                     <li class = "active navbar-lnk">
-                        <a class="navbar-button" href='@routes.ApplicationController.help' id="toolbar-help-link" target="_blank">@Messages("navbar.help")</a>
+                        <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
                 <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
-                    <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
+                    <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
                         @Messages("navbar.data")
                         <b class="caret"></b>
                     </a>
-                    <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
+                    <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                         <li>
-                            <a href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                            <a id="navbar-results" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
                         @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
                             <li>
-                                <a href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                                <a id="navbar-labelmap"href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                             </li>
                         }
                         <li>
-                            <a href='@routes.ApplicationController.leaderboard' role="menuitem">
+                            <a id="navbar-leaderboard" href='@routes.ApplicationController.leaderboard' role="menuitem">
                             @Messages("navbar.leaderboard")
                             </a>
                         </li>
                         <li>
-                            <a href='@routes.ApplicationController.developer' id="developer-api-link">@Messages("footer.api")</a>
+                            <a id="developer-api-link" href='@routes.ApplicationController.developer'>@Messages("footer.api")</a>
                         </li>
                     </ul>
                 </li>
@@ -179,58 +179,67 @@ $(document).ready(function () {
         });
     }
 
+    var labelMapText = "@Messages("navbar.labelmap")";
+    var leaderboardText = "@Messages("navbar.leaderboard")";
+    var sidewalkAPIText = "@Messages("footer.api")";
+
+    // Triggered when Project Sidewalk logo on navbar is clicked
+    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
+    $("#navbar-brand").on('click', function(){
+        logWebpageActivity("Click_module=PSLogo");
+    });
+
     // Triggered when 'Sign In' in navbar is clicked
     // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
     $("#sign-in-button").on('click', function(){
         logWebpageActivity("Click_module=SignIn");
     });
 
-    // // Triggered when 'Start Exploring' in navbar is clicked
-    $(".navbar-start-btn").on('click', function(){
+    // Triggered when 'Start Exploring' in navbar is clicked
+    $("#navbar-start-btn").on('click', function(){
         logWebpageActivity("Click_module=StartExploring");
     });
 
     // // Triggered when 'Start Validating' in navbar is clicked.
-    $(".navbar-validate-btn").on('click', function(){
+    $("#navbar-validate-btn").on('click', function(){
         logWebpageActivity("Click_module=StartValidating");
     });
 
     // // Triggered when 'How to Label' in navbar is clicked.
-    $(".navbar-guide-btn").on('click', function() {
+    $("#navbar-guide-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelingGuide");
     });
 
-    // // Triggered when 'Results' in navbar is clicked.
-    $(".navbarResultsBtn ").on('click', function(){
-        logWebpageActivity("Click_module=Results");
+
+    $("#navbar-results").on('click', function() {
+        logWebpageActivity("Click_module=ResultsMap");
     });
 
-    // // Triggered when 'Label Map' in navbar is clicked.
-    $(".navbarLabelMapBtn ").on('click', function(){
+    $("#navbar-labelmap").on('click', function() {
         logWebpageActivity("Click_module=LabelMap");
     });
 
-    // Triggered when links that are only shown on the audit page are clicked.
-    // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
-    var helpText = "@Messages("navbar.help")";
-    var howtoText = "@Messages("navbar.howto")";
-    @if(url.isDefined && url.get == "/audit") {
-        $(".navbar-lnk").on('click', function (e) {
-            var activity = "Click_module=RetakeTutorial";
-            if (e.currentTarget.innerHTML.includes(helpText)) {
-                activity = "Click_module=Help";
-            } else if (e.currentTarget.innerHTML.includes(howtoText)) {
-                activity = "Click_module=LabelingGuide";
-            }
-            logWebpageActivity(activity);
-        });
-    }
+    $("#navbar-leaderboard").on('click', function() {
+        logWebpageActivity("Click_module=Leaderboard");
+    }); 
 
-    // Triggered when Project Sidewalk logo on navbar is clicked
-    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
-    $("#brand").on('click', function(){
-        logWebpageActivity("Click_module=PSLogo");
+    $("#developer-api-link").on('click', function() {
+        logWebpageActivity("Click_module=SidewalkAPI");
     });
+
+    // Triggers when items in the dropdown menu are clicked
+    // Logs "Click_module=<>_location=Navbar_route=</|/audit|/help|...>"
+    // $("#nav-data-menu").on('click', function(e) {
+    //     var activity = "Click_module=ResultsMap";
+    //     if (e.target.innerHTML.includes(labelMapText)) {
+    //         activity = "Click_module=LabelMap";
+    //     } else if (e.target.innerHTML.includes(leaderboardText)) {
+    //         activity = "Click_module=Leaderboard"
+    //     } else if (e.target.innerHTML.includes(sidewalkAPIText)) { 
+    //         activity = "Click_module=SidewalkAPI"
+    //     }
+    //     logWebpageActivity(activity);
+    // });
 
     // Triggered when items in the user menu are clicked
     // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/help|...>""
@@ -243,6 +252,44 @@ $(document).ready(function () {
         }
         logWebpageActivity(activity);
     });
+
+
+    // Logs clicking Retake Tutorial button
+    $("#toolbar-onboarding-link").on('click', function(){
+        logWebpageActivity("Click_module=RetakeTutorial");
+    });
+
+    // Logs clicking Help button
+    $("#navbar-help-btn").on('click', function() {
+        logWebpageActivity("Click_module=Help");
+    });
+
+
+    // // Triggered when 'Results' in navbar is clicked.
+    // $(".navbarResultsBtn").on('click', function(){
+    //     logWebpageActivity("Click_module=Results");
+    // });
+
+    // // // Triggered when 'Label Map' in navbar is clicked.
+    // $(".navbarLabelMapBtn").on('click', function(){
+    //     logWebpageActivity("Click_module=LabelMap");
+    // });
+
+    // Triggered when links that are only shown on the audit page are clicked.
+    // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
+    // var helpText = "@Messages("navbar.help")";
+    // var howtoText = "@Messages("navbar.howto")";
+    // @if(url.isDefined && url.get == "/audit") {
+    //     $(".navbar-lnk").on('click', function (e) {
+    //         var activity = "Click_module=RetakeTutorial";
+    //         if (e.currentTarget.innerHTML.includes(helpText)) {
+    //             activity = "Click_module=Help";
+    //         } //else if (e.currentTarget.innerHTML.includes(howtoText)) {
+    //         //     activity = "Click_module=LabelingGuide";
+    //         // }
+    //         logWebpageActivity(activity);
+    //     });
+    // }   
 });
 </script>
 
