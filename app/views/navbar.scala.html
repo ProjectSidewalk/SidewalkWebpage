@@ -144,7 +144,7 @@
                             </li>
                         </ul>
                     } else {
-                        <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button id="sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
             </ul>
@@ -163,7 +163,7 @@ $(document).ready(function () {
     function logWebpageActivity(activity){
         var currentRoute = window.location.pathname;
         var url = "/userapi/logWebpageActivity";
-        var async = true;
+        var async = false;
         var activityToSend = activity + "_location=Navbar_route=" + currentRoute;
         $.ajax({
             async: async,
@@ -191,7 +191,7 @@ $(document).ready(function () {
 
     // Triggered when 'Sign In' in navbar is clicked
     // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
-    $("#sign-in-button").on('click', function(){
+    $("#sign-in-btn").on('click', function(){
         logWebpageActivity("Click_module=SignIn");
     });
 
