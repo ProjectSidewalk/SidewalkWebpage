@@ -12,7 +12,7 @@ function Severity (params){
 
 
     // a boolean to see if the current severity filter is active
-    let active = true;
+    let active = false;
 
     /**
      * 
