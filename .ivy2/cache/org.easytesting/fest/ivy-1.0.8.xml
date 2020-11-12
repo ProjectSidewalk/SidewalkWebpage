@@ -4,7 +4,7 @@
 		module="fest"
 		revision="1.0.8"
 		status="release"
-		publication="20110217013501"
+		publication="20110217093501"
 	>
 		<license name="Apache License, Version 2.0" url="LICENSE.txt" />
 		<description homepage="http://fest.easytesting.org">

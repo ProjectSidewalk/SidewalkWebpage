@@ -2,11 +2,9 @@ package models.services
 
 import java.util.UUID
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.daos.UserDAO
 import models.user.User
-
 import scala.concurrent.Future
 
 /**
@@ -39,5 +37,4 @@ class UserServiceImpl @Inject() (userDAO: UserDAO) extends UserService {
    * @return The saved user.
    */
   def save(user: User) = userDAO.save(user)
-
 }

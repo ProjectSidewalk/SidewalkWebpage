@@ -4,7 +4,7 @@
 		module="selenium-support"
 		revision="2.39.0"
 		status="release"
-		publication="20131216132113"
+		publication="20131216212113"
 	>
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>

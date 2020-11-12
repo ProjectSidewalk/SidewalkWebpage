@@ -2,23 +2,20 @@ package controllers
 
 import java.sql.Timestamp
 import java.util.UUID
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-
 import controllers.headers.ProvidesHeader
 import formats.json.ValidationTaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
 import models.label.LabelTable.LabelValidationMetadata
-import models.mission.{Mission, MissionTable, MissionSetProgress}
+import models.mission.{Mission, MissionTable}
 import models.user.User
 import models.validation._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
-
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 
@@ -36,7 +33,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           new Timestamp(interaction.timestamp), interaction.isMobile)
       })
 
-      // Insert Environment
+      // Insert Environment.
       val env: EnvironmentSubmission = data.environment
       val taskEnv: ValidationTaskEnvironment = ValidationTaskEnvironment(0, env.missionId, env.browser,
         env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
@@ -60,11 +57,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       data.missionProgress match {
         case Some(_) =>
           val missionProgress: ValidationMissionProgress = data.missionProgress.get
-          val missionId: Int = missionProgress.missionId
           val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
           val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(userOption, missionProgress, Some(currentMissionLabelTypeId))
           nextMissionLabelTypeId match {
-            // Load new mission, generate label list for validation
+            // Load new mission, generate label list for validation.
             case Some (nextMissionLabelTypeId) =>
               val possibleNewMission: Option[Mission] = updateMissionTable(userOption, missionProgress, Some(nextMissionLabelTypeId))
               val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId)
@@ -72,11 +68,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
               ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
             case None =>
               updateMissionTable(userOption, missionProgress, None)
-              // No more validation missions available
+              // No more validation missions available.
               if (missionProgress.completed) {
                 ValidationTaskPostReturnValue(None, None, None, None)
               } else {
-                // Validation mission is still in progress
+                // Validation mission is still in progress.
                 ValidationTaskPostReturnValue(Some(true), None, None, None)
               }
           }
@@ -100,9 +96,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON
-    *
-    * @return
+    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
     */
   def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
     val json = Json.parse(request.body)
@@ -118,7 +112,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * Parse submitted validation data and submit to tables
+    * Parse submitted validation data and submit to tables.
     * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
     * BodyParsers.parse.json in async
     */
@@ -136,7 +130,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
-   * @return
    */
   def postLabelMap = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val userId: UUID = request.identity.get.userId
@@ -162,11 +155,11 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
-    * Returns the label type id for the next validation mission
+    * Returns the label type id for the next validation mission.
+    *
     * @param user               UserId of the current user.
     * @param missionProgress    Progress of the current validation mission.
     * @param currentLabelTypeId Label Type ID of the current mission
-    * @return
     */
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
     val userId: UUID = user.get.userId
@@ -189,6 +182,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
     * Gets the metadata for a specific label in the database.
+    *
     * @param labelId  label_id for this label
     * @return Label metadata containing GSV metadata and label type
     */
@@ -204,6 +198,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
     * Gets a list of new labels to validate if the mission is complete.
+    *
     * @param user
     * @param missionProgress  Metadata for this mission
     * @return                 List of label metadata (if this mission is complete).
@@ -220,6 +215,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   
   /**
     * Gets a random list of labels to validate for this mission.
+    *
     * @param userId       User ID of the current user.
     * @param n            Number of labels to retrieve for this list.
     * @param labelTypeId  Label Type to retrieve
@@ -237,6 +233,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   /**
     * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
     * user, labels that have already appeared on the interface, and the label that was just skipped.
+    *
     * @param labelTypeId    Label Type Id this label should have
     * @param skippedLabelId Label ID of the label that was just skipped
     * @return               Label metadata containing GSV metadata and label type
@@ -266,6 +263,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
   /**
     * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
+    *
     * @param user                     User ID
     * @param missionProgress          Metadata for this mission
     * @param nextMissionLabelTypeId   Label Type ID for the next mission

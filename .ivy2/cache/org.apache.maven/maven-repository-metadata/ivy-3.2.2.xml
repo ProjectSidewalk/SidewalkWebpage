@@ -4,7 +4,7 @@
 		module="maven-repository-metadata"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065127"
+		publication="20140617135127"
 	>
 		<description homepage="">
 		Per-directory local and remote repository metadata.

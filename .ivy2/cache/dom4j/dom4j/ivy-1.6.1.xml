@@ -4,7 +4,7 @@
 		module="dom4j"
 		revision="1.6.1"
 		status="release"
-		publication="20060210043318"
+		publication="20060210123318"
 	>
 		<description homepage="http://dom4j.org">
 		dom4j: the flexible XML framework for Java

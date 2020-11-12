@@ -1,7 +1,6 @@
 package models.gsv
 
 import java.sql.Timestamp
-
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -32,8 +31,9 @@ object GSVDataTable {
 
   /**
     * This method marks the expired column of a panorama to be true.
-    * @param panoramaId GSV Panorama ID.
-    * @return           Boolean value of the expired column.
+    *
+    * @param gsvPanoramaId GSV Panorama ID.
+    * @return              Boolean value of the expired column.
     */
   def markExpired(gsvPanoramaId: String, expired: Boolean): Int = db.withTransaction { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.expired
@@ -42,6 +42,7 @@ object GSVDataTable {
 
   /**
     * This function records the last time this panorama was viewed.
+    *
     * @param gsvPanoramaId  GSV Panorama ID.
     * @param timestamp      Timestamp from the last time this panorama was accessed.
     * @return
@@ -52,7 +53,8 @@ object GSVDataTable {
   }
 
   /**
-    * This method checks if the given panorama id already exists in the table
+    * This method checks if the given panorama id already exists in the table.
+    *
     * @param panoramaId Google Street View panorama Id
     * @return
     */

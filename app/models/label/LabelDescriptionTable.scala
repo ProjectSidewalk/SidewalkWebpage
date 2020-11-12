@@ -18,10 +18,7 @@ object LabelDescriptionTable {
   val labelDescriptions = TableQuery[LabelDescriptionTable]
 
   /**
-    * Find a label description
-    *
-    * @param labelId
-    * @return
+    * Find a label description.
     */
   def find(labelId: Int): Option[LabelDescription] = db.withSession { implicit session =>
     val descriptions = labelDescriptions.filter(_.labelId === labelId).list
@@ -29,9 +26,7 @@ object LabelDescriptionTable {
   }
 
   /**
-    * Saves a new label description to the table
-    * @param pd
-    * @return
+    * Saves a new label description to the table.
     */
   def save(pd: LabelDescription): Int = db.withTransaction { implicit session =>
     val labelDescriptionId: Int =
@@ -41,14 +36,9 @@ object LabelDescriptionTable {
 
   /**
     * Updates description of the specified id to be newDescription.
-    *
-    * @param descriptionId
-    * @param newDescription
-    * @return
     */
-  def updateDescription(descriptionId: Int, newDescription: String) = db.withTransaction { implicit session =>
+  def updateDescription(descriptionId: Int, newDescription: String): Int = db.withTransaction { implicit session =>
     val description = labelDescriptions.filter(_.labelDescriptionId === descriptionId).map(x => x.description)
     description.update(newDescription)
   }
 }
-

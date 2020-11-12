@@ -5,7 +5,6 @@ import play.api.Play.current
 import java.sql.Timestamp
 import models.survey._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class UserSurveyOptionSubmission(userSurveyOptionSubmissionId: Int, userId: String, surveyQuestionId: Int, surveyOptionId: Option[Int], timeSubmitted: Timestamp, numMissionsCompleted: Int)
@@ -35,5 +34,4 @@ object UserSurveyOptionSubmissionTable{
       (userSurveyOptionSubmissions returning userSurveyOptionSubmissions.map(_.userSurveyOptionSubmissionId)) += userSurveyOptionSubmission
     userSurveyOptionSubmissionId
   }
-
 }

@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>it.geosolutions.jaiext</groupId>
+		<artifactId>jaiext</artifactId>
+		<version>1.1.14</version>
+	</parent>
+	<groupId>it.geosolutions.jaiext.rlookup</groupId>
+	<artifactId>jt-rlookup</artifactId>
+	<version>1.1.14</version>
+	<name>jt-rlookup</name>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>it.geosolutions.jaiext.utilities</groupId>
+			<artifactId>jt-utilities</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>it.geosolutions.jaiext.utilities</groupId>
+			<artifactId>jt-utilities</artifactId>
+			<version>${project.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>

@@ -5,35 +5,7 @@
 
 @main(title) {
     @navbar(user, Some("/results"))
-    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
-
-    <!--
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-12">
-                <div id="map-holder">
-                    <img src='@routes.Assets.at("images/CityAccessibilityResultsWithOverlayText_Dec6.png")'
-                         alt="Visualization of the data collected" class="img-responsive">
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-12">
-                <h1>Accessibility Problems Discovered</h1>
-                <div id="map-holder">
-                    <img src='@routes.Assets.at("images/CityAccessibilityProblems_Dec6.png")'
-                         alt="Visualization of the problems uncovered" class="img-responsive">
-                </div>
-            </div>
-        </div>
-    </div>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesColor.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
-    -->
-
-<div class="container" id="results-choropleth-container" style="width: 100%;
+    <div class="container" id="results-choropleth-container" style="width: 100%;
         position: relative;">
         <div id="map-holder">
             <div id="legend" style="display:none;">
@@ -83,7 +55,8 @@
 <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-5.1.6.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/detectMobileBrowser.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
 

@@ -4,7 +4,7 @@
 		module="slf4j-parent"
 		revision="1.7.6"
 		status="release"
-		publication="20140205143702"
+		publication="20140205223702"
 	>
 		<license name="MIT License" url="http://www.opensource.org/licenses/mit-license.php" />
 		<description homepage="http://www.slf4j.org">

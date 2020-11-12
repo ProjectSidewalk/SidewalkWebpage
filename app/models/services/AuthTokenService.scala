@@ -1,9 +1,7 @@
 package models.services
 
 import java.util.UUID
-
 import models.AuthToken
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps

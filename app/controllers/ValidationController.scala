@@ -4,11 +4,9 @@ import scala.util.matching.Regex
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import formats.json.CommentSubmissionFormats._
 import models.amt.AMTAssignmentTable
@@ -22,22 +20,18 @@ import models.user._
 import play.api.libs.json._
 import play.api.Logger
 import play.api.mvc._
-
 import scala.concurrent.Future
 
 class ValidationController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
-  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   val validationMissionStr: String = "validation"
   val mobileValidationMissionStr: String = "validation"
   val rapidValidationMissionStr: String = "rapidValidation"
 
   /**
-    * Returns true if the user is on mobile, false if the user is not on mobile
-    * @return
+    * Returns true if the user is on mobile, false if the user is not on mobile.
     */
     def isMobile[A](implicit request: Request[A]): Boolean = {
-      
       val mobileOS: Regex = "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
       request.headers.get("User-Agent").exists(agent => {
         agent match{
@@ -49,7 +43,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Returns the validation page with a single panorama.
-    * @return
     */
   def validate = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
@@ -69,7 +62,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Returns the validation page for mobile.
-    * @return
     */
   def mobileValidate = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
@@ -89,7 +81,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
     * Returns the validation page with multiple panoramas.
-    * @return
     */
   def rapidValidate = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
@@ -169,8 +160,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   }
 
   /**
-    * Handles a comment POST request. It parses the comment and inserts it into the comment table
-    * @return
+    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
     */
   def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[ValidationCommentSubmission]

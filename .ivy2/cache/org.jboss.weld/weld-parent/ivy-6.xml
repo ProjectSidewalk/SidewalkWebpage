@@ -4,7 +4,7 @@
 		module="weld-parent"
 		revision="6"
 		status="release"
-		publication="20091108135201"
+		publication="20091108215201"
 	>
 		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="http://www.seamframework.org/Weld">

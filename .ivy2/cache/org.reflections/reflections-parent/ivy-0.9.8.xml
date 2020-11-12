@@ -4,7 +4,7 @@
 		module="reflections-parent"
 		revision="0.9.8"
 		status="release"
-		publication="20120524121752"
+		publication="20120524191752"
 	>
 		<license name="WTFPL" url="http://en.wikipedia.org/wiki/WTFPL" />
 		<description homepage="http://code.google.com/p/reflections/">
