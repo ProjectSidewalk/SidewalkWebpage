@@ -99,21 +99,21 @@
                     </a>
                     <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                         <li>
-                            <a id="navbar-results" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                            <a id="navbar-results-btn" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                         </li>
                         <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
                         @if(!List("seattle-wa").contains(Play.configuration.getString("city-id").get)) {
                             <li>
-                                <a id="navbar-labelmap"href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
+                                <a id="navbar-labelmap-btn"href="@routes.ApplicationController.labelMap">@Messages("navbar.labelmap")</a>
                             </li>
                         }
                         <li>
-                            <a id="navbar-leaderboard" href='@routes.ApplicationController.leaderboard' role="menuitem">
+                            <a id="navbar-leaderboard-btn" href='@routes.ApplicationController.leaderboard' role="menuitem">
                             @Messages("navbar.leaderboard")
                             </a>
                         </li>
                         <li>
-                            <a id="developer-api-link" href='@routes.ApplicationController.developer'>@Messages("footer.api")</a>
+                            <a id="developer-api-link-btn" href='@routes.ApplicationController.developer'>@Messages("footer.api")</a>
                         </li>
                     </ul>
                 </li>
@@ -211,19 +211,19 @@ $(document).ready(function () {
     });
 
 
-    $("#navbar-results").on('click', function() {
+    $("#navbar-results-btn").on('click', function() {
         logWebpageActivity("Click_module=ResultsMap");
     });
 
-    $("#navbar-labelmap").on('click', function() {
+    $("#navbar-labelmap-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelMap");
     });
 
-    $("#navbar-leaderboard").on('click', function() {
+    $("#navbar-leaderboard-btn").on('click', function() {
         logWebpageActivity("Click_module=Leaderboard");
     }); 
 
-    $("#developer-api-link").on('click', function() {
+    $("#developer-api-link-btn").on('click', function() {
         logWebpageActivity("Click_module=SidewalkAPI");
     });
 
