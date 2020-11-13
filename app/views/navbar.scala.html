@@ -71,7 +71,7 @@
                 }
                 @if(url.isDefined && url.get == "/audit") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" href="#" id="toolbar-onboarding-link">@Messages("navbar.retake.tutorial")</a>
+                        <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/audit") {
@@ -201,7 +201,7 @@ $(document).ready(function () {
         logWebpageActivity("Click_module=LabelingGuide");
     });
     
-    $("#toolbar-onboarding-link").on('click', function(){
+    $("#navbar-retake-tutorial-btn").on('click', function(){
         logWebpageActivity("Click_module=RetakeTutorial");
     });
 
