@@ -179,10 +179,6 @@ $(document).ready(function () {
         });
     }
 
-    var labelMapText = "@Messages("navbar.labelmap")";
-    var leaderboardText = "@Messages("navbar.leaderboard")";
-    var sidewalkAPIText = "@Messages("footer.api")";
-
     // Triggered when Project Sidewalk logo on navbar is clicked
     // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
     $("#navbar-brand").on('click', function(){
@@ -200,12 +196,12 @@ $(document).ready(function () {
         logWebpageActivity("Click_module=StartExploring");
     });
 
-    // // Triggered when 'Start Validating' in navbar is clicked.
+    // Triggered when 'Start Validating' in navbar is clicked.
     $("#navbar-validate-btn").on('click', function(){
         logWebpageActivity("Click_module=StartValidating");
     });
 
-    // // Triggered when 'How to Label' in navbar is clicked.
+    // Triggered when 'How to Label' in navbar is clicked.
     $("#navbar-guide-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelingGuide");
     });
@@ -226,20 +222,6 @@ $(document).ready(function () {
     $("#developer-api-link-btn").on('click', function() {
         logWebpageActivity("Click_module=SidewalkAPI");
     });
-
-    // Triggers when items in the dropdown menu are clicked
-    // Logs "Click_module=<>_location=Navbar_route=</|/audit|/help|...>"
-    // $("#nav-data-menu").on('click', function(e) {
-    //     var activity = "Click_module=ResultsMap";
-    //     if (e.target.innerHTML.includes(labelMapText)) {
-    //         activity = "Click_module=LabelMap";
-    //     } else if (e.target.innerHTML.includes(leaderboardText)) {
-    //         activity = "Click_module=Leaderboard"
-    //     } else if (e.target.innerHTML.includes(sidewalkAPIText)) { 
-    //         activity = "Click_module=SidewalkAPI"
-    //     }
-    //     logWebpageActivity(activity);
-    // });
 
     // Triggered when items in the user menu are clicked
     // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/help|...>""
