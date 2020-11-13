@@ -46,7 +46,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case Some(user) =>
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
           val ipAddress: String = request.remoteAddress
-          
           WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
         case None =>
                 
