@@ -1,6 +1,5 @@
 #example-image-holder {
     height: 170px;
-    /* background: rgb(185, 185, 185); */
 }
 
 .example-image {
@@ -56,7 +55,6 @@
     top: 31px;
     width: 200px;
     color: rgb(127, 127, 127);
-
 }
 
 .status-box {

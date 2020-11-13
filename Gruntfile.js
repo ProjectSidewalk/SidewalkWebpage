@@ -26,8 +26,14 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/status/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/task/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/user/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/util/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/zoom/*.js'
+                    'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
+                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/Utilities.js',
+                    'public/javascripts/common/UtilitiesColor.js',
+                    'public/javascripts/common/UtilitiesMath.js',
+                    'public/javascripts/common/UtilitiesPanomarker.js',
+                    'public/javascripts/common/UtilitiesShape.js',
+                    'public/javascripts/common/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
@@ -63,8 +69,8 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/Panomarker.js',
-                    'public/javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js'
+                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             }
