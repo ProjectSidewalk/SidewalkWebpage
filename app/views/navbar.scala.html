@@ -128,23 +128,23 @@
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
                             <li role="presentation">
-                                <a href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
+                                <a id="navbar-dashboard-btn" href='@routes.UserProfileController.userProfile(user.get.username)' role="menuitem">
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
-                                    <a href='@routes.AdminController.index' role="menuitem">
+                                    <a id="navbar-admin-btn" href='@routes.AdminController.index' role="menuitem">
                                         @Messages("navbar.admin")
                                     </a>
                                 </li>
                             }
                             <li role="presentation">
-                                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
+                                <a id="navbar-sign-out-btn" href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
                             </li>
                         </ul>
                     } else {
-                        <button id="sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="gray-btn" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
                     }
                 </li>
             </ul>
@@ -179,34 +179,37 @@ $(document).ready(function () {
         });
     }
 
-    // Triggered when Project Sidewalk logo on navbar is clicked
-    // Logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
+    // The rest of this script logs whichever button is hit in the navbar
+    // Example: Following logs "Click_module=PSLogo_location=Navbar_route=</|/audit|/help|...>"
     $("#navbar-brand").on('click', function(){
         logWebpageActivity("Click_module=PSLogo");
     });
 
-    // Triggered when 'Sign In' in navbar is clicked
-    // Logs "Click_module=SignIn_location=Navbar_route=</|/audit|/help|...>"
-    $("#sign-in-btn").on('click', function(){
+    $("#navbar-sign-in-btn").on('click', function(){
         logWebpageActivity("Click_module=SignIn");
     });
 
-    // Triggered when 'Start Exploring' in navbar is clicked
     $("#navbar-start-btn").on('click', function(){
         logWebpageActivity("Click_module=StartExploring");
     });
 
-    // Triggered when 'Start Validating' in navbar is clicked.
     $("#navbar-validate-btn").on('click', function(){
         logWebpageActivity("Click_module=StartValidating");
     });
 
-    // Triggered when 'How to Label' in navbar is clicked.
     $("#navbar-guide-btn").on('click', function() {
         logWebpageActivity("Click_module=LabelingGuide");
     });
+    
+    $("#toolbar-onboarding-link").on('click', function(){
+        logWebpageActivity("Click_module=RetakeTutorial");
+    });
 
+    $("#navbar-help-btn").on('click', function() {
+        logWebpageActivity("Click_module=Help");
+    });
 
+    // Following buttons are in the Data Drop Down Menu!!!
     $("#navbar-results-btn").on('click', function() {
         logWebpageActivity("Click_module=ResultsMap");
     });
@@ -222,56 +225,19 @@ $(document).ready(function () {
     $("#developer-api-link-btn").on('click', function() {
         logWebpageActivity("Click_module=SidewalkAPI");
     });
-
-    // Triggered when items in the user menu are clicked
-    // Logs "Click_module=<SignOut|ToDashboard|ToAdmin>_location=Navbar_route=</|/audit|/help|...>""
-    $("#nav-user-menu").on('click', function(e){
-        var activity = "Click_module=SignOut";
-        if(e.target.innerText.includes("Admin")){
-            activity = "Click_module=ToAdmin";
-        }else if(e.target.innerText.includes("dashboard")){
-            activity = "Click_module=ToDashboard";
-        }
-        logWebpageActivity(activity);
+    
+    // Following buttons are in the User Drop Down Menu!!!
+    $("#navbar-sign-out-btn").on('click', function() {
+        logWebpageActivity("Click_module=SignOut");
+    });
+   
+    $("#navbar-admin-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToAdmin");
     });
 
-
-    // Logs clicking Retake Tutorial button
-    $("#toolbar-onboarding-link").on('click', function(){
-        logWebpageActivity("Click_module=RetakeTutorial");
+    $("#navbar-dashboard-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToDashboard")
     });
-
-    // Logs clicking Help button
-    $("#navbar-help-btn").on('click', function() {
-        logWebpageActivity("Click_module=Help");
-    });
-
-
-    // // Triggered when 'Results' in navbar is clicked.
-    // $(".navbarResultsBtn").on('click', function(){
-    //     logWebpageActivity("Click_module=Results");
-    // });
-
-    // // // Triggered when 'Label Map' in navbar is clicked.
-    // $(".navbarLabelMapBtn").on('click', function(){
-    //     logWebpageActivity("Click_module=LabelMap");
-    // });
-
-    // Triggered when links that are only shown on the audit page are clicked.
-    // Logs "Click_module=<RetakeTutorial|Help>_location=Navbar_route=</|/audit|/help|...>"
-    // var helpText = "@Messages("navbar.help")";
-    // var howtoText = "@Messages("navbar.howto")";
-    // @if(url.isDefined && url.get == "/audit") {
-    //     $(".navbar-lnk").on('click', function (e) {
-    //         var activity = "Click_module=RetakeTutorial";
-    //         if (e.currentTarget.innerHTML.includes(helpText)) {
-    //             activity = "Click_module=Help";
-    //         } //else if (e.currentTarget.innerHTML.includes(howtoText)) {
-    //         //     activity = "Click_module=LabelingGuide";
-    //         // }
-    //         logWebpageActivity(activity);
-    //     });
-    // }   
 });
 </script>
 
