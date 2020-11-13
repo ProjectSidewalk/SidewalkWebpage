@@ -3,6 +3,8 @@ package controllers
 import java.util.UUID
 import javax.inject.Inject
 import java.net.URLDecoder
+import java.sql.Timestamp
+import java.time.Instant
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
@@ -17,7 +19,7 @@ import models.label.{LabelPointTable, LabelTable, LabelTypeTable, LabelValidatio
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
-import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
+import models.user._
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
@@ -40,6 +42,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
+      request.identity match {
+        case Some(user) =>
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+          val ipAddress: String = request.remoteAddress
+          
+          WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
+        case None =>
+                
+      }
       Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
     } else {
       Future.successful(Redirect("/"))
