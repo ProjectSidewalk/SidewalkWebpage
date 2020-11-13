@@ -63,8 +63,8 @@ function LabelVisibilityControl () {
     function refreshLabel () {
         let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="label-visibility-control-button-icon" alt="Hide Label">
         <br /><u>H</u>ide Label</button>`;
-        $("#label-visibility-control-button").html(htmlString);
-        $("#label-visibility-control-button").css({
+        labelVisibilityControlButton.html(htmlString);
+        labelVisibilityControlButton.css({
             "background": ""
         });
     }

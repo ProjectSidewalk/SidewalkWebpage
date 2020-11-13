@@ -66,25 +66,25 @@
             </div>
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
-                    <div id="svv-panorama-0" class="single-panorama">
+                    <div id="svv-panorama">
                         <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
                             <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
                             <div id="label-description-box"></div>
                         </div>
                     </div>
-                    <div id="svv-panorama-date-holder-0" class="svv-panorama-date-holder">
-                        <span id="svv-panorama-date-0">no</span>
+                    <div id="svv-panorama-date-holder">
+                        <span id="svv-panorama-date">no</span>
                     </div>
                     <div id="validation-button-holder-large">
-                        <button id="validation-agree-button-0" class="validation-button-large">
+                        <button id="validation-agree-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
                             @Html(Messages("validate.bottom.ui.agree"))
                         </button>
-                        <button id="validation-disagree-button-0" class="validation-button-large">
+                        <button id="validation-disagree-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
                             @Html(Messages("validate.bottom.ui.disagree"))
                         </button>
-                        <button id="validation-not-sure-button-0" class="validation-button-large">
+                        <button id="validation-not-sure-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
                             @Html(Messages("validate.bottom.ui.not.sure"))
                         </button>
@@ -286,7 +286,6 @@
             param.completedValidations = @completedValidations;
             param.canvasHeight = 440;
             param.canvasWidth = 720;
-            param.canvasCount = 1;
             param.language = "@lang.code";
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",

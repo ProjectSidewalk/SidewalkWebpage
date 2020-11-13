@@ -1,12 +1,12 @@
 /**
- * Represents a validation label
+ * Represents a validation label.
  * @returns {Label}
  * @constructor
  */
 function Label(params) {
-    // Original properties of the label collected during the audit interface. These properties are
-    // initialized from metadata from the backend. These properties are used to help place the label
-    // on the validation interface and should not be changed.
+    // Original properties of the label collected through the audit interface. These properties are initialized from
+    // metadata from the backend. These properties are used to help place the label on the validation interface and
+    // should not be changed.
     let auditProperties = {
         canvasHeight: undefined,
         canvasWidth: undefined,
@@ -210,9 +210,8 @@ function Label(params) {
      * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
      *
      * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
-     * @param panorama          Panorama object that this label was placed on.
      */
-    function validate(validationResult, panorama, comment) {
+    function validate(validationResult, comment) {
         // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center
         // of the viewport.
         let pos = getPosition();
@@ -222,8 +221,8 @@ function Label(params) {
         };
 
         // This is the POV of the viewport center - this is where the user is looking.
-        let userPov = panorama.getPov();
-        let zoom = panorama.getZoom();
+        let userPov = svv.panorama.getPov();
+        let zoom = svv.panorama.getZoom();
 
         // Calculates the center xy coordinates of the Label on the current viewport.
         let pixelCoordinates = svv.util.properties.panorama.povToPixel3d(panomarkerPov, userPov,
@@ -283,11 +282,10 @@ function Label(params) {
                 break;
         }
 
-        // If there are more labels left to validate, add a new label to the panorama.
-        // Otherwise, we will load a new label onto the panorama from Form.js - where we still need
-        // to retrieve 10 more labels for the next mission.
+        // If there are more labels left to validate, add a new label to the panorama. Otherwise, we will load a new
+        // label onto the panorama from Form.js - where we still need to retrieve 10 more labels for the next mission.
         if (!svv.missionContainer.getCurrentMission().isComplete()) {
-            svv.panoramaContainer.loadNewLabelOntoPanorama(panorama);
+            svv.panoramaContainer.loadNewLabelOntoPanorama();
         }
     }
 

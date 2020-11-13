@@ -31,7 +31,7 @@ function ModalMission (uiModalMission, user) {
                 }
             );
         }
-        // Update zoom availability on /validate (/rapidValidate doesn't have zoom right now).
+        // Update zoom availability on desktop.
         if (svv.zoomControl) {
             svv.zoomControl.updateZoomAvailability();
         }
@@ -102,7 +102,7 @@ function ModalMission (uiModalMission, user) {
     }
 
     function show (title, instruction) {
-        // Disable keyboard on /validate (/rapidValidate doesn't have keyboard shortcuts right now).
+        // Disable keyboard on mobile.
         if (svv.keyboard) {
             svv.keyboard.disableKeyboard();
         }
