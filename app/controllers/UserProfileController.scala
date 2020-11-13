@@ -1,6 +1,8 @@
 package controllers
 
 import javax.inject.Inject
+import java.sql.Timestamp
+import java.time.Instant
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
@@ -8,7 +10,7 @@ import controllers.headers.ProvidesHeader
 import models.audit.AuditTaskTable
 import models.mission.MissionTable
 import models.label.{LabelTable, LabelValidationTable}
-import models.user.User
+import models.user.{User, WebpageActivityTable, WebpageActivity}
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
@@ -30,6 +32,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val auditedDistance: Float =
           if (Messages("measurement.system") == "metric") MissionTable.getDistanceAudited(user.userId) * 1.60934.toFloat
           else MissionTable.getDistanceAudited(user.userId)
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val ipAddress: String = request.remoteAddress
+        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Dashboard", timestamp))
         Future.successful(Ok(views.html.userProfile(s"Project Sidewalk - $username", Some(user), auditedDistance)))
       case None => Future.successful(Redirect(s"/anonSignUp?url=/contribution/$username"))
     }
