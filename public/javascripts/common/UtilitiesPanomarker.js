@@ -149,30 +149,6 @@ function calculateImageCoordinateFromPointPov (pov) {
 util.panomarker.calculateImageCoordinateFromPointPov = calculateImageCoordinateFromPointPov;
 
 /**
- * 0 for image y-axis is at *3328*! So the top-left corner of the image is (0, 3328).
- *
- * @param imageX
- * @param imageY
- * @param currentPov
- */
-function imageCoordinateToCanvasCoordinate(imageX, imageY, currentPov) {
-
-    // var canvasX = (ix - svl.svImageWidth * pov.heading / 360) * zoomFactor / svl.alpha_x + svl.canvasWidth / 2;
-    // var canvasY = (iy - svl.svImageHeight * pov.pitch / 180) * zoomFactor / svl.alpha_y + svl.canvasHeight / 2;
-
-    var povChange = svl.map.getPovChangeStatus();
-    povChange["status"] = true;
-
-    var canvasCoordinate;
-    var origPointPov = calculatePointPovFromImageCoordinate(imageX, imageY, currentPov);
-    canvasCoordinate = getCanvasCoordinate (canvasCoordinate, origPointPov, currentPov);
-    povChange["status"] = false;
-
-    return {x: canvasCoordinate.x, y: canvasCoordinate.y};
-}
-util.panomarker.imageCoordinateToCanvasCoordinate = imageCoordinateToCanvasCoordinate;
-
-/**
  * This function maps canvas coordinate to image coordinate
  * @param canvasX
  * @param canvasY

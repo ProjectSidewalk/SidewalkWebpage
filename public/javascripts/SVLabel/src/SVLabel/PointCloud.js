@@ -69,41 +69,9 @@ function PointCloud (params) {
         _callbacks[panoId].push(func);
     }
 
-    /**
-     * Given the coordinate x, y (and z), return index of the point cloud data.
-     * To further calculate the x- and y-coordinates, do as follows:
-     *
-     * ix = idx / 3 % w
-     * iy = (idx / 3 - ix) / w
-     *
-     * @panoId
-     * @param panoId
-     * @param param An object that could contain z-coordinate and a distance tolerance (r).
-     * @return idx
-     */
-    function search(panoId, param) {
-        if (panoId in _pointClouds && getPointCloud(panoId)){
-            var pc = getPointCloud(panoId);
-
-            // kd-tree. It's slooooooow. I'll try Three.js later.
-            // https://github.com/ubilabs/kd-tree-javascript
-            //var point = pc.tree.nearest({x: param.x, y: param.y, z: param.z}, 1, 100);
-            var point = pc.tree.nearest({x: param.x, y: param.y, z: param.z}, 1, 40);
-            if (point && point[0]) {
-                var idx = point[0][0].id;
-                return idx;
-                //var ix = idx / 3 % w;
-                //var iy = (idx / 3 - ix) / w;
-                //return {ix: ix, iy: iy};
-            }
-        }
-        return null;
-    }
-
     self.createPointCloud = createPointCloud;
     self.getPointCloud = getPointCloud;
     self.ready = ready;
-    self.search = search;
 
     _init(params);
     return self;
