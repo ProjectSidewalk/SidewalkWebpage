@@ -26,6 +26,10 @@ function CardContainer(uiCardContainer) {
 
     let pageNumberDisplay = null;
 
+    let pagewidth;
+
+    const cardPadding = 25;
+
     let cardsByType = {
         Assorted: null,
         CurbRamp: null,
@@ -45,6 +49,7 @@ function CardContainer(uiCardContainer) {
     let currentCards = new CardBucket();
 
     function _init() {
+        pagewidth = uiCardContainer.holder.width();
         if (uiCardContainer) {
             uiCardContainer.nextPage.bind({
                 click: handleNextPageClick
@@ -265,6 +270,9 @@ function CardContainer(uiCardContainer) {
      */
     function render() {
         uiCardContainer.holder.empty();
+        pagewidth = uiCardContainer.holder.width();
+        const cardWidth = pagewidth/3 - cardPadding;
+        const cardHeight = cardWidth / 1.5;
 
         //TODO: refactor render method to handle going through currentCard CardBucket and rendering those of selected severities
         let num = 0;
@@ -279,7 +287,7 @@ function CardContainer(uiCardContainer) {
                 let subBucket = cardBucket[severities[i].getSeverity()];
                 for (let j = 0; j < subBucket.length; j++) {
                     if (num >= cardsPerPage * currentPage) break;
-                    if (num >= start) subBucket[j].render(uiCardContainer.holder);
+                    if (num >= start) subBucket[j].renderSize(uiCardContainer.holder, cardWidth, cardHeight);
                     num++;
                 }
             }

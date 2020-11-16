@@ -34,43 +34,51 @@ function Card (params, imageUrl) {
         imageFetched: false
     };
 
+    let width = 360;
+    let height = 240;
+
     function _init (param) {
         for (let attrName in param) {
             properties[attrName] = param[attrName];
         }
 
-        let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
-        let labelIcon = new Image();
-        labelIcon.src = iconUrl.iconImagePath;
-        labelIcon.className = "label-icon";
-        let iconCoords = getIconCoords();
-        labelIcon.style.left = iconCoords.x + "px";
-        labelIcon.style.top = iconCoords.y + "px";
+        // let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
+        // let labelIcon = new Image();
+        // labelIcon.src = iconUrl.iconImagePath;
+        // labelIcon.className = "label-icon";
+        // let iconCoords = getIconCoords();
+        // labelIcon.style.left = iconCoords.x + "px";
+        // labelIcon.style.top = iconCoords.y + "px";
     
-        let imageId = "label_id_" + properties.label_id;
+        // let imageId = "label_id_" + properties.label_id;
 
         // TODO: Can we modularize this in some separate HTML
         //  file so we don't have to use template string?
-        const cardHtml = `
-            <img id="${imageId}" class="static-gallery-image" width="360" height="240">
-            <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
-            <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
-        `;
+        // const cardHtml = `
+        //     <img id="${imageId}" class="static-gallery-image" width="360" height="240">
+        //     <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
+        //     <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
+        // `;
 
         card = document.createElement('div');
         card.className = "gallery-card";
-        card.innerHTML = cardHtml;
+        // card.innerHTML = cardHtml;
 
-        card.appendChild(labelIcon);
+        // card.appendChild(labelIcon);
 
         validationMenu = new ValidationMenu(card, properties);
     }
 
     function getIconCoords () {
         return {
-            x: 360 * properties.canvas_x / properties.canvas_width,
-            y: 240 * properties.canvas_y / properties.canvas_height
+            x: width * properties.canvas_x / properties.canvas_width,
+            y: height * properties.canvas_y / properties.canvas_height
         };
+    }
+
+    function updateSize (w, h) {
+        width = w;
+        height = h;
     }
 
     // function getImageProcess(src) {
@@ -130,6 +138,31 @@ function Card (params, imageUrl) {
      * @returns {self}
      */
     function render (cardContainer) {
+
+        let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
+        let labelIcon = new Image();
+        labelIcon.src = iconUrl.iconImagePath;
+        labelIcon.className = "label-icon";
+        let iconCoords = getIconCoords();
+        labelIcon.style.left = iconCoords.x + "px";
+        labelIcon.style.top = iconCoords.y + "px";
+
+        let imageId = "label_id_" + properties.label_id;
+
+        // TODO: Can we modularize this in some separate HTML
+        //  file so we don't have to use template string?
+        const cardHtml = `
+            <img id="${imageId}" class="static-gallery-image" width="${width}" height="${height}">
+            <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
+            <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
+        `;
+
+        card.innerHTML = cardHtml;
+
+        card.appendChild(labelIcon);
+        validationMenu = new ValidationMenu(card, properties);
+
+
         cardContainer.append(card);
 
         if (!status.imageFetched) {
@@ -146,6 +179,16 @@ function Card (params, imageUrl) {
 
         setStatus("visibility", "visible");
         //card.visiblility = status.visibility;
+    }
+
+    /**
+     * 
+     * render with an overload that allows you to set the width and height of the
+     * card
+     */
+    function renderSize(cardContainer, width, height) {
+        updateSize(width, height);
+        render(cardContainer);
     }
 
     /**
@@ -176,6 +219,7 @@ function Card (params, imageUrl) {
     self.getProperty = getProperty;
     self.getStatus = getStatus;
     self.render = render;
+    self.renderSize = renderSize;
     self.setProperty = setProperty;
     self.setStatus = setStatus;
 

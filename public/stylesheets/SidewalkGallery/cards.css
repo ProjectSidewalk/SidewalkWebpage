@@ -23,6 +23,7 @@
 
 p.label-severity, p.label-tags {
     margin: 5px 0;
+    overflow: hidden;
 }
 
 .validation-button {
