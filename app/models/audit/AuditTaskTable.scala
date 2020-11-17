@@ -157,12 +157,12 @@ object AuditTaskTable {
     */
   def countCompletedAuditsToday: Int = db.withSession { implicit session =>
     val countTasksQuery = Q.queryNA[Int](
-      """SELECT audit_task_id
+      """SELECT COUNT(audit_task_id)
         |FROM sidewalk.audit_task
         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
         |    AND audit_task.completed = TRUE""".stripMargin
     )
-    countTasksQuery.list.size
+    countTasksQuery.list.head
   }
 
   /**
@@ -170,12 +170,12 @@ object AuditTaskTable {
     */
   def countCompletedAuditsYesterday: Int = db.withSession { implicit session =>
     val countTasksQuery = Q.queryNA[Int](
-      """SELECT audit_task_id
+      """SELECT COUNT(audit_task_id)
         |FROM sidewalk.audit_task
         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
         |    AND audit_task.completed = TRUE""".stripMargin
     )
-    countTasksQuery.list.size
+    countTasksQuery.list.head
   }
 
   /**

@@ -107,11 +107,9 @@ object MissionTable {
 
   // Number of labels for each type of validation mission
   val normalValidationMissionLength: Int = 10
-  val rapidValidationMissionLength: Int = 10
   val labelmapValidationMissionLength: Int = 1
 
-  val normalValidationMissionLabelsToRetrieve: Int = 10
-  val rapidValidationMissionLabelsToRetrieve: Int = 19
+  val validationMissionLabelsToRetrieve: Int = 10
 
   val defaultAuditMissionSetProgress: MissionSetProgress = MissionSetProgress("audit", 0)
   val defaultValidationMissionSetProgress: MissionSetProgress = MissionSetProgress("validation", 0)
@@ -470,9 +468,9 @@ object MissionTable {
     * @param userId             User ID
     * @param payPerLabel        Amount of money users receive per label validated (not fully implemented feature)
     * @param tutorialPay        Amount of money users when completing onboarding tutorial (not implemented -- exists in case there is any onboarding)
-    * @param retakingTutorial   Indicates whether the user is retaking the turoial (not implemented -- tutorial doesn't exist).
+    * @param retakingTutorial   Indicates whether the user is retaking the tutorial (not implemented -- tutorial doesn't exist).
     * @param missionId          Name of the mission type of the current mission.
-    * @param missionType        Type of validation mission {validation, rapidValidation}
+    * @param missionType        Type of validation mission {validation, labelmapValidation}
     * @param labelsProgress     Numbers of labels that have been validated {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
     * @param labelTypeId        Label Type ID to be validated for the next mission
     * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
@@ -532,7 +530,7 @@ object MissionTable {
     * @param userId           User ID of the current user
     * @param payPerLabel      Amount to pay users per validation label
     * @param missionId        Mission ID for the current mission
-    * @param missionType      Type of validation mission {validation, rapidValidation}
+    * @param missionType      Type of validation mission {validation, labelmapValidation}
     * @param labelsProgress   Number of labels the user validated
     * @param labelTypeId      Label type that was validated during this mission.
     *                         {1: cr, 2: mcr, 3: obst, 4: sfc prob, 7: no sdwlk}
@@ -578,7 +576,7 @@ object MissionTable {
     * @param userId       User ID
     * @param payPerLabel  Amount of money users receive per label validated
     * @param tutorialPay  Amount of money users receive after completing onboarding [unimplemented]
-    * @param missionType  Name of the mission type of the current validation mission {validation, rapidValidation}
+    * @param missionType  Name of the mission type of the current validation mission {validation, labelmapValidation}
     * @param labelTypeId  Label Type ID to be validated for the next mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
     */
   def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Option[Mission] = {
@@ -603,29 +601,12 @@ object MissionTable {
     *
     * @param userId         UserID of user requesting more labels.
     * @param missionType    Name of the validation mission type
-    * @return               {validation: 10, rapidValidation: 10}
+    * @return               {validation: 10, labelmapValidation: 1}
     */
   def getNextValidationMissionLength(userId: UUID, missionType: String): Int = {
-    (missionType) match {
+    missionType match {
       case "validation" => normalValidationMissionLength
-      case "rapidValidation" => rapidValidationMissionLength
       case "labelmapValidation" =>  labelmapValidationMissionLength
-    }
-  }
-
-  /**
-    * Get the number of labels to be retrieved for a validation mission. Depends on type of validation mission.
-    *
-    * @param userId         UserID of user requesting more labels.
-    * @param missionType    Name of the validation mission type
-    * @return               {validation: 10, rapidValidation: 19}
-    */
-  def getNumberOfLabelsToRetrieve(userId: UUID, missionType: String): Int = {
-    (missionType) match {
-      case "validation" =>
-        normalValidationMissionLabelsToRetrieve
-      case "rapidValidation" =>
-        rapidValidationMissionLabelsToRetrieve
     }
   }
 
@@ -651,7 +632,7 @@ object MissionTable {
     * @param pay                Amount user is paid per label
     * @param labelsToValidate   Number of labels in this mission
     * @param labelTypeId        Type of labels featured in this mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
-    * @param missionType        Type of validation mission {validation, rapidValidation}
+    * @param missionType        Type of validation mission {validation, labelmapValidation}
     */
   def createNextValidationMission(userId: UUID, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : Mission = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)

@@ -292,7 +292,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             LabelPointTable.save(LabelPoint(0, labelId, point.svImageX, point.svImageY, point.canvasX,
               point.canvasY, point.heading, point.pitch, point.zoom,
               point.canvasHeight, point.canvasWidth, point.alphaX, point.alphaY,
-              point.lat, point.lng, pointGeom))
+              point.lat, point.lng, pointGeom, point.computationMethod))
           }
         }
 

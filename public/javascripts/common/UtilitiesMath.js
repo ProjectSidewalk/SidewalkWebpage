@@ -38,20 +38,6 @@ function latlngOffset(lat, dx, dy) {
 util.math.latlngOffset = latlngOffset;
 
 /**
- * given a latlng offset, return offset in distanx along x- and y-axis.
- * @param lat
- * @param dLat
- * @param dLng
- * @returns {{dx: number, dy: number}}
- */
-function latlngInverseOffset(lat, dLat, dLng) {
-    var dy = 111111 * dLat;
-    var dx = 111111 * Math.cos(toRadians(lat)) * dLng;
-    return {dx: dx, dy: dy};
-}
-util.math.latlngInverseOffset = latlngInverseOffset;
-
-/**
  * This function takes two latlon coordinates and returns the angle that forms aroud the z-axis.
  *
  * @param lat1

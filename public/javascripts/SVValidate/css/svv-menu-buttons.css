@@ -6,12 +6,6 @@
     justify-content: space-between;
 }
 
-.validation-holder-small {
-    margin-top: -2px;
-    display: flex;
-    justify-content: space-between;
-}
-
 .validation-comment-box {
     height: 33px;
     width: 726px;
@@ -39,15 +33,6 @@
     border-color: lightgrey;
 }
 
-.validation-button-small {
-    height: 25px;
-    width: 79px;
-    background-color: white;
-    border-radius: 5px;
-    border-width: 2px;
-    border-color: lightgrey;
-}
-
 .validate {
     outline: none;
     border: none;
@@ -59,21 +44,16 @@
     margin-right: 2px;
 }
 
-.validation-status-icon-small {
-    height: 10px;
-    margin-bottom: 5px;
-}
-
-.validation-button-small:active, .validation-button-large:active {
+.validation-button-large:active {
     outline: none;
     border: none;
     background-color: lightgrey;
 }
 
-.validation-button-small:focus, .validation-button-large:focus {
+.validation-button-large:focus {
     outline: none;
 }
 
-.validation-button-small:hover, .validation-button-large:hover {
+.validation-button-large:hover {
     background-color: lightgrey;
 }
