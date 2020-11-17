@@ -70,7 +70,7 @@ function LabelDescriptionBox () {
         }
 
         if (description && description.trim().length > 0) {
-            let htmlString = document.createTextNode(description);
+            let htmlString = document.createTextNode('user description: ' + description);
             desBox.appendChild(htmlString);
         }
 
