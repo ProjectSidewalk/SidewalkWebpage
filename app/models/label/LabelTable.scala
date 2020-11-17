@@ -196,13 +196,13 @@ object LabelTable {
   def countTodayLabels: Int = db.withSession { implicit session =>
 
     val countQuery = Q.queryNA[(Int)](
-      """SELECT label.label_id
+      """SELECT COUNT(label.label_id)
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date
         |    AND label.deleted = false""".stripMargin
     )
-    countQuery.list.size
+    countQuery.list.head
   }
 
   /*
@@ -212,7 +212,7 @@ object LabelTable {
   */
   def countTodayLabelsBasedOnType(labelType: String): Int = db.withSession { implicit session =>
 
-    val countQuery = s"""SELECT label.label_id
+    val countQuery = s"""SELECT COUNT(label.label_id)
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
@@ -222,7 +222,7 @@ object LabelTable {
                          |														WHERE lt.label_type='$labelType')""".stripMargin
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
-    countQueryResult.list.size
+    countQueryResult.list.head
   }
 
   /*
@@ -230,13 +230,13 @@ object LabelTable {
   */
   def countYesterdayLabels: Int = db.withTransaction { implicit session =>
     val countQuery = Q.queryNA[(Int)](
-      """SELECT label.label_id
+      """SELECT COUNT(label.label_id)
         |FROM sidewalk.audit_task
         |INNER JOIN sidewalk.label ON label.audit_task_id = audit_task.audit_task_id
         |WHERE (audit_task.task_end AT TIME ZONE 'PST')::date = (now() AT TIME ZONE 'PST')::date - interval '1' day
         |    AND label.deleted = false""".stripMargin
     )
-    countQuery.list.size
+    countQuery.list.head
   }
 
   /*
@@ -244,7 +244,7 @@ object LabelTable {
   * Date: Aug 28, 2016
   */
   def countYesterdayLabelsBasedOnType(labelType: String): Int = db.withTransaction { implicit session =>
-    val countQuery = s"""SELECT label.label_id
+    val countQuery = s"""SELECT COUNT(label.label_id)
                          |  FROM sidewalk.audit_task
                          |INNER JOIN sidewalk.label
                          |  ON label.audit_task_id = audit_task.audit_task_id
@@ -254,7 +254,7 @@ object LabelTable {
                          |														WHERE lt.label_type='$labelType')""".stripMargin
     val countQueryResult = Q.queryNA[(Int)](countQuery)
 
-    countQueryResult.list.size
+    countQueryResult.list.head
   }
 
 
