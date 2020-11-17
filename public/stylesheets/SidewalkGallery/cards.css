@@ -8,6 +8,13 @@
     margin: 5px;
 }
 
+#gallery-validation-button-holder {
+    display: flex;
+    flex-flow: row wrap;
+    /* Then we define how is distributed the remaining space */
+    justify-content: space-around;
+}
+
 .label-icon {
     position: absolute;
     width: 12px;
@@ -16,6 +23,16 @@
 
 p.label-severity, p.label-tags {
     margin: 5px 0;
+}
+
+.validation-button {
+    width: 33%;
+  opacity: 0;
+  transition: .3s ease;
+}
+
+.gallery-card:hover .validation-button {
+  opacity: 1;
 }
 
 

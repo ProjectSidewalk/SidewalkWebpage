@@ -9,6 +9,7 @@ function Card (params, imageUrl) {
     let self = this;
 
     let card = null;
+    let validationMenu = null;
 
     // Properties of the label in the card
     let properties = {
@@ -45,11 +46,13 @@ function Card (params, imageUrl) {
         let iconCoords = getIconCoords();
         labelIcon.style.left = iconCoords.x + "px";
         labelIcon.style.top = iconCoords.y + "px";
+    
+        let imageId = "label_id_" + properties.label_id;
 
         // TODO: Can we modularize this in some separate HTML
         //  file so we don't have to use template string?
         const cardHtml = `
-            <img id="${"label_id_" + properties.label_id}" class="static-gallery-image" width="360" height="240">
+            <img id="${imageId}" class="static-gallery-image" width="360" height="240">
             <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
             <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
         `;
@@ -59,6 +62,8 @@ function Card (params, imageUrl) {
         card.innerHTML = cardHtml;
 
         card.appendChild(labelIcon);
+
+        validationMenu = new ValidationMenu(card, properties);
     }
 
     function getIconCoords () {

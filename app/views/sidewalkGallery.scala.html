@@ -14,6 +14,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/TagBucket.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/Severity.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/filter/CardSortMenu.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/src/validation/ValidationMenu.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SidewalkGallery/util/GalleryPanoUtilities.js")'></script>
 
     @navbar(user, Some("/sidewalkGallery"))
@@ -68,7 +69,6 @@
     <script type="text/javascript">
             var sg = sg || {};
             let params = {};
-            param.dataStoreUrl = '@routes.ValidationTaskController.post';
             params.rootDirectory = "/assets/javascripts/SVLabel/";
 
             sg.main = new Main(params);
