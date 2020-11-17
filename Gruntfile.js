@@ -5,14 +5,14 @@ module.exports = function(grunt) {
         pkg: grunt.file.readJSON('package.json'),
 
         concat: {
-            dist_svl: {
+            dist_audit: {
                 src: [
-                    'public/javascripts/SVLabel/lib/gsv/GSVPano.js',
-                    'public/javascripts/SVLabel/lib/gsv/GSVPanoPointCloud.js',
+                    'public/javascripts/SVLabel/src/SVLabel/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/alert/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/data/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/game/*.js',
+                    'public/javascripts/SVLabel/src/SVLabel/gsv/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/label/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/menu/*.js',
@@ -26,9 +26,14 @@ module.exports = function(grunt) {
                     'public/javascripts/SVLabel/src/SVLabel/status/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/task/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/user/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/util/*.js',
                     'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/*.js'
+                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/Utilities.js',
+                    'public/javascripts/common/UtilitiesColor.js',
+                    'public/javascripts/common/UtilitiesMath.js',
+                    'public/javascripts/common/UtilitiesPanomarker.js',
+                    'public/javascripts/common/UtilitiesShape.js',
+                    'public/javascripts/common/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
             },
@@ -50,8 +55,9 @@ module.exports = function(grunt) {
                 ],
                 dest: 'public/javascripts/Help/build/help.js'
             },
-            validation_svl: {
+            dist_validate: {
                 src: [
+                    'public/javascripts/SVValidate/src/*.js',
                     'public/javascripts/SVValidate/src/data/*.js',
                     'public/javascripts/SVValidate/src/keyboard/*.js',
                     'public/javascripts/SVValidate/src/label/*.js',
@@ -63,74 +69,25 @@ module.exports = function(grunt) {
                     'public/javascripts/SVValidate/src/user/*.js',
                     'public/javascripts/SVValidate/src/util/*.js',
                     'public/javascripts/SVValidate/src/zoom/*.js',
-                    'public/javascripts/SVValidate/src/*.js',
-                    'public/javascripts/SVLabel/src/SVLabel/Panomarker.js',
-                    'public/javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js'
+                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/UtilitiesSidewalk.js'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.js'
             }
         },
-        uglify: {
-            build: {
-                src: 'public/javascripts/SVLabel/build/SVLabel.js',
-                dest: 'public/javascripts/SVLabel/build/SVLabel.min.js'
-            }
-        },
         concat_css: {
-            dist_all: {
+            dist_audit: {
                 src: [
                     'public/javascripts/SVLabel/css/svl.css',
                     'public/javascripts/SVLabel/css/*.css'
                     ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.css'
             },
-            validation_all: {
+            dist_validate: {
                 src: [
                     'public/javascripts/SVValidate/css/*.css'
                 ],
                 dest: 'public/javascripts/SVValidate/build/SVValidate.css'
-            }
-        },
-        jasmine: {
-            src: [
-                'public/javascripts/SVLabel/src/SVLabel/canvas/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/data/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/game/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/keyboard/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/label/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/menu/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/mission/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/modal/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/navigation/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/neighborhood/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/onboarding/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/panorama/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/ribbon/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/status/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/task/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/user/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/util/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/zoom/*.js',
-                'public/javascripts/SVLabel/src/SVLabel/*.js'
-            ],
-            options: {
-                specs: [
-                    'public/javascripts/SVLabel/spec/SVLabel/*.js',
-                    'public/javascripts/SVLabel/spec/SVLabel/**/*.js'
-                ],
-                helpers: 'public/javascripts/SVLabel/spec/SpecHelper.js',
-                vendor: [
-                    'public/javascripts/SVLabel/lib/jquery-2.1.4.min.js',
-                    'public/javascripts/SVLabel/lib/d3.v3.js',
-                    'public/javascripts/SVLabel/lib/turf.min.js',
-                    'public/javascripts/SVLabel/lib/gsv/*.js',
-                    'public/javascripts/SVLabel/lib/kinetic-v4.3.3.min.js'
-                ]
-            }
-        },
-        jsdoc : {
-            dist : {
-                src: 'public/javascripts/SVLabel/src/SVLabel/*.js'
             }
         },
         watch : {
@@ -159,13 +116,9 @@ module.exports = function(grunt) {
     // 3. Where we tell Grunt we plan to use this plug-in.
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-concat-css');
-    grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-jsdoc');
     grunt.loadNpmTasks('grunt-contrib-watch');
-    grunt.loadNpmTasks('grunt-contrib-jasmine');
-
 
     // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
     grunt.registerTask('default', ['concat', 'concat_css']);
-    grunt.registerTask('dist', ['concat:dist_svl', 'concat:dist_progress', 'concat:dist_admin', 'concat:validation_svl']);
+    grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_progress', 'concat:dist_admin', 'concat:dist_validate']);
 };

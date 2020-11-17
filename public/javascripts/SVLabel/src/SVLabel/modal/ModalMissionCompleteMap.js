@@ -1,6 +1,6 @@
 function ModalMissionCompleteMap(uiModalMissionComplete) {
     // Map visualization
-    L.mapbox.accessToken = 'pk.eyJ1IjoicHJvamVjdHNpZGV3YWxrIiwiYSI6ImNpdmZtODFobjAxcjEydHBkbmg0Y2F0MGgifQ.tDBFPXecLVjgJA0Z1LFhhw';
+    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
     var self = this;
     this._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
         maxZoom: 19,
@@ -49,11 +49,11 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                 return applyLatLngToLayer(d).y;
             });
 
-        var linePath = g.selectAll(".lineConnect")
+        var linePath = g.selectAll(".line-connect")
             .data([featuresData])
             .enter()
             .append("path")
-            .attr("class", "lineConnect");
+            .attr("class", "line-connect");
 
         // reset projection on zoom
         leafletMap.on("viewreset", reset);
@@ -98,7 +98,7 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                         // Remove after animation now that the scaling svg has been added (fixes #1839).
                         d3.select(self._map.getPanes().overlayPane)
                             .selectAll("svg")
-                            .selectAll(".lineConnect")
+                            .selectAll(".line-connect")
                             .remove();
                     }
                 });

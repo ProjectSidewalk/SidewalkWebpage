@@ -4,7 +4,7 @@
 		module="httpclient"
 		revision="4.3.2"
 		status="release"
-		publication="20140115104359"
+		publication="20140115184359"
 	>
 		<description homepage="http://hc.apache.org/httpcomponents-client">
 		HttpComponents Client

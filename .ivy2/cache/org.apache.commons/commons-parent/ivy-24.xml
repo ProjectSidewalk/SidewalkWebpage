@@ -4,7 +4,7 @@
 		module="commons-parent"
 		revision="24"
 		status="release"
-		publication="20120309165742"
+		publication="20120310005742"
 	>
 		<description homepage="http://commons.apache.org/">
 		The Apache Commons Parent Pom provides common settings for all Apache Commons components.

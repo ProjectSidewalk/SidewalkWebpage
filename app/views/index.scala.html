@@ -7,8 +7,6 @@
 
 @main(title) {
     @navbar(user, Some("/"))
-    <script src='@routes.Assets.at("assets/detectMobileBrowser.js")'></script>
-    <script src='@routes.Assets.at("assets/homepage.js")'></script>
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
@@ -29,13 +27,13 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-                    <a class="bodyStartBtn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
+                    <a class="body-start-btn" href="@routes.AuditController.audit()">@Messages("navbar.explore") @cityShortName</a>
                     <br><br>
                     <span class="header-text">@Messages("landing.also.in")</span>
                     @for((cityName, cityURL) <- otherCityURLs.filter(c => c._1 != "Washington, DC" && c._1 != "Pittsburgh, PA")) {
                         <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
                         <!-- JEF: per Issue #2227, changing link to just be cityURL rather than cityURL + "/audit" -->
-                        <a id="@cityName" class="otherCityLink" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
+                        <a id="@cityName" class="other-city-link" href="@{cityURL}">@cityName.replace(" ", " ")</a> &nbsp;
                     }
                     <br>
                     @if(mapathonLink.isDefined) {
@@ -54,7 +52,7 @@
                 <div class="row">@Messages("landing.how.you.help")</div>
                 <br>
                 <div class="row" id="content-text-1">
-                    <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
+                    <div id="exploredesc">
                         @Messages("landing.how.you.help.content")
                     </div>
                         <br><br>
@@ -77,88 +75,15 @@
                             </div>
                     </div>
                         <div class="hidden-xs" id="greenbar">
-
                         </div>
                         <div id="instructionvideo">
-
                             <video id="vid1" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-1-1.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-1-1.mp4")' type="video/mp4"> </video>
                             <video id="vid2" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-2.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-2.mp4")' type="video/mp4"> </video>
                             <video id="vid3" width="800" style="display:none;" playsinline autoplay muted loop poster='@routes.Assets.at("assets/segment-3.jpg")' class="visible-desktop"> <source src='@routes.Assets.at("assets/segment-3.mp4")' type="video/mp4"> </video>
-
                         </div>
-
                 </div>
             </div>
-                <!--<div class="row" id="steps1">
-                <div class="col-sm-2">
-                </div>
-                <div class="col-sm-4 gauche">
-                    <span class="stepnumber">01</span><span class="stepword">EXPLORE</span>
-                    <br>
-                    <span class="stepdescription">
-                        Walk through your city's neighborhood from the comfort of your home and discover various accessibility problems that are in your town.
-                    </span>
-                </div>
-                <div class="col-sm-4 corps hidden-xs">
-                    <img src='@routes.Assets.at("assets/computer-1.png")' style="position: relative;
-                top: -80px;
-                height: 350px;"/>
         </div>
-        <div class="col-sm-2">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-5 corps hidden-xs compimage">
-            <img src='@routes.Assets.at("assets/computer-2.png")' style="position : relative ;
-            top : -80px ;
-            height : 350px ;
-            left : -100px ;
-            "/>
-        </div>
-        <div class="col-sm-4 gauche" id=step2right>
-            <span class="stepnumber">02</span><span class="stepword">CATEGORIZE</span>
-            <br>
-            <span class="stepdescription">
-                Once you have found an issue, we will need to know what kind of issues it is. There are various types of issues to choose from.
-            </span>
-        </div>
-        <div class="col-sm-1">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-4 gauche" >
-            <span class="stepnumber">03</span><span class="stepword">ASSESS</span>
-            <br>
-            <span class="stepdescription">
-                You rate the problem between one and five. Five means that the sidewalk is not passable due to erosion or no curb available at all.
-            </span>
-        </div>
-        <div class="col-sm-4 corps hidden-xs">
-            <img src='@routes.Assets.at("assets/computer-3.png")' style="position : relative ;
-            top : -80px ;
-            height : 350px ;
-            "/>
-        </div>
-        <div class="col-sm-2">
-        </div>
-    </div>-->
-    </div>
-
-@*    <!-- JEF: commenting out the embedded video given Issue 2247. Just commenting out for now. Can remove later. -->*@
-@*    <div class="container" id="vidembed">*@
-@*        <img src="@routes.Assets.at("assets/vidembed.jpg")" style="width: 100%;" onclick="playVideo();">*@
-@*        <div id="videooverlay">*@
-@*            <div id="videotext">*@
-@*                <span>@Messages("landing.video.title")</span>*@
-@*                <br><span id="playlink">&#9654;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;*@
-@*                cursor: pointer;" onclick="playVideo()">@Messages("landing.video.watch")</span></span>*@
-@*            </div>*@
-@*        </div>*@
-@*    </div>*@
 
     <div class="container" id="choropleth-container" style="width: 100%;
         position: relative;">
@@ -166,7 +91,7 @@
             <div class="row">@Messages("landing.choropleth.title")</div>
             <br>
             <div class="row" id="content-text-1">
-                <div id="exploredesc" style="max-width: 490px;margin: 0 auto;">
+                <div id="exploredesc">
                     @Messages("landing.choropleth.content")
                 </div>
             </div>
@@ -202,7 +127,7 @@
             } else {
                 <img style="padding-top: 75px" src="@routes.Assets.at("assets/" + cityId + "/skyline.png")">
             }
-            <img src="@routes.Assets.at("assets/" + "generic_cloud_overlay.png")" class="skyline-cloud-overlay">
+            <img src="@routes.Assets.at("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay">
         </div>
         <div class="ps-skyline-stats-holder">
             <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
@@ -238,15 +163,12 @@
     <!-- @leaderboard(5) -->
 
     <div class="container" id="machinelearning-container">
-
             <div class="im-centered3">
                 <div class="row" style="width: 450px;">@Messages("landing.ml.title")</div>
                 <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
                 <br>
                 <img id="mlgif" src="@routes.Assets.at("assets/MLGraphic.gif")">
             </div>
-
-
     </div>
 
 
@@ -277,14 +199,9 @@
         </div>
     </div>
 
-    <div class= "container" id="brought-to-you-container">
-        <div class="row" style=" padding-bottom: 10px;
-        width: 100%;
-        text-align: center;
-        display: inline-block;
-        vertical-align: middle;
-        "> 
-            <div class="im-centered3" style = "font-size: 40px; margin-bottom: 20px;">
+    <div class= "container" id="collaborators-container">
+        <div class="row" id="collaborators-row">
+            <div class="im-centered3" id="collaborators-title">
                 <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
             </div>
             <section class="collaborator-images-container">
@@ -309,20 +226,13 @@
         </div>
     </div>
 
-    <div class="container" id="press-container">
+    <div class="container" id="press-header">
         <div class="im-centered3">
             <div class="row"><br>@Messages("landing.press.title")<br></div>
         </div>
-
     </div>
-    <div class="container" id="press-container2">
-
-        <div class="row" style=" padding-top: 50px;
-            width: 100%;
-            text-align: center;
-            display: inline-block;
-            vertical-align: middle;
-        ">
+    <div class="container" id="press-container">
+        <div class="row" id="press-image-row">
             <div class="col-sm-4">
                 <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-img-link">
                     <img src='@routes.Assets.at("assets/technically.png")' height="70" alt="Technically Logo">
@@ -340,26 +250,19 @@
                 </a>
             </div>
         </div>
-        <div class="row" style=" padding-top: 20px;
-            width: 100%;
-            text-align: center;
-        ">
+        <div class="row" id="press-blurb-row">
             <div class="col-sm-4">
                 <a class="newslink" href="http://technical.ly/dc/2016/11/30/project-sidewalk-accessibility/" id="technically-text-link">
-
                     How Project Sidewalk is making DC more accessible
                 </a>
             </div>
             <div class="col-sm-4">
                 <a class="newslink" href="http://dc.curbed.com/2017/2/20/14669990/project-sidewalk" id="curbed-text-link">
-
                     Make D.C.'s sidewalks more accessible with this crowd-sourced map
-
                 </a>
             </div>
             <div class="col-sm-4">
                 <a class="newslink" href="http://www.dbknews.com/2016/10/14/university-of-maryland-app-washington-disability-access/" id="diamondback-text-link">
-
                     A UMD team made an app highlighting D.C. areas inaccessible to people with disabilities
                 </a>
             </div>
@@ -368,6 +271,8 @@
     </div>
 
 
+<script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
+<script src='@routes.Assets.at("javascripts/homepage.js")'></script>
 <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
@@ -375,7 +280,7 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleth.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -390,7 +295,42 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.choropleth = Choropleth(_, $, difficultRegionIds);
+            var params = {
+                regionColors: [
+                    '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
+                    '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
+                ],
+                neighborhoodPolygonStyle: {
+                    color: '#888',
+                    weight: 1,
+                    opacity: 0.25,
+                    fillColor: '#f00',
+                    fillOpacity: 1.0
+                },
+                mouseoverStyle: {
+                    opacity: 1.0,
+                    weight: 3,
+                    color: '#000'
+                },
+                mouseoutStyle: {
+                    opacity: 0.25,
+                    weight: 1,
+                    color: '#888'
+                },
+                polygonFillMode: 'completionRate',
+                webpageActivity: 'Click_module=Choropleth_regionId=',
+                zoomSlider: true,
+                clickData: true,
+                scrollWheelZoom: false,
+                mapName: 'choropleth',
+                mapStyle: 'mapbox://styles/mapbox/light-v10'
+            };
+            var loadPolygons = $.getJSON('/neighborhoods');
+            var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
+            var loadMapParams = $.getJSON('/cityMapParams');
+            window.choropleth = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
+                return Choropleth(_, $, difficultRegionIds, params, [], data1[0], data2[0], data3[0]);
+            });
         });
     });
 </script>

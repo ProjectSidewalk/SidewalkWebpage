@@ -1,13 +1,11 @@
 package models.user
 
 import java.util.UUID
-
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.MissionTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.{StaticQuery => Q}
 
@@ -220,8 +218,6 @@ object UserStatTable {
    * Check if the input string is a valid email address.
    *
    * We use a regex found in the Play Framework's code: https://github.com/playframework/playframework/blob/ddf3a7ee4285212ec665826ec268ef32b5a76000/core/play/src/main/scala/play/api/data/validation/Validation.scala#L79
-   * @param maybeEmail
-   * @return
    */
   def isValidEmail(maybeEmail: String): Boolean = {
     val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
@@ -235,7 +231,6 @@ object UserStatTable {
   /**
     * Insert new user_stat row with defaults if the user_id doesn't already have a row.
     *
-    * @param userId
     * @return Number of rows updated
     */
   def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>

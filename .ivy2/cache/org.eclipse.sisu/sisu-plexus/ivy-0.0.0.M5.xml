@@ -4,7 +4,7 @@
 		module="sisu-plexus"
 		revision="0.0.0.M5"
 		status="release"
-		publication="20130725162909"
+		publication="20130725232909"
 	>
 		<license name="Eclipse Public License, Version 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
 		<description homepage="http://www.eclipse.org/sisu/">

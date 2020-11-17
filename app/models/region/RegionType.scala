@@ -1,4 +1,5 @@
 package models.region
+
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
@@ -14,12 +15,4 @@ class RegionTypeTable(tag: Tag) extends Table[RegionType](tag, Some("sidewalk"),
 object RegionTypeTable {
   val db = play.api.db.slick.DB
   val regionTypes = TableQuery[RegionTypeTable]
-
-  /**
-   * Returns a list of all the region types
-   * @return A list of regionType objects.
-   */
-  def all: List[RegionType] = db.withSession { implicit session =>
-    regionTypes.list
-  }
 }

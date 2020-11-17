@@ -7,9 +7,8 @@ import javax.inject.Inject
 import models.user.User
 import play.api.Play
 import play.api.Play.current
-import play.api.mvc.{Action, BodyParsers}
+import play.api.mvc.Action
 import play.api.libs.json._
-
 import scala.concurrent.Future
 
 class ConfigController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
@@ -40,7 +39,6 @@ class ConfigController @Inject() (implicit val env: Environment[User, SessionAut
 
   /**
    * Get all city-specific parameters needed for the API page demos.
-   * @return
    */
   def getCityAPIDemoParams() = Action.async { implicit request =>
     val cityStr: String = Play.configuration.getString("city-id").get

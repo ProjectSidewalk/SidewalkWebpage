@@ -38,21 +38,21 @@ function ModalMission (missionContainer, neighborhoodContainer, uiModalMission, 
 
 
     var initialMissionHTML = '<figure> \
-        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>' + i18next.t('mission-start.body-first') + '</p>\
         <div class="spacer10"></div>';
 
     var distanceMissionHTML = ' <figure> \
-        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>' + i18next.t('mission-start.body') + '</p>\
         <div class="spacer10"></div>';
 
     var returningToMissionHTML = ' <figure> \
-        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>' + i18next.t('mission-start.title-continue') + '</p>\

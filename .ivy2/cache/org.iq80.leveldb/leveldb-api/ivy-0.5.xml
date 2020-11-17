@@ -4,7 +4,7 @@
 		module="leveldb-api"
 		revision="0.5"
 		status="release"
-		publication="20130122103949"
+		publication="20130122183949"
 	>
 		<description homepage="">
 		High level Java API for LevelDB

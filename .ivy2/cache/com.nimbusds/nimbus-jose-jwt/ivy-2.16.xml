@@ -4,7 +4,7 @@
 		module="nimbus-jose-jwt"
 		revision="2.16"
 		status="release"
-		publication="20130530032932"
+		publication="20130530102932"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="https://bitbucket.org/nimbusds/nimbus-jose-jwt">

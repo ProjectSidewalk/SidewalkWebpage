@@ -4,7 +4,7 @@
 		module="npm"
 		revision="1.3.26"
 		status="release"
-		publication="20140204004629"
+		publication="20140204084629"
 	>
 		<license name="Assorted" url="https://github.com/npm/npm/blob/master/LICENCE" />
 		<description homepage="http://webjars.org">

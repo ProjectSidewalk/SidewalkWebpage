@@ -230,6 +230,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('disableDefaultUI', true);
             svl.panorama.set('linksControl', true);
             svl.panorama.set('navigationControl', false);
+            svl.panorama.set('showRoadLabels', true);
             svl.panorama.set('panControl', false);
             svl.panorama.set('scrollwheel', false);
             svl.panorama.set('zoomControl', false);
@@ -267,10 +268,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // Hide the dude on the top-left of the map.
         mapIconInterval = setInterval(_removeIcon, 0.2);
 
-        // For Internet Explore, append an extra canvas in viewControlLayer.
+        // For Internet Explore, append an extra canvas in view-control-layer.
         properties.isInternetExplore = $.browser['msie'];
         if (properties.isInternetExplore) {
-            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="Window_StreetView" style=""></canvas>');
+            uiMap.viewControlLayer.append('<canvas width="720px" height="480px"  class="window-streetview" style=""></canvas>');
         }
 
     }
@@ -1298,7 +1299,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * @returns {hideLinks} This object.
      */
     function hideLinks () {
-        var $paths = $("#viewControlLayer").find('path');
+        var $paths = $("#view-control-layer").find('path');
         $paths.css('visibility', 'hidden');
         $paths.css('pointer-events', 'none');
         // if (properties.browser === 'chrome') {

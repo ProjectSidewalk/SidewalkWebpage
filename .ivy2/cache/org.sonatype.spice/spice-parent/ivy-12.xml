@@ -4,7 +4,7 @@
 		module="spice-parent"
 		revision="12"
 		status="release"
-		publication="20090427092625"
+		publication="20090427162625"
 	>
 		<license name="Apache Public License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="" />

@@ -4,7 +4,7 @@
 		module="jts"
 		revision="1.13"
 		status="release"
-		publication="20121213212909"
+		publication="20121214052909"
 	>
 		<license name="Lesser General Public License (LGPL)" url="http://www.gnu.org/copyleft/lesser.txt" />
 		<description homepage="http://sourceforge.net/projects/jts-topo-suite">

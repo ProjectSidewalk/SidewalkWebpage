@@ -4,7 +4,7 @@
 		module="fusesource-pom"
 		revision="1.9"
 		status="release"
-		publication="20111122144104"
+		publication="20111122224104"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://fusesource.com/">

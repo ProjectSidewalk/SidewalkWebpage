@@ -4,13 +4,13 @@
 		module="htmlunit"
 		revision="2.13"
 		status="release"
-		publication="20131010210123"
+		publication="20131011040123"
 	>
 		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://htmlunit.sourceforge.net">
 		A headless browser intended for use in testing web-based applications.
 		</description>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__3.1|org.apache.maven.plugins__maven-checkstyle-plugin__2.10|org.apache.maven.plugins__maven-jar-plugin__2.4|org.apache.maven.plugins__maven-site-plugin__3.3|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-source-plugin__2.2.1|null__maven-antrun-plugin__1.7|org.apache.maven.plugins__maven-eclipse-plugin__2.9|org.apache.maven.plugins__maven-gpg-plugin__1.4|org.apache.maven.plugins__maven-scm-plugin__1.8.1|org.apache.felix__maven-bundle-plugin__2.4.0</m:maven.plugins>
 	</info>

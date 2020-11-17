@@ -4,7 +4,7 @@
 		module="leveldbjni-win32"
 		revision="1.5"
 		status="release"
-		publication="20130123143254"
+		publication="20130123223254"
 	>
 		<description homepage="">
 		The leveldbjni Windows 32 bit native libraries
