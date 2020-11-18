@@ -2,11 +2,9 @@ package utils.actor
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
-
 import akka.actor.{Actor, Cancellable, Props}
 import controllers.helper.AttributeControllerHelper
 import play.api.Logger
-
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:
@@ -65,7 +63,6 @@ class ClusterLabelAttributesActor extends Actor {
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Label attribute clustering completed at: $currentEndTime")
   }
-
 }
 
 object ClusterLabelAttributesActor {

@@ -1,11 +1,8 @@
 package models.street
 
 import java.sql.Timestamp
-import com.vividsolutions.jts.geom.LineString
-import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.slick.jdbc.{StaticQuery => Q, GetResult}
 
 case class StreetEdgeIssue(streetEdgeIssueId: Int, streetEdgeId: Int, issue: String, userId: String, ipAddress: String, timestamp: Timestamp)
 
@@ -25,15 +22,13 @@ object StreetEdgeIssueTable {
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTable]
 
   /**
-    * Save a StreetEdge into the street_edge table
+    * Save a StreetEdgeIssue into the street_edge_issue table.
     *
-    * @param issue A StreetEdge object
+    * @param issue A StreetEdgeIssue object
     * @return
     */
   def save(issue: StreetEdgeIssue): Int = db.withTransaction { implicit session =>
     streetEdgeIssues += issue
     0
   }
-
 }
-

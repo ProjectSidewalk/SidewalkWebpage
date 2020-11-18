@@ -1,18 +1,12 @@
 package utils.actor
 
 import java.text.SimpleDateFormat
-import java.sql.Timestamp
 import java.util.{Calendar, Locale, TimeZone}
-import java.time.Instant
-import javax.inject.Inject
-
 import akka.actor.{Actor, Cancellable, Props}
 import models.services.{AuthTokenService, AuthTokenServiceImpl}
 import models.daos.slick.AuthTokenDAOSlick
 import play.api.Logger
-
 import scala.concurrent.duration._
-import play.api.libs.concurrent.Execution.Implicits._
 
 // Template code comes from this helpful StackOverflow post:
 // https://stackoverflow.com/questions/48977612/how-to-schedule-complex-tasks-using-scala-play-2-3/48977937?noredirect=1#comment84961371_48977937

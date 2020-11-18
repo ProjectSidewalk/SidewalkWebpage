@@ -4,7 +4,7 @@
 		module="maven"
 		revision="3.2.2"
 		status="release"
-		publication="20140617065015"
+		publication="20140617135015"
 	>
 		<description homepage="http://maven.apache.org/ref/${project.version}">
 		Maven is a software build management and

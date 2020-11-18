@@ -2,7 +2,6 @@ package models.label
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-
 import scala.slick.lifted.ForeignKeyQuery
 
 case class LabelTag(labelTagId: Int, labelId: Int, tagId: Int)
@@ -26,19 +25,7 @@ object LabelTagTable {
   val labelTagTable = TableQuery[LabelTagTable]
 
   /**
-    * Get all records.
-    *
-    * @return
-    */
-  def selectAllLabelTags(): List[LabelTag] = db.withSession { implicit session =>
-    labelTagTable.list
-  }
-
-  /**
     * Get all records for the given label_id.
-    *
-    * @param labelId
-    * @return
     */
   def selectTagIdsForLabelId(labelId: Int): List[Int] = db.withTransaction { implicit session =>
     labelTagTable.filter(_.labelId === labelId).map(_.tagId).list
@@ -47,8 +34,6 @@ object LabelTagTable {
   /**
     * Delete a record with the given label_id and tag_id.
     *
-    * @param labelId
-    * @param tagId
     * @return Number of deleted rows.
     */
   def delete(labelId: Int, tagId: Int): Int = db.withTransaction { implicit session =>
@@ -57,9 +42,6 @@ object LabelTagTable {
 
   /**
     * Save a record.
-    *
-    * @param labelTag
-    * @return
     */
   def save(labelTag: LabelTag) = db.withSession { implicit session =>
     labelTagTable += labelTag

@@ -4,7 +4,7 @@
 		module="bcpg-jdk15on"
 		revision="1.51"
 		status="release"
-		publication="20140727195411"
+		publication="20140728025411"
 	>
 		<license name="Bouncy Castle Licence" url="http://www.bouncycastle.org/licence.html" />
 		<license name="Apache Software License, Version 1.1" url="http://www.apache.org/licenses/LICENSE-1.1" />

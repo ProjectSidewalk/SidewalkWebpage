@@ -42,7 +42,7 @@
                 <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("dashboard.accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
                 <span class="user-stats-stat">@MissionTable.countCompletedMissionsByUserId(user.get.userId, true)</span>
-                <span class="user-stats-stat">@{s"%.1f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
+                <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
                 <span class="user-stats-stat">@LabelTable.countLabelsByUserId(user.get.userId)</span>
                 <span class="user-stats-stat">@LabelValidationTable.countValidationsByUserId(user.get.userId)</span>
                 <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
@@ -127,14 +127,19 @@
             </div>
         </div>
     </div>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/AchievementTracker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeAuditedStreets.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/src/SVLabel/util/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <script>
     $(document).ready(function () {
@@ -149,7 +154,7 @@
             debug: false
         }, function(err, t) {
             var difficultRegionIds = @Json.toJson(RegionTable.difficultRegionIds);
-            window.progress = Progress(_, $, L, "@user.get.role", difficultRegionIds);
+            Progress(_, $, difficultRegionIds, '@user.get.role');
 
             const achievementTracker = new AchievementTracker();
             achievementTracker.updateBadgeAchievementGrid(

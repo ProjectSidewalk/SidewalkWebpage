@@ -4,7 +4,7 @@
 		module="jnotify"
 		revision="0.94"
 		status="release"
-		publication="20160818005306"
+		publication="20160818075306"
 	>
 		<license name="The GNU Lesser General Public License, Version 2.1" url="http://www.gnu.org/licenses/lgpl-2.1.html" />
 		<license name="Eclipse Public License (EPL), Version 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />

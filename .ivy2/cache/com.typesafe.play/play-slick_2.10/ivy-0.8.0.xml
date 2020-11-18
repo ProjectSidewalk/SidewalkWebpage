@@ -4,7 +4,7 @@
 		module="play-slick_2.10"
 		revision="0.8.0"
 		status="release"
-		publication="20140804193340"
+		publication="20140805023340"
 	>
 		<license name="Apache 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="https://github.com/playframework/play-slick">

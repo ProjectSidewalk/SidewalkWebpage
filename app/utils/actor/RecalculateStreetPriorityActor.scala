@@ -2,11 +2,9 @@ package utils.actor
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
-
 import akka.actor.{Actor, Cancellable, Props}
 import models.street.StreetEdgePriorityTable
 import play.api.Logger
-
 import scala.concurrent.duration._
 
 // Template code comes from this helpful StackOverflow post:

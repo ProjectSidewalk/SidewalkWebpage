@@ -4,7 +4,7 @@
 		module="selenium-java"
 		revision="2.39.0"
 		status="release"
-		publication="20131216132136"
+		publication="20131216212136"
 	>
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>

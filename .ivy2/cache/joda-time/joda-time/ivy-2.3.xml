@@ -4,7 +4,7 @@
 		module="joda-time"
 		revision="2.3"
 		status="release"
-		publication="20130816103125"
+		publication="20130816173125"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://www.joda.org/joda-time/">

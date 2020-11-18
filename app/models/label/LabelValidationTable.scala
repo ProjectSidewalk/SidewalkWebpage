@@ -1,16 +1,13 @@
 package models.label
 
 import java.util.UUID
-
 import models.utils.MyPostgresDriver.simple._
-import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, UserRoleTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
-
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import scala.slick.jdbc.{StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
 case class LabelValidation(validationId: Int,
@@ -32,7 +29,7 @@ case class LabelValidation(validationId: Int,
 
 
 /**
-  * Stores data from each validation interaction
+  * Stores data from each validation interaction.
   * https://www.programcreek.com/scala/slick.lifted.ForeignKeyQuery
   * @param tag
   */
@@ -68,21 +65,21 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
 }
 
 /**
-  * Data access table for label validation table
+  * Data access table for label_validation table.
   */
 object LabelValidationTable {
   val db = play.api.db.slick.DB
+  val validationLabels = TableQuery[LabelValidationTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
-  val auditTasks = TableQuery[AuditTaskTable]
   val labels = TableQuery[LabelTable]
   val labelsWithoutDeleted = labels.filter(_.deleted === false)
 
-  val validationLabels = TableQuery[LabelValidationTable]
 
   /**
-    * Returns how many agree, disagree, or unsure validations a user entered for a given mission
+    * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
+    *
     * @param missionId  Mission ID of mission
     * @param result     Validation result (1 - agree, 2 - disagree, 3 - unsure)
     * @return           Number of labels that were
@@ -92,8 +89,8 @@ object LabelValidationTable {
   }
 
   /**
-    * Gets a JSON object that holds additional information about the number of label validation
-    * results for the current mission
+    * Gets additional information about the number of label validations for the current mission.
+    *
     * @param missionId  Mission ID of the current mission
     * @return           JSON Object with information about agree/disagree/not sure counts
     */
@@ -119,8 +116,6 @@ object LabelValidationTable {
 
   /**
    * Updates validation if one already exists for this mission. Inserts a new one o/w.
-   * @param label
-   * @return
    */
   def insertOrUpdate(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val oldValidation: Option[LabelValidation] =
@@ -152,9 +147,6 @@ object LabelValidationTable {
    * ratings = 0, then it counts as unsure
    *
    * This is the version implemented below.
-   *
-   * @param userId
-   * @return
    */
   def getUserAccuracy(userId: UUID): Option[Float] = db.withSession { implicit session =>
     val accuracyQuery = Q.query[String, Option[Float]](
@@ -285,7 +277,6 @@ object LabelValidationTable {
   /**
    * Counts the number of validations performed by this user (given the supplied userId).
    *
-   * @param userId
    * @returns the number of validations performed by this user
    */
   def countValidationsByUserId(userId: UUID): Int = db.withSession { implicit session =>
@@ -311,11 +302,11 @@ object LabelValidationTable {
     */
   def countTodayValidations: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
-      """SELECT v.label_id
+      """SELECT COUNT(v.label_id)
         |FROM sidewalk.label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date""".stripMargin
     )
-    countQuery.list.size
+    countQuery.list.head
   }
 
   /**
@@ -323,11 +314,11 @@ object LabelValidationTable {
     */
   def countYesterdayValidations: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
-      """SELECT v.label_id
+      """SELECT COUNT(v.label_id)
         |FROM sidewalk.label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day""".stripMargin
     )
-    countQuery.list.size
+    countQuery.list.head
   }
 
   /**
@@ -335,12 +326,12 @@ object LabelValidationTable {
     */
   def countTodayValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
-      s"""SELECT v.label_id
+      s"""SELECT COUNT(v.label_id)
         |FROM sidewalk.label_validation v
         |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date
         |   AND v.validation_result = $result""".stripMargin
     )
-    countQuery.list.size
+    countQuery.list.head
   }
 
   /**
@@ -348,12 +339,12 @@ object LabelValidationTable {
     */
   def countYesterdayValidationsBasedOnResult(result: Int): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[(Int)](
-      s"""SELECT v.label_id
+      s"""SELECT COUNT(v.label_id)
          |FROM sidewalk.label_validation v
          |WHERE (v.end_timestamp AT TIME ZONE 'PST')::date = (NOW() AT TIME ZONE 'PST')::date - interval '1' day
          |   AND v.validation_result = $result""".stripMargin
     )
-    countQuery.list.size
+    countQuery.list.head
   }
 
   /**

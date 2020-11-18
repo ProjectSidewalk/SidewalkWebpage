@@ -1,7 +1,6 @@
 package models.user
 
 import java.util.UUID
-
 import com.mohiva.play.silhouette.api.{Identity, LoginInfo}
 
 /**
@@ -14,4 +13,3 @@ import com.mohiva.play.silhouette.api.{Identity, LoginInfo}
  * @param email Maybe the email of the authenticated provider.
  */
 case class User (userId: UUID, loginInfo: LoginInfo, username: String, email: String, role: Option[String]) extends Identity
-

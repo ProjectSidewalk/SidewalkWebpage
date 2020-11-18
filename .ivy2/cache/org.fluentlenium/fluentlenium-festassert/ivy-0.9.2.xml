@@ -4,7 +4,7 @@
 		module="fluentlenium-festassert"
 		revision="0.9.2"
 		status="release"
-		publication="20140127061836"
+		publication="20140127141836"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="https://github.com/FluentLenium/FluentLenium">

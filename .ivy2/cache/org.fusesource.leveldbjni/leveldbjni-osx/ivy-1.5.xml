@@ -4,14 +4,14 @@
 		module="leveldbjni-osx"
 		revision="1.5"
 		status="release"
-		publication="20130123140531"
+		publication="20130123220531"
 	>
 		<description homepage="">
 		The leveldbjni OS X universal native libraries
 		</description>
 		<m:properties__hawtjni-version>1.6</m:properties__hawtjni-version>
 		<m:properties__leveldb-api-version>0.5</m:properties__leveldb-api-version>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:properties__forge-project-id-uc>LEVELDBJNI</m:properties__forge-project-id-uc>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-scm-plugin__1.5|org.apache.maven.plugins__maven-clean-plugin__2.3|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__2.4.3|org.apache.maven.plugins__maven-jar-plugin__2.3.1|org.fusesource.hawtjni__maven-hawtjni-plugin__1.6</m:maven.plugins>
