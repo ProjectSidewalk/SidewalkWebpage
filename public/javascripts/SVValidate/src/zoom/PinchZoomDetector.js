@@ -21,7 +21,7 @@ function PinchZoomDetector () {
      */
     function _init () {
         let panorama = svv.panorama.getPanorama();
-        let screen = document.getElementById("svv-panorama-0");
+        let screen = document.getElementById("svv-panorama");
         panorama.addListener('zoom_changed', processZoomChange);
         screen.addEventListener('touchstart', processTouchstart);
         screen.addEventListener('touchend', processTouchend);

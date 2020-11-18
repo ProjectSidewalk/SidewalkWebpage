@@ -4,7 +4,7 @@
 		module="sbt-idea"
 		revision="1.5.1"
 		status="release"
-		publication="20130727143622"
+		publication="20130727213622"
 		e:sbtVersion="0.13" e:scalaVersion="2.10"
 	>
 		<license name="BSD-style" url="http://www.opensource.org/licenses/BSD-3-Clause" />
@@ -13,7 +13,7 @@
 		</description>
 		<m:properties__sbtVersion>0.13</m:properties__sbtVersion>
 		<m:properties__scalaVersion>2.10</m:properties__scalaVersion>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

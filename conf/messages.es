@@ -12,6 +12,8 @@ cancel = Cancelar
 error = ¡Error!
 thanks = ¡Gracias!
 username = Nombre de usuario/a
+loading = Cargando...
+loading.encouragement = ¡Hagámoslo!
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -33,7 +35,7 @@ navbar.admin = Administrador
 
 landing.create.path = Creemos un camino para todas las personas
 landing.also.in = También estamos en:
-landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="otherCityLink" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
+landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
 landing.how.you.help.content = Explora virtualmente las calles de la ciudad para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
 landing.how.you.help.explore = EXPLORA

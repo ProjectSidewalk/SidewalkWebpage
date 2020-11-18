@@ -4,7 +4,7 @@
 		module="protobuf-java"
 		revision="2.5.0"
 		status="release"
-		publication="20130307161811"
+		publication="20130308001811"
 	>
 		<license name="New BSD license" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="http://code.google.com/p/protobuf">

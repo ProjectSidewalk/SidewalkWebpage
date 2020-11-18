@@ -1,10 +1,8 @@
 package controllers
 
 import java.util.UUID
-
 import javax.inject.Inject
 import java.net.URLDecoder
-
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
@@ -20,34 +18,26 @@ import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
 import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
-import org.geotools.geometry.jts.JTS
-import org.geotools.referencing.CRS
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.extras.geojson
 import play.api.mvc.BodyParsers
 import play.api.Play
 import play.api.Play.current
-import play.api.cache.Cache
 import play.api.cache.EhCachePlugin
-
 import scala.concurrent.Future
-import scala.collection.mutable.ListBuffer
 
 /**
   * Todo. This controller is written quickly and not well thought out. Someone could polish the controller together with the model code that was written kind of ad-hoc.
-  * @param env
   */
 class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  // Helper methods
   def isAdmin(user: Option[User]): Boolean = user match {
     case Some(user) =>
       if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
     case _ => false
   }
 
-  // Pages
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
@@ -78,12 +68,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  // JSON APIs
-
   /**
-   * Get a list of all labels
-   *
-   * @return
+   * Get a list of all labels.
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -107,9 +93,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-   * Get a list of all labels
-   *
-   * @return
+   * Get a list of all labels.
    */
   def getAllLabelsForLabelMap = UserAwareAction.async { implicit request =>
     val labels = LabelTable.selectLocationsAndSeveritiesOfLabels
@@ -130,8 +114,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
     * Admin API endpoint that produces JSON output of all labels with sufficient metadata to produce crops
     * for computer vision applications.
-    *
-    * @return
     */
   def getAllLabelCVMetadata = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -158,9 +140,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Get a list of all global attributes
-    *
-    * @return
+    * Get a list of all global attributes.
     */
   def getAllAttributes = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -182,9 +162,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Returns audit coverage of each neighborhood
-    *
-    * @return
+    * Returns audit coverage of each neighborhood.
     */
   def getNeighborhoodCompletionRate = UserAwareAction.async { implicit request =>
     RegionCompletionTable.initializeRegionCompletionTable()
@@ -204,8 +182,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Gets count of completed missions for each user.
-    *
-    * @return
     */
   def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -220,9 +196,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses)
-    *
-    * @return
+    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
     */
   def getAllUserSignInCounts = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -236,9 +210,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
 
   /**
-    * Returns city coverage percentage by Date
-    *
-    * @return
+    * Returns city coverage percentage by Date.
     */
   def getCompletionRateByDate = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -256,8 +228,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Returns label counts by label type, for each region
-    * @return
+    * Returns label counts by label type, for each region.
     */
   def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
 
@@ -357,8 +328,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).
-   * @param labelId
-   * @return
    */
   def getAdminLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
@@ -376,8 +345,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
    * Get metadata for a given label ID (excludes personal identifiers like username).
-   * @param labelId
-   * @return
    */
   def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
     LabelPointTable.find(labelId) match {
@@ -401,12 +368,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     }
     val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
-
   }
-
-  /**
-    * USER CENTRIC ANALYTICS
-    */
 
   def getAllUserLabelCounts = UserAwareAction.async { implicit request =>
     val labelCounts = LabelTable.getLabelCountsPerUser
@@ -417,8 +379,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-    * Outputs a list of validation counts for all users with the user's role, the
-    * number of their labels that were validated, and the number of their labels that were validated & agreed with
+    * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
+    * validated, and the number of their labels that were validated & agreed with.
     */
   def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
     val validationCounts = LabelValidationTable.getValidationCountsPerUser
@@ -455,10 +417,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
     * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
-    *
-    * @param activity
-    * @param keyValPairs
-    * @return
     */
   def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
     if (isAdmin(request.identity)) {

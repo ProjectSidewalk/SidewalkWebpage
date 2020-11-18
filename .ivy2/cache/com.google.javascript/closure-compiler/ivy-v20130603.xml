@@ -4,7 +4,7 @@
 		module="closure-compiler"
 		revision="v20130603"
 		status="release"
-		publication="20130603230347"
+		publication="20130604060347"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
 		<description homepage="http://code.google.com/p/closure-compiler/">

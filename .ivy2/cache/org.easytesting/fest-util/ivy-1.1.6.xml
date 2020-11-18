@@ -4,7 +4,7 @@
 		module="fest-util"
 		revision="1.1.6"
 		status="release"
-		publication="20110217021512"
+		publication="20110217101512"
 	>
 		<description homepage="http://fest.easytesting.org">
 		Utility methods used by FEST modules

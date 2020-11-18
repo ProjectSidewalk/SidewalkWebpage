@@ -4,7 +4,7 @@
 		module="plexus-interpolation"
 		revision="1.19"
 		status="release"
-		publication="20130806125710"
+		publication="20130806195710"
 	>
 		<description homepage="" />
 		<m:dependency.management__junit__junit__version>3.8.2</m:dependency.management__junit__junit__version>
@@ -18,7 +18,7 @@
 		<m:properties__sisu-inject.version>2.1.1</m:properties__sisu-inject.version>
 		<m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>compile</m:dependency.management__org.codehaus.plexus__plexus-component-annotations__scope>
 		<m:dependency.management__org.slf4j__jcl-over-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jcl-over-slf4j__version>
-		<e:sbtTransformHash>7174be3135c2a95a21c158fb6beb5a9621b5b898</e:sbtTransformHash>
+		<e:sbtTransformHash>5719f575b89bf472b6c7168932ed8b3752733254</e:sbtTransformHash>
 		<m:dependency.management__org.slf4j__jul-to-slf4j__version>1.6.1</m:dependency.management__org.slf4j__jul-to-slf4j__version>
 		<m:dependency.management__org.slf4j__slf4j-api__version>1.6.1</m:dependency.management__org.slf4j__slf4j-api__version>
 		<m:maven.plugins>org.codehaus.plexus__plexus-component-metadata__null|org.codehaus.plexus__plexus-component-metadata__null</m:maven.plugins>

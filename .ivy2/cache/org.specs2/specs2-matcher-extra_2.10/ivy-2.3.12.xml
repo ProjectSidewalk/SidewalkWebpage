@@ -4,7 +4,7 @@
 		module="specs2-matcher-extra_2.10"
 		revision="2.3.12"
 		status="release"
-		publication="20140512181522"
+		publication="20140513011522"
 	>
 		<license name="MIT-style" url="http://www.opensource.org/licenses/mit-license.php" />
 		<description homepage="http://specs2.org/">

@@ -1,9 +1,5 @@
 package models.attribute
 
-/**
-  * Created by misaugstad on 4/27/17.
-  */
-
 import models.label._
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
@@ -11,7 +7,6 @@ import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
-
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.language.postfixOps
 
@@ -128,7 +123,7 @@ class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("s
 }
 
 /**
-  * Data access object for the GlobalAttributeTable table
+  * Data access object for the GlobalAttributeTable table.
   */
 object GlobalAttributeTable {
   val db: slick.Database = play.api.db.slick.DB
@@ -148,13 +143,6 @@ object GlobalAttributeTable {
 
   /**
     * Gets global attributes within a bounding box for the public API.
-    *
-    * @param minLat
-    * @param minLng
-    * @param maxLat
-    * @param maxLng
-    * @param severity
-    * @return
     */
   def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     val attributes = for {
@@ -171,13 +159,6 @@ object GlobalAttributeTable {
 
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
-    *
-    * @param minLat
-    * @param minLng
-    * @param maxLat
-    * @param maxLng
-    * @param severity
-    * @return
     */
   def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String]): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = for {
@@ -210,10 +191,7 @@ object GlobalAttributeTable {
   }
 
   /**
-    * Counts the number of NoCurbRamp/SurfaceProb/Obstacle/NoSidewalk attribute counts in the given region.
-    *
-    * @param regionId
-    * @return
+    * Counts the number of NoCurbRamp/SurfaceProb/Obstacle/NoSidewalk attribute counts in each region.
     */
   def selectNegativeAttributeCountsByRegion(): List[(Int, String, Int)] = db.withSession { implicit session =>
     globalAttributes

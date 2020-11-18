@@ -4,7 +4,7 @@
 		module="scala-stm_2.10"
 		revision="0.7"
 		status="release"
-		publication="20121221193826"
+		publication="20121222033826"
 	>
 		<license name="BSD" url="https://github.com/nbronson/scala-stm/blob/master/LICENSE.txt" />
 		<description homepage="http://nbronson.github.com/scala-stm/">

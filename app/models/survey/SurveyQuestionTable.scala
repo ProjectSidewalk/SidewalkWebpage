@@ -3,8 +3,6 @@ package models.survey
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
-import scala.slick.lifted.ForeignKeyQuery
-
 case class SurveyQuestion(surveyQuestionId: Int, surveyQuestionTextId: String, surveyInputType: String, surveyDisplayRank: Option[Int], deleted: Boolean, surveyUserRoleId: Int, required: Boolean)
 
 class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, Some("sidewalk"), "survey_question") {
@@ -40,15 +38,5 @@ object SurveyQuestionTable{
 
   def listAll: List[SurveyQuestion] = db.withTransaction { implicit session =>
     surveyQuestions.filter(_.deleted === false).list
-  }
-
-  def listAllByUserRoleId(userRoleId: Int): List[SurveyQuestion] = db.withTransaction { implicit session =>
-    surveyQuestions.filter(x => x.deleted === false && x.surveyUserRoleId === userRoleId).list
-  }
-
-  def save(surveyQuestion: SurveyQuestion): Int = db.withTransaction { implicit session =>
-    val surveyQuestionId: Int =
-      (surveyQuestions returning surveyQuestions.map(_.surveyQuestionId)) += surveyQuestion
-    surveyQuestionId
   }
 }

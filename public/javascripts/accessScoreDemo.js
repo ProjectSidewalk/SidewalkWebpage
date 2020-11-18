@@ -1,7 +1,7 @@
 var neighborhoodPolygonLayer;
 
 $(document).ready(function () {
-    L.mapbox.accessToken = 'pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA';
+    L.mapbox.accessToken = 'pk.eyJ1IjoibWlzYXVnc3RhZCIsImEiOiJjajN2dTV2Mm0wMDFsMndvMXJiZWcydDRvIn0.IXE8rQNF--HikYDjccA7Ug';
 
     tileUrl = "https:\/\/a.tiles.mapbox.com\/v4\/kotarohara.8e0c6890\/{z}\/{x}\/{y}.png?access_token=pk.eyJ1Ijoia290YXJvaGFyYSIsImEiOiJDdmJnOW1FIn0.kJV65G6eNXs4ATjWCtkEmA";
     map = L.mapbox.map('map', null, {
@@ -17,7 +17,6 @@ $(document).ready(function () {
         var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
         map.setMaxBounds(L.latLngBounds(southWest, northEast));
         map.setZoom(data.default_zoom);
-
         initializeNeighborhoodPolygons(map, data.southwest_boundary, data.northeast_boundary);
         initializeSubmittedLabels(map, data.southwest_boundary, data.northeast_boundary);
     });
@@ -122,8 +121,7 @@ function updateAccessScore (significance) {
  * Render accessibility attribute points
  */
 function initializeNeighborhoodPolygons(map, southwest, northeast) {
-    var layers = [],
-        currentLayer;
+    var layers = [];
 
     function onEachNeighborhoodFeature(feature, layer) {
         var properties = feature.properties;
@@ -184,7 +182,6 @@ function initializeNeighborhoodPolygons(map, southwest, northeast) {
             zoom = zoom > 15 ? zoom : 15;
 
             map.setView(latlng, zoom, {animate: true});
-            currentLayer = this;
         });
         layers.push(layer);
     }

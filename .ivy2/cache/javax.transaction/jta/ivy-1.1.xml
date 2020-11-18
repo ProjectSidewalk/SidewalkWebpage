@@ -4,7 +4,7 @@
 		module="jta"
 		revision="1.1"
 		status="release"
-		publication="20081027182721"
+		publication="20081028012721"
 	>
 		<description homepage="http://java.sun.com/products/jta">
 		The javax.transaction package. It is appropriate for inclusion in a classpath, and may be added to a Java 2 installation.

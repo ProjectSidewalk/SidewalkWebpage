@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+	<info organisation="org.geotools"
+		module="ogc"
+		revision="23.0"
+		status="release"
+		publication="20200417042531"
+	>
+		<description homepage="">
+		Collection of EMF models for OGC Web Service scheams.
+		</description>
+		<m:dependency.management__it.geosolutions.jaiext.buffer__jt-buffer__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.buffer__jt-buffer__version>
+		<m:dependency.management__javax.media__jai_imageio__version>1.1</m:dependency.management__javax.media__jai_imageio__version>
+		<m:dependency.management__org.jaitools__jt-vectorbinarize__version>1.5.0</m:dependency.management__org.jaitools__jt-vectorbinarize__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalrpftoc__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalrpftoc__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-netcdf__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-netcdf__version>
+		<m:properties__skip.image.tests>false</m:properties__skip.image.tests>
+		<m:dependency.management__it.geosolutions.jaiext.piecewise__jt-piecewise__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.piecewise__jt-piecewise__version>
+		<m:dependency.management__org.eclipse.xsd__org.eclipse.xsd__version>2.12.0</m:dependency.management__org.eclipse.xsd__org.eclipse.xsd__version>
+		<m:dependency.management__org.postgis__postgis-driver__version>1.0</m:dependency.management__org.postgis__postgis-driver__version>
+		<m:properties__git.commit.runOnlyOnce>true</m:properties__git.commit.runOnlyOnce>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalsrp__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalsrp__version>
+		<m:dependency.management__it.geosolutions.jaiext.zonal__jt-zonal__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.zonal__jt-zonal__version>
+		<m:dependency.management__commons-logging__commons-logging__version>1.1.1</m:dependency.management__commons-logging__commons-logging__version>
+		<m:dependency.management__it.geosolutions.jaiext.iterators__jt-iterators__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.iterators__jt-iterators__version>
+		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
+		<m:dependency.management__it.geosolutions.jaiext.colorconvert__jt-colorconvert__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.colorconvert__jt-colorconvert__version>
+		<m:dependency.management__it.geosolutions.jaiext.mosaic__jt-mosaic__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.mosaic__jt-mosaic__version>
+		<m:properties__src.output>${basedir}/target</m:properties__src.output>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-png__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-png__version>
+		<m:properties__batik.version>1.10</m:properties__batik.version>
+		<m:dependency.management__org.easymock__easymock__scope>test</m:dependency.management__org.easymock__easymock__scope>
+		<m:dependency.management__org.elasticsearch.client__elasticsearch-rest-client__version>7.4.0</m:dependency.management__org.elasticsearch.client__elasticsearch-rest-client__version>
+		<m:properties__jts.version>1.16.1</m:properties__jts.version>
+		<m:dependency.management__net.sf.ehcache__ehcache__version>2.10.3</m:dependency.management__net.sf.ehcache__ehcache__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-grib1__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-grib1__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalkakadujp2__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalkakadujp2__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdaldted__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdaldted__version>
+		<m:properties__maven.build.timestamp.format>dd-MMM-yyyy HH:mm</m:properties__maven.build.timestamp.format>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalvrt__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalvrt__version>
+		<m:properties__errorProneFlags>-XepDisableAllChecks</m:properties__errorProneFlags>
+		<m:dependency.management__org.easymock__easymock__version>3.6</m:dependency.management__org.easymock__easymock__version>
+		<m:dependency.management__org.locationtech.jts__jts-example__version>1.16.1</m:dependency.management__org.locationtech.jts__jts-example__version>
+		<m:dependency.management__mysql__mysql-connector-java__version>5.1.46</m:dependency.management__mysql__mysql-connector-java__version>
+		<m:properties__fmt.action>format</m:properties__fmt.action>
+		<m:dependency.management__org.apache.solr__solr-solrj__exclusion_0>org.slf4j__slf4j-api</m:dependency.management__org.apache.solr__solr-solrj__exclusion_0>
+		<m:dependency.management__com.google.guava__guava__version>25.1-jre</m:dependency.management__com.google.guava__guava__version>
+		<m:dependency.management__com.github.davidmoten__geo__version>0.7.4</m:dependency.management__com.github.davidmoten__geo__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-svggen__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-svggen__version>
+		<m:dependency.management__org.hamcrest__hamcrest-library__version>1.3</m:dependency.management__org.hamcrest__hamcrest-library__version>
+		<m:dependency.management__org.hamcrest__hamcrest-all__version>1.3</m:dependency.management__org.hamcrest__hamcrest-all__version>
+		<m:dependency.management__org.easymock__easymockclassextension__version>3.2</m:dependency.management__org.easymock__easymockclassextension__version>
+		<m:dependency.management__it.geosolutions.jaiext.rlookup__jt-rlookup__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.rlookup__jt-rlookup__version>
+		<m:properties__test.maxHeapSize>256M</m:properties__test.maxHeapSize>
+		<m:dependency.management__xpp3__xpp3__version>1.1.3.4.O</m:dependency.management__xpp3__xpp3__version>
+		<m:dependency.management__xmlunit__xmlunit__scope>test</m:dependency.management__xmlunit__xmlunit__scope>
+		<m:dependency.management__org.apache.xmlgraphics__batik-codec__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-codec__version>
+		<m:dependency.management__com.ibm.icu__icu4j__version>3.4.4</m:dependency.management__com.ibm.icu__icu4j__version>
+		<m:dependency.management__it.geosolutions.jaiext.binarize__jt-binarize__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.binarize__jt-binarize__version>
+		<m:dependency.management__org.hsqldb__hsqldb__version>2.4.1</m:dependency.management__org.hsqldb__hsqldb__version>
+		<m:dependency.management__it.geosolutions.jaiext.colorindexer__jt-colorindexer__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.colorindexer__jt-colorindexer__version>
+		<m:dependency.management__simple-jndi__simple-jndi__version>0.11.4.1</m:dependency.management__simple-jndi__simple-jndi__version>
+		<m:properties__spotbugs.skip>true</m:properties__spotbugs.skip>
+		<m:dependency.management__org.apache.httpcomponents__httpclient__version>4.5.11</m:dependency.management__org.apache.httpcomponents__httpclient__version>
+		<m:dependency.management__it.geosolutions.jaiext.stats__jt-stats__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.stats__jt-stats__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-util__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-util__version>
+		<m:dependency.management__org.apache.ant__ant__version>1.8.1</m:dependency.management__org.apache.ant__ant__version>
+		<m:dependency.management__commons-cli__commons-cli__version>1.4</m:dependency.management__commons-cli__commons-cli__version>
+		<m:dependency.management__org.apache.commons__commons-lang3__version>3.8.1</m:dependency.management__org.apache.commons__commons-lang3__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalecw__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalecw__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-rasterizer__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-rasterizer__version>
+		<m:dependency.management__it.geosolutions.jaiext.scale__jt-scale__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.scale__jt-scale__version>
+		<m:dependency.management__org.jaitools__jt-utils__version>1.5.0</m:dependency.management__org.jaitools__jt-utils__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-tiff__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-tiff__version>
+		<m:dependency.management__velocity__velocity__version>1.4</m:dependency.management__velocity__velocity__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-awt-util__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-awt-util__version>
+		<m:dependency.management__it.geosolutions.jaiext.rescale__jt-rescale__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.rescale__jt-rescale__version>
+		<m:properties__interactive.tests>false</m:properties__interactive.tests>
+		<m:dependency.management__commons-beanutils__commons-beanutils__version>1.9.2</m:dependency.management__commons-beanutils__commons-beanutils__version>
+		<m:dependency.management__com.fasterxml.jackson.core__jackson-annotations__version>2.10.1</m:dependency.management__com.fasterxml.jackson.core__jackson-annotations__version>
+		<m:properties__netcdf.version>4.6.11</m:properties__netcdf.version>
+		<m:properties__extensive.tests>false</m:properties__extensive.tests>
+		<m:dependency.management__org.mockito__mockito-core__scope>test</m:dependency.management__org.mockito__mockito-core__scope>
+		<m:dependency.management__commons-dbcp__commons-dbcp__version>1.4</m:dependency.management__commons-dbcp__commons-dbcp__version>
+		<m:dependency.management__it.geosolutions.jaiext.nullop__jt-nullop__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.nullop__jt-nullop__version>
+		<m:properties__javac.maxHeapSize>256M</m:properties__javac.maxHeapSize>
+		<m:properties__allow.test.failure.ignore>false</m:properties__allow.test.failure.ignore>
+		<m:dependency.management__org.apache.xmlgraphics__batik-transcoder__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-transcoder__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalmrsid__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalmrsid__version>
+		<m:dependency.management__com.fasterxml.jackson.core__jackson-databind__version>2.10.1</m:dependency.management__com.fasterxml.jackson.core__jackson-databind__version>
+		<m:dependency.management__commons-httpclient__commons-httpclient__version>3.1</m:dependency.management__commons-httpclient__commons-httpclient__version>
+		<m:dependency.management__it.geosolutions.jaiext.bandmerge__jt-bandmerge__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.bandmerge__jt-bandmerge__version>
+		<m:properties__jaxb.api.version>2.4.0-b180830.0359</m:properties__jaxb.api.version>
+		<m:properties__pmd.version>6.20.0</m:properties__pmd.version>
+		<m:dependency.management__com.googlecode.json-simple__json-simple__version>1.1.1</m:dependency.management__com.googlecode.json-simple__json-simple__version>
+		<m:dependency.management__it.geosolutions.jaiext.imagefunction__jt-imagefunction__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.imagefunction__jt-imagefunction__version>
+		<m:dependency.management__org.ejml__ejml-ddense__version>0.34</m:dependency.management__org.ejml__ejml-ddense__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-hdf4__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-hdf4__version>
+		<m:dependency.management__it.geosolutions.jaiext.format__jt-format__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.format__jt-format__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalidrisi__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalidrisi__version>
+		<m:properties__maven.jacoco.plugin.version>0.8.2</m:properties__maven.jacoco.plugin.version>
+		<m:properties__imageio.ext.version>1.3.2</m:properties__imageio.ext.version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalecwjp2__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalecwjp2__version>
+		<m:properties__online.skip.pattern>**/*OnlineTest.java</m:properties__online.skip.pattern>
+		<m:dependency.management__edu.ucar__netcdf4__version>4.6.11</m:dependency.management__edu.ucar__netcdf4__version>
+		<m:dependency.management__systems.uom__systems-common-java8__version>0.7.2</m:dependency.management__systems.uom__systems-common-java8__version>
+		<m:properties__jackson2.version>2.10.1</m:properties__jackson2.version>
+		<m:properties__checkstyle.skip>true</m:properties__checkstyle.skip>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-utilities__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-utilities__version>
+		<m:dependency.management__org.hamcrest__hamcrest-core__version>1.3</m:dependency.management__org.hamcrest__hamcrest-core__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalerdasimg__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalerdasimg__version>
+		<m:dependency.management__org.eclipse.emf__org.eclipse.emf.ecore__version>2.15.0</m:dependency.management__org.eclipse.emf__org.eclipse.emf.ecore__version>
+		<m:properties__jt.version>1.5.0</m:properties__jt.version>
+		<m:dependency.management__com.oracle__ojdbc7__version>12.1.0.2</m:dependency.management__com.oracle__ojdbc7__version>
+		<m:dependency.management__oro__oro__version>2.0.8</m:dependency.management__oro__oro__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-bridge__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-bridge__version>
+		<m:dependency.management__it.geosolutions.jaiext.affine__jt-affine__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.affine__jt-affine__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-script__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-script__version>
+		<m:dependency.management__no.ecc.vectortile__java-vector-tile__version>1.3.7</m:dependency.management__no.ecc.vectortile__java-vector-tile__version>
+		<m:dependency.management__commons-collections__commons-collections__version>3.2.2</m:dependency.management__commons-collections__commons-collections__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-geocore__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-geocore__version>
+		<m:properties__test.forkMode>once</m:properties__test.forkMode>
+		<m:dependency.management__it.geosolutions.jaiext.classifier__jt-classifier__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.classifier__jt-classifier__version>
+		<m:properties__logging-profile>quiet-logging</m:properties__logging-profile>
+		<m:dependency.management__simple-jndi__simple-jndi__scope>test</m:dependency.management__simple-jndi__simple-jndi__scope>
+		<m:dependency.management__it.geosolutions.jaiext.vectorbin__jt-vectorbin__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.vectorbin__jt-vectorbin__version>
+		<m:properties__mockito.core.version>2.23.0</m:properties__mockito.core.version>
+		<m:dependency.management__jfree__eastwood__version>1.1.1-20090908</m:dependency.management__jfree__eastwood__version>
+		<m:dependency.management__it.geosolutions.jaiext.bandcombine__jt-bandcombine__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.bandcombine__jt-bandcombine__version>
+		<m:properties__javac.version>9+181-r4173-1</m:properties__javac.version>
+		<m:dependency.management__org.mockito__mockito-core__version>2.23.0</m:dependency.management__org.mockito__mockito-core__version>
+		<m:properties__postgresql.jdbc.version>42.2.5</m:properties__postgresql.jdbc.version>
+		<m:properties__sun.java2d.d3d>true</m:properties__sun.java2d.d3d>
+		<m:properties__fork.javac>false</m:properties__fork.javac>
+		<m:dependency.management__org.apache.xmlgraphics__batik-ext__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-ext__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalnitf__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalnitf__version>
+		<m:dependency.management__xpp3__xpp3_min__version>1.1.4c</m:dependency.management__xpp3__xpp3_min__version>
+		<m:dependency.management__javax.media__jai_core__version>1.1.3</m:dependency.management__javax.media__jai_core__version>
+		<m:dependency.management__junit__junit__version>4.12</m:dependency.management__junit__junit__version>
+		<m:dependency.management__org.apache.solr__solr-solrj__version>7.2.1</m:dependency.management__org.apache.solr__solr-solrj__version>
+		<m:dependency.management__log4j__log4j__version>1.2.12</m:dependency.management__log4j__log4j__version>
+		<m:properties__git.commit.useNative>false</m:properties__git.commit.useNative>
+		<m:dependency.management__javax.media__jai_codec__version>1.1.3</m:dependency.management__javax.media__jai_codec__version>
+		<m:dependency.management__com.oracle__sdoapi__version>10.2.0</m:dependency.management__com.oracle__sdoapi__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-streams__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-streams__version>
+		<m:dependency.management__it.geosolutions.jaiext.shadedrelief__jt-shadedrelief__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.shadedrelief__jt-shadedrelief__version>
+		<m:dependency.management__org.easymock__easymockclassextension__scope>test</m:dependency.management__org.easymock__easymockclassextension__scope>
+		<m:dependency.management__org.eclipse.emf__org.eclipse.emf.ecore.xmi__version>2.15.0</m:dependency.management__org.eclipse.emf__org.eclipse.emf.ecore.xmi__version>
+		<m:properties__oracle>false</m:properties__oracle>
+		<m:dependency.management__org.locationtech.spatial4j__spatial4j__version>0.6</m:dependency.management__org.locationtech.spatial4j__spatial4j__version>
+		<m:dependency.management__com.mockrunner__mockrunner-jdbc__scope>test</m:dependency.management__com.mockrunner__mockrunner-jdbc__scope>
+		<m:properties__solrj.version>7.2.1</m:properties__solrj.version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalarcbinarygrid__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalarcbinarygrid__version>
+		<m:dependency.management__it.geosolutions.jaiext.scale2__jt-scale2__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.scale2__jt-scale2__version>
+		<m:properties__qa>false</m:properties__qa>
+		<m:dependency.management__org.apache.xmlgraphics__batik-svg-dom__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-svg-dom__version>
+		<m:maven.plugins>org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null|org.codehaus.mojo__build-helper-maven-plugin__3.0.0|org.commonjava.maven.plugins__directory-maven-plugin__0.3.1|org.apache.maven.plugins__maven-assembly-plugin__2.4|org.apache.maven.plugins__maven-compiler-plugin__3.8.0|org.apache.maven.plugins__maven-resources-plugin__3.1.0|org.apache.maven.plugins__maven-surefire-plugin__2.22.1|org.apache.maven.plugins__maven-jar-plugin__3.1.0|org.apache.maven.plugins__maven-source-plugin__3.0.1|pl.project13.maven__git-commit-id-plugin__2.2.5|org.apache.maven.plugins__maven-javadoc-plugin__null|com.coveo__fmt-maven-plugin__null|null__maven-eclipse-plugin__null|com.coveo__fmt-maven-plugin__null</m:maven.plugins>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-arcgrid__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-arcgrid__version>
+		<m:dependency.management__com.h2database__h2__version>1.1.119</m:dependency.management__com.h2database__h2__version>
+		<m:dependency.management__com.mockrunner__mockrunner-jdbc__version>2.0.1</m:dependency.management__com.mockrunner__mockrunner-jdbc__version>
+		<m:dependency.management__edu.ucar__cdm__version>4.6.11</m:dependency.management__edu.ucar__cdm__version>
+		<m:dependency.management__xmlunit__xmlunit__version>1.6</m:dependency.management__xmlunit__xmlunit__version>
+		<m:properties__stress.skip.pattern>**/*StressTest.java</m:properties__stress.skip.pattern>
+		<m:dependency.management__org.locationtech.jts__jts-core__version>1.16.1</m:dependency.management__org.locationtech.jts__jts-core__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-parser__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-parser__version>
+		<m:properties__test.exclude.pattern>disabled</m:properties__test.exclude.pattern>
+		<m:dependency.management__org.apache.xmlgraphics__batik-css__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-css__version>
+		<m:dependency.management__org.jdom__jdom2__version>2.0.6</m:dependency.management__org.jdom__jdom2__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadu__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-kakadu__version>
+		<m:dependency.management__org.slf4j__slf4j-jdk14__version>1.4.0</m:dependency.management__org.slf4j__slf4j-jdk14__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-dom__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-dom__version>
+		<m:properties__java.awt.headless>true</m:properties__java.awt.headless>
+		<m:dependency.management__org.apache.xmlgraphics__batik-anim__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-anim__version>
+		<m:properties__build.timestamp>${maven.build.timestamp}</m:properties__build.timestamp>
+		<m:dependency.management__it.geosolutions.jaiext.lookup__jt-lookup__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.lookup__jt-lookup__version>
+		<m:dependency.management__commons-beanutils__commons-beanutils__scope>provided</m:dependency.management__commons-beanutils__commons-beanutils__scope>
+		<m:dependency.management__commons-pool__commons-pool__version>1.5.4</m:dependency.management__commons-pool__commons-pool__version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-gvt__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-gvt__version>
+		<m:dependency.management__it.geosolutions.jaiext.orderdither__jt-orderdither__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.orderdither__jt-orderdither__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalenvihdr__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalenvihdr__version>
+		<m:dependency.management__org.wkb4j__wkb4j__version>1.0-RC1</m:dependency.management__org.wkb4j__wkb4j__version>
+		<m:dependency.management__it.geosolutions.jaiext.warp__jt-warp__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.warp__jt-warp__version>
+		<m:dependency.management__it.geosolutions.jaiext.utilities__jt-utilities__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.utilities__jt-utilities__version>
+		<m:dependency.management__it.geosolutions.jaiext.translate__jt-translate__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.translate__jt-translate__version>
+		<m:dependency.management__com.oracle__ojdbc14__version>10.2.0.3.0</m:dependency.management__com.oracle__ojdbc14__version>
+		<m:properties__javadoc.maxHeapSize>1536M</m:properties__javadoc.maxHeapSize>
+		<m:dependency.management__org.jaitools__jt-zonalstats__version>1.5.0</m:dependency.management__org.jaitools__jt-zonalstats__version>
+		<m:properties__jaiext.version>1.1.14</m:properties__jaiext.version>
+		<m:dependency.management__com.fasterxml.jackson.core__jackson-core__version>2.10.1</m:dependency.management__com.fasterxml.jackson.core__jackson-core__version>
+		<m:properties__fmt.skip>false</m:properties__fmt.skip>
+		<m:properties__interactive.image>false</m:properties__interactive.image>
+		<m:properties__allow.test.skip>true</m:properties__allow.test.skip>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-imagereadmt__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-imagereadmt__version>
+		<m:dependency.management__commons-io__commons-io__version>2.6</m:dependency.management__commons-io__commons-io__version>
+		<m:dependency.management__javax.xml.bind__jaxb-api__version>2.4.0-b180830.0359</m:dependency.management__javax.xml.bind__jaxb-api__version>
+		<m:dependency.management__it.geosolutions.jaiext.bandselect__jt-bandselect__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.bandselect__jt-bandselect__version>
+		<m:dependency.management__org.postgresql__postgresql__version>42.2.5</m:dependency.management__org.postgresql__postgresql__version>
+		<m:properties__jaxb.runtime.version>2.4.0-b180830.0438</m:properties__jaxb.runtime.version>
+		<m:dependency.management__edu.ucar__bufr__version>4.6.11</m:dependency.management__edu.ucar__bufr__version>
+		<m:dependency.management__org.eclipse.emf__org.eclipse.emf.common__version>2.15.0</m:dependency.management__org.eclipse.emf__org.eclipse.emf.common__version>
+		<m:properties__errorProne.version>2.3.4</m:properties__errorProne.version>
+		<m:dependency.management__it.geosolutions.jaiext.errordiffusion__jt-errordiffusion__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.errordiffusion__jt-errordiffusion__version>
+		<m:properties__elasticsearch.version>7.4.0</m:properties__elasticsearch.version>
+		<m:dependency.management__org.apache.xmlgraphics__batik-xml__version>1.10</m:dependency.management__org.apache.xmlgraphics__batik-xml__version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__org.openplans__spatialdb__version>0.1</m:dependency.management__org.openplans__spatialdb__version>
+		<m:dependency.management__it.geosolutions.jaiext.border__jt-border__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.border__jt-border__version>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalehdr__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalehdr__version>
+		<m:properties__lint>none</m:properties__lint>
+		<m:dependency.management__org.xerial__sqlite-jdbc__version>3.30.1</m:dependency.management__org.xerial__sqlite-jdbc__version>
+		<m:dependency.management__it.geosolutions.jaiext.algebra__jt-algebra__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.algebra__jt-algebra__version>
+		<m:properties__pmd.skip>true</m:properties__pmd.skip>
+		<m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalmrsidjp2__version>1.3.2</m:dependency.management__it.geosolutions.imageio-ext__imageio-ext-gdalmrsidjp2__version>
+		<m:dependency.management__joda-time__joda-time__version>2.10.1</m:dependency.management__joda-time__joda-time__version>
+		<m:properties__maven.javadoc.plugin.version>3.0.1</m:properties__maven.javadoc.plugin.version>
+		<m:dependency.management__it.geosolutions.jaiext.crop__jt-crop__version>1.1.14</m:dependency.management__it.geosolutions.jaiext.crop__jt-crop__version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+	</publications>
+	<dependencies>
+		<dependency org="org.eclipse.emf" name="org.eclipse.emf.common" rev="2.15.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.eclipse.emf" name="org.eclipse.emf.ecore" rev="2.15.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="org.eclipse.emf" name="org.eclipse.emf.ecore.xmi" rev="2.15.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="javax.media" name="jai_core" rev="1.1.3" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(*)"/>
+		<override org="org.elasticsearch.client" module="elasticsearch-rest-client" matcher="exact" rev="7.4.0"/>
+		<override org="org.postgis" module="postgis-driver" matcher="exact" rev="1.0"/>
+		<override org="com.google.guava" module="guava" matcher="exact" rev="25.1-jre"/>
+		<override org="org.hamcrest" module="hamcrest-all" matcher="exact" rev="1.3"/>
+		<override org="org.apache.xmlgraphics" module="batik-svggen" matcher="exact" rev="1.10"/>
+		<override org="org.apache.xmlgraphics" module="batik-transcoder" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalerdasimg" matcher="exact" rev="1.3.2"/>
+		<override org="org.apache.xmlgraphics" module="batik-parser" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.jaiext.buffer" module="jt-buffer" matcher="exact" rev="1.1.14"/>
+		<override org="systems.uom" module="systems-common-java8" matcher="exact" rev="0.7.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-png" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.jaiext.nullop" module="jt-nullop" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.xmlgraphics" module="batik-svg-dom" matcher="exact" rev="1.10"/>
+		<override org="no.ecc.vectortile" module="java-vector-tile" matcher="exact" rev="1.3.7"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalvrt" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-hdf4" matcher="exact" rev="1.3.2"/>
+		<override org="com.ibm.icu" module="icu4j" matcher="exact" rev="3.4.4"/>
+		<override org="joda-time" module="joda-time" matcher="exact" rev="2.10.1"/>
+		<override org="org.jaitools" module="jt-zonalstats" matcher="exact" rev="1.5.0"/>
+		<override org="com.fasterxml.jackson.core" module="jackson-core" matcher="exact" rev="2.10.1"/>
+		<override org="org.eclipse.emf" module="org.eclipse.emf.ecore" matcher="exact" rev="2.15.0"/>
+		<override org="commons-httpclient" module="commons-httpclient" matcher="exact" rev="3.1"/>
+		<override org="commons-dbcp" module="commons-dbcp" matcher="exact" rev="1.4"/>
+		<override org="com.googlecode.json-simple" module="json-simple" matcher="exact" rev="1.1.1"/>
+		<override org="log4j" module="log4j" matcher="exact" rev="1.2.12"/>
+		<override org="it.geosolutions.jaiext.errordiffusion" module="jt-errordiffusion" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.vectorbin" module="jt-vectorbin" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalkakadujp2" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalenvihdr" matcher="exact" rev="1.3.2"/>
+		<override org="org.apache.xmlgraphics" module="batik-gvt" matcher="exact" rev="1.10"/>
+		<override org="javax.xml.bind" module="jaxb-api" matcher="exact" rev="2.4.0-b180830.0359"/>
+		<override org="org.hamcrest" module="hamcrest-core" matcher="exact" rev="1.3"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalehdr" matcher="exact" rev="1.3.2"/>
+		<override org="org.apache.xmlgraphics" module="batik-ext" matcher="exact" rev="1.10"/>
+		<override org="oro" module="oro" matcher="exact" rev="2.0.8"/>
+		<override org="jfree" module="eastwood" matcher="exact" rev="1.1.1-20090908"/>
+		<override org="org.wkb4j" module="wkb4j" matcher="exact" rev="1.0-RC1"/>
+		<override org="it.geosolutions.jaiext.border" module="jt-border" matcher="exact" rev="1.1.14"/>
+		<override org="commons-logging" module="commons-logging" matcher="exact" rev="1.1.1"/>
+		<override org="org.apache.xmlgraphics" module="batik-xml" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.jaiext.stats" module="jt-stats" matcher="exact" rev="1.1.14"/>
+		<override org="commons-pool" module="commons-pool" matcher="exact" rev="1.5.4"/>
+		<override org="org.eclipse.emf" module="org.eclipse.emf.common" matcher="exact" rev="2.15.0"/>
+		<override org="org.eclipse.emf" module="org.eclipse.emf.ecore.xmi" matcher="exact" rev="2.15.0"/>
+		<override org="it.geosolutions.jaiext.classifier" module="jt-classifier" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.utilities" module="jt-utilities" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.solr" module="solr-solrj" matcher="exact" rev="7.2.1"/>
+		<override org="org.apache.xmlgraphics" module="batik-codec" matcher="exact" rev="1.10"/>
+		<override org="org.apache.xmlgraphics" module="batik-bridge" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.jaiext.affine" module="jt-affine" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.format" module="jt-format" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.xmlgraphics" module="batik-css" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.jaiext.binarize" module="jt-binarize" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.httpcomponents" module="httpclient" matcher="exact" rev="4.5.11"/>
+		<override org="org.mockito" module="mockito-core" matcher="exact" rev="2.23.0"/>
+		<override org="edu.ucar" module="netcdf4" matcher="exact" rev="4.6.11"/>
+		<override org="org.locationtech.jts" module="jts-core" matcher="exact" rev="1.16.1"/>
+		<override org="org.apache.xmlgraphics" module="batik-dom" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.jaiext.bandmerge" module="jt-bandmerge" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.colorconvert" module="jt-colorconvert" matcher="exact" rev="1.1.14"/>
+		<override org="org.xerial" module="sqlite-jdbc" matcher="exact" rev="3.30.1"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-tiff" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-utilities" matcher="exact" rev="1.3.2"/>
+		<override org="commons-collections" module="commons-collections" matcher="exact" rev="3.2.2"/>
+		<override org="it.geosolutions.jaiext.crop" module="jt-crop" matcher="exact" rev="1.1.14"/>
+		<override org="org.jdom" module="jdom2" matcher="exact" rev="2.0.6"/>
+		<override org="velocity" module="velocity" matcher="exact" rev="1.4"/>
+		<override org="it.geosolutions.jaiext.translate" module="jt-translate" matcher="exact" rev="1.1.14"/>
+		<override org="org.hsqldb" module="hsqldb" matcher="exact" rev="2.4.1"/>
+		<override org="commons-beanutils" module="commons-beanutils" matcher="exact" rev="1.9.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalecw" matcher="exact" rev="1.3.2"/>
+		<override org="mysql" module="mysql-connector-java" matcher="exact" rev="5.1.46"/>
+		<override org="it.geosolutions.jaiext.piecewise" module="jt-piecewise" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdaldted" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalarcbinarygrid" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-kakadu" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.jaiext.warp" module="jt-warp" matcher="exact" rev="1.1.14"/>
+		<override org="edu.ucar" module="bufr" matcher="exact" rev="4.6.11"/>
+		<override org="javax.media" module="jai_codec" matcher="exact" rev="1.1.3"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-geocore" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.jaiext.bandselect" module="jt-bandselect" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.ant" module="ant" matcher="exact" rev="1.8.1"/>
+		<override org="org.openplans" module="spatialdb" matcher="exact" rev="0.1"/>
+		<override org="simple-jndi" module="simple-jndi" matcher="exact" rev="0.11.4.1"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-streams" matcher="exact" rev="1.3.2"/>
+		<override org="edu.ucar" module="cdm" matcher="exact" rev="4.6.11"/>
+		<override org="it.geosolutions.jaiext.zonal" module="jt-zonal" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalmrsidjp2" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-imagereadmt" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.jaiext.mosaic" module="jt-mosaic" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-arcgrid" matcher="exact" rev="1.3.2"/>
+		<override org="xpp3" module="xpp3" matcher="exact" rev="1.1.3.4.O"/>
+		<override org="com.h2database" module="h2" matcher="exact" rev="1.1.119"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalrpftoc" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalsrp" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.jaiext.orderdither" module="jt-orderdither" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.shadedrelief" module="jt-shadedrelief" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.xmlgraphics" module="batik-awt-util" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.jaiext.colorindexer" module="jt-colorindexer" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.scale" module="jt-scale" matcher="exact" rev="1.1.14"/>
+		<override org="net.sf.ehcache" module="ehcache" matcher="exact" rev="2.10.3"/>
+		<override org="com.fasterxml.jackson.core" module="jackson-databind" matcher="exact" rev="2.10.1"/>
+		<override org="it.geosolutions.jaiext.algebra" module="jt-algebra" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalidrisi" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.jaiext.lookup" module="jt-lookup" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalnitf" matcher="exact" rev="1.3.2"/>
+		<override org="it.geosolutions.jaiext.iterators" module="jt-iterators" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-grib1" matcher="exact" rev="1.3.2"/>
+		<override org="org.jaitools" module="jt-utils" matcher="exact" rev="1.5.0"/>
+		<override org="it.geosolutions.jaiext.bandcombine" module="jt-bandcombine" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.commons" module="commons-lang3" matcher="exact" rev="3.8.1"/>
+		<override org="org.slf4j" module="slf4j-jdk14" matcher="exact" rev="1.4.0"/>
+		<override org="com.oracle" module="ojdbc7" matcher="exact" rev="12.1.0.2"/>
+		<override org="junit" module="junit" matcher="exact" rev="4.12"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-netcdf" matcher="exact" rev="1.3.2"/>
+		<override org="commons-cli" module="commons-cli" matcher="exact" rev="1.4"/>
+		<override org="org.postgresql" module="postgresql" matcher="exact" rev="42.2.5"/>
+		<override org="org.apache.xmlgraphics" module="batik-util" matcher="exact" rev="1.10"/>
+		<override org="com.github.davidmoten" module="geo" matcher="exact" rev="0.7.4"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalmrsid" matcher="exact" rev="1.3.2"/>
+		<override org="xmlunit" module="xmlunit" matcher="exact" rev="1.6"/>
+		<override org="javax.media" module="jai_core" matcher="exact" rev="1.1.3"/>
+		<override org="com.fasterxml.jackson.core" module="jackson-annotations" matcher="exact" rev="2.10.1"/>
+		<override org="org.locationtech.spatial4j" module="spatial4j" matcher="exact" rev="0.6"/>
+		<override org="org.easymock" module="easymock" matcher="exact" rev="3.6"/>
+		<override org="com.oracle" module="ojdbc14" matcher="exact" rev="10.2.0.3.0"/>
+		<override org="org.easymock" module="easymockclassextension" matcher="exact" rev="3.2"/>
+		<override org="javax.media" module="jai_imageio" matcher="exact" rev="1.1"/>
+		<override org="org.jaitools" module="jt-vectorbinarize" matcher="exact" rev="1.5.0"/>
+		<override org="org.apache.xmlgraphics" module="batik-anim" matcher="exact" rev="1.10"/>
+		<override org="org.hamcrest" module="hamcrest-library" matcher="exact" rev="1.3"/>
+		<override org="org.locationtech.jts" module="jts-example" matcher="exact" rev="1.16.1"/>
+		<override org="it.geosolutions.jaiext.rescale" module="jt-rescale" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.rlookup" module="jt-rlookup" matcher="exact" rev="1.1.14"/>
+		<override org="it.geosolutions.jaiext.scale2" module="jt-scale2" matcher="exact" rev="1.1.14"/>
+		<override org="org.apache.xmlgraphics" module="batik-script" matcher="exact" rev="1.10"/>
+		<override org="it.geosolutions.imageio-ext" module="imageio-ext-gdalecwjp2" matcher="exact" rev="1.3.2"/>
+		<override org="org.eclipse.xsd" module="org.eclipse.xsd" matcher="exact" rev="2.12.0"/>
+		<override org="commons-io" module="commons-io" matcher="exact" rev="2.6"/>
+		<override org="org.ejml" module="ejml-ddense" matcher="exact" rev="0.34"/>
+		<override org="org.apache.xmlgraphics" module="batik-rasterizer" matcher="exact" rev="1.10"/>
+		<override org="xpp3" module="xpp3_min" matcher="exact" rev="1.1.4c"/>
+		<override org="it.geosolutions.jaiext.imagefunction" module="jt-imagefunction" matcher="exact" rev="1.1.14"/>
+		<override org="com.mockrunner" module="mockrunner-jdbc" matcher="exact" rev="2.0.1"/>
+		<override org="com.oracle" module="sdoapi" matcher="exact" rev="10.2.0"/>
+	</dependencies>
+</ivy-module>

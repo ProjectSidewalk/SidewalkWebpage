@@ -4,7 +4,7 @@
 		module="slf4j-api"
 		revision="1.7.2"
 		status="release"
-		publication="20121011115524"
+		publication="20121011185524"
 	>
 		<description homepage="http://www.slf4j.org">
 		The slf4j API

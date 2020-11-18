@@ -3,7 +3,6 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.Inject
-
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.exceptions.{ConfigurationException, ProviderException}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
@@ -20,10 +19,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader}
 import play.api.Play
-
 import scala.concurrent.Future
-
-
 
 /**
   * The credentials auth controller that is responsible for user log in.
@@ -37,8 +33,6 @@ class CredentialsAuthController @Inject() (
 
   /**
     * Authenticates a user against the credentials provider.
-    *
-    * @return The result to display.
     */
   def authenticate(url: String) = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
@@ -67,7 +61,6 @@ class CredentialsAuthController @Inject() (
 
   /**
     * REST endpoint for sign in.
-    * @return
     */
   def postAuthenticate = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(

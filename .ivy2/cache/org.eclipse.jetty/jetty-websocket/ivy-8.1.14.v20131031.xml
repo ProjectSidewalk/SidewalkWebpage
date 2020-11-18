@@ -4,7 +4,7 @@
 		module="jetty-websocket"
 		revision="8.1.14.v20131031"
 		status="release"
-		publication="20131031084328"
+		publication="20131031154328"
 	>
 		<description homepage="http://www.eclipse.org/jetty" />
 		<m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>2.5</m:dependency.management__org.eclipse.jetty.toolchain__jetty-test-helper__version>

@@ -4,7 +4,7 @@
 		module="twirl-compiler_2.10"
 		revision="1.0.2"
 		status="release"
-		publication="20140615031031"
+		publication="20140615101031"
 	>
 		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0" />
 		<description homepage="https://github.com/playframework/twirl">

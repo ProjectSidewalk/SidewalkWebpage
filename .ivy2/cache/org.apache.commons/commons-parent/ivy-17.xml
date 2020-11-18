@@ -4,7 +4,7 @@
 		module="commons-parent"
 		revision="17"
 		status="release"
-		publication="20100712034721"
+		publication="20100712104721"
 	>
 		<description homepage="http://commons.apache.org/" />
 		<m:properties__commons.docEncoding>${commons.encoding}</m:properties__commons.docEncoding>

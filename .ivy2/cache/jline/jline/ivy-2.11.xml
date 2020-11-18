@@ -4,7 +4,7 @@
 		module="jline"
 		revision="2.11"
 		status="release"
-		publication="20130519120100"
+		publication="20130519190100"
 	>
 		<license name="The BSD License" url="http://www.opensource.org/licenses/bsd-license.php" />
 		<description homepage="" />

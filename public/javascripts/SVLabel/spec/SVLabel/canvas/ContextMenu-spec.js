@@ -1,3 +1,0 @@
-describe("ContextMenu module", function () {
-
-});

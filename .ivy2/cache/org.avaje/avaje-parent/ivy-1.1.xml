@@ -4,7 +4,7 @@
 		module="avaje-parent"
 		revision="1.1"
 		status="release"
-		publication="20120402032538"
+		publication="20120402102538"
 	>
 		<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
 		<description homepage="http://www.avaje.org">

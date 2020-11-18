@@ -4,7 +4,7 @@
 		module="guice"
 		revision="4.0-beta5"
 		status="release"
-		publication="20140924140323"
+		publication="20140924210323"
 	>
 		<description homepage="" />
 		<m:properties__guice.with.jarjar>true</m:properties__guice.with.jarjar>

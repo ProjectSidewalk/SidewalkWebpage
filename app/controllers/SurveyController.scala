@@ -12,21 +12,15 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.survey._
 import models.user._
 import models.mission.MissionTable
-import models.user.{RoleTable, User, UserRoleTable, WebpageActivityTable}
+import models.user.{User, WebpageActivityTable}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
-
 import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
-/**
-  * Survey controller
-  */
 class SurveyController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
-
-  val anonymousUser: DBUser = UserTable.find("anonymous").get
 
   def postSurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[SurveySingleSubmission]]
@@ -47,9 +41,9 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
 
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
-        //this will log when a user submits a survey response
+        //this will log when a user submits a survey response.
         val ipAddress: String = request.remoteAddress
-        WebpageActivityTable.save(WebpageActivity(0, userId.toString, ipAddress, "SurveySubmit", timestamp))
+        WebpageActivityTable.save(WebpageActivity(0, userId, ipAddress, "SurveySubmit", timestamp))
 
         val numMissionsCompleted: Int = MissionTable.countCompletedMissionsByUserId(UUID.fromString(userId), includeOnboarding = false)
 
@@ -58,7 +52,7 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         val answeredQuestionIds = submission.map(_.surveyQuestionId.toInt)
         val unansweredQuestionIds = allSurveyQuestionIds diff answeredQuestionIds
         // Iterate over all the questions and check if there is a submission attribute matching question id.
-        // Add the associated submission to the user_submission tables for that question
+        // Add the associated submission to the user_submission tables for that question.
 
 
         submission.foreach{ q =>
@@ -94,11 +88,9 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
               None
           }
         }
-
         Future.successful(Ok(Json.obj("survey_success" -> "True")))
       }
     )
-
   }
 
   def shouldDisplaySurvey = UserAwareAction.async { implicit request =>
@@ -107,14 +99,12 @@ class SurveyController @Inject() (implicit val env: Environment[User, SessionAut
         val userId: UUID = user.userId
 
         // The survey will show exactly once, in the middle of the 2nd mission.
-
         val numMissionsBeforeSurvey = 1
         val surveyShown = WebpageActivityTable.findUserActivity("SurveyShown", userId).length
         val displaySurvey = (MissionTable.countCompletedMissionsByUserId(userId, includeOnboarding = false) == numMissionsBeforeSurvey && (surveyShown == 0))
 
-        //maps displaymodal to true in the future
+        //maps displaymodal to true in the future.
         Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
-
 
       case None => Future.successful(Redirect(s"/anonSignUp?url=/survey/display"))
     }

@@ -4,7 +4,7 @@
 		module="junit"
 		revision="4.11"
 		status="release"
-		publication="20121114112147"
+		publication="20121114192147"
 	>
 		<license name="Common Public License Version 1.0" url="http://www.opensource.org/licenses/cpl1.0.txt" />
 		<description homepage="http://junit.org">

@@ -7,7 +7,6 @@
     top: 31px;
     width: 200px;
     color: rgb(127, 127, 127);
-
 }
 
 .status-box {
@@ -47,28 +46,3 @@
 #status-holder-neighborhood-name {
     display: inline;
 }
-
-/*#status-pane-title {*/
-    /*border-bottom: 1px solid #ccc;*/
-    /*font-size: 1em;*/
-    /*margin-bottom: 3px;*/
-    /*text-align: center;*/
-/*}*/
-
-
-
-
-
-
-/*#current-status-complete {*/
-    /*background-color: rgb(254, 255, 223);*/
-/*}*/
-
-/*#current-status-title {*/
-    /*font-weight: bold;*/
-/*}*/
-
-/*.status-holder-header-1 {*/
-    /*font-weight: bold;*/
-    /*font-size: 12pt;*/
-/*}*/
