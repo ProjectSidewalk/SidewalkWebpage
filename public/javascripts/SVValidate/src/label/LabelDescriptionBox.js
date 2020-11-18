@@ -64,13 +64,13 @@ function LabelDescriptionBox () {
         if (tags && tags.length > 0) {
             // Translate to correct language and separate tags with a comma.
             let tag = tags.map(t => i18next.t('center-ui.tag.' + t)).join(', ');
-            let htmlString = document.createTextNode('tags: ' + tag);
+            let htmlString = document.createTextNode(i18next.t('tags') + tag);
             desBox.appendChild(htmlString);
             desBox.appendChild(document.createElement("br"));
         }
 
         if (description && description.trim().length > 0) {
-            let htmlString = document.createTextNode('user description: ' + description);
+            let htmlString = document.createTextNode(i18next.t('user-description') + description);
             desBox.appendChild(htmlString);
         }
 
