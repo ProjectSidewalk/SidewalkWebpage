@@ -1222,7 +1222,7 @@ kbd {
     flex-direction: row;
     justify-content: center;
     text-align: center;
-    align-items: center;
+    align-items: top;
 }
 
 /*
