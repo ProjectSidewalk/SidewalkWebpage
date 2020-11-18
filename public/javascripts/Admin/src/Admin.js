@@ -1106,12 +1106,6 @@ function Admin(_, $, difficultRegionIds) {
     initializeAdminGSVCommentView();
     initializeAdminGSVCommentWindow();
     
-    self.clearMap = clearMap;
-    self.redrawLabels = redrawLabels;
-    self.clearAuditedStreetLayer = clearAuditedStreetLayer;
-    self.redrawAuditedStreetLayer = redrawAuditedStreetLayer;
-    self.toggleLayers = toggleLayers;
-    self.toggleAuditedStreetLayer = toggleAuditedStreetLayer;
     self.clearPlayCache = clearPlayCache;
     self.toggleLayers = toggleLayersAdmin;
     self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
