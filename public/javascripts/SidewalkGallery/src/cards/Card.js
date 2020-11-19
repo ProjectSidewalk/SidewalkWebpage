@@ -35,7 +35,11 @@ function Card (params, imageUrl) {
     };
 
     let width = 360;
-    let height = 240;
+
+    let imageDim = {
+        w:0,
+        h:0
+    }
 
     let labelIcon;
 
@@ -57,7 +61,7 @@ function Card (params, imageUrl) {
         // TODO: Can we modularize this in some separate HTML
         //  file so we don't have to use template string?
         const cardHtml = `
-            <img id="${imageId}" class="static-gallery-image" width="360" height="240">
+            <img id="${imageId}" class="static-gallery-image">
             <p class="label-severity"><b>Severity:</b> ${properties.severity}</p>
             <p class="label-tags"><b>Tags:</b> ${properties.tags.length ? properties.tags.join(", ") : "None"}</p>
         `;
@@ -73,17 +77,18 @@ function Card (params, imageUrl) {
 
     function getIconCoords () {
         return {
-            x: width * properties.canvas_x / properties.canvas_width,
-            y: height * properties.canvas_y / properties.canvas_height
+            x: imageDim.w * properties.canvas_x / properties.canvas_width,
+            y: imageDim.h * properties.canvas_y / properties.canvas_height
         };
     }
 
-    function updateSize (w, h) {
+    function updateWidth(w) {
         width = w;
-        height = h;
-        let img = card.children.namedItem("label_id_" + properties.label_id);
-        img.width = w;
-        img.height = h;
+        card.style.width = w + "px";
+
+        img = card.querySelector("#label_id_" + properties.label_id);
+        imageDim.w = w - 10;
+        imageDim.h = imageDim.w/1.333;        
 
         let iconCoords = getIconCoords();
         labelIcon.style.left = iconCoords.x + "px";
@@ -197,8 +202,8 @@ function Card (params, imageUrl) {
      * render with an overload that allows you to set the width and height of the
      * card
      */
-    function renderSize(cardContainer, width, height) {
-        updateSize(width, height);
+    function renderSize(cardContainer, width) {
+        updateWidth(width);
         render(cardContainer);
     }
 
