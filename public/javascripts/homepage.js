@@ -185,6 +185,12 @@ $( document ).ready(function() {
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
+    // Triggered when 'Results Map' in index page is clicked
+    // Logs "Click_module=ResultsMap_location=Index"
+    $(".ps-skyline-overlay-btn").on("click", function() {
+        logWebpageActivity("Click_module=ResultsMap_location=Index")
+    });
+
     // Triggered when the city or mapathon links are clicked.
     // If a city link is clicked logs "Click_module=OtherCityLink_City=cityName".
     // If a mapathon link is clicked logs "Click_module=mapathonLink".
