@@ -212,7 +212,7 @@
                 var link = e.currentTarget.id.split("-")[0];
                 var activity = "Click_module=InfoFooter_"+"target="+link + "_route="+currentRoute;
                 var url = "/userapi/logWebpageActivity";
-                var async = true;
+                var async = false;
                 $.ajax({
                     async: async,
                     contentType: 'application/json; charset=utf-8',
