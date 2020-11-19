@@ -41,12 +41,13 @@ function AdminGSVCommentView(admin) {
         self.panorama.setPano(commentGSV, heading, pitch, zoom);
         
         if(labelId != 0){
+            
             var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
             $.getJSON(adminLabelUrl, function (data) {
                 setLabel(data);
             });
-        }
         
+         }
     }
 
     function setLabel(labelMetadata) {
@@ -56,6 +57,7 @@ function AdminGSVCommentView(admin) {
             labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom']);
         self.panorama.setLabel(adminPanoramaLabel);
+
     }
  
     _init();
