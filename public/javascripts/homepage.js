@@ -177,6 +177,14 @@ $( document ).ready(function() {
         logWebpageActivity("Click_module=HowYouCanHelp_tab=3");
     });
 
+    // Triggered when images in Collaborators section are clicked
+    // Logs "Click_module=Collaborator_type=<"img">_source=<"makeability" or "ligapeatonal">
+    $("#collaborators-container").on('click', 'a', function(e){
+        var type = e.currentTarget.id.split('-')[1];
+        var source = e.currentTarget.id.split('-')[0];
+        logWebpageActivity("Click_module=Collaborator_type="+type+"_source="+source);
+    });
+
     // Triggered when links in Press section are clicked
     // Logs "Click_module=Press_type=<"img" or "text">_source=<"technically," "curbed," or "diamondback">"
     $("#press-container").on('click', '.newslink', function(e){
