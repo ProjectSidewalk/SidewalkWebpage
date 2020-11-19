@@ -210,7 +210,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
                 else if (milesLeft === 1) distanceLeft = '1';
                 else distanceLeft = '>1';
                 let activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=audit';
-                postToWebpageActivity(activity);
+                logWebpageActivity(activity);
             });
         }
         return polygonData;
@@ -329,7 +329,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     }
 
     // Makes POST request that logs `activity` in WebpageActivityTable.
-    function postToWebpageActivity(activity) {
+    function logWebpageActivity(activity) {
         $.ajax({
             async: false,
             contentType: 'application/json; charset=utf-8',
