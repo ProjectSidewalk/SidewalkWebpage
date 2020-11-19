@@ -331,7 +331,7 @@ function Choropleth(_, $, difficultRegionIds, params, layers, polygonData, polyg
     // Makes POST request that logs `activity` in WebpageActivityTable.
     function postToWebpageActivity(activity) {
         $.ajax({
-            async: true,
+            async: false,
             contentType: 'application/json; charset=utf-8',
             url: '/userapi/logWebpageActivity',
             type: 'post',
