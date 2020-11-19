@@ -12,7 +12,7 @@ case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId
                             ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
                             pitch: Option[Double], zoom: Option[Int], lat: Option[Double], lng: Option[Double],
                             timestamp: Timestamp, comment: String)
-case class GenericComment(commentType: String, username: String, gsvPanoramaId: Option[String], timestamp: Timestamp, comment: String)
+case class GenericComment(commentType: String, username: String, gsvPanoramaId: Option[String], timestamp: Timestamp, comment: String, heading: Option[Double], pitch: Option[Double], zoom: Option[Int], labelId: Int)
 
 class AuditTaskCommentTable(tag: Tag) extends Table[AuditTaskComment](tag, Some("sidewalk"), "audit_task_comment") {
   def auditTaskCommentId = column[Int]("audit_task_comment_id", O.PrimaryKey, O.AutoInc)
@@ -72,11 +72,11 @@ object AuditTaskCommentTable {
   def takeRightAuditAndValidationComments(n: Integer): List[GenericComment] = db.withSession { implicit session =>
     val auditComments = (for {
       (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-    } yield ("audit", u.username, c.gsvPanoramaId, c.timestamp, c.comment)).take(n).list.map(GenericComment.tupled(_))
+    } yield ("audit", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, 0)).take(n).list.map(GenericComment.tupled(_))
 
     val validationComments = (for {
       (c, u) <- ValidationTaskCommentTable.validationTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-    } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment)).take(n).list.map(c => GenericComment(c._1, c._2, Some(c._3), c._4, c._5))
+    } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId)).take(n).list.map(c => GenericComment(c._1, c._2, Some(c._3), c._4, c._5, Some(c._6), Some(c._7), Some(c._8), c._9))
 
     (auditComments ++ validationComments).sortBy(_.timestamp).reverse.take(n)
   }

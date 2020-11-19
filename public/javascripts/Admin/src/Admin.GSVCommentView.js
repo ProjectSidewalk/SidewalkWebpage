@@ -31,19 +31,31 @@ function AdminGSVCommentView(admin) {
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#button-holder"), admin);
     }
 
-    function showCommentGSV(commentGSV) {
+    function showCommentGSV(commentGSV, heading, pitch, zoom, labelId) {
         _resetModal();
 
         self.modal.modal({
             'show': true
         });
+
+        self.panorama.setPano(commentGSV, heading, pitch, zoom);
         
-        //Parameters: (gsv_id, heading, pitch, zoom)
-        //Heading, Pitch, Zoom, set to default values(0)
-        self.panorama.setPano(commentGSV,0,0,0);
+        if(labelId != 0){
+            var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
+            $.getJSON(adminLabelUrl, function (data) {
+                setLabel(data);
+            });
+        }
+        
+    }
 
-      
+    function setLabel(labelMetadata) {
 
+        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
+            labelMetadata['canvas_x'], labelMetadata['canvas_y'],
+            labelMetadata['canvas_width'], labelMetadata['canvas_height'], labelMetadata['heading'],
+            labelMetadata['pitch'], labelMetadata['zoom']);
+        self.panorama.setLabel(adminPanoramaLabel);
     }
  
     _init();
