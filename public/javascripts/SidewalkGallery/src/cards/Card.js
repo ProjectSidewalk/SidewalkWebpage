@@ -37,13 +37,15 @@ function Card (params, imageUrl) {
     let width = 360;
     let height = 240;
 
+    let labelIcon;
+
     function _init (param) {
         for (let attrName in param) {
             properties[attrName] = param[attrName];
         }
 
         let iconUrl = sg.util.properties.panorama.getIconImagePaths(getLabelType());
-        let labelIcon = new Image();
+        labelIcon = new Image();
         labelIcon.src = iconUrl.iconImagePath;
         labelIcon.className = "label-icon";
         let iconCoords = getIconCoords();
@@ -82,6 +84,10 @@ function Card (params, imageUrl) {
         let img = card.children.namedItem("label_id_" + properties.label_id);
         img.width = w;
         img.height = h;
+
+        let iconCoords = getIconCoords();
+        labelIcon.style.left = iconCoords.x + "px";
+        labelIcon.style.top = iconCoords.y + "px";
     }
 
     // function getImageProcess(src) {
