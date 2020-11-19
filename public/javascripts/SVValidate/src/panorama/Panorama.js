@@ -1,17 +1,14 @@
 /**
  * Creates and controls the Google StreetView panorama that is used in the validation
  * interface. Uses Panomarkers to place labels onto the Panorama.
- * @param   label       Initial label to load onto the panorama.
- * @param   id          DOM ID for this Panorama. (i.e., svv-panorama)
+ * @param label Initial label to load onto the panorama.
  * @constructor
  */
-function Panorama (label, id) {
-    // abbreviated dates for panorama date overlay
-    let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function Panorama (label) {
     let currentLabel = label;
     let panorama = undefined;
     let properties = {
-        canvasId: "svv-panorama-" + id,
+        canvasId: 'svv-panorama',
         panoId: undefined,
         prevPanoId: undefined,
         prevSetPanoTimestamp: new Date().getTime(),
@@ -188,7 +185,7 @@ function Panorama (label, id) {
             streetViewService.getPanorama({pano: panorama.getPano()},
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
-                        document.getElementById("svv-panorama-date-" + id).innerText = moment(data.imageDate).format('MMM YYYY');
+                        document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
                     }
                     else {
                         console.error("Error retrieving Panoramas: " + status);
@@ -269,10 +266,7 @@ function Panorama (label, id) {
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'), label.getAuditProperty('heading'),
             label.getAuditProperty('pitch'), label.getAuditProperty('zoom'));
-        // Only set description box if on /validate and not /rapidValidate.
-        if (typeof svv.labelDescriptionBox !== 'undefined') {
-            svv.labelDescriptionBox.setDescription(label);
-        }
+        svv.labelDescriptionBox.setDescription(label);
         renderLabel();
     }
 
@@ -311,13 +305,13 @@ function Panorama (label, id) {
         let outline_h = h + 10;
         let outline_w = w + 10;
         let left = 0;
-        document.getElementById("svv-panorama-0").style.height = h + "px";
+        document.getElementById("svv-panorama").style.height = h + "px";
         document.getElementById("svv-panorama-holder").style.height = h + "px";
         document.getElementById("svv-panorama-outline").style.height = outline_h + "px";
-        document.getElementById("svv-panorama-0").style.width = w + "px";
+        document.getElementById("svv-panorama").style.width = w + "px";
         document.getElementById("svv-panorama-holder").style.width = w + "px";
         document.getElementById("svv-panorama-outline").style.width = outline_w + "px";
-        document.getElementById("svv-panorama-0").style.left = left + "px";
+        document.getElementById("svv-panorama").style.left = left + "px";
         document.getElementById("svv-panorama-holder").style.left = left + "px";
         document.getElementById("svv-panorama-outline").style.left = left + "px";
     }

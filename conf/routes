@@ -93,7 +93,6 @@ POST    /audit/groundtruth/markComplete                      @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
-GET     /rapidValidate                                       @controllers.ValidationController.rapidValidate
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.

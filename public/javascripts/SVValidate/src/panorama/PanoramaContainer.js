@@ -3,14 +3,11 @@
  * page. Fetches labels from the backend and converts them into Labels that can be placed onto the
  * GSV Panorama.
  * @param labelList     Initial list of labels to be validated (generated when the page is loaded).
- * @param idList        List of IDs for every panorama screen.
  * @returns {PanoramaContainer}
  * @constructor
  */
-function PanoramaContainer (labelList, idList) {
-    let buttons = {};
+function PanoramaContainer (labelList) {
     let labels = labelList;    // labels that all panoramas from the screen are going to be validating from
-    let panos = {};
     let properties = {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
@@ -21,18 +18,12 @@ function PanoramaContainer (labelList, idList) {
      * @private
      */
     function _init () {
-        idList.forEach(function(id) {
-            panos[id] = new Panorama(labelList[getProperty("progress")], id);
-            buttons[id] = new MenuButton(id);
-            setProperty("progress", getProperty("progress") + 1);
-        });
+        svv.panorama = new Panorama(labelList[getProperty("progress")]);
+        setProperty("progress", getProperty("progress") + 1);
 
         // Set the HTML
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
-
-        // temporary... to maintain functionality (yikes)
-        svv.panorama = panos[0];
     }
 
     /**
@@ -103,34 +94,25 @@ function PanoramaContainer (labelList, idList) {
 
     /**
      * Loads a new label onto a panorama after the user validates a label.
-     * @param panorama  Panorama to load the new label onto.
      */
-    function loadNewLabelOntoPanorama (panorama) {
-        panorama.setLabel(labels[getProperty('progress')]);
+    function loadNewLabelOntoPanorama () {
+        svv.panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
         if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
             svv.labelVisibilityControl.unhideLabel();
         }
 
-        // Update zoom availability on /validate (/rapidValidate doesn't have zoom right now).
+        // Update zoom availability on desktop.
         if (svv.zoomControl) {
             svv.zoomControl.updateZoomAvailability();
         }
     }
 
     /**
-     * Resets the validation interface. Loads a new set of label onto the panoramas. Called when a
-     * new mission is loaded onto the screen.
-     * @requires    labels contains the current list of label IDs to be loaded onto the panorama.
-     *              labels has a sufficient number of labels for this validation mission.
+     * Resets the validation interface for a new mission. Loads a new set of label onto the panoramas.
      */
     function reset () {
         setProperty('progress', 0);
-
-        idList.forEach(function(id) {
-           panos[id].setLabel(labels[id]);
-           setProperty("progress", getProperty("progress") + 1);
-        });
     }
 
     /**
@@ -176,15 +158,11 @@ function PanoramaContainer (labelList, idList) {
     }
 
     /**
-     * Updates label for the given pano.
-     * @param id
-     * @param action
-     * @param timestamp
+     * Validates the label.
      */
-    function validateLabelFromPano (id, action, timestamp, comment) {
-        let pano = panos[id];
-        pano.getCurrentLabel().validate(action, pano, comment);
-        pano.setProperty('validationTimestamp', timestamp);
+    function validateLabel (action, timestamp, comment) {
+        svv.panorama.getCurrentLabel().validate(action, comment);
+        svv.panorama.setProperty('validationTimestamp', timestamp);
     }
 
     self.fetchNewLabel = fetchNewLabel;
@@ -193,7 +171,7 @@ function PanoramaContainer (labelList, idList) {
     self.setProperty = setProperty;
     self.reset = reset;
     self.setLabelList = setLabelList;
-    self.validateLabelFromPano = validateLabelFromPano;
+    self.validateLabel = validateLabel;
 
     _init();
 

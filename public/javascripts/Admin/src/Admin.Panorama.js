@@ -17,13 +17,13 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     };
 
     var icons = {
-        CurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_CurbRamp.png',
-        NoCurbRamp : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoCurbRamp.png',
-        Obstacle : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Obstacle.png',
-        SurfaceProblem : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_SurfaceProblem.png',
-        Other : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        Occlusion : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_Other.png',
-        NoSidewalk : '/assets/javascripts/SVLabel/img/admin_label_tool/AdminTool_NoSidewalk.png'
+        CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
+        NoCurbRamp : '/assets/images/icons/AdminTool_NoCurbRamp.png',
+        Obstacle : '/assets/images/icons/AdminTool_Obstacle.png',
+        SurfaceProblem : '/assets/images/icons/AdminTool_SurfaceProblem.png',
+        Other : '/assets/images/icons/AdminTool_Other.png',
+        Occlusion : '/assets/images/icons/AdminTool_Other.png',
+        NoSidewalk : '/assets/images/icons/AdminTool_NoSidewalk.png'
     };
 
     // Determined experimentally; varies w/ GSV Panorama size

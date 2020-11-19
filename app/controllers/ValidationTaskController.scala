@@ -164,7 +164,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val labelsToRetrieve: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionProgress.missionType)
+      val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
       val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
@@ -206,8 +206,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int): Option[JsValue] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      val labelCount: Int = MissionTable.getNumberOfLabelsToRetrieve(userId, missionProgress.missionType)
-      Some(getLabelListForValidation(userId, labelCount, labelTypeId))
+      Some(getLabelListForValidation(userId, MissionTable.validationMissionLabelsToRetrieve, labelTypeId))
     } else {
       None
     }

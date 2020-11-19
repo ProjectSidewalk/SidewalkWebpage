@@ -2,14 +2,14 @@ function ModalMission (uiModalMission, user) {
     let self = this;
 
     let validationStartMissionHTML = ' <figure> \
-        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>' + i18next.t('mission-start.body') + '</p>\
         <div class="spacer10"></div>';
 
     let validationResumeMissionHTML = ' <figure> \
-        <img src="/assets/javascripts/SVLabel/img/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>Continue validating  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!</p>\
@@ -31,7 +31,7 @@ function ModalMission (uiModalMission, user) {
                 }
             );
         }
-        // Update zoom availability on /validate (/rapidValidate doesn't have zoom right now).
+        // Update zoom availability on desktop.
         if (svv.zoomControl) {
             svv.zoomControl.updateZoomAvailability();
         }
@@ -102,7 +102,7 @@ function ModalMission (uiModalMission, user) {
     }
 
     function show (title, instruction) {
-        // Disable keyboard on /validate (/rapidValidate doesn't have keyboard shortcuts right now).
+        // Disable keyboard on mobile.
         if (svv.keyboard) {
             svv.keyboard.disableKeyboard();
         }
