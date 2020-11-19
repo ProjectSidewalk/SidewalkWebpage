@@ -5,6 +5,8 @@
   "surface-problem-caps": "Problema en superficie",
   "no-sidewalk-caps": "No hay banqueta",
   "severity": "Calificación: ",
+  "tags": "Etiquitas: ",
+  "user-description": "Descripción de usuario: ",
   "temporary": "Temporal",
   "top-ui": {
     "title": {
