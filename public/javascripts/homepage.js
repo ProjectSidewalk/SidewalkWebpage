@@ -111,7 +111,7 @@ function switchToVideo(vidnum){
 
 function logWebpageActivity(activity){
     var url = "/userapi/logWebpageActivity";
-    var async = true;
+    var async = false;
     $.ajax({
         async: async,
         contentType: 'application/json; charset=utf-8',
@@ -158,10 +158,23 @@ $( document ).ready(function() {
 
     // Triggered upon clicking tabs in "How you can help" section
     // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
-    $("#numbersrow").on('click','.col-sm-4', function(e){
-        // Gets tab number as a string (i.e. "1", "2", or "3")
-        var id = e.target.innerText.charAt(1);
-        logWebpageActivity("Click_module=HowYouCanHelp_tab="+id);
+    // Gets tab number as a string (i.e. "1", "2", or "3")
+    $("#firstnumbox").on('click', function(e){
+        switchToVideo(1);
+        autoAdvanceLaptop = false;
+        logWebpageActivity("Click_module=HowYouCanHelp_tab=1");
+    });
+
+    $("#secondnumbox").on('click', function(e){
+        switchToVideo(2);
+        autoAdvanceLaptop = false;
+        logWebpageActivity("Click_module=HowYouCanHelp_tab=2");
+    });
+
+    $("#thirdnumbox").on('click', function(e){
+        switchToVideo(3);
+        autoAdvanceLaptop = false;
+        logWebpageActivity("Click_module=HowYouCanHelp_tab=3");
     });
 
     // Triggered when links in Press section are clicked
