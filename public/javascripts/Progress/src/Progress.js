@@ -21,6 +21,7 @@ function Progress (_, $, difficultRegionIds, userRole) {
         webpageActivity: 'Click_module=UserMap_regionId=',
         polygonFillMode: 'singleColor',
         zoomControl: true,
+        scrollWheelZoom: true,
         clickData: true,
         mapName: 'map',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'
