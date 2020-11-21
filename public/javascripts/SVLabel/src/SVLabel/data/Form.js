@@ -129,7 +129,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 if (labelLatLng) {
                     pointParam.lat = labelLatLng.lat;
                     pointParam.lng = labelLatLng.lng;
-                    pointParam.computation_method = labelLatLng.computationMethod;
+                    pointParam.computation_method = labelLatLng.latLngComputationMethod;
                 }
                 temp.label_points.push(pointParam);
             }

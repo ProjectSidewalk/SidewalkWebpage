@@ -96,10 +96,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
                 'mouseout': function () {
                     layer.setRadius(5);
                 }
-            })
-        // When on user dash.
-        } else { 
-            layer.bindPopup(feature.properties.type);
+            });
         }
     }
 
