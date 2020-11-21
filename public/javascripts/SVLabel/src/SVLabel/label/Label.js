@@ -872,7 +872,7 @@ function Label (svl, pathIn, params) {
                 }
                 setProperty('labelLat', latlng.lat);
                 setProperty('labelLng', latlng.lng);
-                setProperty('latLngComputationMethod', 'approximation1');
+                setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
                 return latlng;
             }
         } else {
