@@ -26,7 +26,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 lat : undefined,
                 lng : undefined
             },
-            initialPanoId : undefined,
             panoramaPov : {
                 heading : 359,
                 pitch : -10,
@@ -124,8 +123,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
     if (params.latlng) {
         properties.latlng = params.latlng;
-    } else if (('Lat' in params) && ('Lng' in params)) {
-        properties.latlng = {'lat': params.Lat, 'lng': params.Lng};
+    } else if (('lat' in params) && ('lng' in params)) {
+        properties.latlng = {'lat': params.lat, 'lng': params.lng};
     } else {
         throw self.className + ': latlng not defined.';
     }
@@ -189,18 +188,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         // http://blog.mridey.com/2010/05/controls-in-maps-javascript-api-v3.html
         // Set 'mode' to 'html4' in the SV panoramaOption.
         // https://groups.google.com/forum/?fromgroups=#!topic/google-maps-js-api-v3/q-SjeW19TJw
-        if (params.taskPanoId) {
-            panoramaOptions = {
-                mode : 'html4',
-                // position: fenway,
-                pov: properties.panoramaPov,
-                pano: params.taskPanoId,
-                showRoadLabels: false,
-                motionTracking: false,
-                motionTrackingControl: false
-            };
-        } else if (params.Lat && params.Lng) {
-            fenway = new google.maps.LatLng(params.Lat, params.Lng);
+        console.log('_init()');
+        console.log('params.lat: ' + params.lat);
+        if (params.lat && params.lng) {
+            fenway = new google.maps.LatLng(params.lat, params.lng);
             panoramaOptions = {
                 mode : 'html4',
                 position: fenway,
@@ -209,7 +200,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 motionTracking: false,
                 motionTrackingControl: false
             };
-
         } else {
             console.warn(self.className + ' init(): The pano id nor panorama position is given. Cannot initialize the panorama.');
         }
@@ -224,6 +214,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             return null;
         });
 
+        console.log('svl.panorama: ' + svl.panorama);
         if (svl.panorama) {
             svl.panorama.set('addressControl', false);
             svl.panorama.set('clickToGo', false);
@@ -236,9 +227,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('zoomControl', false);
             svl.panorama.set('keyboardShortcuts', true);
         }
-
-
-        properties.initialPanoId = params.taskPanoId;
 
         // Attach listeners to dom elements
         uiMap.viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
@@ -512,14 +500,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             status.disableWalking = false;
         }
         return this;
-    }
-
-    /**
-     * Get the initial panorama id.
-     * @returns {undefined|*}
-     */
-    function getInitialPanoId () {
-        return properties.initialPanoId;
     }
 
     /**
@@ -1947,7 +1927,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     self.enableClickZoom = enableClickZoom;
     self.enableWalking = enableWalking;
     self.finishCurrentTaskBeforeJumping = finishCurrentTaskBeforeJumping;
-    self.getInitialPanoId = getInitialPanoId;
     self.getLabelBeforeJumpListenerStatus = getLabelBeforeJumpListenerStatus;
     self.getMap = getMap;
     self.getMaxPitch = getMaxPitch;
