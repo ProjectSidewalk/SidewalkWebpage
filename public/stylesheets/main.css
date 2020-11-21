@@ -1225,6 +1225,21 @@ kbd {
     align-items: center;
 }
 
+.validation-comment-box {
+    height: 33px;
+    width: 100%;
+    background-color: "#F5F5F5";
+    margin-top: 5px;
+    color: black;
+    border-radius: 5px;
+    padding: 5px;
+    line-height: normal;
+    border-width: 2px;
+    border-color: grey;
+    resize: none;    
+    outline: none;
+}
+
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar

@@ -22,5 +22,8 @@
     "thanks": "Thanks for all your help!",
     "100-percent-complete": "100% Complete!",
     "percent-complete": "{{percent}}% Complete"
+  },
+  "label-map": {
+    "add-comment": "Add comment here..."
   }
 }
