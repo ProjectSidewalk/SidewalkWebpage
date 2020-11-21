@@ -270,8 +270,8 @@ admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard
 leaderboard.weekly.title = Weekly Leaderboard
-leaderboard.detail.overall = Leaders are calculated based on their labels, distance, and accuracy
-leaderboard.detail.weekly = Stats reset every Sunday morning at 12 AM Pacific
+leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
+leaderboard.weekly.detail = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
