@@ -21,6 +21,7 @@ function AdminUser(user) {
         webpageActivity: 'Click_module=AdminUserMap_regionId=',
         polygonFillMode: 'singleColor',
         zoomControl: true,
+        scrollWheelZoom: true,
         mapName: 'admin-map',
         mapStyle: 'mapbox://styles/mapbox/streets-v11'
     };
