@@ -4,6 +4,10 @@
 @import views.html.bootstrap._
 
 @main("Project Sidewalk - Sign In", Some("/signInMobile")) {
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
+    </head>
+
     @request.flash.get("success").map { msg =>
         <div class="col-md-6 col-md-offset-3 alert alert-success"
         style="float:none;margin-top:20px;margin-bottom:0px">
@@ -27,10 +31,6 @@
             @msg
         </div>
     }
-
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
 
     <fieldset class="col-md-6 col-md-offset-3">
         <legend>@Messages("authenticate.signin.with.credentials")</legend>
