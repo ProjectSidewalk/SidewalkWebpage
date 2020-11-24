@@ -113,7 +113,7 @@ function PanoramaContainer (labelList) {
      */
     function reset () {
         setProperty('progress', 0);
-        svv.panorama.setLabel(labels[getProperty('progress')]);
+        loadNewLabelOntoPanorama();
     }
 
     /**
