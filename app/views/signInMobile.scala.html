@@ -5,7 +5,7 @@
 
 @main("Project Sidewalk - Sign In", Some("/signInMobile")) {
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
     </head>
 
     @request.flash.get("success").map { msg =>
@@ -48,4 +48,5 @@
             <p class="not-a-member">@Html(Messages("authenticate.non.member.mobile"))</p>
         </div>
     </fieldset>
+    <link href='@routes.Assets.at("stylesheets/mobileAuthenticate.css")' rel='stylesheet' />
 }

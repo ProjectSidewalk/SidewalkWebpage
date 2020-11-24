@@ -1,0 +1,10 @@
+/* Prevents small phones from zooming in when tapping a text field. */
+.form-control {
+    font-size: 24pt;
+    border-width: 2px;
+    height: 100%;
+    width: 200%;
+    transform: scale(0.5);
+    transform-origin: left top;
+    margin-bottom: -34px;
+}
